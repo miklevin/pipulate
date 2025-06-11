@@ -28,17 +28,17 @@ class SimonSaysMcpWidget:
 
     # --- START_CLASS_ATTRIBUTES_BUNDLE ---
     UI_CONSTANTS = {
+        'SHARED': {
+            'FONT_SIZE': '0.9rem',
+            'FONT_FAMILY': 'monospace'
+        },
         'PROMPT_TEXTAREA': {
             'MIN_HEIGHT': '450px',
-            'FONT_SIZE': '0.9rem',
-            'FONT_FAMILY': 'monospace',
             'WHITE_SPACE': 'pre-wrap',
             'OVERFLOW_WRAP': 'break-word',
             'WIDTH': '100%'
         },
         'DISPLAY_CONTENT': {
-            'FONT_SIZE': '0.9rem',
-            'FONT_FAMILY': 'monospace',
             'WHITE_SPACE': 'pre-wrap',
             'OVERFLOW_WRAP': 'break-word',
             'MAX_HEIGHT': '400px',
@@ -98,15 +98,20 @@ class SimonSaysMcpWidget:
         form = await request.form()
         user_input_key = form.get('pipeline_id', '').strip()
 
+        # CRITICAL: Auto-key generation pattern - return HX-Refresh for empty keys
         if not user_input_key:
-            pipeline_id, _, _ = pip.generate_pipeline_key(self)
+            from starlette.responses import Response
+            response = Response('')
+            response.headers['HX-Refresh'] = 'true'
+            return response
+
+        # Handle user-provided keys
+        _, prefix_for_key_gen, _ = pip.generate_pipeline_key(self)
+        if user_input_key.startswith(prefix_for_key_gen) and len(user_input_key.split('-')) == 3:
+            pipeline_id = user_input_key
         else:
-            _, prefix_for_key_gen, _ = pip.generate_pipeline_key(self)
-            if user_input_key.startswith(prefix_for_key_gen) and len(user_input_key.split('-')) == 3:
-                pipeline_id = user_input_key
-            else:
-                 _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
-                 pipeline_id = f'{prefix}{user_part}'
+             _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
+             pipeline_id = f'{prefix}{user_part}'
 
         db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name})
@@ -214,13 +219,15 @@ class SimonSaysMcpWidget:
 
     def _get_textarea_style(self):
         """Generate consistent textarea style from UI constants."""
-        config = self.UI_CONSTANTS['PROMPT_TEXTAREA']
-        return f"min-height: {config['MIN_HEIGHT']}; width: {config['WIDTH']}; font-family: {config['FONT_FAMILY']}; font-size: {config['FONT_SIZE']}; white-space: {config['WHITE_SPACE']}; overflow-wrap: {config['OVERFLOW_WRAP']};"
+        shared = self.UI_CONSTANTS['SHARED']
+        textarea = self.UI_CONSTANTS['PROMPT_TEXTAREA']
+        return f"min-height: {textarea['MIN_HEIGHT']}; width: {textarea['WIDTH']}; font-family: {shared['FONT_FAMILY']}; font-size: {shared['FONT_SIZE']}; white-space: {textarea['WHITE_SPACE']}; overflow-wrap: {textarea['OVERFLOW_WRAP']};"
 
     def _get_display_style(self):
         """Generate consistent display style from UI constants."""
-        config = self.UI_CONSTANTS['DISPLAY_CONTENT']
-        return f"font-size: {config['FONT_SIZE']}; font-family: {config['FONT_FAMILY']}; white-space: {config['WHITE_SPACE']}; overflow-wrap: {config['OVERFLOW_WRAP']}; max-height: {config['MAX_HEIGHT']}; overflow-y: {config['OVERFLOW_Y']};"
+        shared = self.UI_CONSTANTS['SHARED']
+        display = self.UI_CONSTANTS['DISPLAY_CONTENT']
+        return f"font-size: {shared['FONT_SIZE']}; font-family: {shared['FONT_FAMILY']}; white-space: {display['WHITE_SPACE']}; overflow-wrap: {display['OVERFLOW_WRAP']}; max-height: {display['MAX_HEIGHT']}; overflow-y: {display['OVERFLOW_Y']};"
 
     # --- START_STEP_BUNDLE: step_01 ---
     async def step_01(self, request):
