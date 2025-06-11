@@ -1974,8 +1974,8 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
             'content': tool_message_content
         })
 
-        # 🎯 FIX: Update the final instruction for activity suggestions
-        follow_up_instruction = 'You have received a JSON object from your tool call. Present the suggested `activity` to the user in a fun and engaging way.'
+        # 🎯 FIX: Update the final instruction for cat facts
+        follow_up_instruction = 'You have received a JSON object from your tool call. Present the cat `fact` to the user in a fun and engaging way.'
         final_prompt_messages.append({
             'role': 'user', 
             'content': follow_up_instruction
@@ -3761,31 +3761,31 @@ async def poke_chatbot():
     timestamp = int(time.time())
     session_id = random.randint(1000, 9999)
     
-    one_shot_mcp_prompt = f"""You are a helpful assistant with a tool that can suggest random activities. When the user wants a suggestion, you must use this tool.
+    one_shot_mcp_prompt = f"""You are a helpful assistant with a tool that can fetch random cat facts. When the user wants a cat fact, you must use this tool.
 
 To use the tool, you MUST stop generating conversational text and output an MCP request block. 
 
 Here is the only tool you have available:
 
-Tool Name: `get_activity_suggestion`
-Description: Fetches a random activity suggestion from an external API for when you are bored.
+Tool Name: `get_cat_fact`
+Description: Fetches a random cat fact from an external API.
 Parameters: None
 
 ---
 
 🆔 Request ID: {session_id} | ⏰ Timestamp: {timestamp}
 
-The user is bored and wants a fresh activity suggestion. Use the `get_activity_suggestion` tool by generating this EXACT MCP request block:
+The user wants to learn something interesting about cats. Use the `get_cat_fact` tool by generating this EXACT MCP request block:
 
 <mcp-request>
-  <tool name="get_activity_suggestion" />
+  <tool name="get_cat_fact" />
 </mcp-request>
 
 Do not say anything else. Just output the exact MCP block above."""
 
     # This part remains the same
     asyncio.create_task(pipulate.stream(one_shot_mcp_prompt, verbatim=False, role='user'))
-    return "🤖 Fetching a random activity suggestion... Check server console for logs."
+    return "🐱 Fetching a random cat fact... Check server console for logs."
 
 @rt('/open-folder', methods=['GET'])
 async def open_folder_endpoint(request):
@@ -3865,48 +3865,28 @@ async def mcp_tool_executor_endpoint(request):
         
         log.event('mcp_server', f"MCP call received for tool: '{tool_name}'", f"Params: {params}")
 
-        if tool_name == "get_activity_suggestion":
-            # Call the external Bored API with fallback
-            fallback_activities = [
-                "Start a garden and grow your own herbs",
-                "Learn to fold 5 different origami animals", 
-                "Write a short story about your morning coffee",
-                "Create a playlist of 10 songs that make you smile",
-                "Take photos of interesting shadows around your neighborhood",
-                "Learn 10 words in a language you've never studied",
-                "Organize your bookshelf by color instead of alphabetically",
-                "Try cooking a dish from a cuisine you've never attempted",
-                "Write letters to 3 people you haven't contacted in a while",
-                "Create art using only items you can find in your kitchen"
-            ]
-            
-            activity_result = None
+        if tool_name == "get_cat_fact":
+            # Call the external Cat Fact API - 100% external, no fallbacks
             async with aiohttp.ClientSession() as session:
-                url = "https://www.boredapi.com/api/activity"
+                url = "https://catfact.ninja/fact"
                 logger.info(f"🔧 MCP SERVER: Calling external API: {url}")
-                try:
-                    async with session.get(url) as response:
-                        if response.status == 200:
-                            activity_result = await response.json()
-                            logger.success(f"🔧 MCP SERVER: Received data from Bored API: {activity_result.get('activity')}")
-                        else:
-                            logger.warning(f"🔧 MCP SERVER: Bored API returned status {response.status}, using fallback")
-                            import random
-                            activity_text = random.choice(fallback_activities)
-                            activity_result = {"activity": activity_text}
-                            logger.info(f"🔧 MCP SERVER: Using fallback activity: {activity_text}")
-                except Exception as e:
-                    logger.warning(f"🔧 MCP SERVER: API call failed ({str(e)}), using fallback")
-                    import random
-                    activity_text = random.choice(fallback_activities)
-                    activity_result = {"activity": activity_text}
-                    logger.info(f"🔧 MCP SERVER: Using fallback activity: {activity_text}")
-            
-            # Return the activity suggestion in our standard format
-            return JSONResponse({
-                "status": "success",
-                "result": activity_result
-            })
+                
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        cat_fact_result = await response.json()
+                        logger.success(f"🔧 MCP SERVER: Received cat fact from API: {cat_fact_result.get('fact')}")
+                        
+                        # Return the cat fact in our standard format
+                        return JSONResponse({
+                            "status": "success",
+                            "result": cat_fact_result
+                        })
+                    else:
+                        logger.error(f"🔧 MCP SERVER: Cat Fact API returned status {response.status}")
+                        return JSONResponse({
+                            "status": "error", 
+                            "message": f"External API returned status {response.status}"
+                        }, status_code=503)
         else:
             logger.warning(f"🔧 MCP SERVER: Unknown tool requested: {tool_name}")
             return JSONResponse({"status": "error", "message": "Tool not found"}, status_code=404)
