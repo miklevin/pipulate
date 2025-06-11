@@ -12,11 +12,14 @@ ROLES = ['Components'] # Defines which user roles can see this plugin
 
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None, None, None, False, None))
 
+# Import MODEL constant from server
+from server import MODEL
+
 class SimonSaysMcpWidget:
     """
-    Blank Placeholder Workflow
-    A minimal template for creating new Pipulate workflows.
-    It includes one placeholder step and the necessary structure for expansion.
+    Simon Says MCP Workflow
+    Educational tool for teaching users how to craft prompts that will make the LLM generate MCP tool calls.
+    This workflow demonstrates the complete MCP interaction loop with full observability.
     """
     APP_NAME = 'simon_mcp'
     DISPLAY_NAME = 'Simon Says MCP 🎪'
@@ -42,7 +45,7 @@ class SimonSaysMcpWidget:
         # self.steps includes all data steps AND the system 'finalize' step at the end.
         # splice_workflow_step.py inserts new data steps BEFORE STEPS_LIST_INSERTION_POINT.
         self.steps = [
-            Step(id='step_01', done='text_area', show='Text Area', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else ''),
+            Step(id='step_01', done='mcp_interaction', show='Simon Says Prompt', refill=True),
             # --- STEPS_LIST_INSERTION_POINT ---
             Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)
         ]
@@ -161,68 +164,113 @@ class SimonSaysMcpWidget:
 
     # --- START_STEP_BUNDLE: step_01 ---
     async def step_01(self, request):
-        """ Handles GET request for Step 1: Displays textarea form or completed value. """
+        """ Handles GET request for Step 1: Displays the Simon Says textarea form. """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        step = self.steps[self.steps_indices[step_id]]
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, '')
+        interaction_result = step_data.get(step.done, '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        if 'finalized' in finalize_data and user_val:
-            locked_msg = f'🔒 Text area content is set to: {user_val}'
-            await self.message_queue.add(pip, locked_msg, verbatim=True)
-            return Div(Card(H3(f'🔒 {step.show}'), Pre(user_val, cls='code-block-container')), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        elif user_val and state.get('_revert_target') != step_id:
-            completed_msg = f'Step 1 is complete. You entered: {user_val}'
-            await self.message_queue.add(pip, completed_msg, verbatim=True)
-            text_widget = Pre(user_val, cls='code-block-container')
-            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=text_widget, steps=steps)
-            return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+
+        if 'finalized' in finalize_data and interaction_result:
+            return Div(
+                pip.finalized_content(
+                    message=f"🔒 {step.show}: Interaction Complete",
+                    content=Pre(interaction_result, cls='code-block-container')
+                ),
+                id=step_id
+            )
+        elif interaction_result and state.get('_revert_target') != step_id:
+            return Div(
+                pip.display_revert_widget(
+                    step_id=step_id, app_name=app_name, message=f"{step.show}: Interaction Log",
+                    widget=Pre(interaction_result, cls='code-block-container'),
+                    steps=steps
+                ),
+                id=step_id
+            )
         else:
-            if step.refill and user_val:
-                display_value = user_val
-            else:
-                display_value = await self.get_suggestion(step_id, state)
-            form_msg = 'Showing text area form. No text has been entered yet.'
-            await self.message_queue.add(pip, form_msg, verbatim=True)
-            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            explanation = 'This is a text area widget for entering multiple lines of text. Use it to input longer content that may span multiple lines.'
-            await self.message_queue.add(pip, explanation, verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, style=pip.get_style('muted')), Form(pip.wrap_with_inline_button(Textarea(display_value, name=step.done, placeholder=f'Enter {step.show}', required=True, autofocus=True, style='min-height: 200px; width: 100%; padding: 8px;', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction'), button_label='Next ▸'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
+            await self.message_queue.add(pip, "Let's play Simon Says with the LLM. Edit the prompt below and see if you can get it to make a tool call!", verbatim=True)
+            
+            simon_says_prompt = """You are a helpful assistant with a tool that can fetch random cat facts. To use the tool, you MUST stop generating conversational text and output an MCP request block.
+
+Here is the only tool you have available:
+- Tool Name: `get_cat_fact`
+- Description: Fetches a random cat fact from an external API.
+- Parameters: None
+
+The user wants to learn something interesting about cats. Use the `get_cat_fact` tool by generating this EXACT MCP request block:
+<mcp-request>
+  <tool name="get_cat_fact" />
+</mcp-request>
+
+Do not say anything else. Just output the exact MCP block above."""
+            display_value = interaction_result if step.refill and interaction_result else simon_says_prompt
+
+            form_content = Form(
+                Textarea(
+                    display_value,
+                    name="simon_says_prompt",
+                    required=True,
+                    style='min-height: 300px; width: 100%; font-family: monospace; white-space: pre; overflow-wrap: normal; overflow-x: auto;'
+                ),
+                Button('Play Simon Says ▸', type='submit', cls='primary', style='margin-top: 1rem;'),
+                hx_post=f'/{app_name}/{step_id}_submit',
+                hx_target=f'#{step_id}'
+            )
+            
+            return Div(
+                Card(H3(f'🎪 {step.show}'), form_content),
+                id=step_id
+            )
 
     async def step_01_submit(self, request):
-        """Process the submission for Step 1."""
+        """Process the 'Simon Says' prompt and trigger the LLM interaction."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        if step.done == 'finalized':
-            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
-        form = await request.form()
-        user_val = form.get(step.done, '').strip()
-        submit_msg = f'User submitted text: {user_val}'
-        await self.message_queue.add(pip, submit_msg, verbatim=True)
-        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
-        if not is_valid:
-            error_msg = f'Text validation failed: {error_msg}'
-            await self.message_queue.add(pip, error_msg, verbatim=True)
-            return error_component
-        processed_val = user_val
-        await pip.set_step_data(pipeline_id, step_id, processed_val, steps)
-        confirm_msg = f'{step.show}: {processed_val}'
-        await self.message_queue.add(pip, confirm_msg, verbatim=True)
-        if pip.check_finalize_needed(step_index, steps):
-            finalize_msg = self.step_messages['finalize']['ready']
-            await self.message_queue.add(pip, finalize_msg, verbatim=True)
-        text_widget = Pre(processed_val, cls='code-block-container')
-        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=text_widget, steps=steps)
-        return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+
+        try:
+            form = await request.form()
+            prompt_text = form.get('simon_says_prompt', '').strip()
+            
+            if not prompt_text:
+                error_msg = 'Please provide a prompt for the LLM interaction.'
+                logger.error(f"Error in {app_name}/{step_id}: {error_msg}")
+                return P(error_msg, style=pip.get_style('error'))
+
+            # Show immediate feedback
+            await pip.stream(f'🤖 Okay, Simon Says... I\'m sending your instructions to the LLM. Let\'s see what happens...', role='system')
+
+            # Store the user's prompt
+            processed_val = await pip.set_step_data(
+                pipeline_id=db.get('pipeline_id', 'unknown'),
+                step_id=step_id,
+                step_value=prompt_text,
+                steps=steps
+            )
+
+            # Prepare messages for LLM interaction
+            messages = [
+                {'role': 'system', 'content': 'You are a helpful assistant capable of making tool calls when needed.'},
+                {'role': 'user', 'content': prompt_text}
+            ]
+
+            # Process the LLM interaction through the Pipulate instance
+            async for chunk in pip.process_llm_interaction(MODEL, messages):
+                await pip.stream(chunk, verbatim=True, role='assistant', simulate_typing=False)
+
+            # Use chain_reverter to trigger the next step automatically
+            return pip.chain_reverter(step_id, step_index, steps, app_name, f'LLM Interaction: {prompt_text[:50]}...')
+
+        except Exception as e:
+            error_msg = f'Error during MCP interaction processing: {str(e)}'
+            logger.error(f"Error in step_01_submit: {error_msg}")
+            await pip.stream(f'❌ Error: {error_msg}', role='system')
+            return P(error_msg, style=pip.get_style('error'))
     # --- END_STEP_BUNDLE: step_01 ---
 
     # --- STEP_METHODS_INSERTION_POINT ---

@@ -1957,6 +1957,25 @@ class Pipulate:
         self.write_state(pipeline_id, state)
         return state
 
+    async def process_llm_interaction(self, model: str, messages: list, base_app=None):
+        """
+        Process LLM interaction through dependency injection pattern.
+        
+        This method wraps the standalone process_llm_interaction function,
+        making it available through the Pipulate instance for clean
+        dependency injection in workflows.
+        
+        Args:
+            model: The LLM model name
+            messages: List of message dictionaries
+            base_app: Optional base app parameter
+            
+        Returns:
+            AsyncGenerator[str, None]: Stream of response chunks
+        """
+        async for chunk in process_llm_interaction(model, messages, base_app):
+            yield chunk
+
 async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
     url = 'http://localhost:11434/api/chat'
     payload = {'MODEL': MODEL, 'messages': messages, 'stream': True}
