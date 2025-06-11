@@ -1701,12 +1701,11 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
     word_buffer = ""  # Buffer for word-boundary detection
     mcp_detected = False
     chunk_count = 0
-    
-    # 🔍 DIAGNOSTIC: Log function entry
-    logger.info("🔍 DEBUG: === STARTING chat_with_llm ===")
-    logger.debug(f"🔍 DEBUG: \1")
-    logger.debug(f"🔍 DEBUG: \1")
-    
+    mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>)', re.DOTALL)
+
+    logger.debug("🔍 DEBUG: === STARTING chat_with_llm ===")
+    logger.debug(f"🔍 DEBUG: MODEL='{MODEL}', messages_count={len(messages)}")
+
     table = Table(title='User Input')
     table.add_column('Role', style='cyan')
     table.add_column('Content', style='orange3')
@@ -1717,355 +1716,145 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
         if isinstance(content, dict):
             content = json.dumps(content, indent=2, ensure_ascii=False)
         table.add_row(role, content)
-        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: Last message - role: {role}, content: '{content[:100]}...'")
     console.print(table)
-    
+
     try:
-        logger.debug(f"🔍 DEBUG: \1")
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload) as response:
                 if response.status != 200:
                     error_text = await response.text()
                     error_msg = f'Ollama server error: {error_text}'
                     logger.error(f"🔍 DEBUG: HTTP Error {response.status}: {error_text}")
-                    accumulated_response.append(error_msg)
                     yield error_msg
                     return
                 
-                logger.debug(f"🔍 DEBUG: \1")
-                yield '\n'
+                yield '\n' # Start with a newline for better formatting in UI
                 
                 async for line in response.content:
-                    if not line:
-                        continue
+                    if not line: continue
                     try:
                         chunk = json.loads(line)
                         chunk_count += 1
                         
-                        # 🔍 DIAGNOSTIC: Log every chunk received
-                        logger.debug(f"🔍 DEBUG: \1")
-                        logger.debug(f"🔍 DEBUG: \1")
-                        
                         if chunk.get('done', False):
-                            logger.debug(f"🔍 DEBUG: \1")
-                            print('\n', end='', flush=True)
-                            final_response = ''.join(accumulated_response)
-                            table = Table(title='Chat Response')
-                            table.add_column('Accumulated Response')
-                            table.add_row(final_response, style='green')
-                            console.print(table)
+                            logger.debug(f"🔍 DEBUG: Stream complete (done=True)")
                             break
-                            
+
                         if (content := chunk.get('message', {}).get('content', '')):
-                            # 🔍 DIAGNOSTIC: Log content details
-                            logger.debug(f"🔍 DEBUG: \1")
-                            
-                            # ---- ENHANCED MCP DETECTION WITH TOOL EXECUTION ----
-                            # Add content to full buffer for MCP monitoring
-                            old_buffer = full_content_buffer
-                            full_content_buffer += content
-                            logger.debug(f"🔍 DEBUG: \1")
-                            
-                            # If we've already detected MCP, skip any remaining content
+                            # If we've already found and handled a tool call, ignore the rest of the stream.
                             if mcp_detected:
-                                logger.debug(f"🔍 DEBUG: \1")
                                 continue
+
+                            full_content_buffer += content
                             
-                            # 🚨 AGGRESSIVE MCP DETECTION: Buffer as soon as we see ANY start of MCP
-                            # Check for any possible MCP start patterns to prevent leakage
-                            potential_mcp_start = ('<mcp' in full_content_buffer or 
-                                                 full_content_buffer.strip().endswith('<mc') or 
-                                                 full_content_buffer.strip().endswith('<m') or
-                                                 full_content_buffer.strip().endswith('<'))
-                            mcp_start_found = '<mcp-' in full_content_buffer
-                            mcp_end_found = '</mcp-request>' in full_content_buffer
-                            logger.debug(f"🔍 DEBUG: \1")
+                            # Use regex to find a complete MCP block
+                            match = mcp_pattern.search(full_content_buffer)
+                            if match:
+                                mcp_block = match.group(1)
+                                mcp_detected = True # Flag that we've found our tool call
+                                
+                                logger.info(f"🔧 MCP CLIENT: Complete MCP tool call extracted.")
+                                logger.debug(f"🔧 MCP BLOCK:\n{mcp_block}")
+                                
+                                # Offload the tool execution to a background task
+                                asyncio.create_task(
+                                    execute_and_respond_to_tool_call(messages, mcp_block)
+                                )
+                                # Now that we have the tool call, we ignore all subsequent content from this stream
+                                continue 
                             
-                            # If we detect ANY potential MCP content, start buffering immediately
-                            if potential_mcp_start:
-                                logger.debug(f"🔍 DEBUG: \1")
-                                
-                                # Check if we have complete MCP block (only process if we have the full start tag)
-                                if mcp_start_found and mcp_end_found:
-                                    # Extract and log the complete MCP block
-                                    start_idx = full_content_buffer.find('<mcp-request>')
-                                    end_idx = full_content_buffer.find('</mcp-request>') + len('</mcp-request>')
-                                    mcp_block = full_content_buffer[start_idx:end_idx]
-                                    
-                                    logger.info(f"🔧 MCP CLIENT: Complete MCP tool call detected:")
-                                    logger.info(f"🔧 MCP BLOCK:\n{mcp_block}")
-                                    logger.debug(f"🔍 DEBUG: \1")
-                                    
-                                    # Mark as detected to prevent further processing
-                                    mcp_detected = True
-                                    
-                                    # *** NEW: Execute the tool call and get LLM's final response ***
-                                    asyncio.create_task(
-                                        execute_and_respond_to_tool_call(messages, mcp_block)
-                                    )
-                                    
-                                    # Check if there's any content after the MCP block
-                                    remaining_content = full_content_buffer[end_idx:]
-                                    logger.debug(f"🔍 DEBUG: \1")
-                                    if remaining_content.strip():
-                                        logger.debug(f"🔍 DEBUG: \1")
-                                        # Process remaining content normally
-                                        formatted_content = remaining_content
-                                        if formatted_content.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
-                                            formatted_content = '\n' + formatted_content.lstrip('\n')
-                                        else:
-                                            formatted_content = re.sub('\\n\\s*\\n\\s*', '\n\n', formatted_content)
-                                            formatted_content = re.sub(r'([.!?])\n(?!\s*([-*_]){3,}\s*($|\n))', r'\1 ', formatted_content)
-                                            formatted_content = re.sub('\\n ([^\\s])', '\\n\\1', formatted_content)
-                                        
-                                        print(formatted_content, end='', flush=True)
-                                        accumulated_response.append(formatted_content)
-                                        yield formatted_content
-                                    else:
-                                        logger.debug(f"🔍 DEBUG: \1")
-                                elif mcp_start_found:
-                                    # MCP started but not complete - skip all content
-                                    logger.debug(f"🔍 DEBUG: \1")
-                                    continue
-                                else:
-                                    # Potential MCP but not confirmed yet - buffer aggressively
-                                    logger.debug(f"🔍 DEBUG: \1")
-                                    continue
-                            else:
-                                # No MCP detected - process normally
-                                logger.debug(f"🔍 DEBUG: \1")
-                                # Buffer content until we have complete words to evaluate
-                                word_buffer += content
-                                logger.debug(f"🔍 DEBUG: \1")
-                                
-                                # Split on whitespace to get complete words, preserving spacing
-                                parts = re.split(r'(\s+)', word_buffer)
-                                complete_parts = parts[:-1]  # All but the last part (might be incomplete)
-                                word_buffer = parts[-1] if parts else ""  # Keep the last potentially incomplete part
-                                
-                                logger.debug(f"🔍 DEBUG: \1")
-                                
-                                # Process complete words
-                                for word_chunk in complete_parts:
-                                    if word_chunk.strip():  # Skip pure whitespace
-                                        logger.debug(f"🔍 DEBUG: \1")
-                                        # Apply original content formatting
-                                        formatted_word = word_chunk
-                                        if formatted_word.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
-                                            formatted_word = '\n' + formatted_word.lstrip('\n')
-                                        else:
-                                            formatted_word = re.sub('\\n\\s*\\n\\s*', '\n\n', formatted_word)
-                                            formatted_word = re.sub(r'([.!?])\n(?!\s*([-*_]){3,}\s*($|\n))', r'\1 ', formatted_word)
-                                            formatted_word = re.sub('\\n ([^\\s])', '\\n\\1', formatted_word)
-                                        
-                                        print(formatted_word, end='', flush=True)
-                                        accumulated_response.append(formatted_word)
-                                        yield formatted_word
-                                    else:
-                                        logger.debug(f"🔍 DEBUG: \1")
-                                        # Preserve whitespace
-                                        print(word_chunk, end='', flush=True)
-                                        accumulated_response.append(word_chunk)
-                                        yield word_chunk
-                        else:
-                            logger.debug(f"🔍 DEBUG: \1")
+                            # If no MCP block is detected yet, stream the content normally.
+                            # This handles regular, non-tool-call conversations.
+                            word_buffer += content
+                            parts = re.split(r'(\s+)', word_buffer)
+                            if len(parts) > 1:
+                                complete_parts = parts[:-1]
+                                word_buffer = parts[-1]
+                                for part in complete_parts:
+                                    accumulated_response.append(part)
+                                    yield part
+
                     except json.JSONDecodeError:
                         logger.warning(f"🔍 DEBUG: JSON decode error on chunk #{chunk_count}")
                         continue
-                        
-        logger.debug(f"🔍 DEBUG: \1")
-        
-        # 🚨 CRITICAL FIX: Flush any remaining content in word buffer at stream completion
-        if word_buffer.strip():
-            logger.debug(f"🔍 DEBUG: \1")
-            accumulated_response.append(word_buffer)
-            yield word_buffer
-        else:
-            logger.debug(f"🔍 DEBUG: \1")
-                        
+                
+                # After the loop, if there's remaining content in the buffer and no tool was called, flush it.
+                if word_buffer and not mcp_detected:
+                    accumulated_response.append(word_buffer)
+                    yield word_buffer
+
+                # Final logging table for non-tool-call responses
+                if not mcp_detected and accumulated_response:
+                    final_response = ''.join(accumulated_response)
+                    table = Table(title='Chat Response')
+                    table.add_column('Accumulated Response')
+                    table.add_row(final_response, style='green')
+                    console.print(table)
+
     except aiohttp.ClientConnectorError as e:
         error_msg = 'Unable to connect to Ollama server. Please ensure Ollama is running.'
         logger.error(f"🔍 DEBUG: Connection error: {e}")
-        accumulated_response.append(error_msg)
         yield error_msg
     except Exception as e:
         error_msg = f'Error: {str(e)}'
-        logger.error(f"🔍 DEBUG: Unexpected error: {e}")
-        accumulated_response.append(error_msg)
+        logger.error(f"🔍 DEBUG: Unexpected error in chat_with_llm: {e}")
         yield error_msg
 
 
 async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block: str):
     """
-    Parses an MCP block, executes the tool via HTTP, and re-prompts the LLM.
-    This completes the 'table tennis' round of MCP tool calling.
+    Parses an MCP block, executes the tool, and directly formats and sends
+    the result to the UI, bypassing a second LLM call for reliability.
     """
     try:
-        logger.info("🔍 DEBUG: === STARTING execute_and_respond_to_tool_call ===")
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug("🔍 DEBUG: === STARTING execute_and_respond_to_tool_call ===")
         
-        # 1. Parse the tool name from the MCP block
         tool_name_match = re.search(r'<tool name="([^"]+)"', mcp_block)
         tool_name = tool_name_match.group(1) if tool_name_match else None
-        logger.debug(f"🔍 DEBUG: \1")
-
+        
         if not tool_name:
             logger.error("🔧 MCP CLIENT: Could not parse tool name from block.")
-            logger.error("🔍 DEBUG: Tool name parsing failed - broadcasting error")
             await chat.broadcast("Error: Could not understand the tool request.")
             return
 
-        # 2. Execute the tool call by POSTing to the local endpoint
-        tool_result = None
+        logger.debug(f"🔧 MCP CLIENT: Executing tool '{tool_name}'")
         async with aiohttp.ClientSession() as session:
-            # NOTE: The URL points to our new tool executor endpoint
             url = "http://127.0.0.1:5001/mcp-tool-executor"
-            payload = {"tool": tool_name, "params": {}} # Params are empty for this example
-            logger.info(f"🔧 MCP CLIENT: Executing tool '{tool_name}' via {url}")
-            logger.debug(f"🔍 DEBUG: \1")
-            
+            payload = {"tool": tool_name, "params": {}}
             async with session.post(url, json=payload) as response:
-                logger.debug(f"🔍 DEBUG: \1")
                 if response.status == 200:
                     tool_result = await response.json()
                     logger.success(f"🔧 MCP CLIENT: Tool '{tool_name}' executed successfully.")
-                    logger.info(f"🔧 MCP CLIENT: Tool result: {tool_result}")
-                    logger.debug(f"🔍 DEBUG: \1")
+
+                    if tool_result.get("status") == "success":
+                        fact_data = tool_result.get("result", {})
+                        the_fact = fact_data.get("fact")
+                        
+                        if the_fact:
+                            logger.success(f"✅ RELIABLE FORMATTING: Directly formatting fact: {the_fact}")
+                            # Format the fact with consistent, clean styling
+                            final_message = f"🐱 **Cat Fact Alert!** 🐱\n\n{the_fact}\n\nWould you like another fact?"
+                            append_to_conversation(final_message, 'assistant')
+                            await pipulate.message_queue.add(pipulate, final_message, verbatim=True, role='assistant')
+                        else:
+                            error_message = "The cat fact API returned a success, but the fact was missing."
+                            logger.warning(f"🔧 MCP CLIENT: {error_message}")
+                            await pipulate.message_queue.add(pipulate, error_message, verbatim=True, role='system')
+                    else:
+                        error_message = "Sorry, I couldn't fetch a cat fact at this time. The API may be down."
+                        logger.error(f"🔧 MCP CLIENT: Tool returned non-success status: {tool_result}")
+                        await pipulate.message_queue.add(pipulate, error_message, verbatim=True, role='system')
                 else:
                     error_text = await response.text()
                     logger.error(f"🔧 MCP CLIENT: Tool execution failed with status {response.status}: {error_text}")
-                    logger.error(f"🔍 DEBUG: Broadcasting tool execution error")
-                    await chat.broadcast(f"Error: The tool '{tool_name}' failed to execute.")
-                    return
-        
-        # 3. Format the second prompt with the tool's result
-        # The history needs the original prompts plus the assistant's tool request and the tool's result
-        final_prompt_messages = conversation_history.copy()
-        final_prompt_messages.append({'role': 'assistant', 'content': mcp_block})
-        
-        # 🔍 COMPREHENSIVE TOOL RESULT LOGGING 
-        logger.info("🔍 DEBUG: ===== TOOL RESULT ANALYSIS =====")
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        if isinstance(tool_result, dict):
-            logger.debug(f"🔍 DEBUG: \1")
-            if 'result' in tool_result:
-                logger.debug(f"🔍 DEBUG: \1")
-            if 'status' in tool_result:
-                logger.debug(f"🔍 DEBUG: \1")
-        logger.info("🔍 DEBUG: ===== END TOOL RESULT ANALYSIS =====")
-        
-        # 🎯 FIX: Extract the actual result value instead of sending raw JSON
-        # The LLM is ignoring the JSON format, so let's make it crystal clear
-        if isinstance(tool_result, dict) and 'result' in tool_result:
-            actual_result = tool_result['result']
-            logger.info(f"🔧 MCP CLIENT: Extracted actual result: '{actual_result}'")
-        else:
-            actual_result = str(tool_result)
-            logger.info(f"🔧 MCP CLIENT: Using stringified result: '{actual_result}'")
-        
-        # 🎯 FIX: Send the tool result in plain text instead of JSON
-        # This makes it impossible for the LLM to ignore or misinterpret
-        tool_message_content = f"TOOL RESULT: {actual_result}"
-        final_prompt_messages.append({
-            'role': 'tool',
-            'content': tool_message_content
-        })
-
-        # 🎯 FIX: Update the final instruction for cat facts
-        follow_up_instruction = 'You have received a JSON object from your tool call. Present the cat `fact` to the user in a fun and engaging way.'
-        final_prompt_messages.append({
-            'role': 'user', 
-            'content': follow_up_instruction
-        })
-        
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        for i, msg in enumerate(final_prompt_messages):
-            logger.debug(f"🔍 DEBUG: \1")
-
-        # 4. Make the second LLM call and stream the final response to the UI
-        logger.info("🔧 MCP CLIENT: Sending tool result back to LLM for final answer...")
-        logger.info("🔍 DEBUG: Starting second LLM call with tool result")
-        
-        final_response_text = ""
-        chunk_count = 0
-        async for chunk in chat_with_llm(MODEL, final_prompt_messages):
-            chunk_count += 1
-            logger.debug(f"🔍 DEBUG: \1")
-            
-            # 🔍 BROADCAST DEBUGGING
-            logger.debug(f"🔍 DEBUG: \1")
-            await chat.broadcast(chunk)
-            logger.debug(f"🔍 DEBUG: \1")
-            
-            final_response_text += chunk
-        
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        
-        # 🔍 CRITICAL BUG ANALYSIS
-        logger.info("🔍 DEBUG: ===== FINAL RESPONSE ANALYSIS =====")
-        if 'MORPHEUS' in final_response_text:
-            logger.success("✅ CORRECT: LLM mentioned MORPHEUS in final response!")
-        elif 'KATA' in final_response_text:
-            logger.error("❌ BUG DETECTED: LLM said KATA instead of MORPHEUS!")
-        else:
-            logger.warning("⚠️ UNEXPECTED: LLM response doesn't contain expected words")
-        
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.info("🔍 DEBUG: ===== END FINAL RESPONSE ANALYSIS =====")
-        
-        # 🔍 CONVERSATION HISTORY DEBUGGING
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        
-        # Add to conversation history
-        logger.debug(f"🔍 DEBUG: \1")
-        append_to_conversation(final_response_text, 'assistant')
-        logger.debug(f"🔍 DEBUG: \1")
-        
-        # Verify the conversation history was updated
-        try:
-            # Get the current conversation history to verify
-            history_file = f'memory/{get_current_profile_id()}.json'
-            logger.debug(f"🔍 DEBUG: \1")
-            if os.path.exists(history_file):
-                with open(history_file, 'r') as f:
-                    current_history = json.load(f)
-                logger.debug(f"🔍 DEBUG: \1")
-                if len(current_history) >= 2:
-                    # Show last 2 entries
-                    logger.debug(f"🔍 DEBUG: \1")
-                    for i, entry in enumerate(current_history[-2:]):
-                        logger.debug(f"🔍 DEBUG: \1")
-                elif current_history:
-                    last_entry = current_history[-1]
-                    logger.debug(f"🔍 DEBUG: \1")
-                else:
-                    logger.warning(f"🔍 DEBUG: Conversation history is empty!")
-            else:
-                logger.warning(f"🔍 DEBUG: Conversation history file doesn't exist: {history_file}")
-        except Exception as hist_e:
-            logger.error(f"🔍 DEBUG: Error reading conversation history: {hist_e}")
-        
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.success(f"🔧 MCP CLIENT: Complete MCP cycle finished. Final response: {final_response_text[:100]}...")
-        logger.info("🔍 DEBUG: === ENDING execute_and_respond_to_tool_call ===")
+                    await pipulate.message_queue.add(pipulate, f"Error: The tool '{tool_name}' failed to execute.", verbatim=True, role='system')
 
     except Exception as e:
-        logger.error(f"🔧 MCP CLIENT: Error in tool execution pipeline: {e}")
-        logger.error(f"🔍 DEBUG: Exception in execute_and_respond_to_tool_call: {e}")
-        logger.error(f"🔍 DEBUG: Broadcasting exception error")
-        await chat.broadcast(f"An unexpected error occurred during tool execution: {str(e)}")
+        logger.error(f"🔧 MCP CLIENT: Error in tool execution pipeline: {e}", exc_info=True)
+        await pipulate.message_queue.add(pipulate, f"An unexpected error occurred during tool execution: {str(e)}", verbatim=True, role='system')
+    finally:
+        logger.debug("🔍 DEBUG: === ENDING execute_and_respond_to_tool_call ===")
 
 
 def get_current_profile_id():
@@ -2428,45 +2217,37 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
 )
 
 class Chat:
-
     def __init__(self, app, id_suffix='', pipulate_instance=None):
         self.app = app
         self.id_suffix = id_suffix
-        self.pipulate_instance = pipulate_instance
+        self.pipulate = pipulate_instance
         self.logger = logger.bind(name=f'Chat{id_suffix}')
         self.active_websockets = set()
         self.startup_messages = []  # Store startup messages to replay when first client connects
         self.first_connection_handled = False  # Track if we've sent startup messages
-        self.last_message = None
-        self.last_message_time = 0
-        self.active_chat_tasks = {}  # Add this to track tasks per websocket
+        self.last_message = None  # Required for broadcast functionality
+        self.last_message_time = 0  # Required for broadcast functionality
+        self.active_chat_tasks = {}  # Track tasks per websocket
         self.app.websocket_route('/ws')(self.handle_websocket)
         self.logger.debug('Registered WebSocket route: /ws')
 
     async def handle_chat_message(self, websocket: WebSocket, message: str):
         task = None
         try:
-            append_to_conversation(message, 'user')
+            # REMOVED: append_to_conversation(message, 'user') -> This was causing the duplicates.
             parts = message.split('|')
             msg = parts[0]
             verbatim = len(parts) > 1 and parts[1] == 'verbatim'
-
-            # Frontend verbatim messages (from temp_message) are legitimate navigation messages
-            # No coordination needed - these should always go through
-
-            # Create and store the task
+            # The pipulate.stream method will handle appending to the conversation.
             task = asyncio.create_task(pipulate.stream(msg, verbatim=verbatim))
             self.active_chat_tasks[websocket] = task
             await task
-
         except asyncio.CancelledError:
             self.logger.info(f"Chat task for {websocket} was cancelled by user.")
-            # The 'finally' block in pipulate.stream will send the %%STREAM_END%% signal
         except Exception as e:
             self.logger.error(f'Error in handle_chat_message: {e}')
             traceback.print_exc()
         finally:
-            # Ensure the task is removed from tracking when it's done or cancelled
             if websocket in self.active_chat_tasks:
                 del self.active_chat_tasks[websocket]
 
@@ -3750,21 +3531,23 @@ def redirect_handler(request):
 @rt('/poke', methods=['POST'])
 async def poke_chatbot():
     """
-    Triggers the MCP proof-of-concept. All messages are now sent through the
-    message queue to ensure correct order in the UI.
+    Triggers the MCP proof-of-concept. The initial feedback is sent via the
+    message queue, and the specific tool-use prompt is handled as a direct,
+    isolated task to ensure reliability.
     """
     logger.debug('🔧 MCP external API tool call initiated via Poke button.')
 
-    # Message 1: The user-facing "fetching" message. Send it through the queue.
+    # 1. Immediately send user feedback via the message queue to ensure correct order.
     fetching_message = "🐱 Fetching a random cat fact... Check server console for logs."
-    await pipulate.message_queue.add(pipulate, fetching_message, verbatim=True, role='system')
+    # We don't need to await this, let it process in the background.
+    asyncio.create_task(pipulate.message_queue.add(pipulate, fetching_message, verbatim=True, role='system'))
 
-    # Message 2: The one-shot prompt for the LLM. Also sent through the queue.
+    # 2. Create and run the specific tool-use task in the background.
     import time
     import random
     timestamp = int(time.time())
     session_id = random.randint(1000, 9999)
-
+    
     one_shot_mcp_prompt = f"""You are a helpful assistant with a tool that can fetch random cat facts. When the user wants a cat fact, you must use this tool.
 To use the tool, you MUST stop generating conversational text and output an MCP request block.
 Here is the only tool you have available:
@@ -3779,9 +3562,10 @@ The user wants to learn something interesting about cats. Use the `get_cat_fact`
 </mcp-request>
 Do not say anything else. Just output the exact MCP block above."""
 
-    await pipulate.message_queue.add(pipulate, one_shot_mcp_prompt, verbatim=False, role='user')
-
-    # Return an empty response, as content is now delivered via WebSocket.
+    # This call is now separate from the normal user-message flow, ensuring it always runs as intended.
+    asyncio.create_task(pipulate.stream(one_shot_mcp_prompt, verbatim=False, role='user'))
+    
+    # 3. Return an empty response to the HTMX request.
     return ""
 
 @rt('/open-folder', methods=['GET'])
