@@ -194,6 +194,12 @@ PCONFIG = {
         'CRAWL_EXPORT_SIZE': 1000000,  # Crawl exports can handle full export size
     },
     
+    # Chat & Streaming Configuration
+    'CHAT_CONFIG': {
+        'TYPING_DELAY': 0.0125,  # Delay between words in typing simulation (seconds)
+        'MAX_CONVERSATION_LENGTH': 100,  # Maximum number of conversation messages to keep
+    },
+    
     # UI Constants for Workflows - Centralized button labels, emojis, and styles
     'UI_CONSTANTS': {
         'BUTTON_LABELS': {
@@ -1061,7 +1067,7 @@ class Pipulate:
                         words = message.split()
                         for i, word in enumerate(words):
                             await chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                            await asyncio.sleep(0.0125)
+                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
                 else:
                     await chat.broadcast(message)
                 
