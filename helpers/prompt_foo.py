@@ -33,14 +33,14 @@ FILES_TO_INCLUDE_RAW = """\
 # BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
 
 # CORE FILES (Background for the story)
-README.md        <-- Main GitHub README sets the tone
-flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
-requirements.txt <-- Python package dependencies for the project
+# README.md        <-- Main GitHub README sets the tone
+# flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+# requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
-/home/mike/repos/Pipulate.com/install.sh  <-- The install script for the project
+# /home/mike/repos/Pipulate.com/install.sh  <-- The install script for the project
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
-/home/mike/repos/pipulate/plugins/040_hello_workflow.py  <-- Master example and Jupyter Notebook / Unix pipe parallel illustration
+# /home/mike/repos/pipulate/plugins/040_hello_workflow.py  <-- Master example and Jupyter Notebook / Unix pipe parallel illustration
 # /home/mike/repos/pipulate/plugins/900_blank_placeholder.py
 # /home/mike/repos/pipulate/plugins/310_workflow_genesis.py  <-- The templating plugin that creates new workflows from scratch
 # /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
@@ -48,9 +48,9 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
 
 ## REQUIRED PLUGINS: ROLES & PROFILES (Secondary characters)
-/home/mike/repos/pipulate/plugins/020_profiles.py  # <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
-/home/mike/repos/pipulate/plugins/030_roles.py     # <-- Controls APP menu, required DRY CRUD plugin controls role management
-/home/mike/repos/pipulate/plugins/060_tasks.py     # <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
+# /home/mike/repos/pipulate/plugins/020_profiles.py  # <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
+# /home/mike/repos/pipulate/plugins/030_roles.py     # <-- Controls APP menu, required DRY CRUD plugin controls role management
+# /home/mike/repos/pipulate/plugins/060_tasks.py     # <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
 ## HELPER SCRIPTS  <-- Scripts to create WET Workflows, plus the Prompt Fu that made the XML bundle you're looking at
 # /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 920_blank_placeholder.py)
@@ -60,14 +60,14 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
 
 ## CUSTOM STATIC RESOURCES  <-- Necessary for core system but are custom to this project, so you weren't trained on
-/home/mike/repos/pipulate/static/alice.txt
-/home/mike/repos/pipulate/static/sortable-init.js
-/home/mike/repos/pipulate/static/chat-interactions.js
-/home/mike/repos/pipulate/static/split.js
-/home/mike/repos/pipulate/static/splitter-init.js
-/home/mike/repos/pipulate/static/styles.css
-/home/mike/repos/pipulate/static/websocket-config.js
-/home/mike/repos/pipulate/static/widget-scripts.js
+# /home/mike/repos/pipulate/static/alice.txt
+# /home/mike/repos/pipulate/static/sortable-init.js
+# /home/mike/repos/pipulate/static/chat-interactions.js
+# /home/mike/repos/pipulate/static/split.js
+# /home/mike/repos/pipulate/static/splitter-init.js
+# /home/mike/repos/pipulate/static/styles.css
+# /home/mike/repos/pipulate/static/websocket-config.js
+# /home/mike/repos/pipulate/static/widget-scripts.js
 
 ## DA RULES
 # /home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc

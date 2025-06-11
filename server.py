@@ -570,47 +570,47 @@ def append_to_conversation(message=None, role='user'):
     Returns:
         list: The complete conversation history after appending.
     """
-    logger.info(f"🔍 DEBUG: === ENTERING append_to_conversation ===")
-    logger.info(f"🔍 DEBUG: message={repr(message)}, role='{role}'")
+    logger.debug(f"🔍 DEBUG: \1")
+    logger.debug(f"🔍 DEBUG: \1")
     
     if message is None:
-        logger.info(f"🔍 DEBUG: Returning current history (length: {len(global_conversation_history)})")
+        logger.debug(f"🔍 DEBUG: \1")
         return list(global_conversation_history)
     
-    logger.info(f"🔍 DEBUG: Current global_conversation_history length: {len(global_conversation_history)}")
+    logger.debug(f"🔍 DEBUG: \1")
     
     # Check if this would be a duplicate of any of the last 3 messages to prevent rapid duplicates
     if global_conversation_history:
         recent_messages = list(global_conversation_history)[-3:]  # Check last 3 messages
-        logger.info(f"🔍 DEBUG: Checking for duplicates in last {len(recent_messages)} messages")
+        logger.debug(f"🔍 DEBUG: \1")
         for i, recent_msg in enumerate(recent_messages):
-            logger.info(f"🔍 DEBUG: Recent message [{i}]: role='{recent_msg.get('role')}', content='{recent_msg.get('content', '')[:50]}...'")
+            logger.debug(f"🔍 DEBUG: \1")
             if recent_msg['content'] == message and recent_msg['role'] == role:
                 logger.warning(f"🔍 DEBUG: DUPLICATE DETECTED! Skipping append. Message: '{message[:50]}...'")
                 return list(global_conversation_history)
-        logger.info(f"🔍 DEBUG: No duplicates found, proceeding with append")
+        logger.debug(f"🔍 DEBUG: \1")
     else:
-        logger.info(f"🔍 DEBUG: global_conversation_history is empty, no duplicate check needed")
+        logger.debug(f"🔍 DEBUG: \1")
         
     needs_system_message = len(global_conversation_history) == 0 or global_conversation_history[0]['role'] != 'system'
-    logger.info(f"🔍 DEBUG: needs_system_message: {needs_system_message}")
+    logger.debug(f"🔍 DEBUG: \1")
     if needs_system_message:
-        logger.info(f"🔍 DEBUG: Adding system message to start of conversation")
+        logger.debug(f"🔍 DEBUG: \1")
         global_conversation_history.appendleft(conversation[0])
-        logger.info(f"🔍 DEBUG: System message added, new length: {len(global_conversation_history)}")
+        logger.debug(f"🔍 DEBUG: \1")
     
-    logger.info(f"🔍 DEBUG: Appending message with role='{role}', content='{message[:100]}...'")
+    logger.debug(f"🔍 DEBUG: \1")
     global_conversation_history.append({'role': role, 'content': message})
-    logger.info(f"🔍 DEBUG: Message appended, final length: {len(global_conversation_history)}")
+    logger.debug(f"🔍 DEBUG: \1")
     
     # Log the last few messages for verification
     history_list = list(global_conversation_history)
-    logger.info(f"🔍 DEBUG: Last 3 messages in history:")
+    logger.debug(f"🔍 DEBUG: \1")
     for i, msg in enumerate(history_list[-3:]):
         idx = len(history_list) - 3 + i
-        logger.info(f"🔍 DEBUG:   [{idx}] {msg.get('role', 'unknown')}: {msg.get('content', '')[:100]}...")
+        logger.debug(f"🔍 DEBUG: \1")
     
-    logger.info(f"🔍 DEBUG: === EXITING append_to_conversation ===")
+    logger.debug(f"🔍 DEBUG: \1")
     return list(global_conversation_history)
 
 def title_name(word: str) -> str:
@@ -1071,8 +1071,8 @@ class Pipulate:
             The original message
         """
         logger.info("🔍 DEBUG: === STARTING pipulate.stream ===")
-        logger.info(f"🔍 DEBUG: verbatim={verbatim}, role='{role}', message_len={len(message)}")
-        logger.info(f"🔍 DEBUG: Message content: '{message[:200]}...'")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
         
         # For verbatim messages, bypass the streaming signals for a smoother experience
         if verbatim:
@@ -1120,7 +1120,7 @@ class Pipulate:
             
             logger.info("🔍 DEBUG: Appending message to conversation history")
             conversation_history = append_to_conversation(message, role)
-            logger.info(f"🔍 DEBUG: Conversation history length: {len(conversation_history)}")
+            logger.debug(f"🔍 DEBUG: \1")
             
             if spaces_before:
                 for _ in range(spaces_before):
@@ -1131,11 +1131,11 @@ class Pipulate:
             chunk_count = 0
             async for chunk in chat_with_llm(MODEL, conversation_history):
                 chunk_count += 1
-                logger.info(f"🔍 DEBUG: LLM chunk #{chunk_count}: '{chunk}'")
+                logger.debug(f"🔍 DEBUG: \1")
                 await chat.broadcast(chunk)
                 response_text += chunk
             
-            logger.info(f"🔍 DEBUG: LLM stream complete - Total chunks: {chunk_count}, Response length: {len(response_text)}")
+            logger.debug(f"🔍 DEBUG: \1")
             
             if spaces_after:
                 for _ in range(spaces_after):
@@ -1704,8 +1704,8 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
     
     # 🔍 DIAGNOSTIC: Log function entry
     logger.info("🔍 DEBUG: === STARTING chat_with_llm ===")
-    logger.info(f"🔍 DEBUG: MODEL='{MODEL}', messages_count={len(messages)}")
-    logger.info(f"🔍 DEBUG: Initial state - buffer: '{full_content_buffer}', mcp_detected: {mcp_detected}")
+    logger.debug(f"🔍 DEBUG: \1")
+    logger.debug(f"🔍 DEBUG: \1")
     
     table = Table(title='User Input')
     table.add_column('Role', style='cyan')
@@ -1717,11 +1717,11 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
         if isinstance(content, dict):
             content = json.dumps(content, indent=2, ensure_ascii=False)
         table.add_row(role, content)
-        logger.info(f"🔍 DEBUG: Last message - role: {role}, content: '{content[:100]}...'")
+        logger.debug(f"🔍 DEBUG: \1")
     console.print(table)
     
     try:
-        logger.info(f"🔍 DEBUG: Making POST request to {url}")
+        logger.debug(f"🔍 DEBUG: \1")
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload) as response:
                 if response.status != 200:
@@ -1732,7 +1732,7 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                     yield error_msg
                     return
                 
-                logger.info(f"🔍 DEBUG: Got HTTP {response.status}, starting stream processing")
+                logger.debug(f"🔍 DEBUG: \1")
                 yield '\n'
                 
                 async for line in response.content:
@@ -1743,11 +1743,11 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                         chunk_count += 1
                         
                         # 🔍 DIAGNOSTIC: Log every chunk received
-                        logger.info(f"🔍 DEBUG: === CHUNK #{chunk_count} ===")
-                        logger.info(f"🔍 DEBUG: Raw chunk keys: {list(chunk.keys())}")
+                        logger.debug(f"🔍 DEBUG: \1")
+                        logger.debug(f"🔍 DEBUG: \1")
                         
                         if chunk.get('done', False):
-                            logger.info(f"🔍 DEBUG: Stream complete (done=True)")
+                            logger.debug(f"🔍 DEBUG: \1")
                             print('\n', end='', flush=True)
                             final_response = ''.join(accumulated_response)
                             table = Table(title='Chat Response')
@@ -1758,17 +1758,17 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                             
                         if (content := chunk.get('message', {}).get('content', '')):
                             # 🔍 DIAGNOSTIC: Log content details
-                            logger.info(f"🔍 DEBUG: Content received: '{content}' (len={len(content)})")
+                            logger.debug(f"🔍 DEBUG: \1")
                             
                             # ---- ENHANCED MCP DETECTION WITH TOOL EXECUTION ----
                             # Add content to full buffer for MCP monitoring
                             old_buffer = full_content_buffer
                             full_content_buffer += content
-                            logger.info(f"🔍 DEBUG: Buffer update - Old: '{old_buffer}' | New: '{full_content_buffer}'")
+                            logger.debug(f"🔍 DEBUG: \1")
                             
                             # If we've already detected MCP, skip any remaining content
                             if mcp_detected:
-                                logger.info(f"🔍 DEBUG: MCP already detected, skipping content")
+                                logger.debug(f"🔍 DEBUG: \1")
                                 continue
                             
                             # 🚨 AGGRESSIVE MCP DETECTION: Buffer as soon as we see ANY start of MCP
@@ -1779,11 +1779,11 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                                                  full_content_buffer.strip().endswith('<'))
                             mcp_start_found = '<mcp-' in full_content_buffer
                             mcp_end_found = '</mcp-request>' in full_content_buffer
-                            logger.info(f"🔍 DEBUG: MCP detection - Potential: {potential_mcp_start}, Start: {mcp_start_found}, End: {mcp_end_found}")
+                            logger.debug(f"🔍 DEBUG: \1")
                             
                             # If we detect ANY potential MCP content, start buffering immediately
                             if potential_mcp_start:
-                                logger.info(f"🔍 DEBUG: Potential MCP content detected! Checking for completion...")
+                                logger.debug(f"🔍 DEBUG: \1")
                                 
                                 # Check if we have complete MCP block (only process if we have the full start tag)
                                 if mcp_start_found and mcp_end_found:
@@ -1794,7 +1794,7 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                                     
                                     logger.info(f"🔧 MCP CLIENT: Complete MCP tool call detected:")
                                     logger.info(f"🔧 MCP BLOCK:\n{mcp_block}")
-                                    logger.info(f"🔍 DEBUG: Setting mcp_detected=True and creating async task")
+                                    logger.debug(f"🔍 DEBUG: \1")
                                     
                                     # Mark as detected to prevent further processing
                                     mcp_detected = True
@@ -1806,9 +1806,9 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                                     
                                     # Check if there's any content after the MCP block
                                     remaining_content = full_content_buffer[end_idx:]
-                                    logger.info(f"🔍 DEBUG: Remaining content after MCP: '{remaining_content}'")
+                                    logger.debug(f"🔍 DEBUG: \1")
                                     if remaining_content.strip():
-                                        logger.info(f"🔍 DEBUG: Processing remaining content after MCP")
+                                        logger.debug(f"🔍 DEBUG: \1")
                                         # Process remaining content normally
                                         formatted_content = remaining_content
                                         if formatted_content.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
@@ -1822,33 +1822,33 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                                         accumulated_response.append(formatted_content)
                                         yield formatted_content
                                     else:
-                                        logger.info(f"🔍 DEBUG: No remaining content, task will handle response")
+                                        logger.debug(f"🔍 DEBUG: \1")
                                 elif mcp_start_found:
                                     # MCP started but not complete - skip all content
-                                    logger.info(f"🔍 DEBUG: MCP incomplete, buffering and skipping content")
+                                    logger.debug(f"🔍 DEBUG: \1")
                                     continue
                                 else:
                                     # Potential MCP but not confirmed yet - buffer aggressively
-                                    logger.info(f"🔍 DEBUG: Potential MCP detected, buffering content to prevent leakage")
+                                    logger.debug(f"🔍 DEBUG: \1")
                                     continue
                             else:
                                 # No MCP detected - process normally
-                                logger.info(f"🔍 DEBUG: No MCP detected, processing normally")
+                                logger.debug(f"🔍 DEBUG: \1")
                                 # Buffer content until we have complete words to evaluate
                                 word_buffer += content
-                                logger.info(f"🔍 DEBUG: Word buffer: '{word_buffer}'")
+                                logger.debug(f"🔍 DEBUG: \1")
                                 
                                 # Split on whitespace to get complete words, preserving spacing
                                 parts = re.split(r'(\s+)', word_buffer)
                                 complete_parts = parts[:-1]  # All but the last part (might be incomplete)
                                 word_buffer = parts[-1] if parts else ""  # Keep the last potentially incomplete part
                                 
-                                logger.info(f"🔍 DEBUG: Split parts: {complete_parts}, remaining buffer: '{word_buffer}'")
+                                logger.debug(f"🔍 DEBUG: \1")
                                 
                                 # Process complete words
                                 for word_chunk in complete_parts:
                                     if word_chunk.strip():  # Skip pure whitespace
-                                        logger.info(f"🔍 DEBUG: Processing word chunk: '{word_chunk}'")
+                                        logger.debug(f"🔍 DEBUG: \1")
                                         # Apply original content formatting
                                         formatted_word = word_chunk
                                         if formatted_word.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
@@ -1862,26 +1862,26 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                                         accumulated_response.append(formatted_word)
                                         yield formatted_word
                                     else:
-                                        logger.info(f"🔍 DEBUG: Preserving whitespace: '{word_chunk}'")
+                                        logger.debug(f"🔍 DEBUG: \1")
                                         # Preserve whitespace
                                         print(word_chunk, end='', flush=True)
                                         accumulated_response.append(word_chunk)
                                         yield word_chunk
                         else:
-                            logger.info(f"🔍 DEBUG: No content in message")
+                            logger.debug(f"🔍 DEBUG: \1")
                     except json.JSONDecodeError:
                         logger.warning(f"🔍 DEBUG: JSON decode error on chunk #{chunk_count}")
                         continue
                         
-        logger.info(f"🔍 DEBUG: === STREAM COMPLETE === Total chunks: {chunk_count}, Final buffer: '{full_content_buffer}', MCP detected: {mcp_detected}")
+        logger.debug(f"🔍 DEBUG: \1")
         
         # 🚨 CRITICAL FIX: Flush any remaining content in word buffer at stream completion
         if word_buffer.strip():
-            logger.info(f"🔍 DEBUG: ⚡ FLUSHING FINAL WORD BUFFER: '{word_buffer}' (This should contain missing content!)")
+            logger.debug(f"🔍 DEBUG: \1")
             accumulated_response.append(word_buffer)
             yield word_buffer
         else:
-            logger.info(f"🔍 DEBUG: ⚡ Word buffer is empty at stream end: '{word_buffer}'")
+            logger.debug(f"🔍 DEBUG: \1")
                         
     except aiohttp.ClientConnectorError as e:
         error_msg = 'Unable to connect to Ollama server. Please ensure Ollama is running.'
@@ -1902,13 +1902,13 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
     """
     try:
         logger.info("🔍 DEBUG: === STARTING execute_and_respond_to_tool_call ===")
-        logger.info(f"🔍 DEBUG: MCP block: '{mcp_block}'")
-        logger.info(f"🔍 DEBUG: Conversation history length: {len(conversation_history)}")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
         
         # 1. Parse the tool name from the MCP block
         tool_name_match = re.search(r'<tool name="([^"]+)"', mcp_block)
         tool_name = tool_name_match.group(1) if tool_name_match else None
-        logger.info(f"🔍 DEBUG: Parsed tool name: '{tool_name}'")
+        logger.debug(f"🔍 DEBUG: \1")
 
         if not tool_name:
             logger.error("🔧 MCP CLIENT: Could not parse tool name from block.")
@@ -1923,15 +1923,15 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
             url = "http://127.0.0.1:5001/mcp-tool-executor"
             payload = {"tool": tool_name, "params": {}} # Params are empty for this example
             logger.info(f"🔧 MCP CLIENT: Executing tool '{tool_name}' via {url}")
-            logger.info(f"🔍 DEBUG: POST payload: {payload}")
+            logger.debug(f"🔍 DEBUG: \1")
             
             async with session.post(url, json=payload) as response:
-                logger.info(f"🔍 DEBUG: Tool endpoint response status: {response.status}")
+                logger.debug(f"🔍 DEBUG: \1")
                 if response.status == 200:
                     tool_result = await response.json()
                     logger.success(f"🔧 MCP CLIENT: Tool '{tool_name}' executed successfully.")
                     logger.info(f"🔧 MCP CLIENT: Tool result: {tool_result}")
-                    logger.info(f"🔍 DEBUG: Tool result type: {type(tool_result)}")
+                    logger.debug(f"🔍 DEBUG: \1")
                 else:
                     error_text = await response.text()
                     logger.error(f"🔧 MCP CLIENT: Tool execution failed with status {response.status}: {error_text}")
@@ -1946,15 +1946,15 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
         
         # 🔍 COMPREHENSIVE TOOL RESULT LOGGING 
         logger.info("🔍 DEBUG: ===== TOOL RESULT ANALYSIS =====")
-        logger.info(f"🔍 DEBUG: Raw tool_result: {tool_result}")
-        logger.info(f"🔍 DEBUG: Tool result type: {type(tool_result)}")
-        logger.info(f"🔍 DEBUG: Tool result JSON serialized: {json.dumps(tool_result)}")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
         if isinstance(tool_result, dict):
-            logger.info(f"🔍 DEBUG: Tool result keys: {list(tool_result.keys())}")
+            logger.debug(f"🔍 DEBUG: \1")
             if 'result' in tool_result:
-                logger.info(f"🔍 DEBUG: Result field contains: '{tool_result['result']}'")
+                logger.debug(f"🔍 DEBUG: \1")
             if 'status' in tool_result:
-                logger.info(f"🔍 DEBUG: Status field contains: '{tool_result['status']}'")
+                logger.debug(f"🔍 DEBUG: \1")
         logger.info("🔍 DEBUG: ===== END TOOL RESULT ANALYSIS =====")
         
         # 🎯 FIX: Extract the actual result value instead of sending raw JSON
@@ -1981,12 +1981,12 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
             'content': follow_up_instruction
         })
         
-        logger.info(f"🔍 DEBUG: Tool message content being sent to LLM: {tool_message_content}")
-        logger.info(f"🔍 DEBUG: Follow-up instruction: {follow_up_instruction}")
-        logger.info(f"🔍 DEBUG: Final prompt messages count: {len(final_prompt_messages)}")
-        logger.info(f"🔍 DEBUG: Final prompt structure:")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
         for i, msg in enumerate(final_prompt_messages):
-            logger.info(f"🔍 DEBUG:   [{i}] {msg['role']}: {str(msg['content'])[:100]}...")
+            logger.debug(f"🔍 DEBUG: \1")
 
         # 4. Make the second LLM call and stream the final response to the UI
         logger.info("🔧 MCP CLIENT: Sending tool result back to LLM for final answer...")
@@ -1996,18 +1996,18 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
         chunk_count = 0
         async for chunk in chat_with_llm(MODEL, final_prompt_messages):
             chunk_count += 1
-            logger.info(f"🔍 DEBUG: Second LLM chunk #{chunk_count}: '{chunk}'")
+            logger.debug(f"🔍 DEBUG: \1")
             
             # 🔍 BROADCAST DEBUGGING
-            logger.info(f"🔍 DEBUG: ⚡ BROADCASTING chunk #{chunk_count}: '{chunk}' (len={len(chunk)})")
+            logger.debug(f"🔍 DEBUG: \1")
             await chat.broadcast(chunk)
-            logger.info(f"🔍 DEBUG: ⚡ BROADCAST COMPLETE for chunk #{chunk_count}")
+            logger.debug(f"🔍 DEBUG: \1")
             
             final_response_text += chunk
         
-        logger.info(f"🔍 DEBUG: Second LLM call complete - Total chunks: {chunk_count}")
-        logger.info(f"🔍 DEBUG: Final response length: {len(final_response_text)}")
-        logger.info(f"🔍 DEBUG: Complete final response: '{final_response_text}'")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
         
         # 🔍 CRITICAL BUG ANALYSIS
         logger.info("🔍 DEBUG: ===== FINAL RESPONSE ANALYSIS =====")
@@ -2018,38 +2018,38 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
         else:
             logger.warning("⚠️ UNEXPECTED: LLM response doesn't contain expected words")
         
-        logger.info(f"🔍 DEBUG: Expected word from tool: MORPHEUS")
-        logger.info(f"🔍 DEBUG: LLM actually said: {final_response_text}")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
         logger.info("🔍 DEBUG: ===== END FINAL RESPONSE ANALYSIS =====")
         
         # 🔍 CONVERSATION HISTORY DEBUGGING
-        logger.info(f"🔍 DEBUG: ===== CONVERSATION HISTORY MANAGEMENT =====")
-        logger.info(f"🔍 DEBUG: Final response to add to history: '{final_response_text}'")
-        logger.info(f"🔍 DEBUG: Final response length: {len(final_response_text)}")
-        logger.info(f"🔍 DEBUG: Final response repr: {repr(final_response_text)}")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
+        logger.debug(f"🔍 DEBUG: \1")
         
         # Add to conversation history
-        logger.info(f"🔍 DEBUG: Calling append_to_conversation with role='assistant'")
+        logger.debug(f"🔍 DEBUG: \1")
         append_to_conversation(final_response_text, 'assistant')
-        logger.info(f"🔍 DEBUG: append_to_conversation completed")
+        logger.debug(f"🔍 DEBUG: \1")
         
         # Verify the conversation history was updated
         try:
             # Get the current conversation history to verify
             history_file = f'memory/{get_current_profile_id()}.json'
-            logger.info(f"🔍 DEBUG: Checking conversation history file: {history_file}")
+            logger.debug(f"🔍 DEBUG: \1")
             if os.path.exists(history_file):
                 with open(history_file, 'r') as f:
                     current_history = json.load(f)
-                logger.info(f"🔍 DEBUG: Current conversation history length: {len(current_history)}")
+                logger.debug(f"🔍 DEBUG: \1")
                 if len(current_history) >= 2:
                     # Show last 2 entries
-                    logger.info(f"🔍 DEBUG: Last 2 conversation entries:")
+                    logger.debug(f"🔍 DEBUG: \1")
                     for i, entry in enumerate(current_history[-2:]):
-                        logger.info(f"🔍 DEBUG:   [-{2-i}] {entry.get('role', 'unknown')}: {entry.get('content', '')[:100]}...")
+                        logger.debug(f"🔍 DEBUG: \1")
                 elif current_history:
                     last_entry = current_history[-1]
-                    logger.info(f"🔍 DEBUG: Last conversation entry: {last_entry}")
+                    logger.debug(f"🔍 DEBUG: \1")
                 else:
                     logger.warning(f"🔍 DEBUG: Conversation history is empty!")
             else:
@@ -2057,7 +2057,7 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
         except Exception as hist_e:
             logger.error(f"🔍 DEBUG: Error reading conversation history: {hist_e}")
         
-        logger.info(f"🔍 DEBUG: ===== END CONVERSATION HISTORY MANAGEMENT =====")
+        logger.debug(f"🔍 DEBUG: \1")
         logger.success(f"🔧 MCP CLIENT: Complete MCP cycle finished. Final response: {final_response_text[:100]}...")
         logger.info("🔍 DEBUG: === ENDING execute_and_respond_to_tool_call ===")
 
