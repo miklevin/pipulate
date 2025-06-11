@@ -1051,10 +1051,17 @@ class Pipulate:
                 
                 if simulate_typing:
                     logger.debug("🔍 DEBUG: Simulating typing for verbatim message")
-                    words = message.split()
-                    for i, word in enumerate(words):
-                        await chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                        await asyncio.sleep(0.05)
+                    # If message contains line breaks, don't simulate typing (too complex)
+                    # Just send the whole message with line breaks converted to HTML
+                    if '\n' in message:
+                        message_with_breaks = message.replace('\n', '<br>')
+                        await chat.broadcast(message_with_breaks)
+                    else:
+                        # Original word-by-word typing for single-line messages
+                        words = message.split()
+                        for i, word in enumerate(words):
+                            await chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                            await asyncio.sleep(0.05)
                 else:
                     await chat.broadcast(message)
                 
