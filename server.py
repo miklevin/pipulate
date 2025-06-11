@@ -4120,7 +4120,7 @@ async def send_startup_environment_message():
                     await asyncio.sleep(1)  # Brief pause between messages
                     
                     try:
-                        await pipulate.message_queue.add(pipulate, endpoint_message, verbatim=True, role='system', spaces_after=1)
+                        await pipulate.message_queue.add(pipulate, endpoint_message, verbatim=True, role='system', spaces_after=2)
                         logger.debug(f"Successfully sent startup endpoint message: {message_id}")
                         
                         # Mark as sent in coordination system
