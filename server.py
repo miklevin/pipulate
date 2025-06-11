@@ -1051,7 +1051,7 @@ class Pipulate:
             try:
                 logger.debug("🔍 DEBUG: Processing verbatim message")
                 if spaces_before:
-                    message = ' ' * spaces_before + message
+                    message = '<br>' * spaces_before + message
                 if spaces_after:
                     message = message + '<br>' * spaces_after
                 
@@ -1064,10 +1064,24 @@ class Pipulate:
                         await chat.broadcast(message_with_breaks)
                     else:
                         # Original word-by-word typing for single-line messages
-                        words = message.split()
-                        for i, word in enumerate(words):
-                            await chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                        # Handle <br> tags at the end of the message properly
+                        import re
+                        br_match = re.search(r'(<br>+)$', message)
+                        if br_match:
+                            # Split message and <br> tags properly
+                            base_message = message[:br_match.start()]
+                            br_tags = br_match.group(1)
+                            words = base_message.split()
+                            for i, word in enumerate(words):
+                                await chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                                await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                            # Send the <br> tags after the words
+                            await chat.broadcast(br_tags)
+                        else:
+                            words = message.split()
+                            for i, word in enumerate(words):
+                                await chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                                await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
                 else:
                     await chat.broadcast(message)
                 
@@ -3480,7 +3494,7 @@ async def poke_chatbot():
     # 1. Immediately send user feedback via the message queue to ensure correct order.
     fetching_message = "🐱 Fetching a random cat fact... Check server console for logs."
     # We don't need to await this, let it process in the background.
-    asyncio.create_task(pipulate.message_queue.add(pipulate, fetching_message, verbatim=True, role='system'))
+    asyncio.create_task(pipulate.message_queue.add(pipulate, fetching_message, verbatim=True, role='system', spaces_before=1))
 
     # 2. Create and run the specific tool-use task in the background.
     import time
@@ -4019,7 +4033,7 @@ async def send_delayed_endpoint_message(message, session_key):
         last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
         
         if current_time - last_sent > 5:  # 5-second window for delayed messages
-            await pipulate.message_queue.add(pipulate, message, verbatim=True, role='system')
+            await pipulate.message_queue.add(pipulate, message, verbatim=True, role='system', spaces_after=1)
             db[session_key] = 'sent'  # Mark as sent for this session
             
             # Update coordination system
@@ -4095,7 +4109,7 @@ async def send_startup_environment_message():
                     await asyncio.sleep(1)  # Brief pause between messages
                     
                     try:
-                        await pipulate.message_queue.add(pipulate, endpoint_message, verbatim=True, role='system')
+                        await pipulate.message_queue.add(pipulate, endpoint_message, verbatim=True, role='system', spaces_after=1)
                         logger.debug(f"Successfully sent startup endpoint message: {message_id}")
                         
                         # Mark as sent in coordination system
