@@ -734,68 +734,46 @@ class Pipulate:
             self.queue = []
             self._processing = False
             self._current_step = None
-            self._step_completed = False
-
-        def _get_workflow_context(self):
-            """Get the current workflow context for the LLM."""
-            if not self._current_step:
-                return '[WORKFLOW STATE: Not yet started]'
-            elif self._step_completed:
-                return f'[WORKFLOW STATE: Step {self._current_step} completed]'
-            else:
-                return f'[WORKFLOW STATE: Waiting for Step {self._current_step} input]'
+            self._step_started = False
+            self._step_complete = False
+            self._workflow_context = None
 
         async def add(self, pipulate, message, **kwargs):
-            """Add a message to the queue and process if not already processing."""
-            logger.info(f'[🔄 WORKFLOW] {message}')
-            if isinstance(message, str):
-                message = message.replace('http:', 'http꞉').replace('https:', 'https꞉')
-            role = kwargs.pop('role', 'system')
-            if 'Step ' in message and 'Please enter' in message:
-                step_num = message.split('Step ')[1].split(':')[0]
-                self._current_step = step_num
-                self._step_completed = False
-            elif 'complete' in message.lower() and 'step' in message.lower():
-                self._step_completed = True
-            context_message = message
-            if role == 'system':
-                if 'Please' in message or 'Enter' in message or message.endswith('?'):
-                    context_message = f'[PROMPT] {message}'
-                else:
-                    context_message = f'[INFO] {message}'
-            elif role == 'user':
-                context_message = f'[USER INPUT] {message}'
-            elif role == 'assistant':
-                context_message = f'[RESPONSE] {message}'
-            workflow_context = self._get_workflow_context()
-            context_message = f'{workflow_context}\n{context_message}'
-            append_to_conversation(context_message, role=role)
+            """Add a message to the queue and process if not already processing.
+            
+            This method no longer handles conversation history - that's now managed by pipulate.stream.
+            """
+            logger.info(f'[🔄 QUEUEING] {message[:100]}...')
             self.queue.append((pipulate, message, kwargs))
             if not self._processing:
                 await self._process_queue()
 
         async def _process_queue(self):
-            """Process all queued messages in order."""
+            """Process messages in the queue.
+            
+            This method now focuses solely on queue processing and streaming,
+            leaving conversation history management to pipulate.stream.
+            """
+            if self._processing:
+                return
+            
             self._processing = True
             try:
                 while self.queue:
                     pipulate, message, kwargs = self.queue.pop(0)
-                    response = await pipulate.stream(message, **kwargs)
-                    if response and response != message:
-                        workflow_context = self._get_workflow_context()
-                        append_to_conversation(f'{workflow_context}\n[RESPONSE] {response}', role='assistant')
+                    await pipulate.stream(message, **kwargs)
             finally:
                 self._processing = False
 
         def mark_step_complete(self, step_num):
             """Mark a step as completed."""
             self._current_step = step_num
-            self._step_completed = True
+            self._step_complete = True
 
         def mark_step_started(self, step_num):
             """Mark a step as started but not completed."""
             self._current_step = step_num
-            self._step_completed = False
+            self._step_started = True
 
     def make_singular(self, word):
         """Convert a potentially plural word to its singular form using simple rules.
@@ -1053,112 +1031,61 @@ class Pipulate:
         return re.sub(url_pattern, replace_url, text)
 
     async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=1, simulate_typing=True):
+        """Stream a message to the chat interface.
+        
+        This is now the single source of truth for conversation history management.
+        All messages entering the chat system must go through this method.
         """
-        Stream a message to the chat interface.
+        logger.debug(f"🔍 DEBUG: === STARTING pipulate.stream (role: {role}) ===")
         
-        This method now distinguishes between interruptible LLM streams and non-interruptible
-        verbatim messages. Only actual LLM streams will trigger the UI streaming state to
-        prevent jarring "Stop" button flashes for quick system messages.
+        # CENTRALIZED: All messages entering the stream are now appended here
+        append_to_conversation(message, role)
         
-        Args:
-            message: The message to stream
-            verbatim: If True, send message as-is without streaming UI; if False, process with LLM
-            role: The role for the message in the conversation history
-            spaces_before: Number of line breaks to add before the message
-            spaces_after: Number of line breaks to add after the message
-            simulate_typing: Whether to simulate typing for verbatim messages
-        Returns:
-            The original message
-        """
-        logger.info("🔍 DEBUG: === STARTING pipulate.stream ===")
-        logger.debug(f"🔍 DEBUG: \1")
-        logger.debug(f"🔍 DEBUG: \1")
-        
-        # For verbatim messages, bypass the streaming signals for a smoother experience
         if verbatim:
-            logger.info("🔍 DEBUG: Processing verbatim message")
             try:
-                # Append to history right away for context
-                append_to_conversation(message, 'assistant')
-                logger.info("🔍 DEBUG: Appended verbatim message to conversation")
-                
+                logger.debug("🔍 DEBUG: Processing verbatim message")
                 if spaces_before:
-                    for _ in range(spaces_before):
-                        await chat.broadcast(' <br>\n')
+                    message = ' ' * spaces_before + message
+                if spaces_after:
+                    message = message + ' ' * spaces_after
                 
-                # Typing simulation for verbatim messages can still provide a nice UX
                 if simulate_typing:
-                    logger.info("🔍 DEBUG: Simulating typing for verbatim message")
-                    words = message.split(' ')
+                    logger.debug("🔍 DEBUG: Simulating typing for verbatim message")
+                    words = message.split()
                     for i, word in enumerate(words):
-                        await chat.broadcast(word)
-                        if i < len(words) - 1:
-                            await chat.broadcast(' ')
-                        await asyncio.sleep(0.005)
+                        await chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                        await asyncio.sleep(0.05)
                 else:
-                    logger.info("🔍 DEBUG: Sending verbatim message without typing simulation")
                     await chat.broadcast(message)
                 
-                if spaces_after:
-                    for _ in range(spaces_after):
-                        await chat.broadcast(' <br>\n')
-                
                 logger.debug(f'Verbatim message sent: {message}')
-                logger.info("🔍 DEBUG: === ENDING pipulate.stream (verbatim) ===")
                 return message
             except Exception as e:
-                logger.error(f'Error in verbatim stream: {e}')
-                logger.error(f"🔍 DEBUG: Exception in verbatim stream: {e}")
-                traceback.print_exc()
+                logger.error(f'Error in verbatim stream: {e}', exc_info=True)
                 raise
         
-        # The logic below is for interruptible LLM streams only
-        logger.info("🔍 DEBUG: Processing LLM stream (non-verbatim)")
+        # Logic for interruptible LLM streams
         try:
-            logger.info("🔍 DEBUG: Broadcasting STREAM_START")
-            await chat.broadcast('%%STREAM_START%%')  # Signal UI to show "Stop" button
-            
-            logger.info("🔍 DEBUG: Appending message to conversation history")
-            conversation_history = append_to_conversation(message, role)
-            logger.debug(f"🔍 DEBUG: \1")
-            
-            if spaces_before:
-                for _ in range(spaces_before):
-                    await chat.broadcast(' <br>\n')
-            
-            logger.info("🔍 DEBUG: Starting chat_with_llm call")
+            await chat.broadcast('%%STREAM_START%%')
+            conversation_history = list(global_conversation_history)
             response_text = ''
-            chunk_count = 0
             async for chunk in chat_with_llm(MODEL, conversation_history):
-                chunk_count += 1
-                logger.debug(f"🔍 DEBUG: \1")
                 await chat.broadcast(chunk)
                 response_text += chunk
             
-            logger.debug(f"🔍 DEBUG: \1")
-            
-            if spaces_after:
-                for _ in range(spaces_after):
-                    await chat.broadcast(' <br>\n')
-            
+            # Append the final response from the assistant
             append_to_conversation(response_text, 'assistant')
-            logger.debug(f'LLM message streamed: {response_text}')
-            logger.info("🔍 DEBUG: === ENDING pipulate.stream (LLM) ===")
+            logger.debug(f'LLM message streamed: {response_text[:100]}...')
             return message
         except asyncio.CancelledError:
-            logger.info("LLM stream was cancelled. The UI will be updated.")
-            logger.info("🔍 DEBUG: LLM stream cancelled")
-            # Do not re-raise, allow the stream to stop gracefully
+            logger.info("LLM stream was cancelled by user.")
         except Exception as e:
-            logger.error(f'Error in LLM stream: {e}')
-            logger.error(f"🔍 DEBUG: Exception in LLM stream: {e}")
-            traceback.print_exc()
+            logger.error(f'Error in LLM stream: {e}', exc_info=True)
             raise
         finally:
-            # Only send STREAM_END for non-verbatim streams
-            logger.info("🔍 DEBUG: Broadcasting STREAM_END")
-            await chat.broadcast('%%STREAM_END%%')  # Signal UI to show "Send" button
+            await chat.broadcast('%%STREAM_END%%')
             logger.debug("LLM stream finished or cancelled, sent %%STREAM_END%%")
+            logger.debug(f"🔍 DEBUG: === ENDING pipulate.stream ({'verbatim' if verbatim else 'LLM'}) ===")
 
     def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str=None, target_id: str=None, revert_label: str=None, remove_padding: bool=False):
         """Create a UI control for reverting to a previous workflow step.
@@ -1835,7 +1762,7 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
                             logger.success(f"✅ RELIABLE FORMATTING: Directly formatting fact: {the_fact}")
                             # Format the fact with consistent, clean styling
                             final_message = f"🐱 **Cat Fact Alert!** 🐱\n\n{the_fact}\n\nWould you like another fact?"
-                            append_to_conversation(final_message, 'assistant')
+                            # Let pipulate.stream handle the conversation history
                             await pipulate.message_queue.add(pipulate, final_message, verbatim=True, role='assistant')
                         else:
                             error_message = "The cat fact API returned a success, but the fact was missing."
