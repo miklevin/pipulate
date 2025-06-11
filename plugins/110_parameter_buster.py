@@ -78,7 +78,7 @@ class ParameterBuster:
     """
     APP_NAME = 'param_buster'
     DISPLAY_NAME = 'Parameter Buster 🔨'
-    ENDPOINT_MESSAGE = """Optimize crawl budget by identifying wasteful URL parameters. Analyzes your site's parameter usage patterns to eliminate wasteful URLs and improve search engine crawling efficiency through PageWorkers optimization strategies."""
+    ENDPOINT_MESSAGE = """Optimize crawl budget by identifying wasteful URL parameters. Analyzes your site's parameter usage patterns to massage URLs into more productive shape for search engine crawling efficiency through PageWorkers optimization strategies."""
     TRAINING_PROMPT = """This workflow helps users analyze URL parameters and tracking codes. It uses the widget_container pattern to display parameter breakdowns and provides insights into URL structure and tracking mechanisms."""
     # Query Templates - Extracted from build_exports for reusability
     #
