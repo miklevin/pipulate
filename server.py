@@ -1105,7 +1105,7 @@ class Pipulate:
             await self.chat.broadcast('%%STREAM_START%%')
             conversation_history = list(global_conversation_history)
             response_text = ''
-            async for chunk in chat_with_llm(MODEL, conversation_history):
+            async for chunk in process_llm_interaction(MODEL, conversation_history):
                 await self.chat.broadcast(chunk)
                 response_text += chunk
             
@@ -1656,7 +1656,7 @@ class Pipulate:
         self.write_state(pipeline_id, state)
         return state
 
-async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
+async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
     url = 'http://localhost:11434/api/chat'
     payload = {'MODEL': MODEL, 'messages': messages, 'stream': True}
     accumulated_response = []
@@ -1666,7 +1666,7 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
     chunk_count = 0
     mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>)', re.DOTALL)
 
-    logger.debug("🔍 DEBUG: === STARTING chat_with_llm ===")
+    logger.debug("🔍 DEBUG: === STARTING process_llm_interaction ===")
     logger.debug(f"🔍 DEBUG: MODEL='{MODEL}', messages_count={len(messages)}")
 
     table = Table(title='User Input')
@@ -1761,7 +1761,7 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
         yield error_msg
     except Exception as e:
         error_msg = f'Error: {str(e)}'
-        logger.error(f"🔍 DEBUG: Unexpected error in chat_with_llm: {e}")
+        logger.error(f"🔍 DEBUG: Unexpected error in process_llm_interaction: {e}")
         yield error_msg
 
 
@@ -3450,7 +3450,7 @@ async def poke_flyout(request):
     profile_locked = db.get('profile_locked', '0') == '1'
     lock_button_text = '🔓 Unlock Profile' if profile_locked else '🔒 Lock Profile'
     is_dev_mode = get_current_environment() == 'Development'
-    poke_button = Button(f'🤖 Poke {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
+    poke_button = Button(f'🤖 MCP Poke {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     lock_button = Button(lock_button_text, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline')
     delete_workflows_button = Button('🗑️ Delete Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
     reset_db_button = Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
@@ -3503,7 +3503,7 @@ async def poke_chatbot():
     logger.debug('🔧 MCP external API tool call initiated via Poke button.')
 
     # 1. Immediately send user feedback via the message queue to ensure correct order.
-    fetching_message = "🐱 Fetching a random cat fact... Check server console for logs."
+    fetching_message = "🐱 Fetching a random cat fact using the MCP tool..."
     # We don't need to await this, let it process in the background.
     asyncio.create_task(pipulate.message_queue.add(pipulate, fetching_message, verbatim=True, role='system', spaces_before=1))
 
@@ -3532,7 +3532,7 @@ Do not say anything else. Just output the exact MCP block above."""
     async def consume_mcp_response():
         """Consume the MCP response generator without displaying it."""
         try:
-            async for chunk in chat_with_llm(MODEL, [{"role": "user", "content": one_shot_mcp_prompt}]):
+            async for chunk in process_llm_interaction(MODEL, [{"role": "user", "content": one_shot_mcp_prompt}]):
                 # Consume the chunks but don't display them - the tool execution handles the response
                 pass
         except Exception as e:
