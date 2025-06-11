@@ -1919,8 +1919,8 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
         # 2. Execute the tool call by POSTing to the local endpoint
         tool_result = None
         async with aiohttp.ClientSession() as session:
-            # NOTE: The URL points to our local server endpoint
-            url = "http://127.0.0.1:5001/mcp-hello"
+            # NOTE: The URL points to our new tool executor endpoint
+            url = "http://127.0.0.1:5001/mcp-tool-executor"
             payload = {"tool": tool_name, "params": {}} # Params are empty for this example
             logger.info(f"🔧 MCP CLIENT: Executing tool '{tool_name}' via {url}")
             logger.info(f"🔍 DEBUG: POST payload: {payload}")
@@ -1974,8 +1974,8 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
             'content': tool_message_content
         })
 
-        # 🎯 FIX: Make the follow-up instruction more explicit about using the exact result
-        follow_up_instruction = f'The tool returned this exact result: "{actual_result}". Please relay this information to the user exactly as provided by the tool.'
+        # 🎯 FIX: Update the final instruction for activity suggestions
+        follow_up_instruction = 'You have received a JSON object from your tool call. Present the suggested `activity` to the user in a fun and engaging way.'
         final_prompt_messages.append({
             'role': 'user', 
             'content': follow_up_instruction
@@ -3750,41 +3750,42 @@ def redirect_handler(request):
 @rt('/poke', methods=['POST'])
 async def poke_chatbot():
     """
-    Triggers the MCP 'Hello World' proof-of-concept by sending a one-shot
-    prompt to the LLM, instructing it to generate a tool call request.
+    Triggers the MCP proof-of-concept by prompting the LLM to use the
+    'get_activity_suggestion' tool. Each request is unique to prevent conversation history issues.
     """
-    logger.info("🔍 DEBUG: === STARTING /poke endpoint ===")
-    logger.debug('🔧 MCP tool call proof-of-concept initiated via Poke button.')
+    logger.debug('🔧 MCP external API tool call initiated via Poke button.')
 
-    one_shot_mcp_prompt = """You are a helpful assistant with access to a special set of tools. To use these tools, you must strictly follow the "Model Context Protocol" (MCP).
+    # Generate unique identifiers to ensure each request is fresh
+    import time
+    import random
+    timestamp = int(time.time())
+    session_id = random.randint(1000, 9999)
+    
+    one_shot_mcp_prompt = f"""You are a helpful assistant with a tool that can suggest random activities. When the user wants a suggestion, you must use this tool.
 
-When you decide to call a tool, you MUST stop generating conversational text and output an MCP request block. The block looks like this:
-<mcp-request>
-  <tool name="the_tool_to_use" />
-  <param name="parameter_name">the_value_for_the_parameter</param>
-</mcp-request>
+To use the tool, you MUST stop generating conversational text and output an MCP request block. 
 
 Here is the only tool you have available:
 
-Tool Name: `say_hello`
-Description: A simple tool that returns a secret word.
+Tool Name: `get_activity_suggestion`
+Description: Fetches a random activity suggestion from an external API for when you are bored.
 Parameters: None
 
 ---
 
-Now, your task is to retrieve the secret word. Use the MCP protocol you just learned to call the `say_hello` tool. Do not say anything else or add any commentary. Just generate the MCP request block."""
+🆔 Request ID: {session_id} | ⏰ Timestamp: {timestamp}
 
-    logger.info(f"🔍 DEBUG: Created MCP prompt - length: {len(one_shot_mcp_prompt)}")
-    logger.info(f"🔍 DEBUG: Prompt content: '{one_shot_mcp_prompt[:200]}...'")
+The user is bored and wants a fresh activity suggestion. Use the `get_activity_suggestion` tool by generating this EXACT MCP request block:
 
-    # Use the existing stream function to send the prompt.
-    # The monitoring logic in `chat_with_llm` will handle the response.
-    logger.info("🔍 DEBUG: Creating stream task with pipulate.stream")
+<mcp-request>
+  <tool name="get_activity_suggestion" />
+</mcp-request>
+
+Do not say anything else. Just output the exact MCP block above."""
+
+    # This part remains the same
     asyncio.create_task(pipulate.stream(one_shot_mcp_prompt, verbatim=False, role='user'))
-    
-    # Provide immediate feedback to the user in the chat UI.
-    logger.info("🔍 DEBUG: === ENDING /poke endpoint ===")
-    return "🔧 MCP 'Hello World' request sent. Check server console for tool call detection..."
+    return "🤖 Fetching a random activity suggestion... Check server console for logs."
 
 @rt('/open-folder', methods=['GET'])
 async def open_folder_endpoint(request):
@@ -3850,32 +3851,66 @@ async def save_split_sizes(request):
         return HTMLResponse(f'Error: {e}', status_code=500)
 
 
-@rt('/mcp-hello', methods=['POST'])
-async def mcp_hello_endpoint(request):
+@rt('/mcp-tool-executor', methods=['POST'])
+async def mcp_tool_executor_endpoint(request):
     """
-    A simple MCP server endpoint for the 'Hello World' proof-of-concept.
-    It logs the reception of a tool call and returns a secret word.
+    This endpoint now acts as a generic tool executor.
+    For this PoC, it specifically handles the 'get_activity_suggestion' tool
+    by calling the external Bored API.
     """
     try:
         data = await request.json()
         tool_name = data.get("tool")
         params = data.get("params", {})
         
-        # Use our existing logger to provide visible feedback in the console
-        logger.info(f"🔧 MCP SERVER: Tool call received - '{tool_name}' with params: {params}")
-        
-        if tool_name == "say_hello":
-            secret_word = "MORPHEUS"
-            response_data = {
-                "status": "success", 
-                "result": f"The secret word is '{secret_word}'"
-            }
-            logger.success(f"🔧 MCP SERVER: Responding with secret word: {secret_word}")
-            return JSONResponse(response_data)
+        log.event('mcp_server', f"MCP call received for tool: '{tool_name}'", f"Params: {params}")
+
+        if tool_name == "get_activity_suggestion":
+            # Call the external Bored API with fallback
+            fallback_activities = [
+                "Start a garden and grow your own herbs",
+                "Learn to fold 5 different origami animals", 
+                "Write a short story about your morning coffee",
+                "Create a playlist of 10 songs that make you smile",
+                "Take photos of interesting shadows around your neighborhood",
+                "Learn 10 words in a language you've never studied",
+                "Organize your bookshelf by color instead of alphabetically",
+                "Try cooking a dish from a cuisine you've never attempted",
+                "Write letters to 3 people you haven't contacted in a while",
+                "Create art using only items you can find in your kitchen"
+            ]
+            
+            activity_result = None
+            async with aiohttp.ClientSession() as session:
+                url = "https://www.boredapi.com/api/activity"
+                logger.info(f"🔧 MCP SERVER: Calling external API: {url}")
+                try:
+                    async with session.get(url) as response:
+                        if response.status == 200:
+                            activity_result = await response.json()
+                            logger.success(f"🔧 MCP SERVER: Received data from Bored API: {activity_result.get('activity')}")
+                        else:
+                            logger.warning(f"🔧 MCP SERVER: Bored API returned status {response.status}, using fallback")
+                            import random
+                            activity_text = random.choice(fallback_activities)
+                            activity_result = {"activity": activity_text}
+                            logger.info(f"🔧 MCP SERVER: Using fallback activity: {activity_text}")
+                except Exception as e:
+                    logger.warning(f"🔧 MCP SERVER: API call failed ({str(e)}), using fallback")
+                    import random
+                    activity_text = random.choice(fallback_activities)
+                    activity_result = {"activity": activity_text}
+                    logger.info(f"🔧 MCP SERVER: Using fallback activity: {activity_text}")
+            
+            # Return the activity suggestion in our standard format
+            return JSONResponse({
+                "status": "success",
+                "result": activity_result
+            })
         else:
             logger.warning(f"🔧 MCP SERVER: Unknown tool requested: {tool_name}")
             return JSONResponse({"status": "error", "message": "Tool not found"}, status_code=404)
-            
+
     except Exception as e:
         logger.error(f"🔧 MCP SERVER: Error processing request: {e}")
         return JSONResponse({"status": "error", "message": "Invalid request format"}, status_code=400)
