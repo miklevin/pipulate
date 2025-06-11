@@ -1047,7 +1047,7 @@ class Pipulate:
                 if spaces_before:
                     message = ' ' * spaces_before + message
                 if spaces_after:
-                    message = message + ' ' * spaces_after
+                    message = message + '<br>' * spaces_after
                 
                 if simulate_typing:
                     logger.debug("🔍 DEBUG: Simulating typing for verbatim message")
@@ -3496,8 +3496,18 @@ The user wants to learn something interesting about cats. Use the `get_cat_fact`
 </mcp-request>
 Do not say anything else. Just output the exact MCP block above."""
 
-    # This call is now separate from the normal user-message flow, ensuring it always runs as intended.
-    asyncio.create_task(pipulate.stream(one_shot_mcp_prompt, verbatim=False, role='user'))
+    # Send the MCP prompt directly to the LLM without adding to visible conversation
+    # This bypasses the normal conversation flow to keep tool calls hidden
+    async def consume_mcp_response():
+        """Consume the MCP response generator without displaying it."""
+        try:
+            async for chunk in chat_with_llm(MODEL, [{"role": "user", "content": one_shot_mcp_prompt}]):
+                # Consume the chunks but don't display them - the tool execution handles the response
+                pass
+        except Exception as e:
+            logger.error(f"Error in MCP tool call: {e}")
+    
+    asyncio.create_task(consume_mcp_response())
     
     # 3. Return an empty response to the HTMX request.
     return ""
