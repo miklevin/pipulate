@@ -27,6 +27,24 @@ class SimonSaysMcpWidget:
     TRAINING_PROMPT = """This workflow is a game called 'Simon Says MCP'. The user will provide a detailed prompt to instruct the LLM on how to formulate a specific MCP request. Your role is to assist the user in refining these prompts and understanding the results."""
 
     # --- START_CLASS_ATTRIBUTES_BUNDLE ---
+    UI_CONSTANTS = {
+        'PROMPT_TEXTAREA': {
+            'MIN_HEIGHT': '450px',
+            'FONT_SIZE': '0.9rem',
+            'FONT_FAMILY': 'monospace',
+            'WHITE_SPACE': 'pre-wrap',
+            'OVERFLOW_WRAP': 'break-word',
+            'WIDTH': '100%'
+        },
+        'DISPLAY_CONTENT': {
+            'FONT_SIZE': '0.9rem',
+            'FONT_FAMILY': 'monospace',
+            'WHITE_SPACE': 'pre-wrap',
+            'OVERFLOW_WRAP': 'break-word',
+            'MAX_HEIGHT': '400px',
+            'OVERFLOW_Y': 'auto'
+        }
+    }
     # Additional class-level constants can be merged here by manage_class_attributes.py
     # --- END_CLASS_ATTRIBUTES_BUNDLE ---
 
@@ -194,6 +212,16 @@ class SimonSaysMcpWidget:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.run_all_cells(app_name, current_steps_to_pass_helpers)
 
+    def _get_textarea_style(self):
+        """Generate consistent textarea style from UI constants."""
+        config = self.UI_CONSTANTS['PROMPT_TEXTAREA']
+        return f"min-height: {config['MIN_HEIGHT']}; width: {config['WIDTH']}; font-family: {config['FONT_FAMILY']}; font-size: {config['FONT_SIZE']}; white-space: {config['WHITE_SPACE']}; overflow-wrap: {config['OVERFLOW_WRAP']};"
+
+    def _get_display_style(self):
+        """Generate consistent display style from UI constants."""
+        config = self.UI_CONSTANTS['DISPLAY_CONTENT']
+        return f"font-size: {config['FONT_SIZE']}; font-family: {config['FONT_FAMILY']}; white-space: {config['WHITE_SPACE']}; overflow-wrap: {config['OVERFLOW_WRAP']}; max-height: {config['MAX_HEIGHT']}; overflow-y: {config['OVERFLOW_Y']};"
+
     # --- START_STEP_BUNDLE: step_01 ---
     async def step_01(self, request):
         """ Handles GET request for Step 1: Displays the Simon Says textarea form. """
@@ -213,7 +241,7 @@ class SimonSaysMcpWidget:
         if 'finalized' in finalize_data and interaction_result:
             locked_content = pip.finalized_content(
                 message=f"🔒 {step.show}: Interaction Complete",
-                content=Pre(interaction_result, cls='code-block-container')
+                content=Pre(interaction_result, style=self._get_display_style())
             )
             next_step_trigger = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
             return Div(locked_content, next_step_trigger, id=step_id)
@@ -222,7 +250,7 @@ class SimonSaysMcpWidget:
         elif interaction_result and state.get('_revert_target') != step_id:
             revert_widget = pip.display_revert_widget(
                 step_id=step_id, app_name=app_name, message=f"{step.show}: Interaction Log",
-                widget=Pre(interaction_result, cls='code-block-container'),
+                widget=Pre(interaction_result, style=self._get_display_style()),
                 steps=steps
             )
             next_step_trigger = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
@@ -251,7 +279,7 @@ Do not say anything else. Just output the exact MCP block above."""
                     display_value,
                     name="simon_says_prompt",
                     required=True,
-                    style='min-height: 450px; width: 100%; font-family: monospace; font-size: 0.9rem; white-space: pre-wrap; overflow-wrap: break-word;'
+                    style=self._get_textarea_style()
                 ),
                 Button('Play Simon Says ▸', type='submit', cls='primary', style='margin-top: 1rem;', **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}),
                 hx_post=f'/{app_name}/{step_id}_submit',
