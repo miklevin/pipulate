@@ -33,8 +33,8 @@ FILES_TO_INCLUDE_RAW = """\
 # BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
 
 # CORE FILES & DOCS (Setting the stage)
-README.md        <-- Main GitHub README sets the tone
-flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+# README.md        <-- Main GitHub README sets the tone
+# flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
 /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
@@ -50,12 +50,12 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/060_tasks.py     <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
 ## HELPER SCRIPTS (Why WET can work)
-# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py   <-- The templating plugin that creates new workflows from scratch
-# /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 920_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 920_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/manage_class_attributes.py
-# /home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
-# /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
+/home/mike/repos/pipulate/plugins/310_workflow_genesis.py       <-- The templating plugin that creates new workflows from scratch
+/home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 900_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 900_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/manage_class_attributes.py  <-- The script that manages class attributes (copies 900_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/swap_workflow_step.py       <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
+# /home/mike/repos/pipulate/helpers/prompt_foo.py               <-- This script (used to generate the manifest)
 
 ## CUSTOM STATIC RESOURCES (Supporting characters)
 # /home/mike/repos/pipulate/static/alice.txt
@@ -107,7 +107,7 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/330_widget_shim.py
 # /home/mike/repos/pipulate/plugins/410_botify_api_tutorial.py
 # /home/mike/repos/pipulate/plugins/430_tab_opener.py
-# /home/mike/repos/pipulate/plugins/440_browser_automation.py
+/home/mike/repos/pipulate/plugins/440_browser_automation.py  <-- You ought to see how selenium-wire scrapes. A setup for Unix pipe style DOM processing
 # /home/mike/repos/pipulate/plugins/450_stream_simulator.py
 /home/mike/repos/pipulate/plugins/520_text_area.py  <-- What we're probably going to use for the Simon Says Make MCP Tool-call Widget
 # /home/mike/repos/pipulate/plugins/530_dropdown.py
@@ -124,7 +124,7 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/720_rich.py
 # /home/mike/repos/pipulate/plugins/730_matplotlib.py
 # /home/mike/repos/pipulate/plugins/810_webbrowser.py
-# /home/mike/repos/pipulate/plugins/820_selenium.py
+/home/mike/repos/pipulate/plugins/820_selenium.py  <-- The monumental magical path to local LLM MCP PFM (material for thinking ahead)
 
 ## COMMON STATIC RESOURCES (The Usual Suspects / you're already trained on these) 
 # /home/mike/repos/pipulate/static/fasthtml.js
