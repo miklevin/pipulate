@@ -39,7 +39,7 @@ from starlette.responses import FileResponse
 DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False
-API_LOG_ROTATION_COUNT = 10
+API_LOG_ROTATION_COUNT = 5
 shared_app_state = {'critical_operation_in_progress': False}
 
 # Global message coordination to prevent race conditions between multiple message-sending systems
@@ -1046,6 +1046,7 @@ class Pipulate:
         
         # Internal MCP Tool Executor Request
         if request_payload:
+            log_entry_parts.append('')  # Extra space for visual separation
             log_entry_parts.append(f'  MCP Tool Executor Request:')
             log_entry_parts.append(f'    URL: http://127.0.0.1:5001/mcp-tool-executor')
             log_entry_parts.append(f'    Method: POST')
@@ -1059,6 +1060,7 @@ class Pipulate:
         
         # Internal MCP Tool Executor Response
         if response_data or response_status:
+            log_entry_parts.append('')  # Extra space for visual separation
             log_entry_parts.append(f'  MCP Tool Executor Response:')
             if response_status:
                 log_entry_parts.append(f'    Status: {response_status}')
@@ -1073,6 +1075,7 @@ class Pipulate:
         
         # External API Call Details (the actual external service)
         if external_api_url:
+            log_entry_parts.append('')  # Extra space for visual separation
             log_entry_parts.append(f'  External API Call:')
             log_entry_parts.append(f'    URL: {external_api_url}')
             log_entry_parts.append(f'    Method: {external_api_method}')
@@ -1127,11 +1130,15 @@ class Pipulate:
                 snippet_emoji=snippet_emoji
             )
             
-            # Add Python snippet with complete BEGIN/END block
-            log_entry_parts.append(f'{snippet_intro}\n{python_code}')
+            # Add Python snippet with complete BEGIN/END block and visual separation
+            log_entry_parts.append('')  # Extra space before Python code
+            log_entry_parts.append(f'{snippet_intro}')
+            log_entry_parts.append(f'{comment_divider}')
+            log_entry_parts.append(f'{python_code}')
             log_entry_parts.append('# Note: This code reproduces the external API call made by the MCP tool.')
             log_entry_parts.append(f'{comment_divider}')
             log_entry_parts.append(f'{snippet_end}')
+            log_entry_parts.append('')  # Extra space after Python code
         
         if notes:
             log_entry_parts.append(f'  Notes: {notes}')
@@ -1218,13 +1225,21 @@ class Pipulate:
         lines.append('                print(text)')
         lines.append('                return text')
         lines.append('')
-        lines.append('# Run the async function')
-        lines.append('# In Jupyter: await reproduce_mcp_call()')
-        lines.append('# In script: asyncio.run(reproduce_mcp_call())')
-        lines.append('if __name__ == "__main__":')
-        lines.append('    result = asyncio.run(reproduce_mcp_call())')
-        lines.append('    print("\\nFinal result:")')
-        lines.append('    pprint(result)')
+        divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+        lines.append(divider)
+        lines.append('# EXECUTION: Choose your environment')
+        lines.append(divider)
+        lines.append('')
+        lines.append('# For Jupyter Notebooks (recommended):')
+        lines.append('result = await reproduce_mcp_call()')
+        lines.append('print("\\nFinal result:")')
+        lines.append('pprint(result)')
+        lines.append('')
+        lines.append('# For Python scripts (uncomment if needed):')
+        lines.append('# if __name__ == "__main__":')
+        lines.append('#     result = asyncio.run(reproduce_mcp_call())')
+        lines.append('#     print("\\nFinal result:")')
+        lines.append('#     pprint(result)')
         
         return '\n'.join(lines)
 

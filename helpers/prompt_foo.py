@@ -33,17 +33,19 @@ FILES_TO_INCLUDE_RAW = """\
 # BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
 
 # CORE FILES & DOCS (Setting the stage)
-# README.md        <-- Main GitHub README sets the tone
-# flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+README.md        <-- Main GitHub README sets the tone
+flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 # requirements.txt <-- Python package dependencies for the project
-server.py        <-- Main server file for the project
+# server.py        <-- Main server file for the project
 # /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
 # /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
-/home/mike/repos/pipulate/plugins/830_simon_mcp.py
-/home/mike/repos/pipulate/plugins/900_blank_placeholder.py  <-- The minimal template that propegates everywhere (as WET as we get)
-/home/mike/repos/pipulate/plugins/040_hello_workflow.py     <-- Master example and Jupyter Notebook, shows parallels to Unix pipe
+# /home/mike/repos/pipulate/plugins/830_simon_mcp.py
+# /home/mike/repos/pipulate/plugins/900_blank_placeholder.py  <-- The minimal template that propegates everywhere (as WET as we get)
+# /home/mike/repos/pipulate/plugins/040_hello_workflow.py     <-- Master example and Jupyter Notebook, shows parallels to Unix pipe
+# /home/mike/repos/pipulate/plugins/440_browser_automation.py  <-- You ought to see how selenium-wire scrapes. A setup for Unix pipe style DOM processing
+# /home/mike/repos/pipulate/plugins/820_selenium.py  <-- The monumental magical path to local LLM MCP PFM (material for thinking ahead)
 
 ## REQUIRED CRUD PLUGINS FOR SYSTEM CONFIGURATION: (Supporting characters)
 # /home/mike/repos/pipulate/plugins/020_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
@@ -70,19 +72,20 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/static/rich-table.css
 
 ## DA RULES
+# c/home/mike/repos/pipulate/.cursor/rules/04_workflow_core.mdc
+# c/home/mike/repos/pipulate/.cursor/rules/05_chain_reaction_pattern.mdc
+# c/home/mike/repos/pipulate/.cursor/rules/11_browser_automation.mdc
+
 # /home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
 # /home/mike/repos/pipulate/.cursor/rules/00_meta_rule_routing.mdc
 # /home/mike/repos/pipulate/.cursor/rules/01_philosophy.mdc
 # /home/mike/repos/pipulate/.cursor/rules/02_architecture_overview.mdc
 # /home/mike/repos/pipulate/.cursor/rules/03_environment_and_installation.mdc
-/home/mike/repos/pipulate/.cursor/rules/04_workflow_core.mdc
-/home/mike/repos/pipulate/.cursor/rules/05_chain_reaction_pattern.mdc
 # /home/mike/repos/pipulate/.cursor/rules/06_workflow_creation_helpers.mdc
 # /home/mike/repos/pipulate/.cursor/rules/07_key_system.mdc
 # /home/mike/repos/pipulate/.cursor/rules/08_ui_and_htmx.mdc
 # /home/mike/repos/pipulate/.cursor/rules/09_llm_integration.mdc
 # /home/mike/repos/pipulate/.cursor/rules/10_data_and_file_operations.mdc
-# /home/mike/repos/pipulate/.cursor/rules/11_browser_automation.mdc
 # /home/mike/repos/pipulate/.cursor/rules/12_plugin_development_guidelines.mdc
 # /home/mike/repos/pipulate/.cursor/rules/13_server_py_overview.mdc
 # /home/mike/repos/pipulate/.cursor/rules/14_testing_and_debugging.mdc
@@ -108,9 +111,8 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/330_widget_shim.py
 # /home/mike/repos/pipulate/plugins/410_botify_api_tutorial.py
 # /home/mike/repos/pipulate/plugins/430_tab_opener.py
-/home/mike/repos/pipulate/plugins/440_browser_automation.py  <-- You ought to see how selenium-wire scrapes. A setup for Unix pipe style DOM processing
 # /home/mike/repos/pipulate/plugins/450_stream_simulator.py
-/home/mike/repos/pipulate/plugins/520_text_area.py  <-- What we're probably going to use for the Simon Says Make MCP Tool-call Widget
+# /home/mike/repos/pipulate/plugins/520_text_area.py  <-- What we're probably going to use for the Simon Says Make MCP Tool-call Widget
 # /home/mike/repos/pipulate/plugins/530_dropdown.py
 # /home/mike/repos/pipulate/plugins/540_checkboxes.py
 # /home/mike/repos/pipulate/plugins/550_radios.py
@@ -125,7 +127,6 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/720_rich.py
 # /home/mike/repos/pipulate/plugins/730_matplotlib.py
 # /home/mike/repos/pipulate/plugins/810_webbrowser.py
-/home/mike/repos/pipulate/plugins/820_selenium.py  <-- The monumental magical path to local LLM MCP PFM (material for thinking ahead)
 
 ## COMMON STATIC RESOURCES (The Usual Suspects / you're already trained on these) 
 # /home/mike/repos/pipulate/static/fasthtml.js
