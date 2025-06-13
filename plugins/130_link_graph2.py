@@ -892,9 +892,23 @@ class LinkGraphVisualizer2:
             button_suffix = basic_template_details.get('button_label_suffix', 'Basic Attributes')
             
             # Check for cached file using "crawl_attributes" export type
+            # Also check if there's a hardwired depth from step_02 that affects the filename
             is_cached = False
             if analysis_slug:
-                is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'crawl_attributes')
+                # Get hardwired depth from step_02 data if available
+                prev_step_data = pip.get_step_data(pipeline_id, 'step_02', {})
+                prev_data_str = prev_step_data.get('analysis_selection', '')
+                depth_suffix = None
+                if prev_data_str:
+                    try:
+                        prev_analysis_data = json.loads(prev_data_str)
+                        hardwired_depth = prev_analysis_data.get('hardwired_depth')
+                        if hardwired_depth and hardwired_depth != 'auto':
+                            depth_suffix = f"_depth{hardwired_depth}"
+                    except:
+                        pass  # Ignore parsing errors, use default
+                
+                is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'crawl_attributes', depth_suffix)
             
             button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
             
