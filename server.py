@@ -3828,15 +3828,21 @@ async def poke_flyout(request):
     profile_locked = db.get('profile_locked', '0') == '1'
     lock_button_text = '🔓 Unlock Profile' if profile_locked else '🔒 Lock Profile'
     is_dev_mode = get_current_environment() == 'Development'
-    poke_button = Button(f'🤖 MCP Poke {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
+    
+    # Create buttons
     lock_button = Button(lock_button_text, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline')
-    delete_workflows_button = Button('🗑️ Delete Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
+    delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
     reset_db_button = Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
-    list_items = [Li(poke_button, cls='flyout-list-item'), Li(lock_button, cls='flyout-list-item')]
+    mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
+    
+    # Build list items in the requested order: Lock Profile, Clear Workflows, Reset Database, MCP Test
+    list_items = [Li(lock_button, cls='flyout-list-item')]
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
+    list_items.append(Li(mcp_test_button, cls='flyout-list-item'))
+    
     # Always use nav flyout now - no more fallback to old flyout
     target_id = 'nav-flyout-panel'
     css_class = 'nav-flyout-panel visible'
