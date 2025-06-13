@@ -950,37 +950,7 @@ input[type="password"]:focus {
    FLYOUT PANEL - Positioned notification/action panels
    ============================================================================ */
 
-.flyout-panel {
-    position: fixed;
-    bottom: 80px;
-    right: 20px;
-    background: var(--pico-card-background-color);
-    border: 1px solid var(--pico-muted-border-color);
-    border-radius: var(--pico-border-radius);
-    box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px;
-    z-index: 999;
-}
-
-.flyout-panel.hidden {
-    display: none;
-}
-
-.flyout-panel.visible {
-    background: var(--pico-accordion-border-color);
-    display: block;
-    padding: 1rem;
-}
-
-.flyout-content {
-    background: var(--pico-card-background-color);
-    padding: 0.5rem;
-    border-radius: var(--pico-border-radius);
-}
-
-.flyout-list-item {
-    list-style-type: none;
-    margin-bottom: 0.5rem;
-}
+/* Old flyout panel styles removed - using nav flyout panel now */
 
 /* Old floating poke button styles removed - using nav poke button now */
 
@@ -1024,6 +994,18 @@ input[type="password"]:focus {
     background: var(--pico-accordion-border-color);
     display: block;
     padding: 1rem;
+}
+
+/* Navigation flyout content styling */
+.nav-flyout-panel .flyout-content {
+    background: var(--pico-card-background-color);
+    padding: 0.5rem;
+    border-radius: var(--pico-border-radius);
+}
+
+.nav-flyout-panel .flyout-list-item {
+    list-style-type: none;
+    margin-bottom: 0.5rem;
 }
 
 /* ============================================================================
