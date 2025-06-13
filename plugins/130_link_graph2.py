@@ -798,12 +798,6 @@ class LinkGraphVisualizer2:
             analysis_result['parameter_placeholder_in_main_query'] = qualifier_config.get('parameter_placeholder_in_main_query')
             await self.message_queue.add(pip, f'🎯 Using hardwired depth: {hardwired_depth}', verbatim=True)
 
-            # Check for cached file with hardwired depth
-            depth_suffix = f'_depth{hardwired_depth}'
-            is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, active_template_details.get('export_type', 'crawl_attributes'), depth_suffix)
-            if is_cached:
-                await self.message_queue.add(pip, f'📦 Found cached file for depth {hardwired_depth}', verbatim=True)
-
         analysis_result_str = json.dumps(analysis_result)
         await pip.set_step_data(pipeline_id, step_id, analysis_result_str, steps)
         return Card(
