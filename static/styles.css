@@ -956,8 +956,13 @@ input[type="password"]:focus {
 
 /* Navigation Poke Button - uses standard PicoCSS dropdown styling */
 .nav-poke-button svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
+}
+
+/* Remove chevron from poke button dropdown */
+.nav-poke-section details[role="list"] summary::after {
+    display: none;
 }
 
 /* Navigation Flyout Panel */
