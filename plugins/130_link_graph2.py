@@ -22,7 +22,7 @@ from fasthtml.common import *
 from starlette.responses import HTMLResponse
 from loguru import logger
 
-ROLES = ['Botify Employee']
+ROLES = ['Workshop']
 TOKEN_FILE = 'botify_token.txt'
 
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
