@@ -3834,16 +3834,22 @@ async def poke_flyout(request):
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
-    # Handle both old floating flyout and new nav flyout
-    target_id = 'nav-flyout-panel' if request.headers.get('hx-target') == '#nav-flyout-panel' else 'flyout-panel'
-    return Div(id=target_id, cls='nav-flyout-panel visible' if target_id == 'nav-flyout-panel' else 'flyout-panel visible', hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Poke Actions'), Ul(*list_items), cls='flyout-content'))
+    # Determine target based on HX-Target header - default to nav flyout now
+    target_header = request.headers.get('HX-Target', '')
+    is_nav_flyout = target_header == '#nav-flyout-panel'
+    target_id = 'nav-flyout-panel' if is_nav_flyout else 'flyout-panel'
+    css_class = 'nav-flyout-panel visible' if is_nav_flyout else 'flyout-panel visible'
+    return Div(id=target_id, cls=css_class, hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Poke Actions'), Ul(*list_items), cls='flyout-content'))
 
 @rt('/poke-flyout-hide', methods=['GET'])
 async def poke_flyout_hide(request):
     """Hide the poke flyout panel by returning an empty hidden div."""
-    # Determine which target to hide based on request context
-    target_id = 'nav-flyout-panel' if request.headers.get('hx-request', '') and 'nav-flyout-panel' in str(request.headers) else 'flyout-panel'
-    css_class = 'nav-flyout-panel hidden' if target_id == 'nav-flyout-panel' else 'flyout-panel hidden'
+    # Check referer or hx-current-url to determine which flyout to hide
+    referer = request.headers.get('Referer', '')
+    current_url = request.headers.get('HX-Current-URL', referer)
+    # Default to nav flyout now since that's our primary implementation
+    target_id = 'nav-flyout-panel'
+    css_class = 'nav-flyout-panel hidden'
     return Div(id=target_id, cls=css_class)
 
 @rt('/sse')
