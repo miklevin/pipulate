@@ -179,9 +179,12 @@ class CrudUI(PluginIdentityManager):
     EMOJI = '👥'
 
     @property
-
-    def ENDPOINT_MESSAGE(self):
+    def H3_HEADER(self):
         return f"Check to add Roles to APP menu. Drag-to-reorder."
+
+    @property
+    def ENDPOINT_MESSAGE(self):
+        return f"Configure {self.get_app_name()} how you like. Check to add Roles to APP menu. Drag-to-reorder. Click any role to expand and see which APPs it affects - each APP link navigates directly to that feature. You can also Search Plugins in the nav menu above."
 
     def __init__(self, app, pipulate, pipeline, db_dictlike, config):
         """Initialize the Roles Plugin with injected configuration."""
@@ -330,7 +333,7 @@ class CrudUI(PluginIdentityManager):
             Style(self.generate_role_css()),
             Card(
                 H2(f"{self.DISPLAY_NAME}"),
-                H3(self.ENDPOINT_MESSAGE),
+                H3(self.H3_HEADER),
                 P(
                     f"New to {self.get_app_name()}? Start with the ",
                     A("Introduction", href="/redirect/introduction", 
