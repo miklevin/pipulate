@@ -3831,11 +3831,9 @@ async def poke_flyout(request):
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
-    # Determine target based on HX-Target header - default to nav flyout now
-    target_header = request.headers.get('HX-Target', '')
-    is_nav_flyout = target_header == '#nav-flyout-panel'
-    target_id = 'nav-flyout-panel' if is_nav_flyout else 'flyout-panel'
-    css_class = 'nav-flyout-panel visible' if is_nav_flyout else 'flyout-panel visible'
+    # Always use nav flyout now - no more fallback to old flyout
+    target_id = 'nav-flyout-panel'
+    css_class = 'nav-flyout-panel visible'
     return Div(id=target_id, cls=css_class, hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Poke Actions'), Ul(*list_items), cls='flyout-content'))
 
 @rt('/poke-flyout-hide', methods=['GET'])
