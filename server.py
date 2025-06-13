@@ -2525,15 +2525,15 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/widget-scripts.js'),
         create_chat_scripts('.sortable'),
         Script("""
-            // Initialize theme on page load
+            // Initialize theme on page load - sticky preference
             (function() {
-                // Get theme from localStorage or default to system preference
+                // Get theme from localStorage - this is the source of truth for stickiness
                 let themeToApply = localStorage.getItem('theme_preference');
                 
                 if (!themeToApply || (themeToApply !== 'light' && themeToApply !== 'dark')) {
-                    // Default to system preference if no stored preference
-                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    themeToApply = prefersDark ? 'dark' : 'light';
+                    // Default to dark mode for new users (sticky preference)
+                    themeToApply = 'dark';
+                    localStorage.setItem('theme_preference', themeToApply);
                 }
                 
                 document.documentElement.setAttribute('data-theme', themeToApply);
@@ -3844,8 +3844,8 @@ async def poke_flyout(request):
     lock_button_text = '🔓 Unlock Profile' if profile_locked else '🔒 Lock Profile'
     is_dev_mode = get_current_environment() == 'Development'
     
-    # Get current theme setting (default to 'auto' which follows system preference)
-    current_theme = db.get('theme_preference', 'auto')
+    # Get current theme setting (default to 'dark' for new users)
+    current_theme = db.get('theme_preference', 'dark')
     theme_is_dark = current_theme == 'dark'
     
     # Create buttons
@@ -3866,28 +3866,28 @@ async def poke_flyout(request):
             Span('🌙 Dark Mode', style='margin-left: 0.5rem;')
         ),
         Script(f"""
-            // Sync server preference with localStorage and current DOM state
+            // Ensure switch state matches localStorage (sticky preference)
             (function() {{
+                const currentTheme = localStorage.getItem('theme_preference') || 'dark';
                 const serverTheme = '{current_theme}';
-                const currentTheme = localStorage.getItem('theme_preference');
                 
-                // If server has a specific preference, use it and update localStorage
-                if (serverTheme === 'light' || serverTheme === 'dark') {{
-                    if (currentTheme !== serverTheme) {{
-                        localStorage.setItem('theme_preference', serverTheme);
-                        document.documentElement.setAttribute('data-theme', serverTheme);
-                    }}
-                }} else {{
-                    // Server has 'auto', sync with current localStorage/DOM state
-                    const currentDOMTheme = document.documentElement.getAttribute('data-theme');
-                    if (currentDOMTheme && (currentDOMTheme === 'light' || currentDOMTheme === 'dark')) {{
-                        // Update server to match current state
-                        fetch('/sync_theme', {{
-                            method: 'POST',
-                            headers: {{'Content-Type': 'application/x-www-form-urlencoded'}},
-                            body: 'theme=' + currentDOMTheme
-                        }});
-                    }}
+                // localStorage is the source of truth for stickiness
+                if (currentTheme !== serverTheme) {{
+                    // Update server to match localStorage
+                    fetch('/sync_theme', {{
+                        method: 'POST',
+                        headers: {{'Content-Type': 'application/x-www-form-urlencoded'}},
+                        body: 'theme=' + currentTheme
+                    }});
+                }}
+                
+                // Ensure DOM reflects localStorage
+                document.documentElement.setAttribute('data-theme', currentTheme);
+                
+                // Update switch state to match localStorage
+                const switchElement = document.querySelector('#theme-switch-container input[type="checkbox"]');
+                if (switchElement) {{
+                    switchElement.checked = (currentTheme === 'dark');
                 }}
             }})();
         """),
@@ -3896,13 +3896,13 @@ async def poke_flyout(request):
     )
     
     delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
-    reset_db_button = Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
+    reset_db_button = Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
-    # Build list items in the requested order: Lock Profile, Theme Toggle, Clear Workflows, Reset Database, MCP Test
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Clear Workflows, Reset Database, MCP Test
     list_items = [
-        Li(lock_button, cls='flyout-list-item'),
-        Li(theme_switch, cls='flyout-list-item')
+        Li(theme_switch, cls='flyout-list-item'),
+        Li(lock_button, cls='flyout-list-item')
     ]
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
