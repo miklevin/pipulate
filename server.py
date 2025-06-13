@@ -3350,7 +3350,22 @@ def create_nav_menu():
         cls='dropdown nav-poke-section',
         id='poke-dropdown-menu'
     )
-    menus = Div(create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu(), poke_section, cls='nav-menu-group')
+    # Create navigation search field (positioned before PROFILE)
+    # Designed for future HTMX real-time search implementation
+    nav_search = Input(
+        type='search',
+        placeholder='Search plugins...',
+        cls='nav-search',
+        id='nav-plugin-search',
+        style='width: 250px; margin-right: 1rem; border-radius: 20px;',
+        # Future HTMX attributes for real-time search:
+        # hx_get='/search-plugins',
+        # hx_target='#search-results-dropdown',
+        # hx_trigger='keyup changed delay:300ms',
+        # hx_indicator='#search-spinner'
+    )
+    
+    menus = Div(nav_search, create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu(), poke_section, cls='nav-menu-group')
     nav = Div(breadcrumb, menus, cls='nav-breadcrumb')
     logger.debug('Navigation menu created.')
     return nav
