@@ -3325,7 +3325,11 @@ def create_nav_menu():
     profile_text = Span(title_name(selected_profile_name))
     endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM)
     breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text)
-    menus = Div(create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu(), cls='nav-menu-group')
+    # Create navigation poke button for the nav area
+    nav_poke_button = Button('🤖', cls='contrast outline nav-poke-button', hx_get='/poke-flyout', hx_target='#nav-flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML')
+    nav_flyout_panel = Div(id='nav-flyout-panel', cls='nav-flyout-panel hidden')
+    poke_section = Div(nav_poke_button, nav_flyout_panel, cls='nav-poke-section')
+    menus = Div(create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu(), poke_section, cls='nav-menu-group')
     nav = Div(breadcrumb, menus, cls='nav-breadcrumb')
     logger.debug('Navigation menu created.')
     return nav
@@ -3831,12 +3835,17 @@ async def poke_flyout(request):
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
-    return Div(id='flyout-panel', cls='flyout-panel visible', hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Poke Actions'), Ul(*list_items), cls='flyout-content'))
+    # Handle both old floating flyout and new nav flyout
+    target_id = 'nav-flyout-panel' if request.headers.get('hx-target') == '#nav-flyout-panel' else 'flyout-panel'
+    return Div(id=target_id, cls='nav-flyout-panel visible' if target_id == 'nav-flyout-panel' else 'flyout-panel visible', hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Poke Actions'), Ul(*list_items), cls='flyout-content'))
 
 @rt('/poke-flyout-hide', methods=['GET'])
 async def poke_flyout_hide(request):
     """Hide the poke flyout panel by returning an empty hidden div."""
-    return Div(id='flyout-panel', cls='flyout-panel hidden')
+    # Determine which target to hide based on request context
+    target_id = 'nav-flyout-panel' if request.headers.get('hx-request', '') and 'nav-flyout-panel' in str(request.headers) else 'flyout-panel'
+    css_class = 'nav-flyout-panel hidden' if target_id == 'nav-flyout-panel' else 'flyout-panel hidden'
+    return Div(id=target_id, cls=css_class)
 
 @rt('/sse')
 async def sse_endpoint(request):
