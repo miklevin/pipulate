@@ -3657,7 +3657,6 @@ async def create_outer_container(current_profile_id, menux, request):
         Style(dynamic_css),  # Dynamic CSS injection
         nav_group, 
         Div(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), 
-        create_poke_button(),
         init_splitter_script  # Initialize the draggable splitter
     )
 
