@@ -2538,6 +2538,29 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
                 
                 document.documentElement.setAttribute('data-theme', themeToApply);
             })();
+            
+            // Plugin search dropdown management
+            document.addEventListener('click', function(event) {
+                const dropdown = document.getElementById('search-results-dropdown');
+                const searchInput = document.getElementById('nav-plugin-search');
+                
+                if (dropdown && searchInput) {
+                    // Hide dropdown if clicking outside search area
+                    if (!searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                        dropdown.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Clear search and hide dropdown on escape
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    const dropdown = document.getElementById('search-results-dropdown');
+                    const searchInput = document.getElementById('nav-plugin-search');
+                    if (dropdown) dropdown.style.display = 'none';
+                    if (searchInput) searchInput.blur();
+                }
+            });
         """),
         Script(type='module')
     ),
@@ -3351,21 +3374,28 @@ def create_nav_menu():
         id='poke-dropdown-menu'
     )
     # Create navigation search field (positioned before PROFILE)
-    # Designed for future HTMX real-time search implementation
-    nav_search = Input(
-        type='search',
-        placeholder='Search plugins...',
-        cls='nav-search',
-        id='nav-plugin-search',
-        style='width: 250px; margin-right: 1rem; border-radius: 20px;',
-        # Future HTMX attributes for real-time search:
-        # hx_get='/search-plugins',
-        # hx_target='#search-results-dropdown',
-        # hx_trigger='keyup changed delay:300ms',
-        # hx_indicator='#search-spinner'
+    # HTMX real-time search implementation
+    # Search container with dropdown results
+    search_results_dropdown = Div(id='search-results-dropdown', style='position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; background: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 8px; max-height: 300px; overflow-y: auto; display: none;')
+    
+    nav_search_container = Div(
+        Input(
+            type='search',
+            name='search',
+            placeholder='Search plugins...',
+            cls='nav-search',
+            id='nav-plugin-search',
+            style='width: 250px; border-radius: 20px;',
+            hx_post='/search-plugins',
+            hx_target='#search-results-dropdown',
+            hx_trigger='input changed delay:300ms, keyup[key==\'Enter\'], load',
+            hx_swap='innerHTML'
+        ),
+        search_results_dropdown,
+        style='position: relative; margin-right: 1rem;'
     )
     
-    menus = Div(nav_search, create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu(), poke_section, cls='nav-menu-group')
+    menus = Div(nav_search_container, create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu(), poke_section, cls='nav-menu-group')
     nav = Div(breadcrumb, menus, cls='nav-breadcrumb')
     logger.debug('Navigation menu created.')
     return nav
@@ -4100,6 +4130,90 @@ async def sync_theme(request):
         db['theme_preference'] = theme
     
     return HTMLResponse('OK')
+
+@rt('/search-plugins', methods=['POST'])
+async def search_plugins(request):
+    """Search plugins based on user input - Carson Gross style active search."""
+    try:
+        form = await request.form()
+        search_term = form.get('search', '').strip().lower()
+        
+        # Build searchable plugin data from discovered modules
+        searchable_plugins = []
+        
+        for module_name, instance in plugin_instances.items():
+            if module_name in ['profiles', 'roles']:  # Skip system plugins
+                continue
+                
+            # Get clean display name (remove numeric prefix, underscores, .py)
+            clean_name = module_name.replace('_', ' ').title()
+            display_name = getattr(instance, 'DISPLAY_NAME', clean_name)
+            
+            # Create searchable entry
+            plugin_entry = {
+                'module_name': module_name,
+                'display_name': display_name,
+                'clean_name': clean_name,
+                'url': f'/redirect/{module_name}'
+            }
+            searchable_plugins.append(plugin_entry)
+        
+        # Filter plugins based on search term
+        if search_term:
+            filtered_plugins = []
+            for plugin in searchable_plugins:
+                # Search in display name and clean name
+                if (search_term in plugin['display_name'].lower() or 
+                    search_term in plugin['clean_name'].lower() or
+                    search_term in plugin['module_name'].lower()):
+                    filtered_plugins.append(plugin)
+        else:
+            # Show all plugins on empty search (load trigger)
+            filtered_plugins = searchable_plugins
+        
+        # Generate HTML results
+        if filtered_plugins:
+            result_html = ""
+            for plugin in filtered_plugins[:10]:  # Limit to 10 results
+                result_html += f"""
+                <div style="padding: 0.5rem 1rem; cursor: pointer; border-bottom: 1px solid var(--pico-muted-border-color);" 
+                     onclick="window.location.href='{plugin['url']}';"
+                     onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';"
+                     onmouseout="this.style.backgroundColor='transparent';">
+                    <strong>{plugin['display_name']}</strong>
+                    <div style="font-size: 0.85em; color: var(--pico-muted-color);">{plugin['module_name']}</div>
+                </div>
+                """
+            
+            # Show/hide dropdown with JavaScript
+            result_html += """
+            <script>
+                document.getElementById('search-results-dropdown').style.display = 'block';
+            </script>
+            """
+        else:
+            # No results
+            result_html = """
+            <div style="padding: 1rem; text-align: center; color: var(--pico-muted-color);">
+                No plugins found
+            </div>
+            <script>
+                document.getElementById('search-results-dropdown').style.display = 'block';
+            </script>
+            """
+        
+        return HTMLResponse(result_html)
+        
+    except Exception as e:
+        logger.error(f"Error in search_plugins: {e}")
+        return HTMLResponse(f"""
+        <div style="padding: 1rem; color: var(--pico-form-element-invalid-active-border-color);">
+            Search error: {str(e)}
+        </div>
+        <script>
+            document.getElementById('search-results-dropdown').style.display = 'block';
+        </script>
+        """)
 
 
 
