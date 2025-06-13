@@ -362,9 +362,8 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 .nav-menu-group {
     display: flex;
     align-items: center;
-    flex-shrink: 0;
-    gap: var(--pico-spacing, 1rem);
-    padding-right: 1vw;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 /* Grid Layout - Modified for Split.js draggable splitter */
