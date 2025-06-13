@@ -954,25 +954,10 @@ input[type="password"]:focus {
 
 /* Old floating poke button styles removed - using nav poke button now */
 
-/* Navigation Poke Button */
-.nav-poke-button {
-    font-size: 14px;
-    padding: 0.25rem 0.5rem;
-    min-height: auto;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
-    white-space: nowrap;
-}
-
+/* Navigation Poke Button - uses standard PicoCSS dropdown styling */
 .nav-poke-button svg {
     width: 16px;
     height: 16px;
-}
-
-.nav-poke-section {
-    margin-left: 0.5rem;
 }
 
 /* Navigation Flyout Panel */
