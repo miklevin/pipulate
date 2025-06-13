@@ -956,8 +956,8 @@ input[type="password"]:focus {
 
 /* Navigation Poke Button - uses standard PicoCSS dropdown styling */
 .nav-poke-button svg {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
 }
 
 /* Remove chevron from poke button dropdown */
