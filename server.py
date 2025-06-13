@@ -2525,6 +2525,20 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/widget-scripts.js'),
         create_chat_scripts('.sortable'),
         Script("""
+            // Initialize theme on page load - sticky preference
+            (function() {
+                // Get theme from localStorage - this is the source of truth for stickiness
+                let themeToApply = localStorage.getItem('theme_preference');
+                
+                if (!themeToApply || (themeToApply !== 'light' && themeToApply !== 'dark')) {
+                    // Default to dark mode for new users (sticky preference)
+                    themeToApply = 'dark';
+                    localStorage.setItem('theme_preference', themeToApply);
+                }
+                
+                document.documentElement.setAttribute('data-theme', themeToApply);
+            })();
+            
             // Plugin search dropdown management
             document.addEventListener('click', function(event) {
                 const dropdown = document.getElementById('search-results-dropdown');
@@ -3875,14 +3889,65 @@ async def poke_flyout(request):
     lock_button_text = '🔓 Unlock Profile' if profile_locked else '🔒 Lock Profile'
     is_dev_mode = get_current_environment() == 'Development'
     
+    # Get current theme setting (default to 'dark' for new users)
+    current_theme = db.get('theme_preference', 'dark')
+    theme_is_dark = current_theme == 'dark'
+    
     # Create buttons
     lock_button = Button(lock_button_text, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline')
+    
+    # Theme toggle switch
+    theme_switch = Div(
+        Label(
+            Input(
+                type='checkbox', 
+                role='switch', 
+                name='theme_switch', 
+                checked=theme_is_dark,
+                hx_post='/toggle_theme',
+                hx_target='#theme-switch-container',
+                hx_swap='outerHTML'
+            ), 
+            Span('🌙 Dark Mode', style='margin-left: 0.5rem;')
+        ),
+        Script(f"""
+            // Ensure switch state matches localStorage (sticky preference)
+            (function() {{
+                const currentTheme = localStorage.getItem('theme_preference') || 'dark';
+                const serverTheme = '{current_theme}';
+                
+                // localStorage is the source of truth for stickiness
+                if (currentTheme !== serverTheme) {{
+                    // Update server to match localStorage
+                    fetch('/sync_theme', {{
+                        method: 'POST',
+                        headers: {{'Content-Type': 'application/x-www-form-urlencoded'}},
+                        body: 'theme=' + currentTheme
+                    }});
+                }}
+                
+                // Ensure DOM reflects localStorage
+                document.documentElement.setAttribute('data-theme', currentTheme);
+                
+                // Update switch state to match localStorage
+                const switchElement = document.querySelector('#theme-switch-container input[type="checkbox"]');
+                if (switchElement) {{
+                    switchElement.checked = (currentTheme === 'dark');
+                }}
+            }})();
+        """),
+        id='theme-switch-container',
+        style='padding: 0.5rem 1rem; display: flex; align-items: center;'
+    )
     delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
-    reset_db_button = Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
+    reset_db_button = Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
-    # Build list items in the requested order: Lock Profile, Clear Workflows, Reset Database, MCP Test
-    list_items = [Li(lock_button, cls='flyout-list-item')]
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Clear Workflows, Reset Database, MCP Test
+    list_items = [
+        Li(theme_switch, cls='flyout-list-item'),
+        Li(lock_button, cls='flyout-list-item')
+    ]
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
@@ -4018,7 +4083,52 @@ async def toggle_profile_lock(request):
     db['profile_locked'] = '1' if current == '0' else '0'
     return HTMLResponse('', headers={'HX-Refresh': 'true'})
 
+@rt('/toggle_theme', methods=['POST'])
+async def toggle_theme(request):
+    """Toggle between light and dark theme."""
+    current_theme = db.get('theme_preference', 'auto')
+    
+    # Toggle between light and dark (we'll skip 'auto' for simplicity)
+    new_theme = 'dark' if current_theme != 'dark' else 'light'
+    db['theme_preference'] = new_theme
+    
+    # Create the updated switch component
+    theme_is_dark = new_theme == 'dark'
+    theme_switch = Div(
+        Label(
+            Input(
+                type='checkbox', 
+                role='switch', 
+                name='theme_switch', 
+                checked=theme_is_dark,
+                hx_post='/toggle_theme',
+                hx_target='#theme-switch-container',
+                hx_swap='outerHTML'
+            ), 
+            Span('🌙 Dark Mode', style='margin-left: 0.5rem;')
+        ),
+        Script(f"""
+            // Apply theme to HTML element
+            document.documentElement.setAttribute('data-theme', '{new_theme}');
+            // Store in localStorage for persistence across page loads
+            localStorage.setItem('theme_preference', '{new_theme}');
+        """),
+        id='theme-switch-container',
+        style='padding: 0.5rem 1rem; display: flex; align-items: center;'
+    )
+    
+    return theme_switch
 
+@rt('/sync_theme', methods=['POST'])
+async def sync_theme(request):
+    """Sync theme preference from client to server."""
+    form = await request.form()
+    theme = form.get('theme', 'auto')
+    
+    if theme in ['light', 'dark']:
+        db['theme_preference'] = theme
+    
+    return HTMLResponse('OK')
 
 @rt('/search-plugins', methods=['POST'])
 async def search_plugins(request):
