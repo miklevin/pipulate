@@ -4177,7 +4177,7 @@ async def search_plugins(request):
             for plugin in filtered_plugins[:10]:  # Limit to 10 results
                 result_html += f"""
                 <div style="padding: 0.5rem 1rem; cursor: pointer; border-bottom: 1px solid var(--pico-muted-border-color);" 
-                     onclick="window.location.href='{plugin['url']}';"
+                     onclick="document.getElementById('search-results-dropdown').style.display='none'; document.getElementById('nav-plugin-search').value=''; window.location.href='{plugin['url']}';"
                      onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';"
                      onmouseout="this.style.backgroundColor='transparent';">
                     <strong>{plugin['display_name']}</strong>
