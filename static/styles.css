@@ -957,14 +957,19 @@ input[type="password"]:focus {
 /* Navigation Poke Button */
 .nav-poke-button {
     font-size: 18px;
-    padding: 0.25rem;
+    padding: 0.375rem;
     min-height: auto;
-    width: 2rem;
-    height: 2rem;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.nav-poke-button svg {
+    width: 18px;
+    height: 18px;
 }
 
 .nav-poke-section {
