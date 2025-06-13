@@ -802,6 +802,83 @@ input[type="password"]:focus {
 }
 
 /* ============================================================================
+   NAVIGATION SEARCH FIELD STYLING - Standard PicoCSS Appearance
+   ============================================================================
+   
+   🎯 PURPOSE: Provide clean PicoCSS styling for navigation search fields
+   
+   This class explicitly uses PicoCSS defaults to create a clean contrast with
+   the "black keyhole" workflow search fields. Navigation search should "melt
+   into the design" while workflow search should "pop with chrome-like styling".
+   
+   USAGE: Add cls='nav-search' to search inputs in navigation areas
+   ============================================================================ */
+
+.nav-search {
+    /* Explicitly use PicoCSS default variables for clean navigation appearance */
+    background-color: var(--pico-form-element-background-color) !important;
+    color: var(--pico-form-element-color) !important;
+    border-color: var(--pico-form-element-border-color) !important;
+}
+
+.nav-search::placeholder {
+    color: var(--pico-form-element-placeholder-color) !important;
+    opacity: 1 !important;
+}
+
+.nav-search:focus {
+    background-color: var(--pico-form-element-active-background-color) !important;
+    color: var(--pico-form-element-color) !important;
+    border-color: var(--pico-form-element-active-border-color) !important;
+    box-shadow: 0 0 0 var(--pico-outline-width) var(--pico-form-element-focus-color) !important;
+}
+
+/* Ensure nav search works across all themes */
+[data-theme="light"] .nav-search,
+[data-theme="dark"] .nav-search,
+:root:not([data-theme]) .nav-search {
+    background-color: var(--pico-form-element-background-color) !important;
+    color: var(--pico-form-element-color) !important;
+    border-color: var(--pico-form-element-border-color) !important;
+}
+
+[data-theme="light"] .nav-search::placeholder,
+[data-theme="dark"] .nav-search::placeholder,
+:root:not([data-theme]) .nav-search::placeholder {
+    color: var(--pico-form-element-placeholder-color) !important;
+    opacity: 1 !important;
+}
+
+[data-theme="light"] .nav-search:focus,
+[data-theme="dark"] .nav-search:focus,
+:root:not([data-theme]) .nav-search:focus {
+    background-color: var(--pico-form-element-active-background-color) !important;
+    color: var(--pico-form-element-color) !important;
+    border-color: var(--pico-form-element-active-border-color) !important;
+    box-shadow: 0 0 0 var(--pico-outline-width) var(--pico-form-element-focus-color) !important;
+}
+
+@media only screen and (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .nav-search {
+        background-color: var(--pico-form-element-background-color) !important;
+        color: var(--pico-form-element-color) !important;
+        border-color: var(--pico-form-element-border-color) !important;
+    }
+    
+    :root:not([data-theme]) .nav-search::placeholder {
+        color: var(--pico-form-element-placeholder-color) !important;
+        opacity: 1 !important;
+    }
+    
+    :root:not([data-theme]) .nav-search:focus {
+        background-color: var(--pico-form-element-active-background-color) !important;
+        color: var(--pico-form-element-color) !important;
+        border-color: var(--pico-form-element-active-border-color) !important;
+        box-shadow: 0 0 0 var(--pico-outline-width) var(--pico-form-element-focus-color) !important;
+    }
+}
+
+/* ============================================================================
    ROLE-BASED COLOR SYSTEM - NOW GENERATED DYNAMICALLY!
    ============================================================================
    
