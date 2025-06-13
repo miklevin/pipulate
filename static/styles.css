@@ -361,7 +361,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 .nav-menu-group {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 0.5rem;
     flex-wrap: wrap;
 }
@@ -986,9 +986,15 @@ input[type="password"]:focus {
 
 /* Navigation Poke Button */
 .nav-poke-button {
-    font-size: 16px;
-    padding: 0.25rem 0.5rem;
+    font-size: 18px;
+    padding: 0.25rem;
     min-height: auto;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .nav-poke-section {
