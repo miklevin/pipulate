@@ -582,11 +582,32 @@ class LinkGraphVisualizer2:
                 files_found = []
 
                 # Check crawl data (using active template's export type)
-                crawl_filepath = await self.get_deterministic_filepath(username, project_name, slug, active_template_details.get('export_type', 'crawl_attributes'))
-                crawl_exists, crawl_info = await self.check_file_exists(crawl_filepath)
-                if crawl_exists:
-                    filename = os.path.basename(crawl_filepath)
-                    files_found.append(filename)
+                export_type = active_template_details.get('export_type', 'crawl_attributes')
+                
+                # For Link Graph Edges, check both auto-optimized and specific depth files
+                if export_type == 'link_graph_edges':
+                    # Check auto-optimized file (no depth suffix)
+                    crawl_filepath_auto = await self.get_deterministic_filepath(username, project_name, slug, export_type)
+                    crawl_exists_auto, _ = await self.check_file_exists(crawl_filepath_auto)
+                    if crawl_exists_auto:
+                        filename = os.path.basename(crawl_filepath_auto)
+                        files_found.append(filename)
+                    
+                    # Check for depth-specific files (depth 1-10)
+                    for depth in range(1, 11):
+                        depth_suffix = f"_depth{depth}"
+                        crawl_filepath_depth = await self.get_deterministic_filepath(username, project_name, slug, export_type, depth_suffix)
+                        crawl_exists_depth, _ = await self.check_file_exists(crawl_filepath_depth)
+                        if crawl_exists_depth:
+                            filename = os.path.basename(crawl_filepath_depth)
+                            files_found.append(filename)
+                else:
+                    # For other templates, check normally
+                    crawl_filepath = await self.get_deterministic_filepath(username, project_name, slug, export_type)
+                    crawl_exists, crawl_info = await self.check_file_exists(crawl_filepath)
+                    if crawl_exists:
+                        filename = os.path.basename(crawl_filepath)
+                        files_found.append(filename)
 
                 # Check for step_02b crawl.csv file (always 'crawl_attributes' export type)
                 # Only check if the active template is NOT already 'crawl_attributes' to avoid duplication
@@ -776,6 +797,12 @@ class LinkGraphVisualizer2:
             analysis_result['metric_at_dynamic_parameter'] = 0  # Unknown, not calculated
             analysis_result['parameter_placeholder_in_main_query'] = qualifier_config.get('parameter_placeholder_in_main_query')
             await self.message_queue.add(pip, f'🎯 Using hardwired depth: {hardwired_depth}', verbatim=True)
+
+            # Check for cached file with hardwired depth
+            depth_suffix = f'_depth{hardwired_depth}'
+            is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, active_template_details.get('export_type', 'crawl_attributes'), depth_suffix)
+            if is_cached:
+                await self.message_queue.add(pip, f'📦 Found cached file for depth {hardwired_depth}', verbatim=True)
 
         analysis_result_str = json.dumps(analysis_result)
         await pip.set_step_data(pipeline_id, step_id, analysis_result_str, steps)
@@ -4894,6 +4921,7 @@ await main()
         username = step_data.get('username', '')
         project_name = step_data.get('project_name', '') or step_data.get('project', '')
         analysis_slug = step_data.get('analysis_slug', '')
+        hardwired_depth = step_data.get('hardwired_depth')
 
         # Construct the specific analysis folder path
         if username and project_name and analysis_slug:
@@ -4924,16 +4952,22 @@ await main()
 
         # Determine the expected filename based on step and export type
         expected_filename = None
+        depth_suffix = ""
+        
         if step_id == 'step_02':
             # For crawl data, determine filename based on active template's export type
             active_crawl_template_key = self.get_configured_template('crawl')
             active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
             export_type = active_template_details.get('export_type', 'crawl_attributes')
 
+            # For Link Graph Edges with hardwired depth, create depth suffix
+            if export_type == 'link_graph_edges' and hardwired_depth and hardwired_depth != 'auto':
+                depth_suffix = f"_depth{hardwired_depth}"
+
             # Use the same mapping as get_deterministic_filepath
             filename_mapping = {
                 'crawl_attributes': 'crawl.csv',
-                'link_graph_edges': 'link_graph.csv'
+                'link_graph_edges': f'link_graph{depth_suffix}.csv'
             }
             expected_filename = filename_mapping.get(export_type, 'crawl.csv')
         elif step_id == 'step_02b':
