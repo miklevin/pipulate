@@ -3812,10 +3812,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
         id='input-group',
     )
 
-def create_poke_button():
-    poke_button = Button('🤖', cls='contrast outline poke-button', hx_get='/poke-flyout', hx_target='#flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML')
-    flyout_panel = Div(id='flyout-panel', cls='flyout-panel hidden')
-    return Div(poke_button, flyout_panel)
+# Old create_poke_button function removed - now using nav poke button
 
 @rt('/poke-flyout', methods=['GET'])
 async def poke_flyout(request):
