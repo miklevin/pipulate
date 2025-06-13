@@ -961,7 +961,7 @@ input[type="password"]:focus {
 }
 
 /* Remove chevron from poke button dropdown */
-.nav-poke-section details[role="list"] summary::after {
+#poke-dropdown-menu summary::after {
     display: none;
 }
 
