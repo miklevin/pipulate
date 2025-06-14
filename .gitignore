@@ -23,5 +23,5 @@ wip/*
 prompt.md
 
 # Ignore local notebook copies to prevent git conflicts
-helpers/botify/botify_api_local.ipynb
 training/botify_api_local.md
+notebook_introduction_local.ipynb
