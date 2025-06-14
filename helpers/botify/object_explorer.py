@@ -86,7 +86,13 @@ async def check_field_availability(org: str, project: str, analysis: str, header
                                 print(f"    ✅ {field}")
                                 available_fields.append(f"{crawl_collection}.{field}")
                             else:
-                                print(f"    ❌ {field} (status: {individual_response.status_code})")
+                                error_detail = ""
+                                try:
+                                    error_json = individual_response.json()
+                                    error_detail = f" - {error_json.get('error', {}).get('message', 'Unknown error')}"
+                                except:
+                                    error_detail = f" - Response: {individual_response.text[:100]}"
+                                print(f"    ❌ {field} (status: {individual_response.status_code}){error_detail}")
                         except Exception as e:
                             print(f"    ❓ {field} (Error: {e})")
                             
