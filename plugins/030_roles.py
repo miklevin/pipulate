@@ -8,7 +8,8 @@ import sys
 import fastlite
 from fasthtml.common import *
 from loguru import logger
-from server import DB_FILENAME, BaseCrud, title_name
+from server import DB_FILENAME, title_name
+from .common import BaseCrud
 
 # ROLES constant is now used for discovery, not for defining the roles themselves.
 ROLES = []

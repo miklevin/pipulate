@@ -75,7 +75,7 @@
   # In this case, it's a development shell that works across different systems
   outputs = { self, nixpkgs, flake-utils }:
     let
-      version = "1.0.6 (Git-Managed Jupyter Settings)";  # Updated version to reflect git-managed settings
+      version = "1.0.7 (Self-Healing Git Updates)";  # Final version with robust stash/pull/pop system
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
