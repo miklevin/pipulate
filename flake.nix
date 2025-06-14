@@ -164,10 +164,9 @@
           echo 
 
           # --- JupyterLab Local Configuration ---
-          # Set env var and run setup script for the main 'nix develop' command
+          # Set env var for project-local JupyterLab configuration
           export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
-          setup-jupyter-prefs
-          echo "✓ JupyterLab preferences set for dark theme and larger fonts."
+          echo "✓ JupyterLab configured for project-local settings."
 
           # Install Python packages from requirements.txt
           # This allows flexibility to use the latest PyPI packages
@@ -447,9 +446,17 @@
             fi
           fi
           
-          # Auto-update: Perform a git pull if this is a git repository
+          # Auto-update with "Stash, Pull, Pop" to preserve user JupyterLab settings
           if [ -d .git ]; then
             echo "Checking for updates..."
+            
+            # Stash any local changes to JupyterLab settings to prevent pull conflicts
+            echo "Temporarily stashing local JupyterLab settings..."
+            git stash push --quiet --include-untracked --pathspec-from-file=- <<EOF 2>/dev/null || true
+.jupyter/lab/user-settings/
+EOF
+
+            # Fetch and check for updates
             git fetch origin
             LOCAL=$(git rev-parse HEAD)
             REMOTE=$(git rev-parse @{u})
@@ -460,6 +467,21 @@
               echo "Update complete!"
             else
               echo "Already up to date."
+            fi
+
+            # Pop the stashed settings back to re-apply user customizations
+            echo "Restoring local JupyterLab settings..."
+            if ! git stash pop --quiet 2>/dev/null; then
+              # Check if there's actually a stash to pop
+              if git stash list | grep -q "stash@{0}"; then
+                echo
+                echo "⚠️  WARNING: Your local JupyterLab settings conflicted with an update."
+                echo "   Your custom settings have been saved to the git stash."
+                echo "   To view them: git stash show"
+                echo "   To re-apply them (and resolve conflicts): git stash pop"
+                echo "   To discard them and use new defaults: git stash drop"
+                echo
+              fi
             fi
           fi
           
@@ -479,11 +501,7 @@
           export PATH="$VIRTUAL_ENV/bin:$PATH"
           export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
 
-          # --- Ensure .jupyter directory is in .gitignore ---
-          if [ -f .gitignore ]; then
-            # Add .jupyter/ to .gitignore if not already present
-            grep -qxF '.jupyter/' .gitignore || echo '.jupyter/' >> .gitignore
-          fi
+
 
           # --- JupyterLab Local Configuration ---
           # Set env var for project-local JupyterLab configuration
