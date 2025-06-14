@@ -1,13 +1,16 @@
 *.csv
 *.gz
-*.json
 *.pkl
 .DS_Store
 .ipynb_checkpoints/
-.jupyter/
 .sesskey
 .ssh/key
 .venv/
+
+# JupyterLab: Ignore user-specific session data but keep shared settings
+.jupyter/lab/workspaces/
+.jupyter/migrated
+.jupyter/serverconfig/
 __pycache__/
 app_name.txt
 botify_token.txt

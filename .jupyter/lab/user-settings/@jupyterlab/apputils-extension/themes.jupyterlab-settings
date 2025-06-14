@@ -1,0 +1,18 @@
+{
+    // Theme
+    // @jupyterlab/apputils-extension:themes
+    // Theme manager settings.
+    // *************************************
+
+    // Theme CSS Overrides
+    // Override theme CSS variables by setting key-value pairs here
+    "overrides": {
+        "code-font-size": "15px",
+        "content-font-size1": "18px",
+        "ui-font-size1": "15px"
+    },
+
+    // Selected Theme
+    // Application-level visual styling theme. Ignored when Adaptive Theme is enabled.
+    "theme": "JupyterLab Dark"
+}
