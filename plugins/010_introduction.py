@@ -87,13 +87,31 @@ class IntroductionPlugin:
                 'tips': [
                     ('🔗 CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster and Link Graph Visualizer.'),
                     ('🗑️ DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'),
-                    ('💾 SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input. Caveat: a complete reinstall using that "rm -rf ~/Botifython" command will delete everything.'),
+                    ('💾 SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse directly to files or attach new workflows to them by using the same input. Caveat: a complete reinstall using that "rm -rf ~/Botifython" command will delete everything.'),
                     ('🔒 LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'),
                     ('📁 BROWSE', 'Go look where things are saved.')
                 ],
                 'secret_word': 'WORKFLOW'
             },
             5: {
+                'title': 'The Localhost Advantage 🏠',
+                'intro_text': f'You\'ve paid the price of a more difficult install than a cloud app. Congratulations! It\'s time to reap the rewards of running {app_name} locally.',
+                'advantages': [
+                    ('🔐 BROWSER LOGINS', 'Access web UIs like Botify, SEMRush, and ahrefs without APIs. Your browser saves passwords locally as normal, nothing leaves your machine.'),
+                    ('💾 PERSISTENT FILES', 'All CSVs and web scrapes stay on your machine for easy browsing. No daily clearing like Google Colab - files persist until you delete them.'),
+                    ('⏱️ LONG-RUNNING WORKFLOWS', 'Crawls can run for 24+ hours without being "shut down" to mitigate resource usage. No cloud time limits.'),
+                    ('🛡️ VPN FLEXIBILITY', 'Use your VPN of choice to control web traffic appearance. No known cloud IPs, no complex IP-hiding tech costs.')
+                ],
+                'benefits_title': 'Real-World Benefits',
+                'benefits': [
+                    ('Control your data', 'Everything stays local and under your control.'),
+                    ('No artificial limits', 'Run workflows as long as needed without interruption.'),
+                    ('Use existing tools', 'Leverage your existing VPN and browser setup.'),
+                    ('Browse files naturally', 'Access outputs like any local file on your machine.')
+                ],
+                'secret_word': 'LOCALHOST'
+            },
+            6: {
                 'title': 'Local LLM Assistant 🤖',
                 'llm_features': [
                     ('🔒 PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'),
@@ -110,7 +128,7 @@ class IntroductionPlugin:
                 ],
                 'secret_word': 'ASSISTANT'
             },
-            6: {
+            7: {
                 'title': 'Background LLM Training',
                 'intro_text': f'🧠 {app_name} automatically trains your local LLM as you navigate. The LLM learns what you\'re viewing without cluttering your chat.',
                 'how_it_works': [
@@ -215,6 +233,16 @@ class IntroductionPlugin:
         elif page_num == 5:
             return Card(
                 H3(page_data['title']),
+                P(page_data['intro_text']),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['advantages']]),
+                H4(page_data['benefits_title']),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['benefits']]),
+                style=card_style
+            )
+
+        elif page_num == 6:
+            return Card(
+                H3(page_data['title']),
                 P(f'Your local LLM ({model}) provides intelligent assistance throughout your workflow:'),
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['llm_features']]),
                 H4('How to Use the LLM'),
@@ -222,7 +250,7 @@ class IntroductionPlugin:
                 style=card_style
             )
 
-        elif page_num == 6:
+        elif page_num == 7:
             return Card(
                 H3(page_data['title']),
                 P(page_data['intro_text']),
@@ -254,8 +282,10 @@ class IntroductionPlugin:
         elif page_num == 4:
             context = f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
         elif page_num == 5:
-            context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
+            context = f"The user is viewing the Localhost Advantage page which shows:\n\n{page_data['title']}\n\n{page_data['intro_text']}\n\nAdvantages:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['advantages']))}\n\nBenefits:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['benefits']))}"
         elif page_num == 6:
+            context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
+        elif page_num == 7:
             context = f"The user is viewing the Background LLM Training page which shows:\n\n{page_data['title']}\n\n{page_data['intro_text']}\n\nHow It Works:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['how_it_works'])))}\n\n{page_data['examples_title']}:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['examples']))}\n\nTesting Tip: {page_data['testing_tip']}"
         else:
             context = f"Unknown page {page_num}"
@@ -346,12 +376,12 @@ class IntroductionPlugin:
 
         next_button = Button(
             'Next ▸',
-            hx_post=f'/introduction/page/{current_page + 1}' if current_page < 6 else '#',
+            hx_post=f'/introduction/page/{current_page + 1}' if current_page < 7 else '#',
             hx_target='#grid-left-content',
             hx_swap='innerHTML',
-            cls='primary outline' if current_page == 6 else 'primary',
+            cls='primary outline' if current_page == 7 else 'primary',
             style='min-width: 160px; width: 160px;',
-            disabled=current_page == 6
+            disabled=current_page == 7
         )
 
         nav_arrows = Div(
