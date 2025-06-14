@@ -115,7 +115,7 @@
 
         # Define notebook paths for the copy-on-first-run solution
         originalNotebook = "helpers/botify/botify_api.ipynb";
-        localNotebook = "helpers/botify/botify_api_local.ipynb";
+        localNotebook = "notebook_introduction_local.ipynb";
 
         # This script sets up our Python environment and project
         runScript = pkgs.writeShellScriptBin "run-script" ''
@@ -127,7 +127,7 @@
           # Define function to copy notebook if needed (copy-on-first-run solution)
           copy_notebook_if_needed() {
             if [ -f "${originalNotebook}" ] && [ ! -f "${localNotebook}" ]; then
-              echo "INFO: Creating a local, user-editable copy of the Botify API notebook..."
+              echo "INFO: Creating a local introduction notebook in the project root..."
               echo "      Your work will be saved in '${localNotebook}' and will not interfere with updates."
               cp "${originalNotebook}" "${localNotebook}"
               echo "      To get future updates to the original notebook, you can delete '${localNotebook}'."
