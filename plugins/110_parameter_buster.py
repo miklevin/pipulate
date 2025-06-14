@@ -334,7 +334,6 @@ class ParameterBuster:
         form = await request.form()
         user_input = form.get('pipeline_id', '').strip()
         if not user_input:
-            from starlette.responses import Response
             response = Response('')
             response.headers['HX-Refresh'] = 'true'
             return response
@@ -1320,8 +1319,6 @@ class ParameterBuster:
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
-        from fasthtml.common import to_xml
-        from starlette.responses import HTMLResponse
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and user_val:
             try:
@@ -1367,8 +1364,6 @@ class ParameterBuster:
                 widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 logging.info(f'Code length: {len(code_to_display)}, Params count: {(len(selected_params) if selected_params else 0)}')
                 prism_widget = self.create_prism_widget(code_to_display, widget_id, 'javascript')
-                from fasthtml.common import to_xml
-                from starlette.responses import HTMLResponse
                 response = HTMLResponse(to_xml(Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'Parameter Optimization with {(len(selected_params) if selected_params else 0)} parameters', widget=prism_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
                 response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
                 return response
@@ -1541,8 +1536,6 @@ class ParameterBuster:
             await pip.set_step_data(pipeline_id, step_id, user_val, steps)
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
             prism_widget = self.create_prism_widget(js_code, widget_id, 'javascript')
-            from fasthtml.common import to_xml
-            from starlette.responses import HTMLResponse
             response = HTMLResponse(to_xml(Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'Parameter Optimization with {(len(selected_params) if selected_params else 0)} parameters', widget=prism_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
             return response
@@ -1681,15 +1674,11 @@ class ParameterBuster:
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data:
             markdown_widget = self.create_marked_widget(markdown_content, widget_id)
-            from fasthtml.common import to_xml
-            from starlette.responses import HTMLResponse
             response = HTMLResponse(to_xml(Div(Card(H3(f'🔒 {step.show}'), markdown_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             response.headers['HX-Trigger'] = json.dumps({'initializeMarked': {'targetId': widget_id}})
             return response
         elif markdown_content and state.get('_revert_target') != step_id:
             markdown_widget = self.create_marked_widget(markdown_content, widget_id)
-            from fasthtml.common import to_xml
-            from starlette.responses import HTMLResponse
             response = HTMLResponse(to_xml(Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown Documentation', widget=markdown_widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             response.headers['HX-Trigger'] = json.dumps({'initializeMarked': {'targetId': widget_id}})
             return response
@@ -1739,8 +1728,6 @@ class ParameterBuster:
         await self.message_queue.add(pip, f'{step.show}: Markdown content updated', verbatim=True)
         widget_id = f"markdown-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         markdown_widget = self.create_marked_widget(markdown_content, widget_id)
-        from fasthtml.common import to_xml
-        from starlette.responses import HTMLResponse
         response = HTMLResponse(to_xml(Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown Documentation', widget=markdown_widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
         response.headers['HX-Trigger'] = json.dumps({'initializeMarked': {'targetId': widget_id}})
         return response
@@ -3966,6 +3953,7 @@ await main()
         # Generate enhanced Python code header for web logs
         ui_constants = self.pipulate.get_ui_constants()
         python_emoji = ui_constants['EMOJIS']['PYTHON_CODE']
+        comment_divider = ui_constants['CODE_FORMATTING']['COMMENT_DIVIDER']
         
         header_lines = [
             comment_divider,
