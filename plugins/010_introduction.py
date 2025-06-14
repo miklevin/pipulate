@@ -40,7 +40,7 @@ class IntroductionPlugin:
                 'features': [
                     ('📍 Breadcrumb', f'Headline is {app_name} / Profile Name / APP Name.'),
                     ('👤 PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'),
-                    ('⚡ APP', 'For each Client/Customer, try each APP (Parameter Buster for example).'),
+                    ('⚡ APP', 'For each Profile (Client/Customer), try each APP (Parameter Buster for example).'),
                     ('👥 Roles (Home)', 'Control which apps appear in the APP menu. Drag to reorder, check/uncheck to show/hide.')
                 ],
                 'getting_started': 'Getting Started',
@@ -51,7 +51,7 @@ class IntroductionPlugin:
             },
             2: {
                 'title': 'Local AI Assistant Setup 🤖',
-                'intro_text': f'{app_name} uses a separately installed local chatbot called Ollama. Having a local LLM installed is not required for {app_name} to keep working, but it is highly encouraged because it will always be "in the loop" knowing what you\'re doing with the app and able to provide extremely context-aware advice.',
+                'intro_text': f'{app_name} uses a separately installed local chatbot called Ollama. Having a local LLM installed is not required for {app_name} to keep working, but is encouraged because it will keep an AI "in the loop" to provide context-aware advice.',
                 'benefits': [
                     ('🔒 PRIVATE', 'No registration or API token required. Completely local and private.'),
                     ('💰 FREE', 'Free for the price of electricity - no monthly subscriptions.'),
@@ -61,7 +61,7 @@ class IntroductionPlugin:
                 'installation_title': 'Installation Steps',
                 'installation_steps': [
                     ('DOWNLOAD OLLAMA', 'Ollama has custom Mac and Windows installers - use them for best results.'),
-                    ('LOAD GEMMA 3', 'Follow Ollama\'s instructions to load Gemma 3 (recommended starter model).'),
+                    ('LOAD GEMMA 3', 'Once Ollama is installed, open a Terminal and type "ollama pull gemma3".'),
                     ('EXPERIMENT', 'Feel free to try other models once you\'re comfortable with the basics.')
                 ],
                 'fallback_note': f'If you don\'t take this step, the majority of {app_name} will still work — just without an AI riding shotgun.',
@@ -70,13 +70,13 @@ class IntroductionPlugin:
             3: {
                 'experimenting_title': 'Positive First Experience',
                 'experimenting_steps': [
-                    ('🚀 START', 'in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.'),
-                    ('👥 PROFILES', 'Add them. Rearrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu.'),
+                    ('🚀 START', 'in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable. You can do no harm. This is what DEV mode is for.'),
+                    ('👥 PROFILES', 'Add them. Rearrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu. Notice how "Lock" works to help avoid accidentally showing other Client (Nick)names to each other.'),
                     ('⚡ WORKFLOWS', f'Try the Hello Workflow to get a feel for how {app_name} workflows work.')
                 ],
                 'interface_title': 'Understanding the Interface',
                 'interface_items': [
-                    ('👤 PROFILES', "Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won't delete."),
+                    ('👤 PROFILES', 'Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won\'t delete. So experiment in DEV and let permanent choices "settle in" in Prod.'),
                     ('📊 APPS', "Botify folks: try Parameter Buster on your Client. It's a big potential win."),
                     ('🔗 LINK GRAPH', "Botify folks: try Link Graph Visualizer to explore internal linking patterns.")
                 ],
@@ -87,7 +87,7 @@ class IntroductionPlugin:
                 'tips': [
                     ('🔗 CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster and Link Graph Visualizer.'),
                     ('🗑️ DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'),
-                    ('💾 SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input.'),
+                    ('💾 SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input. Caveat: a complete reinstall using that "rm -rf ~/Botifython" command will delete everything.'),
                     ('🔒 LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'),
                     ('📁 BROWSE', 'Go look where things are saved.')
                 ],
