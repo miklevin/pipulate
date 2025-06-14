@@ -446,9 +446,15 @@
             fi
           fi
           
-          # Auto-update with "Stash, Pull, Pop" to preserve user JupyterLab settings
+          # Auto-update with robust "Stash, Pull, Pop" to preserve user JupyterLab settings
           if [ -d .git ]; then
             echo "Checking for updates..."
+            
+            # First, resolve any existing merge conflicts by resetting to a clean state
+            if ! git diff-index --quiet HEAD --; then
+              echo "Resolving any existing conflicts..."
+              git reset --hard HEAD 2>/dev/null || true
+            fi
             
             # Stash any local changes to JupyterLab settings to prevent pull conflicts
             echo "Temporarily stashing local JupyterLab settings..."
@@ -467,18 +473,21 @@
               echo "Already up to date."
             fi
 
-            # Pop the stashed settings back to re-apply user customizations
+            # Try to restore user's JupyterLab settings
             echo "Restoring local JupyterLab settings..."
-            if ! git stash pop --quiet 2>/dev/null; then
-              # Check if there's actually a stash to pop
-              if git stash list | grep -q "stash@{0}"; then
+            if git stash list | grep -q "Auto-stash JupyterLab settings"; then
+              if ! git stash apply --quiet 2>/dev/null; then
                 echo
                 echo "⚠️  WARNING: Your local JupyterLab settings conflicted with an update."
-                echo "   Your custom settings have been saved to the git stash."
-                echo "   To view them: git stash show"
-                echo "   To re-apply them (and resolve conflicts): git stash pop"
-                echo "   To discard them and use new defaults: git stash drop"
+                echo "   Forcing new defaults to keep your application up-to-date."
+                git checkout HEAD -- .jupyter/lab/user-settings/ 2>/dev/null || true
+                git stash drop --quiet 2>/dev/null || true
+                echo "   Your customizations have been reset to defaults."
+                echo "   You can re-apply them in JupyterLab if desired."
                 echo
+              else
+                # Successfully applied, drop the stash
+                git stash drop --quiet 2>/dev/null || true
               fi
             fi
           fi
