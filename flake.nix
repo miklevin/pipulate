@@ -452,9 +452,7 @@
             
             # Stash any local changes to JupyterLab settings to prevent pull conflicts
             echo "Temporarily stashing local JupyterLab settings..."
-            git stash push --quiet --include-untracked --pathspec-from-file=- <<EOF 2>/dev/null || true
-.jupyter/lab/user-settings/
-EOF
+            git stash push --quiet --include-untracked --message "Auto-stash JupyterLab settings" -- .jupyter/lab/user-settings/ 2>/dev/null || true
 
             # Fetch and check for updates
             git fetch origin
