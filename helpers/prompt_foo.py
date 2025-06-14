@@ -37,6 +37,8 @@ README.md        <-- Main GitHub README sets the tone
 flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
+/home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
+.gitignore
 /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
 /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
@@ -48,9 +50,9 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/820_selenium.py  <-- The monumental magical path to local LLM MCP PFM (material for thinking ahead)
 
 ## REQUIRED CRUD PLUGINS FOR SYSTEM CONFIGURATION: (Supporting characters)
-# /home/mike/repos/pipulate/plugins/020_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
-# /home/mike/repos/pipulate/plugins/030_roles.py     <-- Controls APP menu, required DRY CRUD plugin controls role management
-# /home/mike/repos/pipulate/plugins/060_tasks.py     <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
+/home/mike/repos/pipulate/plugins/020_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
+/home/mike/repos/pipulate/plugins/030_roles.py     <-- Controls APP menu, required DRY CRUD plugin controls role management
+/home/mike/repos/pipulate/plugins/060_tasks.py     <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
 ## HELPER SCRIPTS (Why WET can work)
 # /home/mike/repos/pipulate/plugins/310_workflow_genesis.py       <-- The templating plugin that creates new workflows from scratch
