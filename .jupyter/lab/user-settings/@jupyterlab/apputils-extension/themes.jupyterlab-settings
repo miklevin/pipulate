@@ -9,7 +9,7 @@
     "overrides": {
         "code-font-size": "15px",
         "content-font-size1": "18px",
-        "ui-font-size1": "15px"
+        "ui-font-size1": "16px"
     },
 
     // Selected Theme
