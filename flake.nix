@@ -231,11 +231,12 @@
           cat << 'START_SCRIPT_EOF' > .venv/bin/start
           #!/bin/sh
           export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
+          export JUPYTER_WORKSPACE_NAME="pipulate-main"
           setup-jupyter-prefs
           copy_notebook_if_needed
           echo "A JupyterLab tab will open in your default browser."
           tmux kill-session -t jupyter 2>/dev/null || echo "No tmux session named 'jupyter' is running."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=${jupyterWorkspaceName} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           echo "If no tab opens, visit http://localhost:8888/lab"
           echo "To view JupyterLab server: tmux attach -t jupyter"
           echo "To stop JupyterLab server: stop"
@@ -267,6 +268,7 @@
           cat << 'JUPYTER_SCRIPT_EOF' > .venv/bin/run-jupyter
           #!/bin/sh
           export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
+          export JUPYTER_WORKSPACE_NAME="pipulate-main"
           setup-jupyter-prefs
           echo "Starting JupyterLab..."
           copy_notebook_if_needed
@@ -275,7 +277,7 @@
           tmux kill-session -t jupyter 2>/dev/null || true
           
           # Start JupyterLab
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=${jupyterWorkspaceName} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
@@ -296,6 +298,7 @@
           cat << 'RUN_ALL_SCRIPT_EOF' > .venv/bin/run-all
           #!/bin/sh
           export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
+          export JUPYTER_WORKSPACE_NAME="pipulate-main"
           setup-jupyter-prefs
           echo "JupyterLab will start in the background."
           copy_notebook_if_needed
@@ -308,7 +311,7 @@
           
           # Start JupyterLab
           echo "Starting JupyterLab..."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=${jupyterWorkspaceName} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
@@ -351,7 +354,7 @@
           # Start JupyterLab in a tmux session
           copy_notebook_if_needed
           tmux kill-session -t jupyter 2>/dev/null || true
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=${jupyterWorkspaceName} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=pipulate-main --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
@@ -516,6 +519,7 @@
           # --- JupyterLab Local Configuration ---
           # Set env var and run setup script for interactive shells
           export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
+          export JUPYTER_WORKSPACE_NAME="${jupyterWorkspaceName}"
           setup-jupyter-prefs
 
           # Set up CUDA env vars if available (no output) - Linux only
