@@ -69,13 +69,18 @@ class BotifySchemaExplorer:
         """Discover what collections are available."""
         print("\n📋 Phase 1: Collection Discovery")
         
-        # Standard collections we know about
+        # Standard collections we know about - test multiple variations
         known_collections = [
             self.crawl_collection,
             "search_console", 
             "google_analytics",
+            "engagement_analytics",  # Based on URL analysis
             "segments",
-            "keywords"
+            "keywords",
+            "keyword",  # Singular variation
+            "realtime",  # Common Botify collection
+            "logs",     # Web logs collection
+            "weblog"    # Alternative web logs name
         ]
         
         for collection in known_collections:
@@ -111,9 +116,14 @@ class BotifySchemaExplorer:
             }
             
             # Add periods for time-based collections
-            if collection in ["search_console", "google_analytics"]:
+            time_based_collections = [
+                "search_console", "google_analytics", "engagement_analytics", 
+                "keywords", "keyword", "realtime"
+            ]
+            if collection in time_based_collections:
                 analysis_date = datetime.strptime(self.analysis, '%Y%m%d')
-                period_start = (analysis_date - timedelta(days=7)).strftime('%Y-%m-%d')
+                # Use longer period for better detection
+                period_start = (analysis_date - timedelta(days=30)).strftime('%Y-%m-%d')
                 period_end = analysis_date.strftime('%Y-%m-%d')
                 query["periods"] = [[period_start, period_end]]
             
@@ -131,8 +141,12 @@ class BotifySchemaExplorer:
             await self._explore_crawl_schema(client, collection, inventory)
         elif collection == "search_console":
             await self._explore_gsc_schema(client, collection, inventory)
-        elif collection == "google_analytics":
+        elif collection in ["google_analytics", "engagement_analytics"]:
             await self._explore_ga_schema(client, collection, inventory)
+        elif collection in ["keywords", "keyword"]:
+            await self._explore_keywords_schema(client, collection, inventory)
+        elif collection in ["logs", "weblog", "realtime"]:
+            await self._explore_logs_schema(client, collection, inventory)
         else:
             await self._explore_generic_schema(client, collection, inventory)
     
@@ -328,25 +342,141 @@ class BotifySchemaExplorer:
             print(f"    ❓ GSC exploration error: {e}")
     
     async def _explore_ga_schema(self, client: httpx.AsyncClient, collection: str, inventory: Dict):
-        """Explore Google Analytics schema if available."""
-        print(f"  📊 Exploring Google Analytics...")
+        """Explore Google Analytics / Engagement Analytics schema."""
+        print(f"  📊 Exploring {collection} metrics...")
         
-        # Common GA metrics to test
-        ga_metrics = [
-            "google_analytics.period_0.sessions",
-            "google_analytics.period_0.users", 
-            "google_analytics.period_0.pageviews",
-            "google_analytics.period_0.bounce_rate",
-            "google_analytics.period_0.avg_session_duration"
+        # Common GA/Engagement metrics to test
+        metric_variations = [
+            f"{collection}.period_0.sessions",
+            f"{collection}.period_0.users", 
+            f"{collection}.period_0.pageviews",
+            f"{collection}.period_0.bounce_rate",
+            f"{collection}.period_0.avg_session_duration",
+            f"{collection}.period_0.revenue",
+            f"{collection}.period_0.conversions",
+            f"{collection}.period_0.conversion_rate"
         ]
         
-        # Similar approach to GSC but for GA
-        # Implementation would follow similar pattern
-        inventory["collections"][collection]["fields"]["note"] = {
-            "status": "schema_discovery_needed",
-            "category": "Analytics",
-            "note": "GA schema exploration needs specific implementation"
-        }
+        # Test GA integration with crawl data
+        try:
+            analysis_date = datetime.strptime(self.analysis, '%Y%m%d')
+            period_start = (analysis_date - timedelta(days=30)).strftime('%Y-%m-%d')
+            period_end = analysis_date.strftime('%Y-%m-%d')
+            
+            query = {
+                "collections": [self.crawl_collection, collection],
+                "query": {
+                    "dimensions": [f"{self.crawl_collection}.url"],
+                    "metrics": metric_variations
+                },
+                "periods": [[period_start, period_end]]
+            }
+            
+            response = await client.post(f"{self.base_url}/query", headers=self.headers, json=query)
+            
+            if response.status_code == 200:
+                for metric in metric_variations:
+                    base_metric = metric.split('.')[-1]  # e.g., "sessions"
+                    inventory["collections"][collection]["fields"][base_metric] = {
+                        "status": "available",
+                        "category": "Analytics Metrics",
+                        "full_name": metric
+                    }
+                    print(f"    ✅ {base_metric}")
+            else:
+                print(f"    ❌ {collection} integration failed: {response.status_code}")
+                
+        except Exception as e:
+            print(f"    ❓ {collection} exploration error: {e}")
+    
+    async def _explore_keywords_schema(self, client: httpx.AsyncClient, collection: str, inventory: Dict):
+        """Explore Keywords collection schema."""
+        print(f"  🔍 Exploring {collection} metrics...")
+        
+        # Common keyword metrics based on URL analysis
+        keyword_metrics = [
+            f"{collection}.period_0.impressions",
+            f"{collection}.period_0.clicks", 
+            f"{collection}.period_0.ctr",
+            f"{collection}.period_0.avg_position",
+            f"{collection}.period_0.queries",
+            f"{collection}.period_0.pages"
+        ]
+        
+        try:
+            analysis_date = datetime.strptime(self.analysis, '%Y%m%d')
+            period_start = (analysis_date - timedelta(days=30)).strftime('%Y-%m-%d')
+            period_end = analysis_date.strftime('%Y-%m-%d')
+            
+            query = {
+                "collections": [self.crawl_collection, collection],
+                "query": {
+                    "dimensions": [f"{self.crawl_collection}.url"],
+                    "metrics": keyword_metrics
+                },
+                "periods": [[period_start, period_end]]
+            }
+            
+            response = await client.post(f"{self.base_url}/query", headers=self.headers, json=query)
+            
+            if response.status_code == 200:
+                for metric in keyword_metrics:
+                    base_metric = metric.split('.')[-1]
+                    inventory["collections"][collection]["fields"][base_metric] = {
+                        "status": "available",
+                        "category": "Keyword Metrics",
+                        "full_name": metric
+                    }
+                    print(f"    ✅ {base_metric}")
+            else:
+                print(f"    ❌ {collection} integration failed: {response.status_code}")
+                
+        except Exception as e:
+            print(f"    ❓ {collection} exploration error: {e}")
+    
+    async def _explore_logs_schema(self, client: httpx.AsyncClient, collection: str, inventory: Dict):
+        """Explore Web Logs collection schema."""
+        print(f"  📊 Exploring {collection} metrics...")
+        
+        # Common web log metrics
+        log_metrics = [
+            f"{collection}.period_0.visits",
+            f"{collection}.period_0.visitors", 
+            f"{collection}.period_0.pageviews",
+            f"{collection}.period_0.sessions",
+            f"{collection}.period_0.bounce_rate"
+        ]
+        
+        try:
+            analysis_date = datetime.strptime(self.analysis, '%Y%m%d')
+            period_start = (analysis_date - timedelta(days=30)).strftime('%Y-%m-%d')
+            period_end = analysis_date.strftime('%Y-%m-%d')
+            
+            query = {
+                "collections": [self.crawl_collection, collection],
+                "query": {
+                    "dimensions": [f"{self.crawl_collection}.url"],
+                    "metrics": log_metrics
+                },
+                "periods": [[period_start, period_end]]
+            }
+            
+            response = await client.post(f"{self.base_url}/query", headers=self.headers, json=query)
+            
+            if response.status_code == 200:
+                for metric in log_metrics:
+                    base_metric = metric.split('.')[-1]
+                    inventory["collections"][collection]["fields"][base_metric] = {
+                        "status": "available",
+                        "category": "Web Log Metrics",
+                        "full_name": metric
+                    }
+                    print(f"    ✅ {base_metric}")
+            else:
+                print(f"    ❌ {collection} integration failed: {response.status_code}")
+                
+        except Exception as e:
+            print(f"    ❓ {collection} exploration error: {e}")
     
     async def _explore_generic_schema(self, client: httpx.AsyncClient, collection: str, inventory: Dict):
         """Generic schema exploration for unknown collections."""
