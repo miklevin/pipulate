@@ -95,19 +95,19 @@ class IntroductionPlugin:
             },
             5: {
                 'title': 'The Localhost Advantage 🏠',
-                'intro_text': f'You\'ve paid the price of a more difficult install than a cloud app. Congratulations! It\'s time to reap the rewards of running {app_name} locally.',
+                'intro_text': f'You\'ve paid the price of a more difficult install than a cloud app. Congratulations! Time to reap the rewards.',
                 'advantages': [
-                    ('🔐 BROWSER LOGINS', 'Access web UIs like Botify, SEMRush, and ahrefs without APIs. Your browser saves passwords locally as normal, nothing leaves your machine.'),
-                    ('💾 PERSISTENT FILES', 'All CSVs and web scrapes stay on your machine for easy browsing. No daily clearing like Google Colab - files persist until you delete them.'),
-                    ('⏱️ LONG-RUNNING WORKFLOWS', 'Crawls can run for 24+ hours without being "shut down" to mitigate resource usage. No cloud time limits.'),
-                    ('🛡️ VPN FLEXIBILITY', 'Use your VPN of choice to control web traffic appearance. No known cloud IPs, no complex IP-hiding tech costs.')
+                    ('🔐 BROWSER LOGINS', 'Access web UIs like Botify, SEMRush, ahrefs without APIs. Browser saves passwords locally, nothing leaves your machine.'),
+                    ('💾 PERSISTENT FILES', 'All CSVs and web scrapes stay on your machine for browsing. No daily clearing like Google Colab.'),
+                    ('⏱️ LONG-RUNNING WORKFLOWS', 'Crawls can run 24+ hours without being "shut down" for resource usage. No cloud time limits.'),
+                    ('🛡️ VPN FLEXIBILITY', 'Use your VPN to control web traffic appearance. No known cloud IPs or complex IP-hiding costs.')
                 ],
                 'benefits_title': 'Real-World Benefits',
                 'benefits': [
                     ('Control your data', 'Everything stays local and under your control.'),
-                    ('No artificial limits', 'Run workflows as long as needed without interruption.'),
-                    ('Use existing tools', 'Leverage your existing VPN and browser setup.'),
-                    ('Browse files naturally', 'Access outputs like any local file on your machine.')
+                    ('No artificial limits', 'Run workflows as long as needed.'),
+                    ('Use existing tools', 'Leverage your VPN and browser setup.'),
+                    ('Browse files naturally', 'Access outputs like any local file.')
                 ],
                 'secret_word': 'LOCALHOST'
             },
