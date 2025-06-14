@@ -443,9 +443,10 @@ async def main():
         # Discover complete schema
         schema_inventory = await explorer.discover_complete_schema()
         
-        # Save comprehensive results in current directory
+        # Save comprehensive results in script directory
+        script_dir = Path(__file__).parent
         # Save detailed JSON schema
-        schema_file = Path(f"{project}_{analysis}_complete_schema.json")
+        schema_file = script_dir / f"{project}_{analysis}_complete_schema.json"
         with open(schema_file, 'w') as f:
             json.dump(schema_inventory, f, indent=2, default=str)
         
@@ -467,7 +468,7 @@ async def main():
         
         if available_fields:
             df = pd.DataFrame(available_fields)
-            csv_file = Path(f"{project}_{analysis}_available_fields.csv")
+            csv_file = script_dir / f"{project}_{analysis}_available_fields.csv"
             df.to_csv(csv_file, index=False)
             print(f"   {csv_file.resolve()}")
             
