@@ -75,7 +75,7 @@
   # In this case, it's a development shell that works across different systems
   outputs = { self, nixpkgs, flake-utils }:
     let
-      version = "1.0.3 (Notebook Fix)";  # Updated version to reflect notebook conflict fix
+      version = "1.0.4 (Jupyter Prefs)";  # Updated version to reflect JupyterLab preferences
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
@@ -92,6 +92,35 @@
         isDarwin = pkgs.stdenv.isDarwin;
         isLinux = pkgs.stdenv.isLinux;
 
+        # New script to handle JupyterLab configuration safely
+        setupJupyterPrefs = pkgs.writeShellScriptBin "setup-jupyter-prefs" ''
+          #!/usr/bin/env bash
+          set -e
+          # This script sets up project-local JupyterLab preferences.
+          # It's called from the flake's shellHook and helper scripts.
+          if [ -z "$JUPYTER_CONFIG_DIR" ]; then
+              echo "Error: JUPYTER_CONFIG_DIR must be set." >&2
+              exit 1
+          fi
+
+          JUPYTER_PREFS_DIR="$JUPYTER_CONFIG_DIR/lab/user-settings"
+          
+          # --- Theme Settings ---
+          THEME_DIR="$JUPYTER_PREFS_DIR/@jupyterlab/apputils-extension"
+          mkdir -p "$THEME_DIR"
+          echo '{"theme": "JupyterLab Dark"}' > "$THEME_DIR/themes.json"
+
+          # --- Code Editor Settings ---
+          CODEMIRROR_DIR="$JUPYTER_PREFS_DIR/@jupyterlab/codemirror-extension"
+          mkdir -p "$CODEMIRROR_DIR"
+          echo '{"fontSize": 16, "theme": "material-darker"}' > "$CODEMIRROR_DIR/plugin.json"
+
+          # --- Notebook UI Settings ---
+          NOTEBOOK_DIR="$JUPYTER_PREFS_DIR/@jupyterlab/notebook-extension"
+          mkdir -p "$NOTEBOOK_DIR"
+          echo '{"codeCellConfig": {"fontSize": 16, "lineHeight": 1.4}}' > "$NOTEBOOK_DIR/tracker.json"
+        '';
+
         # Common packages that we want available in our environment
         # regardless of the operating system
         commonPackages = with pkgs; [
@@ -105,6 +134,7 @@
           cmake                        # Cross-platform build system generator
           htop                         # Interactive process viewer for Unix systems
           nbstripout                   # Git filter for stripping notebook outputs
+          setupJupyterPrefs            # Add the new script to the environment
         ] ++ (with pkgs; pkgs.lib.optionals isLinux [
           virtualenv
           gcc                          # GNU Compiler Collection for compiling C/C++ code
@@ -134,8 +164,6 @@
             fi
           }
 
-
-
           # Create a fancy welcome message
           if [ ! -f app_name.txt ]; then
             APP_NAME=$(basename "$PWD")
@@ -159,6 +187,12 @@
           fi
           echo "Welcome to the $PROPER_APP_NAME development environment on ${system}!"
           echo 
+
+          # --- JupyterLab Local Configuration ---
+          # Set env var and run setup script for the main 'nix develop' command
+          export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
+          setup-jupyter-prefs
+          echo "✓ JupyterLab preferences set for dark theme and larger fonts."
 
           # Install Python packages from requirements.txt
           # This allows flexibility to use the latest PyPI packages
@@ -193,6 +227,8 @@
           # Note: We've disabled token and password for easier access, especially in WSL environments
           cat << 'START_SCRIPT_EOF' > .venv/bin/start
           #!/bin/sh
+          export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
+          setup-jupyter-prefs
           copy_notebook_if_needed
           echo "A JupyterLab tab will open in your default browser."
           tmux kill-session -t jupyter 2>/dev/null || echo "No tmux session named 'jupyter' is running."
@@ -227,6 +263,8 @@
           # Create a run-jupyter script
           cat << 'JUPYTER_SCRIPT_EOF' > .venv/bin/run-jupyter
           #!/bin/sh
+          export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
+          setup-jupyter-prefs
           echo "Starting JupyterLab..."
           copy_notebook_if_needed
           
@@ -254,6 +292,8 @@
           # Create a run-all script to restart both servers
           cat << 'RUN_ALL_SCRIPT_EOF' > .venv/bin/run-all
           #!/bin/sh
+          export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
+          setup-jupyter-prefs
           echo "JupyterLab will start in the background."
           copy_notebook_if_needed
           
@@ -464,7 +504,10 @@
           export PATH="$VIRTUAL_ENV/bin:$PATH"
           export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
 
-
+          # --- JupyterLab Local Configuration ---
+          # Set env var and run setup script for interactive shells
+          export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
+          setup-jupyter-prefs
 
           # Set up CUDA env vars if available (no output) - Linux only
           ${pkgs.lib.optionalString isLinux ''
@@ -542,7 +585,10 @@ EOF
               export PATH="$VIRTUAL_ENV/bin:$PATH"
               export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
               
-
+              # --- JupyterLab Local Configuration for Quiet Shell ---
+              export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
+              # We don't need to run the setup script here, as the env var is enough
+              # to make Jupyter use the config files if they exist.
             '';
           };
         };

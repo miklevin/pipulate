@@ -41,11 +41,11 @@ server.py        <-- Main server file for the project
 /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
-/home/mike/repos/pipulate/plugins/830_simon_mcp.py
-/home/mike/repos/pipulate/plugins/900_blank_placeholder.py  <-- The minimal template that propegates everywhere (as WET as we get)
-/home/mike/repos/pipulate/plugins/040_hello_workflow.py     <-- Master example and Jupyter Notebook, shows parallels to Unix pipe
-/home/mike/repos/pipulate/plugins/440_browser_automation.py  <-- You ought to see how selenium-wire scrapes. A setup for Unix pipe style DOM processing
-/home/mike/repos/pipulate/plugins/820_selenium.py  <-- The monumental magical path to local LLM MCP PFM (material for thinking ahead)
+# /home/mike/repos/pipulate/plugins/830_simon_mcp.py
+# /home/mike/repos/pipulate/plugins/900_blank_placeholder.py  <-- The minimal template that propegates everywhere (as WET as we get)
+# /home/mike/repos/pipulate/plugins/040_hello_workflow.py     <-- Master example and Jupyter Notebook, shows parallels to Unix pipe
+# /home/mike/repos/pipulate/plugins/440_browser_automation.py  <-- You ought to see how selenium-wire scrapes. A setup for Unix pipe style DOM processing
+# /home/mike/repos/pipulate/plugins/820_selenium.py  <-- The monumental magical path to local LLM MCP PFM (material for thinking ahead)
 
 ## REQUIRED CRUD PLUGINS FOR SYSTEM CONFIGURATION: (Supporting characters)
 # /home/mike/repos/pipulate/plugins/020_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
