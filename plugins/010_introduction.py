@@ -39,7 +39,7 @@ class IntroductionPlugin:
                 'intro': 'Layout:',
                 'features': [
                     ('📍 Breadcrumb', f'Headline is {app_name} / Profile Name / APP Name.'),
-                    ('👤 PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'),
+                    ('👤 PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace. In other words, they each get their own separate Task List.'),
                     ('⚡ APP', 'For each Profile (Client/Customer), try each APP (Parameter Buster for example).'),
                     ('👥 Roles (Home)', 'Control which apps appear in the APP menu. Drag to reorder, check/uncheck to show/hide.')
                 ],
@@ -394,7 +394,7 @@ class IntroductionPlugin:
         page_content = self.create_page_content(current_page, APP_NAME, MODEL)
 
         return Div(
-            H2(f"📖 Introduction Guide - Page {current_page}"),
+            H2(f"📖 Introduction Guide - Page {current_page} of 7"),
             page_content,
             nav_arrows
         )
