@@ -307,7 +307,8 @@ class BotifyCsvDownloaderWorkflow:
     # without modifying the workflow logic.
     TEMPLATE_CONFIG = {
         'crawl': 'Crawl Basic',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
-        'gsc': 'GSC Performance'       # Options: 'GSC Performance'
+        'gsc': 'GSC Performance',      # Options: 'GSC Performance'
+        'ga': 'GA Performance'         # Options: 'GA Performance'
     }
 
     # Optional Features Configuration
@@ -360,6 +361,7 @@ class BotifyCsvDownloaderWorkflow:
         # Register custom routes specific to this workflow
         app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
+        app.route(f'/{app_name}/step_4b_process', methods=['POST'])(self.step_4b_process)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
         # Note: Toggle route removed as part of step_05 standardization. 
         # Other steps may need individual toggle method implementations.
@@ -369,6 +371,7 @@ class BotifyCsvDownloaderWorkflow:
             if step.id not in self.step_messages:
                 self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
         self.step_messages['step_04'] = {'input': f"❔{pip.fmt('step_04')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
+        self.step_messages['step_4b'] = {'input': f"❔{pip.fmt('step_4b')}: Please check if the project has Google Analytics data.", 'complete': 'Google Analytics check complete. Continue to next step.'}
         self.step_messages['step_03'] = {'input': f"❔{pip.fmt('step_03')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
         self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
 
@@ -378,6 +381,8 @@ class BotifyCsvDownloaderWorkflow:
             return ['Crawl Basic', 'Not Compliant']
         elif data_type == 'gsc':
             return ['GSC Performance']
+        elif data_type == 'ga':
+            return ['GA Performance']
         else:
             return []
 
@@ -1489,7 +1494,7 @@ class BotifyCsvDownloaderWorkflow:
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_4b(self, request):
-        """Handles GET request for checking if a Botify project has Search Console data."""
+        """Handles GET request for checking if a Botify project has Google Analytics data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_4b'
         step_index = self.steps_indices[step_id]
@@ -1621,7 +1626,7 @@ class BotifyCsvDownloaderWorkflow:
             return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_4b_submit(self, request):
-        """Process the check for Botify Search Console data."""
+        """Process the check for Botify Google Analytics data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_4b'
         step_index = self.steps_indices[step_id]
@@ -1635,13 +1640,13 @@ class BotifyCsvDownloaderWorkflow:
 
         if action == 'skip':
             # Handle skip action - create fake completion data and proceed to next step
-            await self.message_queue.add(pip, f"⏭️ Skipping Search Console download...", verbatim=True)
+            await self.message_queue.add(pip, f"⏭️ Skipping Google Analytics download...", verbatim=True)
 
             # Create skip data that indicates step was skipped
             skip_result = {
-                'has_search_console': False,
+                'has_google_analytics': False,
                 'skipped': True,
-                'skip_reason': 'User chose to skip Search Console download',
+                'skip_reason': 'User chose to skip Google Analytics download',
                 'download_complete': False,
                 'file_path': None,
                 'raw_python_code': '',
