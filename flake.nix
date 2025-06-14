@@ -134,6 +134,8 @@
             fi
           }
 
+
+
           # Create a fancy welcome message
           if [ ! -f app_name.txt ]; then
             APP_NAME=$(basename "$PWD")
@@ -189,7 +191,7 @@
 
           # Create convenience scripts for managing JupyterLab
           # Note: We've disabled token and password for easier access, especially in WSL environments
-          cat << EOF > .venv/bin/start
+          cat << 'START_SCRIPT_EOF' > .venv/bin/start
           #!/bin/sh
           copy_notebook_if_needed
           echo "A JupyterLab tab will open in your default browser."
@@ -198,19 +200,19 @@
           echo "If no tab opens, visit http://localhost:8888/lab"
           echo "To view JupyterLab server: tmux attach -t jupyter"
           echo "To stop JupyterLab server: stop"
-          EOF
+          START_SCRIPT_EOF
           chmod +x .venv/bin/start
 
-          cat << EOF > .venv/bin/stop
+          cat << 'STOP_SCRIPT_EOF' > .venv/bin/stop
           #!/bin/sh
           echo "Stopping tmux session 'jupyter'..."
           tmux kill-session -t jupyter 2>/dev/null || echo "No tmux session named 'jupyter' is running."
           echo "The tmux session 'jupyter' has been stopped."
-          EOF
+          STOP_SCRIPT_EOF
           chmod +x .venv/bin/stop
           
           # Create a run-server script
-          cat << EOF > .venv/bin/run-server
+          cat << 'SERVER_SCRIPT_EOF' > .venv/bin/run-server
           #!/bin/sh
           echo "Starting $APP_NAME server..."
           # Kill any running server instances first
@@ -219,11 +221,11 @@
           echo "Pulling latest code updates..."
           git pull
           python server.py
-          EOF
+          SERVER_SCRIPT_EOF
           chmod +x .venv/bin/run-server
           
           # Create a run-jupyter script
-          cat << EOF > .venv/bin/run-jupyter
+          cat << 'JUPYTER_SCRIPT_EOF' > .venv/bin/run-jupyter
           #!/bin/sh
           echo "Starting JupyterLab..."
           copy_notebook_if_needed
@@ -246,11 +248,11 @@
           done
           
           echo "JupyterLab started! View logs with: tmux attach -t jupyter"
-          EOF
+          JUPYTER_SCRIPT_EOF
           chmod +x .venv/bin/run-jupyter
           
           # Create a run-all script to restart both servers
-          cat << EOF > .venv/bin/run-all
+          cat << 'RUN_ALL_SCRIPT_EOF' > .venv/bin/run-all
           #!/bin/sh
           echo "JupyterLab will start in the background."
           copy_notebook_if_needed
@@ -296,7 +298,7 @@
           
           # Run server in foreground
           python server.py
-          EOF
+          RUN_ALL_SCRIPT_EOF
           chmod +x .venv/bin/run-all
           
           # Add convenience scripts to PATH
@@ -462,6 +464,8 @@
           export PATH="$VIRTUAL_ENV/bin:$PATH"
           export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
 
+
+
           # Set up CUDA env vars if available (no output) - Linux only
           ${pkgs.lib.optionalString isLinux ''
           if command -v nvidia-smi &> /dev/null; then
@@ -537,6 +541,8 @@ EOF
               export VIRTUAL_ENV="$(pwd)/.venv"
               export PATH="$VIRTUAL_ENV/bin:$PATH"
               export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
+              
+
             '';
           };
         };
