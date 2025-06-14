@@ -1079,9 +1079,9 @@ class BotifyCsvDownloaderWorkflow:
         username = project_data.get('username', '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and check_result:
-            has_search_console = check_result.get('has_search_console', False)
-            status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
-            status_color = 'green' if has_search_console else 'red'
+            has_google_analytics = check_result.get('has_google_analytics', False)
+            status_text = 'HAS Search Console data' if has_google_analytics else 'does NOT have Search Console data'
+            status_color = 'green' if has_google_analytics else 'red'
             action_buttons = self._create_action_buttons(check_result, step_id)
 
             widget = Div(
@@ -1102,9 +1102,9 @@ class BotifyCsvDownloaderWorkflow:
             )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif check_result and state.get('_revert_target') != step_id:
-            has_search_console = check_result.get('has_search_console', False)
-            status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
-            status_color = 'green' if has_search_console else 'red'
+            has_google_analytics = check_result.get('has_google_analytics', False)
+            status_text = 'HAS Search Console data' if has_google_analytics else 'does NOT have Search Console data'
+            status_color = 'green' if has_google_analytics else 'red'
             action_buttons = self._create_action_buttons(check_result, step_id)
 
             widget = Div(
@@ -1208,7 +1208,7 @@ class BotifyCsvDownloaderWorkflow:
 
             # Create skip data that indicates step was skipped
             skip_result = {
-                'has_search_console': False,
+                'has_google_analytics': False,
                 'skipped': True,
                 'skip_reason': 'User chose to skip Search Console download',
                 'download_complete': False,
@@ -1272,13 +1272,13 @@ class BotifyCsvDownloaderWorkflow:
         if not all([analysis_slug, username, project_name]):
             return P('Error: Missing required parameters', style=pip.get_style('error'))
         try:
-            has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
+            has_google_analytics, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
             if error_message:
                 return P(f'Error: {error_message}', style=pip.get_style('error'))
-            check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
-            status_text = 'HAS' if has_search_console else 'does NOT have'
+            check_result = {'has_google_analytics': has_google_analytics, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
+            status_text = 'HAS' if has_google_analytics else 'does NOT have'
             await self.message_queue.add(pip, f'{step.show} complete: Project {status_text} Search Console data', verbatim=True)
-            if has_search_console:
+            if has_google_analytics:
                 gsc_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'gsc')
                 file_exists, file_info = await self.check_file_exists(gsc_filepath)
                 if file_exists:
@@ -1454,7 +1454,7 @@ class BotifyCsvDownloaderWorkflow:
                                         }
                                     })
                 # Only show success message if download was actually successful
-                if has_search_console and check_result.get('download_complete', False) and 'error' not in check_result:
+                if has_google_analytics and check_result.get('download_complete', False) and 'error' not in check_result:
                     await self.message_queue.add(pip, f"✅ Search Console data downloaded: {file_info['size']}", verbatim=True)
 
             check_result_str = json.dumps(check_result)
@@ -1466,9 +1466,9 @@ class BotifyCsvDownloaderWorkflow:
                 download_message = f' (FAILED: {check_result["error"]})'
                 status_text = 'FAILED to download'
             else:
-                status_color = 'green' if has_search_console else 'red'
-                download_message = ' (data downloaded)' if has_search_console and check_result.get('download_complete', False) else ''
-                status_text = 'HAS' if has_search_console else 'does NOT have'
+                status_color = 'green' if has_google_analytics else 'red'
+                download_message = ' (data downloaded)' if has_google_analytics and check_result.get('download_complete', False) else ''
+                status_text = 'HAS' if has_google_analytics else 'does NOT have'
 
             action_buttons = self._create_action_buttons(check_result, step_id)
 
@@ -1515,9 +1515,9 @@ class BotifyCsvDownloaderWorkflow:
         username = project_data.get('username', '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and check_result:
-            has_search_console = check_result.get('has_search_console', False)
-            status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
-            status_color = 'green' if has_search_console else 'red'
+            has_google_analytics = check_result.get('has_google_analytics', False)
+            status_text = 'HAS Google Analytics data' if has_google_analytics else 'does NOT have Google Analytics data'
+            status_color = 'green' if has_google_analytics else 'red'
             action_buttons = self._create_action_buttons(check_result, step_id)
 
             widget = Div(
@@ -1538,9 +1538,9 @@ class BotifyCsvDownloaderWorkflow:
             )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif check_result and state.get('_revert_target') != step_id:
-            has_search_console = check_result.get('has_search_console', False)
-            status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
-            status_color = 'green' if has_search_console else 'red'
+            has_google_analytics = check_result.get('has_google_analytics', False)
+            status_text = 'HAS Google Analytics data' if has_google_analytics else 'does NOT have Google Analytics data'
+            status_color = 'green' if has_google_analytics else 'red'
             action_buttons = self._create_action_buttons(check_result, step_id)
 
             widget = Div(
@@ -1562,9 +1562,9 @@ class BotifyCsvDownloaderWorkflow:
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            gsc_template = self.get_configured_template('gsc')
+            ga_template = self.get_configured_template('ga')
 
-            # Check if GSC data is cached for the CURRENT analysis
+            # Check if ga data is cached for the CURRENT analysis
             # Use the same logic as step_02 to get the current analysis
             is_cached = False
             try:
@@ -1602,12 +1602,12 @@ class BotifyCsvDownloaderWorkflow:
 
                 # Only check for cached files if we found an analysis slug
                 if current_analysis_slug:
-                    gsc_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/gsc.csv"
-                    is_cached = os.path.exists(gsc_path)
+                    ga_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/ga.csv"
+                    is_cached = os.path.exists(ga_path)
             except Exception:
                 is_cached = False
 
-            button_text = f'Use Cached Search Console: {gsc_template} ▸' if is_cached else f'Download Search Console: {gsc_template} ▸'
+            button_text = f'Use Cached Google Analytics: {ga_template} ▸' if is_cached else f'Download Google Analytics: {ga_template} ▸'
 
             # Create button row with conditional skip button
             button_row_items = [
@@ -1623,7 +1623,7 @@ class BotifyCsvDownloaderWorkflow:
                            style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
                 )
 
-            return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P(f"Download Google Analytics data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_4b_submit(self, request):
         """Process the check for Botify Google Analytics data."""
@@ -1708,18 +1708,18 @@ class BotifyCsvDownloaderWorkflow:
         if not all([analysis_slug, username, project_name]):
             return P('Error: Missing required parameters', style=pip.get_style('error'))
         try:
-            has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
+            has_google_analytics, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
             if error_message:
                 return P(f'Error: {error_message}', style=pip.get_style('error'))
-            check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
-            status_text = 'HAS' if has_search_console else 'does NOT have'
+            check_result = {'has_google_analytics': has_google_analytics, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
+            status_text = 'HAS' if has_google_analytics else 'does NOT have'
             await self.message_queue.add(pip, f'{step.show} complete: Project {status_text} Search Console data', verbatim=True)
-            if has_search_console:
-                gsc_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'gsc')
-                file_exists, file_info = await self.check_file_exists(gsc_filepath)
+            if has_google_analytics:
+                ga_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'ga')
+                file_exists, file_info = await self.check_file_exists(ga_filepath)
                 if file_exists:
                     await self.message_queue.add(pip, f"✅ Using cached Search Console data ({file_info['size']})", verbatim=True)
-                    check_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': gsc_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
+                    check_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': ga_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
 
                     # Generate Python debugging code even for cached files
                     try:
@@ -1728,7 +1728,7 @@ class BotifyCsvDownloaderWorkflow:
                         analysis_date_obj = datetime.now()
                     date_end = analysis_date_obj.strftime('%Y-%m-%d')
                     date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
-                    export_query = await self.build_exports(username, project_name, analysis_slug, data_type='gsc', start_date=date_start, end_date=date_end)
+                    export_query = await self.build_exports(username, project_name, analysis_slug, data_type='ga', start_date=date_start, end_date=date_end)
                     # Generate Python command snippet (using /query endpoint for Jupyter debugging)
                     _, _, python_command = self.generate_query_api_call(export_query['export_job_payload'], username, project_name)
                     check_result['python_command'] = python_command
@@ -1743,7 +1743,7 @@ class BotifyCsvDownloaderWorkflow:
                         analysis_date_obj = datetime.now()
                     date_end = analysis_date_obj.strftime('%Y-%m-%d')
                     date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
-                    export_query = await self.build_exports(username, project_name, analysis_slug, data_type='gsc', start_date=date_start, end_date=date_end)
+                    export_query = await self.build_exports(username, project_name, analysis_slug, data_type='ga', start_date=date_start, end_date=date_end)
                     job_url = 'https://api.botify.com/v1/jobs'
                     headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
                     logging.info(f'Submitting Search Console export job with payload: {json.dumps(export_query["export_job_payload"], indent=2)}')
@@ -1845,9 +1845,9 @@ class BotifyCsvDownloaderWorkflow:
                                 })
                             else:
                                 await self.message_queue.add(pip, '🔄 Downloading Search Console data...', verbatim=True)
-                                await self.ensure_directory_exists(gsc_filepath)
+                                await self.ensure_directory_exists(ga_filepath)
                                 try:
-                                    compressed_path = f'{gsc_filepath}.compressed'
+                                    compressed_path = f'{ga_filepath}.compressed'
                                     async with httpx.AsyncClient() as client:
                                         async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
                                             response.raise_for_status()
@@ -1856,9 +1856,9 @@ class BotifyCsvDownloaderWorkflow:
                                                     f.write(chunk)
                                     try:
                                         with gzip.open(compressed_path, 'rb') as f_in:
-                                            with open(gsc_filepath, 'wb') as f_out:
+                                            with open(ga_filepath, 'wb') as f_out:
                                                 shutil.copyfileobj(f_in, f_out)
-                                        logging.info(f'Successfully extracted gzip file to {gsc_filepath}')
+                                        logging.info(f'Successfully extracted gzip file to {ga_filepath}')
                                     except gzip.BadGzipFile:
                                         try:
                                             with zipfile.ZipFile(compressed_path, 'r') as zip_ref:
@@ -1866,15 +1866,15 @@ class BotifyCsvDownloaderWorkflow:
                                                 if not csv_files:
                                                     raise ValueError('No CSV files found in the zip archive')
                                                 with zip_ref.open(csv_files[0]) as source:
-                                                    with open(gsc_filepath, 'wb') as target:
+                                                    with open(ga_filepath, 'wb') as target:
                                                         shutil.copyfileobj(source, target)
-                                            logging.info(f'Successfully extracted zip file to {gsc_filepath}')
+                                            logging.info(f'Successfully extracted zip file to {ga_filepath}')
                                         except zipfile.BadZipFile:
-                                            shutil.copy(compressed_path, gsc_filepath)
-                                            logging.info(f"File doesn't appear to be compressed, copying directly to {gsc_filepath}")
+                                            shutil.copy(compressed_path, ga_filepath)
+                                            logging.info(f"File doesn't appear to be compressed, copying directly to {ga_filepath}")
                                     if os.path.exists(compressed_path):
                                         os.remove(compressed_path)
-                                    _, file_info = await self.check_file_exists(gsc_filepath)
+                                    _, file_info = await self.check_file_exists(ga_filepath)
                                     await self.message_queue.add(pip, f"✅ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
                                 except Exception as e:
                                     error_message = f'Error downloading file: {str(e)}'
@@ -1890,7 +1890,7 @@ class BotifyCsvDownloaderWorkflow:
                                         }
                                     })
                 # Only show success message if download was actually successful
-                if has_search_console and check_result.get('download_complete', False) and 'error' not in check_result:
+                if has_google_analytics and check_result.get('download_complete', False) and 'error' not in check_result:
                     await self.message_queue.add(pip, f"✅ Search Console data downloaded: {file_info['size']}", verbatim=True)
 
             check_result_str = json.dumps(check_result)
@@ -1902,9 +1902,9 @@ class BotifyCsvDownloaderWorkflow:
                 download_message = f' (FAILED: {check_result["error"]})'
                 status_text = 'FAILED to download'
             else:
-                status_color = 'green' if has_search_console else 'red'
-                download_message = ' (data downloaded)' if has_search_console and check_result.get('download_complete', False) else ''
-                status_text = 'HAS' if has_search_console else 'does NOT have'
+                status_color = 'green' if has_google_analytics else 'red'
+                download_message = ' (data downloaded)' if has_google_analytics and check_result.get('download_complete', False) else ''
+                status_text = 'HAS' if has_google_analytics else 'does NOT have'
 
             action_buttons = self._create_action_buttons(check_result, step_id)
 
