@@ -262,7 +262,6 @@ class LinkGraphVisualizer2:
         pipulate.register_workflow_routes(self)
         
         # Register custom routes specific to this workflow
-        app.route(f'/{app_name}/step_04_complete', methods=['POST'])(self.step_04_complete)
         app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
         app.route(f'/{app_name}/step_02b_process', methods=['POST'])(self.step_02b_process)
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
@@ -1731,68 +1730,6 @@ class LinkGraphVisualizer2:
             """),
             id=step_id
         )
-
-    async def step_04_complete(self, request):
-        """Handles completion after the progress indicator has been shown."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_04'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        prev_step_id = 'step_01'
-        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
-        prev_data_str = prev_step_data.get('botify_project', '')
-        if not prev_data_str:
-            return P('Error: Project data not found.', style=pip.get_style('error'))
-        project_data = json.loads(prev_data_str)
-        project_name = project_data.get('project_name', '')
-        username = project_data.get('username', '')
-        analysis_step_id = 'step_02'
-        analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
-        analysis_data_str = analysis_step_data.get('analysis_selection', '')
-        if not analysis_data_str:
-            return P('Error: Analysis data not found.', style=pip.get_style('error'))
-        analysis_data = json.loads(analysis_data_str)
-        analysis_slug = analysis_data.get('analysis_slug', '')
-        try:
-            has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
-            if error_message:
-                return Div(P(f'Error: {error_message}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-            check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
-            if has_search_console:
-                await self.message_queue.add(pip, f'✅ Project has Search Console data, downloading...', verbatim=True)
-                await self.process_search_console_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
-            else:
-                await self.message_queue.add(pip, f'Project does not have Search Console data (skipping download)', verbatim=True)
-                # Add empty python_command for consistency with other steps
-                check_result['python_command'] = ''
-                check_result_str = json.dumps(check_result)
-                await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
-            status_text = 'HAS' if has_search_console else 'does NOT have'
-            completed_message = 'Data downloaded successfully' if has_search_console else 'No Search Console data available'
-            action_buttons = self._create_action_buttons(check_result, step_id)
-
-            widget = Div(
-                Div(
-                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
-                        hx_target=f'#{step_id}_widget',
-                        hx_swap='innerHTML'
-                    ),
-                    *action_buttons,
-                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
-                ),
-                Div(
-                    Pre(f'Status: Project {status_text} Search Console data', cls='code-block-container', style=f'color: {"green" if has_search_console else "red"}; display: none;'),
-                    id=f'{step_id}_widget'
-                )
-            )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        except Exception as e:
-            logging.exception(f'Error in step_04_complete: {e}')
-            return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_05(self, request):
         """Handles GET request for the Visualization Preparation step."""
