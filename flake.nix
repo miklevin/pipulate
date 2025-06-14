@@ -75,7 +75,7 @@
   # In this case, it's a development shell that works across different systems
   outputs = { self, nixpkgs, flake-utils }:
     let
-      version = "1.0.4 (Jupyter Prefs)";  # Updated version to reflect JupyterLab preferences
+      version = "1.0.5 (Stable Jupyter Workspace)";  # Updated version to reflect stable workspace
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
@@ -91,6 +91,9 @@
         # These helpers let us adjust our setup based on the OS
         isDarwin = pkgs.stdenv.isDarwin;
         isLinux = pkgs.stdenv.isLinux;
+
+        # Define a static workspace name to prevent random file generation
+        jupyterWorkspaceName = "pipulate-main";
 
         # New script to handle JupyterLab configuration safely
         setupJupyterPrefs = pkgs.writeShellScriptBin "setup-jupyter-prefs" ''
@@ -232,7 +235,7 @@
           copy_notebook_if_needed
           echo "A JupyterLab tab will open in your default browser."
           tmux kill-session -t jupyter 2>/dev/null || echo "No tmux session named 'jupyter' is running."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=${jupyterWorkspaceName} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           echo "If no tab opens, visit http://localhost:8888/lab"
           echo "To view JupyterLab server: tmux attach -t jupyter"
           echo "To stop JupyterLab server: stop"
@@ -272,7 +275,7 @@
           tmux kill-session -t jupyter 2>/dev/null || true
           
           # Start JupyterLab
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=${jupyterWorkspaceName} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
@@ -305,7 +308,7 @@
           
           # Start JupyterLab
           echo "Starting JupyterLab..."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=${jupyterWorkspaceName} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
@@ -348,7 +351,7 @@
           # Start JupyterLab in a tmux session
           copy_notebook_if_needed
           tmux kill-session -t jupyter 2>/dev/null || true
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=${jupyterWorkspaceName} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
@@ -503,6 +506,12 @@
           export VIRTUAL_ENV="$(pwd)/.venv"
           export PATH="$VIRTUAL_ENV/bin:$PATH"
           export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
+
+          # --- Ensure .jupyter directory is in .gitignore ---
+          if [ -f .gitignore ]; then
+            # Add .jupyter/ to .gitignore if not already present
+            grep -qxF '.jupyter/' .gitignore || echo '.jupyter/' >> .gitignore
+          fi
 
           # --- JupyterLab Local Configuration ---
           # Set env var and run setup script for interactive shells

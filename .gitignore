@@ -4,6 +4,7 @@
 *.pkl
 .DS_Store
 .ipynb_checkpoints/
+.jupyter/
 .sesskey
 .ssh/key
 .venv/
