@@ -29,3 +29,4 @@ prompt.md
 # Ignore local notebook copies to prevent git conflicts
 training/botify_api_local.md
 notebook_introduction_local.ipynb
+.jupyter/
