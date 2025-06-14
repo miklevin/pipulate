@@ -1,4 +1,4 @@
-# helpers/botify/object_explorer.py
+# helpers/botify/true_schema_discoverer.py
 import os
 import json
 import httpx
@@ -320,4 +320,4 @@ async def main():
         traceback.print_exc()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main()) 
