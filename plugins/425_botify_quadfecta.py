@@ -174,7 +174,7 @@ class BotifyCsvDownloaderWorkflow:
     **DO NOT REFACTOR THIS PATTERN WITHOUT UNDERSTANDING IT COMPLETELY**
     """
     APP_NAME = 'quadfecta'
-    DISPLAY_NAME = 'Botify Quadfecta 💜'
+    DISPLAY_NAME = 'Botify Quadfecta 🏇'
     ENDPOINT_MESSAGE = 'Download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console), and Google Analytics (GA) — the Quadfecta!'
     TRAINING_PROMPT = 'This workflow provides an example of how to download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console), and Google Analytics (GA) from the Botify API. The queries are different for each type. Downloading one of each type is often the precursor to a comprehensive Botify deliverable, incorporating the full funnel philosophy of the Botify way.'
 
@@ -278,6 +278,24 @@ class BotifyCsvDownloaderWorkflow:
                     {'field': 'search_console.period_0.ctr', 'name': 'CTR'},
                     {'field': 'search_console.period_0.avg_position', 'name': 'Avg. Position'}
                 ],
+                'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
+            }
+        },
+        'GA Performance': {
+            'name': 'Google Analytics Performance',
+            'description': 'Active users, bounce rate, and new sessions from Google Analytics',
+            'export_type': 'ga_data',
+            'user_message': 'This will download Google Analytics performance data including active users, bounce rate, and new session percentage.',
+            'button_label_suffix': 'GA Performance',
+            'query': {
+                'dimensions': ['{collection}.url'],
+                'metrics': [
+                    {'field': '{collection}.analytics.google.active', 'name': 'Active Users'},
+                    {'field': '{collection}.analytics.google.bounce_rate', 'name': 'Bounce Rate'},
+                    {'field': '{collection}.analytics.google.new_sessions_percent', 'name': '% New Sessions'},
+                    {'field': '{collection}.analytics.google.goal_conversion_rate', 'name': 'Goal Conversion Rate'}
+                ],
+                'filters': {'field': '{collection}.analytics.google.active', 'predicate': 'gt', 'value': 0},
                 'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
             }
         }
