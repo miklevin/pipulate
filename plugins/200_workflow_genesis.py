@@ -648,9 +648,9 @@ class WorkflowGenesis:
             form_content = Form(
                 Label("Template Approach", **{'for': 'template'}),
                     Select(
-                    Option("Blank Placeholder - Learn step management basics", value="blank", selected=True),
-                    Option("Hello World Recreation - Understand helper tool sequence", value="hello"),
-                    Option("Quadfecta Workflow - Build complex data collection workflow", value="quadfecta"),
+                    Option("Kung Fu Placeholder", value="blank", selected=True),
+                    Option("Kung Fu Hello World", value="hello"),
+                    Option("Kung Fu Quadfecta", value="quadfecta"),
                         name="template",
                         id="template",
                         required=True
