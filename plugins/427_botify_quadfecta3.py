@@ -295,6 +295,7 @@ class BotifyCsvDownloaderWorkflow:
         app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
         app.route(f'/{app_name}/step_04_complete', methods=['POST'])(self.step_04_complete)
+        app.route(f'/{app_name}/step_05_complete', methods=['POST'])(self.step_05_complete)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
         # Note: Toggle route removed as part of step_05 standardization. 
         # Other steps may need individual toggle method implementations.
@@ -1249,10 +1250,10 @@ class BotifyCsvDownloaderWorkflow:
             logging.exception(f'Error in step_04_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
-    async def step_04(self, request):
+    async def step_05(self, request):
         """Handles GET request for checking if a Botify project has Search Console data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_04'
+        step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1381,10 +1382,10 @@ class BotifyCsvDownloaderWorkflow:
 
             return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
-    async def step_04_submit(self, request):
+    async def step_05_submit(self, request):
         """Process the check for Botify Search Console data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_04'
+        step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1449,10 +1450,10 @@ class BotifyCsvDownloaderWorkflow:
             id=step_id
         )
 
-    async def step_04_complete(self, request):
+    async def step_05_complete(self, request):
         """Handles completion after the progress indicator has been shown."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_04'
+        step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1508,78 +1509,8 @@ class BotifyCsvDownloaderWorkflow:
             )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
-            logging.exception(f'Error in step_04_complete: {e}')
+            logging.exception(f'Error in step_05_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-
-    async def step_05(self, request):
-        """Handles GET request for Step 5 Placeholder."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = 'step_05'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step.done, "")
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-
-        if "finalized" in finalize_data and current_value:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{current_value}")
-            return Div(
-                Card(H3(f"🔒 {step.show}: Completed")),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        elif current_value and state.get("_revert_target") != step_id:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{current_value}")
-            return Div(
-                pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        else:
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("This is a placeholder step. Customize its input form as needed. Click Proceed to continue."),
-                    Form(
-                        Input(type="hidden", name=step.done, value="Placeholder Value for Step 5 Placeholder"),
-                        Button(self.ui['BUTTON_LABELS']['NEXT_STEP'], type="submit", cls=self.ui['BUTTON_STYLES']['PRIMARY']),
-                        hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
-                    )
-                ),
-                Div(id=next_step_id),
-                id=step_id
-            )
-
-    async def step_05_submit(self, request):
-        """Process the submission for Step 5 Placeholder."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = 'step_05'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
-
-        form_data = await request.form()
-        value_to_save = form_data.get(step.done, f"Default value for {step.show}")
-        await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
-
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{value_to_save}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-
-        return Div(
-            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-
-
 
     def validate_botify_url(self, url):
         """Validate a Botify project URL and extract project information."""
