@@ -1277,8 +1277,26 @@ class BotifyQuadfectaWorkflow:
                 await self.process_search_console_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
             else:
                 await self.message_queue.add(pip, f'Project does not have Search Console data (skipping download)', verbatim=True)
-                # Add empty python_command for consistency with other steps
-                check_result['python_command'] = ''
+                
+                # Generate Python debugging code even when no GSC data (for educational purposes)
+                try:
+                    analysis_date_obj = datetime.strptime(analysis_slug, '%Y%m%d')
+                    start_date = analysis_date_obj.strftime('%Y-%m-%d')
+                    end_date = (analysis_date_obj + timedelta(days=6)).strftime('%Y-%m-%d')
+                    
+                    # Create example GSC export payload for educational purposes
+                    gsc_template = self.get_configured_template('gsc')
+                    example_export_payload = await self.build_exports(
+                        username, project_name, analysis_slug, 'gsc_data', start_date, end_date
+                    )
+                    
+                    # Generate Python code for debugging
+                    _, _, python_command = self.generate_query_api_call(example_export_payload, username, project_name)
+                    check_result['python_command'] = python_command
+                except Exception as e:
+                    # Fallback to basic example if generation fails
+                    check_result['python_command'] = f'# Example GSC query for {project_name} (no GSC data available)\n# This project does not have Search Console data integrated.'
+                
                 check_result_str = json.dumps(check_result)
                 await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
             status_text = 'HAS' if has_search_console else 'does NOT have'
@@ -4397,8 +4415,26 @@ await main()
                 await self.process_google_analytics_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
             else:
                 await self.message_queue.add(pip, f'❌ Project does not have Google Analytics data (skipping download)', verbatim=True)
-                # Add empty python_command for consistency with other steps
-                check_result['python_command'] = ''
+                
+                # Generate Python debugging code even when no GA data (for educational purposes)
+                try:
+                    analysis_date_obj = datetime.strptime(analysis_slug, '%Y%m%d')
+                    start_date = analysis_date_obj.strftime('%Y-%m-%d')
+                    end_date = (analysis_date_obj + timedelta(days=6)).strftime('%Y-%m-%d')
+                    
+                    # Create example GA export payload for educational purposes
+                    ga_template = self.get_configured_template('ga')
+                    example_export_payload = await self.build_exports(
+                        username, project_name, analysis_slug, 'ga_data', start_date, end_date
+                    )
+                    
+                    # Generate Python code for debugging
+                    _, _, python_command = self.generate_query_api_call(example_export_payload, username, project_name)
+                    check_result['python_command'] = python_command
+                except Exception as e:
+                    # Fallback to basic example if generation fails
+                    check_result['python_command'] = f'# Example GA query for {project_name} (no GA data available)\n# This project does not have Google Analytics data integrated.'
+                
                 check_result_str = json.dumps(check_result)
                 await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
             status_text = 'HAS' if has_ga else 'does NOT have'
