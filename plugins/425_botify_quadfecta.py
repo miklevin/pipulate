@@ -280,7 +280,22 @@ class BotifyQuadfectaWorkflow:
                 ],
                 'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
             }
-        }
+        },
+        'GA Performance': {
+            'name': 'GA Performance',
+            'description': 'Sessions and Pageviews from Google Analytics',
+            'export_type': 'ga_data',
+            'user_message': 'This will download Google Analytics performance data including sessions and pageviews.',
+            'button_label_suffix': 'GA Performance',
+            'query': {
+                'dimensions': ['url'],
+                'metrics': [
+                    {'field': 'google_analytics.period_0.ga:sessions', 'name': 'Sessions'},
+                    {'field': 'google_analytics.period_0.ga:pageviews', 'name': 'Pageviews'}
+                ],
+                'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
+            }
+        },
     }
 
     # Template Configuration - Controls which templates are actually used
@@ -326,8 +341,13 @@ class BotifyQuadfectaWorkflow:
             'status_prefix': 'Project '
         },
         'step_05': {
-            'simple_content': 'This placeholder step is complete.'
-        }
+            'data_key': 'ga_check',
+            'status_field': 'has_ga',
+            'success_text': 'HAS Google Analytics data',
+            'failure_text': 'does NOT have Google Analytics data',
+            'error_prefix': 'FAILED to check for Google Analytics data',
+            'status_prefix': 'Project '
+        },
     }
 
     # --- START_CLASS_ATTRIBUTES_BUNDLE ---
