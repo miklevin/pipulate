@@ -796,25 +796,21 @@ class BotifyCsvDownloaderWorkflow:
             has_logs = check_result.get('has_logs', False)
             status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
             status_color = 'green' if has_logs else 'red'
-            action_buttons = self._create_action_buttons(check_result, step_id)
-
-            widget = Div(
-                Div(
-                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
-                        hx_target=f'#{step_id}_widget',
-                        hx_swap='innerHTML'
-                    ),
-                    *action_buttons,
-                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
-                ),
-                Div(
-                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
-                    id=f'{step_id}_widget'
-                )
+            
+            # Create explicit locked view with Card (similar to step_01 and step_02 pattern)
+            return Div(
+                Card(
+                    H3(f'🔒 {step.show}'), 
+                    Div(
+                        P(f'Status: Project {status_text}', style=f'color: {status_color}; font-weight: bold; margin-bottom: 5px;'),
+                        P(f'Project: {project_name}', style='margin-bottom: 5px;'),
+                        P(f'Organization: {username}', cls='text-secondary'),
+                        cls='custom-card-padding-bg'
+                    )
+                ), 
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), 
+                id=step_id
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif check_result and state.get('_revert_target') != step_id:
             has_logs = check_result.get('has_logs', False)
             status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
@@ -1013,25 +1009,21 @@ class BotifyCsvDownloaderWorkflow:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
             status_color = 'green' if has_search_console else 'red'
-            action_buttons = self._create_action_buttons(check_result, step_id)
-
-            widget = Div(
-                Div(
-                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
-                        hx_target=f'#{step_id}_widget',
-                        hx_swap='innerHTML'
-                    ),
-                    *action_buttons,
-                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
-                ),
-                Div(
-                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
-                    id=f'{step_id}_widget'
-                )
+            
+            # Create explicit locked view with Card (similar to step_01 and step_02 pattern)
+            return Div(
+                Card(
+                    H3(f'🔒 {step.show}'), 
+                    Div(
+                        P(f'Status: Project {status_text}', style=f'color: {status_color}; font-weight: bold; margin-bottom: 5px;'),
+                        P(f'Project: {project_name}', style='margin-bottom: 5px;'),
+                        P(f'Organization: {username}', cls='text-secondary'),
+                        cls='custom-card-padding-bg'
+                    )
+                ), 
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), 
+                id=step_id
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif check_result and state.get('_revert_target') != step_id:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
