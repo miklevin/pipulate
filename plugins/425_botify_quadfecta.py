@@ -374,14 +374,15 @@ class BotifyQuadfectaWorkflow:
         # Build step names dynamically based on template configuration
         crawl_template = self.get_configured_template('crawl')
         gsc_template = self.get_configured_template('gsc')
+        ga_template = self.get_configured_template('ga')
 
         steps = [
+
             Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True),
             Step(id='step_02', done='analysis_selection', show=f'Download Crawl Analysis: {crawl_template}', refill=False),
             Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False),
             Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False),
             Step(id='step_05', done='placeholder_data_05', show='Step 5 Placeholder', refill=False),
-        
             Step(
                 id='step_06',
                 done='placeholder_06',
