@@ -283,14 +283,14 @@ class BotifyQuadfectaWorkflow:
         },
         'GA Performance': {
             'name': 'GA Performance',
-            'description': 'Basic URL export to test GA data structure',
+            'description': 'Google Analytics engagement data (URL only for testing)',
             'export_type': 'ga_data',
-            'user_message': 'This will test GA data availability with a simple URL export first.',
-            'button_label_suffix': 'GA Test',
+            'user_message': 'This will download Google Analytics data (testing with URL only).',
+            'button_label_suffix': 'GA Performance',
             'query': {
-                'dimensions': ['{collection}.url'],
+                'dimensions': ['url'],
                 'metrics': [],
-                'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}
+                'sort': []
             }
         },
     }
@@ -2225,6 +2225,10 @@ await main()
                 
                 export_job_payload = export_config['export_job_payload']
                 
+                # Debug: Log the actual BQL query being sent
+                await self.message_queue.add(pip, f'🔍 DEBUG: GA Export Job Payload:', verbatim=True)
+                await self.message_queue.add(pip, f'```json\n{json.dumps(export_job_payload, indent=2)}\n```', verbatim=True)
+                
                 await self.message_queue.add(pip, f'🚀 Submitting Google Analytics export job...', verbatim=True)
                 
                 async with httpx.AsyncClient(timeout=60.0) as client:
@@ -2554,7 +2558,7 @@ await main()
         elif data_type == 'ga_data':
             if not analysis_slug:
                 raise ValueError("analysis_slug is required for data_type 'ga_data'")
-            collection = f'crawl.{analysis_slug}'
+            collection = f'crawl.{analysis_slug}'  # Try using main crawl collection first
             # Use the configured GA template
             ga_template = self.get_configured_template('ga')
             template_query = self.apply_template(ga_template, collection)
@@ -2567,8 +2571,8 @@ await main()
                 'collections': [collection],
                 'query': {
                     'dimensions': [],
-                    'metrics': [{'function': 'count', 'args': [f'{collection}.url']}],
-                    'filters': {'field': f'{collection}.http_code', 'predicate': 'eq', 'value': 200}
+                    'metrics': [{'function': 'count', 'args': ['url']}],
+                    'filters': {'field': 'http_code', 'predicate': 'eq', 'value': 200}
                 }
             }
             export_job_payload = {
