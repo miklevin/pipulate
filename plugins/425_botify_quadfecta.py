@@ -1556,7 +1556,7 @@ class BotifyQuadfectaWorkflow:
                 return (False, 'Forbidden (403). You may not have access to this project or endpoint.')
             elif response.status_code == 404:
                 return (False, 'Project not found (404). Check org/project slugs.')
-            response.raise_for_status()_for_status()
+            response.raise_for_status()
             collections_data = response.json()
             if not isinstance(collections_data, list):
                 return (False, 'Unexpected API response format. Expected a list.')
@@ -2047,7 +2047,7 @@ async def make_api_call(
             print(f"Response Headers: {{dict(response.headers)}}")
 
             # Handle response
-            response.raise_for_status()_for_status()
+            response.raise_for_status()
 
             try:
                 result = response.json()
@@ -2141,7 +2141,7 @@ await main()
                         logging.info(f'Export job response: {json.dumps(response.json(), indent=2)}')
                     except:
                         logging.info(f'Could not parse response as JSON. Raw: {response.text[:500]}')
-                    response.raise_for_status()_for_status()
+                    response.raise_for_status()
                     job_data = response.json()
                     job_url_path = job_data.get('job_url')
                     if not job_url_path:
@@ -2170,7 +2170,7 @@ await main()
             try:
                 async with httpx.AsyncClient() as client:
                     async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
-                        response.raise_for_status()_for_status()
+                        response.raise_for_status()
                         with open(zip_path, 'wb') as f:
                             async for chunk in response.aiter_bytes():
                                 f.write(chunk)
@@ -2743,7 +2743,7 @@ await main()
                             except Exception:
                                 error_detail = response.text[:500]
                                 logging.error(f'API error text: {error_detail}')
-                            response.raise_for_status()_for_status()
+                            response.raise_for_status()
                         job_data = response.json()
                         job_url_path = job_data.get('job_url')
                         if not job_url_path:
@@ -2823,7 +2823,7 @@ await main()
                                 gz_filepath = f'{crawl_filepath}.gz'
                                 async with httpx.AsyncClient(timeout=300.0) as client:
                                     async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
-                                        response.raise_for_status()_for_status()
+                                        response.raise_for_status()
                                         with open(gz_filepath, 'wb') as gz_file:
                                             async for chunk in response.aiter_bytes():
                                                 gz_file.write(chunk)
@@ -3005,7 +3005,7 @@ await main()
                                 except Exception:
                                     error_detail = response.text[:500]
                                     logging.error(f'API error text: {error_detail}')
-                                response.raise_for_status()_for_status()
+                                response.raise_for_status()
                             job_data = response.json()
                             job_url_path = job_data.get('job_url')
                             if not job_url_path:
@@ -3096,7 +3096,7 @@ await main()
                                 compressed_path = f'{logs_filepath}.compressed'
                                 async with httpx.AsyncClient() as client:
                                     async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
-                                        response.raise_for_status()_for_status()
+                                        response.raise_for_status()
                                         with open(compressed_path, 'wb') as f:
                                             async for chunk in response.aiter_bytes():
                                                 f.write(chunk)
@@ -3595,7 +3595,7 @@ async def make_query_call(
             )
 
             print(f"Status Code: {{response.status_code}}")
-            response.raise_for_status()_for_status()
+            response.raise_for_status()
 
             result = response.json()
             print(f"\\nResults returned: {{len(result.get('results', []))}}")
@@ -3789,7 +3789,7 @@ async def make_web_logs_call(
 
             print(f"Status Code: {{response.status_code}}")
             print(f"Request URL: {{url}}")
-            response.raise_for_status()_for_status()
+            response.raise_for_status()
 
             result = response.json()
             print(f"\\nResults returned: {{len(result.get('results', []))}}")
@@ -4648,6 +4648,21 @@ await main()
             elif response.status_code == 404:
                 return (False, 'Project not found (404). Check org/project slugs.')
             response.raise_for_status()
+            collections_data = response.json()
+            if not isinstance(collections_data, list):
+                return (False, 'Unexpected API response format. Expected a list.')
+            for collection in collections_data:
+                if isinstance(collection, dict) and collection.get('id') == collection_id:
+                    return (True, None)
+            return (False, None)
+        except httpx.HTTPStatusError as e:
+            return (False, f'API Error: {e.response.status_code}')
+        except httpx.RequestError as e:
+            return (False, f'Network error: {e}')
+        except json.JSONDecodeError:
+            return (False, 'Could not decode the API response as JSON.')
+        except Exception as e:
+            return (False, f'An unexpected error occurred: {e}')
 
 
     # --- STEP_METHODS_INSERTION_POINT ---
