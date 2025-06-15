@@ -283,17 +283,14 @@ class BotifyQuadfectaWorkflow:
         },
         'GA Performance': {
             'name': 'GA Performance',
-            'description': 'Sessions and Pageviews from Google Analytics',
+            'description': 'Basic URL export to test GA data structure',
             'export_type': 'ga_data',
-            'user_message': 'This will download Google Analytics performance data including sessions and pageviews.',
-            'button_label_suffix': 'GA Performance',
+            'user_message': 'This will test GA data availability with a simple URL export first.',
+            'button_label_suffix': 'GA Test',
             'query': {
                 'dimensions': ['{collection}.url'],
-                'metrics': [
-                    {'field': '{collection}.google_analytics.period_0.ga:sessions', 'name': 'Sessions'},
-                    {'field': '{collection}.google_analytics.period_0.ga:pageviews', 'name': 'Pageviews'}
-                ],
-                'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
+                'metrics': [],
+                'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}
             }
         },
     }
