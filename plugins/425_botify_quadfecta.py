@@ -726,6 +726,12 @@ class BotifyQuadfectaWorkflow:
                 if gsc_exists:
                     files_found.append('gsc.csv')
 
+                # Check GA data
+                ga_filepath = await self.get_deterministic_filepath(username, project_name, slug, 'ga_data')
+                ga_exists, _ = await self.check_file_exists(ga_filepath)
+                if ga_exists:
+                    files_found.append('ga.csv')
+
                 if files_found:
                     downloaded_files_info[slug] = files_found
             await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('input', f'Select an analysis for {project_name}'), verbatim=True)
@@ -4243,6 +4249,8 @@ await main()
             expected_filename = 'weblog.csv'
         elif step_id == 'step_04':
             expected_filename = 'gsc.csv'
+        elif step_id == 'step_05':
+            expected_filename = 'ga.csv'
 
         # Check if download was successful and try to find the file
         if download_complete and expected_filename and username and project_name and analysis_slug:
