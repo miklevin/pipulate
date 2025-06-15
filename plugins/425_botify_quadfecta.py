@@ -304,7 +304,8 @@ class BotifyQuadfectaWorkflow:
     # without modifying the workflow logic.
     TEMPLATE_CONFIG = {
         'crawl': 'Crawl Basic',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
-        'gsc': 'GSC Performance'       # Options: 'GSC Performance'
+        'gsc': 'GSC Performance',       # Options: 'GSC Performance'
+        'ga': 'GA Performance'
     }
 
     # Optional Features Configuration
