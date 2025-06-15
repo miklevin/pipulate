@@ -7,7 +7,7 @@ alwaysApply: false
 
 ## Overview
 
-Pipulate uses HTMX for dynamic UI updates without full page reloads. This rule documents the established patterns for dropdown menus, button text updates, and form interactions based on implementations in [020_profiles.py](mdc:pipulate/plugins/020_profiles.py), [030_roles.py](mdc:pipulate/plugins/030_roles.py), and workflow enhancements in [110_parameter_buster.py](mdc:pipulate/plugins/110_parameter_buster.py), [120_link_graph.py](mdc:pipulate/plugins/120_link_graph.py), and [420_botify_trifecta.py](mdc:pipulate/plugins/420_botify_trifecta.py).
+Pipulate uses HTMX for dynamic UI updates without full page reloads. This rule documents the established patterns for dropdown menus, button text updates, and form interactions based on implementations in [020_profiles.py](mdc:pipulate/plugins/020_profiles.py), [030_roles.py](mdc:pipulate/plugins/030_roles.py), and workflow enhancements in [110_parameter_buster.py](mdc:pipulate/plugins/110_parameter_buster.py), [120_link_graph.py](mdc:pipulate/plugins/120_link_graph.py), and [400_botify_quadfecta.py](mdc:pipulate/plugins/400_botify_quadfecta.py).
 
 ## Core HTMX Patterns
 
@@ -197,7 +197,7 @@ Form(
 
 ### 1. Template Compatibility (Critical for Dynamic Systems)
 
-When implementing in template-based workflows like [420_botify_trifecta.py](mdc:pipulate/plugins/420_botify_trifecta.py):
+When implementing in template-based workflows like [400_botify_quadfecta.py](mdc:pipulate/plugins/400_botify_quadfecta.py):
 
 **✅ Do:**
 - Use `self.get_configured_template('crawl')` to get current template
@@ -297,7 +297,7 @@ Button(button_text, type='submit', cls='mt-10px primary', id='submit-button')
 ### Workflow Button Updates (All Working ✅)
 - **[110_parameter_buster.py](mdc:pipulate/plugins/110_parameter_buster.py)** - Parameter-based button text with "Not Compliant" template
 - **[120_link_graph.py](mdc:pipulate/plugins/120_link_graph.py)** - Link graph button updates with "Link Graph Edges" template  
-- **[420_botify_trifecta.py](mdc:pipulate/plugins/420_botify_trifecta.py)** - Template-aware button updates with "Crawl Basic" template
+- **[400_botify_quadfecta.py](mdc:pipulate/plugins/400_botify_quadfecta.py)** - Template-aware button updates with "Crawl Basic" template
 
 ### CRUD Interactions  
 - **[020_profiles.py](mdc:pipulate/plugins/020_profiles.py)** - Profile management with toggles

@@ -84,7 +84,7 @@ The core workflow creation system with corrected sequencing patterns:
 - **Coding Instructions**: Generates specific fix instructions for coding assistants
 - **Real-time Analysis**: Provides actionable recommendations with exact code snippets
 
-**Workflow Genesis Plugin** (`310_workflow_genesis.py` - "Workflow Creation Helper" in APP menu):
+**Workflow Genesis Plugin** (`200_workflow_genesis.py` - "Workflow Creation Helper" in APP menu):
 - **Template Selection Guidance**: Intelligent recommendations based on use case
 - **Command Generation**: Creates copy-ready helper tool commands with syntax highlighting
 - **Corrected Sequencing**: Demonstrates the proven 5-command sequence for complex workflows
@@ -457,7 +457,7 @@ The `run_all_cells()` method encapsulates the workflow initialization pattern an
 
 **Critical for data integrity:**
 
-* **Filename** (e.g., `310_workflow_genesis.py`): Determines public URL endpoint and menu ordering
+* **Filename** (e.g., `200_workflow_genesis.py`): Determines public URL endpoint and menu ordering
 * **APP_NAME Constant** (e.g., `APP_NAME = "workflow_genesis_internal"`): Internal identifier that MUST REMAIN STABLE
 
 ### 4. State Management via DictLikeDB

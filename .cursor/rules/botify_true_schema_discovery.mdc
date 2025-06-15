@@ -68,7 +68,7 @@ The discovery generates three key files in the script directory:
 ## Integration with Pipulate Workflows
 
 ### Template Integration Pattern
-For workflows like [420_botify_trifecta.py](mdc:pipulate/plugins/420_botify_trifecta.py), the discovery results can inform:
+For workflows like [400_botify_quadfecta.py](mdc:pipulate/plugins/400_botify_quadfecta.py), the discovery results can inform:
 
 **Query Template Enhancement**:
 ```python

@@ -27,13 +27,13 @@ FILENAME_MAPPINGS = {
     "600_roadmap.py": "220_roadmap.py",
     
     # Developer → 300-399 Range  
-    "510_workflow_genesis.py": "310_workflow_genesis.py",
+    "510_workflow_genesis.py": "200_workflow_genesis.py",
     "515_dev_assistant.py": "320_dev_assistant.py",
     "700_widget_shim.py": "330_widget_shim.py",
     
     # Workshop → 400-499 Range
     "530_botify_api_tutorial.py": "410_botify_api_tutorial.py",
-    "535_botify_trifecta.py": "420_botify_trifecta.py",
+    "535_botify_trifecta.py": "400_botify_quadfecta.py",
     "540_tab_opener.py": "430_tab_opener.py",
     "550_browser_automation.py": "440_browser_automation.py",
     "560_stream_simulator.py": "450_stream_simulator.py",
@@ -64,7 +64,7 @@ FILENAME_MAPPINGS = {
     "890_selenium.py": "820_selenium.py",
     
     # Development/Template Components (900-999)
-    "900_blank_placeholder.py": "900_blank_placeholder.py",
+    "300_blank_placeholder.py": "300_blank_placeholder.py",
     "715_splice_workflow.py": "920_splice_workflow.py",
 }
 

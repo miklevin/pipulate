@@ -32,7 +32,7 @@ Emojis serve as visual anchors for quick status recognition:
 - 🔄 **Processing**: Background operations, API calls
 
 ### Button Label Emojis
-Reference: [420_botify_trifecta.py](mdc:pipulate/plugins/420_botify_trifecta.py) lines 180-190
+Reference: [400_botify_quadfecta.py](mdc:pipulate/plugins/400_botify_quadfecta.py) lines 180-190
 
 ```python
 UI_CONSTANTS = {
@@ -745,8 +745,8 @@ Reference: @create_workflow.py lines 35-42
 
 ```python
 TEMPLATE_MAP = {
-    "blank": "900_blank_placeholder.py",      # Minimal single-step template
-    "trifecta": "420_botify_trifecta.py",     # Complex multi-export template
+    "blank": "300_blank_placeholder.py",      # Minimal single-step template
+    "trifecta": "400_botify_quadfecta.py",     # Complex multi-export template
     # Future templates can be added here
 }
 ```
@@ -1056,7 +1056,7 @@ This marker system ensures that WET workflows maintain their explicit, debuggabl
    - Centralized styling for consistent appearance across workflows
 
 #### Workflow Genesis Integration
-The [310_workflow_genesis.py](mdc:pipulate/plugins/310_workflow_genesis.py) workflow provides **educational progression**:
+The [200_workflow_genesis.py](mdc:pipulate/plugins/200_workflow_genesis.py) workflow provides **educational progression**:
 - **Step 1**: Parameter definition
 - **Step 2**: Template selection with appropriate commands
 - **Step 3**: Individual helper tool education
@@ -1116,13 +1116,13 @@ These conventions ensure consistent user experience across all WET workflows whi
 
 ### The Sausage Factory Discovery: Two Template Categories
 
-**Analysis of [310_workflow_genesis.py](mdc:pipulate/plugins/310_workflow_genesis.py) reveals a sophisticated pattern:**
+**Analysis of [200_workflow_genesis.py](mdc:pipulate/plugins/200_workflow_genesis.py) reveals a sophisticated pattern:**
 
 #### Workflow Creation Templates vs. Method-Providing Templates
 
 **Workflow Creation Templates** (Structural Foundation):
-- `900_blank_placeholder.py` - Minimal scaffolding 
-- `420_botify_trifecta.py` - Complex 5-step foundation
+- `300_blank_placeholder.py` - Minimal scaffolding 
+- `400_botify_quadfecta.py` - Complex 5-step foundation
 - Provide workflow structure, markers, and basic routing
 - Used by `create_workflow.py` for initial creation
 
@@ -1253,7 +1253,7 @@ UI_CONSTANTS = {
 #### Current Plugin Ecosystem Analysis
 
 **7xx Plugins (Components)**:
-- `900_blank_placeholder.py` - Structural template
+- `300_blank_placeholder.py` - Structural template
 - `540_checkboxes.py` - Widget pattern needing extraction
 - `560_range.py` - Input widget needing standardization
 

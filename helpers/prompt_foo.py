@@ -44,7 +44,7 @@ FILES_TO_INCLUDE_RAW = """\
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
 # /home/mike/repos/pipulate/plugins/830_simon_mcp.py
-# /home/mike/repos/pipulate/plugins/900_blank_placeholder.py  <-- The minimal template that propegates everywhere (as WET as we get)
+# /home/mike/repos/pipulate/plugins/300_blank_placeholder.py  <-- The minimal template that propegates everywhere (as WET as we get)
 # /home/mike/repos/pipulate/plugins/040_hello_workflow.py     <-- Master example and Jupyter Notebook, shows parallels to Unix pipe
 # /home/mike/repos/pipulate/plugins/440_browser_automation.py  <-- You ought to see how selenium-wire scrapes. A setup for Unix pipe style DOM processing
 # /home/mike/repos/pipulate/plugins/820_selenium.py  <-- The monumental magical path to local LLM MCP PFM (material for thinking ahead)
@@ -58,10 +58,10 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/plugins/060_tasks.py     <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
 ## HELPER SCRIPTS (Why WET can work)
-# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py       <-- The templating plugin that creates new workflows from scratch
-# /home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 900_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 900_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/manage_class_attributes.py  <-- The script that manages class attributes (copies 900_blank_placeholder.py)
+# /home/mike/repos/pipulate/plugins/200_workflow_genesis.py       <-- The templating plugin that creates new workflows from scratch
+# /home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 300_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 300_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/manage_class_attributes.py  <-- The script that manages class attributes (copies 300_blank_placeholder.py)
 # /home/mike/repos/pipulate/helpers/swap_workflow_step.py       <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
 # /home/mike/repos/pipulate/helpers/prompt_foo.py               <-- This script (used to generate the manifest)
 
@@ -99,7 +99,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/.cursor/rules/18_evolutionary_vision.mdc
 
 # THE BIG BOTIFY WORKFLOWS (Often, the main event)
-/home/mike/repos/pipulate/plugins/420_botify_trifecta.py
+/home/mike/repos/pipulate/plugins/400_botify_quadfecta.py
 /home/mike/repos/pipulate/plugins/425_botify_quadfecta.py
 # /home/mike/repos/pipulate/plugins/120_link_graph.py
 # /home/mike/repos/pipulate/plugins/110_parameter_buster.py
@@ -111,7 +111,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/plugins/050_documentation.py
 # /home/mike/repos/pipulate/plugins/100_connect_with_botify.py
 # /home/mike/repos/pipulate/plugins/220_roadmap.py
-# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py
+# /home/mike/repos/pipulate/plugins/200_workflow_genesis.py
 # /home/mike/repos/pipulate/plugins/320_dev_assistant.py
 # /home/mike/repos/pipulate/plugins/330_widget_shim.py
 # /home/mike/repos/pipulate/plugins/410_botify_api_tutorial.py

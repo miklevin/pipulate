@@ -151,7 +151,7 @@ Pipulate features automatic plugin discovery:
 
 **This distinction is crucial for data integrity:**
 
-* **Filename** (e.g., `310_workflow_genesis.py`):
+* **Filename** (e.g., `200_workflow_genesis.py`):
   - Determines **public URL endpoint** (`/workflow_genesis`)
   - Numeric prefix controls **menu ordering**
   - Can be changed for UI/organizational purposes

@@ -39,9 +39,9 @@ def find_pipulate_root():
 PROJECT_ROOT = find_pipulate_root()
 # Template mapping - allows selection of different starting templates
 TEMPLATE_MAP = {
-    "blank": PROJECT_ROOT / "plugins" / "900_blank_placeholder.py",
+    "blank": PROJECT_ROOT / "plugins" / "300_blank_placeholder.py",
     "hello": PROJECT_ROOT / "plugins" / "500_hello_workflow.py",
-    "trifecta": PROJECT_ROOT / "plugins" / "420_botify_trifecta.py",
+    "trifecta": PROJECT_ROOT / "plugins" / "400_botify_quadfecta.py",
     # Future templates can be added here
     # "my_custom_template": PROJECT_ROOT / "plugins" / "0XX_my_custom_template.py",
 }
