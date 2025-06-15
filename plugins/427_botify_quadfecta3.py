@@ -791,27 +791,7 @@ class BotifyCsvDownloaderWorkflow:
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
-        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        if 'finalized' in finalize_data and check_result:
-            has_logs = check_result.get('has_logs', False)
-            status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
-            status_color = 'green' if has_logs else 'red'
-            
-            # Create explicit locked view with Card (similar to step_01 and step_02 pattern)
-            return Div(
-                Card(
-                    H3(f'🔒 {step.show}'), 
-                    Div(
-                        P(f'Status: Project {status_text}', style=f'color: {status_color}; font-weight: bold; margin-bottom: 5px;'),
-                        P(f'Project: {project_name}', style='margin-bottom: 5px;'),
-                        P(f'Organization: {username}', cls='text-secondary'),
-                        cls='custom-card-padding-bg'
-                    )
-                ), 
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), 
-                id=step_id
-            )
-        elif check_result and state.get('_revert_target') != step_id:
+        if check_result and state.get('_revert_target') != step_id:
             has_logs = check_result.get('has_logs', False)
             status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
             status_color = 'green' if has_logs else 'red'
@@ -833,7 +813,7 @@ class BotifyCsvDownloaderWorkflow:
                     id=f'{step_id}_widget'
                 )
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
 
@@ -1004,27 +984,7 @@ class BotifyCsvDownloaderWorkflow:
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
-        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        if 'finalized' in finalize_data and check_result:
-            has_search_console = check_result.get('has_search_console', False)
-            status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
-            status_color = 'green' if has_search_console else 'red'
-            
-            # Create explicit locked view with Card (similar to step_01 and step_02 pattern)
-            return Div(
-                Card(
-                    H3(f'🔒 {step.show}'), 
-                    Div(
-                        P(f'Status: Project {status_text}', style=f'color: {status_color}; font-weight: bold; margin-bottom: 5px;'),
-                        P(f'Project: {project_name}', style='margin-bottom: 5px;'),
-                        P(f'Organization: {username}', cls='text-secondary'),
-                        cls='custom-card-padding-bg'
-                    )
-                ), 
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), 
-                id=step_id
-            )
-        elif check_result and state.get('_revert_target') != step_id:
+        if check_result and state.get('_revert_target') != step_id:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
             status_color = 'green' if has_search_console else 'red'
@@ -1046,7 +1006,7 @@ class BotifyCsvDownloaderWorkflow:
                     id=f'{step_id}_widget'
                 )
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             gsc_template = self.get_configured_template('gsc')
@@ -1237,7 +1197,7 @@ class BotifyCsvDownloaderWorkflow:
                     id=f'{step_id}_widget'
                 )
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps)
         except Exception as e:
             logging.exception(f'Error in step_04_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
@@ -1262,8 +1222,7 @@ class BotifyCsvDownloaderWorkflow:
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
-        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        if 'finalized' in finalize_data and check_result:
+        if check_result and state.get('_revert_target') != step_id:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
             status_color = 'green' if has_search_console else 'red'
@@ -1285,30 +1244,7 @@ class BotifyCsvDownloaderWorkflow:
                     id=f'{step_id}_widget'
                 )
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        elif check_result and state.get('_revert_target') != step_id:
-            has_search_console = check_result.get('has_search_console', False)
-            status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
-            status_color = 'green' if has_search_console else 'red'
-            action_buttons = self._create_action_buttons(check_result, step_id)
-
-            widget = Div(
-                Div(
-                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
-                        hx_target=f'#{step_id}_widget',
-                        hx_swap='innerHTML'
-                    ),
-                    *action_buttons,
-                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
-                ),
-                Div(
-                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
-                    id=f'{step_id}_widget'
-                )
-            )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             gsc_template = self.get_configured_template('gsc')
@@ -1499,7 +1435,7 @@ class BotifyCsvDownloaderWorkflow:
                     id=f'{step_id}_widget'
                 )
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps)
         except Exception as e:
             logging.exception(f'Error in step_05_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
@@ -2925,7 +2861,7 @@ await main()
                     id=f'{step_id}_widget'
                 )
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Analysis {status_text}{download_message}', widget=widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Analysis {status_text}{download_message}', widget=widget, steps=self.steps)
         except Exception as e:
             logging.exception(f'Error in step_02_process: {e}')
             return P(f'Error: {str(e)}', style=pip.get_style('error'))
@@ -3179,7 +3115,7 @@ await main()
                     id=f'{step_id}_widget'
                 )
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} web logs{download_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} web logs{download_message}', widget=widget, steps=steps)
         except Exception as e:
             logging.exception(f'Error in step_03_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
@@ -3453,7 +3389,7 @@ await main()
                     id=f'{step_id}_widget'
                 )
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} Search Console data{download_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} Search Console data{download_message}', widget=widget, steps=steps)
         except Exception as e:
             logging.exception(f'Error in step_04_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
