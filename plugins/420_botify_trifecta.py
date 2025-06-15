@@ -299,6 +299,37 @@ class BotifyCsvDownloaderWorkflow:
         'enable_skip_buttons': True,  # Set to False to disable skip buttons on steps 3 & 4
     }
 
+    # Toggle Method Configuration - Maps step IDs to their specific data extraction logic
+    TOGGLE_CONFIG = {
+        'step_02': {
+            'data_key': 'analysis_selection',
+            'status_field': 'download_complete',
+            'success_text': 'HAS crawl analysis',
+            'failure_text': 'does NOT have crawl analysis',
+            'error_prefix': 'FAILED to download crawl analysis',
+            'status_prefix': 'Analysis '
+        },
+        'step_03': {
+            'data_key': 'weblogs_check',
+            'status_field': 'has_logs',
+            'success_text': 'HAS web logs',
+            'failure_text': 'does NOT have web logs',
+            'error_prefix': 'FAILED to download web logs',
+            'status_prefix': 'Project '
+        },
+        'step_04': {
+            'data_key': 'search_console_check',
+            'status_field': 'has_search_console',
+            'success_text': 'HAS Search Console data',
+            'failure_text': 'does NOT have Search Console data',
+            'error_prefix': 'FAILED to download Search Console data',
+            'status_prefix': 'Project '
+        },
+        'step_05': {
+            'simple_content': 'This placeholder step is complete.'
+        }
+    }
+
     # --- START_CLASS_ATTRIBUTES_BUNDLE ---
     # Additional class-level constants can be merged here by manage_class_attributes.py
     # --- END_CLASS_ATTRIBUTES_BUNDLE ---
@@ -344,8 +375,7 @@ class BotifyCsvDownloaderWorkflow:
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
         app.route(f'/{app_name}/step_04_complete', methods=['POST'])(self.step_04_complete)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
-        # Note: Toggle route removed as part of step_05 standardization. 
-        # Other steps may need individual toggle method implementations.
+        app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
 
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
@@ -3008,6 +3038,61 @@ await main()
 
 
 
+
+    async def common_toggle(self, request):
+        """Unified toggle method for all step widgets using configuration-driven approach."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = request.query_params.get('step_id')
+        if not step_id or step_id not in self.TOGGLE_CONFIG:
+            return Div("Invalid step ID for toggle.", style="color: red;")
+        
+        config = self.TOGGLE_CONFIG[step_id]
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        data_str = step_data.get(steps[self.steps_indices[step_id]].done, '')
+        data_obj = json.loads(data_str) if data_str else {}
+        
+        state = pip.read_state(pipeline_id)
+        widget_visible_key = f'{step_id}_widget_visible'
+        is_visible = state.get(widget_visible_key, False)
+        
+        # Determine content to show
+        python_command = data_obj.get('python_command', '# No Python code available for this step.')
+        
+        # Handle simple content case first
+        if 'simple_content' in config:
+            content_div = Pre(config['simple_content'], cls='code-block-container')
+        else: # Handle complex data-driven content
+            status_prefix = config.get('status_prefix', '')
+            if 'error' in data_obj:
+                status_text = f'{config["error_prefix"]}: {data_obj["error"]}'
+                status_color = 'red'
+            else:
+                has_data = data_obj.get(config.get('status_field'), False)
+                status_text = f'{status_prefix}{config["success_text"] if has_data else config["failure_text"]}'
+                status_color = 'green' if has_data else 'orange'
+            
+            content_div = Div(
+                P(f'Status: {status_text}', style=f'color: {status_color};'),
+                H4('Python Command (for debugging):'),
+                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+                Script(f"setTimeout(() => Prism.highlightAllUnder(document.getElementById('{step_id}_widget')), 100);")
+            )
+
+        # First time toggling, just show it
+        if widget_visible_key not in state:
+            state[widget_visible_key] = True
+            pip.write_state(pipeline_id, state)
+            return content_div
+
+        # Subsequent toggles
+        state[widget_visible_key] = not is_visible
+        pip.write_state(pipeline_id, state)
+        
+        if is_visible: # if it was visible, now hide it
+            content_div.attrs['style'] = 'display: none;'
+        
+        return content_div
 
     async def update_button_text(self, request):
         """Update button text dynamically based on selected analysis."""
