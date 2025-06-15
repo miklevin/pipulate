@@ -1962,6 +1962,14 @@ await main()
             if file_exists:
                 await self.message_queue.add(pip, f"✅ Using cached GSC data ({file_info['size']})", verbatim=True)
                 check_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': gsc_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
+                
+                # Generate Python debugging code even for cached files
+                end_date = datetime.now().strftime('%Y-%m-%d')
+                start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+                export_query = await self.build_exports(username, project_name, analysis_slug, data_type='gsc', start_date=start_date, end_date=end_date)
+                _, _, python_command = self.generate_query_api_call(export_query['export_job_payload'], username, project_name)
+                check_result['python_command'] = python_command
+                
                 check_result_str = json.dumps(check_result)
                 await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
                 return

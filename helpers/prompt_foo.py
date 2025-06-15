@@ -101,7 +101,7 @@ requirements.txt <-- Python package dependencies for the project
 # THE BIG BOTIFY WORKFLOWS (Often, the main event)
 /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
 # /home/mike/repos/pipulate/plugins/120_link_graph.py
-/home/mike/repos/pipulate/plugins/110_parameter_buster.py
+# /home/mike/repos/pipulate/plugins/110_parameter_buster.py
 
 ## MOST OTHER PLUGINS (Swap-in's for Blank Placeholder)
 # /home/mike/repos/pipulate/plugins/510_text_field.py
