@@ -266,6 +266,10 @@ window.initializeSearchPluginsKeyboardNav = function() {
             if (selectedIndex >= 0 && items[selectedIndex]) {
                 // Simulate click on selected item
                 items[selectedIndex].click();
+            } else if (items.length === 1) {
+                // No manual selection but only one result - select it
+                items[0].click();
+                console.log('🎯 Enter pressed on single unselected result - navigating');
             }
             
         } else if (event.key === 'Escape') {
@@ -288,11 +292,28 @@ window.initializeSearchPluginsKeyboardNav = function() {
         mutations.forEach(function(mutation) {
             if (mutation.type === 'childList') {
                 clearSearchSelection();
+                // Auto-select single result after content update
+                autoSelectSingleResult();
             }
         });
     });
     
     observer.observe(dropdown, { childList: true, subtree: true });
+    
+    // Auto-select single result function
+    function autoSelectSingleResult() {
+        const items = dropdown.querySelectorAll('.search-result-item');
+        
+        // Only auto-select if there's exactly one result and it has the auto-select marker
+        if (items.length === 1 && items[0].classList.contains('auto-select-single')) {
+            selectedIndex = 0;
+            items[0].classList.add('selected');
+            console.log('🎯 Auto-selected single search result');
+        }
+    }
+    
+    // Make auto-select function globally available for server-triggered calls
+    window.initializeSearchPluginsAutoSelect = autoSelectSingleResult;
     
     // Global click handler for click-away dismissal
     document.addEventListener('click', function(event) {

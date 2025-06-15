@@ -3934,10 +3934,25 @@ async def search_plugins(request):
         # Generate HTML results
         if filtered_plugins:
             result_html = ""
+            # Check if there's only one result for auto-selection
+            auto_select_single = len(filtered_plugins) == 1
+            
             for i, plugin in enumerate(filtered_plugins[:10]):  # Limit to 10 results
+                # Add auto-select class for single results
+                item_class = "search-result-item"
+                if auto_select_single:
+                    item_class += " auto-select-single"
+                    
+                # Smart mouse hover handler - don't clear selection on auto-selected single results
+                if auto_select_single:
+                    mouse_handler = "if (!this.classList.contains('auto-select-single') || event.movementX !== 0 || event.movementY !== 0) { this.classList.remove('selected'); }"
+                else:
+                    mouse_handler = "this.classList.remove('selected');"
+                    
                 result_html += f"""
-                <div class="search-result-item" 
-                     onclick="document.getElementById('search-results-dropdown').style.display='none'; document.getElementById('nav-plugin-search').value=''; window.location.href='{plugin['url']}';">
+                <div class="{item_class}" 
+                     onclick="document.getElementById('search-results-dropdown').style.display='none'; document.getElementById('nav-plugin-search').value=''; window.location.href='{plugin['url']}';"
+                     onmouseover="{mouse_handler}">
                     <strong>{plugin['display_name']}</strong>
                     <div class="search-result-module">{plugin['module_name']}</div>
                 </div>
@@ -3947,6 +3962,10 @@ async def search_plugins(request):
             result_html += """
             <script>
                 document.getElementById('search-results-dropdown').style.display = 'block';
+                // Auto-select single result via server indication
+                if (window.initializeSearchPluginsAutoSelect) {
+                    window.initializeSearchPluginsAutoSelect();
+                }
             </script>
             """
         else:

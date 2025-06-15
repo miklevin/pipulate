@@ -934,6 +934,22 @@ input[type="password"]:focus {
     outline: 2px solid var(--pico-primary-border);
 }
 
+/* Auto-selected single result styling - special case for convenience */
+.search-result-item.auto-select-single {
+    position: relative;
+}
+
+.search-result-item.auto-select-single.selected::after {
+    content: "Press Enter ↵";
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8em;
+    color: var(--pico-muted-color);
+    opacity: 0.8;
+}
+
 /* Focus state for accessibility */
 .search-result-item:focus {
     outline: 2px solid var(--pico-primary-border);
