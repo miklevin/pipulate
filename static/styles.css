@@ -943,8 +943,7 @@ input[type="password"]:focus {
     content: "Press Enter ↵";
     position: absolute;
     right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
+    bottom: 0.3rem;
     font-size: 0.8em;
     color: var(--pico-muted-color);
     opacity: 0.8;
