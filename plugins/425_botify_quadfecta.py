@@ -412,7 +412,7 @@ class BotifyQuadfectaWorkflow:
         app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
         app.route(f'/{app_name}/step_04_complete', methods=['POST'])(self.step_04_complete)
-        app.route(f'/{app_name}/step_05_complete', methods=['POST'])(self.step_04_complete)
+        app.route(f'/{app_name}/step_05_complete', methods=['POST'])(self.step_05_complete)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
 
@@ -4196,21 +4196,27 @@ await main()
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
         try:
-            has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
+            has_ga, error_message = await self.check_if_project_has_collection(username, project_name, 'ga')
             if error_message:
                 return Div(P(f'Error: {error_message}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-            check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
-            if has_search_console:
-                await self.message_queue.add(pip, f'✅ Project has Search Console data, downloading...', verbatim=True)
-                await self.process_search_console_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
+            check_result = {'has_ga': has_ga, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
+            if has_ga:
+                await self.message_queue.add(pip, f'✅ Project has Google Analytics data, downloading...', verbatim=True)
+                # For now, just create dummy data since this is a placeholder step
+                check_result['download_complete'] = True
+                check_result['file_path'] = f"downloads/{self.app_name}/{username}/{project_name}/{analysis_slug}/ga.csv"
+                check_result['python_command'] = '# Google Analytics data processing placeholder'
+                check_result_str = json.dumps(check_result)
+                await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
+                await self.message_queue.add(pip, f'✅ Google Analytics placeholder data completed', verbatim=True)
             else:
-                await self.message_queue.add(pip, f'Project does not have Search Console data (skipping download)', verbatim=True)
+                await self.message_queue.add(pip, f'Project does not have Google Analytics data (skipping download)', verbatim=True)
                 # Add empty python_command for consistency with other steps
                 check_result['python_command'] = ''
                 check_result_str = json.dumps(check_result)
                 await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
-            status_text = 'HAS' if has_search_console else 'does NOT have'
-            completed_message = 'Data downloaded successfully' if has_search_console else 'No Search Console data available'
+            status_text = 'HAS' if has_ga else 'does NOT have'
+            completed_message = 'GA data completed' if has_ga else 'No Google Analytics data available'
             action_buttons = self._create_action_buttons(check_result, step_id)
 
             widget = Div(
@@ -4225,7 +4231,7 @@ await main()
                     style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
-                    Pre(f'Status: Project {status_text} Search Console data', cls='code-block-container', style=f'color: {"green" if has_search_console else "red"}; display: none;'),
+                    Pre(f'Status: Project {status_text} Google Analytics data', cls='code-block-container', style=f'color: {"green" if has_ga else "red"}; display: none;'),
                     id=f'{step_id}_widget'
                 )
             )
@@ -4434,13 +4440,19 @@ await main()
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
         try:
-            has_ga, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
+            has_ga, error_message = await self.check_if_project_has_collection(username, project_name, 'ga')
             if error_message:
                 return Div(P(f'Error: {error_message}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             check_result = {'has_ga': has_ga, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
             if has_ga:
                 await self.message_queue.add(pip, f'✅ Project has Google Analytics data, downloading...', verbatim=True)
-                await self.process_search_console_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
+                # For now, just create dummy data since this is a placeholder step
+                check_result['download_complete'] = True
+                check_result['file_path'] = f"downloads/{self.app_name}/{username}/{project_name}/{analysis_slug}/ga.csv"
+                check_result['python_command'] = '# Google Analytics data processing placeholder'
+                check_result_str = json.dumps(check_result)
+                await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
+                await self.message_queue.add(pip, f'✅ Google Analytics placeholder data completed', verbatim=True)
             else:
                 await self.message_queue.add(pip, f'Project does not have Google Analytics data (skipping download)', verbatim=True)
                 # Add empty python_command for consistency with other steps
@@ -4448,7 +4460,7 @@ await main()
                 check_result_str = json.dumps(check_result)
                 await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
             status_text = 'HAS' if has_ga else 'does NOT have'
-            completed_message = 'Data downloaded successfully' if has_ga else 'No Google Analytics data available'
+            completed_message = 'GA data completed' if has_ga else 'No Google Analytics data available'
             action_buttons = self._create_action_buttons(check_result, step_id)
 
             widget = Div(
