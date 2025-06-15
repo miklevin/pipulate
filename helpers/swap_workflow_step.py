@@ -79,38 +79,53 @@ def extract_step_definition(content: str, step_id: str) -> Optional[str]:
     
     lines = content.split('\n')
     
-    # Look for any line containing Step( and the target step_id
+    # Look for Step( definition that contains the target step_id (may be on different lines)
     for i, line in enumerate(lines):
-        if 'Step(' in line and f"id='{step_id}'" in line:
-            # Found the line, now extract the complete Step definition
+        if 'Step(' in line:
+            # Found a Step definition, extract the complete definition first
             step_start_line = i
             paren_count = 0
             step_lines = []
+            found_target_id = False
             
             # Scan from this line until we find the matching closing parenthesis
             for j in range(i, len(lines)):
                 current_line = lines[j]
                 step_lines.append(current_line)
                 
-                # Count parentheses, but ignore ones inside strings
+                # Check if this line contains our target step_id
+                if f"id='{step_id}'" in current_line:
+                    found_target_id = True
+                
+                # Count parentheses, but ignore ones inside strings and f-strings
                 in_string = False
+                in_fstring = False
                 quote_char = None
                 k = 0
                 while k < len(current_line):
                     char = current_line[k]
                     
-                    # Handle string literals
-                    if not in_string and char in ['"', "'"]:
+                    # Handle f-string literals
+                    if not in_string and not in_fstring and k < len(current_line) - 1:
+                        if char == 'f' and current_line[k+1] in ['"', "'"]:
+                            in_fstring = True
+                            quote_char = current_line[k+1]
+                            k += 1  # Skip the quote after 'f'
+                            continue
+                    
+                    # Handle regular string literals
+                    if not in_string and not in_fstring and char in ['"', "'"]:
                         in_string = True
                         quote_char = char
-                    elif in_string and char == quote_char:
+                    elif (in_string or in_fstring) and char == quote_char:
                         # Check if it's escaped
                         if k == 0 or current_line[k-1] != '\\':
                             in_string = False
+                            in_fstring = False
                             quote_char = None
                     
-                    # Count parentheses only when not in strings
-                    elif not in_string:
+                    # Count parentheses only when not in strings or f-strings
+                    elif not in_string and not in_fstring:
                         if char == '(':
                             paren_count += 1
                         elif char == ')':
@@ -120,37 +135,40 @@ def extract_step_definition(content: str, step_id: str) -> Optional[str]:
                 
                 # If we've closed all parentheses for this Step definition
                 if paren_count == 0:
-                    # We have the complete step definition
-                    full_definition = '\n'.join(step_lines)
-                    
-                    # Extract just the Step(...) part by finding the Step( and removing any leading assignment
-                    lines_of_def = full_definition.split('\n')
-                    step_lines_clean = []
-                    
-                    for line in lines_of_def:
-                        # Remove any leading assignment like "steps = [" or variable assignments
-                        if 'Step(' in line:
-                            # Find where Step( starts and extract from there
-                            step_start_pos = line.find('Step(')
-                            clean_line = line[step_start_pos:]
-                            step_lines_clean.append(clean_line)
-                        elif step_lines_clean:  # We're inside the Step definition
-                            step_lines_clean.append(line)
-                    
-                    # Clean up the ending - remove any trailing )] that are from source list context
-                    result = '\n'.join(step_lines_clean)
-                    
-                    # If the result ends with )] or similar list-closing patterns, 
-                    # remove them as they're source context artifacts
-                    result = result.rstrip()
-                    if result.endswith(')]'):
-                        result = result[:-2] + ')'
-                    elif result.endswith(']'):
-                        result = result[:-1]
-                    
-                    return result
-            
-            break
+                    # Check if this Step definition contains our target step_id
+                    if found_target_id:
+                        # We have the complete step definition for our target
+                        full_definition = '\n'.join(step_lines)
+                        
+                        # Extract just the Step(...) part by finding the Step( and removing any leading assignment
+                        lines_of_def = full_definition.split('\n')
+                        step_lines_clean = []
+                        
+                        for line in lines_of_def:
+                            # Remove any leading assignment like "steps = [" or variable assignments
+                            if 'Step(' in line:
+                                # Find where Step( starts and extract from there
+                                step_start_pos = line.find('Step(')
+                                clean_line = line[step_start_pos:]
+                                step_lines_clean.append(clean_line)
+                            elif step_lines_clean:  # We're inside the Step definition
+                                step_lines_clean.append(line)
+                        
+                        # Clean up the ending - remove any trailing )] that are from source list context
+                        result = '\n'.join(step_lines_clean)
+                        
+                        # If the result ends with )] or similar list-closing patterns, 
+                        # remove them as they're source context artifacts
+                        result = result.rstrip()
+                        if result.endswith(')]'):
+                            result = result[:-2] + ')'
+                        elif result.endswith(']'):
+                            result = result[:-1]
+                        
+                        return result
+                    else:
+                        # This Step definition doesn't contain our target, continue searching
+                        break
     
     return None
 
