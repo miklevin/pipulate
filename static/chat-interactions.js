@@ -215,6 +215,16 @@ window.initializeSearchPluginsKeyboardNav = function() {
     
     let selectedIndex = -1;
     
+    // Global Ctrl+K shortcut to activate search
+    document.addEventListener('keydown', function(event) {
+        if (event.ctrlKey && event.key === 'k') {
+            event.preventDefault();
+            searchInput.focus();
+            searchInput.select(); // Select all text for easy replacement
+            console.log('🔍 Search activated via Ctrl+K');
+        }
+    });
+    
     // Keyboard navigation for search input
     searchInput.addEventListener('keydown', function(event) {
         const items = dropdown.querySelectorAll('.search-result-item');
