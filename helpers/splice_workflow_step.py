@@ -290,8 +290,8 @@ async def {step_id_str}_submit(self, request):
     indented_submit = "\n".join(f"{method_indent}{line}" for line in submit_method_template.strip().split("\n"))
     
     # Wrap with swappable step markers to enable swap_workflow_step.py
-    swappable_start = f"{method_indent}# --- START_SWAPPABLE_STEP: {step_id_str} ---"
-    swappable_end = f"{method_indent}# --- END_SWAPPABLE_STEP: {step_id_str} ---"
+    swappable_start = f"{method_indent}# --- START_STEP_BUNDLE: {step_id_str} ---"
+    swappable_end = f"{method_indent}# --- END_STEP_BUNDLE: {step_id_str} ---"
     
     return f"\n{swappable_start}\n{indented_get}\n\n\n{indented_submit}\n{swappable_end}\n"
 

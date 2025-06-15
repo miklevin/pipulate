@@ -510,7 +510,7 @@ def main():
         else:
             print(f"⚠️  Could not find Step definition for '{args.target_step_id}' - methods updated only")
     else:
-        print(f"⚠️  No Step definition available for '{args.source_step_id}' in source")
+        print(f"⚠️  No Step definition available for '{args.source_bundle_id}' in source")
     
     # Write the updated content
     if not args.force:
