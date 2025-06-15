@@ -3142,7 +3142,7 @@ def create_nav_menu():
         Input(
             type='search',
             name='search',
-            placeholder='Search plugins (Ctrl+K)...',
+            placeholder='Search plugins (Ctrl+K)',
             cls='nav-search',
             id='nav-plugin-search',
             style='width: 340px; border-radius: 20px;',
