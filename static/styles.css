@@ -879,6 +879,81 @@ input[type="password"]:focus {
 }
 
 /* ============================================================================
+   SEARCH PLUGINS KEYBOARD NAVIGATION STYLES
+   ============================================================================
+   
+   Styles for the search plugins dropdown with keyboard navigation support.
+   Follows Carson Gross HTMX approach with minimal CSS for interaction states.
+   
+   🎯 FEATURES:
+   • Arrow key navigation (up/down)
+   • Enter key selection
+   • Mouse hover compatibility
+   • Escape key dismissal
+   • Click-away dismissal
+   ============================================================================ */
+
+/* Search dropdown container positioning */
+#search-results-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: var(--pico-background-color);
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Search result items - base styling */
+.search-result-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    transition: background-color 0.15s ease;
+    background-color: transparent;
+}
+
+/* Remove border from last item */
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+/* Hover state for mouse interaction */
+.search-result-item:hover {
+    background-color: var(--pico-primary-hover-background);
+}
+
+/* Selected state for keyboard navigation - highest priority */
+.search-result-item.selected {
+    background-color: var(--pico-primary-focus) !important;
+    outline: 2px solid var(--pico-primary-border);
+}
+
+/* Focus state for accessibility */
+.search-result-item:focus {
+    outline: 2px solid var(--pico-primary-border);
+    background-color: var(--pico-primary-focus);
+}
+
+/* Plugin name styling within results */
+.search-result-item strong {
+    display: block;
+    font-weight: 600;
+}
+
+/* Module name styling within results */
+.search-result-item .search-result-module {
+    font-size: 0.85em;
+    color: var(--pico-muted-color);
+    margin-top: 0.2rem;
+}
+
+/* ============================================================================
    ROLE-BASED COLOR SYSTEM - NOW GENERATED DYNAMICALLY!
    ============================================================================
    
