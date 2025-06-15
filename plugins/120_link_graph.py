@@ -50,7 +50,7 @@ class LinkGraphVisualizer:
     insight into the site's link structure and performance patterns.
     """
     APP_NAME = 'link_graph_visualizer'
-    DISPLAY_NAME = 'Link Graph Visualizer 🔗'
+    DISPLAY_NAME = 'Link Graph Visualizer 🌐'
     ENDPOINT_MESSAGE = """Transform Botify data into an interactive link graph visualization powered by Cosmograph. Download crawl data, web logs, and Search Console metrics, then generate a network visualization where nodes are colored by impressions and sized by clicks."""
     TRAINING_PROMPT = "link_graph_visualizer.md"
 
@@ -189,23 +189,27 @@ class LinkGraphVisualizer:
 
     # Toggle Method Configuration - Maps step IDs to their specific data extraction logic
     # ==================================================================================
+    # This configuration drives the generic common_toggle method, providing step-specific
+    # text and data extraction logic for consistent UI behavior across all steps.
     TOGGLE_CONFIG = {
         'step_02': {
-            'data_key': 'analysis_result',
+            'data_key': 'analysis_selection',
             'status_field': 'download_complete',
-            'success_text': 'HAS crawl analysis',
-            'failure_text': 'does NOT have crawl analysis',
-            'error_prefix': 'FAILED to download crawl analysis'
+            'success_text': 'HAS link graph edge data',
+            'failure_text': 'does NOT have link graph edge data',
+            'error_prefix': 'FAILED to download link graph edges',
+            'status_prefix': 'Link Graph '
         },
         'step_02b': {
-            'data_key': 'analysis_result',
+            'data_key': 'node_attributes',
             'status_field': 'download_complete',
             'success_text': 'HAS node attributes',
             'failure_text': 'does NOT have node attributes',
-            'error_prefix': 'FAILED to download node attributes'
+            'error_prefix': 'FAILED to download node attributes',
+            'status_prefix': 'Node Attributes '
         },
         'step_03': {
-            'data_key': 'check_result',
+            'data_key': 'weblogs_check',
             'status_field': 'has_logs',
             'success_text': 'HAS web logs',
             'failure_text': 'does NOT have web logs',
@@ -213,7 +217,7 @@ class LinkGraphVisualizer:
             'status_prefix': 'Project '
         },
         'step_04': {
-            'data_key': 'check_result',
+            'data_key': 'search_console_check',
             'status_field': 'has_search_console',
             'success_text': 'HAS Search Console data',
             'failure_text': 'does NOT have Search Console data',
@@ -221,9 +225,11 @@ class LinkGraphVisualizer:
             'status_prefix': 'Project '
         },
         'step_05': {
-            'simple_content': 'Placeholder step completed'
+            'simple_content': 'Visualization has been prepared and is ready.'
         }
     }
+
+
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
@@ -2660,6 +2666,13 @@ await main()
             gsc_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'gsc')
             file_exists, file_info = await self.check_file_exists(gsc_filepath)
             if file_exists:
+                # Generate Python debugging code even for cached files
+                end_date = datetime.now().strftime('%Y-%m-%d')
+                start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+                export_query = await self.build_exports(username, project_name, analysis_slug, data_type='gsc', start_date=start_date, end_date=end_date)
+                _, _, python_command = self.generate_query_api_call(export_query['export_job_payload'], username, project_name)
+                check_result['python_command'] = python_command
+                
                 await self.message_queue.add(pip, f"✅ Using cached GSC data ({file_info['size']})", verbatim=True)
                 check_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': gsc_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
                 check_result_str = json.dumps(check_result)
@@ -3740,90 +3753,57 @@ await main()
     async def common_toggle(self, request):
         """Unified toggle method for all step widgets using configuration-driven approach."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-
-        # Extract step_id from query parameters
         step_id = request.query_params.get('step_id')
         if not step_id or step_id not in self.TOGGLE_CONFIG:
-            return Div("Invalid step ID", style="color: red;")
-
+            return Div("Invalid step ID for toggle.", style="color: red;")
+        
         config = self.TOGGLE_CONFIG[step_id]
         pipeline_id = db.get('pipeline_id', 'unknown')
-
-        # Handle simple content case (step_05)
-        if 'simple_content' in config:
-            state = pip.read_state(pipeline_id)
-            is_visible = state.get(f'{step_id}_widget_visible', False)
-
-            if f'{step_id}_widget_visible' not in state:
-                state[f'{step_id}_widget_visible'] = True
-                pip.write_state(pipeline_id, state)
-                return Pre(config['simple_content'], cls='code-block-container')
-
-            state[f'{step_id}_widget_visible'] = not is_visible
-            pip.write_state(pipeline_id, state)
-
-            if is_visible:
-                return Pre(config['simple_content'], cls='code-block-container', style='display: none;')
-            else:
-                return Pre(config['simple_content'], cls='code-block-container')
-
-        # Handle complex data-driven content
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-
-        # Extract data based on configuration
-        data_str = step_data.get(step.done, '')
+        data_str = step_data.get(steps[self.steps_indices[step_id]].done, '')
         data_obj = json.loads(data_str) if data_str else {}
-
-        # Get python command for display
-        python_command = data_obj.get('python_command', '')
-
-        # Determine status message and color
-        status_prefix = config.get('status_prefix', '')
-        if 'error' in data_obj:
-            status_text = f'{config["error_prefix"]}: {data_obj["error"]}'
-            status_color = 'red'
-        else:
-            has_data = data_obj.get(config['status_field'], False)
-            status_text = f'{status_prefix}{config["success_text"] if has_data else config["failure_text"]}'
-            status_color = 'green' if has_data else 'red'
-
-        # Handle visibility toggle
+        
         state = pip.read_state(pipeline_id)
-        is_visible = state.get(f'{step_id}_widget_visible', False)
+        widget_visible_key = f'{step_id}_widget_visible'
+        is_visible = state.get(widget_visible_key, False)
+        
+        # Determine content to show
+        python_command = data_obj.get('python_command', '# No Python code available for this step.')
+        
+        # Handle simple content case first
+        if 'simple_content' in config:
+            content_div = Pre(config['simple_content'], cls='code-block-container')
+        else: # Handle complex data-driven content
+            status_prefix = config.get('status_prefix', '')
+            if 'error' in data_obj:
+                status_text = f'{config["error_prefix"]}: {data_obj["error"]}'
+                status_color = 'red'
+            else:
+                has_data = data_obj.get(config.get('status_field'), False)
+                status_text = f'{status_prefix}{config["success_text"] if has_data else config["failure_text"]}'
+                status_color = 'green' if has_data else 'orange'
+            
+            content_div = Div(
+                P(f'Status: {status_text}', style=f'color: {status_color};'),
+                H4('Python Command (for debugging):'),
+                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+                Script(f"setTimeout(() => Prism.highlightAllUnder(document.getElementById('{step_id}_widget')), 100);")
+            )
 
-        # Create the content div
-        content_div = Div(
-            P(f'Status: {status_text}', style=f'color: {status_color};'),
-            H4('Python Command (for debugging):'),
-            Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
-            Script(f"""
-                setTimeout(function() {{
-                    if (typeof Prism !== 'undefined') {{
-                        Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
-                    }}
-                }}, 100);
-            """)
-        )
-
-        # Special case: If this is the first toggle after download (state not set yet)
-        if f'{step_id}_widget_visible' not in state:
-            state[f'{step_id}_widget_visible'] = True
+        # First time toggling, just show it
+        if widget_visible_key not in state:
+            state[widget_visible_key] = True
             pip.write_state(pipeline_id, state)
             return content_div
 
-        # Normal toggle behavior
-        state[f'{step_id}_widget_visible'] = not is_visible
+        # Subsequent toggles
+        state[widget_visible_key] = not is_visible
         pip.write_state(pipeline_id, state)
-
-        if is_visible:
-            # Hide the content
+        
+        if is_visible: # if it was visible, now hide it
             content_div.attrs['style'] = 'display: none;'
-            return content_div
-        else:
-            # Show the content
-            return content_div
+        
+        return content_div
 
     def convert_jobs_to_query_payload(self, jobs_payload, username, project_name, page_size=100):
         """
