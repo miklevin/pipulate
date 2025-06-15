@@ -257,7 +257,7 @@ class WorkflowGenesis:
         filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
-        display_name = workflow_params.get('display_name', 'Kung Fu Download')
+        display_name = "Kung Fu Placeholder"  # Override with template-specific name
         endpoint_message = workflow_params.get('endpoint_message', 'Welcome to workflow creation')
         training_prompt = workflow_params.get('training_prompt', 'Help users create workflows step by step')
 
@@ -435,7 +435,7 @@ class WorkflowGenesis:
         filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
-        display_name = workflow_params.get('display_name', 'Kung Fu Download')
+        display_name = "Kung Fu Quadfecta"  # Override with template-specific name
         # Use the actual form values without additional fallbacks since step_01_submit already handled this
         endpoint_message = workflow_params.get('endpoint_message', 'Advanced data collection workflow')
         training_prompt = workflow_params.get('training_prompt', 'Help users create complex data workflows')
@@ -648,9 +648,9 @@ class WorkflowGenesis:
             form_content = Form(
                 Label("Template Approach", **{'for': 'template'}),
                     Select(
-                    Option("Kung Fu Placeholder", value="blank", selected=True),
-                    Option("Kung Fu Hello World", value="hello"),
-                    Option("Kung Fu Quadfecta", value="quadfecta"),
+                    Option("Blank Placeholder - Learn step management basics", value="blank", selected=True),
+                    Option("Hello World Recreation - Understand helper tool sequence", value="hello"),
+                    Option("Quadfecta Workflow - Build complex data collection workflow", value="quadfecta"),
                         name="template",
                         id="template",
                         required=True
@@ -894,7 +894,7 @@ class WorkflowGenesis:
         endpoint_message = workflow_params.get('endpoint_message', 'Welcome message')
         training_prompt = workflow_params.get('training_prompt', 'Training prompt')
 
-        # Generate the appropriate combined command based on template
+        # Generate the appropriate combined command based on template with template-specific display names
         if selected_template == 'hello':
             # Hello World Recreation sequence
             hello_display_name = "Kung Fu Hello World"
@@ -914,16 +914,18 @@ class WorkflowGenesis:
                           f"python helpers/swap_workflow_step.py {plugins_filename} step_02 " + \
                           f"plugins/040_hello_workflow.py step_02 --force"
         elif selected_template == 'quadfecta':
-            # Quadfecta workflow commands - corrected to just use quadfecta template + splice blank step
+            # Quadfecta workflow commands - use template-specific display name
+            quadfecta_display_name = "Kung Fu Quadfecta"
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
-                          f"{self.format_bash_command(display_name)} " + \
+                          f"{self.format_bash_command(quadfecta_display_name)} " + \
                           f"{self.format_bash_command(endpoint_message)} " + \
                           f"{self.format_bash_command(training_prompt)} --template quadfecta --role Core --force && " + \
                           f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
         else:
-            # Blank template - single command
+            # Blank template - use template-specific display name
+            blank_display_name = "Kung Fu Placeholder"
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
-                          f"{self.format_bash_command(display_name)} " + \
+                          f"{self.format_bash_command(blank_display_name)} " + \
                           f"{self.format_bash_command(endpoint_message)} " + \
                           f"{self.format_bash_command(training_prompt)} --template blank --role Core --force"
 
