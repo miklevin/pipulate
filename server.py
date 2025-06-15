@@ -3142,10 +3142,10 @@ def create_nav_menu():
         Input(
             type='search',
             name='search',
-            placeholder='Search plugins...',
+            placeholder='Search plugins (Ctrl+K)...',
             cls='nav-search',
             id='nav-plugin-search',
-            style='width: 250px; border-radius: 20px;',
+            style='width: 340px; border-radius: 20px;',
             hx_post='/search-plugins',
             hx_target='#search-results-dropdown',
             hx_trigger='input changed delay:300ms, keyup[key==\'Enter\']',
