@@ -1837,9 +1837,9 @@ class BotifyQuadfectaWorkflow:
         try:
             filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, data_type)
             exists, file_info = await self.check_file_exists(filepath)
-            return exists
+            return exists, file_info if exists else None
         except Exception:
-            return False
+            return False, None
 
     def _generate_api_call_representations(self, method: str, url: str, headers: dict, payload: Optional[dict] = None, step_context: Optional[str] = None, template_info: Optional[dict] = None, username: Optional[str] = None, project_name: Optional[str] = None) -> tuple[str, str]:
         """Generate both cURL and Python representations of API calls for debugging.
@@ -4702,6 +4702,86 @@ await main()
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
+
+        # Get analysis slug from step_analysis data
+        analysis_step_id = 'step_analysis'
+        analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+        analysis_slug = ''
+        if analysis_step_data:
+            analysis_data_str = analysis_step_data.get('analysis_selection', '')
+            if analysis_data_str:
+                try:
+                    analysis_data = json.loads(analysis_data_str)
+                    analysis_slug = analysis_data.get('analysis_slug', '')
+                except (json.JSONDecodeError, AttributeError):
+                    pass
+
+        if not analysis_slug:
+            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
+
+        # Check if GA data is already cached
+        try:
+            is_cached, file_info = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'ga_data')
+            
+            if is_cached and file_info:
+                # Use cached file
+                await self.message_queue.add(pip, f"✅ Using cached GA data ({file_info['size']})...", verbatim=True)
+                
+                # Create cached result data
+                cached_result = {
+                    'has_ga': True,
+                    'project': project_name,
+                    'username': username,
+                    'analysis_slug': analysis_slug,
+                    'timestamp': datetime.now().isoformat(),
+                    'download_complete': True,
+                    'file_path': file_info['path'],
+                    'file_size': file_info['size'],
+                    'cached': True,
+                    'raw_python_code': '',
+                    'query_python_code': '',
+                    'jobs_payload': {}
+                }
+                
+                # Store the cached result
+                await pip.set_step_data(pipeline_id, step_id, json.dumps(cached_result), steps)
+                
+                # Create completion widget
+                action_buttons = self._create_action_buttons(cached_result, step_id)
+                widget = Div(
+                    Div(
+                        Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                            cls=self.ui['BUTTON_STYLES']['STANDARD'],
+                            hx_get=f'/{app_name}/toggle?step_id={step_id}',
+                            hx_target=f'#{step_id}_widget',
+                            hx_swap='innerHTML'
+                        ),
+                        *action_buttons,
+                        style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
+                    ),
+                    Div(
+                        Pre(f'Status: Using cached GA data ({file_info["size"]})', cls='code-block-container', style='color: green; display: none;'),
+                        id=f'{step_id}_widget'
+                    )
+                )
+                
+                return Div(
+                    pip.display_revert_widget(
+                        step_id=step_id,
+                        app_name=app_name,
+                        message=f'{step.show}: Using cached GA data ({file_info["size"]})',
+                        widget=widget,
+                        steps=steps
+                    ),
+                    Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                    id=step_id
+                )
+                
+        except Exception as e:
+            # If cache check fails, proceed with download
+            await self.message_queue.add(pip, f"Cache check failed, proceeding with download: {str(e)}", verbatim=True)
+
+        # Proceed with download if not cached
         return Card(
             H3(f'{step.show}'),
             P(f"Downloading Google Analytics data for '{project_name}'..."),
