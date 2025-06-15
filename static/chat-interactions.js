@@ -25,6 +25,11 @@ window.initializeChatScripts = function(config) {
     setupWebSocketAndSSE();
     setupInteractions();
     
+    // Initialize search plugins keyboard navigation
+    if (typeof window.initializeSearchPluginsKeyboardNav === 'function') {
+        window.initializeSearchPluginsKeyboardNav();
+    }
+    
     window._pipulateInitialized = true;
     console.log('✅ Chat scripts initialized (sortable handled separately)');
 };
@@ -177,6 +182,118 @@ function setupInteractions() {
         });
     }
 }
+
+/* ============================================================================
+   SEARCH PLUGINS KEYBOARD NAVIGATION - Carson Gross HTMX Approach
+   ============================================================================
+   
+   Keyboard navigation for search plugins dropdown following HTMX principles:
+   • HTMX handles the heavy lifting (search API calls, DOM updates)
+   • Minimal JavaScript for UI interaction (keyboard navigation)
+   • Progressive enhancement - works without JavaScript
+   • Clean separation of concerns
+   
+   🎯 FEATURES:
+   • Arrow key navigation (up/down with wrapping)
+   • Enter key selection and navigation
+   • Escape key dismissal
+   • Click-away dismissal with selection clearing
+   • Mouse hover compatibility
+   ============================================================================ */
+
+// Global search plugins keyboard navigation functions
+window.initializeSearchPluginsKeyboardNav = function() {
+    console.log('🔍 Initializing Search Plugins keyboard navigation');
+    
+    const searchInput = document.getElementById('nav-plugin-search');
+    const dropdown = document.getElementById('search-results-dropdown');
+    
+    if (!searchInput || !dropdown) {
+        console.warn('⚠️ Search plugins elements not found, skipping keyboard nav setup');
+        return;
+    }
+    
+    let selectedIndex = -1;
+    
+    // Keyboard navigation for search input
+    searchInput.addEventListener('keydown', function(event) {
+        const items = dropdown.querySelectorAll('.search-result-item');
+        
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            if (dropdown.style.display === 'none' || items.length === 0) return;
+            
+            // Clear previous selection
+            if (selectedIndex >= 0 && items[selectedIndex]) {
+                items[selectedIndex].classList.remove('selected');
+            }
+            
+            // Move to next item (wrap to first)
+            selectedIndex = (selectedIndex + 1) % items.length;
+            items[selectedIndex].classList.add('selected');
+            
+            // Scroll into view if needed
+            items[selectedIndex].scrollIntoView({ block: 'nearest' });
+            
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (dropdown.style.display === 'none' || items.length === 0) return;
+            
+            // Clear previous selection
+            if (selectedIndex >= 0 && items[selectedIndex]) {
+                items[selectedIndex].classList.remove('selected');
+            }
+            
+            // Move to previous item (wrap to last)
+            selectedIndex = selectedIndex <= 0 ? items.length - 1 : selectedIndex - 1;
+            items[selectedIndex].classList.add('selected');
+            
+            // Scroll into view if needed
+            items[selectedIndex].scrollIntoView({ block: 'nearest' });
+            
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            if (selectedIndex >= 0 && items[selectedIndex]) {
+                // Simulate click on selected item
+                items[selectedIndex].click();
+            }
+            
+        } else if (event.key === 'Escape') {
+            // Hide dropdown and clear selection
+            dropdown.style.display = 'none';
+            clearSearchSelection();
+            searchInput.blur();
+        }
+    });
+    
+    // Clear selection when new search results arrive
+    function clearSearchSelection() {
+        selectedIndex = -1;
+        const items = dropdown.querySelectorAll('.search-result-item.selected');
+        items.forEach(item => item.classList.remove('selected'));
+    }
+    
+    // Reset selection when dropdown content changes (HTMX updates)
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                clearSearchSelection();
+            }
+        });
+    });
+    
+    observer.observe(dropdown, { childList: true, subtree: true });
+    
+    // Global click handler for click-away dismissal
+    document.addEventListener('click', function(event) {
+        if (!searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+            dropdown.style.display = 'none';
+            clearSearchSelection();
+        }
+    });
+    
+    console.log('✅ Search Plugins keyboard navigation initialized');
+};
 
 function linkifyText(text) {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
