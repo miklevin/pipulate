@@ -2999,16 +2999,6 @@ await main()
             logging.exception(f'Error in step_03_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
-
-
-
-
-
-
-
-
-
-
     async def update_button_text(self, request):
         """Update button text dynamically based on selected analysis."""
         try:
