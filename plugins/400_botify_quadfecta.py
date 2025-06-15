@@ -4528,67 +4528,7 @@ await main()
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            gsc_template = self.get_configured_template('ga')
-
-            # Check if GSC data is cached for the CURRENT analysis
-            # Use the same logic as step_analysis to get the current analysis
-            is_cached = False
-            try:
-                # Get the current analysis from step_analysis data - try multiple possible keys
-                analysis_step_id = 'step_analysis'
-                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
-                current_analysis_slug = ''
-
-                # Try to get analysis_slug from the stored data
-                if analysis_step_data:
-                    # Try the 'analysis_selection' key first
-                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
-                    if analysis_data_str:
-                        try:
-                            analysis_data = json.loads(analysis_data_str)
-                            current_analysis_slug = analysis_data.get('analysis_slug', '')
-                        except (json.JSONDecodeError, AttributeError):
-                            pass
-
-                    # If that didn't work, try looking for analysis_slug directly
-                    if not current_analysis_slug and isinstance(analysis_step_data, dict):
-                        for key, value in analysis_step_data.items():
-                            if isinstance(value, str) and value.startswith('20'):
-                                # Looks like an analysis slug (starts with year)
-                                current_analysis_slug = value
-                                break
-                            elif isinstance(value, str):
-                                try:
-                                    data = json.loads(value)
-                                    if isinstance(data, dict) and 'analysis_slug' in data:
-                                        current_analysis_slug = data['analysis_slug']
-                                        break
-                                except (json.JSONDecodeError, AttributeError):
-                                    continue
-
-                # Only check for cached files if we found an analysis slug
-                if current_analysis_slug:
-                    gsc_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/ga.csv"
-                    is_cached = os.path.exists(gsc_path)
-            except Exception:
-                is_cached = False
-
-            button_text = f'Use Cached Google Analytics: {gsc_template} ▸' if is_cached else f'Download Google Analytics: {gsc_template} ▸'
-
-            # Create button row with conditional skip button
-            button_row_items = [
-                Button(button_text, type='submit', name='action', value='download', cls='primary',
-                       **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
-            ]
-
-            # Add skip button if enabled in config
-            if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
-                button_row_items.append(
-                    Button(self.ui['BUTTON_LABELS']['SKIP_STEP'],
-                           type='submit', name='action', value='skip', cls='secondary outline',
-                           style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
-                )
-
+            
             # Get current analysis from step_analysis data for dynamic button text
             current_analysis_slug = ''
             try:
@@ -4609,6 +4549,21 @@ await main()
             ga_template = self.get_configured_template('ga')
             initial_button_text = f'Download Google Analytics: {ga_template} ▸'
             
+            # Create button row with conditional skip button
+            button_row_items = [
+                Button(initial_button_text, type='submit', name='action', value='download', 
+                       cls='primary', id='submit-button',
+                       **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
+            ]
+
+            # Add skip button if enabled in config
+            if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
+                button_row_items.append(
+                    Button(self.ui['BUTTON_LABELS']['SKIP_STEP'],
+                           type='submit', name='action', value='skip', cls='secondary outline',
+                           style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
+                )
+            
             return Div(
                 Card(
                     H3(f'{step.show}'),
@@ -4621,16 +4576,14 @@ await main()
                         Input(type='hidden', name='project_name', value=project_name),
                         Input(type='hidden', name='step_context', value='step_ga'),
                         
-                        # Button with dynamic updates
-                        Button(initial_button_text, type='submit', name='action', value='download', 
-                               cls='primary', id='submit-button',
-                               **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}),
+                        # Button row
+                        Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']),
                         
                         # Form submission attributes
                         hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}'
                     ),
-                    # Separate div for initial button update check
+                    # Separate script for initial button update check
                     Script(f"""
                         // Check for cached files when step loads
                         htmx.ajax('POST', '/{app_name}/update_button_text', {{
