@@ -2227,7 +2227,7 @@ await main()
                 
                 # Debug: Log the actual BQL query being sent
                 await self.message_queue.add(pip, f'🔍 DEBUG: GA Export Job Payload:', verbatim=True)
-                await self.message_queue.add(pip, f'```json\n{json.dumps(export_job_payload, indent=2)}\n```', verbatim=True)
+                await self.message_queue.add(pip, f'JSON payload: {json.dumps(export_job_payload, indent=2)}', verbatim=True)
                 
                 await self.message_queue.add(pip, f'🚀 Submitting Google Analytics export job...', verbatim=True)
                 
