@@ -288,10 +288,10 @@ class BotifyQuadfectaWorkflow:
             'user_message': 'This will download Google Analytics performance data including sessions and pageviews.',
             'button_label_suffix': 'GA Performance',
             'query': {
-                'dimensions': ['url'],
+                'dimensions': ['{collection}.url'],
                 'metrics': [
-                    {'field': 'google_analytics.period_0.ga:sessions', 'name': 'Sessions'},
-                    {'field': 'google_analytics.period_0.ga:pageviews', 'name': 'Pageviews'}
+                    {'field': '{collection}.google_analytics.period_0.ga:sessions', 'name': 'Sessions'},
+                    {'field': '{collection}.google_analytics.period_0.ga:pageviews', 'name': 'Pageviews'}
                 ],
                 'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
             }
@@ -341,28 +341,12 @@ class BotifyQuadfectaWorkflow:
             'error_prefix': 'FAILED to download Search Console data',
             'status_prefix': 'Project '
         },
-'step_05': {
+        'step_05': {
             'data_key': 'ga_check',
             'status_field': 'has_ga',
             'success_text': 'HAS Google Analytics data',
             'failure_text': 'does NOT have Google Analytics data',
             'error_prefix': 'FAILED to download Google Analytics data',
-            'status_prefix': 'Project '
-        },
-        'step_05': {
-            'data_key': 'ga_check',
-            'status_field': 'has_ga',
-            'success_text': 'HAS Google Analytics data',
-            'failure_text': 'does NOT have Google Analytics data',
-            'error_prefix': 'FAILED to check for Google Analytics data',
-            'status_prefix': 'Project '
-        },
-        'step_05': {
-            'data_key': 'ga_check',
-            'status_field': 'has_ga',
-            'success_text': 'HAS Google Analytics data',
-            'failure_text': 'does NOT have Google Analytics data',
-            'error_prefix': 'FAILED to check for Google Analytics data',
             'status_prefix': 'Project '
         },
     }
@@ -1797,7 +1781,8 @@ class BotifyQuadfectaWorkflow:
             'gsc': 'gsc.csv',
             'crawl_attributes': 'crawl.csv',
             'link_graph_edges': 'link_graph.csv',
-            'gsc_data': 'gsc.csv'
+            'gsc_data': 'gsc.csv',
+            'ga_data': 'ga.csv'
         }
         if data_type not in filenames:
             raise ValueError(f'Unknown data type: {data_type}')
@@ -2211,6 +2196,147 @@ await main()
             await self.message_queue.add(pip, f'❌ Error processing Search Console data: {str(e)}', verbatim=True)
             raise
 
+    async def process_google_analytics_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result):
+        """Process Google Analytics data download using the configured GA template."""
+        try:
+            # Get the configured GA template
+            ga_template_key = self.get_configured_template('ga')
+            ga_template = self.QUERY_TEMPLATES.get(ga_template_key, {})
+            
+            if not ga_template:
+                raise ValueError(f"GA template '{ga_template_key}' not found")
+            
+            # Get template details
+            export_type = ga_template.get('export_type', 'ga_data')
+            user_message = ga_template.get('user_message', 'Downloading Google Analytics data...')
+            
+            await self.message_queue.add(pip, user_message, verbatim=True)
+            
+            # Build the export using the GA template
+            export_config = await self.build_exports(
+                username=username,
+                project_name=project_name,
+                analysis_slug=analysis_slug,
+                data_type=export_type
+            )
+            
+            if export_config:
+                # Submit the export job
+                api_token = self.read_api_token()
+                base_url = "https://api.botify.com/v1/jobs"
+                headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+                
+                export_job_payload = export_config['export_job_payload']
+                
+                await self.message_queue.add(pip, f'🚀 Submitting Google Analytics export job...', verbatim=True)
+                
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(base_url, json=export_job_payload, headers=headers)
+                    
+                if response.status_code not in [200, 201]:
+                    error_msg = f'Failed to submit GA export job: {response.status_code} - {response.text}'
+                    raise Exception(error_msg)
+                
+                job_data = response.json()
+                job_url = job_data.get('job_url')
+                
+                if not job_url:
+                    raise Exception('No job URL returned from export submission')
+                
+                await self.message_queue.add(pip, f'✅ GA export job submitted. Polling for completion...', verbatim=True)
+                
+                # Poll for job completion
+                success, result = await self.poll_job_status(job_url, api_token, step_context="export")
+                
+                if success:
+                    download_url = result.get('download_url')
+                    if not download_url:
+                        raise Exception('No download URL in completed job result')
+                    
+                    # Determine file path
+                    file_path = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'ga_data')
+                    await self.ensure_directory_exists(file_path)
+                    
+                    # Download and extract the file
+                    await self.message_queue.add(pip, f'📥 Downloading GA data file...', verbatim=True)
+                    
+                    async with httpx.AsyncClient(timeout=300.0) as client:
+                        download_response = await client.get(download_url)
+                        download_response.raise_for_status()
+                        
+                        # Handle ZIP extraction (similar to other steps)
+                        if download_url.endswith('.zip'):
+                            import zipfile
+                            import io
+                            
+                            with zipfile.ZipFile(io.BytesIO(download_response.content)) as zip_file:
+                                csv_files = [name for name in zip_file.namelist() if name.endswith('.csv')]
+                                if csv_files:
+                                    with zip_file.open(csv_files[0]) as csv_file:
+                                        with open(file_path, 'wb') as f:
+                                            f.write(csv_file.read())
+                                else:
+                                    raise Exception('No CSV file found in downloaded ZIP')
+                        else:
+                            # Direct CSV download
+                            with open(file_path, 'wb') as f:
+                                f.write(download_response.content)
+                    
+                    # Generate Python code for debugging
+                    query_python_code = self.generate_query_api_call(export_job_payload, username, project_name)
+                    raw_python_code = self._generate_api_call_representations(
+                        method="POST", url=base_url, headers=headers, payload=export_job_payload,
+                        step_context="Google Analytics Export", template_info=ga_template,
+                        username=username, project_name=project_name
+                    )[1]  # Get the Python code part
+                    
+                    # Update check_result with successful download data
+                    check_result.update({
+                        'download_complete': True,
+                        'file_path': file_path,
+                        'jobs_payload': export_job_payload,
+                        'raw_python_code': raw_python_code,
+                        'query_python_code': query_python_code,
+                        'template_used': ga_template_key,
+                        'export_type': export_type,
+                        'row_count': result.get('row_count'),
+                        'file_size': result.get('file_size')
+                    })
+                    
+                    # Store the updated result
+                    check_result_str = json.dumps(check_result)
+                    await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
+                    
+                    await self.message_queue.add(pip, f'✅ Google Analytics data download completed', verbatim=True)
+                    
+                else:
+                    # Job failed
+                    error_msg = f'GA export job failed: {result}'
+                    raise Exception(error_msg)
+                    
+            else:
+                # Handle export config failure
+                error_msg = 'Failed to build GA export configuration'
+                check_result.update({
+                    'download_complete': False,
+                    'error': error_msg,
+                    'jobs_payload': {},
+                    'raw_python_code': '',
+                    'query_python_code': ''
+                })
+                
+                check_result_str = json.dumps(check_result)
+                await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
+                await self.message_queue.add(pip, f'❌ Google Analytics data download failed: {error_msg}', verbatim=True)
+                
+        except Exception as e:
+            logger.error(f'Error in process_google_analytics_data: {e}')
+            check_result['error'] = str(e)
+            check_result['download_complete'] = False
+            check_result_str = json.dumps(check_result)
+            await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
+            await self.message_queue.add(pip, f'❌ Error processing Google Analytics data: {str(e)}', verbatim=True)
+
     async def build_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None, dynamic_param_value=None, placeholder_for_dynamic_param=None):
         """Builds BQLv2 query objects and export job payloads.
 
@@ -2424,6 +2550,53 @@ await main()
             await self.pipulate.log_api_call_details(
                 pipeline_id="build_exports", step_id="weblog_export",
                 call_description="Web Logs Export Job Creation",
+                method="POST", url=base_url, headers=headers, payload=export_job_payload,
+                curl_command=curl_cmd, python_command=python_cmd
+            )
+
+        elif data_type == 'ga_data':
+            if not analysis_slug:
+                raise ValueError("analysis_slug is required for data_type 'ga_data'")
+            collection = f'crawl.{analysis_slug}'
+            # Use the configured GA template
+            ga_template = self.get_configured_template('ga')
+            template_query = self.apply_template(ga_template, collection)
+
+            bql_query = {
+                'collections': [collection],
+                'query': template_query
+            }
+            check_query_payload = {
+                'collections': [collection],
+                'query': {
+                    'dimensions': [],
+                    'metrics': [{'function': 'count', 'args': [f'{collection}.url']}],
+                    'filters': {'field': f'{collection}.http_code', 'predicate': 'eq', 'value': 200}
+                }
+            }
+            export_job_payload = {
+                'job_type': 'export',
+                'payload': {
+                    'username': username,
+                    'project': project_name,
+                    'connector': 'direct_download',
+                    'formatter': 'csv',
+                    'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],  # Use same size as crawl
+                    'query': bql_query,
+                    'formatter_config': {'print_header': True}
+                }
+            }
+
+            # Log the GA export details with template information
+            template_info = self.QUERY_TEMPLATES.get(ga_template, {})
+            curl_cmd, python_cmd = self._generate_api_call_representations(
+                method="POST", url=base_url, headers=headers, payload=export_job_payload,
+                step_context="Step 5: Google Analytics Export Job", template_info=template_info,
+                username=username, project_name=project_name
+            )
+            await self.pipulate.log_api_call_details(
+                pipeline_id="build_exports", step_id="ga_export",
+                call_description="Google Analytics Export Job Creation",
                 method="POST", url=base_url, headers=headers, payload=export_job_payload,
                 curl_command=curl_cmd, python_command=python_cmd
             )
@@ -4205,13 +4378,8 @@ await main()
             check_result = {'has_ga': has_ga, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
             if has_ga:
                 await self.message_queue.add(pip, f'✅ Project has Google Analytics data, downloading...', verbatim=True)
-                # For now, just create dummy data since this is a placeholder step
-                check_result['download_complete'] = True
-                check_result['file_path'] = f"downloads/{self.app_name}/{username}/{project_name}/{analysis_slug}/ga.csv"
-                check_result['python_command'] = '# Google Analytics data processing placeholder'
-                check_result_str = json.dumps(check_result)
-                await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
-                await self.message_queue.add(pip, f'✅ Google Analytics placeholder data completed', verbatim=True)
+                # Process GA data similar to Search Console processing
+                await self.process_google_analytics_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
             else:
                 await self.message_queue.add(pip, f'❌ Project does not have Google Analytics data (skipping download)', verbatim=True)
                 # Add empty python_command for consistency with other steps
