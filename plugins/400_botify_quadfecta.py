@@ -3460,20 +3460,35 @@ await main()
             analysis_slug = form.get('analysis_slug', '').strip()
             username = form.get('username', '').strip()
             project_name = form.get('project_name', '').strip()
+            step_context = form.get('step_context', '').strip()  # NEW: Get which step is calling this
             
             if not all([analysis_slug, username, project_name]):
-                # Return default button if missing parameters
-                active_crawl_template_key = self.get_configured_template('crawl')
-                active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
-                button_suffix = active_template_details.get('button_label_suffix', 'Data')
+                # Return default button if missing parameters - determine which template to use
+                if step_context == 'step_ga':
+                    active_template_key = self.get_configured_template('ga')
+                    active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
+                    button_suffix = active_template_details.get('button_label_suffix', 'GA Data')
+                else:
+                    # Default to crawl template
+                    active_template_key = self.get_configured_template('crawl')
+                    active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
+                    button_suffix = active_template_details.get('button_label_suffix', 'Data')
                 return Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary', id='submit-button',
                              **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
             
-            # Get active template details
-            active_crawl_template_key = self.get_configured_template('crawl')
-            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
-            export_type = active_template_details.get('export_type', 'crawl_attributes')
-            button_suffix = active_template_details.get('button_label_suffix', 'Data')
+            # Determine template and export type based on step context
+            if step_context == 'step_ga':
+                # Handle GA step
+                active_template_key = self.get_configured_template('ga')
+                active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
+                export_type = active_template_details.get('export_type', 'ga_data')
+                button_suffix = active_template_details.get('button_label_suffix', 'GA Data')
+            else:
+                # Default to crawl step
+                active_template_key = self.get_configured_template('crawl')
+                active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
+                export_type = active_template_details.get('export_type', 'crawl_attributes')
+                button_suffix = active_template_details.get('button_label_suffix', 'Data')
             
             # Check if files are cached for the selected analysis
             is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, export_type)
@@ -3484,10 +3499,16 @@ await main()
                          **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
         except Exception as e:
             logger.error(f"Error in update_button_text: {e}")
-            # Return default button on error
-            active_crawl_template_key = self.get_configured_template('crawl')
-            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
-            button_suffix = active_template_details.get('button_label_suffix', 'Data')
+            # Return default button on error - determine which template to use
+            step_context = form.get('step_context', '') if 'form' in locals() else ''
+            if step_context == 'step_ga':
+                active_template_key = self.get_configured_template('ga')
+                active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
+                button_suffix = active_template_details.get('button_label_suffix', 'GA Data')
+            else:
+                active_template_key = self.get_configured_template('crawl')
+                active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
+                button_suffix = active_template_details.get('button_label_suffix', 'Data')
             return Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary', id='submit-button',
                          **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
 
@@ -4568,7 +4589,65 @@ await main()
                            style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
                 )
 
-            return Div(Card(H3(f'{step.show}'), P(f"Download Google Analytics data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            # Get current analysis from step_analysis data for dynamic button text
+            current_analysis_slug = ''
+            try:
+                analysis_step_id = 'step_analysis'
+                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+                if analysis_step_data:
+                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
+                    if analysis_data_str:
+                        try:
+                            analysis_data = json.loads(analysis_data_str)
+                            current_analysis_slug = analysis_data.get('analysis_slug', '')
+                        except (json.JSONDecodeError, AttributeError):
+                            pass
+            except Exception:
+                pass
+            
+            # Create form with HTMX dynamic button updates
+            ga_template = self.get_configured_template('ga')
+            initial_button_text = f'Download Google Analytics: {ga_template} ▸'
+            
+            return Div(
+                Card(
+                    H3(f'{step.show}'),
+                    P(f"Download Google Analytics data for '{project_name}'"),
+                    P(f'Organization: {username}', cls='text-secondary'),
+                    Form(
+                        # Hidden inputs for HTMX context
+                        Input(type='hidden', name='analysis_slug', value=current_analysis_slug),
+                        Input(type='hidden', name='username', value=username),
+                        Input(type='hidden', name='project_name', value=project_name),
+                        Input(type='hidden', name='step_context', value='step_ga'),
+                        
+                        # Button with dynamic updates
+                        Button(initial_button_text, type='submit', name='action', value='download', 
+                               cls='primary', id='submit-button',
+                               **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}),
+                        
+                        # Form submission attributes
+                        hx_post=f'/{app_name}/{step_id}_submit',
+                        hx_target=f'#{step_id}'
+                    ),
+                    # Separate div for initial button update check
+                    Script(f"""
+                        // Check for cached files when step loads
+                        htmx.ajax('POST', '/{app_name}/update_button_text', {{
+                            values: {{
+                                'analysis_slug': '{current_analysis_slug}',
+                                'username': '{username}',
+                                'project_name': '{project_name}',
+                                'step_context': 'step_ga'
+                            }},
+                            target: '#submit-button',
+                            swap: 'outerHTML'
+                        }});
+                    """)
+                ),
+                Div(id=next_step_id), 
+                id=step_id
+            )
 
     async def step_ga_submit(self, request):
         """Process the check for Botify Google Analytics data."""
