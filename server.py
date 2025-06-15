@@ -2319,36 +2319,8 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
                 document.documentElement.setAttribute('data-theme', themeToApply);
             })();
             
-            // Plugin search dropdown management
-            document.addEventListener('click', function(event) {
-                const dropdown = document.getElementById('search-results-dropdown');
-                const searchInput = document.getElementById('nav-plugin-search');
-                
-                if (dropdown && searchInput) {
-                    // Hide dropdown if clicking outside search area
-                    if (!searchInput.contains(event.target) && !dropdown.contains(event.target)) {
-                        dropdown.style.display = 'none';
-                        // Clear any keyboard selection
-                        const current = dropdown.querySelector('.search-result-item.selected');
-                        if (current) current.classList.remove('selected');
-                    }
-                }
-            });
-            
-            // Clear search and hide dropdown on escape
-            document.addEventListener('keydown', function(event) {
-                if (event.key === 'Escape') {
-                    const dropdown = document.getElementById('search-results-dropdown');
-                    const searchInput = document.getElementById('nav-plugin-search');
-                    if (dropdown) {
-                        dropdown.style.display = 'none';
-                        // Clear any keyboard selection
-                        const current = dropdown.querySelector('.search-result-item.selected');
-                        if (current) current.classList.remove('selected');
-                    }
-                    if (searchInput) searchInput.blur();
-                }
-            });
+            // Search plugins keyboard navigation is now handled by external JavaScript
+            // in chat-interactions.js via initializeSearchPluginsKeyboardNav()
         """),
         Script(type='module')
     ),
@@ -3177,58 +3149,8 @@ def create_nav_menu():
             hx_post='/search-plugins',
             hx_target='#search-results-dropdown',
             hx_trigger='input changed delay:300ms, keyup[key==\'Enter\']',
-            hx_swap='innerHTML',
-            # Add keyboard navigation event handlers
-            onkeydown="""
-                const dropdown = document.getElementById('search-results-dropdown');
-                const items = dropdown.querySelectorAll('.search-result-item');
-                
-                if (event.key === 'ArrowDown') {
-                    event.preventDefault();
-                    if (dropdown.style.display !== 'none' && items.length > 0) {
-                        const current = dropdown.querySelector('.search-result-item.selected');
-                        const currentIndex = current ? Array.from(items).indexOf(current) : -1;
-                        const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
-                        
-                        // Remove previous selection
-                        if (current) current.classList.remove('selected');
-                        
-                        // Add new selection
-                        items[nextIndex].classList.add('selected');
-                        items[nextIndex].scrollIntoView({ block: 'nearest' });
-                    }
-                } else if (event.key === 'ArrowUp') {
-                    event.preventDefault();
-                    if (dropdown.style.display !== 'none' && items.length > 0) {
-                        const current = dropdown.querySelector('.search-result-item.selected');
-                        const currentIndex = current ? Array.from(items).indexOf(current) : 0;
-                        const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
-                        
-                        // Remove previous selection
-                        if (current) current.classList.remove('selected');
-                        
-                        // Add new selection
-                        items[prevIndex].classList.add('selected');
-                        items[prevIndex].scrollIntoView({ block: 'nearest' });
-                    }
-                } else if (event.key === 'Enter') {
-                    event.preventDefault();
-                    const selected = dropdown.querySelector('.search-result-item.selected');
-                    if (selected && dropdown.style.display !== 'none') {
-                        // Trigger the click on the selected item
-                        selected.click();
-                    } else {
-                        // If no selection but there are results, select first and navigate
-                        if (items.length > 0) {
-                            items[0].click();
-                        }
-                    }
-                } else if (event.key === 'Escape') {
-                    event.preventDefault();
-                    dropdown.style.display = 'none';
-                    this.blur();
-                }
-            """
+            hx_swap='innerHTML'
+            # Keyboard navigation now handled by external JavaScript in chat-interactions.js
         ),
         search_results_dropdown,
         style='position: relative; margin-right: 1rem;'
@@ -4015,36 +3937,14 @@ async def search_plugins(request):
             for i, plugin in enumerate(filtered_plugins[:10]):  # Limit to 10 results
                 result_html += f"""
                 <div class="search-result-item" 
-                     style="padding: 0.5rem 1rem; cursor: pointer; border-bottom: 1px solid var(--pico-muted-border-color); transition: background-color 0.2s;" 
-                     onclick="document.getElementById('search-results-dropdown').style.display='none'; document.getElementById('nav-plugin-search').value=''; window.location.href='{plugin['url']}';"
-                     onmouseover="
-                         // Remove keyboard selection when mouse hovers
-                         const dropdown = document.getElementById('search-results-dropdown');
-                         const current = dropdown.querySelector('.search-result-item.selected');
-                         if (current) current.classList.remove('selected');
-                         this.style.backgroundColor='var(--pico-primary-hover-background)';
-                     "
-                     onmouseout="
-                         if (!this.classList.contains('selected')) {{
-                             this.style.backgroundColor='transparent';
-                         }}
-                     ">
+                     onclick="document.getElementById('search-results-dropdown').style.display='none'; document.getElementById('nav-plugin-search').value=''; window.location.href='{plugin['url']}';">
                     <strong>{plugin['display_name']}</strong>
-                    <div style="font-size: 0.85em; color: var(--pico-muted-color);">{plugin['module_name']}</div>
+                    <div class="search-result-module">{plugin['module_name']}</div>
                 </div>
                 """
             
-            # Show dropdown with JavaScript and add keyboard navigation styles
+            # Show dropdown with JavaScript (styles now in external CSS)
             result_html += """
-            <style>
-                .search-result-item.selected {
-                    background-color: var(--pico-primary-focus) !important;
-                    outline: 2px solid var(--pico-primary-border);
-                }
-                .search-result-item:focus {
-                    outline: 2px solid var(--pico-primary-border);
-                }
-            </style>
             <script>
                 document.getElementById('search-results-dropdown').style.display = 'block';
             </script>
