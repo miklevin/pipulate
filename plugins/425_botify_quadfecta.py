@@ -2289,20 +2289,14 @@ await main()
                                 f.write(download_response.content)
                     
                     # Generate Python code for debugging
-                    query_python_code = self.generate_query_api_call(export_job_payload, username, project_name)
-                    raw_python_code = self._generate_api_call_representations(
-                        method="POST", url=base_url, headers=headers, payload=export_job_payload,
-                        step_context="Google Analytics Export", template_info=ga_template,
-                        username=username, project_name=project_name
-                    )[1]  # Get the Python code part
+                    _, _, python_command = self.generate_query_api_call(export_job_payload, username, project_name)
                     
                     # Update check_result with successful download data
                     check_result.update({
                         'download_complete': True,
                         'file_path': file_path,
                         'jobs_payload': export_job_payload,
-                        'raw_python_code': raw_python_code,
-                        'query_python_code': query_python_code,
+                        'python_command': python_command,
                         'template_used': ga_template_key,
                         'export_type': export_type,
                         'row_count': result.get('row_count'),
@@ -2327,8 +2321,7 @@ await main()
                     'download_complete': False,
                     'error': error_msg,
                     'jobs_payload': {},
-                    'raw_python_code': '',
-                    'query_python_code': ''
+                    'python_command': ''
                 })
                 
                 check_result_str = json.dumps(check_result)
