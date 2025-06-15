@@ -112,7 +112,7 @@ The schema is defined in `server.py` during `fast_app` initialization.
     ```
 
   * **Template Examples**:
-    * Botify Trifecta: `downloads/trifecta/org/project/analysis/`
+    * Botify Trifecta: `downloads/quadfecta/org/project/analysis/`
     * Parameter Buster: `downloads/param_buster/org/project/analysis/`
     * Your Plugin: `downloads/{YOUR_APP_NAME}/your/structure/`
 
@@ -122,7 +122,7 @@ The schema is defined in `server.py` during `fast_app` initialization.
     ```python
     # Example directory structure:
     downloads/
-      trifecta/             # APP_NAME namespace for Botify Trifecta
+      quadfecta/             # APP_NAME namespace for Botify Trifecta
         org1/
           project1/
             analysis1/

@@ -15,7 +15,7 @@ The Pipulate framework includes a sophisticated set of helper tools for creating
 **Purpose**: Creates new workflows from established templates with intelligent template selection.
 
 **Key Features**:
-- **Template System**: Supports `blank`, `hello`, and `trifecta` templates with different complexity levels
+- **Template System**: Supports `blank`, `hello`, and `quadfecta` templates with different complexity levels
 - **Dynamic Root Finding**: Works from any location by automatically finding Pipulate project root
 - **Class Metadata Replacement**: Updates APP_NAME, DISPLAY_NAME, ENDPOINT_MESSAGE, TRAINING_PROMPT
 - **Force Mode**: `--force` flag for overwriting existing workflows
@@ -25,7 +25,7 @@ The Pipulate framework includes a sophisticated set of helper tools for creating
 TEMPLATE_MAP = {
     "blank": "300_blank_placeholder.py",      # Minimal single-step template
     "hello": "500_hello_workflow.py",         # 2-step hello world template  
-    "trifecta": "400_botify_quadfecta.py",     # Complex multi-export template
+    "quadfecta": "400_botify_quadfecta.py",     # Complex multi-export template
 }
 ```
 
@@ -37,8 +37,8 @@ python helpers/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "
 # Create hello world template (2 steps ready to use)
 python helpers/create_workflow.py 036_hello_demo.py HelloDemo hello_demo "Hello Demo" "Welcome" "Training" --template hello
 
-# Create trifecta template (5 steps for complex data workflows)
-python helpers/create_workflow.py 037_botify_custom.py BotifyCustom botify_custom "Custom Botify" "Welcome" "Training" --template trifecta
+# Create quadfecta template (5 steps for complex data workflows)
+python helpers/create_workflow.py 037_botify_custom.py BotifyCustom botify_custom "Custom Botify" "Welcome" "Training" --template quadfecta
 ```
 
 ### 2. manage_class_attributes.py - Attribute Merging System
@@ -297,7 +297,7 @@ python helpers/swap_workflow_step.py target_workflow.py step_01 \
 
 #### Class Attributes to Merge
 ```python
-# In trifecta pattern from workflow_genesis.py:
+# In quadfecta pattern from workflow_genesis.py:
 python helpers/manage_class_attributes.py target.py \
   plugins/040_parameter_buster.py \
   --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force
@@ -425,7 +425,7 @@ The [200_workflow_genesis.py](mdc:pipulate/plugins/200_workflow_genesis.py) work
 3. **Step 3**: Execute protected command sequence with automatic restart
 
 ### Template-Aware Behavior
-- **Simple Templates** (hello, trifecta): Show single creation command
+- **Simple Templates** (hello, quadfecta): Show single creation command
 - **Blank Template**: Show full educational sequence with individual commands
 - **Learning Value**: Users understand both simple and complex creation patterns
 

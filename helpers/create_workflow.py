@@ -41,7 +41,7 @@ PROJECT_ROOT = find_pipulate_root()
 TEMPLATE_MAP = {
     "blank": PROJECT_ROOT / "plugins" / "300_blank_placeholder.py",
     "hello": PROJECT_ROOT / "plugins" / "500_hello_workflow.py",
-    "trifecta": PROJECT_ROOT / "plugins" / "400_botify_quadfecta.py",
+    "quadfecta": PROJECT_ROOT / "plugins" / "400_botify_quadfecta.py",
     # Future templates can be added here
     # "my_custom_template": PROJECT_ROOT / "plugins" / "0XX_my_custom_template.py",
 }
@@ -81,7 +81,7 @@ my_custom_internal \
 "My Custom Botify Flow" \
 "Welcome to custom flow" \
 "Custom training prompt for LLM" \
---template trifecta \
+--template quadfecta \
 --force
 """
 
@@ -162,7 +162,7 @@ def get_template_originals(template_content_str: str) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Create a new Pipulate workflow plugin from a template (blank, trifecta, etc.).",
+        description="Create a new Pipulate workflow plugin from a template (blank, quadfecta, etc.).",
         formatter_class=argparse.RawTextHelpFormatter,
         epilog="""
 Examples:
@@ -171,7 +171,7 @@ Examples:
   python create_workflow.py plugins/035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
   
   # Using different templates:
-  python create_workflow.py 036_botify_custom.py MyBotify my_botify "My Botify Flow" "Welcome" "Training" --template trifecta
+  python create_workflow.py 036_botify_custom.py MyBotify my_botify "My Botify Flow" "Welcome" "Training" --template quadfecta
   
   # Setting role for visibility:
   python create_workflow.py 037_my_workflow.py MyWorkflow my_app "My Workflow" "Welcome" "Training" --role Core
@@ -183,7 +183,7 @@ Examples:
     parser.add_argument("display_name", help="User-friendly DISPLAY_NAME (e.g., \"Kung Fu Download\")")
     parser.add_argument("endpoint_message", help="ENDPOINT_MESSAGE string.")
     parser.add_argument("training_prompt", help="TRAINING_PROMPT string.")
-    parser.add_argument("--template", default="blank", help="Template to use (e.g., blank, trifecta). Default: blank.")
+    parser.add_argument("--template", default="blank", help="Template to use (e.g., blank, quadfecta). Default: blank.")
     parser.add_argument("--role", help="Role to assign to the workflow (e.g., Core, Developer). Replaces template's default role.")
     parser.add_argument("--force", action="store_true", help="Overwrite if exists.")
     args = parser.parse_args()

@@ -48,7 +48,7 @@ Successfully spliced new step 'step_06' into workflow
 Instead of adding new steps, you can:
 1. **Identify blank placeholder steps** (e.g., step_05 was blank in quadfecta)
 2. **Transplant new functionality** into existing placeholder
-3. **Remove unnecessary methods** from trifecta-derived workflows (e.g., `step_04_process`)
+3. **Remove unnecessary methods** from quadfecta-derived workflows (e.g., `step_04_process`)
 
 ## What NOT To Do
 

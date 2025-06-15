@@ -72,7 +72,7 @@ class ParameterBuster:
     - The chain reaction pattern will automatically flow through uninterrupted
     - Step 5 (finalize) will still work correctly with just crawl data
     **PRACTICAL USAGE**: Many users only need crawl data, making this essentially a
-    "Crawl Analysis Downloader" that can optionally become a full trifecta when needed.
+    "Crawl Analysis Downloader" that can optionally become a full quadfecta when needed.
     This modularity makes the workflow perfect as a template for various Botify data
     collection needs - from simple crawl analysis to comprehensive multi-source exports.
     """
@@ -4056,7 +4056,7 @@ await main()
             folder_path = str(analysis_folder.resolve())
             folder_title = f"Open analysis folder: {username}/{project_name}/{analysis_slug}"
         else:
-            # Fallback to general trifecta folder if analysis info is missing
+            # Fallback to general quadfecta folder if analysis info is missing
             analysis_folder = Path.cwd() / 'downloads' / self.APP_NAME
             folder_path = str(analysis_folder.resolve())
             folder_title = f"Open folder: {analysis_folder.resolve()}"

@@ -68,7 +68,7 @@ Pipulate now includes a comprehensive development ecosystem with proven helper t
 The core workflow creation system with corrected sequencing patterns:
 
 **Primary Helper Tools**:
-- **`create_workflow.py`**: Template-based workflow creation (blank, hello, trifecta templates)
+- **`create_workflow.py`**: Template-based workflow creation (blank, hello, quadfecta templates)
 - **`splice_workflow_step.py`**: Add steps to existing workflows with precise positioning  
 - **`manage_class_attributes.py`**: Merge styling constants between workflows
 - **`swap_workflow_step.py`**: Replace step logic between workflows
@@ -99,7 +99,7 @@ A complete 3-part guide covering all 25 critical patterns for Pipulate mastery:
 ### 🔧 Development Workflow Integration
 
 **Template-Based Creation Strategy**:
-- **Simple workflows**: Use hello/trifecta templates with single command
+- **Simple workflows**: Use hello/quadfecta templates with single command
 - **Custom workflows**: Use blank template with corrected 5-command sequence
 - **Complex modifications**: Use individual helper tools for precise changes
 
@@ -482,7 +482,7 @@ Creates new workflows from templates:
 ```bash
 python create_workflow.py workflow.py MyWorkflow my_workflow \
   "My Workflow" "Welcome message" "Training prompt" \
-  --template trifecta --force
+  --template quadfecta --force
 ```
 
 ### `splice_workflow_step.py`
@@ -494,7 +494,7 @@ python splice_workflow_step.py workflow.py --position bottom
 
 ### Template System
 * `blank`: Minimal workflow with one step
-* `trifecta`: Three-step workflow pattern
+* `quadfecta`: Three-step workflow pattern
 * Automatic method generation and insertion
 
 ## Common LLM Implementation Mistakes

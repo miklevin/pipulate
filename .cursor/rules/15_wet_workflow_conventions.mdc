@@ -746,7 +746,7 @@ Reference: @create_workflow.py lines 35-42
 ```python
 TEMPLATE_MAP = {
     "blank": "300_blank_placeholder.py",      # Minimal single-step template
-    "trifecta": "400_botify_quadfecta.py",     # Complex multi-export template
+    "quadfecta": "400_botify_quadfecta.py",     # Complex multi-export template
     # Future templates can be added here
 }
 ```
@@ -768,7 +768,7 @@ Any workflow can become a template by including:
 python create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
 
 # Using different templates:
-python create_workflow.py 036_custom_botify.py MyBotify my_botify "Custom Flow" "Welcome" "Training" --template trifecta
+python create_workflow.py 036_custom_botify.py MyBotify my_botify "Custom Flow" "Welcome" "Training" --template quadfecta
 ```
 
 #### Adding Steps to Existing Workflows
@@ -1107,7 +1107,7 @@ Before considering a workflow "template-ready":
 ### Success Metrics from Real Usage
 - **95% Success Rate**: When mandatory markers present, helper tools work reliably
 - **5-Command Sequences**: Transform blank templates into complex workflows
-- **Single Commands**: Create working hello/trifecta workflows instantly
+- **Single Commands**: Create working hello/quadfecta workflows instantly
 - **Clear Error Messages**: Helper tools provide specific failure diagnostics
 
 These conventions ensure consistent user experience across all WET workflows while leveraging the proven template-based creation system that maintains the explicit, debuggable nature that makes WET patterns effective for complex data processing pipelines.
@@ -1582,7 +1582,7 @@ python helpers/swap_workflow_step.py test_target.py step_01 \
 ```bash
 # Trifecta pattern from workflow_genesis.py:
 python helpers/create_workflow.py complex_workflow.py ComplexFlow complex \
-  "Complex Data Flow" "Multi-source workflow" "Training" --template trifecta --force
+  "Complex Data Flow" "Multi-source workflow" "Training" --template quadfecta --force
 
 # Condition for parameter buster methods
 python helpers/manage_class_attributes.py complex_workflow.py \
