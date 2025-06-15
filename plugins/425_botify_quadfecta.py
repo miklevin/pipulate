@@ -341,6 +341,22 @@ class BotifyQuadfectaWorkflow:
             'error_prefix': 'FAILED to download Search Console data',
             'status_prefix': 'Project '
         },
+'step_05': {
+            'data_key': 'ga_check',
+            'status_field': 'has_ga',
+            'success_text': 'HAS Google Analytics data',
+            'failure_text': 'does NOT have Google Analytics data',
+            'error_prefix': 'FAILED to download Google Analytics data',
+            'status_prefix': 'Project '
+        },
+        'step_05': {
+            'data_key': 'ga_check',
+            'status_field': 'has_ga',
+            'success_text': 'HAS Google Analytics data',
+            'failure_text': 'does NOT have Google Analytics data',
+            'error_prefix': 'FAILED to check for Google Analytics data',
+            'status_prefix': 'Project '
+        },
         'step_05': {
             'data_key': 'ga_check',
             'status_field': 'has_ga',
@@ -377,19 +393,13 @@ class BotifyQuadfectaWorkflow:
         ga_template = self.get_configured_template('ga')
 
         steps = [
+            Step(id='step_01', done='botify_project', show='1. Botify Project URL', refill=True),
+            Step(id='step_02', done='analysis_selection', show=f'2. Download Crawl: {crawl_template}', refill=False),
+            Step(id='step_03', done='weblogs_check', show='3. Download Web Logs', refill=False),
+            Step(id='step_04', done='search_console_check', show=f'4. Download GSC: {gsc_template}', refill=False),
+            Step(id='step_05', done='ga_check', show=f'5. Download GA: {ga_template}', refill=False)
+        ]
 
-            Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True),
-            Step(id='step_02', done='analysis_selection', show=f'Download Crawl Analysis: {crawl_template}', refill=False),
-            Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False),
-            Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False),
-            Step(id='step_05', done='placeholder_data_05', show='Step 5 Placeholder', refill=False),
-            Step(
-                id='step_06',
-                done='placeholder_06',
-                show='Placeholder Step 6 (Edit Me)',
-                refill=False,
-            ),]
-        
         # --- STEPS_LIST_INSERTION_POINT ---
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps = steps
@@ -410,6 +420,7 @@ class BotifyQuadfectaWorkflow:
             if step.id not in self.step_messages:
                 self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
         self.step_messages['step_04'] = {'input': f"❔{pip.fmt('step_04')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
+        self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: Please check if the project has Google Analytics data.", 'complete': 'Google Analytics check complete. Ready to finalize.'}
         self.step_messages['step_03'] = {'input': f"❔{pip.fmt('step_03')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
         self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
 
@@ -1545,7 +1556,7 @@ class BotifyQuadfectaWorkflow:
                 return (False, 'Forbidden (403). You may not have access to this project or endpoint.')
             elif response.status_code == 404:
                 return (False, 'Project not found (404). Check org/project slugs.')
-            response.raise_for_status()
+            response.raise_for_status()_for_status()
             collections_data = response.json()
             if not isinstance(collections_data, list):
                 return (False, 'Unexpected API response format. Expected a list.')
@@ -2036,7 +2047,7 @@ async def make_api_call(
             print(f"Response Headers: {{dict(response.headers)}}")
 
             # Handle response
-            response.raise_for_status()
+            response.raise_for_status()_for_status()
 
             try:
                 result = response.json()
@@ -2130,7 +2141,7 @@ await main()
                         logging.info(f'Export job response: {json.dumps(response.json(), indent=2)}')
                     except:
                         logging.info(f'Could not parse response as JSON. Raw: {response.text[:500]}')
-                    response.raise_for_status()
+                    response.raise_for_status()_for_status()
                     job_data = response.json()
                     job_url_path = job_data.get('job_url')
                     if not job_url_path:
@@ -2159,7 +2170,7 @@ await main()
             try:
                 async with httpx.AsyncClient() as client:
                     async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
-                        response.raise_for_status()
+                        response.raise_for_status()_for_status()
                         with open(zip_path, 'wb') as f:
                             async for chunk in response.aiter_bytes():
                                 f.write(chunk)
@@ -2732,7 +2743,7 @@ await main()
                             except Exception:
                                 error_detail = response.text[:500]
                                 logging.error(f'API error text: {error_detail}')
-                            response.raise_for_status()
+                            response.raise_for_status()_for_status()
                         job_data = response.json()
                         job_url_path = job_data.get('job_url')
                         if not job_url_path:
@@ -2812,7 +2823,7 @@ await main()
                                 gz_filepath = f'{crawl_filepath}.gz'
                                 async with httpx.AsyncClient(timeout=300.0) as client:
                                     async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
-                                        response.raise_for_status()
+                                        response.raise_for_status()_for_status()
                                         with open(gz_filepath, 'wb') as gz_file:
                                             async for chunk in response.aiter_bytes():
                                                 gz_file.write(chunk)
@@ -2994,7 +3005,7 @@ await main()
                                 except Exception:
                                     error_detail = response.text[:500]
                                     logging.error(f'API error text: {error_detail}')
-                                response.raise_for_status()
+                                response.raise_for_status()_for_status()
                             job_data = response.json()
                             job_url_path = job_data.get('job_url')
                             if not job_url_path:
@@ -3085,7 +3096,7 @@ await main()
                                 compressed_path = f'{logs_filepath}.compressed'
                                 async with httpx.AsyncClient() as client:
                                     async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
-                                        response.raise_for_status()
+                                        response.raise_for_status()_for_status()
                                         with open(compressed_path, 'wb') as f:
                                             async for chunk in response.aiter_bytes():
                                                 f.write(chunk)
@@ -3584,7 +3595,7 @@ async def make_query_call(
             )
 
             print(f"Status Code: {{response.status_code}}")
-            response.raise_for_status()
+            response.raise_for_status()_for_status()
 
             result = response.json()
             print(f"\\nResults returned: {{len(result.get('results', []))}}")
@@ -3778,7 +3789,7 @@ async def make_web_logs_call(
 
             print(f"Status Code: {{response.status_code}}")
             print(f"Request URL: {{url}}")
-            response.raise_for_status()
+            response.raise_for_status()_for_status()
 
             result = response.json()
             print(f"\\nResults returned: {{len(result.get('results', []))}}")
@@ -4160,79 +4171,483 @@ await main()
         return buttons
 
 
-    # --- START_SWAPPABLE_STEP: step_06 ---
-    async def step_06(self, request):
-        """Handles GET request for Placeholder Step 6 (Edit Me)."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_06"
+    async def step_05(self, request):
+        """Handles GET request for checking if a Botify project has Google Analytics data."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        # Determine next_step_id dynamically based on runtime position in steps list
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step.done, "") # 'step.done' will be like 'placeholder_06'
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-    
-        if "finalized" in finalize_data and current_value:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{current_value}")
-            return Div(
-                Card(H3(f"🔒 {step.show}: Completed")),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        elif current_value and state.get("_revert_target") != step_id:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{current_value}")
-            return Div(
-                pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        else:
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("This is a new placeholder step. Customize its input form as needed. Click Proceed to continue."),
-                    Form(
-                        # Example: Hidden input to submit something for the placeholder
-                        Input(type="hidden", name=step.done, value="Placeholder Value for Placeholder Step 6 (Edit Me)"),
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
-                    )
+        check_result_str = step_data.get(step.done, '')
+        check_result = json.loads(check_result_str) if check_result_str else {}
+        prev_step_id = 'step_01'
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get('botify_project', '')
+        if not prev_data_str:
+            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get('project_name', '')
+        username = project_data.get('username', '')
+        if check_result and state.get('_revert_target') != step_id:
+            has_ga = check_result.get('has_ga', False)
+            status_text = 'HAS Google Analytics data' if has_ga else 'does NOT have Google Analytics data'
+            status_color = 'green' if has_ga else 'red'
+            action_buttons = self._create_action_buttons(check_result, step_id)
+
+            widget = Div(
+                Div(
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
-                Div(id=next_step_id), # Placeholder for next step, no trigger here
-                id=step_id
+                Div(
+                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
+                    id=f'{step_id}_widget'
+                )
             )
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        else:
+            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            gsc_template = self.get_configured_template('ga')
 
+            # Check if GSC data is cached for the CURRENT analysis
+            # Use the same logic as step_02 to get the current analysis
+            is_cached = False
+            try:
+                # Get the current analysis from step_02 data - try multiple possible keys
+                analysis_step_id = 'step_02'
+                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+                current_analysis_slug = ''
 
-    async def step_06_submit(self, request):
-        """Process the submission for Placeholder Step 6 (Edit Me)."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_06"
+                # Try to get analysis_slug from the stored data
+                if analysis_step_data:
+                    # Try the 'analysis_selection' key first
+                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
+                    if analysis_data_str:
+                        try:
+                            analysis_data = json.loads(analysis_data_str)
+                            current_analysis_slug = analysis_data.get('analysis_slug', '')
+                        except (json.JSONDecodeError, AttributeError):
+                            pass
+
+                    # If that didn't work, try looking for analysis_slug directly
+                    if not current_analysis_slug and isinstance(analysis_step_data, dict):
+                        for key, value in analysis_step_data.items():
+                            if isinstance(value, str) and value.startswith('20'):
+                                # Looks like an analysis slug (starts with year)
+                                current_analysis_slug = value
+                                break
+                            elif isinstance(value, str):
+                                try:
+                                    data = json.loads(value)
+                                    if isinstance(data, dict) and 'analysis_slug' in data:
+                                        current_analysis_slug = data['analysis_slug']
+                                        break
+                                except (json.JSONDecodeError, AttributeError):
+                                    continue
+
+                # Only check for cached files if we found an analysis slug
+                if current_analysis_slug:
+                    gsc_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/ga.csv"
+                    is_cached = os.path.exists(gsc_path)
+            except Exception:
+                is_cached = False
+
+            button_text = f'Use Cached Google Analytics: {gsc_template} ▸' if is_cached else f'Download Google Analytics: {gsc_template} ▸'
+
+            # Create button row with conditional skip button
+            button_row_items = [
+                Button(button_text, type='submit', name='action', value='download', cls='primary',
+                       **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
+            ]
+
+            # Add skip button if enabled in config
+            if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
+                button_row_items.append(
+                    Button(self.ui['BUTTON_LABELS']['SKIP_STEP'],
+                           type='submit', name='action', value='skip', cls='secondary outline',
+                           style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
+                )
+
+            return Div(Card(H3(f'{step.show}'), P(f"Download Google Analytics data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+
+    async def step_05_submit(self, request):
+        """Process the check for Botify Google Analytics data."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-        
-        form_data = await request.form()
-        # For a placeholder, get value from the hidden input or use a default
-        value_to_save = form_data.get(step.done, f"Default value for {step.show}") 
-        await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
-        
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{value_to_save}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-        
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        return Div(
-            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+
+        # Check if user clicked skip button
+        form = await request.form()
+        action = form.get('action', 'download')  # Default to download for backward compatibility
+
+        if action == 'skip':
+            # Handle skip action - create fake completion data and proceed to next step
+            await self.message_queue.add(pip, f"⏭️ Skipping Google Analytics download...", verbatim=True)
+
+            # Create skip data that indicates step was skipped
+            skip_result = {
+                'has_ga': False,
+                'skipped': True,
+                'skip_reason': 'User chose to skip Google Analytics download',
+                'download_complete': False,
+                'file_path': None,
+                'raw_python_code': '',
+                'query_python_code': '',
+                'jobs_payload': {}
+            }
+
+            await pip.set_step_data(pipeline_id, step_id, json.dumps(skip_result), steps)
+            await self.message_queue.add(pip, f"⏭️ Google Analytics step skipped. Proceeding to next step.", verbatim=True)
+
+            return Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f'{step.show}: Skipped',
+                    widget=Div(P('This step was skipped.', style='color: #888; font-style: italic;')),
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+
+        # Handle normal download action
+        prev_step_id = 'step_01'
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get('botify_project', '')
+        if not prev_data_str:
+            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get('project_name', '')
+        username = project_data.get('username', '')
+        return Card(
+            H3(f'{step.show}'),
+            P(f"Downloading Google Analytics data for '{project_name}'..."),
+            Progress(style='margin-top: 10px;'),
+            Script(f"""
+                setTimeout(function() {{
+                    htmx.ajax('POST', '/{app_name}/{step_id}_complete', {{
+                        target: '#{step_id}',
+                        values: {{ 'delay_complete': 'true' }}
+                    }});
+                }}, 1500);
+            """),
             id=step_id
         )
-    # --- END_SWAPPABLE_STEP: step_06 ---
+
+    async def step_05_complete(self, request):
+        """Handles completion after the progress indicator has been shown."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_05'
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        prev_step_id = 'step_01'
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get('botify_project', '')
+        if not prev_data_str:
+            return P('Error: Project data not found.', style=pip.get_style('error'))
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get('project_name', '')
+        username = project_data.get('username', '')
+        analysis_step_id = 'step_02'
+        analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+        analysis_data_str = analysis_step_data.get('analysis_selection', '')
+        if not analysis_data_str:
+            return P('Error: Analysis data not found.', style=pip.get_style('error'))
+        analysis_data = json.loads(analysis_data_str)
+        analysis_slug = analysis_data.get('analysis_slug', '')
+        try:
+            has_ga, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
+            if error_message:
+                return Div(P(f'Error: {error_message}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            check_result = {'has_ga': has_ga, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
+            if has_ga:
+                await self.message_queue.add(pip, f'✅ Project has Google Analytics data, downloading...', verbatim=True)
+                await self.process_search_console_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
+            else:
+                await self.message_queue.add(pip, f'Project does not have Google Analytics data (skipping download)', verbatim=True)
+                # Add empty python_command for consistency with other steps
+                check_result['python_command'] = ''
+                check_result_str = json.dumps(check_result)
+                await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
+            status_text = 'HAS' if has_ga else 'does NOT have'
+            completed_message = 'Data downloaded successfully' if has_ga else 'No Google Analytics data available'
+            action_buttons = self._create_action_buttons(check_result, step_id)
+
+            widget = Div(
+                Div(
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
+                ),
+                Div(
+                    Pre(f'Status: Project {status_text} Google Analytics data', cls='code-block-container', style=f'color: {"green" if has_ga else "red"}; display: none;'),
+                    id=f'{step_id}_widget'
+                )
+            )
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        except Exception as e:
+            logging.exception(f'Error in step_05_complete: {e}')
+            return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+
+    async def step_05(self, request):
+        """Handles GET request for checking if a Botify project has Google Analytics data."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_05'
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        check_result_str = step_data.get(step.done, '')
+        check_result = json.loads(check_result_str) if check_result_str else {}
+        prev_step_id = 'step_01'
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get('botify_project', '')
+        if not prev_data_str:
+            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get('project_name', '')
+        username = project_data.get('username', '')
+        if check_result and state.get('_revert_target') != step_id:
+            has_ga = check_result.get('has_ga', False)
+            status_text = 'HAS Google Analytics data' if has_ga else 'does NOT have Google Analytics data'
+            status_color = 'green' if has_ga else 'red'
+            action_buttons = self._create_action_buttons(check_result, step_id)
+
+            widget = Div(
+                Div(
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
+                ),
+                Div(
+                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
+                    id=f'{step_id}_widget'
+                )
+            )
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        else:
+            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            gsc_template = self.get_configured_template('ga')
+
+            # Check if GSC data is cached for the CURRENT analysis
+            # Use the same logic as step_02 to get the current analysis
+            is_cached = False
+            try:
+                # Get the current analysis from step_02 data - try multiple possible keys
+                analysis_step_id = 'step_02'
+                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+                current_analysis_slug = ''
+
+                # Try to get analysis_slug from the stored data
+                if analysis_step_data:
+                    # Try the 'analysis_selection' key first
+                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
+                    if analysis_data_str:
+                        try:
+                            analysis_data = json.loads(analysis_data_str)
+                            current_analysis_slug = analysis_data.get('analysis_slug', '')
+                        except (json.JSONDecodeError, AttributeError):
+                            pass
+
+                    # If that didn't work, try looking for analysis_slug directly
+                    if not current_analysis_slug and isinstance(analysis_step_data, dict):
+                        for key, value in analysis_step_data.items():
+                            if isinstance(value, str) and value.startswith('20'):
+                                # Looks like an analysis slug (starts with year)
+                                current_analysis_slug = value
+                                break
+                            elif isinstance(value, str):
+                                try:
+                                    data = json.loads(value)
+                                    if isinstance(data, dict) and 'analysis_slug' in data:
+                                        current_analysis_slug = data['analysis_slug']
+                                        break
+                                except (json.JSONDecodeError, AttributeError):
+                                    continue
+
+                # Only check for cached files if we found an analysis slug
+                if current_analysis_slug:
+                    gsc_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/ga.csv"
+                    is_cached = os.path.exists(gsc_path)
+            except Exception:
+                is_cached = False
+
+            button_text = f'Use Cached Google Analytics: {gsc_template} ▸' if is_cached else f'Download Google Analytics: {gsc_template} ▸'
+
+            # Create button row with conditional skip button
+            button_row_items = [
+                Button(button_text, type='submit', name='action', value='download', cls='primary',
+                       **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
+            ]
+
+            # Add skip button if enabled in config
+            if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
+                button_row_items.append(
+                    Button(self.ui['BUTTON_LABELS']['SKIP_STEP'],
+                           type='submit', name='action', value='skip', cls='secondary outline',
+                           style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
+                )
+
+            return Div(Card(H3(f'{step.show}'), P(f"Download Google Analytics data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+
+    async def step_05_submit(self, request):
+        """Process the check for Botify Google Analytics data."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_05'
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+
+        # Check if user clicked skip button
+        form = await request.form()
+        action = form.get('action', 'download')  # Default to download for backward compatibility
+
+        if action == 'skip':
+            # Handle skip action - create fake completion data and proceed to next step
+            await self.message_queue.add(pip, f"⏭️ Skipping Google Analytics download...", verbatim=True)
+
+            # Create skip data that indicates step was skipped
+            skip_result = {
+                'has_ga': False,
+                'skipped': True,
+                'skip_reason': 'User chose to skip Google Analytics download',
+                'download_complete': False,
+                'file_path': None,
+                'raw_python_code': '',
+                'query_python_code': '',
+                'jobs_payload': {}
+            }
+
+            await pip.set_step_data(pipeline_id, step_id, json.dumps(skip_result), steps)
+            await self.message_queue.add(pip, f"⏭️ Google Analytics step skipped. Proceeding to next step.", verbatim=True)
+
+            return Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f'{step.show}: Skipped',
+                    widget=Div(P('This step was skipped.', style='color: #888; font-style: italic;')),
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+
+        # Handle normal download action
+        prev_step_id = 'step_01'
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get('botify_project', '')
+        if not prev_data_str:
+            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get('project_name', '')
+        username = project_data.get('username', '')
+        return Card(
+            H3(f'{step.show}'),
+            P(f"Downloading Google Analytics data for '{project_name}'..."),
+            Progress(style='margin-top: 10px;'),
+            Script(f"""
+                setTimeout(function() {{
+                    htmx.ajax('POST', '/{app_name}/{step_id}_complete', {{
+                        target: '#{step_id}',
+                        values: {{ 'delay_complete': 'true' }}
+                    }});
+                }}, 1500);
+            """),
+            id=step_id
+        )
+
+
+    def validate_botify_url(self, url):
+        """Validate a Botify project URL and extract project information."""
+        url = url.strip()
+        if not url:
+            return (False, 'URL is required', {})
+        try:
+            if not url.startswith(('https://app.botify.com/')):
+                return (False, 'URL must be a Botify project URL (starting with https://app.botify.com/)', {})
+            parsed_url = urlparse(url)
+            path_parts = [p for p in parsed_url.path.strip('/').split('/') if p]
+            if len(path_parts) < 2:
+                return (False, 'Invalid Botify URL: must contain at least organization and project', {})
+            org_slug = path_parts[0]
+            project_slug = path_parts[1]
+            canonical_url = f'https://{parsed_url.netloc}/{org_slug}/{project_slug}/'
+            project_data = {'url': canonical_url, 'username': org_slug, 'project_name': project_slug, 'project_id': f'{org_slug}/{project_slug}'}
+            return (True, f'Valid Botify project: {project_slug}', project_data)
+        except Exception as e:
+            return (False, f'Error parsing URL: {str(e)}', {})
+
+    async def check_if_project_has_collection(self, org_slug, project_slug, collection_id='logs'):
+        """
+        Checks if a specific collection exists for the given org and project.
+
+        # API PATTERN: This method demonstrates the standard Botify API interaction pattern:
+        # 1. Read API token from local file
+        # 2. Construct API endpoint URL with proper path parameters
+        # 3. Make authenticated request with error handling
+        # 4. Return tuple of (result, error_message) for consistent error handling
+
+        Args:
+            org_slug: Organization slug
+            project_slug: Project slug
+            collection_id: ID of the collection to check for (default: "logs")
+
+        Returns:
+            (True, None) if found, (False, None) if not found, or (False, error_message) on error.
+        """
+        try:
+            if not os.path.exists(TOKEN_FILE):
+                return (False, f"Token file '{TOKEN_FILE}' not found.")
+            with open(TOKEN_FILE) as f:
+                content = f.read().strip()
+                api_key = content.split('\n')[0].strip()
+                if not api_key:
+                    return (False, f"Token file '{TOKEN_FILE}' is empty.")
+        except Exception as e:
+            return (False, f'Error loading API key: {e}')
+        if not org_slug or not project_slug:
+            return (False, 'Organization and project slugs are required.')
+        collections_url = f'https://api.botify.com/v1/projects/{org_slug}/{project_slug}/collections'
+        headers = {'Authorization': f'Token {api_key}', 'Content-Type': 'application/json'}
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(collections_url, headers=headers, timeout=60.0)
+            if response.status_code == 401:
+                return (False, 'Authentication failed (401). Check your API token.')
+            elif response.status_code == 403:
+                return (False, 'Forbidden (403). You may not have access to this project or endpoint.')
+            elif response.status_code == 404:
+                return (False, 'Project not found (404). Check org/project slugs.')
+            response.raise_for_status()
 
 
     # --- STEP_METHODS_INSERTION_POINT ---
