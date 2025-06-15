@@ -269,7 +269,7 @@ class WorkflowGenesis:
                     f"  {self.format_bash_command(display_name)} \\\n" + \
                     f"  {self.format_bash_command(endpoint_message)} \\\n" + \
                     f"  {self.format_bash_command(training_prompt)} \\\n" + \
-                    f"  --template blank --force"
+                    f"  --template blank --role Core --force"
 
         # Step positioning demo commands
         splice_bottom_cmd = f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
@@ -280,7 +280,7 @@ class WorkflowGenesis:
                       f"  {self.format_bash_command(display_name)} \\\n" + \
                       f"  {self.format_bash_command(endpoint_message)} \\\n" + \
                       f"  {self.format_bash_command(training_prompt)} \\\n" + \
-                      f"  --template blank --force && \\\n" + \
+                      f"  --template blank --role Core --force && \\\n" + \
                       f"echo 'Base workflow created. Now try:' && \\\n" + \
                       f"echo '{splice_bottom_cmd}' && \\\n" + \
                       f"echo '{splice_top_cmd}'"
@@ -342,7 +342,7 @@ class WorkflowGenesis:
         cmd1 = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
                f"{self.format_bash_command(hello_display_name)} " + \
                f"{self.format_bash_command(hello_endpoint_message)} " + \
-               f"{self.format_bash_command(hello_training_prompt)} --template blank --force"
+               f"{self.format_bash_command(hello_training_prompt)} --template blank --role Core --force"
 
         cmd2 = f"python helpers/manage_class_attributes.py {plugins_filename} plugins/040_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force"
 
@@ -357,7 +357,7 @@ class WorkflowGenesis:
                       f"  {self.format_bash_command(hello_display_name)} \\\n" + \
                       f"  {self.format_bash_command(hello_endpoint_message)} \\\n" + \
                       f"  {self.format_bash_command(hello_training_prompt)} \\\n" + \
-                      f"  --template blank --force && \\\n" + \
+                      f"  --template blank --role Core --force && \\\n" + \
                       f"python helpers/manage_class_attributes.py {plugins_filename} \\\n" + \
                       f"  plugins/040_hello_workflow.py \\\n" + \
                       f"  --attributes-to-merge UI_CONSTANTS --force && \\\n" + \
@@ -447,7 +447,7 @@ class WorkflowGenesis:
         cmd1 = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
                f"{self.format_bash_command(display_name)} " + \
                f"{self.format_bash_command(endpoint_message)} " + \
-               f"{self.format_bash_command(training_prompt)} --template trifecta --force"
+               f"{self.format_bash_command(training_prompt)} --template trifecta --role Core --force"
 
         cmd2 = f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
 
@@ -456,7 +456,7 @@ class WorkflowGenesis:
                       f"  {self.format_bash_command(display_name)} \\\n" + \
                       f"  {self.format_bash_command(endpoint_message)} \\\n" + \
                       f"  {self.format_bash_command(training_prompt)} \\\n" + \
-                      f"  --template trifecta --force && \\\n" + \
+                      f"  --template trifecta --role Core --force && \\\n" + \
                       f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
 
         return Div(
@@ -904,7 +904,7 @@ class WorkflowGenesis:
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
                           f"{self.format_bash_command(hello_display_name)} " + \
                           f"{self.format_bash_command(hello_endpoint_message)} " + \
-                          f"{self.format_bash_command(hello_training_prompt)} --template blank --force && " + \
+                          f"{self.format_bash_command(hello_training_prompt)} --template blank --role Core --force && " + \
                           f"python helpers/manage_class_attributes.py {plugins_filename} " + \
                           f"plugins/040_hello_workflow.py " + \
                           f"--attributes-to-merge UI_CONSTANTS --force && " + \
@@ -918,14 +918,14 @@ class WorkflowGenesis:
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
                           f"{self.format_bash_command(display_name)} " + \
                           f"{self.format_bash_command(endpoint_message)} " + \
-                          f"{self.format_bash_command(training_prompt)} --template trifecta --force && " + \
+                          f"{self.format_bash_command(training_prompt)} --template trifecta --role Core --force && " + \
                           f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
         else:
             # Blank template - single command
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
                           f"{self.format_bash_command(display_name)} " + \
                           f"{self.format_bash_command(endpoint_message)} " + \
-                          f"{self.format_bash_command(training_prompt)} --template blank --force"
+                          f"{self.format_bash_command(training_prompt)} --template blank --role Core --force"
 
         # Execute the command sequence
         import subprocess

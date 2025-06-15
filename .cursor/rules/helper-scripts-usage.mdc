@@ -3,3 +3,72 @@ description:
 globs:
 alwaysApply: false
 ---
+# Helper Scripts for Workflow Development
+
+## Critical Script: splice_workflow_step.py
+
+This script is the **ONLY safe way** to add new steps to existing workflows without breaking chain reactions.
+
+### Usage Pattern:
+```bash
+cd /home/mike/repos/pipulate/helpers
+python splice_workflow_step.py 427_botify_quadfecta3.py
+```
+
+### What It Does:
+1. **Analyzes existing workflow structure** - finds step definitions and max step number
+2. **Creates new step placeholder** - adds blank step with proper routing
+3. **Maintains chain reaction integrity** - preserves all existing `hx_trigger="load"` patterns
+4. **Safe insertion** - adds to bottom of step list by default
+
+### Example Output:
+```
+Looking for workflow file: /home/mike/repos/pipulate/plugins/427_botify_quadfecta3.py
+Identified current max data collection step number: 5
+New step will be: step_06 (Show: 'Placeholder Step 6 (Edit Me)', Done key: 'placeholder_06')
+Insertion position: bottom
+Successfully spliced new step 'step_06' into workflow
+```
+
+## Development Strategy: Tools First, Then Transplant
+
+### The Winning Pattern:
+1. **Use `splice_workflow_step.py`** to safely add new blank step
+2. **Transplant functionality** into the new blank placeholder
+3. **Never insert between existing steps** - always add to end and rearrange logic
+
+### Why This Works:
+- Helper script understands step list structure and insertion points
+- Preserves all existing chain reactions
+- Creates proper routing automatically  
+- Maintains deterministic workflow structure
+
+## Alternative: Repurpose Existing Blank Steps
+
+Instead of adding new steps, you can:
+1. **Identify blank placeholder steps** (e.g., step_05 was blank in quadfecta)
+2. **Transplant new functionality** into existing placeholder
+3. **Remove unnecessary methods** from trifecta-derived workflows (e.g., `step_04_process`)
+
+## What NOT To Do
+
+❌ **Never manually edit step lists**
+❌ **Never use LLMs to alter chain reactions**  
+❌ **Never insert steps between existing ones without tools**
+❌ **Never break `hx_trigger="load"` patterns**
+
+## Helper Script Locations
+
+- Main script: [helpers/splice_workflow_step.py](mdc:helpers/splice_workflow_step.py)
+- Template file: [plugins/300_blank_placeholder.py](mdc:plugins/300_blank_placeholder.py)
+- Working directory: `/home/mike/repos/pipulate/helpers`
+
+## Success Indicators
+
+After running the script:
+- Workflow auto-restarts (watchdog detects changes)
+- New step appears in UI with "Placeholder Step X (Edit Me)" 
+- Chain reaction flows through to finalize without breaking
+- All existing steps continue to work normally
+
+**Remember: Use deterministic tools, not creative LLM modifications!**

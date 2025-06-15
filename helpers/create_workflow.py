@@ -172,6 +172,9 @@ Examples:
   
   # Using different templates:
   python create_workflow.py 036_botify_custom.py MyBotify my_botify "My Botify Flow" "Welcome" "Training" --template trifecta
+  
+  # Setting role for visibility:
+  python create_workflow.py 037_my_workflow.py MyWorkflow my_app "My Workflow" "Welcome" "Training" --role Core
         """
     )
     parser.add_argument("filename", help="Desired filename (e.g., 035_kungfu_workflow.py)")
@@ -181,6 +184,7 @@ Examples:
     parser.add_argument("endpoint_message", help="ENDPOINT_MESSAGE string.")
     parser.add_argument("training_prompt", help="TRAINING_PROMPT string.")
     parser.add_argument("--template", default="blank", help="Template to use (e.g., blank, trifecta). Default: blank.")
+    parser.add_argument("--role", help="Role to assign to the workflow (e.g., Core, Developer). Replaces template's default role.")
     parser.add_argument("--force", action="store_true", help="Overwrite if exists.")
     args = parser.parse_args()
 
@@ -303,6 +307,15 @@ Examples:
             else:
                 print(f"Updated file header comment to: {new_header}")
 
+            # Replace ROLES if --role parameter is provided
+            if args.role:
+                roles_pattern = r'^ROLES\s*=\s*\[.*?\]'
+                new_roles = f"ROLES = ['{args.role}']"
+                content, roles_count = re.subn(roles_pattern, new_roles, content, count=1, flags=re.MULTILINE)
+                if roles_count == 0:
+                    print(f"WARNING: ROLES definition not found or not replaced.")
+                else:
+                    print(f"Updated ROLES to: {new_roles}")
 
             if content != original_content:
                 f.seek(0)

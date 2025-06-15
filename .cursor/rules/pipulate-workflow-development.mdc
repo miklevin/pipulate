@@ -3,3 +3,76 @@ description:
 globs:
 alwaysApply: false
 ---
+# Pipulate Workflow Development Rules
+
+## 🚨 CRITICAL: Chain Reaction Integrity
+
+**NEVER USE LLMS TO ALTER CHAIN REACTIONS DIRECTLY**
+
+Chain reactions in Pipulate workflows are fragile and must be handled with deterministic tools only.
+
+### The Golden Rule: Tools First, Then Transplant
+
+1. **Use Helper Scripts**: Always use [splice_workflow_step.py](mdc:helpers/splice_workflow_step.py) to add new steps
+2. **Transplant Logic**: Move functionality into blank placeholder steps rather than inserting between existing steps
+3. **Preserve Chain Flow**: Never break the `hx_trigger="load"` chain reaction pattern
+
+### Chain Reaction Pattern
+
+Each step must follow this exact pattern for reliable chain reaction:
+
+```python
+# GET handler returns step UI + next step trigger
+return Div(
+    # Step content here
+    Card(...),
+    # CRITICAL: Next step trigger
+    Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+    id=step_id
+)
+
+# SUBMIT handler returns revert control + explicit next step trigger  
+return Div(
+    pip.display_revert_header(...),
+    Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+    id=step_id
+)
+```
+
+## 🔒 Finalized/Locked View Pattern
+
+**CRITICAL BUG PATTERN**: Using `pip.display_revert_widget()` in finalized blocks breaks chain reactions because it returns `None` when workflow is locked.
+
+### Wrong Pattern (Breaks Chain):
+```python
+if 'finalized' in finalize_data:
+    return pip.display_revert_widget(...)  # ❌ Returns None when locked!
+```
+
+### Correct Pattern (Maintains Chain):
+```python
+if 'finalized' in finalize_data and check_result:
+    status_text = 'Status message based on check_result'
+    locked_card = Card(
+        H3(f"🔒 {step.show}"),
+        Div(P(status_text), cls='custom-card-padding-bg')
+    )
+    return Div(
+        locked_card,
+        Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+        id=step_id
+    )
+```
+
+## Workflow File Locations
+
+- Trifecta: [400_botify_quadfecta.py](mdc:pipulate/plugins/400_botify_quadfecta.py)
+- Quadfecta: [427_botify_quadfecta3.py](mdc:pipulate/plugins/427_botify_quadfecta3.py)
+- Helper Scripts: [helpers/splice_workflow_step.py](mdc:helpers/splice_workflow_step.py)
+
+## Development Environment Rules
+
+- Always use Nix development environment: `nix develop .#quiet`
+- Server runs on watchdog - never restart manually
+- Work within `/home/mike/repos/pipulate` directory
+- File changes trigger automatic reloads at `http://localhost:5001`
