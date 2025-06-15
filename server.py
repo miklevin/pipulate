@@ -1439,7 +1439,7 @@ class Pipulate:
             logger.debug("LLM stream finished or cancelled, sent %%STREAM_END%%")
             logger.debug(f"🔍 DEBUG: === ENDING pipulate.stream ({'verbatim' if verbatim else 'LLM'}) ===")
 
-    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str=None, target_id: str=None, revert_label: str=None, remove_padding: bool=False):
+    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str=None, target_id: str=None, revert_label: str=None, remove_padding: bool=False, show_when_finalized: bool=False):
         """Create a UI control for reverting to a previous workflow step.
         
         The button label uses the visual sequence number of the step.
@@ -1452,13 +1452,14 @@ class Pipulate:
             target_id: Optional target for HTMX updates (defaults to app container)
             revert_label: Optional custom label for the revert button
             remove_padding: Whether to remove padding from the article (for advanced layout)
+            show_when_finalized: Whether to show content when workflow is finalized (default: False for backward compatibility)
 
         Returns:
-            Card: A FastHTML Card component with revert functionality
+            Card: A FastHTML Card component with revert functionality, or None if finalized and show_when_finalized=False
         """
         pipeline_id = db.get('pipeline_id', '')
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
-        if pipeline_id and finalize_step:
+        if pipeline_id and finalize_step and not show_when_finalized:
             final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
             if finalize_step.done in final_data:
                 return None
@@ -1483,7 +1484,7 @@ class Pipulate:
             article_style += ' padding: 0;'
         return Card(Div(message, style='flex: 1'), Div(form, style='flex: 0'), style=article_style)
 
-    def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str=None, widget=None, target_id: str=None, revert_label: str=None, widget_style=None):
+    def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str=None, widget=None, target_id: str=None, revert_label: str=None, widget_style=None, finalized_content=None, next_step_id: str=None):
         """Create a standardized container for widgets and visualizations.
         
         Core pattern for displaying rich content below workflow steps with consistent
@@ -1494,6 +1495,7 @@ class Pipulate:
         - Unique DOM addressing for targeted updates
         - Support for function-based widgets and AnyWidget components
         - Standard styling with override capability
+        - Automatic finalized state handling with chain reaction preservation
         
         Args:
             step_id: ID of the step this widget belongs to
@@ -1504,10 +1506,44 @@ class Pipulate:
             target_id: Optional HTMX update target
             revert_label: Optional custom revert button label
             widget_style: Optional custom widget container style
+            finalized_content: Content to show when workflow is finalized (if None, uses message with 🔒)
+            next_step_id: Next step ID for chain reaction when finalized
             
         Returns:
-            Div: FastHTML container with revert control and widget content
+            Div: FastHTML container with revert control and widget content, or locked Card when finalized
         """
+        # Check if workflow is finalized
+        pipeline_id = db.get('pipeline_id', '')
+        finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
+        is_finalized = False
+        if pipeline_id and finalize_step:
+            final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
+            is_finalized = finalize_step.done in final_data
+        
+        if is_finalized:
+            # Create locked view for finalized workflow
+            step = next((s for s in steps if s.id == step_id), None)
+            step_title = step.show if step else step_id
+            
+            if finalized_content is None:
+                finalized_content = P(f"Step completed: {message or step_title}")
+            
+            locked_card = Card(
+                H3(f"🔒 {step_title}"),
+                Div(finalized_content, cls='custom-card-padding-bg')
+            )
+            
+            # Add next step trigger if provided
+            if next_step_id:
+                return Div(
+                    locked_card,
+                    Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                    id=step_id
+                )
+            else:
+                return Div(locked_card, id=step_id)
+        
+        # Normal revert widget behavior for non-finalized workflows
         revert_row = self.display_revert_header(step_id=step_id, app_name=app_name, steps=steps, message=message, target_id=target_id, revert_label=revert_label, remove_padding=True)
         if widget is None or revert_row is None:
             return revert_row
