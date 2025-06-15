@@ -3123,6 +3123,20 @@ await main()
             check_result = {'has_logs': has_logs, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
             status_text = 'HAS' if has_logs else 'does NOT have'
             await self.message_queue.add(pip, f'{step.show} complete: Project {status_text} web logs', verbatim=True)
+            
+            # Generate Python debugging code even when no web logs (for educational purposes)
+            if not has_logs:
+                try:
+                    analysis_date_obj = datetime.strptime(analysis_slug, '%Y%m%d')
+                except ValueError:
+                    analysis_date_obj = datetime.now()
+                date_end = analysis_date_obj.strftime('%Y-%m-%d')
+                date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
+                # Create example BQLv1 structure for web logs (even though project doesn't have them)
+                export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': self.config['BOTIFY_API']['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
+                # Generate Python command snippet (for educational debugging)
+                _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
+                check_result['python_command'] = python_command
             if has_logs:
                 logs_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'weblog')
                 file_exists, file_info = await self.check_file_exists(logs_filepath)
