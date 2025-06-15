@@ -37,7 +37,7 @@ FILES_TO_INCLUDE_RAW = """\
 # flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt <-- Python package dependencies for the project
 # server.py        <-- Main server file for the project
-/home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
+# /home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
 .gitignore
 # /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
 # /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
@@ -100,7 +100,7 @@ requirements.txt <-- Python package dependencies for the project
 
 # THE BIG BOTIFY WORKFLOWS (Often, the main event)
 /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
-# /home/mike/repos/pipulate/plugins/120_link_graph.py
+/home/mike/repos/pipulate/plugins/120_link_graph.py
 # /home/mike/repos/pipulate/plugins/110_parameter_buster.py
 
 ## MOST OTHER PLUGINS (Swap-in's for Blank Placeholder)
