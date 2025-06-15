@@ -314,7 +314,7 @@ class BotifyQuadfectaWorkflow:
 
     # Toggle Method Configuration - Maps step IDs to their specific data extraction logic
     TOGGLE_CONFIG = {
-        'step_analysisSLUG': {
+        'step_analysis': {
             'data_key': 'analysis_selection',
             'status_field': 'download_complete',
             'success_text': 'HAS crawl analysis',
@@ -322,7 +322,7 @@ class BotifyQuadfectaWorkflow:
             'error_prefix': 'FAILED to download crawl analysis',
             'status_prefix': 'Analysis '
         },
-        'step_webLOGS': {
+        'step_webogs': {
             'data_key': 'weblogs_check',
             'status_field': 'has_logs',
             'success_text': 'HAS web logs',
@@ -330,7 +330,7 @@ class BotifyQuadfectaWorkflow:
             'error_prefix': 'FAILED to download web logs',
             'status_prefix': 'Project '
         },
-        'step_GSC': {
+        'step_gsc': {
             'data_key': 'search_console_check',
             'status_field': 'has_search_console',
             'success_text': 'HAS Search Console data',
@@ -338,7 +338,7 @@ class BotifyQuadfectaWorkflow:
             'error_prefix': 'FAILED to download Search Console data',
             'status_prefix': 'Project '
         },
-        'step_GA': {
+        'step_ga': {
             'data_key': 'ga_check',
             'status_field': 'has_ga',
             'success_text': 'HAS Google Analytics data',
@@ -374,11 +374,11 @@ class BotifyQuadfectaWorkflow:
         ga_template = self.get_configured_template('ga')
 
         steps = [
-            Step(id='step_projectURL', done='botify_project', show='Botify Project URL', refill=True),
-            Step(id='step_analysisSLUG', done='analysis_selection', show=f'Download Crawl: {crawl_template}', refill=False),
-            Step(id='step_webLOGS', done='weblogs_check', show='Download Web Logs', refill=False),
-            Step(id='step_GSC', done='search_console_check', show=f'Download GSC: {gsc_template}', refill=False),
-            Step(id='step_GA', done='ga_check', show=f'Download GA: {ga_template}', refill=False)
+            Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True),
+            Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {crawl_template}', refill=False),
+            Step(id='step_webogs', done='weblogs_check', show='Download Web Logs', refill=False),
+            Step(id='step_gsc', done='search_console_check', show=f'Download GSC: {gsc_template}', refill=False),
+            Step(id='step_ga', done='ga_check', show=f'Download GA: {ga_template}', refill=False)
         ]
 
         # --- STEPS_LIST_INSERTION_POINT ---
@@ -390,21 +390,21 @@ class BotifyQuadfectaWorkflow:
         pipulate.register_workflow_routes(self)
         
         # Register custom routes specific to this workflow
-        app.route(f'/{app_name}/step_analysisSLUG_process', methods=['POST'])(self.step_analysisSLUG_process)
-        app.route(f'/{app_name}/step_webLOGS_process', methods=['POST'])(self.step_webLOGS_process)
-        app.route(f'/{app_name}/step_GSC_complete', methods=['POST'])(self.step_GSC_complete)
-        app.route(f'/{app_name}/step_GA_complete', methods=['POST'])(self.step_GA_complete)
+        app.route(f'/{app_name}/step_analysis_process', methods=['POST'])(self.step_analysis_process)
+        app.route(f'/{app_name}/step_webogs_process', methods=['POST'])(self.step_webogs_process)
+        app.route(f'/{app_name}/step_gsc_complete', methods=['POST'])(self.step_gsc_complete)
+        app.route(f'/{app_name}/step_ga_complete', methods=['POST'])(self.step_ga_complete)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
 
-        self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_analysisSLUG': {'input': f"❔{pip.fmt('step_analysisSLUG')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
+        self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_analysis': {'input': f"❔{pip.fmt('step_analysis')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
             if step.id not in self.step_messages:
                 self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
-        self.step_messages['step_GSC'] = {'input': f"❔{pip.fmt('step_GSC')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
-        self.step_messages['step_GA'] = {'input': f"❔{pip.fmt('step_GA')}: Please check if the project has Google Analytics data.", 'complete': 'Google Analytics check complete. Ready to finalize.'}
-        self.step_messages['step_webLOGS'] = {'input': f"❔{pip.fmt('step_webLOGS')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
-        self.step_messages['step_GA'] = {'input': f"❔{pip.fmt('step_GA')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
+        self.step_messages['step_gsc'] = {'input': f"❔{pip.fmt('step_gsc')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
+        self.step_messages['step_ga'] = {'input': f"❔{pip.fmt('step_ga')}: Please check if the project has Google Analytics data.", 'complete': 'Google Analytics check complete. Ready to finalize.'}
+        self.step_messages['step_webogs'] = {'input': f"❔{pip.fmt('step_webogs')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
+        self.step_messages['step_ga'] = {'input': f"❔{pip.fmt('step_ga')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
 
     def get_available_templates_for_data_type(self, data_type):
         """Get available query templates for a specific data type."""
@@ -545,14 +545,14 @@ class BotifyQuadfectaWorkflow:
         await self.message_queue.add(pip, f'↩️ Reverted to {step_id}. All subsequent data has been cleared.', verbatim=True)
         return pip.run_all_cells(app_name, steps)
 
-    async def step_projectURL(self, request):
+    async def step_project(self, request):
         """Handles GET request for Botify URL input widget.
 
         # STEP PATTERN: GET handler returns current step UI + empty placeholder for next step
         # Important: The next step div should NOT have hx_trigger here, only in the submit handler
         """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_projectURL'
+        step_id = 'step_project'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -610,7 +610,7 @@ class BotifyQuadfectaWorkflow:
                 id=step_id
             )
 
-    async def step_projectURL_submit(self, request):
+    async def step_project_submit(self, request):
         """Process the submission for Botify URL input widget.
 
         # STEP PATTERN: Submit handler stores state and returns:
@@ -618,7 +618,7 @@ class BotifyQuadfectaWorkflow:
         # 2. Next step div with explicit hx_trigger="load" to chain reaction to next step
         """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_projectURL'
+        step_id = 'step_project'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -636,10 +636,10 @@ class BotifyQuadfectaWorkflow:
         project_info = Div(H4(f'Project: {project_name}'), Small(project_url, style='word-break: break-all;'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
         return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
-    async def step_analysisSLUG(self, request):
+    async def step_analysis(self, request):
         """Handles GET request for Analysis selection between steps 1 and 2."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_analysisSLUG'
+        step_id = 'step_analysis'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -649,7 +649,7 @@ class BotifyQuadfectaWorkflow:
         analysis_result_str = step_data.get(step.done, '')
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
         selected_slug = analysis_result.get('analysis_slug', '')
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -790,15 +790,15 @@ class BotifyQuadfectaWorkflow:
             logging.exception(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
 
-    async def step_analysisSLUG_submit(self, request):
-        """Process the selected analysis slug for step_analysisSLUG and download crawl data."""
+    async def step_analysis_submit(self, request):
+        """Process the selected analysis slug for step_analysis and download crawl data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_analysisSLUG'
+        step_id = 'step_analysis'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -862,7 +862,7 @@ class BotifyQuadfectaWorkflow:
             Progress(style='margin-top: 10px;'),
             Script(f"""
                 setTimeout(function() {{
-                    htmx.ajax('POST', '/{app_name}/step_analysisSLUG_process', {{
+                    htmx.ajax('POST', '/{app_name}/step_analysis_process', {{
                         target: '#{step_id}',
                         values: {{
                             'analysis_slug': '{analysis_slug}',
@@ -875,10 +875,10 @@ class BotifyQuadfectaWorkflow:
             id=step_id
         )
 
-    async def step_webLOGS(self, request):
+    async def step_webogs(self, request):
         """Handles GET request for checking if a Botify project has web logs."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_webLOGS'
+        step_id = 'step_webogs'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -887,7 +887,7 @@ class BotifyQuadfectaWorkflow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         check_result_str = step_data.get(step.done, '')
         check_result = json.loads(check_result_str) if check_result_str else {}
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -922,23 +922,23 @@ class BotifyQuadfectaWorkflow:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
 
             # Check if web logs are cached for the CURRENT analysis
-            # Use the same logic as step_analysisSLUG to get the current analysis
+            # Use the same logic as step_analysis to get the current analysis
             is_cached = False
             try:
-                # Get the current analysis from step_analysisSLUG data - try multiple possible keys
-                analysis_step_id = 'step_analysisSLUG'
+                # Get the current analysis from step_analysis data - try multiple possible keys
+                analysis_step_id = 'step_analysis'
                 analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
                 current_analysis_slug = ''
 
                 # Try to get analysis_slug from the stored data
                 if analysis_step_data:
                     # Debug: Print what we actually have
-                    # print(f"DEBUG step_webLOGS: analysis_step_data = {analysis_step_data}")
-                    # print(f"DEBUG step_webLOGS: analysis_step_data keys = {list(analysis_step_data.keys()) if isinstance(analysis_step_data, dict) else 'not a dict'}")
+                    # print(f"DEBUG step_webogs: analysis_step_data = {analysis_step_data}")
+                    # print(f"DEBUG step_webogs: analysis_step_data keys = {list(analysis_step_data.keys()) if isinstance(analysis_step_data, dict) else 'not a dict'}")
 
                     # Try the 'analysis_selection' key first
                     analysis_data_str = analysis_step_data.get('analysis_selection', '')
-                    # print(f"DEBUG step_webLOGS: analysis_data_str = {analysis_data_str[:100] if analysis_data_str else 'empty'}")
+                    # print(f"DEBUG step_webogs: analysis_data_str = {analysis_data_str[:100] if analysis_data_str else 'empty'}")
                     if analysis_data_str:
                         try:
                             analysis_data = json.loads(analysis_data_str)
@@ -988,10 +988,10 @@ class BotifyQuadfectaWorkflow:
 
             return Div(Card(H3(f'{step.show}'), P(f"Download Web Logs for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
-    async def step_webLOGS_submit(self, request):
+    async def step_webogs_submit(self, request):
         """Process the check for Botify web logs and download if available."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_webLOGS'
+        step_id = 'step_webogs'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1033,7 +1033,7 @@ class BotifyQuadfectaWorkflow:
             )
 
         # Handle normal download action
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -1041,7 +1041,7 @@ class BotifyQuadfectaWorkflow:
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
-        analysis_step_id = 'step_analysisSLUG'
+        analysis_step_id = 'step_analysis'
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
         if not analysis_data_str:
@@ -1055,7 +1055,7 @@ class BotifyQuadfectaWorkflow:
             Progress(style='margin-top: 10px;'),
             Script(f"""
                 setTimeout(function() {{
-                    htmx.ajax('POST', '/{app_name}/step_webLOGS_process', {{
+                    htmx.ajax('POST', '/{app_name}/step_webogs_process', {{
                         target: '#{step_id}',
                         values: {{
                             'analysis_slug': '{analysis_slug}',
@@ -1068,10 +1068,10 @@ class BotifyQuadfectaWorkflow:
             id=step_id
         )
 
-    async def step_GSC(self, request):
+    async def step_gsc(self, request):
         """Handles GET request for checking if a Botify project has Search Console data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_GSC'
+        step_id = 'step_gsc'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1080,7 +1080,7 @@ class BotifyQuadfectaWorkflow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         check_result_str = step_data.get(step.done, '')
         check_result = json.loads(check_result_str) if check_result_str else {}
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -1116,11 +1116,11 @@ class BotifyQuadfectaWorkflow:
             gsc_template = self.get_configured_template('gsc')
 
             # Check if GSC data is cached for the CURRENT analysis
-            # Use the same logic as step_analysisSLUG to get the current analysis
+            # Use the same logic as step_analysis to get the current analysis
             is_cached = False
             try:
-                # Get the current analysis from step_analysisSLUG data - try multiple possible keys
-                analysis_step_id = 'step_analysisSLUG'
+                # Get the current analysis from step_analysis data - try multiple possible keys
+                analysis_step_id = 'step_analysis'
                 analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
                 current_analysis_slug = ''
 
@@ -1176,10 +1176,10 @@ class BotifyQuadfectaWorkflow:
 
             return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
-    async def step_GSC_submit(self, request):
+    async def step_gsc_submit(self, request):
         """Process the check for Botify Search Console data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_GSC'
+        step_id = 'step_gsc'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1221,7 +1221,7 @@ class BotifyQuadfectaWorkflow:
             )
 
         # Handle normal download action
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -1244,15 +1244,15 @@ class BotifyQuadfectaWorkflow:
             id=step_id
         )
 
-    async def step_GSC_complete(self, request):
+    async def step_gsc_complete(self, request):
         """Handles completion after the progress indicator has been shown."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_GSC'
+        step_id = 'step_gsc'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -1260,7 +1260,7 @@ class BotifyQuadfectaWorkflow:
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
-        analysis_step_id = 'step_analysisSLUG'
+        analysis_step_id = 'step_analysis'
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
         if not analysis_data_str:
@@ -1321,13 +1321,13 @@ class BotifyQuadfectaWorkflow:
             )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
-            logging.exception(f'Error in step_GSC_complete: {e}')
+            logging.exception(f'Error in step_gsc_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
-    async def step_GSC(self, request):
+    async def step_gsc(self, request):
         """Handles GET request for checking if a Botify project has Search Console data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_GSC'
+        step_id = 'step_gsc'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1336,7 +1336,7 @@ class BotifyQuadfectaWorkflow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         check_result_str = step_data.get(step.done, '')
         check_result = json.loads(check_result_str) if check_result_str else {}
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -1372,11 +1372,11 @@ class BotifyQuadfectaWorkflow:
             gsc_template = self.get_configured_template('gsc')
 
             # Check if GSC data is cached for the CURRENT analysis
-            # Use the same logic as step_analysisSLUG to get the current analysis
+            # Use the same logic as step_analysis to get the current analysis
             is_cached = False
             try:
-                # Get the current analysis from step_analysisSLUG data - try multiple possible keys
-                analysis_step_id = 'step_analysisSLUG'
+                # Get the current analysis from step_analysis data - try multiple possible keys
+                analysis_step_id = 'step_analysis'
                 analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
                 current_analysis_slug = ''
 
@@ -1432,10 +1432,10 @@ class BotifyQuadfectaWorkflow:
 
             return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
-    async def step_GSC_submit(self, request):
+    async def step_gsc_submit(self, request):
         """Process the check for Botify Search Console data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_GSC'
+        step_id = 'step_gsc'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1477,7 +1477,7 @@ class BotifyQuadfectaWorkflow:
             )
 
         # Handle normal download action
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -2366,13 +2366,13 @@ await main()
         2. data_type='crawl': BQLv2 with collections for crawl analysis
         3. data_type='weblog': BQLv2 with periods for web logs (NEWER structure)
 
-        IMPORTANT: The weblog structure here is DIFFERENT from step_webLOGS_process!
+        IMPORTANT: The weblog structure here is DIFFERENT from step_webogs_process!
         - build_exports creates: BQLv2 with periods in query.periods
-        - step_webLOGS_process creates: BQLv1 with date_start/date_end at payload level
+        - step_webogs_process creates: BQLv1 with date_start/date_end at payload level
 
         This dual structure exists because:
         - build_exports follows modern BQLv2 patterns
-        - step_webLOGS_process uses legacy BQLv1 patterns that actually work
+        - step_webogs_process uses legacy BQLv1 patterns that actually work
         - Both must be supported for backward compatibility
 
         The conversion logic in _convert_bqlv1_to_query handles both patterns.
@@ -2796,10 +2796,10 @@ await main()
         await self.message_queue.add(self.pipulate, f'⚠️ {max_attempts_msg}', verbatim=True)
         return (False, 'Maximum polling attempts reached. The export job may still complete in the background.')
 
-    async def step_analysisSLUG_process(self, request):
+    async def step_analysis_process(self, request):
         """Process the actual download after showing the progress indicator."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_analysisSLUG'
+        step_id = 'step_analysis'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -3117,13 +3117,13 @@ await main()
             )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Analysis {status_text}{download_message}', widget=widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
-            logging.exception(f'Error in step_analysisSLUG_process: {e}')
+            logging.exception(f'Error in step_analysis_process: {e}')
             return P(f'Error: {str(e)}', style=pip.get_style('error'))
 
-    async def step_webLOGS_process(self, request):
+    async def step_webogs_process(self, request):
         """Process the web logs check and download if available."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_webLOGS'
+        step_id = 'step_webogs'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -3385,7 +3385,7 @@ await main()
             )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} web logs{download_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
-            logging.exception(f'Error in step_webLOGS_process: {e}')
+            logging.exception(f'Error in step_webogs_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
 
@@ -3562,7 +3562,7 @@ await main()
         The Botify API has evolved from BQLv1 to BQLv2, but BOTH patterns coexist in the same codebase.
         This method must handle TWO different payload structures for the SAME job_type ('logs_urls_export'):
 
-        LEGACY BQLv1 Structure (used by step_webLOGS_process):
+        LEGACY BQLv1 Structure (used by step_webogs_process):
         {
             'job_type': 'logs_urls_export',
             'payload': {
@@ -3589,7 +3589,7 @@ await main()
         }
 
         PAINFUL LESSON: The date extraction logic MUST check payload level FIRST because:
-        1. The actual workflow (step_webLOGS_process) uses BQLv1 structure
+        1. The actual workflow (step_webogs_process) uses BQLv1 structure
         2. Looking for 'periods' first will fail for real payloads
         3. Missing dates = broken URLs = 404 errors
 
@@ -3621,8 +3621,8 @@ await main()
         start_date = ""
         end_date = ""
 
-        # CRITICAL: Check payload level FIRST - this is the actual BQLv1 structure used by step_webLOGS_process
-        # The step_webLOGS_process method generates payloads with 'date_start'/'date_end' at payload level
+        # CRITICAL: Check payload level FIRST - this is the actual BQLv1 structure used by step_webogs_process
+        # The step_webogs_process method generates payloads with 'date_start'/'date_end' at payload level
         if 'date_start' in payload and 'date_end' in payload:
             # Convert from YYYY-MM-DD to YYYYMMDD format for the endpoint
             start_date = payload['date_start'].replace("-", "")
@@ -4258,7 +4258,7 @@ await main()
 
         # Determine the expected filename based on step and export type
         expected_filename = None
-        if step_id == 'step_analysisSLUG':
+        if step_id == 'step_analysis':
             # For crawl data, determine filename based on active template's export type
             active_crawl_template_key = self.get_configured_template('crawl')
             active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
@@ -4270,11 +4270,11 @@ await main()
                 'link_graph_edges': 'link_graph.csv'
             }
             expected_filename = filename_mapping.get(export_type, 'crawl.csv')
-        elif step_id == 'step_webLOGS':
+        elif step_id == 'step_webogs':
             expected_filename = 'weblog.csv'
-        elif step_id == 'step_GSC':
+        elif step_id == 'step_gsc':
             expected_filename = 'gsc.csv'
-        elif step_id == 'step_GA':
+        elif step_id == 'step_ga':
             expected_filename = 'ga.csv'
 
         # Check if download was successful and try to find the file
@@ -4378,15 +4378,15 @@ await main()
         return buttons
 
 
-    async def step_GA_complete(self, request):
+    async def step_ga_complete(self, request):
         """Handles completion after the progress indicator has been shown."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_GA'
+        step_id = 'step_ga'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
-        prev_step_id = 'step_analysisSLUG'
+        prev_step_id = 'step_analysis'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         analysis_data_str = prev_step_data.get('analysis_selection', '')
         if not analysis_data_str:
@@ -4395,7 +4395,7 @@ await main()
         analysis_slug = analysis_data.get('analysis_slug', '')
         
         # Get project data
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -4459,13 +4459,13 @@ await main()
             )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
-            logging.exception(f'Error in step_GA_complete: {e}')
+            logging.exception(f'Error in step_ga_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
-    async def step_GA(self, request):
+    async def step_ga(self, request):
         """Handles GET request for checking if a Botify project has Google Analytics data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_GA'
+        step_id = 'step_ga'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -4474,7 +4474,7 @@ await main()
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         check_result_str = step_data.get(step.done, '')
         check_result = json.loads(check_result_str) if check_result_str else {}
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -4510,11 +4510,11 @@ await main()
             gsc_template = self.get_configured_template('ga')
 
             # Check if GSC data is cached for the CURRENT analysis
-            # Use the same logic as step_analysisSLUG to get the current analysis
+            # Use the same logic as step_analysis to get the current analysis
             is_cached = False
             try:
-                # Get the current analysis from step_analysisSLUG data - try multiple possible keys
-                analysis_step_id = 'step_analysisSLUG'
+                # Get the current analysis from step_analysis data - try multiple possible keys
+                analysis_step_id = 'step_analysis'
                 analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
                 current_analysis_slug = ''
 
@@ -4570,10 +4570,10 @@ await main()
 
             return Div(Card(H3(f'{step.show}'), P(f"Download Google Analytics data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
-    async def step_GA_submit(self, request):
+    async def step_ga_submit(self, request):
         """Process the check for Botify Google Analytics data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_GA'
+        step_id = 'step_ga'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -4615,7 +4615,7 @@ await main()
             )
 
         # Handle normal download action
-        prev_step_id = 'step_projectURL'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
