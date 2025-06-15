@@ -36,8 +36,8 @@ FILES_TO_INCLUDE_RAW = """\
 # README.md        <-- Main GitHub README sets the tone
 # flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt <-- Python package dependencies for the project
-# server.py        <-- Main server file for the project
-# /home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
+server.py        <-- Main server file for the project
+/home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
 .gitignore
 # /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
 # /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
@@ -58,11 +58,11 @@ requirements.txt <-- Python package dependencies for the project
 # /home/mike/repos/pipulate/plugins/060_tasks.py     <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
 ## HELPER SCRIPTS (Why WET can work)
-# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py       <-- The templating plugin that creates new workflows from scratch
-# /home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 900_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 900_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/manage_class_attributes.py  <-- The script that manages class attributes (copies 900_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/swap_workflow_step.py       <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
+/home/mike/repos/pipulate/plugins/310_workflow_genesis.py       <-- The templating plugin that creates new workflows from scratch
+/home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 900_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 900_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/manage_class_attributes.py  <-- The script that manages class attributes (copies 900_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/swap_workflow_step.py       <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
 # /home/mike/repos/pipulate/helpers/prompt_foo.py               <-- This script (used to generate the manifest)
 
 ## CUSTOM STATIC RESOURCES (Supporting characters)
@@ -100,7 +100,7 @@ requirements.txt <-- Python package dependencies for the project
 
 # THE BIG BOTIFY WORKFLOWS (Often, the main event)
 /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
-/home/mike/repos/pipulate/plugins/120_link_graph.py
+# /home/mike/repos/pipulate/plugins/120_link_graph.py
 # /home/mike/repos/pipulate/plugins/110_parameter_buster.py
 
 ## MOST OTHER PLUGINS (Swap-in's for Blank Placeholder)
