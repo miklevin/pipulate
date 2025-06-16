@@ -3746,10 +3746,10 @@ await main()
                 # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
                 if step_context == 'step_foobar_basic':
-                    edges_template = self.get_configured_template('foobar_basic')
+                    foobar_basic_template = self.get_configured_template('foobar_basic')
                 else:
-                    edges_template = self.get_configured_template('edges')
-                template_query = self.apply_template(edges_template, collection)
+                    analysis_template = self.get_configured_template('analysis')
+                template_query = self.apply_template(analysis_template, collection)
 
                 # Apply dynamic parameter substitution if needed
                 if placeholder_for_dynamic_param and dynamic_param_value is not None:
@@ -3787,10 +3787,10 @@ await main()
                 # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
                 if step_context == 'step_foobar_basic':
-                    edges_template = self.get_configured_template('foobar_basic')
+                    foobar_basic_template = self.get_configured_template('foobar_basic')
                 else:
-                    edges_template = self.get_configured_template('edges')
-                template_query = self.apply_template(edges_template, collection)
+                    analysis_template = self.get_configured_template('analysis')
+                template_query = self.apply_template(analysis_template, collection)
 
                 # Apply dynamic parameter substitution if needed
                 if placeholder_for_dynamic_param and dynamic_param_value is not None:
@@ -3939,8 +3939,8 @@ await main()
                                 df = pd.read_csv(crawl_filepath)
 
                                 # Apply appropriate column names based on export type
-                                active_edges_template_key = self.get_configured_template('edges')
-                                active_template_details = self.QUERY_TEMPLATES.get(active_edges_template_key, {})
+                                active_analysis_template_key = self.get_configured_template('analysis')
+                                active_template_details = self.QUERY_TEMPLATES.get(active_analysis_template_key, {})
                                 export_type = active_template_details.get('export_type', 'crawl_attributes')
 
                                 if export_type == 'link_graph_edges':
@@ -4381,8 +4381,8 @@ await main()
             'step_webogs': ('weblog', 'weblog', 'Web Logs'),  # Web logs not templated
         }
         
-        # Return mapping or default to edges (analysis step)
-        return step_mappings.get(step_context, ('edges', 'crawl_attributes', 'Data'))
+        # Return mapping or default to analysis (analysis step)
+        return step_mappings.get(step_context, ('analysis', 'crawl_attributes', 'Data'))
 
     async def update_button_text(self, request):
         """Update button text dynamically based on selected analysis."""
@@ -4651,8 +4651,8 @@ await main()
         # Try to extract template information from the jobs payload
         try:
             # Get the configured template for the current data type
-            edges_template = self.get_configured_template('edges')
-            template_info = self.QUERY_TEMPLATES.get(edges_template, {})
+            analysis_template = self.get_configured_template('analysis')
+            template_info = self.QUERY_TEMPLATES.get(analysis_template, {})
 
             if template_info:
                 header_lines.append("#")
@@ -5212,8 +5212,8 @@ await main()
         expected_filename = None
         if step_id == 'step_analysis':
             # For crawl data, determine filename based on active template's export type
-            active_edges_template_key = self.get_configured_template('edges')
-            active_template_details = self.QUERY_TEMPLATES.get(active_edges_template_key, {})
+            active_analysis_template_key = self.get_configured_template('analysis')
+            active_template_details = self.QUERY_TEMPLATES.get(active_analysis_template_key, {})
             export_type = active_template_details.get('export_type', 'crawl_attributes')
 
             # Use the same mapping as get_deterministic_filepath
