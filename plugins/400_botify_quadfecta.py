@@ -811,12 +811,53 @@ class BotifyQuadfectaWorkflow:
         analysis_slug = form.get('analysis_slug', '').strip()
         if not analysis_slug:
             return P('Error: No analysis selected', style=pip.get_style('error'))
-        await self.message_queue.add(pip, f'📊 Selected analysis: {analysis_slug}. Starting crawl data download...', verbatim=True)
-
         # Get active template details and check for qualifier config
         active_crawl_template_key = self.get_configured_template('crawl')
         active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
         qualifier_config = active_template_details.get('qualifier_config', {'enabled': False})
+        export_type = active_template_details.get('export_type', 'crawl_attributes')
+
+        # Check for cached file first (performance optimization)
+        try:
+            exists, file_info = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, export_type)
+            if exists:
+                # File is cached - return immediately with completion widget
+                analysis_result = {
+                    'analysis_slug': analysis_slug,
+                    'project': project_name,
+                    'username': username,
+                    'timestamp': datetime.now().isoformat(),
+                    'download_started': False,  # Cached, no download needed
+                    'cached': True,
+                    'file_info': file_info,
+                    'export_type': export_type
+                }
+                analysis_result_str = json.dumps(analysis_result)
+                await pip.set_step_data(pipeline_id, step_id, analysis_result_str, steps)
+                
+                # Create completion widget immediately
+                completed_message = f"Using cached crawl data ({file_info['size']})"
+                widget = Div(
+                    P(f"✅ {completed_message}", style="color: green; font-weight: bold;"),
+                    P(f"File: {file_info['path']}", style="font-size: 0.9em; color: #666;")
+                )
+                
+                return Div(
+                    pip.display_revert_widget(
+                        step_id=step_id, 
+                        app_name=app_name, 
+                        message=f'{step.show}: {completed_message}', 
+                        widget=widget, 
+                        steps=steps
+                    ), 
+                    Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), 
+                    id=step_id
+                )
+        except Exception as e:
+            # Cache check failed, continue with download
+            pass
+
+        await self.message_queue.add(pip, f'📊 Selected analysis: {analysis_slug}. Starting crawl data download...', verbatim=True)
 
         analysis_result = {
             'analysis_slug': analysis_slug,
@@ -824,7 +865,7 @@ class BotifyQuadfectaWorkflow:
             'username': username,
             'timestamp': datetime.now().isoformat(),
             'download_started': True,
-            'export_type': active_template_details.get('export_type', 'crawl_attributes')
+            'export_type': export_type
         }
 
         # Execute qualifier logic if enabled
