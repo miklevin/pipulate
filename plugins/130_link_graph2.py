@@ -5044,77 +5044,341 @@ await main()
 
 
     # --- START_STEP_BUNDLE: step_03 ---
-    async def step_03(self, request):
-        """Handles GET request for Placeholder Step 3 (Edit Me)."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
+    async def step_crawl_basic(self, request):
+        """Handles GET request for checking if a Botify project has Search Console data."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_crawl_basic'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        # Determine next_step_id dynamically based on runtime position in steps list
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step.done, "") # 'step.done' will be like 'placeholder_03'
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-    
-        if "finalized" in finalize_data and current_value:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{current_value}")
-            return Div(
-                Card(H3(f"🔒 {step.show}: Completed")),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        elif current_value and state.get("_revert_target") != step_id:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{current_value}")
-            return Div(
-                pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        else:
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("This is a new placeholder step. Customize its input form as needed. Click Proceed to continue."),
-                    Form(
-                        # Example: Hidden input to submit something for the placeholder
-                        Input(type="hidden", name=step.done, value="Placeholder Value for Placeholder Step 3 (Edit Me)"),
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
-                    )
+        check_result_str = step_data.get(step.done, '')
+        check_result = json.loads(check_result_str) if check_result_str else {}
+        prev_step_id = 'step_project'
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get('botify_project', '')
+        if not prev_data_str:
+            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get('project_name', '')
+        username = project_data.get('username', '')
+        if check_result and state.get('_revert_target') != step_id:
+            has_search_console = check_result.get('has_search_console', False)
+            status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
+            status_color = 'green' if has_search_console else 'red'
+            action_buttons = self._create_action_buttons(check_result, step_id)
+
+            widget = Div(
+                Div(
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
-                Div(id=next_step_id), # Placeholder for next step, no trigger here
-                id=step_id
+                Div(
+                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
+                    id=f'{step_id}_widget'
+                )
             )
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        else:
+            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            gsc_template = self.get_configured_template('gsc')
 
+            # Check if GSC data is cached for the CURRENT analysis
+            # Use the same logic as step_analysis to get the current analysis
+            is_cached = False
+            try:
+                # Get the current analysis from step_analysis data - try multiple possible keys
+                analysis_step_id = 'step_analysis'
+                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+                current_analysis_slug = ''
 
-    async def step_03_submit(self, request):
-        """Process the submission for Placeholder Step 3 (Edit Me)."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
+                # Try to get analysis_slug from the stored data
+                if analysis_step_data:
+                    # Try the 'analysis_selection' key first
+                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
+                    if analysis_data_str:
+                        try:
+                            analysis_data = json.loads(analysis_data_str)
+                            current_analysis_slug = analysis_data.get('analysis_slug', '')
+                        except (json.JSONDecodeError, AttributeError):
+                            pass
+
+                    # If that didn't work, try looking for analysis_slug directly
+                    if not current_analysis_slug and isinstance(analysis_step_data, dict):
+                        for key, value in analysis_step_data.items():
+                            if isinstance(value, str) and value.startswith('20'):
+                                # Looks like an analysis slug (starts with year)
+                                current_analysis_slug = value
+                                break
+                            elif isinstance(value, str):
+                                try:
+                                    data = json.loads(value)
+                                    if isinstance(data, dict) and 'analysis_slug' in data:
+                                        current_analysis_slug = data['analysis_slug']
+                                        break
+                                except (json.JSONDecodeError, AttributeError):
+                                    continue
+
+                # Only check for cached files if we found an analysis slug
+                if current_analysis_slug:
+                    gsc_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/gsc.csv"
+                    is_cached = os.path.exists(gsc_path)
+            except Exception:
+                is_cached = False
+
+            button_text = f'Use Cached Search Console: {gsc_template} ▸' if is_cached else f'Download Search Console: {gsc_template} ▸'
+
+            # Create button row with conditional skip button
+            button_row_items = [
+                Button(button_text, type='submit', name='action', value='download', cls='primary',
+                       **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
+            ]
+
+            # Add skip button if enabled in config
+            if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
+                button_row_items.append(
+                    Button(self.ui['BUTTON_LABELS']['SKIP_STEP'],
+                           type='submit', name='action', value='skip', cls='secondary outline',
+                           style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
+                )
+
+            return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+
+    async def step_crawl_basic_submit(self, request):
+        """Process the check for Botify Search Console data."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_crawl_basic'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-        
-        form_data = await request.form()
-        # For a placeholder, get value from the hidden input or use a default
-        value_to_save = form_data.get(step.done, f"Default value for {step.show}") 
-        await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
-        
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{value_to_save}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-        
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        return Div(
-            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+
+        # Check if user clicked skip button
+        form = await request.form()
+        action = form.get('action', 'download')  # Default to download for backward compatibility
+
+        if action == 'skip':
+            # Handle skip action - create fake completion data and proceed to next step
+            await self.message_queue.add(pip, f"⏭️ Skipping Search Console download...", verbatim=True)
+
+            # Create skip data that indicates step was skipped
+            skip_result = {
+                'has_search_console': False,
+                'skipped': True,
+                'skip_reason': 'User chose to skip Search Console download',
+                'download_complete': False,
+                'file_path': None,
+                'raw_python_code': '',
+                'query_python_code': '',
+                'jobs_payload': {}
+            }
+
+            await pip.set_step_data(pipeline_id, step_id, json.dumps(skip_result), steps)
+            await self.message_queue.add(pip, f"⏭️ Search Console step skipped. Proceeding to next step.", verbatim=True)
+
+            return Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f'{step.show}: Skipped',
+                    widget=Div(P('This step was skipped.', style='color: #888; font-style: italic;')),
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+
+        # Handle normal download action
+        prev_step_id = 'step_project'
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get('botify_project', '')
+        if not prev_data_str:
+            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get('project_name', '')
+        username = project_data.get('username', '')
+
+        # Get analysis slug from step_analysis data
+        analysis_step_id = 'step_analysis'
+        analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+        analysis_slug = ''
+        if analysis_step_data:
+            analysis_data_str = analysis_step_data.get('analysis_selection', '')
+            if analysis_data_str:
+                try:
+                    analysis_data = json.loads(analysis_data_str)
+                    analysis_slug = analysis_data.get('analysis_slug', '')
+                except (json.JSONDecodeError, AttributeError):
+                    pass
+
+        if not analysis_slug:
+            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
+
+        # Check if GSC data is already cached
+        try:
+            is_cached, file_info = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'gsc_data')
+            
+            if is_cached and file_info:
+                # Use cached file - create immediate completion result
+                await self.message_queue.add(pip, f"✅ Using cached GSC data ({file_info['size']})...", verbatim=True)
+                
+                # Create cached result data
+                cached_result = {
+                    'has_search_console': True,
+                    'project': project_name,
+                    'username': username,
+                    'analysis_slug': analysis_slug,
+                    'timestamp': datetime.now().isoformat(),
+                    'download_complete': True,
+                    'file_path': file_info['path'],
+                    'file_size': file_info['size'],
+                    'cached': True,
+                    'raw_python_code': '',
+                    'query_python_code': '',
+                    'jobs_payload': {}
+                }
+                
+                # Store the cached result
+                await pip.set_step_data(pipeline_id, step_id, json.dumps(cached_result), steps)
+                
+                # Create completion widget
+                action_buttons = self._create_action_buttons(cached_result, step_id)
+                widget = Div(
+                    Div(
+                        Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                            cls=self.ui['BUTTON_STYLES']['STANDARD'],
+                            hx_get=f'/{app_name}/toggle?step_id={step_id}',
+                            hx_target=f'#{step_id}_widget',
+                            hx_swap='innerHTML'
+                        ),
+                        *action_buttons,
+                        style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
+                    ),
+                    Div(
+                        Pre(f'Status: Using cached GSC data ({file_info["size"]})', cls='code-block-container', style='color: green; display: none;'),
+                        id=f'{step_id}_widget'
+                    )
+                )
+                
+                return Div(
+                    pip.display_revert_widget(
+                        step_id=step_id,
+                        app_name=app_name,
+                        message=f'{step.show}: Using cached GSC data ({file_info["size"]})',
+                        widget=widget,
+                        steps=steps
+                    ),
+                    Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                    id=step_id
+                )
+                
+        except Exception as e:
+            # If cache check fails, proceed with download
+            await self.message_queue.add(pip, f"Cache check failed, proceeding with download: {str(e)}", verbatim=True)
+
+        # Proceed with download if not cached
+        return Card(
+            H3(f'{step.show}'),
+            P(f"Downloading Search Console data for '{project_name}'..."),
+            Progress(style='margin-top: 10px;'),
+            Script(f"""
+                setTimeout(function() {{
+                    htmx.ajax('POST', '/{app_name}/{step_id}_complete', {{
+                        target: '#{step_id}',
+                        values: {{ 'delay_complete': 'true' }}
+                    }});
+                }}, 1500);
+            """),
             id=step_id
         )
+
+    async def step_crawl_basic_complete(self, request):
+        """Handles completion after the progress indicator has been shown."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_crawl_basic'
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        prev_step_id = 'step_project'
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get('botify_project', '')
+        if not prev_data_str:
+            return P('Error: Project data not found.', style=pip.get_style('error'))
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get('project_name', '')
+        username = project_data.get('username', '')
+        analysis_step_id = 'step_analysis'
+        analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+        analysis_data_str = analysis_step_data.get('analysis_selection', '')
+        if not analysis_data_str:
+            return P('Error: Analysis data not found.', style=pip.get_style('error'))
+        analysis_data = json.loads(analysis_data_str)
+        analysis_slug = analysis_data.get('analysis_slug', '')
+        try:
+            has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
+            if error_message:
+                return Div(P(f'Error: {error_message}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
+            if has_search_console:
+                await self.message_queue.add(pip, f'✅ Project has Search Console data, downloading...', verbatim=True)
+                await self.process_search_console_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
+            else:
+                await self.message_queue.add(pip, f'Project does not have Search Console data (skipping download)', verbatim=True)
+                
+                # Generate Python debugging code even when no GSC data (for educational purposes)
+                try:
+                    analysis_date_obj = datetime.strptime(analysis_slug, '%Y%m%d')
+                    start_date = analysis_date_obj.strftime('%Y-%m-%d')
+                    end_date = (analysis_date_obj + timedelta(days=6)).strftime('%Y-%m-%d')
+                    
+                    # Create example GSC export payload for educational purposes
+                    gsc_template = self.get_configured_template('gsc')
+                    example_export_payload = await self.build_exports(
+                        username, project_name, analysis_slug, 'gsc_data', start_date, end_date
+                    )
+                    
+                    # Generate Python code for debugging
+                    _, _, python_command = self.generate_query_api_call(example_export_payload, username, project_name)
+                    check_result['python_command'] = python_command
+                except Exception as e:
+                    # Fallback to basic example if generation fails
+                    check_result['python_command'] = f'# Example GSC query for {project_name} (no GSC data available)\n# This project does not have Search Console data integrated.'
+                
+                check_result_str = json.dumps(check_result)
+                await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
+            status_text = 'HAS' if has_search_console else 'does NOT have'
+            completed_message = 'Data downloaded successfully' if has_search_console else 'No Search Console data available'
+            action_buttons = self._create_action_buttons(check_result, step_id)
+
+            widget = Div(
+                Div(
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
+                ),
+                Div(
+                    Pre(f'Status: Project {status_text} Search Console data', cls='code-block-container', style=f'color: {"green" if has_search_console else "red"}; display: none;'),
+                    id=f'{step_id}_widget'
+                )
+            )
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        except Exception as e:
+            logging.exception(f'Error in step_gsc_complete: {e}')
+            return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
     # --- END_STEP_BUNDLE: step_03 ---
 
 
