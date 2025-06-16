@@ -5279,9 +5279,9 @@ await main()
             }
             expected_filename = filename_mapping.get(export_type, 'crawl.csv')
         elif step_id == 'step_crawler':
-            # For basic crawl data, determine filename based on foobar_basic template's export type
-            active_foobar_basic_template_key = self.get_configured_template('foobar_basic')
-            active_template_details = self.QUERY_TEMPLATES.get(active_foobar_basic_template_key, {})
+            # For basic crawl data, determine filename based on crawler template's export type
+            active_crawler_template_key = self.get_configured_template('crawler')
+            active_template_details = self.QUERY_TEMPLATES.get(active_crawler_template_key, {})
             export_type = active_template_details.get('export_type', 'crawl_attributes')
 
             # Use the same mapping as get_deterministic_filepath
