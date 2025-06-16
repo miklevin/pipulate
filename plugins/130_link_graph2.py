@@ -424,6 +424,18 @@ class LinkGraph2:
         """Get the configured template for a specific data type."""
         return self.TEMPLATE_CONFIG.get(data_type)
     
+    def _should_include_crawler_step(self, analysis_template):
+        """Determine if crawler step should be included based on analysis template.
+        
+        Args:
+            analysis_template: The template name for the analysis step
+            
+        Returns:
+            bool: True if crawler step should be included, False otherwise
+        """
+        # Include crawler step only for Link Graph Edges (needs node enrichment)
+        return analysis_template == 'Link Graph Edges'
+    
     def get_export_type_for_template_config(self, template_config_key):
         """Get the export type for a given template configuration key.
         
