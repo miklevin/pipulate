@@ -4421,7 +4421,7 @@ await main()
                 button_suffix = fallback_suffix
             
             # Check if files are cached for the selected analysis
-            is_cached, file_info = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, export_type)
+            is_cached, file_info = await self.check_cached_file_for_template_config(username, project_name, analysis_slug, template_config_key)
             
             button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
                 
