@@ -377,7 +377,7 @@ class LinkGraph2:
         steps = [
             Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True),
             Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {analysis_template}', refill=False),
-            Step(id='step_foobar_basic', done='foobar_basic_data', show='Download Crawl: Basic', refill=False,),
+            Step(id='step_crawler', done='foobar_basic_data', show='Download Crawl: Basic', refill=False,),
             Step(id='step_webogs', done='weblogs_check', show='Download Web Logs', refill=False),
             Step(id='step_gsc', done='search_console_check', show=f'Download GSC: {gsc_template}', refill=False),
             Step(id='step_ga', done='ga_check', show=f'Download GA: {ga_template}', refill=False),
@@ -395,7 +395,7 @@ class LinkGraph2:
         app.route(f'/{app_name}/step_analysis_process', methods=['POST'])(self.step_analysis_process)
         app.route(f'/{app_name}/step_webogs_process', methods=['POST'])(self.step_webogs_process)
         app.route(f'/{app_name}/step_webogs_complete', methods=['POST'])(self.step_webogs_complete)
-        app.route(f'/{app_name}/step_foobar_basic_complete', methods=['POST'])(self.step_foobar_basic_complete)
+        app.route(f'/{app_name}/step_crawler_complete', methods=['POST'])(self.step_crawler_complete)
         app.route(f'/{app_name}/step_gsc_complete', methods=['POST'])(self.step_gsc_complete)
         app.route(f'/{app_name}/step_ga_complete', methods=['POST'])(self.step_ga_complete)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
@@ -407,7 +407,7 @@ class LinkGraph2:
                 self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
         self.step_messages['step_gsc'] = {'input': f"❔{pip.fmt('step_gsc')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
         self.step_messages['step_ga'] = {'input': f"❔{pip.fmt('step_ga')}: Please check if the project has Google Analytics data.", 'complete': 'Google Analytics check complete. Ready to finalize.'}
-        self.step_messages['step_foobar_basic'] = {'input': f"❔{pip.fmt('step_foobar_basic')}: Please download basic crawl attributes for node metadata.", 'complete': '📊 Basic crawl data download complete. Continue to next step.'}
+        self.step_messages['step_crawler'] = {'input': f"❔{pip.fmt('step_crawler')}: Please download basic crawl attributes for node metadata.", 'complete': '📊 Basic crawl data download complete. Continue to next step.'}
         self.step_messages['step_webogs'] = {'input': f"❔{pip.fmt('step_webogs')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
         self.step_messages['step_ga'] = {'input': f"❔{pip.fmt('step_ga')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
 
@@ -964,10 +964,10 @@ class LinkGraph2:
             id=step_id
         )
 
-    async def step_foobar_basic(self, request):
+    async def step_crawler(self, request):
         """Handles GET request for basic crawl data download step."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_foobar_basic'
+        step_id = 'step_crawler'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1072,10 +1072,10 @@ class LinkGraph2:
 
             return Div(Card(H3(f'{step.show}'), P(f"Download basic crawl data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
-    async def step_foobar_basic_submit(self, request):
+    async def step_crawler_submit(self, request):
         """Process the basic crawl data download submission."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_foobar_basic'
+        step_id = 'step_crawler'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1219,10 +1219,10 @@ class LinkGraph2:
             id=step_id
         )
 
-    async def step_foobar_basic_complete(self, request):
+    async def step_crawler_complete(self, request):
         """Handles completion of basic crawl data step - delegates to step_analysis_process."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_foobar_basic'
+        step_id = 'step_crawler'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1267,7 +1267,7 @@ class LinkGraph2:
             mock_request = MockRequest(fake_form_data)
             
             # Call step_analysis_process with our context
-            result = await self.step_analysis_process(mock_request, step_context='step_foobar_basic')
+            result = await self.step_analysis_process(mock_request, step_context='step_crawler')
             
             # The result should be the completed step widget, but we need to adapt it for our step_id
             # and update the data storage to use our step's done key
@@ -1279,7 +1279,7 @@ class LinkGraph2:
                 'username': username,
                 'analysis_slug': analysis_slug,
                 'timestamp': datetime.now().isoformat(),
-                'step_context': 'step_foobar_basic'
+                'step_context': 'step_crawler'
             }
             
             await pip.set_step_data(pipeline_id, step_id, json.dumps(check_result), steps)
@@ -1287,7 +1287,7 @@ class LinkGraph2:
             return result
             
         except Exception as e:
-            logging.exception(f'Error in step_foobar_basic_complete: {e}')
+            logging.exception(f'Error in step_crawler_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_webogs(self, request):
@@ -3719,7 +3719,7 @@ await main()
         # Get export_type from current template configuration (for cache detection)
         # This ensures cache works even before the step data is fully stored
         # Use different template based on step_context
-        if step_context == 'step_foobar_basic':
+        if step_context == 'step_crawler':
             active_analysis_template_key = self.get_configured_template('foobar_basic')
         else:
             active_analysis_template_key = self.get_configured_template('analysis')
@@ -3745,7 +3745,7 @@ await main()
                 period_end = analysis_date_obj.strftime('%Y-%m-%d')
                 # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
-                if step_context == 'step_foobar_basic':
+                if step_context == 'step_crawler':
                     foobar_basic_template = self.get_configured_template('foobar_basic')
                 else:
                     analysis_template = self.get_configured_template('analysis')
@@ -3786,7 +3786,7 @@ await main()
                 period_end = analysis_date_obj.strftime('%Y-%m-%d')
                 # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
-                if step_context == 'step_foobar_basic':
+                if step_context == 'step_crawler':
                     foobar_basic_template = self.get_configured_template('foobar_basic')
                 else:
                     analysis_template = self.get_configured_template('analysis')
@@ -5222,7 +5222,7 @@ await main()
                 'link_graph_edges': 'link_graph.csv'
             }
             expected_filename = filename_mapping.get(export_type, 'crawl.csv')
-        elif step_id == 'step_foobar_basic':
+        elif step_id == 'step_crawler':
             # For basic crawl data, determine filename based on foobar_basic template's export type
             active_foobar_basic_template_key = self.get_configured_template('foobar_basic')
             active_template_details = self.QUERY_TEMPLATES.get(active_foobar_basic_template_key, {})
