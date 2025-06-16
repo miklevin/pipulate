@@ -436,6 +436,38 @@ class LinkGraph2:
         # Include crawler step only for Link Graph Edges (needs node enrichment)
         return analysis_template == 'Link Graph Edges'
     
+    def _build_dynamic_steps(self):
+        """Build the steps list dynamically based on template configuration.
+        
+        Returns:
+            list: List of Step namedtuples for the workflow
+        """
+        # Build step names dynamically based on template configuration
+        analysis_template = self.get_configured_template('analysis')
+        crawler_template = self.get_configured_template('crawler')
+        gsc_template = self.get_configured_template('gsc')
+        ga_template = self.get_configured_template('ga')
+
+        # Base steps that are always present
+        steps = [
+            Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True),
+            Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {analysis_template}', refill=False),
+        ]
+        
+        # Conditionally add crawler step based on analysis template
+        if self._should_include_crawler_step(analysis_template):
+            steps.append(Step(id='step_crawler', done='crawler_basic', show=f'Download Crawl: {crawler_template}', refill=False))
+        
+        # Continue with remaining steps
+        steps.extend([
+            Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False),
+            Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False),
+            Step(id='step_ga', done='ga', show=f'Download Google Analytics: {ga_template}', refill=False),
+            Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)
+        ])
+        
+        return steps
+    
     def get_export_type_for_template_config(self, template_config_key):
         """Get the export type for a given template configuration key.
         
