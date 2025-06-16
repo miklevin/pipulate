@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DevAssistant completion button transformed to restart pattern for keyless utility workflow
 
 ### Fixed
+- New Analysis button not working due to incorrect Form wrapper structure
 - Critical syntax error in 320_dev_assistant.py preventing server startup
 
 ---
@@ -118,6 +119,28 @@ for plugin analysis while maintaining the explicit, debuggable nature
 that makes WET patterns effective for complex development workflows.
 
 **Commit:** `8e62277`
+
+#### New Analysis button not working - remove Form wrapper and add proper HTMX attributes
+
+**PROBLEM ADDRESSED:**
+New Analysis button was non-functional due to incorrect HTML structure with Form wrapper containing HTMX attributes instead of button.
+
+**ROOT CAUSE:**
+Button was wrapped in Form element with HTMX attributes on Form rather than Button, preventing proper HTMX trigger execution.
+
+**SOLUTION IMPLEMENTED:**
+- Removed Form wrapper around button
+- Moved HTMX attributes (hx-get, hx-target) directly to Button element
+- Added proper styling with margin-top for visual spacing
+- Transformed Form(Button()) structure to direct Button with HTMX attributes
+
+**UX RESTORATION:**
+New Analysis button now properly triggers step_01 reload, enabling continuous plugin analysis workflow without page refresh.
+
+**VALIDATION:**
+Server responds correctly, button triggers HTMX request to restart analysis process as intended for keyless utility pattern.
+
+**COMMIT:** `cd26792`
 
 ---
 
