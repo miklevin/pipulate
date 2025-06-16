@@ -855,7 +855,8 @@ class WorkflowGenesis:
                 ),
 
                 P("Ready to create your workflow and restart the server?", style="color: #e9ecef; margin-bottom: 1rem;"),
-                Button('🚀 Execute & Restart Server', type='submit', cls='primary'),
+                Button('🚀 Execute & Restart Server', type='submit', cls='primary', 
+                       **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Execute & Restart Server"'}),
                 hx_post=f'/{app_name}/{step_id}_submit',
                 hx_target=f'#{step_id}'
             )
