@@ -858,11 +858,29 @@ class LinkGraph2:
                 analysis_result_str = json.dumps(analysis_result)
                 await pip.set_step_data(pipeline_id, step_id, analysis_result_str, steps)
                 
-                # Create completion widget immediately
+                # Create completion widget with action buttons
                 completed_message = f"Using cached crawl data ({file_info['size']})"
+                
+                # Prepare step_data for action buttons with download_complete flag
+                step_data_for_buttons = analysis_result.copy()
+                step_data_for_buttons['download_complete'] = True
+                action_buttons = self._create_action_buttons(step_data_for_buttons, step_id)
+
                 widget = Div(
-                    P(f"✅ {completed_message}", style="color: green; font-weight: bold;"),
-                    P(f"File: {file_info['path']}", style="font-size: 0.9em; color: #666;")
+                    Div(
+                        Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                            cls=self.ui['BUTTON_STYLES']['STANDARD'],
+                            hx_get=f'/{app_name}/toggle?step_id={step_id}',
+                            hx_target=f'#{step_id}_widget',
+                            hx_swap='innerHTML'
+                        ),
+                        *action_buttons,
+                        style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
+                    ),
+                    Div(
+                        Pre(f'Status: {completed_message}', cls='code-block-container', style='color: green; display: none;'),
+                        id=f'{step_id}_widget'
+                    )
                 )
                 
                 return Div(
