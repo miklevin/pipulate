@@ -4372,6 +4372,18 @@ await main()
                 'link_graph_edges': 'link_graph.csv'
             }
             expected_filename = filename_mapping.get(export_type, 'crawl.csv')
+        elif step_id == 'step_crawl_basic':
+            # For basic crawl data, determine filename based on crawl_basic template's export type
+            active_crawl_basic_template_key = self.get_configured_template('crawl_basic')
+            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_basic_template_key, {})
+            export_type = active_template_details.get('export_type', 'crawl_attributes')
+
+            # Use the same mapping as get_deterministic_filepath
+            filename_mapping = {
+                'crawl_attributes': 'crawl.csv',
+                'link_graph_edges': 'link_graph.csv'
+            }
+            expected_filename = filename_mapping.get(export_type, 'crawl.csv')
         elif step_id == 'step_webogs':
             expected_filename = 'weblog.csv'
         elif step_id == 'step_gsc':
