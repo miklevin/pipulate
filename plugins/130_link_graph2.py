@@ -302,7 +302,7 @@ class LinkGraph2:
     # without modifying the workflow logic.
     TEMPLATE_CONFIG = {
         'edges': 'Link Graph Edges',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
-        'crawler_basic': 'Crawl Basic',  # New basic crawl for node metadata
+        'crawler': 'Crawl Basic',  # New basic crawl for node metadata
         'gsc': 'GSC Performance',      # Options: 'GSC Performance'
         'ga': 'GA Performance'
     }
@@ -431,7 +431,7 @@ class LinkGraph2:
         that should be used for file naming and caching.
         
         Args:
-            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler_basic')
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler')
             
         Returns:
             String export type that can be used with get_filename_for_export_type()
@@ -2681,7 +2681,7 @@ class LinkGraph2:
             username: Organization username
             project_name: Project name
             analysis_slug: Analysis slug
-            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler_basic')
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler')
             
         Returns:
             String path to the file location
@@ -2730,7 +2730,7 @@ class LinkGraph2:
             username: Organization username
             project_name: Project name
             analysis_slug: Analysis slug
-            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler_basic')
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler')
             
         Returns:
             tuple: (exists: bool, file_info: dict|None)
@@ -4369,7 +4369,7 @@ await main()
         """Get template configuration key and fallbacks for a given step context.
         
         Args:
-            step_context: The step context string (e.g., 'step_ga', 'step_crawler_basic')
+            step_context: The step context string (e.g., 'step_ga', 'step_crawler')
             
         Returns:
             tuple: (template_config_key, fallback_export_type, fallback_suffix)
@@ -4377,7 +4377,7 @@ await main()
         step_mappings = {
             'step_ga': ('ga', 'ga_data', 'GA Data'),
             'step_gsc': ('gsc', 'gsc_data', 'GSC Data'),
-            'step_crawler_basic': ('crawler_basic', 'crawl_attributes', 'Basic Attributes'),
+            'step_crawler': ('crawler', 'crawl_attributes', 'Basic Attributes'),
             'step_webogs': ('weblog', 'weblog', 'Web Logs'),  # Web logs not templated
         }
         
