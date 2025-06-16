@@ -1630,11 +1630,11 @@ class DevAssistant:
                     )
                 ) if transplant_commands else None),
 
-                Form(
-                    Button('🔄 New Analysis', type='button', cls='secondary'),
-                    hx_get=f'/{app_name}/step_01',
-                    hx_target='#step_01'
-                ),
+                Button('🔄 New Analysis', 
+                       hx_get=f'/{app_name}/step_01',
+                       hx_target='#step_01',
+                       cls='secondary',
+                       style='margin-top: 1rem;'),
 
                 # Add Prism initialization script
                 Script(f"""
