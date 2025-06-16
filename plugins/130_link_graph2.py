@@ -5154,7 +5154,7 @@ await main()
             return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_crawl_basic_submit(self, request):
-        """Process the check for Botify Search Console data."""
+        """Process the basic crawl data download submission."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_crawl_basic'
         step_index = self.steps_indices[step_id]
@@ -5168,22 +5168,21 @@ await main()
 
         if action == 'skip':
             # Handle skip action - create fake completion data and proceed to next step
-            await self.message_queue.add(pip, f"⏭️ Skipping Search Console download...", verbatim=True)
+            await self.message_queue.add(pip, f"⏭️ Skipping basic crawl data download...", verbatim=True)
 
             # Create skip data that indicates step was skipped
             skip_result = {
-                'has_search_console': False,
+                'has_crawl_basic': False,
                 'skipped': True,
-                'skip_reason': 'User chose to skip Search Console download',
+                'skip_reason': 'User chose to skip basic crawl data download',
                 'download_complete': False,
                 'file_path': None,
-                'raw_python_code': '',
-                'query_python_code': '',
-                'jobs_payload': {}
+                'export_type': 'crawl_attributes',
+                'template_used': 'Crawl Basic'
             }
 
             await pip.set_step_data(pipeline_id, step_id, json.dumps(skip_result), steps)
-            await self.message_queue.add(pip, f"⏭️ Search Console step skipped. Proceeding to next step.", verbatim=True)
+            await self.message_queue.add(pip, f"⏭️ Basic crawl data step skipped. Proceeding to next step.", verbatim=True)
 
             return Div(
                 pip.display_revert_widget(
