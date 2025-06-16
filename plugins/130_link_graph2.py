@@ -368,25 +368,9 @@ class LinkGraph2:
         # Access centralized configuration through dependency injection
         self.ui = pip.get_ui_constants()
         self.config = pip.get_config()
-        # Build step names dynamically based on template configuration
-        analysis_template = self.get_configured_template('analysis')
-        foobar_basic_template = self.get_configured_template('foobar_basic')  # ← New template reference00
-        gsc_template = self.get_configured_template('gsc')
-        ga_template = self.get_configured_template('ga')
-
-        steps = [
-            Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True),
-            Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {analysis_template}', refill=False),
-            Step(id='step_crawler', done='foobar_basic_data', show='Download Crawl: Basic', refill=False,),
-            Step(id='step_webogs', done='weblogs_check', show='Download Web Logs', refill=False),
-            Step(id='step_gsc', done='search_console_check', show=f'Download GSC: {gsc_template}', refill=False),
-            Step(id='step_ga', done='ga_check', show=f'Download GA: {ga_template}', refill=False),
-            Step(id='step_01', done='placeholder_01', show='Placeholder Step 1 (Edit Me)', refill=False,),
-        ]
-        # --- STEPS_LIST_INSERTION_POINT ---
-        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
-        self.steps = steps
-        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+        # Build steps dynamically based on template configuration
+        self.steps = self._build_dynamic_steps()
+        self.steps_indices = {step.id: i for i, step in enumerate(self.steps)}
         
         # Register routes using centralized helper
         pipulate.register_workflow_routes(self)
@@ -402,7 +386,7 @@ class LinkGraph2:
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
 
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_analysis': {'input': f"❔{pip.fmt('step_analysis')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
-        for step in steps:
+        for step in self.steps:
             if step.id not in self.step_messages:
                 self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
         self.step_messages['step_gsc'] = {'input': f"❔{pip.fmt('step_gsc')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
