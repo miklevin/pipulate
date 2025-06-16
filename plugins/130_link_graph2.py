@@ -798,6 +798,7 @@ class LinkGraph2:
                     ),
                         Input(type='hidden', name='username', value=username),
                         Input(type='hidden', name='project_name', value=project_name),
+                        Input(type='hidden', name='step_context', value='step_analysis'),
                         Button(button_text, type='submit', cls='mt-10px primary', id='submit-button',
                                **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}), 
                         hx_post=f'/{app_name}/{step_id}_submit', 
@@ -3558,7 +3559,7 @@ await main()
                 button_suffix = active_template_details.get('button_label_suffix', 'Data')
             
             # Check if files are cached for the selected analysis
-            is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, export_type)
+            is_cached, file_info = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, export_type)
             
             button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
                 
