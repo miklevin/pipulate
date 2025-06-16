@@ -774,7 +774,7 @@ class LinkGraph2:
 
             is_cached = False
             if selected_analysis:
-                is_cached = await self.check_cached_file_for_button_text(username, project_name, selected_analysis, export_type)
+                is_cached, file_info = await self.check_cached_file_for_button_text(username, project_name, selected_analysis, export_type)
 
             button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
 
