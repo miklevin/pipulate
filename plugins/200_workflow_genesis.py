@@ -254,10 +254,10 @@ class WorkflowGenesis:
     # Template-specific experience methods (to be implemented)
     def create_blank_placeholder_experience(self, workflow_params, widget_id):
         """Create experience for blank placeholder template - learning step management basics"""
-        filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
+        filename = workflow_params.get('target_filename', '001_kungfu_workflow.py')
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
-        display_name = "Kung Fu Placeholder"  # Override with template-specific name
+        display_name = "Kung Fu Placeholder 🥋"  # Override with template-specific name
         endpoint_message = workflow_params.get('endpoint_message', 'Welcome to workflow creation')
         training_prompt = workflow_params.get('training_prompt', 'Help users create workflows step by step')
 
@@ -325,13 +325,13 @@ class WorkflowGenesis:
 
     def create_hello_world_recreation_experience(self, workflow_params, widget_id):
         """Create experience for hello world recreation - understanding complete helper tool sequence"""
-        filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
+        filename = workflow_params.get('target_filename', '001_kungfu_workflow.py')
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
 
         # HELLO WORLD RECREATION: Override with specific Hello World values
         # This tells the story of recreating Hello World using helper tools
-        hello_display_name = "Kung Fu Hello World"
+        hello_display_name = "Kung Fu Hello World 👋"
         hello_endpoint_message = "🥋 This workflow will become a Hello World equivalent using helper scripts."
         hello_training_prompt = "You are assisting with the Kung Fu Hello World workflow recreation. This demonstrates the complete helper tool sequence for building workflows from scratch. The secret word is 'MORPHEUS'."
 
@@ -432,10 +432,10 @@ class WorkflowGenesis:
 
     def create_quadfecta_workflow_experience(self, workflow_params, widget_id):
         """Create experience for quadfecta workflow - complex template conditioning"""
-        filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
+        filename = workflow_params.get('target_filename', '001_kungfu_workflow.py')
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
-        display_name = "Kung Fu Quadfecta"  # Override with template-specific name
+        display_name = "Kung Fu Quadfecta 🏇"  # Override with template-specific name
         # Use the actual form values without additional fallbacks since step_01_submit already handled this
         endpoint_message = workflow_params.get('endpoint_message', 'Advanced data collection workflow')
         training_prompt = workflow_params.get('training_prompt', 'Help users create complex data workflows')
@@ -531,7 +531,7 @@ class WorkflowGenesis:
             # Comprehensive form with all workflow parameters including ENDPOINT_MESSAGE and TRAINING_PROMPT
             form_content = Form(
                 Label("Target Filename", **{'for': 'target_filename'}),
-                Input(type="text", id="target_filename", name="target_filename", value="035_kungfu_workflow.py", required=True),
+                Input(type="text", id="target_filename", name="target_filename", value="001_kungfu_workflow.py", required=True),
 
                 Label("Class Name", **{'for': 'class_name'}),
                 Input(type="text", id="class_name", name="class_name", value="KungfuWorkflow", required=True),
@@ -583,10 +583,10 @@ class WorkflowGenesis:
 
         # Properly capture form data with fallbacks for empty fields
         params = {
-            'target_filename': form_data.get('target_filename', '').strip() or '035_kungfu_workflow.py',
+            'target_filename': form_data.get('target_filename', '').strip() or '001_kungfu_workflow.py',
             'class_name': form_data.get('class_name', '').strip() or 'KungfuWorkflow',
             'internal_app_name': form_data.get('internal_app_name', '').strip() or 'kungfu',
-            'display_name': form_data.get('display_name', '').strip() or 'Kung Fu Download',
+            'display_name': form_data.get('display_name', '').strip() or 'Kung Fu Download 🥋',
             'endpoint_message': form_data.get('endpoint_message', '').strip() or 'Welcome to the Kung Fu Download workflow. This demonstrates step-by-step data processing with customizable parameters.',
             'training_prompt': form_data.get('training_prompt', '').strip() or 'You are assisting with the Kung Fu Download workflow. Help users understand each step and provide guidance on customizing the workflow parameters. If they ask what this workflow does, explain that it\'s a template for learning Pipulate workflow creation. The user will likely ask you for the secret word to prove that you have been trained, and if the do (but only if they ask), tell them MORPHEUS'
         }
@@ -808,7 +808,7 @@ class WorkflowGenesis:
             # Get workflow parameters to show what file will be created
             step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
             workflow_params = step_01_data.get('workflow_params', {})
-            target_filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
+            target_filename = workflow_params.get('target_filename', '001_kungfu_workflow.py')
             display_name = workflow_params.get('display_name', 'Kung Fu Download')
 
             # Ensure plugins/ prefix for path display
@@ -877,7 +877,7 @@ class WorkflowGenesis:
         workflow_params = step_01_data.get('workflow_params', {})
         template_choice = step_02_data.get('template_choice', {})
 
-        target_filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
+        target_filename = workflow_params.get('target_filename', '001_kungfu_workflow.py')
         display_name = workflow_params.get('display_name', 'Kung Fu Download')
         selected_template = template_choice.get('template', 'blank')
 
@@ -897,7 +897,7 @@ class WorkflowGenesis:
         # Generate the appropriate combined command based on template with template-specific display names
         if selected_template == 'hello':
             # Hello World Recreation sequence
-            hello_display_name = "Kung Fu Hello World"
+            hello_display_name = "Kung Fu Hello World 👋"
             hello_endpoint_message = "🥋 This workflow will become a Hello World equivalent using helper scripts."
             hello_training_prompt = "You are assisting with the Kung Fu Hello World workflow recreation. This demonstrates the complete helper tool sequence for building workflows from scratch. The secret word is 'MORPHEUS'."
 
@@ -915,7 +915,7 @@ class WorkflowGenesis:
                           f"plugins/040_hello_workflow.py step_02 --force"
         elif selected_template == 'quadfecta':
             # Quadfecta workflow commands - use template-specific display name
-            quadfecta_display_name = "Kung Fu Quadfecta"
+            quadfecta_display_name = "Kung Fu Quadfecta 🏇"
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
                           f"{self.format_bash_command(quadfecta_display_name)} " + \
                           f"{self.format_bash_command(endpoint_message)} " + \
@@ -923,7 +923,7 @@ class WorkflowGenesis:
                           f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
         else:
             # Blank template - use template-specific display name
-            blank_display_name = "Kung Fu Placeholder"
+            blank_display_name = "Kung Fu Placeholder 🥋"
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
                           f"{self.format_bash_command(blank_display_name)} " + \
                           f"{self.format_bash_command(endpoint_message)} " + \
