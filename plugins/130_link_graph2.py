@@ -2596,6 +2596,32 @@ class LinkGraph2:
             'metric_at_parameter': metric_at_determined_param
         }
 
+    def get_filename_for_export_type(self, export_type):
+        """Get the filename for a given export type.
+        
+        This method centralizes filename mapping and can be extended for template-specific naming.
+        
+        Args:
+            export_type: The export type from template configuration
+            
+        Returns:
+            String filename for the export type
+        """
+        filename_map = {
+            'crawl': 'crawl.csv',
+            'weblog': 'weblog.csv', 
+            'gsc': 'gsc.csv',
+            'crawl_attributes': 'crawl.csv',
+            'link_graph_edges': 'link_graph.csv',
+            'gsc_data': 'gsc.csv',
+            'ga_data': 'ga.csv'
+        }
+        
+        if export_type not in filename_map:
+            raise ValueError(f'Unknown export type: {export_type}')
+            
+        return filename_map[export_type]
+
     async def get_deterministic_filepath(self, username, project_name, analysis_slug, data_type=None):
         """Generate a deterministic file path for a given data export.
 
@@ -2617,18 +2643,8 @@ class LinkGraph2:
         base_dir = f'downloads/{self.app_name}/{username}/{project_name}/{analysis_slug}'
         if not data_type:
             return base_dir
-        filenames = {
-            'crawl': 'crawl.csv',
-            'weblog': 'weblog.csv',
-            'gsc': 'gsc.csv',
-            'crawl_attributes': 'crawl.csv',
-            'link_graph_edges': 'link_graph.csv',
-            'gsc_data': 'gsc.csv',
-            'ga_data': 'ga.csv'
-        }
-        if data_type not in filenames:
-            raise ValueError(f'Unknown data type: {data_type}')
-        filename = filenames[data_type]
+            
+        filename = self.get_filename_for_export_type(data_type)
         return f'{base_dir}/{filename}'
 
     async def check_file_exists(self, filepath):
