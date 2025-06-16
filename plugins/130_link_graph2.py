@@ -3776,7 +3776,7 @@ await main()
         # This ensures cache works even before the step data is fully stored
         # Use different template based on step_context
         if step_context == 'step_crawler':
-            active_analysis_template_key = self.get_configured_template('foobar_basic')
+            active_analysis_template_key = self.get_configured_template('crawler')
         else:
             active_analysis_template_key = self.get_configured_template('analysis')
         active_template_details = self.QUERY_TEMPLATES.get(active_analysis_template_key, {})
@@ -3802,10 +3802,10 @@ await main()
                 # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
                 if step_context == 'step_crawler':
-                    foobar_basic_template = self.get_configured_template('foobar_basic')
+                    template_key = self.get_configured_template('crawler')
                 else:
-                    analysis_template = self.get_configured_template('analysis')
-                template_query = self.apply_template(analysis_template, collection)
+                    template_key = self.get_configured_template('analysis')
+                template_query = self.apply_template(template_key, collection)
 
                 # Apply dynamic parameter substitution if needed
                 if placeholder_for_dynamic_param and dynamic_param_value is not None:
@@ -3843,10 +3843,10 @@ await main()
                 # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
                 if step_context == 'step_crawler':
-                    foobar_basic_template = self.get_configured_template('foobar_basic')
+                    template_key = self.get_configured_template('crawler')
                 else:
-                    analysis_template = self.get_configured_template('analysis')
-                template_query = self.apply_template(analysis_template, collection)
+                    template_key = self.get_configured_template('analysis')
+                template_query = self.apply_template(template_key, collection)
 
                 # Apply dynamic parameter substitution if needed
                 if placeholder_for_dynamic_param and dynamic_param_value is not None:
