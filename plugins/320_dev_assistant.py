@@ -130,11 +130,15 @@ class DevAssistant:
             self.app.route(path, methods=current_methods)(handler)
 
     async def landing(self, request):
-        """Generate the landing page using the standardized helper while maintaining WET explicitness."""
-        pip = self.pipulate
-
-        # Use centralized landing page helper - maintains WET principle by explicit call
-        return pip.create_standard_landing_page(self)
+        """Direct utility - skip pipeline keys and go straight to plugin analysis."""
+        # Bypass the entire pipeline system - this is a utility tool, not a data workflow
+        return Div(
+            H2(self.DISPLAY_NAME),
+            P(self.ENDPOINT_MESSAGE),
+            # Jump straight to plugin analysis - no keys needed
+            Div(id='step_01', hx_get=f'/{self.APP_NAME}/step_01', hx_trigger='load'),
+            id=f'{self.APP_NAME}-container'
+        )
 
     async def init(self, request):
         pip, db = self.pipulate, self.db
@@ -1247,318 +1251,293 @@ class DevAssistant:
         return f"{next_num:03d}_{base_name}.py"
 
     async def step_01(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        # Simplified utility - no pipeline state management needed
+        app_name = self.app_name
         step_id = 'step_01'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        # Get the actual plugin filename that was analyzed
-        # The step_data structure is now: {'plugin_analysis': filename, 'analysis_results': {...}}
-        user_val = step_data.get(step.done, '') if step_data else ''
-        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        
+        # Get list of plugin files
+        plugins_dir = Path("plugins")
+        plugin_files = []
+        if plugins_dir.exists():
+            plugin_files = [f.name for f in plugins_dir.glob("*.py") if not f.name.startswith("__")]
 
-        if 'finalized' in finalize_data:
-            return Div(
-                Card(H3(f'🔒 {step.show}: Analysis Complete')),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )
-        elif user_val and state.get('_revert_target') != step_id:
-            return Div(
-                pip.display_revert_header(step_id, app_name, steps, f'{step.show}: {user_val}'),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )
-        else:
-            # Get list of plugin files
-            plugins_dir = Path("plugins")
-            plugin_files = []
-            if plugins_dir.exists():
-                plugin_files = [f.name for f in plugins_dir.glob("*.py") if not f.name.startswith("__")]
-
-            # Create search results dropdown 
-            search_results_dropdown = Div(id=f'plugin-search-results-{step_id}', 
-                                        style='position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; background: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 8px; max-height: 300px; overflow-y: auto; display: none;')
-            
-            return Div(
-                Card(
-                    H3(f'{step.show}'),
-                    P('Search and select a plugin file to analyze for pattern compliance and issues:'),
-                    Form(
-                        Div(
-                            Input(
-                                type='search',
-                                name='plugin_search',
-                                placeholder='Search plugins by name... (↑↓ arrows, Enter to select)',
-                                id=f'plugin-search-input-{step_id}',
-                                style='width: 100%; border-radius: 8px; margin-bottom: 1rem;',
-                                hx_post=f'/{app_name}/search_plugins_step01',
-                                hx_target=f'#plugin-search-results-{step_id}',
-                                hx_trigger='input changed delay:300ms',
-                                hx_swap='innerHTML',
-                                onkeydown=f'handleDevAssistantKeyNavigation(event, "{step_id}")',
-                                onfocus=f'showDevAssistantResults("{step_id}")',
-                                onblur=f'setTimeout(() => hideDevAssistantResults("{step_id}"), 150)'
-                            ),
-                            search_results_dropdown,
-                            style='position: relative; margin-bottom: 1rem;'
+        # Create search results dropdown 
+        search_results_dropdown = Div(id=f'plugin-search-results-{step_id}', 
+                                    style='position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; background: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 8px; max-height: 300px; overflow-y: auto; display: none;')
+        
+        return Div(
+            Card(
+                H3('Plugin Analysis'),
+                P('Search and select a plugin file to analyze for pattern compliance and issues:'),
+                Form(
+                    Div(
+                        Input(
+                            type='search',
+                            name='plugin_search',
+                            placeholder='Search plugins by name... (↑↓ arrows, Enter to select)',
+                            id=f'plugin-search-input-{step_id}',
+                            style='width: 100%; border-radius: 8px; margin-bottom: 1rem;',
+                            hx_post=f'/{app_name}/search_plugins_step01',
+                            hx_target=f'#plugin-search-results-{step_id}',
+                            hx_trigger='input changed delay:300ms',
+                            hx_swap='innerHTML',
+                            onkeydown=f'handleDevAssistantKeyNavigation(event, "{step_id}")',
+                            onfocus=f'showDevAssistantResults("{step_id}")',
+                            onblur=f'setTimeout(() => hideDevAssistantResults("{step_id}"), 150)'
                         ),
-                        # Hidden input to store the selected plugin
-                        Input(type='hidden', name=step.done, id=f'selected-plugin-{step_id}', required=True),
-                        Button('Analyze Selected Plugin ▸', type='submit', id=f'analyze-btn-{step_id}', disabled=True),
-                        hx_post=f'/{app_name}/{step_id}_submit',
-                        hx_target=f'#{step_id}'
-                    )
-                ),
-                # JavaScript for keyboard navigation (Carson Gross style active search)
-                Script(f"""
-                // Global variables for dev assistant search state
+                        search_results_dropdown,
+                        style='position: relative; margin-bottom: 1rem;'
+                    ),
+                    # Hidden input to store the selected plugin
+                    Input(type='hidden', name='plugin_analysis', id=f'selected-plugin-{step_id}', required=True),
+                    Button('Analyze Selected Plugin ▸', type='submit', id=f'analyze-btn-{step_id}', disabled=True),
+                    hx_post=f'/{app_name}/{step_id}_submit',
+                    hx_target=f'#{step_id}'
+                )
+            ),
+            # JavaScript for keyboard navigation (Carson Gross style active search)
+            Script(f"""
+            // Global variables for dev assistant search state
+            window.devAssistantSelectedIndex = -1;
+            window.devAssistantStepId = '{step_id}';
+
+            function selectDevAssistantPlugin(filename, displayName) {{
+                document.getElementById('selected-plugin-{step_id}').value = filename;
+                document.getElementById('plugin-search-results-{step_id}').style.display = 'none';
+                document.getElementById('plugin-search-input-{step_id}').value = displayName;
+                document.getElementById('analyze-btn-{step_id}').disabled = false;
+                document.getElementById('analyze-btn-{step_id}').textContent = 'Analyze ' + displayName + ' ▸';
+            }}
+
+            function showDevAssistantResults(stepId) {{
+                const results = document.getElementById('plugin-search-results-' + stepId);
+                if (results && results.innerHTML.trim() !== '') {{
+                    results.style.display = 'block';
+                }}
+            }}
+
+            function hideDevAssistantResults(stepId) {{
+                const results = document.getElementById('plugin-search-results-' + stepId);
+                if (results) {{
+                    results.style.display = 'none';
+                }}
                 window.devAssistantSelectedIndex = -1;
-                window.devAssistantStepId = '{step_id}';
+                clearDevAssistantHighlight(stepId);
+            }}
 
-                function selectDevAssistantPlugin(filename, displayName) {{
-                    document.getElementById('selected-plugin-{step_id}').value = filename;
-                    document.getElementById('plugin-search-results-{step_id}').style.display = 'none';
-                    document.getElementById('plugin-search-input-{step_id}').value = displayName;
-                    document.getElementById('analyze-btn-{step_id}').disabled = false;
-                    document.getElementById('analyze-btn-{step_id}').textContent = 'Analyze ' + displayName + ' ▸';
-                }}
-
-                function showDevAssistantResults(stepId) {{
-                    const results = document.getElementById('plugin-search-results-' + stepId);
-                    if (results && results.innerHTML.trim() !== '') {{
-                        results.style.display = 'block';
-                    }}
-                }}
-
-                function hideDevAssistantResults(stepId) {{
-                    const results = document.getElementById('plugin-search-results-' + stepId);
-                    if (results) {{
-                        results.style.display = 'none';
-                    }}
-                    window.devAssistantSelectedIndex = -1;
-                    clearDevAssistantHighlight(stepId);
-                }}
-
-                function clearDevAssistantHighlight(stepId) {{
-                    const results = document.getElementById('plugin-search-results-' + stepId);
-                    if (results) {{
-                        const items = results.querySelectorAll('[data-plugin-filename]');
-                        items.forEach(item => {{
-                            item.style.backgroundColor = 'transparent';
-                        }});
-                    }}
-                }}
-
-                function highlightDevAssistantItem(stepId, index) {{
-                    const results = document.getElementById('plugin-search-results-' + stepId);
-                    if (!results) return;
-                    
+            function clearDevAssistantHighlight(stepId) {{
+                const results = document.getElementById('plugin-search-results-' + stepId);
+                if (results) {{
                     const items = results.querySelectorAll('[data-plugin-filename]');
-                    if (items.length === 0) return;
-                    
-                    // Clear previous highlights
-                    clearDevAssistantHighlight(stepId);
-                    
-                    // Wrap index if out of bounds
-                    if (index < 0) index = items.length - 1;
-                    if (index >= items.length) index = 0;
-                    
-                    // Highlight current item
-                    items[index].style.backgroundColor = 'var(--pico-primary-hover-background)';
-                    window.devAssistantSelectedIndex = index;
-                    
-                    // Scroll into view if needed
-                    items[index].scrollIntoView({{ block: 'nearest' }});
+                    items.forEach(item => {{
+                        item.style.backgroundColor = 'transparent';
+                    }});
                 }}
+            }}
 
-                function selectCurrentDevAssistantItem(stepId) {{
-                    const results = document.getElementById('plugin-search-results-' + stepId);
-                    if (!results) return false;
-                    
-                    const items = results.querySelectorAll('[data-plugin-filename]');
-                    if (items.length === 0) return false;
-                    
-                    let targetIndex = window.devAssistantSelectedIndex;
-                    
-                    // If no item is selected but there's only one result, select it
-                    if (targetIndex === -1 && items.length === 1) {{
-                        targetIndex = 0;
-                    }}
-                    
-                    if (targetIndex >= 0 && targetIndex < items.length) {{
-                        const item = items[targetIndex];
-                        const filename = item.getAttribute('data-plugin-filename');
-                        const displayName = item.getAttribute('data-plugin-display');
-                        selectDevAssistantPlugin(filename, displayName);
-                        return true;
-                    }}
-                    
-                    return false;
+            function highlightDevAssistantItem(stepId, index) {{
+                const results = document.getElementById('plugin-search-results-' + stepId);
+                if (!results) return;
+                
+                const items = results.querySelectorAll('[data-plugin-filename]');
+                if (items.length === 0) return;
+                
+                // Clear previous highlights
+                clearDevAssistantHighlight(stepId);
+                
+                // Wrap index if out of bounds
+                if (index < 0) index = items.length - 1;
+                if (index >= items.length) index = 0;
+                
+                // Highlight current item
+                items[index].style.backgroundColor = 'var(--pico-primary-hover-background)';
+                window.devAssistantSelectedIndex = index;
+                
+                // Scroll into view if needed
+                items[index].scrollIntoView({{ block: 'nearest' }});
+            }}
+
+            function selectCurrentDevAssistantItem(stepId) {{
+                const results = document.getElementById('plugin-search-results-' + stepId);
+                if (!results) return false;
+                
+                const items = results.querySelectorAll('[data-plugin-filename]');
+                if (items.length === 0) return false;
+                
+                let targetIndex = window.devAssistantSelectedIndex;
+                
+                // If no item is selected but there's only one result, select it
+                if (targetIndex === -1 && items.length === 1) {{
+                    targetIndex = 0;
                 }}
+                
+                if (targetIndex >= 0 && targetIndex < items.length) {{
+                    const item = items[targetIndex];
+                    const filename = item.getAttribute('data-plugin-filename');
+                    const displayName = item.getAttribute('data-plugin-display');
+                    selectDevAssistantPlugin(filename, displayName);
+                    return true;
+                }}
+                
+                return false;
+            }}
 
-                function handleDevAssistantKeyNavigation(event, stepId) {{
-                    const results = document.getElementById('plugin-search-results-' + stepId);
-                    if (!results || results.style.display === 'none') return;
-                    
-                    const items = results.querySelectorAll('[data-plugin-filename]');
-                    if (items.length === 0) return;
-                    
-                    switch(event.key) {{
-                        case 'ArrowDown':
-                            event.preventDefault();
-                            highlightDevAssistantItem(stepId, window.devAssistantSelectedIndex + 1);
-                            break;
-                            
-                        case 'ArrowUp':
-                            event.preventDefault();
-                            highlightDevAssistantItem(stepId, window.devAssistantSelectedIndex - 1);
-                            break;
-                            
-                        case 'Enter':
-                            event.preventDefault();
-                            if (selectCurrentDevAssistantItem(stepId)) {{
-                                // Successfully selected item, now trigger analyze button
-                                setTimeout(() => {{
-                                    const analyzeBtn = document.getElementById(`analyze-btn-${{stepId}}`);
-                                    if (analyzeBtn && !analyzeBtn.disabled) {{
-                                        analyzeBtn.click();
-                                    }}
-                                }}, 100);
-                                return false;
-                            }}
-                            // If no dropdown visible but analyze button is ready, click it
-                            else {{
+            function handleDevAssistantKeyNavigation(event, stepId) {{
+                const results = document.getElementById('plugin-search-results-' + stepId);
+                if (!results || results.style.display === 'none') return;
+                
+                const items = results.querySelectorAll('[data-plugin-filename]');
+                if (items.length === 0) return;
+                
+                switch(event.key) {{
+                    case 'ArrowDown':
+                        event.preventDefault();
+                        highlightDevAssistantItem(stepId, window.devAssistantSelectedIndex + 1);
+                        break;
+                        
+                    case 'ArrowUp':
+                        event.preventDefault();
+                        highlightDevAssistantItem(stepId, window.devAssistantSelectedIndex - 1);
+                        break;
+                        
+                    case 'Enter':
+                        event.preventDefault();
+                        if (selectCurrentDevAssistantItem(stepId)) {{
+                            // Successfully selected item, now trigger analyze button
+                            setTimeout(() => {{
                                 const analyzeBtn = document.getElementById(`analyze-btn-${{stepId}}`);
                                 if (analyzeBtn && !analyzeBtn.disabled) {{
                                     analyzeBtn.click();
                                 }}
+                            }}, 100);
+                            return false;
+                        }}
+                        // If no dropdown visible but analyze button is ready, click it
+                        else {{
+                            const analyzeBtn = document.getElementById(`analyze-btn-${{stepId}}`);
+                            if (analyzeBtn && !analyzeBtn.disabled) {{
+                                analyzeBtn.click();
                             }}
-                            break;
-                            
-                        case 'Escape':
-                            event.preventDefault();
-                            hideDevAssistantResults(stepId);
-                            break;
+                        }}
+                        break;
+                        
+                    case 'Escape':
+                        event.preventDefault();
+                        hideDevAssistantResults(stepId);
+                        break;
+                }}
+            }}
+
+            // Auto-highlight first item when results appear
+            document.body.addEventListener('htmx:afterSwap', function(event) {{
+                if (event.target.id === 'plugin-search-results-{step_id}') {{
+                    const items = event.target.querySelectorAll('[data-plugin-filename]');
+                    if (items.length === 1) {{
+                        // Single result - auto highlight for easy Enter selection
+                        window.devAssistantSelectedIndex = 0;
+                        items[0].style.backgroundColor = 'var(--pico-primary-hover-background)';
+                    }} else {{
+                        // Multiple results - no auto-highlight, let user navigate
+                        window.devAssistantSelectedIndex = -1;
                     }}
                 }}
-
-                // Auto-highlight first item when results appear
-                document.body.addEventListener('htmx:afterSwap', function(event) {{
-                    if (event.target.id === 'plugin-search-results-{step_id}') {{
-                        const items = event.target.querySelectorAll('[data-plugin-filename]');
-                        if (items.length === 1) {{
-                            // Single result - auto highlight for easy Enter selection
-                            window.devAssistantSelectedIndex = 0;
-                            items[0].style.backgroundColor = 'var(--pico-primary-hover-background)';
-                        }} else {{
-                            // Multiple results - no auto-highlight, let user navigate
-                            window.devAssistantSelectedIndex = -1;
-                        }}
-                    }}
-                }});
-                """, type='text/javascript'),
-                Div(id=next_step_id),
-                id=step_id
-            )
+            }});
+            """, type='text/javascript'),
+            # Next step placeholder for analysis results
+            Div(id='step_02'),
+            id=step_id
+        )
 
     async def step_01_submit(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_01'
-        step_index = self.steps_indices[step_id]
-        pipeline_id = db.get('pipeline_id', 'unknown')
-
+        # Simplified utility - analyze plugin and show results immediately
+        app_name = self.app_name
+        
         form = await request.form()
         selected_file = form.get('plugin_analysis', '').strip()
 
         if not selected_file:
-            return P('Please select a plugin file to analyze.', style=pip.get_style('error'))
+            return P('Please select a plugin file to analyze.', style='color: red;')
 
         # Analyze the selected plugin
         file_path = Path("plugins") / selected_file
         analysis = self.analyze_plugin_file(file_path)
 
-        # Store the filename as the step value, and analysis results separately
-        await pip.set_step_data(pipeline_id, step_id, selected_file, steps)
-
-        # Store analysis results in the step data
-        state = pip.read_state(pipeline_id)
-        if step_id not in state:
-            state[step_id] = {}
-        state[step_id]['analysis_results'] = analysis
-        pip.write_state(pipeline_id, state)
-
-        await self.message_queue.add(pip, f'Analyzed plugin: {selected_file}', verbatim=True)
-
-        return pip.chain_reverter(step_id, step_index, steps, app_name, f'Analyzed: {selected_file}')
+        # Store analysis in a simple session variable for step_02 to access
+        # Using a simple class attribute since this is a utility tool
+        self.current_analysis = analysis
+        
+        # Return updated step_01 showing selection + trigger step_02 load
+        return Div(
+            Card(
+                H3('Plugin Analysis'),
+                P(f'✅ Selected: {selected_file}', style='color: green; font-weight: bold;'),
+                Button('Analyze Different Plugin', 
+                       hx_get=f'/{app_name}/step_01', 
+                       hx_target='#step_01',
+                       cls='secondary', style='margin-top: 1rem;')
+            ),
+            # Trigger step_02 to load with analysis results
+            Div(id='step_02', hx_get=f'/{app_name}/step_02', hx_trigger='load'),
+            id='step_01'
+        )
 
     async def step_02(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_02'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, '')
-        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-
-        # Get analysis from step 1
-        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
-        analysis_results = step_01_data.get('analysis_results', {})
-
-        if 'finalized' in finalize_data:
+        # Simplified utility - display analysis results from current_analysis
+        app_name = self.app_name
+        
+        # Check if we have analysis results
+        if not hasattr(self, 'current_analysis') or not self.current_analysis:
             return Div(
-                Card(H3(f'🔒 {step.show}: Analysis Complete')),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )
-        elif user_val and state.get('_revert_target') != step_id:
-            return Div(
-                pip.display_revert_header(step_id, app_name, steps, f'{step.show}: Complete'),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )
-        else:
-            # Check if step 1 has been completed by looking for plugin_analysis
-            if not step_01_data.get('plugin_analysis'):
-                return Div(
-                    Card(
-                        H3(f'{step.show}'),
-                        P('Please complete Plugin Selection first.', style='color: orange;')
-                    ),
-                    Div(id=next_step_id),
-                    id=step_id
-                )
-
-            # Get analysis data
-            issues = analysis_results.get('issues', [])
-            template_suitability = analysis_results.get('template_suitability', {})
-            coding_prompts = analysis_results.get('coding_assistant_prompts', [])
-            transplant_analysis = analysis_results.get('transplantation_analysis', {})
-            filename = analysis_results.get('filename', 'unknown')
-
-            # Focus on what needs fixing - issues first!
-            functional_issues = [issue for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])]
-            template_issues = [issue for issue in issues if any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])]
-
-            # Quick status for capability overview
-            has_functional_issues = bool(functional_issues)
-            template_source_ready = template_suitability.get('as_template_source', False)
-            transplant_commands = transplant_analysis.get('transplant_commands', [])
-            ready_transplants = [cmd for cmd in transplant_commands if cmd.get('compatibility') == 'Good']
-
-            # Define widget ID for Prism targeting
-            widget_id = f"dev-assistant-{pipeline_id.replace('-', '_')}-{step_id}"
-
-            response_content = Div(
                 Card(
-                    H3(f"Analysis: {filename}", style="margin-bottom: 1.5rem;"),
+                    H3('Analysis Results'),
+                    P('No analysis available. Please select and analyze a plugin first.', style='color: orange;'),
+                    Button('Go Back to Plugin Selection', 
+                           hx_get=f'/{app_name}/step_01', 
+                           hx_target='#step_01',
+                           cls='secondary')
+                ),
+                id='step_02'
+            )
 
+        analysis_results = self.current_analysis
+        
+        # Get analysis data
+        issues = analysis_results.get('issues', [])
+        template_suitability = analysis_results.get('template_suitability', {})
+        coding_prompts = analysis_results.get('coding_assistant_prompts', [])
+        transplant_analysis = analysis_results.get('transplantation_analysis', {})
+        filename = analysis_results.get('filename', 'unknown')
+
+        # Focus on what needs fixing - issues first!
+        functional_issues = [issue for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])]
+        template_issues = [issue for issue in issues if any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])]
+
+        # Quick status for capability overview
+        has_functional_issues = bool(functional_issues)
+        template_source_ready = template_suitability.get('as_template_source', False)
+        transplant_commands = transplant_analysis.get('transplant_commands', [])
+        ready_transplants = [cmd for cmd in transplant_commands if cmd.get('compatibility') == 'Good']
+
+        # Define widget ID for Prism targeting
+        widget_id = f"dev-assistant-analysis-results"
+
+        return Div(
+            Card(
+                H3(f"Analysis: {filename}", style="margin-bottom: 1.5rem;"),
+
+                # WHAT NEEDS FIXING (Primary Focus)
+                (Div(
+                    H4("🚨 ISSUES TO FIX", style=f"color: {self.UI_CONSTANTS['COLORS']['ERROR_RED']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['ERROR_RED']}; padding-bottom: 0.5rem;"),
+                    Div(
+                        H5("❌ Functional Issues:", style="color: red; margin-bottom: 0.5rem;"),
+                        Ul(*[Li(issue) for issue in functional_issues],
+                           style="color: red; margin-bottom: 1rem;")
+                    ) if functional_issues else None,
+                    Div(
+                        H5("📋 Template Issues:", style="color: orange; margin-bottom: 0.5rem;"),
+                        Ul(*[Li(issue) for issue in template_issues],
+                           style="color: orange; margin-bottom: 1rem;")
+                    ) if template_issues else None,
                     # WHAT NEEDS FIXING (Primary Focus)
                     (Div(
                         H4("🚨 ISSUES TO FIX", style=f"color: {self.UI_CONSTANTS['COLORS']['ERROR_RED']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['ERROR_RED']}; padding-bottom: 0.5rem;"),
