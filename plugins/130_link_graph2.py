@@ -423,6 +423,30 @@ class LinkGraph2:
     def get_configured_template(self, data_type):
         """Get the configured template for a specific data type."""
         return self.TEMPLATE_CONFIG.get(data_type)
+    
+    def get_export_type_for_template_config(self, template_config_key):
+        """Get the export type for a given template configuration key.
+        
+        This method resolves the template configuration to the actual export type
+        that should be used for file naming and caching.
+        
+        Args:
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler_basic')
+            
+        Returns:
+            String export type that can be used with get_filename_for_export_type()
+        """
+        template_name = self.get_configured_template(template_config_key)
+        if not template_name:
+            raise ValueError(f'No template configured for: {template_config_key}')
+            
+        template_details = self.QUERY_TEMPLATES.get(template_name, {})
+        export_type = template_details.get('export_type')
+        
+        if not export_type:
+            raise ValueError(f'Template "{template_name}" has no export_type defined')
+            
+        return export_type
 
     def apply_template(self, template_key, collection=None):
         """Apply a query template with collection substitution."""
