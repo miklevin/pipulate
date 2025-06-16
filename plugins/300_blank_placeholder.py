@@ -72,29 +72,55 @@ class BlankPlaceholder:
         return pip.create_standard_landing_page(self)
 
     async def init(self, request):
-        pip, db = self.pipulate, self.db
-        internal_app_name = self.APP_NAME
+        """ Handles the key submission, initializes state, and renders the step UI placeholders. """
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.APP_NAME)
         form = await request.form()
-        user_input_key = form.get('pipeline_id', '').strip()
-
-        if not user_input_key:
-            pipeline_id, _, _ = pip.generate_pipeline_key(self)
+        user_input = form.get('pipeline_id', '').strip()
+        if not user_input:
+            from starlette.responses import Response
+            response = Response('')
+            response.headers['HX-Refresh'] = 'true'
+            return response
+        context = pip.get_plugin_context(self)
+        plugin_name = context['plugin_name'] or app_name
+        profile_name = context['profile_name'] or 'default'
+        profile_part = profile_name.replace(' ', '_')
+        plugin_part = plugin_name.replace(' ', '_')
+        expected_prefix = f'{profile_part}-{plugin_part}-'
+        if user_input.startswith(expected_prefix):
+            pipeline_id = user_input
         else:
-            _, prefix_for_key_gen, _ = pip.generate_pipeline_key(self)
-            if user_input_key.startswith(prefix_for_key_gen) and len(user_input_key.split('-')) == 3:
-                pipeline_id = user_input_key
-            else:
-                 _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
-                 pipeline_id = f'{prefix}{user_part}'
-
+            _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
+            pipeline_id = f'{prefix}{user_provided_id}'
         db['pipeline_id'] = pipeline_id
-        state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name})
-        if error: return error
+        logger.debug(f'Using pipeline ID: {pipeline_id}')
+        state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
+        if error:
+            return error
+        all_steps_complete = all((step.id in state and step.done in state[step.id] for step in steps[:-1]))
+        is_finalized = 'finalize' in state and 'finalized' in state['finalize']
 
-        await self.message_queue.add(pip, self.ui['LANDING_PAGE']['INIT_MESSAGE_WORKFLOW_ID'].format(pipeline_id=pipeline_id), verbatim=True, spaces_before=0)
-        await self.message_queue.add(pip, self.ui['LANDING_PAGE']['INIT_MESSAGE_RETURN_HINT'].format(pipeline_id=pipeline_id), verbatim=True, spaces_before=0)
+        # Progressive feedback with emoji conventions
+        await self.message_queue.add(pip, f'{self.ui["EMOJIS"]["WORKFLOW"]} Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
+        await self.message_queue.add(pip, f"{self.ui["EMOJIS"]["KEY"]} Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
 
-        return pip.run_all_cells(internal_app_name, self.steps)
+        if all_steps_complete:
+            if is_finalized:
+                status_msg = f'{self.ui["EMOJIS"]["LOCKED"]} Workflow is complete and finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'
+            else:
+                status_msg = f'{self.ui["EMOJIS"]["SUCCESS"]} Workflow is complete but not finalized. Press Finalize to lock your data.'
+            await self.message_queue.add(pip, status_msg, verbatim=True)
+        elif not any((step.id in state for step in self.steps)):
+            await self.message_queue.add(pip, f'{self.ui["EMOJIS"]["INPUT_FORM"]} Please complete each step in sequence. Your progress will be saved automatically.', verbatim=True)
+
+        parsed = pip.parse_pipeline_key(pipeline_id)
+        prefix = f"{parsed['profile_part']}-{parsed['plugin_part']}-"
+        self.pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in self.pipeline() if record.pkey.startswith(prefix)]
+        if pipeline_id not in matching_records:
+            matching_records.append(pipeline_id)
+        updated_datalist = pip.update_datalist('pipeline-ids', options=matching_records)
+        return pip.run_all_cells(app_name, steps)
 
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
