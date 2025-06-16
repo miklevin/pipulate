@@ -1631,9 +1631,9 @@ class DevAssistant:
                 ) if transplant_commands else None),
 
                 Form(
-                    Button('Complete Analysis ▸', type='submit'),
-                    hx_post=f'/{app_name}/{step_id}_submit',
-                    hx_target=f'#{step_id}'
+                    Button('🔄 New Analysis', type='button', cls='secondary'),
+                    hx_get=f'/{app_name}/step_01',
+                    hx_target='#step_01'
                 ),
 
                 # Add Prism initialization script
@@ -1662,14 +1662,5 @@ class DevAssistant:
             id=step_id
         )
 
-    async def step_02_submit(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_02'
-        step_index = self.steps_indices[step_id]
-        pipeline_id = db.get('pipeline_id', 'unknown')
 
-        await pip.set_step_data(pipeline_id, step_id, 'complete', steps)
-        await self.message_queue.add(pip, 'Development analysis completed.', verbatim=True)
-
-        return pip.chain_reverter(step_id, step_index, steps, app_name, 'Analysis Complete')
 
