@@ -856,7 +856,7 @@ class LinkGraph2:
                     'export_type': export_type
                 }
                 analysis_result_str = json.dumps(analysis_result)
-                await pip.set_step_data(pipeline_id, step_id, analysis_result_str, steps)
+                await pip.set_step_data(pipeline_id, step_id, step.done, analysis_result_str)
                 
                 # Create completion widget with action buttons
                 completed_message = f"Using cached crawl data ({file_info['size']})"
