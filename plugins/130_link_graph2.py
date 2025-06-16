@@ -369,14 +369,14 @@ class LinkGraph2:
         self.ui = pip.get_ui_constants()
         self.config = pip.get_config()
         # Build step names dynamically based on template configuration
-        crawl_template = self.get_configured_template('edges')
+        edges_template = self.get_configured_template('edges')
         foobar_basic_template = self.get_configured_template('foobar_basic')  # ← New template reference00
         gsc_template = self.get_configured_template('gsc')
         ga_template = self.get_configured_template('ga')
 
         steps = [
             Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True),
-            Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {crawl_template}', refill=False),
+            Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {edges_template}', refill=False),
             Step(id='step_foobar_basic', done='foobar_basic_data', show='Download Crawl: Basic', refill=False,),
             Step(id='step_webogs', done='weblogs_check', show='Download Web Logs', refill=False),
             Step(id='step_gsc', done='search_console_check', show=f'Download GSC: {gsc_template}', refill=False),
@@ -700,9 +700,9 @@ class LinkGraph2:
             selected_value = selected_slug if selected_slug else slugs[0]
 
             # Get active template details for dynamic UI
-            active_crawl_template_key = self.get_configured_template('edges')
-            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
-            template_name = active_template_details.get('name', active_crawl_template_key)
+            active_edges_template_key = self.get_configured_template('edges')
+            active_template_details = self.QUERY_TEMPLATES.get(active_edges_template_key, {})
+            template_name = active_template_details.get('name', active_edges_template_key)
             user_message = active_template_details.get('user_message', 'This will download crawl data.')
             button_suffix = active_template_details.get('button_label_suffix', 'Data')
 
@@ -753,7 +753,7 @@ class LinkGraph2:
 
             # Check if files are cached for the selected analysis to determine button text
             selected_analysis = selected_value if selected_value else (slugs[0] if slugs else '')
-            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+            active_template_details = self.QUERY_TEMPLATES.get(active_edges_template_key, {})
             export_type = active_template_details.get('export_type', 'crawl_attributes')
 
             is_cached = False
@@ -817,8 +817,8 @@ class LinkGraph2:
         if not analysis_slug:
             return P('Error: No analysis selected', style=pip.get_style('error'))
         # Get active template details and check for qualifier config
-        active_crawl_template_key = self.get_configured_template('edges')
-        active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+        active_edges_template_key = self.get_configured_template('edges')
+        active_template_details = self.QUERY_TEMPLATES.get(active_edges_template_key, {})
         qualifier_config = active_template_details.get('qualifier_config', {'enabled': False})
         export_type = active_template_details.get('export_type', 'crawl_attributes')
 
@@ -3275,8 +3275,8 @@ await main()
                 raise ValueError("analysis_slug is required for data_type 'crawl'")
             collection = f'crawl.{analysis_slug}'
             # Use the configured crawl template
-            crawl_template = self.get_configured_template('edges')
-            template_query = self.apply_template(crawl_template, collection)
+            edges_template = self.get_configured_template('edges')
+            template_query = self.apply_template(edges_template, collection)
 
             # Apply dynamic parameter substitution if needed
             if placeholder_for_dynamic_param and dynamic_param_value is not None:
@@ -3324,7 +3324,7 @@ await main()
             }
 
             # Log the crawl export details with template information
-            template_info = self.QUERY_TEMPLATES.get(crawl_template, {})
+            template_info = self.QUERY_TEMPLATES.get(edges_template, {})
             curl_cmd, python_cmd = self._generate_api_call_representations(
                 method="POST", url=base_url, headers=headers, payload=export_job_payload,
                 step_context="Step 2: Crawl Analysis Export Job", template_info=template_info,
@@ -3640,10 +3640,10 @@ await main()
         # This ensures cache works even before the step data is fully stored
         # Use different template based on step_context
         if step_context == 'step_foobar_basic':
-            active_crawl_template_key = self.get_configured_template('foobar_basic')
+            active_edges_template_key = self.get_configured_template('foobar_basic')
         else:
-            active_crawl_template_key = self.get_configured_template('edges')
-        active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+            active_edges_template_key = self.get_configured_template('edges')
+        active_template_details = self.QUERY_TEMPLATES.get(active_edges_template_key, {})
         export_type = active_template_details.get('export_type', 'crawl_attributes')
 
         # Extract dynamic parameters from analysis_result (may be empty on first run)
@@ -3666,10 +3666,10 @@ await main()
                 # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
                 if step_context == 'step_foobar_basic':
-                    crawl_template = self.get_configured_template('foobar_basic')
+                    edges_template = self.get_configured_template('foobar_basic')
                 else:
-                    crawl_template = self.get_configured_template('edges')
-                template_query = self.apply_template(crawl_template, collection)
+                    edges_template = self.get_configured_template('edges')
+                template_query = self.apply_template(edges_template, collection)
 
                 # Apply dynamic parameter substitution if needed
                 if placeholder_for_dynamic_param and dynamic_param_value is not None:
@@ -3707,10 +3707,10 @@ await main()
                 # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
                 if step_context == 'step_foobar_basic':
-                    crawl_template = self.get_configured_template('foobar_basic')
+                    edges_template = self.get_configured_template('foobar_basic')
                 else:
-                    crawl_template = self.get_configured_template('edges')
-                template_query = self.apply_template(crawl_template, collection)
+                    edges_template = self.get_configured_template('edges')
+                template_query = self.apply_template(edges_template, collection)
 
                 # Apply dynamic parameter substitution if needed
                 if placeholder_for_dynamic_param and dynamic_param_value is not None:
@@ -3859,8 +3859,8 @@ await main()
                                 df = pd.read_csv(crawl_filepath)
 
                                 # Apply appropriate column names based on export type
-                                active_crawl_template_key = self.get_configured_template('edges')
-                                active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+                                active_edges_template_key = self.get_configured_template('edges')
+                                active_template_details = self.QUERY_TEMPLATES.get(active_edges_template_key, {})
                                 export_type = active_template_details.get('export_type', 'crawl_attributes')
 
                                 if export_type == 'link_graph_edges':
@@ -4552,8 +4552,8 @@ await main()
         # Try to extract template information from the jobs payload
         try:
             # Get the configured template for the current data type
-            crawl_template = self.get_configured_template('edges')
-            template_info = self.QUERY_TEMPLATES.get(crawl_template, {})
+            edges_template = self.get_configured_template('edges')
+            template_info = self.QUERY_TEMPLATES.get(edges_template, {})
 
             if template_info:
                 header_lines.append("#")
@@ -5113,8 +5113,8 @@ await main()
         expected_filename = None
         if step_id == 'step_analysis':
             # For crawl data, determine filename based on active template's export type
-            active_crawl_template_key = self.get_configured_template('edges')
-            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+            active_edges_template_key = self.get_configured_template('edges')
+            active_template_details = self.QUERY_TEMPLATES.get(active_edges_template_key, {})
             export_type = active_template_details.get('export_type', 'crawl_attributes')
 
             # Use the same mapping as get_deterministic_filepath
