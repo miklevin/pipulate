@@ -370,7 +370,7 @@ class LinkGraph2:
         self.config = pip.get_config()
         # HYBRID APPROACH: Dynamic steps with static fallback for helper script compatibility
         # The workflow uses dynamic steps by default, but can fall back to static when needed
-        use_static_steps = True  # Set to True to enable static mode for helper scripts
+        use_static_steps = False  # Set to True to enable static mode for helper scripts
         
         if use_static_steps:
             # Static steps list for splice_workflow_step.py compatibility
@@ -381,12 +381,6 @@ class LinkGraph2:
                 Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False),
                 Step(id='step_gsc', done='gsc', show='Download Search Console', refill=False),
                 Step(id='step_ga', done='ga', show='Download Google Analytics', refill=False),
-                Step(
-                    id='step_01',
-                    done='placeholder_01',
-                    show='Placeholder Step 1 (Edit Me)',
-                    refill=False,
-                ),
                 # --- STEPS_LIST_INSERTION_POINT ---
                 Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)
             ]
@@ -5403,157 +5397,6 @@ await main()
 
         return buttons
 
-
-
-    # --- START_STEP_BUNDLE: step_01 ---
-    async def step_01(self, request):
-        """Handles GET request for Placeholder Step 1 (Edit Me)."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_01"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        # Determine next_step_id dynamically based on runtime position in steps list
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step.done, "") # 'step.done' will be like 'placeholder_01'
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-    
-        if "finalized" in finalize_data and current_value:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{current_value}")
-            return Div(
-                Card(H3(f"🔒 {step.show}: Completed")),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        elif current_value and state.get("_revert_target") != step_id:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{current_value}")
-            return Div(
-                pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        else:
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("This is a new placeholder step. Customize its input form as needed. Click Proceed to continue."),
-                    Form(
-                        # Example: Hidden input to submit something for the placeholder
-                        Input(type="hidden", name=step.done, value="Placeholder Value for Placeholder Step 1 (Edit Me)"),
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
-                    )
-                ),
-                Div(id=next_step_id), # Placeholder for next step, no trigger here
-                id=step_id
-            )
-
-
-    async def step_01_submit(self, request):
-        """Process the submission for Placeholder Step 1 (Edit Me)."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_01"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-        
-        form_data = await request.form()
-        # For a placeholder, get value from the hidden input or use a default
-        value_to_save = form_data.get(step.done, f"Default value for {step.show}") 
-        await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
-        
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{value_to_save}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-        
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        return Div(
-            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-    # --- END_STEP_BUNDLE: step_01 ---
-
-
-
-    # --- START_STEP_BUNDLE: step_01 ---
-    async def step_01(self, request):
-        """Handles GET request for Placeholder Step 1 (Edit Me)."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_01"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        # Determine next_step_id dynamically based on runtime position in steps list
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step.done, "") # 'step.done' will be like 'placeholder_01'
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-    
-        if "finalized" in finalize_data and current_value:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{current_value}")
-            return Div(
-                Card(H3(f"🔒 {step.show}: Completed")),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        elif current_value and state.get("_revert_target") != step_id:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{current_value}")
-            return Div(
-                pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        else:
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("This is a new placeholder step. Customize its input form as needed. Click Proceed to continue."),
-                    Form(
-                        # Example: Hidden input to submit something for the placeholder
-                        Input(type="hidden", name=step.done, value="Placeholder Value for Placeholder Step 1 (Edit Me)"),
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
-                    )
-                ),
-                Div(id=next_step_id), # Placeholder for next step, no trigger here
-                id=step_id
-            )
-
-
-    async def step_01_submit(self, request):
-        """Process the submission for Placeholder Step 1 (Edit Me)."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_01"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-        
-        form_data = await request.form()
-        # For a placeholder, get value from the hidden input or use a default
-        value_to_save = form_data.get(step.done, f"Default value for {step.show}") 
-        await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
-        
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{value_to_save}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-        
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        return Div(
-            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-    # --- END_STEP_BUNDLE: step_01 ---
 
 
     # --- STEP_METHODS_INSERTION_POINT ---
