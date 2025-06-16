@@ -1332,10 +1332,12 @@ class LinkGraph2:
             check_result = {
                 'has_crawler': True,
                 'project': project_name,
+                'project_name': project_name,  # Add project_name for _create_action_buttons
                 'username': username,
                 'analysis_slug': analysis_slug,
                 'timestamp': datetime.now().isoformat(),
-                'step_context': 'step_crawler'
+                'step_context': 'step_crawler',
+                'download_complete': True  # Add this flag for _create_action_buttons
             }
             
             await pip.set_step_data(pipeline_id, step_id, json.dumps(check_result), steps)
