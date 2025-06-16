@@ -4325,6 +4325,25 @@ await main()
         
         return content_div
 
+    def _get_template_config_for_step_context(self, step_context):
+        """Get template configuration key and fallbacks for a given step context.
+        
+        Args:
+            step_context: The step context string (e.g., 'step_ga', 'step_crawler_basic')
+            
+        Returns:
+            tuple: (template_config_key, fallback_export_type, fallback_suffix)
+        """
+        step_mappings = {
+            'step_ga': ('ga', 'ga_data', 'GA Data'),
+            'step_gsc': ('gsc', 'gsc_data', 'GSC Data'),
+            'step_crawler_basic': ('crawler_basic', 'crawl_attributes', 'Basic Attributes'),
+            'step_webogs': ('weblog', 'weblog', 'Web Logs'),  # Web logs not templated
+        }
+        
+        # Return mapping or default to edges (analysis step)
+        return step_mappings.get(step_context, ('edges', 'crawl_attributes', 'Data'))
+
     async def update_button_text(self, request):
         """Update button text dynamically based on selected analysis."""
         try:
@@ -4335,32 +4354,31 @@ await main()
             step_context = form.get('step_context', '').strip()  # NEW: Get which step is calling this
             
             if not all([analysis_slug, username, project_name]):
-                # Return default button if missing parameters - determine which template to use
-                if step_context == 'step_ga':
-                    active_template_key = self.get_configured_template('ga')
+                # Return default button if missing parameters
+                template_config_key, fallback_export_type, fallback_suffix = self._get_template_config_for_step_context(step_context)
+                
+                try:
+                    active_template_key = self.get_configured_template(template_config_key)
                     active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
-                    button_suffix = active_template_details.get('button_label_suffix', 'GA Data')
-                else:
-                    # Default to crawl template
-                    active_template_key = self.get_configured_template('edges')
-                    active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
-                    button_suffix = active_template_details.get('button_label_suffix', 'Data')
+                    button_suffix = active_template_details.get('button_label_suffix', fallback_suffix)
+                except (ValueError, KeyError):
+                    button_suffix = fallback_suffix
+                    
                 return Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary', id='submit-button',
                              **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
             
             # Determine template and export type based on step context
-            if step_context == 'step_ga':
-                # Handle GA step
-                active_template_key = self.get_configured_template('ga')
+            template_config_key, fallback_export_type, fallback_suffix = self._get_template_config_for_step_context(step_context)
+            
+            try:
+                export_type = self.get_export_type_for_template_config(template_config_key)
+                active_template_key = self.get_configured_template(template_config_key)
                 active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
-                export_type = active_template_details.get('export_type', 'ga_data')
-                button_suffix = active_template_details.get('button_label_suffix', 'GA Data')
-            else:
-                # Default to crawl step
-                active_template_key = self.get_configured_template('edges')
-                active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
-                export_type = active_template_details.get('export_type', 'crawl_attributes')
-                button_suffix = active_template_details.get('button_label_suffix', 'Data')
+                button_suffix = active_template_details.get('button_label_suffix', fallback_suffix)
+            except (ValueError, KeyError):
+                # Fallback if template resolution fails
+                export_type = fallback_export_type
+                button_suffix = fallback_suffix
             
             # Check if files are cached for the selected analysis
             is_cached, file_info = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, export_type)
@@ -4371,16 +4389,17 @@ await main()
                          **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
         except Exception as e:
             logger.error(f"Error in update_button_text: {e}")
-            # Return default button on error - determine which template to use
+            # Return default button on error
             step_context = form.get('step_context', '') if 'form' in locals() else ''
-            if step_context == 'step_ga':
-                active_template_key = self.get_configured_template('ga')
+            template_config_key, fallback_export_type, fallback_suffix = self._get_template_config_for_step_context(step_context)
+            
+            try:
+                active_template_key = self.get_configured_template(template_config_key)
                 active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
-                button_suffix = active_template_details.get('button_label_suffix', 'GA Data')
-            else:
-                active_template_key = self.get_configured_template('edges')
-                active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
-                button_suffix = active_template_details.get('button_label_suffix', 'Data')
+                button_suffix = active_template_details.get('button_label_suffix', fallback_suffix)
+            except (ValueError, KeyError):
+                button_suffix = fallback_suffix
+                
             return Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary', id='submit-button',
                          **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
 
