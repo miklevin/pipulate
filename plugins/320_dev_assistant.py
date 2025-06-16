@@ -107,7 +107,8 @@ class DevAssistant:
         routes = [
             (f'/{internal_route_prefix}/init', self.init, ['POST']),
             (f'/{internal_route_prefix}/revert', self.handle_revert, ['POST']),
-            (f'/{internal_route_prefix}/unfinalize', self.unfinalize, ['POST'])
+            (f'/{internal_route_prefix}/unfinalize', self.unfinalize, ['POST']),
+            (f'/{internal_route_prefix}/search_plugins_step01', self.search_plugins_step01, ['POST'])
         ]
 
         for step_obj in self.steps:
@@ -981,6 +982,91 @@ class DevAssistant:
 
         return analysis
 
+    async def search_plugins_step01(self, request):
+        """Search plugins for step 1 based on user input - Carson Gross style active search."""
+        try:
+            form = await request.form()
+            search_term = form.get('plugin_search', '').strip().lower()
+            
+            # Get list of plugin files
+            plugins_dir = Path("plugins")
+            plugin_files = []
+            if plugins_dir.exists():
+                plugin_files = [f.name for f in plugins_dir.glob("*.py") if not f.name.startswith("__")]
+            
+            # Filter plugins based on search term
+            if search_term:
+                filtered_plugins = []
+                for plugin_file in plugin_files:
+                    # Search in filename (remove numeric prefix and extension for display)
+                    clean_name = re.sub(r'^\d+_', '', plugin_file.replace('.py', '').replace('_', ' ')).title()
+                    if (search_term in plugin_file.lower() or 
+                        search_term in clean_name.lower()):
+                        filtered_plugins.append({
+                            'filename': plugin_file,
+                            'display_name': clean_name,
+                            'module_name': plugin_file.replace('.py', '')
+                        })
+            else:
+                # Show no results on empty search
+                filtered_plugins = []
+            
+            # Generate HTML results
+            if filtered_plugins:
+                result_html = ""
+                # Check if there's only one result for auto-selection
+                auto_select_single = len(filtered_plugins) == 1
+                
+                for i, plugin in enumerate(sorted(filtered_plugins, key=lambda x: x['filename'])[:10]):  # Limit to 10 results
+                    # Add auto-select class for single results
+                    item_class = "search-result-item"
+                    if auto_select_single:
+                        item_class += " auto-select-single"
+                        
+                    result_html += f"""
+                    <div class="{item_class}" 
+                         style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--pico-muted-border-color);"
+                         onclick="
+                            document.getElementById('selected-plugin-step_01').value = '{plugin['filename']}';
+                            document.getElementById('plugin-search-results-step_01').style.display = 'none';
+                            document.getElementById('plugin-search-input-step_01').value = '{plugin['display_name']}';
+                            document.getElementById('analyze-btn-step_01').disabled = false;
+                            document.getElementById('analyze-btn-step_01').textContent = 'Analyze {plugin['display_name']} ▸';
+                         "
+                         onmouseover="this.style.backgroundColor = 'var(--pico-primary-hover-background)';"
+                         onmouseout="this.style.backgroundColor = 'transparent';">
+                        <strong>{plugin['display_name']}</strong>
+                        <div style="font-size: 0.85em; color: var(--pico-muted-color); margin-top: 0.25rem;">{plugin['filename']}</div>
+                    </div>
+                    """
+                
+                # Show dropdown with JavaScript
+                result_html += """
+                <script>
+                    document.getElementById('plugin-search-results-step_01').style.display = 'block';
+                </script>
+                """
+            else:
+                # No results or empty search - hide dropdown
+                result_html = """
+                <script>
+                    document.getElementById('plugin-search-results-step_01').style.display = 'none';
+                </script>
+                """
+            
+            return HTMLResponse(result_html)
+            
+        except Exception as e:
+            logger.error(f"Error in search_plugins_step01: {e}")
+            return HTMLResponse(f"""
+            <div style="padding: 1rem; color: var(--pico-form-element-invalid-active-border-color);">
+                Search error: {str(e)}
+            </div>
+            <script>
+                document.getElementById('plugin-search-results-step_01').style.display = 'block';
+            </script>
+            """)
+
     def generate_create_workflow_commands(self, analysis_results):
         """Generate create_workflow.py commands for creating a new version of the analyzed plugin."""
         filename = analysis_results.get('filename', 'unknown.py')
@@ -1197,18 +1283,33 @@ class DevAssistant:
             if plugins_dir.exists():
                 plugin_files = [f.name for f in plugins_dir.glob("*.py") if not f.name.startswith("__")]
 
+            # Create search results dropdown 
+            search_results_dropdown = Div(id=f'plugin-search-results-{step_id}', 
+                                        style='position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; background: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 8px; max-height: 300px; overflow-y: auto; display: none;')
+            
             return Div(
                 Card(
                     H3(f'{step.show}'),
-                    P('Select a plugin file to analyze for pattern compliance and issues:'),
+                    P('Search and select a plugin file to analyze for pattern compliance and issues:'),
                     Form(
-                        Select(
-                            Option("Select a plugin file...", value="", selected=True),
-                            *[Option(f, value=f) for f in sorted(plugin_files)],
-                            name=step.done,
-                            required=True
+                        Div(
+                            Input(
+                                type='search',
+                                name='plugin_search',
+                                placeholder='Search plugins by name...',
+                                id=f'plugin-search-input-{step_id}',
+                                style='width: 100%; border-radius: 8px; margin-bottom: 1rem;',
+                                hx_post=f'/{app_name}/search_plugins_step01',
+                                hx_target=f'#plugin-search-results-{step_id}',
+                                hx_trigger='input changed delay:300ms, keyup[key==\'Enter\']',
+                                hx_swap='innerHTML'
+                            ),
+                            search_results_dropdown,
+                            style='position: relative; margin-bottom: 1rem;'
                         ),
-                        Button('Analyze Plugin ▸', type='submit'),
+                        # Hidden input to store the selected plugin
+                        Input(type='hidden', name=step.done, id=f'selected-plugin-{step_id}', required=True),
+                        Button('Analyze Selected Plugin ▸', type='submit', id=f'analyze-btn-{step_id}', disabled=True),
                         hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}'
                     )
