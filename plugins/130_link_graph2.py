@@ -301,7 +301,7 @@ class LinkGraph2:
     # Change these values to switch between different query templates
     # without modifying the workflow logic.
     TEMPLATE_CONFIG = {
-        'analysis': 'Not Compliant',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
+        'analysis': 'Link Graph Edges',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
         'crawler': 'Crawl Basic',  # New basic crawl for node metadata
         'gsc': 'GSC Performance',      # Options: 'GSC Performance'
         'ga': 'GA Performance'
