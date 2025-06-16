@@ -1041,9 +1041,9 @@ class LinkGraph2:
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
         if check_result and state.get('_revert_target') != step_id:
-            has_foobar_basic = check_result.get('has_foobar_basic', False)
-            status_text = 'Downloaded basic crawl attributes' if has_foobar_basic else 'Basic crawl attributes not available'
-            status_color = 'green' if has_foobar_basic else 'red'
+            has_crawler = check_result.get('has_crawler', False)
+            status_text = 'Downloaded basic crawl attributes' if has_crawler else 'Basic crawl attributes not available'
+            status_color = 'green' if has_crawler else 'red'
             action_buttons = self._create_action_buttons(check_result, step_id)
 
             widget = Div(
@@ -1065,7 +1065,7 @@ class LinkGraph2:
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            foobar_basic_template = self.get_configured_template('foobar_basic')
+            crawler_template = self.get_configured_template('crawler')
 
             # Check if basic crawl data is cached for the CURRENT analysis
             # Use the same logic as step_analysis to get the current analysis
@@ -1105,12 +1105,12 @@ class LinkGraph2:
 
                 # Only check for cached files if we found an analysis slug
                 if current_analysis_slug:
-                    basic_crawl_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/foobar_basic.csv"  
+                    basic_crawl_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/crawler.csv"  
                     is_cached = os.path.exists(basic_crawl_path)
             except Exception:
                 is_cached = False
 
-            button_text = f'Use Cached Basic Crawl: {foobar_basic_template} ▸' if is_cached else f'Download Basic Crawl Attributes: {foobar_basic_template} ▸'
+            button_text = f'Use Cached Basic Crawl: {crawler_template} ▸' if is_cached else f'Download Basic Crawl Attributes: {crawler_template} ▸'
 
             # Create button row with conditional skip button
             button_row_items = [
@@ -1147,7 +1147,7 @@ class LinkGraph2:
 
             # Create skip data that indicates step was skipped
             skip_result = {
-                'has_foobar_basic': False,
+                'has_crawler': False,
                 'skipped': True,
                 'skip_reason': 'User chose to skip basic crawl data download',
                 'download_complete': False,
@@ -1207,7 +1207,7 @@ class LinkGraph2:
                 
                 # Create cached result data
                 cached_result = {
-                    'has_foobar_basic': True,
+                    'has_crawler': True,
                     'project': project_name,
                     'username': username,
                     'analysis_slug': analysis_slug,
@@ -1330,7 +1330,7 @@ class LinkGraph2:
             
             # Store completion data in our step
             check_result = {
-                'has_foobar_basic': True,
+                'has_crawler': True,
                 'project': project_name,
                 'username': username,
                 'analysis_slug': analysis_slug,
