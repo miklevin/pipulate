@@ -380,7 +380,7 @@ class LinkGraph2:
             Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {crawl_template}', refill=False),
             Step(
                 id='step_crawl_basic',
-                done='crawl_basic_check',
+                done='crawl_basic_data',
                 show='Download Crawl: Basic',
                 refill=False,
             ),
@@ -413,6 +413,7 @@ class LinkGraph2:
         app.route(f'/{app_name}/step_analysis_process', methods=['POST'])(self.step_analysis_process)
         app.route(f'/{app_name}/step_webogs_process', methods=['POST'])(self.step_webogs_process)
         app.route(f'/{app_name}/step_webogs_complete', methods=['POST'])(self.step_webogs_complete)
+        app.route(f'/{app_name}/step_crawl_basic_complete', methods=['POST'])(self.step_crawl_basic_complete)
         app.route(f'/{app_name}/step_gsc_complete', methods=['POST'])(self.step_gsc_complete)
         app.route(f'/{app_name}/step_ga_complete', methods=['POST'])(self.step_ga_complete)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
@@ -424,6 +425,7 @@ class LinkGraph2:
                 self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
         self.step_messages['step_gsc'] = {'input': f"❔{pip.fmt('step_gsc')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
         self.step_messages['step_ga'] = {'input': f"❔{pip.fmt('step_ga')}: Please check if the project has Google Analytics data.", 'complete': 'Google Analytics check complete. Ready to finalize.'}
+        self.step_messages['step_crawl_basic'] = {'input': f"❔{pip.fmt('step_crawl_basic')}: Please download basic crawl attributes for node metadata.", 'complete': '📊 Basic crawl data download complete. Continue to next step.'}
         self.step_messages['step_webogs'] = {'input': f"❔{pip.fmt('step_webogs')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
         self.step_messages['step_ga'] = {'input': f"❔{pip.fmt('step_ga')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
 
@@ -2864,10 +2866,11 @@ await main()
         await self.message_queue.add(self.pipulate, f'⚠️ {max_attempts_msg}', verbatim=True)
         return (False, 'Maximum polling attempts reached. The export job may still complete in the background.')
 
-    async def step_analysis_process(self, request):
+    async def step_analysis_process(self, request, step_context=None):
         """Process the actual download after showing the progress indicator."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_analysis'
+        # Use step_context if provided (for reusability), otherwise default to 'step_analysis'
+        step_id = step_context or 'step_analysis'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -2884,7 +2887,11 @@ await main()
 
         # Get export_type from current template configuration (for cache detection)
         # This ensures cache works even before the step data is fully stored
-        active_crawl_template_key = self.get_configured_template('crawl')
+        # Use different template based on step_context
+        if step_context == 'step_crawl_basic':
+            active_crawl_template_key = self.get_configured_template('crawl_basic')
+        else:
+            active_crawl_template_key = self.get_configured_template('crawl')
         active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
         export_type = active_template_details.get('export_type', 'crawl_attributes')
 
@@ -2907,7 +2914,10 @@ await main()
                 period_end = analysis_date_obj.strftime('%Y-%m-%d')
                 # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
-                crawl_template = self.get_configured_template('crawl')
+                if step_context == 'step_crawl_basic':
+                    crawl_template = self.get_configured_template('crawl_basic')
+                else:
+                    crawl_template = self.get_configured_template('crawl')
                 template_query = self.apply_template(crawl_template, collection)
 
                 # Apply dynamic parameter substitution if needed
@@ -2945,7 +2955,10 @@ await main()
                 period_end = analysis_date_obj.strftime('%Y-%m-%d')
                 # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
-                crawl_template = self.get_configured_template('crawl')
+                if step_context == 'step_crawl_basic':
+                    crawl_template = self.get_configured_template('crawl_basic')
+                else:
+                    crawl_template = self.get_configured_template('crawl')
                 template_query = self.apply_template(crawl_template, collection)
 
                 # Apply dynamic parameter substitution if needed
@@ -5046,7 +5059,7 @@ await main()
 
     # --- START_STEP_BUNDLE: step_03 ---
     async def step_crawl_basic(self, request):
-        """Handles GET request for checking if a Botify project has Search Console data."""
+        """Handles GET request for basic crawl data download step."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_crawl_basic'
         step_index = self.steps_indices[step_id]
@@ -5066,9 +5079,9 @@ await main()
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
         if check_result and state.get('_revert_target') != step_id:
-            has_search_console = check_result.get('has_search_console', False)
-            status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
-            status_color = 'green' if has_search_console else 'red'
+            has_crawl_basic = check_result.get('has_crawl_basic', False)
+            status_text = 'Downloaded basic crawl attributes' if has_crawl_basic else 'Basic crawl attributes not available'
+            status_color = 'green' if has_crawl_basic else 'red'
             action_buttons = self._create_action_buttons(check_result, step_id)
 
             widget = Div(
@@ -5083,16 +5096,16 @@ await main()
                     style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
-                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
+                    Pre(f'Status: {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
                     id=f'{step_id}_widget'
                 )
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            gsc_template = self.get_configured_template('gsc')
+            crawl_basic_template = self.get_configured_template('crawl_basic')
 
-            # Check if GSC data is cached for the CURRENT analysis
+            # Check if basic crawl data is cached for the CURRENT analysis
             # Use the same logic as step_analysis to get the current analysis
             is_cached = False
             try:
@@ -5130,12 +5143,12 @@ await main()
 
                 # Only check for cached files if we found an analysis slug
                 if current_analysis_slug:
-                    gsc_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/gsc.csv"
-                    is_cached = os.path.exists(gsc_path)
+                    basic_crawl_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/crawl_basic.csv"  
+                    is_cached = os.path.exists(basic_crawl_path)
             except Exception:
                 is_cached = False
 
-            button_text = f'Use Cached Search Console: {gsc_template} ▸' if is_cached else f'Download Search Console: {gsc_template} ▸'
+            button_text = f'Use Cached Basic Crawl: {crawl_basic_template} ▸' if is_cached else f'Download Basic Crawl Attributes: {crawl_basic_template} ▸'
 
             # Create button row with conditional skip button
             button_row_items = [
@@ -5151,7 +5164,7 @@ await main()
                            style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
                 )
 
-            return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P(f"Download basic crawl data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_crawl_basic_submit(self, request):
         """Process the basic crawl data download submission."""
@@ -5222,17 +5235,17 @@ await main()
         if not analysis_slug:
             return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
 
-        # Check if GSC data is already cached
+        # Check if basic crawl data is already cached
         try:
-            is_cached, file_info = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'gsc_data')
+            is_cached, file_info = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'crawl_attributes')
             
             if is_cached and file_info:
                 # Use cached file - create immediate completion result
-                await self.message_queue.add(pip, f"✅ Using cached GSC data ({file_info['size']})...", verbatim=True)
+                await self.message_queue.add(pip, f"✅ Using cached basic crawl data ({file_info['size']})...", verbatim=True)
                 
                 # Create cached result data
                 cached_result = {
-                    'has_search_console': True,
+                    'has_crawl_basic': True,
                     'project': project_name,
                     'username': username,
                     'analysis_slug': analysis_slug,
@@ -5263,7 +5276,7 @@ await main()
                         style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                     ),
                     Div(
-                        Pre(f'Status: Using cached GSC data ({file_info["size"]})', cls='code-block-container', style='color: green; display: none;'),
+                        Pre(f'Status: Using cached basic crawl data ({file_info["size"]})', cls='code-block-container', style='color: green; display: none;'),
                         id=f'{step_id}_widget'
                     )
                 )
@@ -5272,7 +5285,7 @@ await main()
                     pip.display_revert_widget(
                         step_id=step_id,
                         app_name=app_name,
-                        message=f'{step.show}: Using cached GSC data ({file_info["size"]})',
+                        message=f'{step.show}: Using cached basic crawl data ({file_info["size"]})',
                         widget=widget,
                         steps=steps
                     ),
@@ -5287,7 +5300,7 @@ await main()
         # Proceed with download if not cached
         return Card(
             H3(f'{step.show}'),
-            P(f"Downloading Search Console data for '{project_name}'..."),
+            P(f"Downloading basic crawl data for '{project_name}'..."),
             Progress(style='margin-top: 10px;'),
             Script(f"""
                 setTimeout(function() {{
@@ -5301,13 +5314,15 @@ await main()
         )
 
     async def step_crawl_basic_complete(self, request):
-        """Handles completion after the progress indicator has been shown."""
+        """Handles completion of basic crawl data step - delegates to step_analysis_process."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_crawl_basic'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
+        
+        # Get project and analysis data
         prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
@@ -5316,6 +5331,7 @@ await main()
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
+        
         analysis_step_id = 'step_analysis'
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
@@ -5323,61 +5339,49 @@ await main()
             return P('Error: Analysis data not found.', style=pip.get_style('error'))
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
-        try:
-            has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
-            if error_message:
-                return Div(P(f'Error: {error_message}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-            check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
-            if has_search_console:
-                await self.message_queue.add(pip, f'✅ Project has Search Console data, downloading...', verbatim=True)
-                await self.process_search_console_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
-            else:
-                await self.message_queue.add(pip, f'Project does not have Search Console data (skipping download)', verbatim=True)
-                
-                # Generate Python debugging code even when no GSC data (for educational purposes)
-                try:
-                    analysis_date_obj = datetime.strptime(analysis_slug, '%Y%m%d')
-                    start_date = analysis_date_obj.strftime('%Y-%m-%d')
-                    end_date = (analysis_date_obj + timedelta(days=6)).strftime('%Y-%m-%d')
-                    
-                    # Create example GSC export payload for educational purposes
-                    gsc_template = self.get_configured_template('gsc')
-                    example_export_payload = await self.build_exports(
-                        username, project_name, analysis_slug, 'gsc_data', start_date, end_date
-                    )
-                    
-                    # Generate Python code for debugging
-                    _, _, python_command = self.generate_query_api_call(example_export_payload, username, project_name)
-                    check_result['python_command'] = python_command
-                except Exception as e:
-                    # Fallback to basic example if generation fails
-                    check_result['python_command'] = f'# Example GSC query for {project_name} (no GSC data available)\n# This project does not have Search Console data integrated.'
-                
-                check_result_str = json.dumps(check_result)
-                await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
-            status_text = 'HAS' if has_search_console else 'does NOT have'
-            completed_message = 'Data downloaded successfully' if has_search_console else 'No Search Console data available'
-            action_buttons = self._create_action_buttons(check_result, step_id)
 
-            widget = Div(
-                Div(
-                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
-                        hx_target=f'#{step_id}_widget',
-                        hx_swap='innerHTML'
-                    ),
-                    *action_buttons,
-                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
-                ),
-                Div(
-                    Pre(f'Status: Project {status_text} Search Console data', cls='code-block-container', style=f'color: {"green" if has_search_console else "red"}; display: none;'),
-                    id=f'{step_id}_widget'
-                )
-            )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        try:
+            # Call step_analysis_process with step_context to indicate this is for basic crawl
+            # Create a fake request with the required form data
+            from starlette.datastructures import FormData
+            fake_form_data = FormData([
+                ('analysis_slug', analysis_slug),
+                ('username', username), 
+                ('project_name', project_name)
+            ])
+            
+            # Create a mock request object with our form data
+            class MockRequest:
+                def __init__(self, form_data):
+                    self._form_data = form_data
+                
+                async def form(self):
+                    return self._form_data
+            
+            mock_request = MockRequest(fake_form_data)
+            
+            # Call step_analysis_process with our context
+            result = await self.step_analysis_process(mock_request, step_context='step_crawl_basic')
+            
+            # The result should be the completed step widget, but we need to adapt it for our step_id
+            # and update the data storage to use our step's done key
+            
+            # Store completion data in our step
+            check_result = {
+                'has_crawl_basic': True,
+                'project': project_name,
+                'username': username,
+                'analysis_slug': analysis_slug,
+                'timestamp': datetime.now().isoformat(),
+                'step_context': 'step_crawl_basic'
+            }
+            
+            await pip.set_step_data(pipeline_id, step_id, json.dumps(check_result), steps)
+            
+            return result
+            
         except Exception as e:
-            logging.exception(f'Error in step_gsc_complete: {e}')
+            logging.exception(f'Error in step_crawl_basic_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
     # --- END_STEP_BUNDLE: step_03 ---
 

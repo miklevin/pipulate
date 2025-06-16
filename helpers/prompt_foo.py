@@ -33,14 +33,17 @@ FILES_TO_INCLUDE_RAW = """\
 # BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
 
 # CORE FILES & DOCS (Setting the stage)
-README.md         <-- Main GitHub README sets the tone
-flake.nix         <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+# README.md         <-- Main GitHub README sets the tone
+# flake.nix         <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt  <-- Python package dependencies for the project
-server.py         <-- Main server file for the project
+# server.py         <-- Main server file for the project
 .gitignore
 /home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
 /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
-/home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
+# /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
+
+## NECESSARY FOR CURRENT PROMPT
+/home/mike/repos/pipulate/plugins/130_link_graph2.py
 
 ## BOTIFY API DOCUMENTATION
 # /home/mike/repos/pipulate/training/botify_api.md
