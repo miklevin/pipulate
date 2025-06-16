@@ -28,10 +28,11 @@ Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], default
 
 class LinkGraph2:
     """
-    Botify Trifecta Workflow - Multi-Export Data Collection
+    Botify Quadfecta Workflow - Multi-Export Data Collection
 
-    A comprehensive workflow that downloads three types of Botify data (crawl analysis, web logs,
-    and Search Console) and generates Jupyter-friendly Python code for API debugging. This workflow
+    A comprehensive workflow that downloads five types of Botify data (link
+    graph, basic crawl, web logs, Search Console, and Google Analytics) and
+    generates Jupyter-friendly Python code for API debugging. This workflow
     demonstrates:
 
     - Multi-step form collection with chain reaction progression
@@ -77,7 +78,7 @@ class LinkGraph2:
     ## Workflow Modularity & Flexibility
     ===================================
 
-    While this is called the "Botify Trifecta" and downloads from three main data sources,
+    While this is called the "Botify Quadfecta" and downloads from four main data sources,
     the workflow is highly modular:
 
     **REQUIRED STEP**: Only Step 2 (crawl data) is actually required because it:
@@ -5319,4 +5320,5 @@ await main()
 
 
     # --- STEP_METHODS_INSERTION_POINT ---
+
 
