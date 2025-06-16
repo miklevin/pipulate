@@ -2719,6 +2719,28 @@ class LinkGraph2:
             return exists, file_info if exists else None
         except Exception:
             return False, None
+    
+    async def check_cached_file_for_template_config(self, username, project_name, analysis_slug, template_config_key):
+        """Check if a cached file exists based on template configuration.
+        
+        This method resolves the template configuration to determine the appropriate
+        export type and check for cached files.
+        
+        Args:
+            username: Organization username
+            project_name: Project name
+            analysis_slug: Analysis slug
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler_basic')
+            
+        Returns:
+            tuple: (exists: bool, file_info: dict|None)
+        """
+        try:
+            filepath = await self.get_deterministic_filepath_for_template_config(username, project_name, analysis_slug, template_config_key)
+            exists, file_info = await self.check_file_exists(filepath)
+            return exists, file_info if exists else None
+        except Exception:
+            return False, None
 
     def _generate_api_call_representations(self, method: str, url: str, headers: dict, payload: Optional[dict] = None, step_context: Optional[str] = None, template_info: Optional[dict] = None, username: Optional[str] = None, project_name: Optional[str] = None) -> tuple[str, str]:
         """Generate both cURL and Python representations of API calls for debugging.
