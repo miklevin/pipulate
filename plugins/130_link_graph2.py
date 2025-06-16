@@ -431,7 +431,7 @@ class LinkGraph2:
         that should be used for file naming and caching.
         
         Args:
-            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler')
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'analysis', 'crawler')
             
         Returns:
             String export type that can be used with get_filename_for_export_type()
@@ -2681,7 +2681,7 @@ class LinkGraph2:
             username: Organization username
             project_name: Project name
             analysis_slug: Analysis slug
-            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler')
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'analysis', 'crawler')
             
         Returns:
             String path to the file location
@@ -2730,7 +2730,7 @@ class LinkGraph2:
             username: Organization username
             project_name: Project name
             analysis_slug: Analysis slug
-            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler')
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'analysis', 'crawler')
             
         Returns:
             tuple: (exists: bool, file_info: dict|None)
