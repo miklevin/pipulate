@@ -2670,6 +2670,24 @@ class LinkGraph2:
             
         filename = self.get_filename_for_export_type(data_type)
         return f'{base_dir}/{filename}'
+    
+    async def get_deterministic_filepath_for_template_config(self, username, project_name, analysis_slug, template_config_key):
+        """Generate a deterministic file path based on template configuration.
+        
+        This method resolves the template configuration to determine the appropriate
+        export type and filename for caching.
+        
+        Args:
+            username: Organization username
+            project_name: Project name
+            analysis_slug: Analysis slug
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'edges', 'crawler_basic')
+            
+        Returns:
+            String path to the file location
+        """
+        export_type = self.get_export_type_for_template_config(template_config_key)
+        return await self.get_deterministic_filepath(username, project_name, analysis_slug, export_type)
 
     async def check_file_exists(self, filepath):
         """Check if a file exists and is non-empty.
