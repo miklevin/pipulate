@@ -478,6 +478,11 @@ class DevAssistant:
         has_steps_marker = steps_insertion_marker in content
         has_methods_marker = methods_insertion_marker in content
 
+        # NEW: Check for bundle markers (modern template pattern)
+        class_attributes_bundle_start = "--- START_CLASS_ATTRIBUTES_BUNDLE ---"
+        class_attributes_bundle_end = "--- END_CLASS_ATTRIBUTES_BUNDLE ---"
+        has_class_attributes_bundle = class_attributes_bundle_start in content and class_attributes_bundle_end in content
+
         if has_steps_marker:
             analysis["patterns_found"].append("✅ STEPS_LIST_INSERTION_POINT marker found")
         else:
@@ -498,26 +503,57 @@ class DevAssistant:
                 f"CRITICAL: The marker must be at the same indentation level as the Step definitions and placed immediately before the finalize step."
             )
 
+        # UPDATED: Methods marker is now OPTIONAL for modern workflows
         if has_methods_marker:
             analysis["patterns_found"].append("✅ STEP_METHODS_INSERTION_POINT marker found")
         else:
-            analysis["template_suitability"]["missing_requirements"].append("STEP_METHODS_INSERTION_POINT marker")
-            analysis["issues"].append("❌ Missing STEP_METHODS_INSERTION_POINT marker (template compatibility)")
-            analysis["coding_assistant_prompts"].append(
-                f"Add STEP_METHODS_INSERTION_POINT marker to {filename}:\n"
-                f"At the end of the class, after all existing step methods, add:\n\n"
-                f"```python\n"
-                f"class YourWorkflow:\n"
-                f"    # ... existing methods ...\n"
-                f"    \n"
-                f"    async def existing_step_method(self, request):\n"
-                f"        # ... existing implementation ...\n"
-                f"        pass\n"
-                f"    \n"
-                f"    {methods_insertion_marker}\n"
-                f"```\n\n"
-                f"CRITICAL: The marker must be at class level (4 spaces indentation) and placed after all existing step methods but before the class ends."
-            )
+            # Check if this is a modern workflow using centralized route registration
+            uses_centralized_routes = 'pipulate.register_workflow_routes(self)' in content
+            if not uses_centralized_routes:
+                analysis["template_suitability"]["missing_requirements"].append("STEP_METHODS_INSERTION_POINT marker")
+                analysis["issues"].append("❌ Missing STEP_METHODS_INSERTION_POINT marker (template compatibility)")
+                analysis["coding_assistant_prompts"].append(
+                    f"Add STEP_METHODS_INSERTION_POINT marker to {filename}:\n"
+                    f"At the end of the class, after all existing step methods, add:\n\n"
+                    f"```python\n"
+                    f"class YourWorkflow:\n"
+                    f"    # ... existing methods ...\n"
+                    f"    \n"
+                    f"    async def existing_step_method(self, request):\n"
+                    f"        # ... existing implementation ...\n"
+                    f"        pass\n"
+                    f"    \n"
+                    f"    {methods_insertion_marker}\n"
+                    f"```\n\n"
+                    f"CRITICAL: The marker must be at class level (4 spaces indentation) and placed after all existing step methods but before the class ends."
+                )
+            else:
+                analysis["patterns_found"].append("✅ Modern workflow using centralized route registration (methods marker optional)")
+
+        # NEW: Class Attributes Bundle Analysis
+        if has_class_attributes_bundle:
+            analysis["patterns_found"].append("✅ CLASS_ATTRIBUTES_BUNDLE markers found (modern template pattern)")
+        else:
+            # Only suggest if workflow has other template markers (indicating it's meant to be a template)
+            if has_steps_marker:
+                analysis["recommendations"].append("Consider adding CLASS_ATTRIBUTES_BUNDLE markers for advanced template assembly")
+                analysis["coding_assistant_prompts"].append(
+                    f"Add CLASS_ATTRIBUTES_BUNDLE markers to {filename} for advanced template compatibility:\n"
+                    f"Add these markers in the class definition after other constants:\n\n"
+                    f"```python\n"
+                    f"class YourWorkflow:\n"
+                    f"    APP_NAME = 'your_app'\n"
+                    f"    DISPLAY_NAME = 'Your Workflow'\n"
+                    f"    # ... other constants ...\n"
+                    f"    \n"
+                    f"    {class_attributes_bundle_start}\n"
+                    f"    # Additional class-level constants can be merged here by manage_class_attributes.py\n"
+                    f"    {class_attributes_bundle_end}\n"
+                    f"    \n"
+                    f"    def __init__(self, ...):\n"
+                    f"        # ... existing code ...\n"
+                    f"```"
+                )
 
         # Standard class attributes check
         required_attributes = ["APP_NAME", "DISPLAY_NAME", "ENDPOINT_MESSAGE", "TRAINING_PROMPT"]
@@ -557,18 +593,22 @@ class DevAssistant:
                 ])
             )
 
-        # UI Constants check
-        if 'UI_CONSTANTS' in content:
-            analysis["patterns_found"].append("✅ UI_CONSTANTS for styling found")
+        # UPDATED: UI Constants check - handle both patterns
+        has_local_ui_constants = 'UI_CONSTANTS' in content and 'UI_CONSTANTS = {' in content
+        has_centralized_ui = 'pip.get_ui_constants()' in content or 'self.ui = ' in content
+
+        if has_local_ui_constants:
+            analysis["patterns_found"].append("✅ Local UI_CONSTANTS for styling found")
+        elif has_centralized_ui:
+            analysis["patterns_found"].append("✅ Centralized UI constants via pipulate.get_ui_constants() (modern pattern)")
         else:
-            analysis["template_suitability"]["missing_requirements"].append("UI_CONSTANTS for styling consistency")
-            analysis["issues"].append("❌ Missing UI_CONSTANTS (template compatibility)")
+            analysis["template_suitability"]["missing_requirements"].append("UI constants (local or centralized)")
+            analysis["issues"].append("❌ Missing UI constants (template compatibility)")
             analysis["coding_assistant_prompts"].append(
-                f"Add UI_CONSTANTS to {filename}:\n"
-                f"Add styling constants at the top of the class for consistent appearance:\n\n"
+                f"Add UI constants to {filename}:\n"
+                f"OPTION 1 - Local UI constants (classic pattern):\n"
                 f"```python\n"
                 f"class YourWorkflow:\n"
-                f"    # UI Constants - Centralized control for global appearance\n"
                 f"    UI_CONSTANTS = {{\n"
                 f"        'COLORS': {{\n"
                 f"            'HEADER_TEXT': '#2c3e50',\n"
@@ -586,9 +626,13 @@ class DevAssistant:
                 f"            'MARGIN_BOTTOM': '1rem',\n"
                 f"        }}\n"
                 f"    }}\n"
-                f"    \n"
-                f"    def __init__(self, ...):\n"
-                f"        # ... existing code ...\n"
+                f"```\n\n"
+                f"OPTION 2 - Centralized UI constants (modern pattern):\n"
+                f"```python\n"
+                f"def __init__(self, app, pipulate, pipeline, db, app_name=None):\n"
+                f"    # ... existing code ...\n"
+                f"    self.ui = pip.get_ui_constants()  # Access centralized UI constants\n"
+                f"    # ... rest of init ...\n"
                 f"```"
             )
 
