@@ -1484,6 +1484,8 @@ class DevAssistant:
     async def step_02(self, request):
         # Simplified utility - display analysis results from current_analysis
         app_name = self.app_name
+        step_id = 'step_02'
+        next_step_id = 'finalize'
         
         # Check if we have analysis results
         if not hasattr(self, 'current_analysis') or not self.current_analysis:
@@ -1538,115 +1540,102 @@ class DevAssistant:
                         Ul(*[Li(issue) for issue in template_issues],
                            style="color: orange; margin-bottom: 1rem;")
                     ) if template_issues else None,
-                    # WHAT NEEDS FIXING (Primary Focus)
-                    (Div(
-                        H4("🚨 ISSUES TO FIX", style=f"color: {self.UI_CONSTANTS['COLORS']['ERROR_RED']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['ERROR_RED']}; padding-bottom: 0.5rem;"),
-                        Div(
-                            H5("❌ Functional Issues:", style="color: red; margin-bottom: 0.5rem;"),
-                            Ul(*[Li(issue) for issue in functional_issues],
-                               style="color: red; margin-bottom: 1rem;")
-                        ) if functional_issues else None,
-                        Div(
-                            H5("📋 Template Issues:", style="color: orange; margin-bottom: 0.5rem;"),
-                            Ul(*[Li(issue) for issue in template_issues],
-                               style="color: orange; margin-bottom: 1rem;")
-                        ) if template_issues else None,
-                        (P("✅ No critical issues found!", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; font-weight: bold; font-size: 1.1rem;")
-                         if not functional_issues and not template_issues else None),
-                        style="margin-bottom: 2rem;"
-                    ) if functional_issues or template_issues else Div(
-                        H4("✅ NO ISSUES FOUND", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; padding-bottom: 0.5rem;"),
-                        P("This plugin appears to be correctly implemented!", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; font-weight: bold; font-size: 1.1rem;"),
-                        style="margin-bottom: 2rem;"
-                    )),
+                    (P("✅ No critical issues found!", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; font-weight: bold; font-size: 1.1rem;")
+                     if not functional_issues and not template_issues else None),
+                    style="margin-bottom: 2rem;"
+                ) if functional_issues or template_issues else Div(
+                    H4("✅ NO ISSUES FOUND", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; padding-bottom: 0.5rem;"),
+                    P("This plugin appears to be correctly implemented!", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; font-weight: bold; font-size: 1.1rem;"),
+                    style="margin-bottom: 2rem;"
+                )),
 
-                    # CAPABILITIES (Secondary Info)
-                    Div(
-                        Details(
-                            Summary(
-                                H4('📊 Capabilities Summary', style='display: inline; margin: 0;'),
-                                style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
-                            ),
-                            Div(
-                                Div(f"🔧 Functional Plugin: {'✅ Good' if not has_functional_issues else '❌ Has Issues'}",
-                                    style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if not has_functional_issues else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if not has_functional_issues else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
-                                Div(f"📋 Template Source: {'✅ Ready' if template_source_ready else '❌ Needs Work'}",
-                                    style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if template_source_ready else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if template_source_ready else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
-                                Div(f"📤 Step Source: {'✅ ' + str(len(ready_transplants)) + ' ready' if ready_transplants else '❌ None ready'}",
-                                    style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if ready_transplants else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if ready_transplants else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold;"),
-                                style='padding: 1rem;'
-                            )
-                        )
-                    ),
-
-                    # CODING FIXES (If issues exist)
-                    (Details(
-                        Summary(
-                            H4('🤖 Coding Assistant Instructions', style='display: inline; margin: 0;'),
-                            style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
-                        ),
-                        Div(
-                            P(f'Copy these detailed instructions to fix {filename}:',
-                              style=f'margin-bottom: 1rem; font-weight: bold; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
-                            Div(
-                                *[
-                                    Div(
-                                        H5(f'Fix #{i+1}:', style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-top: 1.5rem; margin-bottom: 0.5rem;'),
-                                        Pre(
-                                            Code(prompt, cls='language-markdown'),
-                                            cls='line-numbers'
-                                        ),
-                                        style='margin-bottom: 1rem;'
-                                    )
-                                    for i, prompt in enumerate(coding_prompts)
-                                ],
-                                id=widget_id
-                            ),
-                            style='padding: 1rem;'
-                        ),
-                        style='margin: 1rem 0;'
-                    ) if coding_prompts else None),
-
-                    # CREATE NEW VERSION COMMAND
+                # CAPABILITIES (Secondary Info)
+                Div(
                     Details(
                         Summary(
-                            H4('🚀 Create New Version Command', style='display: inline; margin: 0;'),
+                            H4('📊 Capabilities Summary', style='display: inline; margin: 0;'),
                             style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                         ),
                         Div(
-                            *self.generate_create_workflow_commands(analysis_results),
+                            Div(f"🔧 Functional Plugin: {'✅ Good' if not has_functional_issues else '❌ Has Issues'}",
+                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if not has_functional_issues else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if not has_functional_issues else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
+                            Div(f"📋 Template Source: {'✅ Ready' if template_source_ready else '❌ Needs Work'}",
+                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if template_source_ready else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if template_source_ready else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
+                            Div(f"📤 Step Source: {'✅ ' + str(len(ready_transplants)) + ' ready' if ready_transplants else '❌ None ready'}",
+                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if ready_transplants else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if ready_transplants else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold;"),
                             style='padding: 1rem;'
                         )
-                    ),
-
-                    # TRANSPLANTATION COMMANDS (If available)
-                    (Details(
-                        Summary(
-                            H4('🔀 Step Transplantation', style='display: inline; margin: 0;'),
-                            style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
-                        ),
-                        Div(
-                            (Div(
-                                H5('✅ Ready Commands:', style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.75rem;'),
-                                *[
-                                    Div(
-                                        Strong(f"{cmd['step_id']}: ", style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'),
-                                        Code(cmd['command'], style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9rem;'),
-                                        style='margin-bottom: 0.5rem; display: block;'
-                                    )
-                                    for cmd in ready_transplants
-                                ]
-                            ) if ready_transplants else P('No ready-to-transplant steps found.', style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};')),
-                            style='padding: 1rem;'
-                        )
-                    ) if transplant_commands else None),
-
-                    Form(
-                        Button('Complete Analysis ▸', type='submit'),
-                        hx_post=f'/{app_name}/{step_id}_submit',
-                        hx_target=f'#{step_id}'
                     )
                 ),
+
+                # CODING FIXES (If issues exist)
+                (Details(
+                    Summary(
+                        H4('🤖 Coding Assistant Instructions', style='display: inline; margin: 0;'),
+                        style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
+                    ),
+                    Div(
+                        P(f'Copy these detailed instructions to fix {filename}:',
+                          style=f'margin-bottom: 1rem; font-weight: bold; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                        Div(
+                            *[
+                                Div(
+                                    H5(f'Fix #{i+1}:', style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-top: 1.5rem; margin-bottom: 0.5rem;'),
+                                    Pre(
+                                        Code(prompt, cls='language-markdown'),
+                                        cls='line-numbers'
+                                    ),
+                                    style='margin-bottom: 1rem;'
+                                )
+                                for i, prompt in enumerate(coding_prompts)
+                            ],
+                            id=widget_id
+                        ),
+                        style='padding: 1rem;'
+                    ),
+                    style='margin: 1rem 0;'
+                ) if coding_prompts else None),
+
+                # CREATE NEW VERSION COMMAND
+                Details(
+                    Summary(
+                        H4('🚀 Create New Version Command', style='display: inline; margin: 0;'),
+                        style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
+                    ),
+                    Div(
+                        *self.generate_create_workflow_commands(analysis_results),
+                        style='padding: 1rem;'
+                    )
+                ),
+
+                # TRANSPLANTATION COMMANDS (If available)
+                (Details(
+                    Summary(
+                        H4('🔀 Step Transplantation', style='display: inline; margin: 0;'),
+                        style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
+                    ),
+                    Div(
+                        (Div(
+                            H5('✅ Ready Commands:', style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.75rem;'),
+                            *[
+                                Div(
+                                    Strong(f"{cmd['step_id']}: ", style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'),
+                                    Code(cmd['command'], style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9rem;'),
+                                    style='margin-bottom: 0.5rem; display: block;'
+                                )
+                                for cmd in ready_transplants
+                            ]
+                        ) if ready_transplants else P('No ready-to-transplant steps found.', style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};')),
+                        style='padding: 1rem;'
+                    )
+                ) if transplant_commands else None),
+
+                Form(
+                    Button('Complete Analysis ▸', type='submit'),
+                    hx_post=f'/{app_name}/{step_id}_submit',
+                    hx_target=f'#{step_id}'
+                ),
+
                 # Add Prism initialization script
                 Script(f"""
                 (function() {{
@@ -1667,15 +1656,11 @@ class DevAssistant:
                         }}
                     }});
                 }})();
-                """, type='text/javascript'),
-                Div(id=next_step_id),
-                id=step_id
-            )
-
-            # Return HTMLResponse with HX-Trigger for Prism initialization
-            response = HTMLResponse(to_xml(response_content))
-            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
-            return response
+                """, type='text/javascript')
+            ),
+            Div(id=next_step_id),
+            id=step_id
+        )
 
     async def step_02_submit(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
