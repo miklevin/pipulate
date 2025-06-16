@@ -425,6 +425,10 @@ class LinkGraph2:
         
         Returns:
             list: List of Step namedtuples for the workflow
+            
+        CRITICAL: This method maintains compatibility with helper scripts by appending
+        a static dummy step at the end. The helper scripts can target this dummy step
+        for splicing operations without breaking the dynamic functionality.
         """
         # Build step names dynamically based on template configuration
         analysis_template = self.get_configured_template('analysis')
@@ -449,6 +453,11 @@ class LinkGraph2:
             Step(id='step_ga', done='ga', show=f'Download Google Analytics: {ga_template}', refill=False),
             Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)
         ])
+        
+        # --- STEPS_LIST_INSERTION_POINT ---
+        # CRITICAL: This static insertion point maintains compatibility with helper scripts
+        # (create_workflow.py and splice_workflow_step.py) while preserving dynamic functionality.
+        # Helper scripts can append new steps here without breaking the chain reaction pattern.
         
         return steps
     
