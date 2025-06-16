@@ -56,7 +56,7 @@ class BrowserAutomation:
     This serves as the primary development ground for Pipulate's browser automation features.
     """
     APP_NAME = 'browser'
-    DISPLAY_NAME = 'Browser Automation 🌐'
+    DISPLAY_NAME = 'Browser Automation 🤖'
     ENDPOINT_MESSAGE = "Open URLs using Selenium for browser automation. This workflow demonstrates Pipulate's browser automation capabilities."
     TRAINING_PROMPT = 'This workflow showcases browser automation using Selenium. It uses webdriver-manager for cross-platform compatibility and provides a foundation for developing more advanced automation features.'
 

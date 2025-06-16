@@ -141,7 +141,7 @@ PCONFIG = {
         },
         'Workshop': {
             'priority': 4, 
-            'description': 'Experimental tools and advanced components for power users.',
+            'description': 'This is where we put works in progress, proof of concepts and crazy stuff not ready for release. Consider it the sausage factory.',
             'emoji': '🔬'
         },
         'Components': {
