@@ -981,6 +981,189 @@ class DevAssistant:
 
         return analysis
 
+    def generate_create_workflow_commands(self, analysis_results):
+        """Generate create_workflow.py commands for creating a new version of the analyzed plugin."""
+        filename = analysis_results.get('filename', 'unknown.py')
+        file_path = Path("plugins") / filename
+        
+        if not file_path.exists():
+            return [P('Plugin file not found for command generation.', style=f'color: {self.UI_CONSTANTS["COLORS"]["ERROR_RED"]};')]
+        
+        content = file_path.read_text()
+        
+        # Extract current plugin attributes
+        extracted_data = self.extract_plugin_attributes(content, filename)
+        
+        if extracted_data.get('error'):
+            return [P(f'Error extracting plugin data: {extracted_data["error"]}', style=f'color: {self.UI_CONSTANTS["COLORS"]["ERROR_RED"]};')]
+        
+        # Generate next version filename
+        next_filename = self.generate_next_version_filename(filename)
+        
+        # Format bash command arguments (from workflow_genesis.py)
+        def format_bash_command(text):
+            if not text:
+                return '""'
+            text = text.replace('!', '\\!')
+            text = text.replace('"', '\\"')
+            if ' ' in text or '"' in text or "'" in text:
+                return f'"{text}"'
+            return text
+        
+        # Generate commands for different templates
+        commands = []
+        
+        # Default: Blank template (generic use)
+        blank_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {extracted_data['class_name']} {extracted_data['app_name']} \\\n" + \
+                   f"  {format_bash_command(extracted_data['display_name'])} \\\n" + \
+                   f"  {format_bash_command(extracted_data['endpoint_message'])} \\\n" + \
+                   f"  {format_bash_command(extracted_data['training_prompt'])} \\\n" + \
+                   f"  --template blank --role Core --force"
+        
+        # Hello template option
+        hello_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {extracted_data['class_name']} {extracted_data['app_name']} \\\n" + \
+                   f"  {format_bash_command(extracted_data['display_name'])} \\\n" + \
+                   f"  {format_bash_command(extracted_data['endpoint_message'])} \\\n" + \
+                   f"  {format_bash_command(extracted_data['training_prompt'])} \\\n" + \
+                   f"  --template hello --role Core --force"
+        
+        # Quadfecta template option
+        quadfecta_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {extracted_data['class_name']} {extracted_data['app_name']} \\\n" + \
+                       f"  {format_bash_command(extracted_data['display_name'])} \\\n" + \
+                       f"  {format_bash_command(extracted_data['endpoint_message'])} \\\n" + \
+                       f"  {format_bash_command(extracted_data['training_prompt'])} \\\n" + \
+                       f"  --template quadfecta --role Core --force"
+        
+        return [
+            P(f'Generate commands to create a new version of {filename} as {next_filename}:',
+              style=f'margin-bottom: 1rem; font-weight: bold; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+            
+            # Extracted data summary
+            Div(
+                H5('📋 Extracted Plugin Data:', style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-bottom: 0.5rem;'),
+                Ul(
+                    Li(f"Class Name: {extracted_data['class_name']}"),
+                    Li(f"App Name: {extracted_data['app_name']}"),
+                    Li(f"Display Name: {extracted_data['display_name']}"),
+                    Li(f"Next Version: {next_filename}"),
+                    style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 1rem;'
+                ),
+                style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["SUCCESS_OVERLAY"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: 1.5rem;'
+            ),
+            
+            # Default: Blank template
+            Div(
+                H5('🎯 Blank Template (Default - Generic Use):', style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.5rem;'),
+                P('Single-step workflow for learning step management and customization.',
+                  style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-size: 0.9rem; margin-bottom: 0.5rem;'),
+                Pre(
+                    Code(blank_cmd, cls='language-bash copy-code'),
+                    style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]};'
+                ),
+                style='margin-bottom: 1.5rem;'
+            ),
+            
+            # Hello template option
+            Div(
+                H5('👋 Hello Template (Multi-step Recreation):', style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-bottom: 0.5rem;'),
+                P('Multi-step process demonstrating helper tool sequence and workflow construction.',
+                  style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-size: 0.9rem; margin-bottom: 0.5rem;'),
+                Pre(
+                    Code(hello_cmd, cls='language-bash copy-code'),
+                    style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'
+                ),
+                style='margin-bottom: 1.5rem;'
+            ),
+            
+            # Quadfecta template option
+            Div(
+                H5('🏇 Quadfecta Template (Complex Workflow):', style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_PURPLE"]}; margin-bottom: 0.5rem;'),
+                P('Complex 5-step workflow from Botify template for sophisticated data collection scenarios.',
+                  style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-size: 0.9rem; margin-bottom: 0.5rem;'),
+                Pre(
+                    Code(quadfecta_cmd, cls='language-bash copy-code'),
+                    style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["ACCENT_PURPLE"]};'
+                ),
+                style='margin-bottom: 1rem;'
+            ),
+            
+            # Usage note
+            Div(
+                P('💡 Copy any command above to create a new version. The blank template is recommended for general use, while quadfecta is perfect for complex data workflows like Parameter Buster or Link Graph Visualizer.',
+                  style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_TEAL"]}; font-style: italic; font-size: 0.9rem;'),
+                style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["WARNING_OVERLAY"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["INFO_TEAL"]};'
+            )
+        ]
+
+    def extract_plugin_attributes(self, content, filename):
+        """Extract class name, APP_NAME, DISPLAY_NAME, etc. from plugin content."""
+        try:
+            # Extract class name
+            class_match = re.search(r'^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*:', content, re.MULTILINE)
+            if not class_match:
+                return {"error": "Could not find class definition"}
+            
+            class_name = class_match.group(1)
+            
+            # Extract APP_NAME
+            app_name_match = re.search(r'APP_NAME\s*=\s*[\'"]([^\'"]+)[\'"]', content)
+            app_name = app_name_match.group(1) if app_name_match else self.derive_app_name_from_filename(filename)
+            
+            # Extract DISPLAY_NAME
+            display_name_match = re.search(r'DISPLAY_NAME\s*=\s*[\'"]([^\'"]+)[\'"]', content)
+            display_name = display_name_match.group(1) if display_name_match else f"{class_name} Workflow"
+            
+            # Extract ENDPOINT_MESSAGE (handle both single and triple quotes)
+            endpoint_message = "Welcome to this workflow."
+            endpoint_single = re.search(r'ENDPOINT_MESSAGE\s*=\s*[\'"]([^\'"]+)[\'"]', content)
+            endpoint_triple = re.search(r'ENDPOINT_MESSAGE\s*=\s*[\'\"]{3}(.*?)[\'\"]{3}', content, re.DOTALL)
+            
+            if endpoint_triple:
+                endpoint_message = endpoint_triple.group(1).strip()
+            elif endpoint_single:
+                endpoint_message = endpoint_single.group(1)
+            
+            # Extract TRAINING_PROMPT (handle both single and triple quotes)
+            training_prompt = f"You are assisting with the {display_name} workflow. Help users understand each step and provide guidance."
+            training_single = re.search(r'TRAINING_PROMPT\s*=\s*[\'"]([^\'"]+)[\'"]', content)
+            training_triple = re.search(r'TRAINING_PROMPT\s*=\s*[\'\"]{3}(.*?)[\'\"]{3}', content, re.DOTALL)
+            
+            if training_triple:
+                training_prompt = training_triple.group(1).strip()
+            elif training_single:
+                training_prompt = training_single.group(1)
+            
+            return {
+                'class_name': class_name,
+                'app_name': app_name,
+                'display_name': display_name,
+                'endpoint_message': endpoint_message,
+                'training_prompt': training_prompt
+            }
+            
+        except Exception as e:
+            return {"error": str(e)}
+
+    def derive_app_name_from_filename(self, filename):
+        """Derive app name from filename (e.g., '110_parameter_buster.py' -> 'parameter_buster')."""
+        filename_part_no_ext = Path(filename).stem
+        return re.sub(r"^\d+_", "", filename_part_no_ext)
+
+    def generate_next_version_filename(self, current_filename):
+        """Generate next version filename by incrementing the numeric prefix."""
+        # Extract current number prefix
+        match = re.match(r'^(\d+)_(.+)\.py$', current_filename)
+        if not match:
+            # If no numeric prefix, add one
+            base_name = Path(current_filename).stem
+            return f"001_{base_name}.py"
+        
+        current_num = int(match.group(1))
+        base_name = match.group(2)
+        next_num = current_num + 1
+        
+        return f"{next_num:03d}_{base_name}.py"
+
     async def step_01(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
@@ -1196,6 +1379,18 @@ class DevAssistant:
                         ),
                         style='margin: 1rem 0;'
                     ) if coding_prompts else None),
+
+                    # CREATE NEW VERSION COMMAND
+                    Details(
+                        Summary(
+                            H4('🚀 Create New Version Command', style='display: inline; margin: 0;'),
+                            style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
+                        ),
+                        Div(
+                            *self.generate_create_workflow_commands(analysis_results),
+                            style='padding: 1rem;'
+                        )
+                    ),
 
                     # TRANSPLANTATION COMMANDS (If available)
                     (Details(
