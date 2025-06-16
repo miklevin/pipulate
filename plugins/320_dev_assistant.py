@@ -1277,6 +1277,7 @@ class DevAssistant:
                             placeholder='Search plugins by name... (↑↓ arrows, Enter to select)',
                             id=f'plugin-search-input-{step_id}',
                             style='width: 100%; border-radius: 8px; margin-bottom: 1rem;',
+                            autofocus=True,
                             hx_post=f'/{app_name}/search_plugins_step01',
                             hx_target=f'#plugin-search-results-{step_id}',
                             hx_trigger='input changed delay:300ms',
