@@ -369,7 +369,7 @@ class LinkGraph2:
         self.ui = pip.get_ui_constants()
         self.config = pip.get_config()
         # Build step names dynamically based on template configuration
-        crawl_template = self.get_configured_template('crawl')
+        crawl_template = self.get_configured_template('edges')
         foobar_basic_template = self.get_configured_template('foobar_basic')  # ← New template reference00
         gsc_template = self.get_configured_template('gsc')
         ga_template = self.get_configured_template('ga')
@@ -700,7 +700,7 @@ class LinkGraph2:
             selected_value = selected_slug if selected_slug else slugs[0]
 
             # Get active template details for dynamic UI
-            active_crawl_template_key = self.get_configured_template('crawl')
+            active_crawl_template_key = self.get_configured_template('edges')
             active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
             template_name = active_template_details.get('name', active_crawl_template_key)
             user_message = active_template_details.get('user_message', 'This will download crawl data.')
@@ -817,7 +817,7 @@ class LinkGraph2:
         if not analysis_slug:
             return P('Error: No analysis selected', style=pip.get_style('error'))
         # Get active template details and check for qualifier config
-        active_crawl_template_key = self.get_configured_template('crawl')
+        active_crawl_template_key = self.get_configured_template('edges')
         active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
         qualifier_config = active_template_details.get('qualifier_config', {'enabled': False})
         export_type = active_template_details.get('export_type', 'crawl_attributes')
@@ -3275,7 +3275,7 @@ await main()
                 raise ValueError("analysis_slug is required for data_type 'crawl'")
             collection = f'crawl.{analysis_slug}'
             # Use the configured crawl template
-            crawl_template = self.get_configured_template('crawl')
+            crawl_template = self.get_configured_template('edges')
             template_query = self.apply_template(crawl_template, collection)
 
             # Apply dynamic parameter substitution if needed
@@ -3642,7 +3642,7 @@ await main()
         if step_context == 'step_foobar_basic':
             active_crawl_template_key = self.get_configured_template('foobar_basic')
         else:
-            active_crawl_template_key = self.get_configured_template('crawl')
+            active_crawl_template_key = self.get_configured_template('edges')
         active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
         export_type = active_template_details.get('export_type', 'crawl_attributes')
 
@@ -3668,7 +3668,7 @@ await main()
                 if step_context == 'step_foobar_basic':
                     crawl_template = self.get_configured_template('foobar_basic')
                 else:
-                    crawl_template = self.get_configured_template('crawl')
+                    crawl_template = self.get_configured_template('edges')
                 template_query = self.apply_template(crawl_template, collection)
 
                 # Apply dynamic parameter substitution if needed
@@ -3709,7 +3709,7 @@ await main()
                 if step_context == 'step_foobar_basic':
                     crawl_template = self.get_configured_template('foobar_basic')
                 else:
-                    crawl_template = self.get_configured_template('crawl')
+                    crawl_template = self.get_configured_template('edges')
                 template_query = self.apply_template(crawl_template, collection)
 
                 # Apply dynamic parameter substitution if needed
@@ -3859,7 +3859,7 @@ await main()
                                 df = pd.read_csv(crawl_filepath)
 
                                 # Apply appropriate column names based on export type
-                                active_crawl_template_key = self.get_configured_template('crawl')
+                                active_crawl_template_key = self.get_configured_template('edges')
                                 active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
                                 export_type = active_template_details.get('export_type', 'crawl_attributes')
 
@@ -4302,7 +4302,7 @@ await main()
                     button_suffix = active_template_details.get('button_label_suffix', 'GA Data')
                 else:
                     # Default to crawl template
-                    active_template_key = self.get_configured_template('crawl')
+                    active_template_key = self.get_configured_template('edges')
                     active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
                     button_suffix = active_template_details.get('button_label_suffix', 'Data')
                 return Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary', id='submit-button',
@@ -4317,7 +4317,7 @@ await main()
                 button_suffix = active_template_details.get('button_label_suffix', 'GA Data')
             else:
                 # Default to crawl step
-                active_template_key = self.get_configured_template('crawl')
+                active_template_key = self.get_configured_template('edges')
                 active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
                 export_type = active_template_details.get('export_type', 'crawl_attributes')
                 button_suffix = active_template_details.get('button_label_suffix', 'Data')
@@ -4338,7 +4338,7 @@ await main()
                 active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
                 button_suffix = active_template_details.get('button_label_suffix', 'GA Data')
             else:
-                active_template_key = self.get_configured_template('crawl')
+                active_template_key = self.get_configured_template('edges')
                 active_template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
                 button_suffix = active_template_details.get('button_label_suffix', 'Data')
             return Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary', id='submit-button',
@@ -4552,7 +4552,7 @@ await main()
         # Try to extract template information from the jobs payload
         try:
             # Get the configured template for the current data type
-            crawl_template = self.get_configured_template('crawl')
+            crawl_template = self.get_configured_template('edges')
             template_info = self.QUERY_TEMPLATES.get(crawl_template, {})
 
             if template_info:
@@ -5113,7 +5113,7 @@ await main()
         expected_filename = None
         if step_id == 'step_analysis':
             # For crawl data, determine filename based on active template's export type
-            active_crawl_template_key = self.get_configured_template('crawl')
+            active_crawl_template_key = self.get_configured_template('edges')
             active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
             export_type = active_template_details.get('export_type', 'crawl_attributes')
 
