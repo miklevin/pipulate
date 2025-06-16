@@ -300,8 +300,9 @@ class LinkGraph2:
     # Change these values to switch between different query templates
     # without modifying the workflow logic.
     TEMPLATE_CONFIG = {
-        'crawl': 'Crawl Basic',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
-        'gsc': 'GSC Performance',       # Options: 'GSC Performance'
+        'crawl': 'Link Graph Edges',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
+        'crawl_basic': 'Crawl Basic',  # New basic crawl for node metadata
+        'gsc': 'GSC Performance',      # Options: 'GSC Performance'
         'ga': 'GA Performance'
     }
 
@@ -370,6 +371,7 @@ class LinkGraph2:
         self.config = pip.get_config()
         # Build step names dynamically based on template configuration
         crawl_template = self.get_configured_template('crawl')
+        crawl_basic_template = self.get_configured_template('crawl_basic')  # ← New template reference00
         gsc_template = self.get_configured_template('gsc')
         ga_template = self.get_configured_template('ga')
 
@@ -377,9 +379,9 @@ class LinkGraph2:
             Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True),
             Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {crawl_template}', refill=False),
             Step(
-                id='step_03',
-                done='placeholder_03',
-                show='Placeholder Step 3 (Edit Me)',
+                id='step_crawl_basic',
+                done='crawl_basic_check',
+                show='Download Crawl: Basic',
                 refill=False,
             ),
             Step(id='step_webogs', done='weblogs_check', show='Download Web Logs', refill=False),
@@ -5040,8 +5042,6 @@ await main()
             id=step_id
         )
     # --- END_STEP_BUNDLE: step_02 ---
-
-
 
     # --- START_STEP_BUNDLE: step_03 ---
     async def step_crawl_basic(self, request):
