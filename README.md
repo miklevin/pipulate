@@ -349,7 +349,7 @@ home (Root Component)
     ├── .cursor                   # Guidelines for AI code editing (if using Cursor)
     ├── .venv/                    # Virtual environment (shared by server & Jupyter)
     ├── data/
-    │   └── data.d  b             # SQLite database
+    │   └── data.db               # SQLite database
     ├── downloads/                # Default location for workflow outputs (e.g., CSVs)
     ├── helpers/
 │   │   ├── botify  
