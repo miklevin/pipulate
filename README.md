@@ -313,14 +313,14 @@ Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via
 The application interface is organized into distinct areas:
 
 ```
-    ┌─────────────────────────────┐
-    │        Navigation           │ (Search, Profiles, Apps, Settings)
-    ├───────────────┬─────────────┤
-    │               │             │
-    │    Main Area  │    Chat     │ (Workflow/App UI)
-    │   (Pipeline)  │  Interface  │ (LLM Interaction)
-    │               │             │
-    └─────────────────────────────┘
+              ┌─────────────────────────────┐
+              │        Navigation          ◄── Search, Profiles,
+              ├───────────────┬─────────────┤    Apps, Settings
+              │               │             │
+    Workflow ──►   Main Area  │    Chat     │
+    App UI    │   (Pipeline)  │  Interface ◄── LLM Interaction 
+              │               │             │
+              └─────────────────────────────┘
 ```
 
 UI Component Hierarchy (Click to Expand)
