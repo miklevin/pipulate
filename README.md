@@ -219,7 +219,7 @@ Pipulate manages all state server-side within the local environment (think *loca
       │              ▼                │ - Direct, observable state changes
       │    ┌─────────────────────┐    │
       │    │  Server-Side State  │    │ 
-      │    │  DictLikeDB + JSON  │ ◄─── (Conceptually like server-side cookies)
+      │    │  DictLikeDB + JSON  │ ◄───── Conceptually like local-server-side cookies
       │    └─────────────────────┘    │ - Enables the "Know EVERYTHING!" philosophy
       └───────────────────────────────┘
 ```
