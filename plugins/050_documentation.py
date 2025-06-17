@@ -327,6 +327,30 @@ class DocumentationPlugin:
         
         return special_cases.get(filename, 100)
 
+    def get_rules_navigation(self, current_doc_key):
+        """Get previous/next navigation for rules documents"""
+        # Get all rules documents sorted by priority
+        _, _, rules_docs, _ = self.get_categorized_docs()
+        
+        if not rules_docs:
+            return None, None
+        
+        # Find current document index
+        current_index = None
+        for i, (key, info) in enumerate(rules_docs):
+            if key == current_doc_key:
+                current_index = i
+                break
+        
+        if current_index is None:
+            return None, None
+        
+        # Get previous and next documents
+        prev_doc = rules_docs[current_index - 1] if current_index > 0 else None
+        next_doc = rules_docs[current_index + 1] if current_index < len(rules_docs) - 1 else None
+        
+        return prev_doc, next_doc
+
     def markdown_to_html(self, markdown_content):
         """Convert markdown to HTML with proper Markdown semantics"""
         import html
@@ -1109,6 +1133,29 @@ class DocumentationPlugin:
                 else:
                     quick_nav_links.append(f'<a href="/docs/{key}">{info["title"][:20]}...</a>')
 
+            # Generate navigation for rules documents
+            rules_navigation = ""
+            if category == 'rules':
+                prev_doc, next_doc = self.get_rules_navigation(doc_key)
+                if prev_doc or next_doc:
+                    rules_navigation = '<div class="rules-navigation">'
+                    
+                    if prev_doc:
+                        prev_key, prev_info = prev_doc
+                        rules_navigation += f'<a href="/docs/{prev_key}" class="nav-button prev">← {prev_info["title"]}</a>'
+                    else:
+                        rules_navigation += '<span class="nav-button disabled">← Previous</span>'
+                    
+                    rules_navigation += '<span class="nav-spacer">|</span>'
+                    
+                    if next_doc:
+                        next_key, next_info = next_doc
+                        rules_navigation += f'<a href="/docs/{next_key}" class="nav-button next">{next_info["title"]} →</a>'
+                    else:
+                        rules_navigation += '<span class="nav-button disabled">Next →</span>'
+                    
+                    rules_navigation += '</div>'
+
             page_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -1472,6 +1519,75 @@ class DocumentationPlugin:
         pre code * {{
             white-space: inherit !important;
         }}
+
+        /* Rules navigation styles */
+        .rules-navigation {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }}
+
+        .nav-button {{
+            display: inline-block;
+            padding: 10px 20px;
+            background: #0066cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }}
+
+        .nav-button:hover {{
+            background: #0052a3;
+            text-decoration: none;
+            color: white;
+        }}
+
+        .nav-button.disabled {{
+            background: #6c757d;
+            color: #adb5bd;
+            cursor: not-allowed;
+        }}
+
+        .nav-button.prev {{
+            margin-right: auto;
+        }}
+
+        .nav-button.next {{
+            margin-left: auto;
+        }}
+
+        .nav-spacer {{
+            color: #6c757d;
+            font-weight: bold;
+            margin: 0 20px;
+        }}
+
+        @media (max-width: 768px) {{
+            .rules-navigation {{
+                flex-direction: column;
+                gap: 15px;
+            }}
+
+            .nav-button.prev,
+            .nav-button.next {{
+                margin: 0;
+                width: 100%;
+                text-align: center;
+            }}
+
+            .nav-spacer {{
+                display: none;
+            }}
+        }}
     </style>
 </head>
 <body>
@@ -1489,7 +1605,9 @@ class DocumentationPlugin:
     </div>
 
     <div class="content">
+        {rules_navigation}
         {html_content}
+        {rules_navigation}
     </div>
 
     <!-- Prism JS -->
