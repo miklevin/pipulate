@@ -352,13 +352,13 @@ home (Root Component)
     │   └── data.db               # SQLite database
     ├── downloads/                # Default location for workflow outputs (e.g., CSVs)
     ├── helpers/
-│   │   ├── botify  
-│   │   │   └── botify_api.ipynb  # Git managed massive example notebook, produces docs
-│   │   ├── cleanup               # Temporary scripts to help clean up the system
-│   │   │   └── organize_css.py   # Example of what might be found there
+    │   ├── botify  
+    │   │   └── botify_api.ipynb  # Git managed massive example notebook, produces docs
+    │   ├── cleanup               # Temporary scripts to help clean up the system
+    │   │   └── organize_css.py   # Example of what might be found there
     │   └── create_workflow.py    # Useful workflow production helpers
     ├── logs/
-│   │   ├── api.log               # Specific API-calls, rotating last-N server runs
+    │   ├── api.log               # Specific API-calls, rotating last-N server runs
     │   └── Botifython.log        # Server logs (useful for debugging / AI context)
     ├── static/                   # JS, CSS, images
     ├── plugins/                  # Workflow plugins
