@@ -314,14 +314,12 @@ The application interface is organized into distinct areas:
 
 ```
     ┌─────────────────────────────┐
-    │        Navigation           │ (Profiles, Apps, Search)
+    │        Navigation           │ (Search, Profiles, Apps, Settings)
     ├───────────────┬─────────────┤
     │               │             │
     │    Main Area  │    Chat     │ (Workflow/App UI)
     │   (Pipeline)  │  Interface  │ (LLM Interaction)
     │               │             │
-    ├───────────────┴─────────────┤
-    │        Poke Button          │ (Quick Action)
     └─────────────────────────────┘
 ```
 
