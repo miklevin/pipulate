@@ -113,7 +113,7 @@ class DocumentationPlugin:
             content = file_path.read_text(encoding='utf-8')
             extracted_title, description = self.extract_metadata_from_content(content, title)
             # Only use extracted title if we don't have a specific mapping for this filename
-            if extracted_title and filename not in ['ULTIMATE_PIPULATE_GUIDE', 'ULTIMATE_PIPULATE_GUIDE_PART2', 'ULTIMATE_PIPULATE_GUIDE_PART3', 'QUICK_REFERENCE', 'botify_api']:
+            if extracted_title and filename not in ['ULTIMATE_PIPULATE_GUIDE', 'ULTIMATE_PIPULATE_GUIDE_PART2', 'ULTIMATE_PIPULATE_GUIDE_PART3', 'QUICK_REFERENCE', 'botify_api', 'botify_open_api', 'change_log']:
                 title = extracted_title
         except Exception as e:
             logger.warning(f"Could not read {file_path}: {e}")
@@ -208,6 +208,8 @@ class DocumentationPlugin:
             'ULTIMATE_PIPULATE_GUIDE_PART3': 'Ultimate Pipulate Guide - Part 3: Expert Mastery',
             'QUICK_REFERENCE': 'Quick Reference Card',
             'botify_api': 'Botify API Bootcamp (Paginated)',
+            'botify_open_api': 'Botify Open API Swagger Examples (Paginated)',
+            'change_log': 'Pipulate Development Changelog (Paginated)',
             'dev_assistant': 'Development Assistant Guide',
             'hello_workflow': 'Hello Workflow Tutorial',
             'system_prompt': 'System Prompt Configuration',
@@ -648,28 +650,34 @@ class DocumentationPlugin:
         featured_docs = []
         training_docs = []
         rules_docs = []
+        paginated_docs = []
 
         for key, info in self.DOCS.items():
-            category = info.get('category', 'other')
-            if category == 'featured':
-                featured_docs.append((key, info))
-            elif category == 'training':
-                training_docs.append((key, info))
-            elif category == 'rules':
-                rules_docs.append((key, info))
+            # Check if document is paginated first
+            if info.get('paginated', False):
+                paginated_docs.append((key, info))
+            else:
+                category = info.get('category', 'other')
+                if category == 'featured':
+                    featured_docs.append((key, info))
+                elif category == 'training':
+                    training_docs.append((key, info))
+                elif category == 'rules':
+                    rules_docs.append((key, info))
 
         # Sort by priority, then by title
         featured_docs.sort(key=lambda x: (x[1].get('priority', 999), x[1]['title']))
         training_docs.sort(key=lambda x: x[1]['title'])
         rules_docs.sort(key=lambda x: (x[1].get('priority', 999), x[1]['title']))
+        paginated_docs.sort(key=lambda x: (x[1].get('priority', 999), x[1]['title']))
 
-        return featured_docs, training_docs, rules_docs
+        return featured_docs, training_docs, rules_docs, paginated_docs
 
     async def serve_browser(self, request):
         """Serve the documentation browser with tree view"""
 
         # Get categorized documents
-        featured_docs, training_docs, rules_docs = self.get_categorized_docs()
+        featured_docs, training_docs, rules_docs, paginated_docs = self.get_categorized_docs()
 
         # Check for category filter
         category = request.query_params.get('category', 'all')
@@ -680,28 +688,39 @@ class DocumentationPlugin:
             filtered_featured = featured_docs
             filtered_training = []
             filtered_rules = []
+            filtered_paginated = []
             welcome_text = "Comprehensive guides and tutorials for getting started with Pipulate."
         elif category == 'training':
             title = "📖 Training Files"
             filtered_featured = []
             filtered_training = training_docs
             filtered_rules = []
+            filtered_paginated = []
             welcome_text = "Training materials and learning resources for mastering Pipulate workflows."
         elif category == 'rules':
             title = "⚙️ Framework Rules"
             filtered_featured = []
             filtered_training = []
             filtered_rules = rules_docs
+            filtered_paginated = []
             welcome_text = "Framework rules and coding standards for Pipulate development."
+        elif category == 'paginated':
+            title = "📚 Paginated Documents"
+            filtered_featured = []
+            filtered_training = []
+            filtered_rules = []
+            filtered_paginated = paginated_docs
+            welcome_text = "Paginated documents for quick reference and learning."
         else:
             title = "📚 All Documentation"
             filtered_featured = featured_docs
             filtered_training = training_docs
             filtered_rules = rules_docs
+            filtered_paginated = paginated_docs
             welcome_text = "Complete documentation library for Pipulate. Start with Featured Guides for comprehensive learning."
 
         # Create tree view HTML with filtered content
-        tree_html = self.create_tree_view(filtered_featured, filtered_training, filtered_rules)
+        tree_html = self.create_tree_view(filtered_featured, filtered_training, filtered_rules, filtered_paginated)
 
         # Create breadcrumb navigation for filtered views
         breadcrumb = ""
@@ -715,6 +734,7 @@ class DocumentationPlugin:
                 <a href="/docs?category=featured" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">🌟 {len(featured_docs)} featured guides</a>
                 <a href="/docs?category=training" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📖 {len(training_docs)} training files</a>
                 <a href="/docs?category=rules" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">⚙️ {len(rules_docs)} framework rules</a>
+                <a href="/docs?category=paginated" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📚 {len(paginated_docs)} paginated documents</a>
                 <hr style="margin: 15px 0; border: none; border-top: 1px solid #e9ecef;">
                 <div style="font-weight: bold; margin-bottom: 8px; color: #495057; font-size: 0.9em;">🌐 PUBLIC DOCS</div>
                 <a href="https://pipulate.com/documentation/" target="_blank" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📚 Official Documentation</a>
@@ -730,6 +750,8 @@ class DocumentationPlugin:
                 count_text = f"📖 {len(training_docs)} training files"
             elif category == 'rules':
                 count_text = f"⚙️ {len(rules_docs)} framework rules"
+            elif category == 'paginated':
+                count_text = f"📚 {len(paginated_docs)} paginated documents"
 
             stats_content = f'<div style="font-weight: bold; font-size: 1.1em;">{count_text}</div>'
 
@@ -820,6 +842,16 @@ class DocumentationPlugin:
             background-color: #ffeaa7;
         }}
 
+        .tree-link.paginated {{
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            font-weight: 500;
+        }}
+
+        .tree-link.paginated:hover {{
+            background-color: #bbdefb;
+        }}
+
         .tree-description {{
             font-size: 0.8em;
             color: #6c757d;
@@ -885,7 +917,7 @@ class DocumentationPlugin:
 
         return HTMLResponse(page_html)
 
-    def create_tree_view(self, featured_docs, training_docs, rules_docs):
+    def create_tree_view(self, featured_docs, training_docs, rules_docs, paginated_docs):
         """Create the tree view HTML structure"""
         html_parts = []
 
@@ -894,7 +926,7 @@ class DocumentationPlugin:
             html_parts.append('<div class="tree-category" id="featured">')
             html_parts.append('<span class="tree-label">🌟 Featured Guides</span>')
             html_parts.append('<ul class="tree">')
-            for idx, (key, info) in enumerate(featured_docs):
+            for key, info in featured_docs:
                 html_parts.append(f'''
                     <li class="tree-item">
                         <a href="/docs/{key}" class="tree-link featured">
@@ -903,17 +935,6 @@ class DocumentationPlugin:
                         <div class="tree-description">{info["description"]}</div>
                     </li>
                 ''')
-                # After Botify API Bootcamp (Paginated), insert Botify Open API Swagger Examples (Paginated) if present
-                if key == 'botify_api' and 'botify_open_api' in self.DOCS:
-                    open_api_info = self.DOCS['botify_open_api']
-                    html_parts.append(f'''
-                        <li class="tree-item">
-                            <a href="/docs/botify_open_api/page/1" class="tree-link featured">
-                                Botify Open API Swagger Examples (Paginated)
-                            </a>
-                            <div class="tree-description">{open_api_info["description"]}</div>
-                        </li>
-                    ''')
             html_parts.append('</ul>')
             html_parts.append('</div>')
 
@@ -943,6 +964,23 @@ class DocumentationPlugin:
                 html_parts.append(f'''
                     <li class="tree-item">
                         <a href="/docs/{key}" class="tree-link">
+                            {info["title"]}
+                        </a>
+                        <div class="tree-description">{info["description"]}</div>
+                    </li>
+                ''')
+            html_parts.append('</ul>')
+            html_parts.append('</div>')
+
+        # Paginated section
+        if paginated_docs:
+            html_parts.append('<div class="tree-category" id="paginated">')
+            html_parts.append('<span class="tree-label">📚 Paginated Documents</span>')
+            html_parts.append('<ul class="tree">')
+            for key, info in paginated_docs:
+                html_parts.append(f'''
+                    <li class="tree-item">
+                        <a href="/docs/{key}" class="tree-link paginated">
                             {info["title"]}
                         </a>
                         <div class="tree-description">{info["description"]}</div>
@@ -1019,11 +1057,12 @@ class DocumentationPlugin:
             category_name = {
                 'featured': '🌟 Featured Guides',
                 'training': '📖 Training Guides',
-                'rules': '⚙️ Framework Rules'
+                'rules': '⚙️ Framework Rules',
+                'paginated': '📚 Paginated Documents'
             }.get(category, 'Documentation')
 
             # Get featured docs for quick navigation
-            featured_docs, _, _ = self.get_categorized_docs()
+            featured_docs, _, _, _ = self.get_categorized_docs()
             quick_nav_links = []
             for key, info in featured_docs[:4]:  # Show first 4 featured
                 if key == doc_key:
@@ -1523,7 +1562,7 @@ class DocumentationPlugin:
                 )
 
                 # Then append the documentation info to history without displaying
-                featured_docs, training_docs, rules_docs = self.get_categorized_docs()
+                featured_docs, training_docs, rules_docs, paginated_docs = self.get_categorized_docs()
 
                 docs_message = f"Available Documentation ({len(self.DOCS)} files discovered):\n"
 
@@ -1545,7 +1584,7 @@ class DocumentationPlugin:
                 logger.error(f"Error in documentation plugin: {str(e)}")
 
         # Create featured documentation links
-        featured_docs, training_docs, rules_docs = self.get_categorized_docs()
+        featured_docs, training_docs, rules_docs, paginated_docs = self.get_categorized_docs()
 
         featured_links = []
         for key, info in featured_docs:
@@ -1602,6 +1641,12 @@ class DocumentationPlugin:
                   style="margin: 0.25rem 0;"),
                 P(A(Span("⚙️", cls="emoji", style="margin-right: 0.25rem;"), f"{len(rules_docs)} framework rules",
                     href="/docs?category=rules", target="_blank",
+                    style="color: var(--pico-primary); text-decoration: none;",
+                    onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
+                    onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
+                  style="margin: 0.25rem 0;"),
+                P(A(Span("📚", cls="emoji", style="margin-right: 0.25rem;"), f"{len(paginated_docs)} paginated documents",
+                    href="/docs?category=paginated", target="_blank",
                     style="color: var(--pico-primary); text-decoration: none;",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
