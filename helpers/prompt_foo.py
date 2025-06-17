@@ -38,32 +38,31 @@ flake.nix         <-- NixOS configuration for the project (Infrastructure as Cod
 requirements.txt  <-- Python package dependencies for the project
 server.py         <-- Main server file for the project
 .gitignore
-# /home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
+/home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
 /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
 /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## NECESSARY FOR CURRENT PROMPT
-# /home/mike/repos/pipulate/plugins/130_link_graph2.py
 
 ## BOTIFY API DOCUMENTATION
 # /home/mike/repos/pipulate/training/botify_api.md
 # /home/mike/repos/pipulate/training/botify_open_api.md
-# /home/mike/repos/pipulate/helpers/botify/true_schema_discoverer.py
+/home/mike/repos/pipulate/helpers/botify/true_schema_discoverer.py
 
 ## CUSTOM STATIC RESOURCES (Supporting characters)
-# /home/mike/repos/pipulate/static/styles.css
-# /home/mike/repos/pipulate/static/chat-interactions.js
-# /home/mike/repos/pipulate/static/websocket-config.js
-# /home/mike/repos/pipulate/static/widget-scripts.js
-# /home/mike/repos/pipulate/static/splitter-init.js
-# /home/mike/repos/pipulate/static/sortable-init.js
-# /home/mike/repos/pipulate/static/rich-table.css
-# /home/mike/repos/pipulate/static/alice.txt
+/home/mike/repos/pipulate/static/styles.css
+/home/mike/repos/pipulate/static/chat-interactions.js
+/home/mike/repos/pipulate/static/websocket-config.js
+/home/mike/repos/pipulate/static/widget-scripts.js
+/home/mike/repos/pipulate/static/splitter-init.js
+/home/mike/repos/pipulate/static/sortable-init.js
+/home/mike/repos/pipulate/static/rich-table.css
+/home/mike/repos/pipulate/static/alice.txt
 
 ## HELPER SCRIPTS (Why WET can work)
-# /home/mike/repos/pipulate/plugins/200_workflow_genesis.py     <-- The templating plugin that creates new workflows from scratch
-# /home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 300_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 300_blank_placeholder.py)
+/home/mike/repos/pipulate/plugins/200_workflow_genesis.py     <-- The templating plugin that creates new workflows from scratch
+/home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 300_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 300_blank_placeholder.py)
 # /home/mike/repos/pipulate/helpers/manage_class_attributes.py  <-- The script that manages class attributes (copies 300_blank_placeholder.py)
 # /home/mike/repos/pipulate/helpers/swap_workflow_step.py       <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
 # /home/mike/repos/pipulate/helpers/prompt_foo.py               <-- This script (used to generate the manifest)
@@ -72,7 +71,7 @@ server.py         <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/010_introduction.py
 # /home/mike/repos/pipulate/plugins/020_profiles.py
 # /home/mike/repos/pipulate/plugins/030_roles.py
-# /home/mike/repos/pipulate/plugins/040_hello_workflow.py
+/home/mike/repos/pipulate/plugins/040_hello_workflow.py
 # /home/mike/repos/pipulate/plugins/050_documentation.py
 # /home/mike/repos/pipulate/plugins/060_tasks.py
 # /home/mike/repos/pipulate/plugins/100_connect_with_botify.py
@@ -108,40 +107,16 @@ server.py         <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/830_simon_mcp.py
 
 ## DA RULES
-/home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
-/home/mike/repos/pipulate/.cursor/rules/00_meta_rule_routing.mdc
-/home/mike/repos/pipulate/.cursor/rules/01_philosophy.mdc
-/home/mike/repos/pipulate/.cursor/rules/02_architecture_overview.mdc
-/home/mike/repos/pipulate/.cursor/rules/03_environment_and_installation.mdc
-/home/mike/repos/pipulate/.cursor/rules/04_workflow_core.mdc
-/home/mike/repos/pipulate/.cursor/rules/05_chain_reaction_pattern.mdc
-/home/mike/repos/pipulate/.cursor/rules/06_workflow_creation_helpers.mdc
-/home/mike/repos/pipulate/.cursor/rules/07_key_system.mdc
-/home/mike/repos/pipulate/.cursor/rules/08_ui_and_htmx.mdc
-/home/mike/repos/pipulate/.cursor/rules/09_llm_integration.mdc
-/home/mike/repos/pipulate/.cursor/rules/10_data_and_file_operations.mdc
-/home/mike/repos/pipulate/.cursor/rules/11_browser_automation.mdc
-/home/mike/repos/pipulate/.cursor/rules/12_plugin_development_guidelines.mdc
-/home/mike/repos/pipulate/.cursor/rules/13_server_py_overview.mdc
-/home/mike/repos/pipulate/.cursor/rules/14_testing_and_debugging.mdc
-/home/mike/repos/pipulate/.cursor/rules/15_wet_workflow_conventions.mdc
-/home/mike/repos/pipulate/.cursor/rules/16_atomic_transplantation_system.mdc
-/home/mike/repos/pipulate/.cursor/rules/17_cleanup_helpers_philosophy.mdc
-/home/mike/repos/pipulate/.cursor/rules/18_evolutionary_vision.mdc
-/home/mike/repos/pipulate/.cursor/rules/botify-api-patterns.mdc
-/home/mike/repos/pipulate/.cursor/rules/botify_true_schema_discovery.mdc
-/home/mike/repos/pipulate/.cursor/rules/changelog-management.mdc
-/home/mike/repos/pipulate/.cursor/rules/documentation-system.mdc
-/home/mike/repos/pipulate/.cursor/rules/helper-scripts-usage.mdc
-/home/mike/repos/pipulate/.cursor/rules/htmx_dynamic_menu_patterns.mdc
-/home/mike/repos/pipulate/.cursor/rules/htmx-dynamic-patterns.mdc
-/home/mike/repos/pipulate/.cursor/rules/incremental-development-patterns.mdc
-/home/mike/repos/pipulate/.cursor/rules/internal-linking-patterns.mdc
-/home/mike/repos/pipulate/.cursor/rules/NOTEBOOK_COPY_SOLUTION.md
-/home/mike/repos/pipulate/.cursor/rules/pipulate-workflow-development.mdc
-/home/mike/repos/pipulate/.cursor/rules/python_sorting_truthiness_gotcha.mdc
-/home/mike/repos/pipulate/.cursor/rules/systematic_debugging_helper_scripts.mdc
-
+/home/mike/repos/pipulate/.cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc
+/home/mike/repos/pipulate/.cursor/rules/01_CRITICAL_PATTERNS.mdc
+/home/mike/repos/pipulate/.cursor/rules/02_CORE_CONCEPTS.mdc
+/home/mike/repos/pipulate/.cursor/rules/03_SETUP_AND_DEPENDENCIES.mdc
+/home/mike/repos/pipulate/.cursor/rules/04_WORKFLOW_DEVELOPMENT.mdc
+/home/mike/repos/pipulate/.cursor/rules/05_UI_AND_FRONTEND.mdc
+/home/mike/repos/pipulate/.cursor/rules/06_DATA_AND_AUTOMATION.mdc
+/home/mike/repos/pipulate/.cursor/rules/07_INTEGRATIONS.mdc
+/home/mike/repos/pipulate/.cursor/rules/08_PROJECT_MANAGEMENT.mdc
+/home/mike/repos/pipulate/.cursor/rules/09_DEBUGGING.mdc
 
 ## COMMON STATIC RESOURCES (The Usual Suspects / you're already trained on these) 
 # /home/mike/repos/pipulate/static/fasthtml.js
