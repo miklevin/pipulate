@@ -922,6 +922,38 @@ class DocumentationPlugin:
 
         return HTMLResponse(page_html)
 
+    def clean_description_for_nav(self, description):
+        """Clean markdown from descriptions for navigation display"""
+        if not description:
+            return ""
+        
+        # Remove markdown images
+        description = re.sub(r'!\[([^\]]*)\]\([^)]*\)', r'\1', description)
+        
+        # Remove markdown links but keep text
+        description = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', description)
+        
+        # Remove bold/italic markdown
+        description = re.sub(r'\*\*([^*]+)\*\*', r'\1', description)
+        description = re.sub(r'\*([^*]+)\*', r'\1', description)
+        
+        # Remove code backticks
+        description = re.sub(r'`([^`]+)`', r'\1', description)
+        
+        # Remove blockquote markers
+        description = re.sub(r'^>\s*', '', description, flags=re.MULTILINE)
+        
+        # Convert HTML entities
+        description = description.replace('&gt;', '>')
+        description = description.replace('&lt;', '<')
+        description = description.replace('&amp;', '&')
+        
+        # Truncate if too long
+        if len(description) > 150:
+            description = description[:147] + "..."
+        
+        return description.strip()
+
     def create_tree_view(self, featured_docs, training_docs, rules_docs, paginated_docs):
         """Create the tree view HTML structure"""
         html_parts = []
@@ -937,7 +969,7 @@ class DocumentationPlugin:
                         <a href="/docs/{key}" class="tree-link featured">
                             {info["title"]}
                         </a>
-                        <div class="tree-description">{info["description"]}</div>
+                        <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
                     </li>
                 ''')
             html_parts.append('</ul>')
@@ -954,7 +986,7 @@ class DocumentationPlugin:
                         <a href="/docs/{key}" class="tree-link">
                             {info["title"]}
                         </a>
-                        <div class="tree-description">{info["description"]}</div>
+                        <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
                     </li>
                 ''')
             html_parts.append('</ul>')
@@ -971,7 +1003,7 @@ class DocumentationPlugin:
                         <a href="/docs/{key}" class="tree-link">
                             {info["title"]}
                         </a>
-                        <div class="tree-description">{info["description"]}</div>
+                        <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
                     </li>
                 ''')
             html_parts.append('</ul>')
@@ -988,7 +1020,7 @@ class DocumentationPlugin:
                         <a href="/docs/{key}" class="tree-link paginated">
                             {info["title"]}
                         </a>
-                        <div class="tree-description">{info["description"]}</div>
+                        <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
                     </li>
                 ''')
             html_parts.append('</ul>')
