@@ -285,14 +285,17 @@ class Quadfecta:
         },
         'GA Performance': {
             'name': 'GA Performance',
-            'description': 'Google Analytics engagement data (URL only for testing)',
+            'description': 'Sessions and Pageviews from Google Analytics',
             'export_type': 'ga_data',
-            'user_message': 'This will download Google Analytics data (testing with URL only).',
+            'user_message': 'This will download Google Analytics performance data including sessions and pageviews.',
             'button_label_suffix': 'GA Performance',
             'query': {
-                'dimensions': ['url'],
-                'metrics': [],
-                'sort': []
+                'dimensions': ['{collection}.url'],
+                'metrics': [
+                    {'field': '{collection}.google_analytics.period_0.ga:sessions', 'name': 'Sessions'},
+                    {'field': '{collection}.google_analytics.period_0.ga:pageviews', 'name': 'Pageviews'}
+                ],
+                'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
             }
         },
     }
@@ -324,6 +327,14 @@ class Quadfecta:
             'failure_text': 'does NOT have crawl analysis',
             'error_prefix': 'FAILED to download crawl analysis',
             'status_prefix': 'Analysis '
+        },
+        'step_crawler': {
+            'data_key': 'crawler_basic',
+            'status_field': 'download_complete',
+            'success_text': 'HAS basic crawl attributes',
+            'failure_text': 'does NOT have basic crawl attributes',
+            'error_prefix': 'FAILED to download basic crawl attributes',
+            'status_prefix': 'Crawler '
         },
         'step_webogs': {
             'data_key': 'weblogs_check',
@@ -1206,7 +1217,44 @@ class Quadfecta:
                 # Use cached file - create immediate completion result
                 await self.message_queue.add(pip, f"✅ Using cached basic crawl data ({file_info['size']})...", verbatim=True)
                 
-                # Create cached result data
+                # Generate Python code for cached file to enable toggle functionality
+                try:
+                    # Use the step_analysis_process approach to generate proper Python code
+                    # Build the export payload specifically for the crawler (basic crawl) template
+                    export_result = await self.build_exports(
+                        username=username,
+                        project_name=project_name,
+                        analysis_slug=analysis_slug,
+                        data_type='crawl'  # Use 'crawl' not 'crawl_attributes'
+                    )
+                    
+                    jobs_payload = export_result['export_job_payload']
+                    
+                    # Override the template to use 'Crawl Basic' instead of 'Link Graph Edges'  
+                    crawler_template = self.get_configured_template('crawler')  # Should be 'Crawl Basic'
+                    template_query = self.apply_template(crawler_template, f'crawl.{analysis_slug}')
+                    
+                    # Update the jobs payload with the crawler template query
+                    jobs_payload['payload']['query']['query'] = template_query
+                    
+                    # Generate Python code representations
+                    curl_command, python_code = self._generate_api_call_representations(
+                        method='POST',
+                        url="https://api.botify.com/v1/jobs",
+                        headers={'Authorization': f'Token {self.read_api_token()}', 'Content-Type': 'application/json'},
+                        payload=jobs_payload,
+                        step_context='step_crawler',
+                        template_info=self.QUERY_TEMPLATES.get(crawler_template, {}),
+                        username=username,
+                        project_name=project_name
+                    )
+                except Exception as e:
+                    # Fallback if code generation fails
+                    python_code = f"# Python code generation failed: {str(e)}"
+                    curl_command = f"# Curl command generation failed: {str(e)}"
+                    jobs_payload = {}
+                
+                # Create cached result data with proper Python code
                 cached_result = {
                     'has_crawler': True,
                     'project': project_name,
@@ -1217,9 +1265,10 @@ class Quadfecta:
                     'file_path': file_info['path'],
                     'file_size': file_info['size'],
                     'cached': True,
-                    'raw_python_code': '',
-                    'query_python_code': '',
-                    'jobs_payload': {}
+                    'raw_python_code': python_code,  # Fixed: Use python_code, not curl_command
+                    'query_python_code': python_code,  # Fixed: Use python_code, not curl_command
+                    'jobs_payload': jobs_payload,
+                    'python_command': python_code  # Fixed: This should be Python, not curl
                 }
                 
                 # Store the cached result
@@ -1326,22 +1375,44 @@ class Quadfecta:
             # Call step_analysis_process with our context
             result = await self.step_analysis_process(mock_request, step_context='step_crawler')
             
-            # The result should be the completed step widget, but we need to adapt it for our step_id
-            # and update the data storage to use our step's done key
+            # Get the actual step data that was stored by step_analysis_process
+            # It should have been stored with key 'crawler_basic' (our step's done key)
+            stored_step_data = pip.get_step_data(pipeline_id, step_id, {})
+            stored_data_str = stored_step_data.get(step.done, '')
             
-            # Store completion data in our step
-            check_result = {
-                'has_crawler': True,
-                'project': project_name,
-                'project_name': project_name,  # Add project_name for _create_action_buttons
-                'username': username,
-                'analysis_slug': analysis_slug,
-                'timestamp': datetime.now().isoformat(),
-                'step_context': 'step_crawler',
-                'download_complete': True  # Add this flag for _create_action_buttons
-            }
-            
-            await pip.set_step_data(pipeline_id, step_id, json.dumps(check_result), steps)
+            if stored_data_str:
+                # Parse the stored data to get python_command and other details
+                stored_data = json.loads(stored_data_str)
+                
+                # Enhance the stored data with additional info needed for buttons and toggle
+                enhanced_data = {
+                    **stored_data,  # Keep all existing data (including python_command)
+                    'has_crawler': True,
+                    'project': project_name,
+                    'project_name': project_name,  # Add project_name for _create_action_buttons
+                    'username': username,
+                    'analysis_slug': analysis_slug,
+                    'timestamp': datetime.now().isoformat(),
+                    'step_context': 'step_crawler',
+                    'download_complete': True  # Add this flag for _create_action_buttons
+                }
+                
+                # Re-store the enhanced data
+                await pip.set_step_data(pipeline_id, step_id, json.dumps(enhanced_data), steps)
+            else:
+                # Fallback if no data was stored (shouldn't happen but safety first)
+                check_result = {
+                    'has_crawler': True,
+                    'project': project_name,
+                    'project_name': project_name,
+                    'username': username,
+                    'analysis_slug': analysis_slug,
+                    'timestamp': datetime.now().isoformat(),
+                    'step_context': 'step_crawler',
+                    'download_complete': True,
+                    'python_command': '# Step completed but Python code not available'
+                }
+                await pip.set_step_data(pipeline_id, step_id, json.dumps(check_result), steps)
             
             return result
             
