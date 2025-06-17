@@ -29,7 +29,7 @@ class BotifyConnect:
         "Enter your Botify API token to connect with Botify. "
         f"You can find your API token at {account_url}"
     )
-    TRAINING_PROMPT = "botify_workflow.md"
+    TRAINING_PROMPT = "Simply get the user to enter their Botify API token. They are looking at a link where they can find their API token."
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """
