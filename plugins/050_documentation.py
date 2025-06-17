@@ -26,12 +26,20 @@ class DocumentationPlugin:
         self.DOCS = self.discover_documentation_files()
 
         # Register routes for serving individual documents
-        for doc_key in self.DOCS.keys():
-            if doc_key == 'botify_api':
-                # Special routes for paginated botify_api
-                app.route(f'/docs/{doc_key}', methods=['GET'])(self.serve_botify_api_toc)
-                app.route(f'/docs/{doc_key}/page/{{page_num}}', methods=['GET'])(self.serve_botify_api_page)
+        for doc_key, doc_info in self.DOCS.items():
+            if doc_info.get('paginated'):
+                # Generic routes for paginated documents
+                app.route(f'/docs/{doc_key}', methods=['GET'])(
+                    lambda request, dk=doc_key: self.serve_paginated_toc(request, dk)
+                )
+                app.route(f'/docs/{doc_key}/toc', methods=['GET'])(
+                    lambda request, dk=doc_key: self.serve_paginated_toc(request, dk)
+                )
+                app.route(f'/docs/{doc_key}/page/{{page_num}}', methods=['GET'])(
+                    lambda request, dk=doc_key: self.serve_paginated_page(request, dk, request.path_params['page_num'])
+                )
             else:
+                # Standard document route
                 app.route(f'/docs/{doc_key}', methods=['GET'])(self.serve_document)
 
         # Register route for documentation browser
@@ -39,10 +47,6 @@ class DocumentationPlugin:
 
         # Register route for serving raw markdown content
         app.route('/docs/raw/{doc_key}', methods=['GET'])(self.serve_raw_markdown)
-
-        # Register botify_open_api endpoints (baby step, copy pattern)
-        app.route('/docs/botify_open_api', methods=['GET'])(self.serve_botify_open_api_toc)
-        app.route('/docs/botify_open_api/page/{page_num}', methods=['GET'])(self.serve_botify_open_api_page)
 
     def discover_documentation_files(self):
         """Dynamically discover all documentation files from training and rules directories"""
@@ -117,7 +121,8 @@ class DocumentationPlugin:
 
         key = self.generate_key_from_filename(filename, 'training')
 
-        return key, {
+        # Detect paginated documents
+        info = {
             'title': title,
             'file': str(file_path),
             'description': description,
@@ -125,6 +130,16 @@ class DocumentationPlugin:
             'priority': priority,
             'filename': filename
         }
+        
+        # Add pagination metadata for long documents
+        if filename in ['botify_api', 'botify_open_api', 'change_log']:
+            info['paginated'] = True
+            info['separator'] = '-' * 80
+            # Update title to indicate pagination
+            if '(Paginated)' not in info['title']:
+                info['title'] += ' (Paginated)'
+
+        return key, info
 
     def process_rules_file(self, file_path):
         """Process a rules file and extract metadata"""
@@ -1622,6 +1637,390 @@ class DocumentationPlugin:
 
             id=unique_id
         )
+
+    # ========================================
+    # GENERIC PAGINATION SYSTEM (80/20 Rule)
+    # ========================================
+    
+    def parse_paginated_document(self, content, separator='-' * 80):
+        """Generic method to parse any paginated document"""
+        pages = []
+        current_page = []
+        lines = content.split('\n')
+
+        for line in lines:
+            if line.strip() == separator:
+                # Found a page separator
+                if current_page:
+                    pages.append('\n'.join(current_page))
+                    current_page = []
+            else:
+                current_page.append(line)
+
+        # Add the last page if there's content
+        if current_page:
+            pages.append('\n'.join(current_page))
+
+        return pages
+
+    def extract_paginated_toc(self, pages, doc_key):
+        """Generic method to extract TOC from any paginated document"""
+        toc = []
+
+        for page_num, page_content in enumerate(pages, 1):
+            lines = page_content.split('\n')
+            page_title = f"Page {page_num}"
+
+            # Look for the first H1 heading in the page
+            for line in lines:
+                line = line.strip()
+                if line.startswith('# ') and not line.startswith('```'):
+                    page_title = line[2:].strip()
+                    break
+
+            # Get a brief description from the first paragraph
+            description = ""
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith('#') and not line.startswith('```') and len(line) > 20:
+                    description = line[:100] + ('...' if len(line) > 100 else '')
+                    break
+
+            toc.append({
+                'page_num': page_num,
+                'title': page_title,
+                'description': description or "Documentation content"
+            })
+
+        return toc
+
+    async def serve_paginated_toc(self, request, doc_key):
+        """Generic method to serve TOC for any paginated document"""
+        if doc_key not in self.DOCS:
+            return HTMLResponse("Document not found", status_code=404)
+            
+        doc_info = self.DOCS[doc_key]
+        if not doc_info.get('paginated'):
+            return HTMLResponse("Document not paginated", status_code=404)
+            
+        file_path = Path(doc_info['file'])
+        if not file_path.exists():
+            return HTMLResponse("File not found", status_code=404)
+
+        try:
+            content = file_path.read_text(encoding='utf-8')
+            separator = doc_info.get('separator', '-' * 80)
+            pages = self.parse_paginated_document(content, separator)
+            toc = self.extract_paginated_toc(pages, doc_key)
+
+            # Create table of contents HTML
+            toc_items = []
+            for item in toc:
+                toc_items.append(f'''
+                    <div class="toc-item">
+                        <h3><a href="/docs/{doc_key}/page/{item['page_num']}">{item['title']}</a></h3>
+                        <p class="toc-description">{item['description']}</p>
+                        <span class="page-number">Page {item['page_num']} of {len(pages)}</span>
+                    </div>
+                ''')
+
+            # Get document title for header
+            doc_title = doc_info.get('title', 'Documentation')
+            
+            page_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>{doc_title} - Table of Contents</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fafafa;
+        }}
+
+        .breadcrumb {{
+            background: #fff;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 0.9em;
+            color: #6c757d;
+        }}
+
+        .breadcrumb a {{
+            color: #0066cc;
+            text-decoration: none;
+        }}
+
+        .header {{
+            background: #fff;
+            padding: 30px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }}
+
+        .header h1 {{
+            color: #333;
+            margin: 0 0 10px 0;
+        }}
+
+        .header .subtitle {{
+            color: #666;
+            font-size: 1.1em;
+        }}
+
+        .stats {{
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            text-align: center;
+            color: #1565c0;
+        }}
+
+        .toc-container {{
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }}
+
+        .toc-item {{
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s;
+        }}
+
+        .toc-item:last-child {{
+            border-bottom: none;
+        }}
+
+        .toc-item:hover {{
+            background-color: #f8f9fa;
+        }}
+
+        .toc-item h3 {{
+            margin: 0 0 10px 0;
+        }}
+
+        .toc-item h3 a {{
+            color: #0066cc;
+            text-decoration: none;
+        }}
+
+        .toc-item h3 a:hover {{
+            text-decoration: underline;
+        }}
+
+        .toc-description {{
+            color: #666;
+            margin: 0 0 10px 0;
+        }}
+
+        .page-number {{
+            font-size: 0.9em;
+            color: #6c757d;
+        }}
+
+        .navigation {{
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }}
+
+        .nav-button {{
+            display: inline-block;
+            padding: 10px 20px;
+            background: #0066cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }}
+
+        .nav-button:hover {{
+            background: #0052a3;
+            text-decoration: none;
+        }}
+    </style>
+</head>
+<body>
+    <div class="breadcrumb">
+        <a href="/docs">📚 Documentation</a> → <strong>{doc_title}</strong>
+    </div>
+
+    <div class="header">
+        <h1>📖 {doc_title}</h1>
+        <div class="subtitle">Table of Contents</div>
+    </div>
+
+    <div class="stats">
+        📄 {len(pages)} pages available • 🔍 Click any page to view content
+    </div>
+
+    <div class="toc-container">
+        {''.join(toc_items)}
+    </div>
+
+    <div class="navigation">
+        <a href="/docs" class="nav-button">← Back to Documentation</a>
+        <a href="/docs/{doc_key}/page/1" class="nav-button">Start Reading →</a>
+    </div>
+</body>
+</html>"""
+
+            return HTMLResponse(page_html)
+
+        except Exception as e:
+            logger.error(f"Error serving paginated TOC for {doc_key}: {e}")
+            return HTMLResponse(f"Error loading document: {str(e)}", status_code=500)
+
+    async def serve_paginated_page(self, request, doc_key, page_num):
+        """Generic method to serve individual pages of paginated documents"""
+        if doc_key not in self.DOCS:
+            return HTMLResponse("Document not found", status_code=404)
+            
+        doc_info = self.DOCS[doc_key]
+        if not doc_info.get('paginated'):
+            return HTMLResponse("Document not paginated", status_code=404)
+            
+        file_path = Path(doc_info['file'])
+        if not file_path.exists():
+            return HTMLResponse("File not found", status_code=404)
+
+        try:
+            page_num = int(page_num)
+            content = file_path.read_text(encoding='utf-8')
+            separator = doc_info.get('separator', '-' * 80)
+            pages = self.parse_paginated_document(content, separator)
+
+            if page_num < 1 or page_num > len(pages):
+                return HTMLResponse("Page not found", status_code=404)
+
+            page_content = pages[page_num - 1]
+            html_content = self.markdown_to_html(page_content)
+            doc_title = doc_info.get('title', 'Documentation')
+
+            # Navigation
+            prev_link = f'<a href="/docs/{doc_key}/page/{page_num - 1}" class="nav-button">← Previous</a>' if page_num > 1 else '<span class="nav-button disabled">← Previous</span>'
+            next_link = f'<a href="/docs/{doc_key}/page/{page_num + 1}" class="nav-button">Next →</a>' if page_num < len(pages) else '<span class="nav-button disabled">Next →</span>'
+
+            page_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>{doc_title} - Page {page_num}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fafafa;
+        }}
+        .breadcrumb {{
+            background: #fff;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 0.9em;
+            color: #6c757d;
+        }}
+        .breadcrumb a {{
+            color: #0066cc;
+            text-decoration: none;
+        }}
+        .content {{
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }}
+        .navigation {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }}
+        .nav-button {{
+            display: inline-block;
+            padding: 10px 20px;
+            background: #0066cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }}
+        .nav-button:hover {{
+            background: #0052a3;
+            text-decoration: none;
+        }}
+        .nav-button.disabled {{
+            background: #ccc;
+            cursor: not-allowed;
+        }}
+        .page-info {{
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }}
+    </style>
+</head>
+<body>
+    <div class="breadcrumb">
+        <a href="/docs">📚 Documentation</a> → 
+        <a href="/docs/{doc_key}/toc">{doc_title}</a> → 
+        <strong>Page {page_num}</strong>
+    </div>
+
+    <div class="navigation">
+        {prev_link}
+        <div class="page-info">
+            <a href="/docs/{doc_key}/toc" style="color: #0066cc; text-decoration: none;">📖 Table of Contents</a><br>
+            Page {page_num} of {len(pages)}
+        </div>
+        {next_link}
+    </div>
+
+    <div class="content">
+        {html_content}
+    </div>
+
+    <div class="navigation">
+        {prev_link}
+        <div class="page-info">
+            <a href="/docs/{doc_key}/toc" style="color: #0066cc; text-decoration: none;">📖 Table of Contents</a><br>
+            Page {page_num} of {len(pages)}
+        </div>
+        {next_link}
+    </div>
+</body>
+</html>"""
+
+            return HTMLResponse(page_html)
+
+        except ValueError:
+            return HTMLResponse("Invalid page number", status_code=400)
+        except Exception as e:
+            logger.error(f"Error serving paginated page {page_num} for {doc_key}: {e}")
+            return HTMLResponse(f"Error loading page: {str(e)}", status_code=500)
+
+    # ========================================
+    # LEGACY SPECIFIC METHODS (TO BE DEPRECATED)
+    # ========================================
 
     def parse_botify_api_pages(self, content):
         """Parse the botify_api.md content into pages separated by 80 hyphens"""
