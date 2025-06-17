@@ -12,6 +12,7 @@ This guide covers the conventions for documentation, changelogs, and development
 ## 1. Incremental Development & Story Arc
 
 
+
 Every improvement should follow a narrative "story arc":
 
 1. **Problem Identification**: State a clear user pain point.
@@ -23,6 +24,7 @@ Every improvement should follow a narrative "story arc":
 ---
 
 ## 2. Changelog & Git Commit Strategy
+
 
 
 ### Changelog
@@ -40,7 +42,6 @@ Every improvement should follow a narrative "story arc":
 
 ## 3. Documentation System
 
-
 Pipulate includes a built-in documentation browser.
 
 - **Core Plugin**: `plugins/050_documentation.py` handles document discovery from the `/training` folder, categorization, and navigation.
@@ -50,6 +51,7 @@ Pipulate includes a built-in documentation browser.
 ---
 
 ## 4. Internal Linking Patterns
+
 
 
 To ensure the LLM's context is updated correctly when a user navigates, a specific linking pattern is required for cross-plugin navigation.

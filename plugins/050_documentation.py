@@ -304,26 +304,22 @@ class DocumentationPlugin:
         return title, description
 
     def get_rules_priority(self, filename):
-        """Determine priority for rules files based on importance"""
-        priority_map = {
-            '00_CRITICAL_SERVER_ENVIRONMENT': 1,
-            '00_philosophy': 2,
-            '01_architecture_overview': 3,
-            '03_workflow_core': 4,
-            '04_chain_reaction_pattern': 5,
-            '06_key_system': 6,
-            '02_environment_and_installation': 7,
-            '07_ui_and_htmx': 8,
-            '11_plugin_development_guidelines': 9,
-            '09_data_and_file_operations': 10,
-            '08_llm_integration': 11,
-            '10_browser_automation': 12,
-            '12_server_py_overview': 13,
-            '13_testing_and_debugging': 14,
-            'meta_rule_routing': 15
+        """Determine priority for rules files based on numeric prefix in filename"""
+        import re
+        
+        # Extract numeric prefix from filename (e.g., "00" from "00_PIPULATE_MASTER_GUIDE")
+        match = re.match(r'^(\d+)_', filename)
+        if match:
+            # Use the numeric prefix as priority (lower numbers = higher priority)
+            return int(match.group(1))
+        
+        # For files without numeric prefixes, assign high priority numbers
+        # This preserves the reading order implied by the filename numbering
+        special_cases = {
+            'meta_rule_routing': 999,
         }
-
-        return priority_map.get(filename, 100)
+        
+        return special_cases.get(filename, 100)
 
     def markdown_to_html(self, markdown_content):
         """Convert markdown to HTML with proper Markdown semantics"""

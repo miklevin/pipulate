@@ -11,7 +11,6 @@ This guide covers the conventions for building user interfaces in Pipulate.
 
 ## 1. Core UI Philosophy & Stack
 
-
 - **Server-Rendered HTML**: FastHTML generates HTML directly from Python objects. There is no separate template language.
 - **HTMX for Dynamics**: Most UI updates are achieved via HTMX requests that swap HTML fragments returned by the server. Avoid extensive client-side JavaScript.
 - **PicoCSS for Styling**: Provides lightweight, semantic styling. Adhere to its classless approach where possible. Standard HTML form elements are styled automatically.
@@ -19,7 +18,6 @@ This guide covers the conventions for building user interfaces in Pipulate.
 ---
 
 ## 2. CSS Styling Hierarchy and Best Practices
-
 
 To ensure consistency and maintainability, follow this strict styling hierarchy:
 
@@ -38,6 +36,7 @@ To ensure consistency and maintainability, follow this strict styling hierarchy:
 ---
 
 ## 3. HTMX Dynamic Menu and Button Patterns
+
 
 
 Pipulate uses several key HTMX patterns for dynamic UIs.
@@ -82,6 +81,7 @@ Form(
 ---
 
 ## 4. Opening Local OS Folders
+
 
 
 Use the `/open-folder` endpoint to open a directory in the user's native file explorer. This is useful for "View Folder" buttons.
