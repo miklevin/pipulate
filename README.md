@@ -202,7 +202,7 @@ Jupyter Notebooks run alongside the FastHTML server, allowing developers to prot
 
 ### Local-First & Single-Tenant Details
 
-Pipulate manages all state server-side within the local environment, avoiding cloud dependencies. This approach offers:
+Pipulate manages all state server-side within the local environment (think *server cookies*), avoiding cloud dependencies. This approach offers:
 * **Privacy & Control:** Data never leaves the user's machine.
 * **Full Resource Access:** Utilize local CPU/GPU freely for intensive tasks (scraping, 24/7 AI processing) at minimal cost.
 * **Simplicity:** Eliminates complexities associated with multi-tenancy, cloud deployment, and distributed state.
