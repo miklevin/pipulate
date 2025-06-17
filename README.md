@@ -346,22 +346,29 @@ home (Root Component)
 
 ```plaintext
     .
-    ├── .cursor               # Guidelines for AI code editing (if using Cursor)
-    ├── .venv/                # Virtual environment (shared by server & Jupyter)
+    ├── .cursor                   # Guidelines for AI code editing (if using Cursor)
+    ├── .venv/                    # Virtual environment (shared by server & Jupyter)
     ├── data/
-    │   └── data.db           # SQLite database
-    ├── downloads/            # Default location for workflow outputs (e.g., CSVs)
+    │   └── data.d  b             # SQLite database
+    ├── downloads/                # Default location for workflow outputs (e.g., CSVs)
+    ├── helpers/
+│   │   ├── botify  
+│   │   │   └── botify_api.ipynb  # Git managed massive example notebook, produces docs
+│   │   ├── cleanup               # Temporary scripts to help clean up the system
+│   │   │   └── organize_css.py   # Example of what might be found there
+    │   └── create_workflow.py    # Useful workflow production helpers
     ├── logs/
-    │   └── server.log        # Server logs (useful for debugging / AI context)
-    ├── static/               # JS, CSS, images
-    ├── plugins/              # Workflow plugins
-    ├── training/             # Markdown files for AI context/prompts
-    ├── flake.nix             # Nix flake definition for reproducibility
+│   │   ├── api.log               # Specific API-calls, rotating last-N server runs
+    │   └── Botifython.log        # Server logs (useful for debugging / AI context)
+    ├── static/                   # JS, CSS, images
+    ├── plugins/                  # Workflow plugins
+    ├── training/                 # Markdown files for AI context/prompts
+    ├── flake.nix                 # Nix flake definition for reproducibility
     ├── LICENSE
-    ├── README.md             # This file
-    ├── requirements.txt      # Python dependencies (managed by Nix)
-    ├── server.py             # Main application entry point
-    └── start/stop            # Scripts for managing Jupyter (if used)
+    ├── notebook_introduction_local.ipynb  # Editable (non-auto-updating) copy of botify_api.ipynb
+    ├── README.md                 # This file
+    ├── requirements.txt          # Python dependencies (managed by Nix)
+    └── server.py                 # Main application entry point
 ```
 
 ## Critical Implementation Patterns for LLMs
