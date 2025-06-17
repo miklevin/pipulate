@@ -314,7 +314,7 @@ The application interface is organized into distinct areas:
 
 ```
                ┌─────────────────────────────┐
-               │        Navigation          ◄── Search, Profiles,
+               │         Navigation         ◄── Search, Profiles,
                ├───────────────┬─────────────┤    Apps, Settings
                │               │             │
     Workflow, ──►   Main Area  │    Chat     │
