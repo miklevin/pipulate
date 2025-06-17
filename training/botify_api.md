@@ -26,7 +26,7 @@ Pipulate is to run SEO Workflows as Web Apps that would otherwise require Notebo
 Let's start with the ***Hello World*** program. In a Notebook, The Hello World program can be this simple (run the cell below):
 
 
-```python
+```
 "Hello World"
 ```
 
@@ -37,7 +37,7 @@ How's that for simple? This works because the *Notebook environment* automatical
 Run the cell below.
 
 
-```python
+```
 print("Hello World")
 ```
 
@@ -50,7 +50,7 @@ There are small differences between using `print()` and relying on the automatic
 Oh there's so much more we should say before jumping into the concept of ***data pipelines*** — but they are so fundamental to everything to follow that we find it impossible to not jump right in and show you that if you set:
 
 
-```python
+```
 a = "Hello"
 a  # Prints a because it's on a line by itself at the end of the cell
 ```
@@ -58,7 +58,7 @@ a  # Prints a because it's on a line by itself at the end of the cell
 ...then `a` is still hanging around in memory. The value of a *persists!* And that means you can start piping the ouput of `a` into the input of `b`:
 
 
-```python
+```
 b = a + " World!"  # Appends a to the beginning of a String
 b
 ```
@@ -95,7 +95,7 @@ Tutorials for Jupyter Notebooks are all over the Web, but one of the more intere
 - [Introduction to the JupyterLab and Jupyter Notebooks](https://jupyter.org/try-jupyter/notebooks/?path=notebooks/Intro.ipynb)
 
 
-```python
+```
 # You should really start a new Notebook if you want to paste and run some Python code
 # but understanding a lot of folks will struggle with this, we provide this cell for that.
 # Alternatively, press Ctrl+Shift+L or click the big blue plus in the upper-left.
@@ -127,7 +127,7 @@ Good luck!
 ## Script #1: Get Your Token
 
 
-```python
+```
 #!/usr/bin/env python3
 """
 Botify Token Setup
@@ -419,7 +419,7 @@ if __name__ == "__main__":
 ## Script #2: Setup config file
 
 
-```python
+```
 #!/usr/bin/env python3
 """
 Botify Configuration Generator
@@ -935,7 +935,7 @@ print(response.json())
 Remember when I told you there are lots of specialized endpoints? Well, this is the first and easiest to have an immediate API success. If you did the above API step correctly, you should be able to get your username with this bare minimum Botify API script.
 
 
-```python
+```
 import httpx
 
 # Read only the first line (the token) from botify_token.txt
@@ -960,7 +960,7 @@ print(username)
 # List Orgs: How To Get the List of Projects And Their Orgs Given Username
 
 
-```python
+```
 import httpx
 
 # Load API key
@@ -1035,7 +1035,7 @@ Your config.json should look like:
 ```
 
 
-```python
+```
 import json
 import httpx
 
@@ -1091,7 +1091,7 @@ Fabled Catalog of Curiosities  fabled-catalog-of-curiosities       foo-org
 
 
 
-```python
+```
 import json
 import httpx
 
@@ -1155,7 +1155,7 @@ Your `config.json` should include:
 The analysis slug is typically a date in YYYYMMDD format (like "20240301") as shown in the sample output below. Without this value in your config file, you'll encounter a KeyError.
 
 
-```python
+```
 import json
 import httpx
 import pandas as pd
@@ -1230,7 +1230,7 @@ You're welcome.
 # List SEO Fields: How To Get a List of the First 500 URLs, Titles, Meta Descriptions and H1s
 
 
-```python
+```
 import json
 import httpx
 import pandas as pd
@@ -1299,7 +1299,7 @@ df.head()
 **Rationale**: To show you the main endpoint for listing 500 lines at a time, paging and quick aggregate queries. To show you how `org` and `project` are in the url (so you notice them disappearing later when we export csv downloads). To introduce the infinitely popular and useful `pandas` data library for manipulating ***row & column*** data.
 
 
-```python
+```
 import json
 import httpx
 import pandas as pd
@@ -1435,7 +1435,7 @@ Example config.json:
 
 
 
-```python
+```
 import httpx
 import json
 
@@ -1518,7 +1518,7 @@ print(json.dumps(results, indent=4, separators=(',', ': ')))
 # List Collections: How To Get the List of Collections Given a Project
 
 
-```python
+```
 # Get List of Collections Given a Project
 
 import json
@@ -1568,7 +1568,7 @@ ID: search_engines_orphans.20240715, Name: Search Engines Orphans
 # List Fields: How To Get The List of Fields Given a Collection
 
 
-```python
+```
 # Get List of Fields Given a Collection
 
 import json
@@ -1622,7 +1622,7 @@ ID: afield_a_complaint, Name: Red Swingline
 # Get Pagetypes: How To Get the Unfiltered URL Counts by Pagetype for a Specific Analysis
 
 
-```python
+```
 import json
 import httpx
 import pandas as pd
@@ -1707,7 +1707,7 @@ Data saved to pagetype_url_counts.csv
 # Get Short Titles: How To Get the First 500 URLs With Short Titles Given Pagetype
 
 
-```python
+```
 # Get the First 500 URLs With Short Titles Given Pagetype
 
 import json
@@ -1814,7 +1814,7 @@ df.head(10)
 # Count Short Titles: How To Count Number of URLs Having Short Titles
 
 
-```python
+```
 import json
 import httpx
 
@@ -1885,7 +1885,7 @@ else:
 # Download CSV: How To Download Up to 10K URLs Having Short Titles As a CSV
 
 
-```python
+```
 import json
 import httpx
 import time
@@ -2025,7 +2025,7 @@ else:
 # Get Total Count: How To Get Aggregate Count of All URLs Crawled During Analysis
 
 
-```python
+```
 import json
 import httpx
 
@@ -2134,7 +2134,7 @@ Result: Grand Total URLs in Crawl = 3,000,000
 # Get Depth Count: How To Get Aggregate Count of URLs at Particular Click Depth
 
 
-```python
+```
 import json
 import httpx
 
@@ -2239,7 +2239,7 @@ Total URLs at depth 5 or less: 1,500,000
 # Get Aggregates: How To Get Map of Click-Depths Aggregates Given Analysis Slug
 
 
-```python
+```
 import json
 import httpx
 import pprint # Keep pprint for the final output as in the original
@@ -2412,7 +2412,7 @@ Processing complete.
 # Get Aggregates: How To Get Map of CUMULATIVE Click-Depths Aggregates Given Analysis Slug
 
 
-```python
+```
 import json
 import httpx
 import pprint # Keep pprint for the final output
@@ -2590,7 +2590,7 @@ Calculating cumulative URL counts by depth...
 # Download Link Graph: How to Download a Link Graph for a Specified Organization, Project, and Analysis For Website Visualization.
 
 
-```python
+```
 import os
 import time
 import json
@@ -2750,7 +2750,7 @@ Link graph saved to: downloads/org_project_analysis_linkgraph_depth-3.csv
 # Check Link-Graph Enhancements: How To Check What Data is Available to Enhance Link-Graph Visualization.
 
 
-```python
+```
 import os
 import json
 import httpx
@@ -3165,7 +3165,7 @@ if __name__ == "__main__":
 # Color-Code Link-Graphs: How To Download Data to Enhance Website Link-Graph Visualization.
 
 
-```python
+```
 import os
 import json
 import httpx
@@ -3594,7 +3594,7 @@ Next-generation SEO requires adapting to these AI-driven changes. Now, let's exa
 # Web Logs: How To Check If A Project Has a Web Logs Collection
 
 
-```python
+```
 import httpx
 import json
 import os
@@ -4000,7 +4000,7 @@ def convert_url_query(query_v1, current_analysis, previous_analysis=None):
 # Size Up Botify Open API Swagger
 
 
-```python
+```
 # Python Script to Download Botify OpenAPI Spec, Save Locally, and Calculate Token Count
 # ------------------------------------------------------------------------------------
 # Purpose:
@@ -4107,7 +4107,7 @@ if __name__ == "__main__":
 Botify OpenAPI Swagger File: [https://api.botify.com/v1/swagger.json](https://api.botify.com/v1/swagger.json)
 
 
-```python
+```
 # Python Script to Generate Paginated LLM Training Data for Botify API
 # ------------------------------------------------------------------------------------
 # Purpose:
@@ -4280,7 +4280,7 @@ def generate_api_documentation_markdown(spec: Dict[str, Any]) -> str:
 
     paginated_content = f"\n\n{PAGINATION_SEPARATOR}\n\n".join(all_endpoint_docs_as_blocks)
     main_header = [
-        "# Botify API Bootcamp", "",
+        "# Botify Open API Swagger Examples", "",
         "This document provides detailed information and Python code examples for every endpoint in the Botify API...", ""
     ]
     return "\n".join(main_header) + paginated_content
@@ -4307,7 +4307,7 @@ def create_llm_training_document():
         print(f"SUCCESS: Tokenization complete.")
 
         token_line = f"**Total Estimated Token Count**: `{token_count:,}` (using `{TIKTOKEN_ENCODING_NAME}`)"
-        llm_training_markdown = generated_markdown.replace("# Botify API Bootcamp", f"# Botify API Bootcamp\n\n{token_line}")
+        llm_training_markdown = generated_markdown.replace("# Botify Open API Swagger Examples", f"# Botify Open API Swagger Examples\n\n{token_line}")
 
         print("\n--- Analysis Complete ---")
         print(token_line)
@@ -4355,7 +4355,7 @@ if __name__ == "__main__":
 # Create Documentation For Pipulate From This Notebook
 
 
-```python
+```
 # Jupyter Notebook Self-Export and Custom Markdown Processing Script
 # -------------------------------------------------------------------
 # Purpose:
@@ -4662,6 +4662,6 @@ print("Done")
 ```
 
 
-```python
+```
 
 ```

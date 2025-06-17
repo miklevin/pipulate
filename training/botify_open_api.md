@@ -1,9 +1,9 @@
-# Botify API Bootcamp
+# Botify Open API Swagger Examples
 
-**Total Estimated Token Count**: `21,255` (using `cl100k_base`)
+**Total Estimated Token Count**: `21,256` (using `cl100k_base`)
 
 This document provides detailed information and Python code examples for every endpoint in the Botify API...
-# `GET /analyses/{username}/{project_slug}`
+### `GET /analyses/{username}/{project_slug}`
 
 **Category:** `Project`
 
@@ -70,7 +70,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `POST /analyses/{username}/{project_slug}/create/launch`
+### `POST /analyses/{username}/{project_slug}/create/launch`
 
 **Category:** `Analysis`
 
@@ -122,7 +122,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/light`
+### `GET /analyses/{username}/{project_slug}/light`
 
 **Category:** `Project`
 
@@ -187,7 +187,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}`
 
 **Category:** `Analysis`
 
@@ -249,7 +249,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics`
 
 **Category:** `Analysis`
 
@@ -302,7 +302,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/time`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/time`
 
 **Category:** `Analysis`
 
@@ -366,7 +366,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/urls/{list_type}`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/urls/{list_type}`
 
 **Category:** `Analysis`
 
@@ -420,7 +420,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/ganalytics/orphan_urls/{medium}/{source}`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/ganalytics/orphan_urls/{medium}/{source}`
 
 **Category:** `Analysis`
 
@@ -486,7 +486,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/links/percentiles`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/links/percentiles`
 
 **Category:** `Analysis`
 
@@ -539,7 +539,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/pagerank/lost`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/pagerank/lost`
 
 **Category:** `Analysis`
 
@@ -592,7 +592,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/scoring/summary`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/scoring/summary`
 
 **Category:** `Analysis`
 
@@ -645,7 +645,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/search_console/stats`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/search_console/stats`
 
 **Category:** `Analysis`
 
@@ -698,7 +698,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/report`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/report`
 
 **Category:** `Analysis`
 
@@ -751,7 +751,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/out_of_config`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/out_of_config`
 
 **Category:** `Analysis`
 
@@ -815,7 +815,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/sitemap_only`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/sitemap_only`
 
 **Category:** `Analysis`
 
@@ -879,7 +879,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/domains`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/domains`
 
 **Category:** `Analysis`
 
@@ -943,7 +943,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/subdomains`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/subdomains`
 
 **Category:** `Analysis`
 
@@ -1007,7 +1007,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/visits/orphan_urls/{medium}/{source}`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/features/visits/orphan_urls/{medium}/{source}`
 
 **Category:** `Analysis`
 
@@ -1073,7 +1073,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `POST /analyses/{username}/{project_slug}/{analysis_slug}/pause`
+### `POST /analyses/{username}/{project_slug}/{analysis_slug}/pause`
 
 **Category:** `Analysis`
 
@@ -1126,7 +1126,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `POST /analyses/{username}/{project_slug}/{analysis_slug}/resume`
+### `POST /analyses/{username}/{project_slug}/{analysis_slug}/resume`
 
 **Category:** `Analysis`
 
@@ -1179,7 +1179,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/segments`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/segments`
 
 **Category:** `Analysis`
 
@@ -1243,7 +1243,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes`
 
 **Category:** `Analysis`
 
@@ -1307,7 +1307,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes/{robots_txt}`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes/{robots_txt}`
 
 **Category:** `Analysis`
 
@@ -1372,7 +1372,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `POST /analyses/{username}/{project_slug}/{analysis_slug}/urls`
+### `POST /analyses/{username}/{project_slug}/{analysis_slug}/urls`
 
 **Category:** `Analysis`
 
@@ -1445,7 +1445,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `POST /analyses/{username}/{project_slug}/{analysis_slug}/urls/aggs`
+### `POST /analyses/{username}/{project_slug}/{analysis_slug}/urls/aggs`
 
 **Category:** `Analysis`
 
@@ -1514,7 +1514,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/ai/{url}`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/ai/{url}`
 
 **Category:** `Analysis`
 
@@ -1568,7 +1568,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/datamodel`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/datamodel`
 
 **Category:** `Analysis`
 
@@ -1632,7 +1632,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/datasets`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/datasets`
 
 **Category:** `Analysis`
 
@@ -1700,7 +1700,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/export`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/export`
 
 **Category:** `Analysis`
 
@@ -1764,7 +1764,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `POST /analyses/{username}/{project_slug}/{analysis_slug}/urls/export`
+### `POST /analyses/{username}/{project_slug}/{analysis_slug}/urls/export`
 
 **Category:** `Analysis`
 
@@ -1839,7 +1839,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/export/{url_export_id}`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/export/{url_export_id}`
 
 **Category:** `Analysis`
 
@@ -1893,7 +1893,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/html/{url}`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/html/{url}`
 
 **Category:** `Analysis`
 
@@ -1947,7 +1947,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/{url}`
+### `GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/{url}`
 
 **Category:** `Analysis`
 
@@ -2010,7 +2010,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /jobs`
+### `GET /jobs`
 
 **Category:** `Job`
 
@@ -2075,7 +2075,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `POST /jobs`
+### `POST /jobs`
 
 **Category:** `Job`
 
@@ -2132,7 +2132,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /jobs/{job_id}`
+### `GET /jobs/{job_id}`
 
 **Category:** `Job`
 
@@ -2183,7 +2183,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /projects/{username}`
+### `GET /projects/{username}`
 
 **Category:** `User`
 
@@ -2247,7 +2247,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /projects/{username}/{project_slug}/account_filters`
+### `GET /projects/{username}/{project_slug}/account_filters`
 
 **Category:** `ProjectQuery`
 
@@ -2314,7 +2314,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /projects/{username}/{project_slug}/collections`
+### `GET /projects/{username}/{project_slug}/collections`
 
 **Category:** `Collections`
 
@@ -2366,7 +2366,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /projects/{username}/{project_slug}/collections/{collection}`
+### `GET /projects/{username}/{project_slug}/collections/{collection}`
 
 **Category:** `Collections`
 
@@ -2428,7 +2428,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /projects/{username}/{project_slug}/filters`
+### `GET /projects/{username}/{project_slug}/filters`
 
 **Category:** `Project`
 
@@ -2493,7 +2493,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /projects/{username}/{project_slug}/filters/{identifier}`
+### `GET /projects/{username}/{project_slug}/filters/{identifier}`
 
 **Category:** `Project`
 
@@ -2546,7 +2546,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `POST /projects/{username}/{project_slug}/query`
+### `POST /projects/{username}/{project_slug}/query`
 
 **Category:** `Project`
 
@@ -2614,7 +2614,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /projects/{username}/{project_slug}/saved_explorers`
+### `GET /projects/{username}/{project_slug}/saved_explorers`
 
 **Category:** `Project`
 
@@ -2666,7 +2666,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `POST /projects/{username}/{project_slug}/urls/aggs`
+### `POST /projects/{username}/{project_slug}/urls/aggs`
 
 **Category:** `Project`
 
@@ -2736,7 +2736,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `POST /projects/{username}/{project_slug}/values_list/clone`
+### `POST /projects/{username}/{project_slug}/values_list/clone`
 
 **Category:** `Project`
 
@@ -2797,7 +2797,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /users/{username}/datasources_summary_by_projects`
+### `GET /users/{username}/datasources_summary_by_projects`
 
 **Category:** `Datasource`
 
@@ -2848,7 +2848,7 @@ except Exception as e:
 
 --------------------------------------------------------------------------------
 
-# `GET /users/{username}/projects`
+### `GET /users/{username}/projects`
 
 **Category:** `Project`
 
