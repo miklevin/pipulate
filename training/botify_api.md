@@ -115,8 +115,8 @@ Everything below this point is for Botify employees and perhaps the brave and th
 
 The first 2 scripts in this series (immediately below) set you up. They may look large and scary, but they each do 1 very simple thing: 
 
-- Cell 2 makes sure you have your `botify_token.txt` for API-access.
-- Cell 3 makes sure you have an example `config.json` to use in the examples.
+- Script #1 (Cell 2) makes sure you have your `botify_token.txt` for API-access.
+- Script #2 (Cell 3) makes sure you have an example `config.json` to use in the examples.
 
 > When you run the scripts in cells 2 & 3, they will appear to *"lock up"*. It's not. Input fields are waiting for you. Type/paste into the field and *Hit Enter*.  
 > If you get confused, hit `Esc` + `0` + `0` + `Enter` and that will *restart the kernel.*  
