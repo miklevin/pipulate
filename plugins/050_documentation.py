@@ -2002,6 +2002,10 @@ class DocumentationPlugin:
     <title>{doc_title} - Page {page_num}</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- Prism CSS -->
+    <link href="/static/prism.css" rel="stylesheet">
+    
     <style>
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -2089,6 +2093,17 @@ class DocumentationPlugin:
         </div>
         {next_link}
     </div>
+
+    <!-- Prism JavaScript -->
+    <script src="/static/prism.js"></script>
+    <script>
+        // Initialize Prism highlighting when page loads
+        document.addEventListener('DOMContentLoaded', function() {{
+            if (typeof Prism !== 'undefined') {{
+                Prism.highlightAll();
+            }}
+        }});
+    </script>
 </body>
 </html>"""
 
