@@ -237,10 +237,10 @@ The UI is constructed primarily with server-rendered HTML fragments delivered vi
                              ┌─────────────────────┐
                              │    Navigation Bar   │  - No template language (like Jinja2)
                              ├─────────┬───────────┤  - HTML elements are Python functions
-  Simple Python back-end     │  Main   │   Chat    │  - Minimal custom JavaScript
+  Simple Python back-end     │  Main   │   Chat    │  - Minimal custom JavaScript / CSS
   HTMX "paints" HTML into    │  Area   │ Interface │  - No React/Vue/Angular overhead
-  the DOM on demand──────►   │         │           │  - No virtual DOM, JSX, Redux, etc.
-                             └─────────┴───────────┘
+  the DOM on demand ───────► │         │           │  - Not "build" process like Svelte
+                             └─────────┴───────────┘  - No virtual DOM, JSX, Redux, etc.
 ```
 
 ### Pipeline Workflows
