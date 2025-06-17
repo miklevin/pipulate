@@ -158,7 +158,16 @@ class DocumentationPlugin:
             content = file_path.read_text(encoding='utf-8')
             extracted_title, description = self.extract_metadata_from_content(content, title)
             if extracted_title:
-                title = extracted_title
+                # For rules files with numeric prefixes, preserve the number when using extracted title
+                if re.match(r'^\d+_', filename):
+                    prefix_match = re.match(r'^(\d+)_', filename)
+                    if prefix_match:
+                        prefix = prefix_match.group(1)
+                        title = f"{prefix} - {extracted_title}"
+                    else:
+                        title = extracted_title
+                else:
+                    title = extracted_title
         except Exception as e:
             logger.warning(f"Could not read {file_path}: {e}")
             description = f"Framework rule: {filename}"
@@ -202,40 +211,37 @@ class DocumentationPlugin:
 
     def generate_title_from_filename(self, filename):
         """Generate a human-readable title from filename"""
-        # Remove numeric prefixes and clean up
-        title = re.sub(r'^\d+_', '', filename)
-        title = re.sub(r'^[Xx][Xx]_', '', title)
+        # For rules files, preserve numeric prefix in a nice format
+        if filename.startswith(('00_', '01_', '02_', '03_', '04_', '05_', '06_', '07_', '08_', '09_')):
+            match = re.match(r'^(\d+)_(.+)', filename)
+            if match:
+                prefix = match.group(1)
+                rest = match.group(2)
+                # Clean up the rest of the filename
+                rest = re.sub(r'^[Xx][Xx]_', '', rest)
+                # For rules files, return with formatted prefix
+                title = f"{prefix} - {rest}"
+            else:
+                # Fallback - remove numeric prefixes and clean up
+                title = re.sub(r'^\d+_', '', filename)
+                title = re.sub(r'^[Xx][Xx]_', '', title)
+        else:
+            # For non-rules files, remove numeric prefixes and clean up
+            title = re.sub(r'^\d+_', '', filename)
+            title = re.sub(r'^[Xx][Xx]_', '', title)
 
-        # Handle special cases
+        # Handle only special cases that can't be automatically determined
+        # Most titles should be automatically extracted from file content or generated from filename
         title_mappings = {
+            # Training files with specific formatting needs
             'ULTIMATE_PIPULATE_GUIDE': 'Ultimate Pipulate Guide - Part 1: Core Patterns',
             'ULTIMATE_PIPULATE_GUIDE_PART2': 'Ultimate Pipulate Guide - Part 2: Advanced Patterns',
             'ULTIMATE_PIPULATE_GUIDE_PART3': 'Ultimate Pipulate Guide - Part 3: Expert Mastery',
             'QUICK_REFERENCE': 'Quick Reference Card',
+            # Paginated documents that need special suffixes
             'botify_api': 'Botify API Bootcamp (Paginated)',
             'botify_open_api': 'Botify Open API Swagger Examples (Paginated)',
             'change_log': 'Pipulate Development Changelog (Paginated)',
-            'dev_assistant': 'Development Assistant Guide',
-            'hello_workflow': 'Hello Workflow Tutorial',
-            'system_prompt': 'System Prompt Configuration',
-            'widget_examples': 'Widget Examples',
-            'botify_api_tutorial': 'Botify API Tutorial',
-            'botify_workflow': 'Botify Workflow Guide',
-            '00_philosophy': 'Philosophy & Core Principles',
-            '01_architecture_overview': 'Architecture Overview',
-            '02_environment_and_installation': 'Environment & Installation',
-            '03_workflow_core': 'Workflow Core Concepts',
-            '04_chain_reaction_pattern': 'Chain Reaction Pattern',
-            '06_key_system': 'Pipeline Key System',
-            '07_ui_and_htmx': 'UI & HTMX Patterns',
-            '08_llm_integration': 'LLM Integration',
-            '09_data_and_file_operations': 'Data & File Operations',
-            '10_browser_automation': 'Browser Automation',
-            '11_plugin_development_guidelines': 'Plugin Development Guidelines',
-            '12_server_py_overview': 'Server.py Overview',
-            '13_testing_and_debugging': 'Testing & Debugging',
-            '00_CRITICAL_SERVER_ENVIRONMENT': 'Critical Server Environment',
-            'meta_rule_routing': 'Meta Rule Routing'
         }
 
         if filename in title_mappings:
