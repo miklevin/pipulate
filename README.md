@@ -257,7 +257,7 @@ Designed for porting notebook-style processes, workflows are sequences of steps 
   └─────────┘        └─────────┘        └─────────┘   - Easily ported from Notebooks
        │                  │                  │        - One DB record per workflow run
        ▼                  ▼                  ▼        - Everything stays on your machine
-    State Saved        State Saved        Finalized?
+  State Saved        State Saved         Finalized?
 ```
 
 ### LLM Integration (Ollama)
