@@ -11,7 +11,6 @@ This guide covers patterns for integrating Pipulate with external services like 
 
 ## 1. LLM Integration (Ollama)
 
-*Source: `09_llm_integration.mdc`*
 
 - **Local First**: Pipulate integrates with a locally running Ollama instance (`http://localhost:11434`).
 - **WebSockets**: Real-time streaming chat is handled via the `/ws` WebSocket endpoint.
@@ -32,7 +31,6 @@ This guide covers patterns for integrating Pipulate with external services like 
 
 ## 2. Botify API Patterns
 
-*Source: `botify-api-patterns.mdc`*
 
 - **Dual API Versions**: Botify has two coexisting BQL (Botify Query Language) versions that **must** be used for different data types.
   - **BQLv1**: For Web Logs. Uses `app.botify.com` base URL.
@@ -44,7 +42,6 @@ This guide covers patterns for integrating Pipulate with external services like 
 
 ## 3. Botify True Schema Discovery
 
-*Source: `botify_true_schema_discovery.mdc`*
 
 To build robust Botify queries, Pipulate includes a system to discover the complete, up-to-date data schema directly from the Botify API.
 

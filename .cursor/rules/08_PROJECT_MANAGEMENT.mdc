@@ -11,7 +11,6 @@ This guide covers the conventions for documentation, changelogs, and development
 
 ## 1. Incremental Development & Story Arc
 
-*Source: `incremental-development-patterns.mdc`*
 
 Every improvement should follow a narrative "story arc":
 
@@ -25,7 +24,6 @@ Every improvement should follow a narrative "story arc":
 
 ## 2. Changelog & Git Commit Strategy
 
-*Source: `changelog-management.mdc`*
 
 ### Changelog
 
@@ -42,7 +40,6 @@ Every improvement should follow a narrative "story arc":
 
 ## 3. Documentation System
 
-*Source: `documentation-system.mdc`*
 
 Pipulate includes a built-in documentation browser.
 
@@ -54,7 +51,6 @@ Pipulate includes a built-in documentation browser.
 
 ## 4. Internal Linking Patterns
 
-*Source: `internal-linking-patterns.mdc`*
 
 To ensure the LLM's context is updated correctly when a user navigates, a specific linking pattern is required for cross-plugin navigation.
 

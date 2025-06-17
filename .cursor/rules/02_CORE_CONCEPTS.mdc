@@ -11,7 +11,6 @@ This guide provides a high-level understanding of the Pipulate framework, its ar
 
 ## 1. Core Philosophy: The Digital Workbench
 
-*Source: `01_philosophy.mdc`*
 
 - **Local-First Reality**: Your data (SQLite), environment (Nix), and LLM (Ollama) reside and run on your machine. This ensures privacy, control, speed, and offline capability.
 - **Modern Webmaster Thinking**: One person should be able to understand and manage the entire stack.
@@ -24,7 +23,6 @@ This guide provides a high-level understanding of the Pipulate framework, its ar
 
 ## 2. Architecture Overview
 
-*Source: `02_architecture_overview.mdc`*
 
 ### Key Components & Data Flow
 
@@ -56,7 +54,6 @@ Browser (User Interface)
 
 ## 3. `server.py` Overview
 
-*Source: `13_server_py_overview.mdc`*
 
 - **Application Setup (`fast_app`)**: Initializes the main `app` instance, the `rt` route decorator, and the MiniDataAPI table objects (`store`, `profiles`, `pipeline`).
 - **Core Global Instances**: `logger`, `db` (key-value store), `pipulate` (workflow helpers), `chat` (WebSocket manager), `plugin_instances` (dictionary of all active plugins).
@@ -68,7 +65,6 @@ Browser (User Interface)
 
 ## 4. Evolutionary Vision: Beyond Linear Workflows
 
-*Source: `18_evolutionary_vision.mdc`*
 
 Pipulate's trajectory moves beyond simple notebook-to-workflow porting toward a comprehensive **digital workshop** for content curation, exploration, and creative expression.
 

@@ -11,7 +11,6 @@ This guide provides techniques for debugging the Pipulate application and its wo
 
 ## 1. General Debugging Techniques
 
-*Source: `14_testing_and_debugging.mdc`*
 
 - **`STATE_TABLES = True`**: Set this at the top of `server.py`. After each request, the console will print the contents of the `store` (key-value) and `pipeline` (workflow state) tables. This is invaluable for watching state changes.
 - **`DEBUG_MODE = True`**: Also in `server.py`, this enables more verbose logging from Pipulate and the Uvicorn server.
@@ -23,7 +22,6 @@ This guide provides techniques for debugging the Pipulate application and its wo
 
 ## 2. Debugging Helper Scripts
 
-*Source: `systematic_debugging_helper_scripts.mdc`*
 
 When debugging the helper scripts themselves (e.g., `swap_workflow_step.py`), a systematic approach is required to avoid token-burning loops.
 

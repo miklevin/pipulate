@@ -11,7 +11,6 @@ This guide covers how Pipulate handles database operations and browser automatio
 
 ## 1. Data Persistence
 
-*Source: `10_data_and_file_operations.mdc`*
 
 All data is stored in a single SQLite file (`data/data.db`).
 
@@ -44,7 +43,6 @@ All data is stored in a single SQLite file (`data/data.db`).
 
 ## 2. Browser Automation with Selenium
 
-*Source: `11_browser_automation.mdc`*
 
 Pipulate supports Selenium for automating browser interactions.
 
