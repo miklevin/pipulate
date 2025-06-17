@@ -8,7 +8,7 @@ import inspect
 from pathlib import Path
 import re
 
-ROLES = ['Components'] # Defines which user roles can see this plugin
+ROLES = ['Developer'] # Defines which user roles can see this plugin
 
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None, None, None, False, None))
 
@@ -19,7 +19,7 @@ class BlankPlaceholder:
     It includes one placeholder step and the necessary structure for expansion.
     """
     APP_NAME = 'placeholder'
-    DISPLAY_NAME = 'Blank Placeholder'
+    DISPLAY_NAME = 'Blank Placeholder ✏️'
     ENDPOINT_MESSAGE = 'Welcome to the Blank Placeholder. This is a starting point for your new workflow.'
     TRAINING_PROMPT = 'This is a minimal workflow template. It has one placeholder step. The user will customize it.'
 

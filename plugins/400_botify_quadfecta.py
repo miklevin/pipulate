@@ -21,7 +21,7 @@ from fasthtml.common import *
 from loguru import logger
 
 
-ROLES = ['Core']
+ROLES = ['Developer']
 TOKEN_FILE = 'botify_token.txt'
 
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
