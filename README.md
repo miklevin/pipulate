@@ -295,16 +295,17 @@ Integration with a local Ollama instance provides AI capabilities without extern
 Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via WSL), optionally leveraging CUDA GPUs if detected.
 
 ```
-                   ┌──────────────────┐
-                   │  Linux / macOS   │ - Write code once, run anywhere
-                   │  Windows (WSL)   │ - Consistent dev environment via Nix
-                   └────────┬─────────┘
-                            │ Nix manages dependencies
-                            ▼
-                   ┌──────────────────┐
-                   │   CUDA Support   │ - Auto-detects NVIDIA GPU w/ CUDA
-                   │   (if present)   │ - Uses GPU for LLM acceleration
-                   └──────────────────┘   - Falls back to CPU if no CUDA
+               ┌──────────────────┐
+               │  Linux / macOS   │ - Write code once, run anywhere
+               │  Windows (WSL)   │ - Consistent dev environment via Nix
+               └────────┬─────────┘   - Like cross-OS Homebrew brew install
+                        │
+                        │ Nix manages dependencies
+                        ▼
+               ┌──────────────────┐
+               │   CUDA Support   │ - Auto-detects NVIDIA GPU w/ CUDA
+               │   (if present)   │ - Uses GPU for LLM acceleration
+               └──────────────────┘   - Falls back to CPU if no CUDA
 ```
 
 ### UI Layout
