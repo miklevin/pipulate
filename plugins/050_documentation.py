@@ -6,7 +6,7 @@ from pathlib import Path
 from fastcore.xml import *
 from fasthtml.common import *
 
-ROLES = ['Core']
+ROLES = ['Tutorial']
 
 logger = logging.getLogger(__name__)
 
