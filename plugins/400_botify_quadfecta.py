@@ -285,17 +285,13 @@ class Quadfecta:
         },
         'GA Performance': {
             'name': 'GA Performance',
-            'description': 'Sessions and Pageviews from Google Analytics',
+            'description': 'Basic URL export to test GA data structure',
             'export_type': 'ga_data',
-            'user_message': 'This will download Google Analytics performance data including sessions and pageviews.',
-            'button_label_suffix': 'GA Performance',
+            'user_message': 'This will test GA data availability with a simple URL export first.',
+            'button_label_suffix': 'GA Test',
             'query': {
-                'dimensions': ['{collection}.url'],
-                'metrics': [
-                    {'field': '{collection}.google_analytics.period_0.ga:sessions', 'name': 'Sessions'},
-                    {'field': '{collection}.google_analytics.period_0.ga:pageviews', 'name': 'Pageviews'}
-                ],
-                'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
+                'dimensions': ['google_analytics.url'],
+                'metrics': []
             }
         },
     }
@@ -3280,6 +3276,22 @@ await main()
                 
                 export_job_payload = export_config['export_job_payload']
                 
+                # CRITICAL: Generate Python code BEFORE attempting API call
+                # This ensures we always have debugging code available, even if the API fails
+                try:
+                    _, _, python_command = self.generate_query_api_call(export_job_payload, username, project_name)
+                except Exception as code_gen_error:
+                    logger.warning(f'Failed to generate Python code for GA: {code_gen_error}')
+                    python_command = f"# Python code generation failed: {str(code_gen_error)}"
+                
+                # Store the Python command in check_result immediately
+                check_result.update({
+                    'jobs_payload': export_job_payload,
+                    'python_command': python_command,
+                    'template_used': ga_template_key,
+                    'export_type': export_type
+                })
+                
                 # Debug: Log the actual BQL query being sent (to server logs only)
                 logger.debug(f'GA Export Job Payload: {json.dumps(export_job_payload, indent=2)}')
                 
@@ -3381,6 +3393,8 @@ await main()
             logger.error(f'Error in process_google_analytics_data: {e}')
             check_result['error'] = str(e)
             check_result['download_complete'] = False
+            
+            # Ensure we always save the step data (including any Python command that was generated)
             check_result_str = json.dumps(check_result)
             await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
             await self.message_queue.add(pip, f'❌ Error processing Google Analytics data: {str(e)}', verbatim=True)
