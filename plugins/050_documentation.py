@@ -1138,23 +1138,28 @@ class DocumentationPlugin:
             if category == 'rules':
                 prev_doc, next_doc = self.get_rules_navigation(doc_key)
                 if prev_doc or next_doc:
-                    rules_navigation = '<div class="rules-navigation">'
-                    
+                    # Create prev button
                     if prev_doc:
                         prev_key, prev_info = prev_doc
-                        rules_navigation += f'<a href="/docs/{prev_key}" class="nav-button prev">← {prev_info["title"]}</a>'
+                        prev_button = f'<a href="/docs/{prev_key}" class="nav-button">← {prev_info["title"]}</a>'
                     else:
-                        rules_navigation += '<span class="nav-button disabled">← Previous</span>'
+                        prev_button = '<span class="nav-button disabled">← Previous</span>'
                     
-                    rules_navigation += '<span class="nav-spacer">|</span>'
-                    
+                    # Create next button  
                     if next_doc:
                         next_key, next_info = next_doc
-                        rules_navigation += f'<a href="/docs/{next_key}" class="nav-button next">{next_info["title"]} →</a>'
+                        next_button = f'<a href="/docs/{next_key}" class="nav-button">{next_info["title"]} →</a>'
                     else:
-                        rules_navigation += '<span class="nav-button disabled">Next →</span>'
+                        next_button = '<span class="nav-button disabled">Next →</span>'
                     
-                    rules_navigation += '</div>'
+                    # Create navigation with center info (matching paginated docs)
+                    rules_navigation = f'''<div class="navigation">
+        {prev_button}
+        <div class="nav-info">
+            <a href="/docs?category=rules" style="color: #0066cc; text-decoration: none;">⚙️ Framework Rules</a>
+        </div>
+        {next_button}
+    </div>'''
 
             page_html = f"""<!DOCTYPE html>
 <html>
@@ -1520,73 +1525,44 @@ class DocumentationPlugin:
             white-space: inherit !important;
         }}
 
-        /* Rules navigation styles */
-        .rules-navigation {{
+        /* Navigation styles (shared with paginated documents) */
+        .navigation {{
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin: 30px 0;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
+            margin: 20px 0;
         }}
-
+        
         .nav-button {{
             display: inline-block;
             padding: 10px 20px;
             background: #0066cc;
-            color: white;
+            color: white !important;
             text-decoration: none;
             border-radius: 6px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            border: none;
-            cursor: pointer;
+            transition: background-color 0.2s;
         }}
-
+        
         .nav-button:hover {{
             background: #0052a3;
+            color: white !important;
             text-decoration: none;
-            color: white;
         }}
-
+        
+        .nav-button:visited {{
+            color: white !important;
+        }}
+        
         .nav-button.disabled {{
-            background: #6c757d;
-            color: #adb5bd;
+            background: #ccc;
+            color: #666 !important;
             cursor: not-allowed;
         }}
-
-        .nav-button.prev {{
-            margin-right: auto;
-        }}
-
-        .nav-button.next {{
-            margin-left: auto;
-        }}
-
-        .nav-spacer {{
-            color: #6c757d;
-            font-weight: bold;
-            margin: 0 20px;
-        }}
-
-        @media (max-width: 768px) {{
-            .rules-navigation {{
-                flex-direction: column;
-                gap: 15px;
-            }}
-
-            .nav-button.prev,
-            .nav-button.next {{
-                margin: 0;
-                width: 100%;
-                text-align: center;
-            }}
-
-            .nav-spacer {{
-                display: none;
-            }}
+        
+        .nav-info {{
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
         }}
     </style>
 </head>
