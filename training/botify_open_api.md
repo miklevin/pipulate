@@ -1,6 +1,6 @@
 # Botify Open API Swagger Examples
 
-**Total Estimated Token Count**: `21,256` (using `cl100k_base`)
+**Total Estimated Token Count**: `21,544` (using `cl100k_base`)
 
 This document provides detailed information and Python code examples for every endpoint in the Botify API...
 #### `GET /analyses/{username}/{project_slug}`
@@ -29,7 +29,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -88,7 +88,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -147,7 +147,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -210,7 +210,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -267,7 +267,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -326,7 +326,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -384,7 +384,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -444,7 +444,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -504,7 +504,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -557,7 +557,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -610,7 +610,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -663,7 +663,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -716,7 +716,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -775,7 +775,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -839,7 +839,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -903,7 +903,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -967,7 +967,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1031,7 +1031,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1091,7 +1091,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1144,7 +1144,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1203,7 +1203,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1267,7 +1267,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1331,7 +1331,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1399,7 +1399,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1470,7 +1470,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1532,7 +1532,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1592,7 +1592,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1658,7 +1658,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1724,7 +1724,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1792,7 +1792,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1857,7 +1857,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1911,7 +1911,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -1970,7 +1970,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2037,7 +2037,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2098,7 +2098,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2150,7 +2150,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2208,7 +2208,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2273,7 +2273,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2332,7 +2332,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2389,7 +2389,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2453,7 +2453,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2511,7 +2511,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2571,7 +2571,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2632,7 +2632,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2692,7 +2692,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2759,7 +2759,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2815,7 +2815,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
@@ -2866,7 +2866,7 @@ import json
 # Assumes your Botify API token is in a file named 'botify_token.txt'
 try:
     with open('botify_token.txt') as f:
-        token = f.read().strip()
+        token = f.read().split('\n')[0].strip()
 except FileNotFoundError:
     print("Error: 'botify_token.txt' not found. Please create it.")
     token = 'YOUR_API_TOKEN'  # Fallback
