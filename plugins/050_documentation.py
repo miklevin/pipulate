@@ -1105,26 +1105,20 @@ class DocumentationPlugin:
                 if match:
                     content = content[match.end():]
 
-            # Add to conversation history if not already viewed
-            doc_viewed_key = f'doc_viewed_{doc_key}'
-            if doc_viewed_key not in self.db:
-                # Add markdown content to conversation history
-                from server import append_to_conversation
-                context_message = f"The user is now viewing the documentation page '{doc_info['title']}'. Here is the content:\n\n{content}"
-                append_to_conversation(context_message, role='system')
+            # Always add to conversation history - let dequeue handle overflow
+            from server import append_to_conversation
+            context_message = f"The user is now viewing the documentation page '{doc_info['title']}'. Here is the content:\n\n{content}"
+            append_to_conversation(context_message, role='system')
 
-                # Notify user that the document is now available for questions
-                if self.pipulate and hasattr(self.pipulate, 'message_queue'):
-                    import asyncio
-                    asyncio.create_task(self.pipulate.message_queue.add(
-                        self.pipulate,
-                        f"📖 Document '{doc_info['title']}' has been loaded into my memory. I'm ready to answer questions about its content!",
-                        verbatim=True,
-                        role='system'
-                    ))
-
-                # Mark as viewed to prevent spam
-                self.db[doc_viewed_key] = 'viewed'
+            # Notify user that the document is now available for questions
+            if self.pipulate and hasattr(self.pipulate, 'message_queue'):
+                import asyncio
+                asyncio.create_task(self.pipulate.message_queue.add(
+                    self.pipulate,
+                    f"📖 Document '{doc_info['title']}' has been loaded into my memory. I'm ready to answer questions about its content!",
+                    verbatim=True,
+                    role='system'
+                ))
 
             html_content = self.markdown_to_html(content)
 
@@ -2494,35 +2488,29 @@ class DocumentationPlugin:
 
             page_content = pages[page_num - 1]
 
-            # Add to conversation history if not already viewed
-            api_page_viewed_key = f'botify_api_page_viewed_{page_num}'
-            if api_page_viewed_key not in self.db:
-                # Add markdown content to conversation history
-                from server import append_to_conversation
-                context_message = f"The user is now viewing page {page_num} of the Botify API documentation. Here is the content:\n\n{page_content}"
-                append_to_conversation(context_message, role='system')
+            # Always add to conversation history - let dequeue handle overflow
+            from server import append_to_conversation
+            context_message = f"The user is now viewing page {page_num} of the Botify API documentation. Here is the content:\n\n{page_content}"
+            append_to_conversation(context_message, role='system')
 
-                # Get page title for better user notification
-                lines = page_content.split('\n')
-                page_title = f"Page {page_num}"
-                for line in lines:
-                    line = line.strip()
-                    if line.startswith('# ') and not line.startswith('```'):
-                        page_title = line[2:].strip()
-                        break
+            # Get page title for better user notification
+            lines = page_content.split('\n')
+            page_title = f"Page {page_num}"
+            for line in lines:
+                line = line.strip()
+                if line.startswith('# ') and not line.startswith('```'):
+                    page_title = line[2:].strip()
+                    break
 
-                # Notify user that the document is now available for questions
-                if self.pipulate and hasattr(self.pipulate, 'message_queue'):
-                    import asyncio
-                    asyncio.create_task(self.pipulate.message_queue.add(
-                        self.pipulate,
-                        f"📖 Botify API Documentation '{page_title}' has been loaded into my memory. I'm ready to answer questions about its content!",
-                        verbatim=True,
-                        role='system'
-                    ))
-
-                # Mark as viewed to prevent spam
-                self.db[api_page_viewed_key] = 'viewed'
+            # Notify user that the document is now available for questions
+            if self.pipulate and hasattr(self.pipulate, 'message_queue'):
+                import asyncio
+                asyncio.create_task(self.pipulate.message_queue.add(
+                    self.pipulate,
+                    f"📖 Botify API Documentation '{page_title}' has been loaded into my memory. I'm ready to answer questions about its content!",
+                    verbatim=True,
+                    role='system'
+                ))
 
             html_content = self.markdown_to_html(page_content)
 
