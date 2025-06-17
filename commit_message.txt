@@ -1,0 +1,1 @@
+Restore PrismJS syntax highlighting to paginated documents

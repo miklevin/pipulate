@@ -181,7 +181,7 @@ class CrudUI(PluginIdentityManager):
 
     @property
     def H3_HEADER(self):
-        return f"Check to add Roles to APP menu. Drag-to-reorder."
+        return f"Check/uncheck Roles for APP menu. Drag-to-reorder APP menu."
 
     @property
     def ENDPOINT_MESSAGE(self):
@@ -347,6 +347,11 @@ class CrudUI(PluginIdentityManager):
                           alt='External link', 
                           style='width: 14px; height: 14px; margin-left: 0.25rem; vertical-align: middle; filter: brightness(0) invert(1);'),
                       href="https://ollama.com/", target="_blank",
+                      style="color: var(--pico-primary-color); text-decoration: underline; font-weight: 500;",
+                      onmouseover="this.style.color = 'var(--pico-primary-hover)';",
+                      onmouseout="this.style.color = 'var(--pico-primary-color)';"),
+                    ". ",
+                    A("Developer?", href="/redirect/documentation", 
                       style="color: var(--pico-primary-color); text-decoration: underline; font-weight: 500;",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
