@@ -99,7 +99,7 @@ Or default installation
 curl -L https://pipulate.com/install.sh | sh
 ```
 
-### 3. Start Building
+### 3. Run It
 
 ```bash
 cd ~/Botifython
