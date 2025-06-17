@@ -1071,6 +1071,14 @@ class DocumentationPlugin:
 
         try:
             content = file_path.read_text(encoding='utf-8')
+            
+            # Strip YAML frontmatter from .mdc files
+            if file_path.suffix == '.mdc':
+                import re
+                match = re.match(r'---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+                if match:
+                    content = content[match.end():]
+            
             return Response(content, media_type='text/plain; charset=utf-8')
         except Exception as e:
             logger.error(f"Error serving raw markdown {doc_key}: {str(e)}")
@@ -1091,6 +1099,13 @@ class DocumentationPlugin:
 
         try:
             content = file_path.read_text(encoding='utf-8')
+            
+            # Strip YAML frontmatter from .mdc files
+            if file_path.suffix == '.mdc':
+                import re
+                match = re.match(r'---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+                if match:
+                    content = content[match.end():]
 
             # Add to conversation history if not already viewed
             doc_viewed_key = f'doc_viewed_{doc_key}'

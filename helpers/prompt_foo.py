@@ -36,7 +36,7 @@ FILES_TO_INCLUDE_RAW = """\
 README.md         <-- Main GitHub README sets the tone
 flake.nix         <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt  <-- Python package dependencies for the project
-server.py         <-- Main server file for the project
+# server.py         <-- Main server file for the project
 .gitignore
 /home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
 /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
@@ -47,22 +47,22 @@ server.py         <-- Main server file for the project
 ## BOTIFY API DOCUMENTATION
 # /home/mike/repos/pipulate/training/botify_api.md
 # /home/mike/repos/pipulate/training/botify_open_api.md
-/home/mike/repos/pipulate/helpers/botify/true_schema_discoverer.py
+# /home/mike/repos/pipulate/helpers/botify/true_schema_discoverer.py
 
 ## CUSTOM STATIC RESOURCES (Supporting characters)
-/home/mike/repos/pipulate/static/styles.css
-/home/mike/repos/pipulate/static/chat-interactions.js
-/home/mike/repos/pipulate/static/websocket-config.js
-/home/mike/repos/pipulate/static/widget-scripts.js
-/home/mike/repos/pipulate/static/splitter-init.js
-/home/mike/repos/pipulate/static/sortable-init.js
-/home/mike/repos/pipulate/static/rich-table.css
-/home/mike/repos/pipulate/static/alice.txt
+# /home/mike/repos/pipulate/static/styles.css
+# /home/mike/repos/pipulate/static/chat-interactions.js
+# /home/mike/repos/pipulate/static/websocket-config.js
+# /home/mike/repos/pipulate/static/widget-scripts.js
+# /home/mike/repos/pipulate/static/splitter-init.js
+# /home/mike/repos/pipulate/static/sortable-init.js
+# /home/mike/repos/pipulate/static/rich-table.css
+# /home/mike/repos/pipulate/static/alice.txt
 
 ## HELPER SCRIPTS (Why WET can work)
-/home/mike/repos/pipulate/plugins/200_workflow_genesis.py     <-- The templating plugin that creates new workflows from scratch
-/home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 300_blank_placeholder.py)
-/home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 300_blank_placeholder.py)
+# /home/mike/repos/pipulate/plugins/200_workflow_genesis.py     <-- The templating plugin that creates new workflows from scratch
+# /home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 300_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 300_blank_placeholder.py)
 # /home/mike/repos/pipulate/helpers/manage_class_attributes.py  <-- The script that manages class attributes (copies 300_blank_placeholder.py)
 # /home/mike/repos/pipulate/helpers/swap_workflow_step.py       <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
 # /home/mike/repos/pipulate/helpers/prompt_foo.py               <-- This script (used to generate the manifest)
@@ -71,8 +71,8 @@ server.py         <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/010_introduction.py
 # /home/mike/repos/pipulate/plugins/020_profiles.py
 # /home/mike/repos/pipulate/plugins/030_roles.py
-/home/mike/repos/pipulate/plugins/040_hello_workflow.py
-# /home/mike/repos/pipulate/plugins/050_documentation.py
+# /home/mike/repos/pipulate/plugins/040_hello_workflow.py
+/home/mike/repos/pipulate/plugins/050_documentation.py
 # /home/mike/repos/pipulate/plugins/060_tasks.py
 # /home/mike/repos/pipulate/plugins/100_connect_with_botify.py
 # /home/mike/repos/pipulate/plugins/110_parameter_buster.py
@@ -117,6 +117,24 @@ server.py         <-- Main server file for the project
 /home/mike/repos/pipulate/.cursor/rules/07_INTEGRATIONS.mdc
 /home/mike/repos/pipulate/.cursor/rules/08_PROJECT_MANAGEMENT.mdc
 /home/mike/repos/pipulate/.cursor/rules/09_DEBUGGING.mdc
+
+## TRAINING FILES
+# /home/mike/repos/pipulate/training/botify_api.md
+# /home/mike/repos/pipulate/training/botify_open_api.md
+# /home/mike/repos/pipulate/training/change_log.md
+/home/mike/repos/pipulate/training/cleanup_helpers_guide.md
+/home/mike/repos/pipulate/training/dev_assistant.md
+/home/mike/repos/pipulate/training/hello_workflow.md
+/home/mike/repos/pipulate/training/link_graph_visualizer.md
+/home/mike/repos/pipulate/training/QUICK_REFERENCE.md
+/home/mike/repos/pipulate/training/roles.md
+/home/mike/repos/pipulate/training/system_prompt.md
+/home/mike/repos/pipulate/training/tasks.md
+/home/mike/repos/pipulate/training/ULTIMATE_PIPULATE_GUIDE.md
+/home/mike/repos/pipulate/training/ULTIMATE_PIPULATE_GUIDE_PART2.md
+/home/mike/repos/pipulate/training/ULTIMATE_PIPULATE_GUIDE_PART3.md
+/home/mike/repos/pipulate/training/widget_examples.md
+
 
 ## COMMON STATIC RESOURCES (The Usual Suspects / you're already trained on these) 
 # /home/mike/repos/pipulate/static/fasthtml.js
