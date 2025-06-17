@@ -36,11 +36,11 @@ FILES_TO_INCLUDE_RAW = """\
 README.md         <-- Main GitHub README sets the tone
 flake.nix         <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt  <-- Python package dependencies for the project
-# server.py         <-- Main server file for the project
-.gitignore
-/home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
-/home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
-/home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
+server.py         <-- Main server file for the project
+# .gitignore
+# /home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
+# /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
+# /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## NECESSARY FOR CURRENT PROMPT
 
@@ -72,7 +72,7 @@ requirements.txt  <-- Python package dependencies for the project
 # /home/mike/repos/pipulate/plugins/020_profiles.py
 # /home/mike/repos/pipulate/plugins/030_roles.py
 # /home/mike/repos/pipulate/plugins/040_hello_workflow.py
-/home/mike/repos/pipulate/plugins/050_documentation.py
+# /home/mike/repos/pipulate/plugins/050_documentation.py
 # /home/mike/repos/pipulate/plugins/060_tasks.py
 # /home/mike/repos/pipulate/plugins/100_connect_with_botify.py
 # /home/mike/repos/pipulate/plugins/110_parameter_buster.py
@@ -122,19 +122,38 @@ requirements.txt  <-- Python package dependencies for the project
 # /home/mike/repos/pipulate/training/botify_api.md
 # /home/mike/repos/pipulate/training/botify_open_api.md
 # /home/mike/repos/pipulate/training/change_log.md
-/home/mike/repos/pipulate/training/cleanup_helpers_guide.md
-/home/mike/repos/pipulate/training/dev_assistant.md
-/home/mike/repos/pipulate/training/hello_workflow.md
-/home/mike/repos/pipulate/training/link_graph_visualizer.md
-/home/mike/repos/pipulate/training/QUICK_REFERENCE.md
-/home/mike/repos/pipulate/training/roles.md
-/home/mike/repos/pipulate/training/system_prompt.md
-/home/mike/repos/pipulate/training/tasks.md
-/home/mike/repos/pipulate/training/ULTIMATE_PIPULATE_GUIDE.md
-/home/mike/repos/pipulate/training/ULTIMATE_PIPULATE_GUIDE_PART2.md
-/home/mike/repos/pipulate/training/ULTIMATE_PIPULATE_GUIDE_PART3.md
-/home/mike/repos/pipulate/training/widget_examples.md
+# /home/mike/repos/pipulate/training/cleanup_helpers_guide.md
+# /home/mike/repos/pipulate/training/dev_assistant.md
+# /home/mike/repos/pipulate/training/hello_workflow.md
+# /home/mike/repos/pipulate/training/link_graph_visualizer.md
+# /home/mike/repos/pipulate/training/QUICK_REFERENCE.md
+# /home/mike/repos/pipulate/training/roles.md
+# /home/mike/repos/pipulate/training/system_prompt.md
+# /home/mike/repos/pipulate/training/tasks.md
+# /home/mike/repos/pipulate/training/widget_examples.md
 
+## PIPULATE.COM WEBSITE & GUIDE
+/home/mike/repos/Pipulate.com/about.md
+/home/mike/repos/Pipulate.com/architecture.md
+/home/mike/repos/Pipulate.com/development.md
+/home/mike/repos/Pipulate.com/documentation.md
+/home/mike/repos/Pipulate.com/guide.md
+/home/mike/repos/Pipulate.com/index.md
+/home/mike/repos/Pipulate.com/install.sh
+/home/mike/repos/Pipulate.com/philosophy.md
+/home/mike/repos/Pipulate.com/_posts/2025-04-06-local-first-revolution.md
+/home/mike/repos/Pipulate.com/_posts/2025-04-07-chain-reaction-pattern.md
+/home/mike/repos/Pipulate.com/_posts/2025-04-08-the-future-is-simple.md
+/home/mike/repos/Pipulate.com/_posts/2025-04-09-beyond-colab.md
+/home/mike/repos/Pipulate.com/_posts/2025-04-13-understanding-keys.md
+/home/mike/repos/Pipulate.com/_posts/2025-04-14-workflow-abstraction.md
+/home/mike/repos/Pipulate.com/_posts/2025-04-15-anatomy-of-a-workflow.md
+/home/mike/repos/Pipulate.com/_posts/2025-04-16-kickstarting-your-workflow.md
+/home/mike/repos/Pipulate.com/_posts/2025-04-17-expanding-your-workflow.md
+/home/mike/repos/Pipulate.com/_posts/2025-04-18-polishing-workflows.md
+
+## RECENT ARTICLES FROM MIKELEV.IN
+/home/mike/repos/MikeLev.in/_posts/2025-06-17-wet-blueprint-ai-coding-philosophy.md
 
 ## COMMON STATIC RESOURCES (The Usual Suspects / you're already trained on these) 
 # /home/mike/repos/pipulate/static/fasthtml.js
@@ -151,9 +170,6 @@ requirements.txt  <-- Python package dependencies for the project
 # /home/mike/repos/pipulate/static/prism.js  <-- https://prismjs.com/download#themes=prism&languages=markup+css+clike+javascript+bash+diff+json+json5+jsonp+liquid+lua+markdown+markup-templating+mermaid+nix+python+regex+yaml&plugins=line-highlight+line-numbers+show-language+jsonp-highlight+toolbar+copy-to-clipboard+download-button+diff-highlight+treeview
 # /home/mike/repos/pipulate/static/prism.css
 # /home/mike/repos/pipulate/static/mermaid.min.js
-
-# DEVELOPER TOOLS
-# /home/mike/repos/pipulate/helpers/botify/botify_api.ipynb
 
 """
 
