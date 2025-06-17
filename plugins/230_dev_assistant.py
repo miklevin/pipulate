@@ -1086,6 +1086,15 @@ class DevAssistant:
         # Generate next version filename
         next_filename = self.generate_next_version_filename(filename)
         
+        # Create version 2 data by appending "2" to avoid collisions
+        version_data = {
+            'class_name': extracted_data['class_name'] + '2',
+            'app_name': extracted_data['app_name'] + '2',
+            'display_name': extracted_data['display_name'] + ' 2',
+            'endpoint_message': extracted_data['endpoint_message'],
+            'training_prompt': extracted_data['training_prompt']
+        }
+        
         # Format bash command arguments (from workflow_genesis.py)
         def format_bash_command(text):
             if not text:
@@ -1100,39 +1109,46 @@ class DevAssistant:
         commands = []
         
         # Default: Blank template (generic use)
-        blank_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {extracted_data['class_name']} {extracted_data['app_name']} \\\n" + \
-                   f"  {format_bash_command(extracted_data['display_name'])} \\\n" + \
-                   f"  {format_bash_command(extracted_data['endpoint_message'])} \\\n" + \
-                   f"  {format_bash_command(extracted_data['training_prompt'])} \\\n" + \
+        blank_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
+                   f"  {format_bash_command(version_data['display_name'])} \\\n" + \
+                   f"  {format_bash_command(version_data['endpoint_message'])} \\\n" + \
+                   f"  {format_bash_command(version_data['training_prompt'])} \\\n" + \
                    f"  --template blank --role Core --force"
         
         # Hello template option
-        hello_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {extracted_data['class_name']} {extracted_data['app_name']} \\\n" + \
-                   f"  {format_bash_command(extracted_data['display_name'])} \\\n" + \
-                   f"  {format_bash_command(extracted_data['endpoint_message'])} \\\n" + \
-                   f"  {format_bash_command(extracted_data['training_prompt'])} \\\n" + \
+        hello_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
+                   f"  {format_bash_command(version_data['display_name'])} \\\n" + \
+                   f"  {format_bash_command(version_data['endpoint_message'])} \\\n" + \
+                   f"  {format_bash_command(version_data['training_prompt'])} \\\n" + \
                    f"  --template hello --role Core --force"
         
         # Quadfecta template option
-        quadfecta_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {extracted_data['class_name']} {extracted_data['app_name']} \\\n" + \
-                       f"  {format_bash_command(extracted_data['display_name'])} \\\n" + \
-                       f"  {format_bash_command(extracted_data['endpoint_message'])} \\\n" + \
-                       f"  {format_bash_command(extracted_data['training_prompt'])} \\\n" + \
+        quadfecta_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
+                       f"  {format_bash_command(version_data['display_name'])} \\\n" + \
+                       f"  {format_bash_command(version_data['endpoint_message'])} \\\n" + \
+                       f"  {format_bash_command(version_data['training_prompt'])} \\\n" + \
                        f"  --template quadfecta --role Core --force"
         
         return [
             P(f'Generate commands to create a new version of {filename} as {next_filename}:',
-              style=f'margin-bottom: 1rem; font-weight: bold; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+              style=f'margin-bottom: 1rem; font-weight: bold; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
             
             # Extracted data summary
             Div(
-                H5('📋 Extracted Plugin Data:', style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-bottom: 0.5rem;'),
-                Ul(
-                    Li(f"Class Name: {extracted_data['class_name']}"),
-                    Li(f"App Name: {extracted_data['app_name']}"),
-                    Li(f"Display Name: {extracted_data['display_name']}"),
-                    Li(f"Next Version: {next_filename}"),
-                    style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 1rem;'
+                H5('📋 Version 2 Plugin Data:', style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-bottom: 0.5rem;'),
+                Div(
+                    Div(
+                        Strong('Original → Version 2:', style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; display: block; margin-bottom: 0.5rem;'),
+                        Ul(
+                            Li(f"Class: {extracted_data['class_name']} → {version_data['class_name']}"),
+                            Li(f"App: {extracted_data['app_name']} → {version_data['app_name']}"),
+                            Li(f"Display: {extracted_data['display_name']} → {version_data['display_name']}"),
+                            Li(f"File: {filename} → {next_filename}"),
+                            style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 0.5rem;'
+                        ),
+                    ),
+                    P('💡 The "2" suffix avoids collisions and allows parallel versions for graceful upgrades.',
+                      style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_TEAL"]}; font-style: italic; font-size: 0.9rem; margin-bottom: 0;')
                 ),
                 style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["SUCCESS_OVERLAY"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: 1.5rem;'
             ),
@@ -1236,19 +1252,19 @@ class DevAssistant:
         return re.sub(r"^\d+_", "", filename_part_no_ext)
 
     def generate_next_version_filename(self, current_filename):
-        """Generate next version filename by incrementing the numeric prefix."""
-        # Extract current number prefix
+        """Generate next version filename by appending '2' to avoid collisions."""
+        # Extract current number prefix and base name
         match = re.match(r'^(\d+)_(.+)\.py$', current_filename)
         if not match:
             # If no numeric prefix, add one
             base_name = Path(current_filename).stem
-            return f"001_{base_name}.py"
+            return f"001_{base_name}2.py"
         
-        current_num = int(match.group(1))
+        current_num = match.group(1)  # Keep as string to preserve leading zeros
         base_name = match.group(2)
-        next_num = current_num + 1
         
-        return f"{next_num:03d}_{base_name}.py"
+        # Append '2' to the base name to create parallel version
+        return f"{current_num}_{base_name}2.py"
 
     async def step_01(self, request):
         # Simplified utility - no pipeline state management needed
@@ -1554,7 +1570,7 @@ class DevAssistant:
                 Div(
                     Details(
                         Summary(
-                            H4('📊 Capabilities Summary', style='display: inline; margin: 0;'),
+                            H4('📊 Capabilities Summary', style='display: inline; margin: 0; color: black;'),
                             style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                         ),
                         Div(
@@ -1572,7 +1588,7 @@ class DevAssistant:
                 # CODING FIXES (If issues exist)
                 (Details(
                     Summary(
-                        H4('🤖 Coding Assistant Instructions', style='display: inline; margin: 0;'),
+                        H4('🤖 Coding Assistant Instructions', style='display: inline; margin: 0; color: black;'),
                         style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                     ),
                     Div(
@@ -1600,7 +1616,7 @@ class DevAssistant:
                 # CREATE NEW VERSION COMMAND
                 Details(
                     Summary(
-                        H4('🚀 Create New Version Command', style='display: inline; margin: 0;'),
+                        H4('🚀 Create New Version Command', style='display: inline; margin: 0; color: black;'),
                         style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                     ),
                     Div(
@@ -1612,7 +1628,7 @@ class DevAssistant:
                 # TRANSPLANTATION COMMANDS (If available)
                 (Details(
                     Summary(
-                        H4('🔀 Step Transplantation', style='display: inline; margin: 0;'),
+                        H4('🔀 Step Transplantation', style='display: inline; margin: 0; color: black;'),
                         style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                     ),
                     Div(
