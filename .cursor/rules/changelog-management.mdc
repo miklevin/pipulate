@@ -1,0 +1,81 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Changelog Management & Git Commit Strategy
+
+## Overview
+The Pipulate project uses a structured approach to documentation through comprehensive changelog management and informative git commits that tell the story of incremental improvements.
+
+## Changelog Structure
+The changelog follows [Keep a Changelog](mdc:https:/keepachangelog.com/en/1.0.0) format with semantic versioning, located at [training/change_log.md](mdc:training/change_log.md).
+
+### Entry Categories
+- **Added:** New features, plugins, workflows, or capabilities
+- **Changed:** Modifications to existing functionality  
+- **Deprecated:** Features marked for future removal
+- **Removed:** Deleted features or code
+- **Fixed:** Bug fixes, syntax errors, or corrections
+- **Security:** Security-related fixes or improvements
+
+### Required Entry Components
+Each changelog entry must include:
+- **PROBLEM RESOLVED:** Clear problem statement
+- **ROOT CAUSE ANALYSIS:** Technical analysis of the issue
+- **TECHNICAL FIXES IMPLEMENTED:** Detailed solutions
+- **VALIDATION PERFORMED:** Verification steps
+- **IMPACT:** Business and technical impact
+- **Commit:** Git commit hash for reference
+
+## Git Commit Message Strategy
+
+### Structure
+```
+Brief descriptive title (50 chars max)
+
+- Bullet point describing what was implemented
+- Technical details of the solution
+- Impact on user experience or system architecture
+- Verification that changes work as expected
+```
+
+### Examples of Good Commit Messages
+- "Fix paginated documents coroutine issue - replaced lambda functions with proper async wrapper functions"
+- "Add dedicated Paginated Documents section to documentation navigation"
+- "Restore PrismJS syntax highlighting to paginated documents"
+
+## Incremental Improvement Documentation
+
+### Story Arc Pattern
+1. **Identify Problem:** Clear problem statement with user impact
+2. **Root Cause Analysis:** Technical investigation of underlying issues
+3. **Solution Implementation:** Step-by-step technical fixes
+4. **Validation:** Verification that solution works
+5. **Impact Assessment:** How this improves the overall system
+
+### Integration with Documentation System
+- Changelog entries become part of the paginated documentation system
+- Long documents automatically get pagination support through metadata detection
+- Changes are discoverable through the documentation browser at `/docs`
+
+## Best Practices
+
+### When to Update Changelog
+- After every significant fix or feature implementation
+- When resolving critical issues that affect system functionality
+- When implementing architectural improvements
+- When adding new cross-plugin functionality
+
+### Commit Message Guidelines
+- Use present tense ("Add feature" not "Added feature")
+- Be specific about what was changed and why
+- Include verification steps when applicable
+- Reference related issues or architectural decisions
+- Keep first line under 50 characters for git log readability
+
+### Documentation Integration
+- Changelog serves as training material for LLMs
+- Entries provide context for future development decisions
+- Technical details help with debugging similar issues
+- Impact assessments guide architectural evolution

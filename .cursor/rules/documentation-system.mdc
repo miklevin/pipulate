@@ -1,0 +1,139 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Documentation System Architecture
+
+## Overview
+The Pipulate documentation system provides a comprehensive browser for training materials, guides, and technical documentation with automatic pagination for long documents and syntax highlighting for code examples.
+
+## Core Components
+
+### Documentation Plugin
+Located at [plugins/050_documentation.py](mdc:plugins/050_documentation.py), this plugin handles:
+- Document discovery from `/training` folder
+- Automatic categorization (Featured, Training, Rules, Paginated)
+- Generic pagination system for long documents
+- Navigation tree generation with clean descriptions
+
+### Pagination System
+
+#### Automatic Detection
+Documents are automatically detected as paginated based on:
+- File size and content length
+- Presence of multiple sections with `## ` headers
+- Metadata flag `paginated: True` added during processing
+
+#### Generic Implementation
+The 80/20 approach eliminates special case code:
+- Single `serve_paginated_page()` method handles all paginated documents
+- Dynamic route registration: `/docs/{doc}/toc` and `/docs/{doc}/page/{num}`
+- Unified parsing with carefully crafted RegEx patterns (preserve these!)
+- Automatic table of contents generation
+
+#### Critical RegEx Patterns
+**DO NOT MODIFY** the pagination RegEx patterns without extreme caution:
+- These took extensive development to perfect
+- They handle edge cases in markdown parsing
+- Breaking them affects all paginated documents
+- Test thoroughly on all three paginated docs if changes needed
+
+### PrismJS Integration
+
+#### Syntax Highlighting
+All documentation pages include PrismJS for code highlighting:
+- CSS: `/static/prism.css` 
+- JavaScript: `/static/prism.js`
+- Automatic initialization with `Prism.highlightAll()`
+- Copy button functionality for code blocks
+
+#### Implementation Pattern
+```html
+<!-- In document head -->
+<link href="/static/prism.css" rel="stylesheet">
+
+<!-- Before closing body -->
+<script src="/static/prism.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Prism !== 'undefined') {
+        Prism.highlightAll();
+    }
+});
+</script>
+```
+
+## Document Categories
+
+### Featured Documents
+- Highlighted with yellow styling (`.tree-link.featured`)
+- Most important guides for users
+- Appear at top of navigation
+
+### Training Documents  
+- Technical documentation and guides
+- Located in `/training` folder
+- Automatically discovered and categorized
+
+### Paginated Documents
+- Long documents with automatic pagination
+- Blue styling (`.tree-link.paginated`) 
+- Currently includes: `botify_api`, `botify_open_api`, `change_log`
+- Table of contents with page navigation
+
+### Framework Rules
+- System architecture and development guidelines
+- Technical specifications and patterns
+
+## Navigation & Linking
+
+### Clean Descriptions
+Navigation descriptions are cleaned of markdown syntax:
+- Image markdown `![alt](mdc:url)` → alt text only
+- Bold/italic `**text**` → plain text
+- Code backticks `` `code` `` → plain text
+- Blockquotes `> text` → plain text
+- HTML entities decoded
+- Truncated to 150 characters
+
+### Internal Cross-Linking
+**CRITICAL:** Use `/redirect/` endpoint for cross-plugin navigation:
+```python
+# CORRECT - triggers endpoint messaging
+href="/redirect/documentation"
+
+# WRONG - bypasses coordination system  
+href="/docs"
+```
+
+## File Structure
+```
+training/
+├── botify_api.md          # Paginated
+├── botify_open_api.md     # Paginated  
+├── change_log.md          # Paginated
+├── other_guides.md        # Regular docs
+└── ...
+```
+
+## Best Practices
+
+### Adding New Documents
+1. Place in `/training` folder
+2. Use descriptive filename
+3. Include proper markdown headers
+4. Long documents (>2000 lines) automatically get pagination
+5. Add title mapping in `generate_title_from_filename()` if needed
+
+### Maintaining Pagination
+- Never modify RegEx patterns without extensive testing
+- Test all three paginated documents after changes
+- Verify table of contents generation
+- Check page navigation functionality
+- Ensure PrismJS highlighting works on all pages
+
+### Code Documentation
+- Use proper language tags in code blocks: ```python, ```json, ```bash
+- PrismJS will automatically highlight and add copy buttons
+- Test syntax highlighting after any template changes
