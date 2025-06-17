@@ -274,12 +274,14 @@ Integration with a local Ollama instance provides AI capabilities without extern
                    │   Local Ollama   │ - No API keys needed
                    │      Server      │ - Completely private processing
                    └────────┬─────────┘
+                            │
                             │ Streaming via WebSocket
                             ▼
                    ┌──────────────────┐
-                   │   Pipulate App   │ - Monitors WS for JSON/commands
+                   │   Pipulate App   │ - Monitors WS for MCP tool-call commands
                    │(WebSocket Client)│ - Parses responses in real-time
                    └────────┬─────────┘
+                            │
                             │ In-memory or DB backed
                             ▼
                    ┌──────────────────┐
