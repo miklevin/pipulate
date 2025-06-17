@@ -987,7 +987,7 @@ class DocumentationPlugin:
         # Featured section
         if featured_docs:
             html_parts.append('<div class="tree-category" id="featured">')
-            html_parts.append('<span class="tree-label">🌟 Featured Guides</span>')
+            html_parts.append('<span class="tree-label">🌟 FEATURED GUIDES</span>')
             html_parts.append('<ul class="tree">')
             for key, info in featured_docs:
                 html_parts.append(f'''
@@ -1001,44 +1001,10 @@ class DocumentationPlugin:
             html_parts.append('</ul>')
             html_parts.append('</div>')
 
-        # Training section
-        if training_docs:
-            html_parts.append('<div class="tree-category" id="training">')
-            html_parts.append('<span class="tree-label">📖 Training Guides</span>')
-            html_parts.append('<ul class="tree">')
-            for key, info in training_docs:
-                html_parts.append(f'''
-                    <li class="tree-item">
-                        <a href="/docs/{key}" class="tree-link">
-                            {info["title"]}
-                        </a>
-                        <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
-                    </li>
-                ''')
-            html_parts.append('</ul>')
-            html_parts.append('</div>')
-
-        # Rules section
-        if rules_docs:
-            html_parts.append('<div class="tree-category" id="rules">')
-            html_parts.append('<span class="tree-label">⚙️ Framework Rules</span>')
-            html_parts.append('<ul class="tree">')
-            for key, info in rules_docs:
-                html_parts.append(f'''
-                    <li class="tree-item">
-                        <a href="/docs/{key}" class="tree-link">
-                            {info["title"]}
-                        </a>
-                        <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
-                    </li>
-                ''')
-            html_parts.append('</ul>')
-            html_parts.append('</div>')
-
-        # Paginated section
+        # Paginated section (moved to second position)
         if paginated_docs:
             html_parts.append('<div class="tree-category" id="paginated">')
-            html_parts.append('<span class="tree-label">📚 Paginated Documents</span>')
+            html_parts.append('<span class="tree-label">📚 PAGINATED DOCUMENTS</span>')
             html_parts.append('<ul class="tree">')
             for key, info in paginated_docs:
                 html_parts.append(f'''
@@ -1052,7 +1018,39 @@ class DocumentationPlugin:
             html_parts.append('</ul>')
             html_parts.append('</div>')
 
-        # Remove API Documentation section for botify_api and botify_open_api (now handled in featured)
+        # Rules section (moved to third position)
+        if rules_docs:
+            html_parts.append('<div class="tree-category" id="rules">')
+            html_parts.append('<span class="tree-label">⚙️ FRAMEWORK RULES</span>')
+            html_parts.append('<ul class="tree">')
+            for key, info in rules_docs:
+                html_parts.append(f'''
+                    <li class="tree-item">
+                        <a href="/docs/{key}" class="tree-link">
+                            {info["title"]}
+                        </a>
+                        <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
+                    </li>
+                ''')
+            html_parts.append('</ul>')
+            html_parts.append('</div>')
+
+        # Training section (moved to fourth position)
+        if training_docs:
+            html_parts.append('<div class="tree-category" id="training">')
+            html_parts.append('<span class="tree-label">📖 TRAINING GUIDES</span>')
+            html_parts.append('<ul class="tree">')
+            for key, info in training_docs:
+                html_parts.append(f'''
+                    <li class="tree-item">
+                        <a href="/docs/{key}" class="tree-link">
+                            {info["title"]}
+                        </a>
+                        <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
+                    </li>
+                ''')
+            html_parts.append('</ul>')
+            html_parts.append('</div>')
 
         return ''.join(html_parts)
 
