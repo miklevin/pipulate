@@ -1,0 +1,56 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Environment Setup and Dependencies
+
+This guide covers the setup, installation, and dependency management for the Pipulate framework.
+
+---
+
+## 1. Nix Flakes: The Foundation
+
+*Source: `03_environment_and_installation.mdc`*
+
+Pipulate uses Nix Flakes for a consistent, reproducible environment.
+
+- **Source of Truth**: `flake.nix` defines system dependencies (Python version, system libraries) and sets up the Python virtual environment (`.venv`).
+- **CUDA Support**: Optionally leverages CUDA GPUs if detected on Linux.
+- **Python Packages**: `requirements.txt` lists Python packages, which are installed by `pip` within the Nix-managed `.venv`.
+
+---
+
+## 2. Installation: The "Magic Cookie" System
+
+*Source: `03_environment_and_installation.mdc`*
+
+This system allows a simple `curl | sh` installation without requiring users to have `git` pre-installed.
+
+1. **Installer Script (`install.sh`)**: Downloads a ZIP of the repository and an optional ROT13-encoded SSH key.
+2. **First `nix develop`**: The `shellHook` in `flake.nix` detects the non-git directory and transforms it into a proper git repository by cloning from GitHub and preserving user-specific files.
+3. **Auto-Updates**: Subsequently, `nix develop` performs a `git pull` to keep the installation up-to-date.
+
+---
+
+## 3. Using the Nix Environment
+
+*Source: `03_environment_and_installation.mdc`*
+
+- **Activation**: **Always run `nix develop` from the project root (`~/pipulate` or custom install dir) in a new terminal before any other project commands.**
+- **Interactive Shell (`nix develop`)**: Runs the full startup script, performs a `git pull`, installs Python requirements, and starts the JupyterLab and Pipulate servers.
+- **Quiet Shell (`nix develop .#quiet`)**: Activates the environment *without* starting servers. Ideal for running specific commands or for AI assistant interaction.
+
+---
+
+## 4. Notebook Copy Solution: Preventing Git Conflicts
+
+*Source: `NOTEBOOK_COPY_SOLUTION.md`*
+
+To prevent `git pull` conflicts from user edits to the introductory Jupyter Notebook, a "copy-on-first-run" system is used.
+
+- **Original Notebook**: `notebook_introduction.ipynb` (or similar) is tracked by git and receives updates.
+- **Local Copy**: `notebook_introduction_local.ipynb` is created automatically on the user's machine on the first run.
+- **Git Ignore**: The `_local.ipynb` file is listed in `.gitignore`.
+- **User Interaction**: The user only ever edits the local, untracked copy, which prevents conflicts with the auto-updating original.
+- **Getting Updates**: To get the latest version of the template notebook, the user can simply delete their local copy, and it will be re-created on the next run.

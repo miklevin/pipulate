@@ -1,0 +1,77 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Pipulate Core Concepts
+
+This guide provides a high-level understanding of the Pipulate framework, its architecture, and its guiding principles.
+
+---
+
+## 1. Core Philosophy: The Digital Workbench
+
+*Source: `01_philosophy.mdc`*
+
+- **Local-First Reality**: Your data (SQLite), environment (Nix), and LLM (Ollama) reside and run on your machine. This ensures privacy, control, speed, and offline capability.
+- **Modern Webmaster Thinking**: One person should be able to understand and manage the entire stack.
+- **Simplicity & Observability ("Know EVERYTHING!")**: Avoids complex enterprise patterns. State is transparent and debugging is intuitive.
+- **Reproducibility**: Nix Flakes guarantee identical environments across all systems.
+- **WET Workflows, DRY CRUD**: Workflows are intentionally explicit ("Write Everything Twice") for clarity. Standard CRUD operations are DRY ("Don't Repeat Yourself").
+- **Future-Proofing**: Relies on durable technologies: HTTP/HTML (via HTMX), Python, Nix, and local AI.
+
+---
+
+## 2. Architecture Overview
+
+*Source: `02_architecture_overview.mdc`*
+
+### Key Components & Data Flow
+
+```
+Browser (User Interface)
+↑ ↓ HTTP/HTMX, WebSockets
++---------------------------------------+
+|         Nix Flake Shell (Host)          |
+| +-----------------+ +---------------+ |
+| |  FastHTML App   | | Ollama        | |
+| |   (server.py)   | | (Local LLM)   | |
+| +-------↓---------+ +---------------+ |
+|         | MiniDataAPI / DictLikeDB      |
+|         ↓                             |
+| +-----------------+                   |
+| |   SQLite DB     |                   |
+| | (data/data.db)  |                   |
+| +-----------------+                   |
++---------------------------------------+
+```
+
+- **FastHTML App (`server.py`)**: Serves HTML, manages routing, WebSockets, and hosts plugins.
+- **Ollama**: Runs LLMs locally.
+- **MiniDataAPI & DictLikeDB**: Pythonic wrappers for SQLite.
+- **JupyterLab**: Runs alongside, sharing the same Python environment for prototyping.
+- **Communication**: Primarily HTTP/HTMX, with WebSockets for real-time chat.
+
+---
+
+## 3. `server.py` Overview
+
+*Source: `13_server_py_overview.mdc`*
+
+- **Application Setup (`fast_app`)**: Initializes the main `app` instance, the `rt` route decorator, and the MiniDataAPI table objects (`store`, `profiles`, `pipeline`).
+- **Core Global Instances**: `logger`, `db` (key-value store), `pipulate` (workflow helpers), `chat` (WebSocket manager), `plugin_instances` (dictionary of all active plugins).
+- **Routing**: Handles static core routes and dynamic plugin routes. A catch-all `/{path:path}` handles plugin landing pages.
+- **Plugin Discovery**: On startup, `server.py` scans the `plugins/` directory, imports valid `.py` files, and instantiates the plugin classes, passing them the core global instances they need (dependency injection).
+- **Main Execution (`run_server_with_watchdog`)**: Starts the Uvicorn server and a `watchdog` observer that monitors for file changes to trigger a server restart.
+
+---
+
+## 4. Evolutionary Vision: Beyond Linear Workflows
+
+*Source: `18_evolutionary_vision.mdc`*
+
+Pipulate's trajectory moves beyond simple notebook-to-workflow porting toward a comprehensive **digital workshop** for content curation, exploration, and creative expression.
+
+- **Sub-Plugin Architecture**: The vision is for individual workflow steps to "pop out" into full-screen interactive experiences (like a data visualizer or image sorter) and then return seamlessly to the linear flow.
+- **Content as First-Class Citizens**: Future development will focus on managing images and other media as part of an interconnected system.
+- **Privacy-Enabling Creativity**: The local-first architecture is the key to enabling free and open creative exploration without external judgment or surveillance.

@@ -1,0 +1,57 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# External Service Integrations
+
+This guide covers patterns for integrating Pipulate with external services like Ollama and the Botify API.
+
+---
+
+## 1. LLM Integration (Ollama)
+
+*Source: `09_llm_integration.mdc`*
+
+- **Local First**: Pipulate integrates with a locally running Ollama instance (`http://localhost:11434`).
+- **WebSockets**: Real-time streaming chat is handled via the `/ws` WebSocket endpoint.
+- **Context Management**: A global conversation history (`global_conversation_history`) is maintained.
+- **Keeping the LLM Informed**: It's crucial to update the LLM's context as the user navigates the UI and completes workflow steps. This is done by adding system messages to the conversation history.
+- **`Pipulate.message_queue`**: This is the primary tool for synchronizing the UI and LLM context. It ensures messages are displayed and added to the LLM history in the correct order.
+  ```python
+  # Use this in workflows to inform the user AND the LLM of an event
+  await self.message_queue.add(
+      self.pipulate,
+      "Step 1 processing complete. Value saved: XYZ.",
+      verbatim=True,  # True: display message as-is.
+      role="system"   # Adds the message to the LLM's context.
+  )
+  ```
+
+---
+
+## 2. Botify API Patterns
+
+*Source: `botify-api-patterns.mdc`*
+
+- **Dual API Versions**: Botify has two coexisting BQL (Botify Query Language) versions that **must** be used for different data types.
+  - **BQLv1**: For Web Logs. Uses `app.botify.com` base URL.
+  - **BQLv2**: For Crawl/GSC data. Uses `api.botify.com` base URL.
+- **Payload Differences**: The two versions have different payload structures, especially for date handling.
+- **Templates**: The `400_botify_quadfecta.py` workflow uses query templates for BQLv2, but intentionally hardcodes the simple, unchanging BQLv1 query for Web Logs.
+
+---
+
+## 3. Botify True Schema Discovery
+
+*Source: `botify_true_schema_discovery.mdc`*
+
+To build robust Botify queries, Pipulate includes a system to discover the complete, up-to-date data schema directly from the Botify API.
+
+- **Core Script**: `helpers/botify/true_schema_discoverer.py`
+- **Discovery Endpoints**: The script uses official Botify endpoints (`/urls/datamodel` and `/urls/datasets`) to get the real schema.
+- **Proven Results**: This method discovered **4,449 fields**, whereas a previous manual testing approach found only 18. This is the only reliable way to build queries.
+- **Workflow Integration**: The discovered fields can be used to enhance query templates in workflows like `400_botify_quadfecta.py`, allowing for richer data exports and dynamic field selection in the UI.
+- **Documentation**:
+  - `training/botify_api.md`: High-level integration guide.
+  - `training/botify_open_api.md`: The complete API reference that was key to finding the correct discovery endpoints.

@@ -1,0 +1,105 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# UI, HTMX, and Frontend Patterns
+
+This guide covers the conventions for building user interfaces in Pipulate.
+
+---
+
+## 1. Core UI Philosophy & Stack
+
+*Source: `08_ui_and_htmx.mdc`*
+
+- **Server-Rendered HTML**: FastHTML generates HTML directly from Python objects. There is no separate template language.
+- **HTMX for Dynamics**: Most UI updates are achieved via HTMX requests that swap HTML fragments returned by the server. Avoid extensive client-side JavaScript.
+- **PicoCSS for Styling**: Provides lightweight, semantic styling. Adhere to its classless approach where possible. Standard HTML form elements are styled automatically.
+
+---
+
+## 2. CSS Styling Hierarchy and Best Practices
+
+*Source: `15_wet_workflow_conventions.mdc`*
+
+To ensure consistency and maintainability, follow this strict styling hierarchy:
+
+1. **First Priority: Standard PicoCSS Classes**. Always favor built-in classes from `pico.css` (e.g., `secondary`, `contrast`, `container`).
+2. **Second Priority: Standard Pipulate Styles**. Use established utility classes from `styles.css` (e.g., `.text-secondary`, `.mt-4`).
+3. **Last Resort: Custom Inline Styles**. Only use custom styles when necessary, and centralize them in a `UI_CONSTANTS` dictionary at the top of your workflow class.
+
+   ```python
+   # ✅ PREFERRED - Centralized custom styles
+   style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'
+
+   # ❌ AVOID - Scattered hardcoded styles
+   style="color: #2c3e50;"
+   ```
+
+---
+
+## 3. HTMX Dynamic Menu and Button Patterns
+
+*Source: `htmx_dynamic_menu_patterns.mdc`*
+
+Pipulate uses several key HTMX patterns for dynamic UIs.
+
+### Dynamic Button Text Updates
+
+This pattern allows a button's text to change based on a dropdown selection (e.g., changing from "Generate" to "Download Cached").
+
+- **Trigger**: The `<select>` element has an `hx-post` that triggers on the `change` event.
+- **Target**: The `hx-target` is the CSS ID of the `<button>` itself (e.g., `#submit-button`).
+- **Swap Method**: **Crucially**, `hx-swap` must be `outerHTML`. Using `innerHTML` will result in nested, broken buttons.
+- **Context**: The form must include any necessary context (like `username`, `project_name`) as hidden inputs and use `hx-include='closest form'` on the triggering element.
+
+### Profile/CRUD Toggle Pattern
+
+Checkboxes can toggle an item's state without a page reload.
+
+```python
+Input(
+    type='checkbox',
+    checked=item.active,
+    hx_post=toggle_url,
+    hx_target=f'#{dom_id_for_the_item_row}',
+    hx_swap='outerHTML' # Replaces the entire list item with its updated state
+)
+```
+
+### Form Reset and Focus
+
+After a successful form submission that appends an item to a list, you can automatically reset the form and focus the input.
+
+```python
+Form(
+    # ... form fields ...
+    hx_post=f'/endpoint',
+    hx_target='#item-list',
+    hx_swap='beforeend',
+    _hx_on_htmx_after_request="this.reset(); this.querySelector('input[name=field_to_focus]').focus();"
+)
+```
+
+---
+
+## 4. Opening Local OS Folders
+
+*Source: `08_ui_and_htmx.mdc`*
+
+Use the `/open-folder` endpoint to open a directory in the user's native file explorer. This is useful for "View Folder" buttons.
+
+```python
+import urllib
+from pathlib import Path
+
+# The path must be absolute and URL-encoded
+folder_path = str(Path("downloads").absolute())
+encoded_path = urllib.parse.quote(folder_path)
+
+A("Open Downloads Folder", 
+  hx_get=f"/open-folder?path={encoded_path}", 
+  hx_swap="none" # Important: we don't want to swap any HTML
+)
+```

@@ -1,0 +1,37 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Testing and Debugging
+
+This guide provides techniques for debugging the Pipulate application and its workflows.
+
+---
+
+## 1. General Debugging Techniques
+
+*Source: `14_testing_and_debugging.mdc`*
+
+- **`STATE_TABLES = True`**: Set this at the top of `server.py`. After each request, the console will print the contents of the `store` (key-value) and `pipeline` (workflow state) tables. This is invaluable for watching state changes.
+- **`DEBUG_MODE = True`**: Also in `server.py`, this enables more verbose logging from Pipulate and the Uvicorn server.
+- **Browser Developer Tools (Network Tab)**: Inspect HTMX requests to see the exact HTML fragments being returned by the server. This is the best way to debug the chain reaction pattern. Check for 404 or 500 errors.
+- **Server Logs**: Check the console output and the log files in the `logs/` directory for errors and debug messages.
+- **Python Debugger**: You can use `breakpoint()` in the Python code. The debugger will activate in the terminal where `nix develop` is running the server.
+
+---
+
+## 2. Debugging Helper Scripts
+
+*Source: `systematic_debugging_helper_scripts.mdc`*
+
+When debugging the helper scripts themselves (e.g., `swap_workflow_step.py`), a systematic approach is required to avoid token-burning loops.
+
+1. **Isolate the Phase**: Determine if the bug is in the **Extraction**, **Transformation**, or **Insertion** phase of the script.
+2. **Add Debug Logging**: Before attempting a fix, add `print()` statements to see the raw content being extracted or generated at each phase. For example:
+   ```python
+   print(f"DEBUG: Raw extracted content:\n---\n{repr(extracted_content)}\n---")
+   ```
+3. **Identify the Root Cause**: Often, bugs are caused by "context artifacts" (e.g., an extra `]` or `)` being included in extracted code). Address this root cause rather than just the symptom.
+
+This systematic approach should only be used when debugging the helper scripts, not for general workflow development where the other techniques are more appropriate.

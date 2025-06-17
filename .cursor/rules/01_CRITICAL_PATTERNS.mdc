@@ -1,0 +1,164 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Critical Pipulate Patterns
+
+This document contains rules and patterns that are essential to the correct functioning of the Pipulate framework. They are considered immutable. Do not modify the logic described here without a deep understanding of the system architecture.
+
+---
+
+## 1. Server Environment and Watchdog
+
+*Source: `00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc`*
+
+### ⚠️ NEVER RESTART THE SERVER ⚠️
+
+**THE SERVER IS ON WATCHDOG AND AUTOMATICALLY RELOADS!**
+- **NEVER** run `pkill -f "python server.py"`
+- **NEVER** stop or restart `python server.py`
+- **NEVER** manually start/stop the server
+- File changes trigger automatic reloads
+- Just make changes and test immediately at `http://localhost:5001`
+
+### 🔧 Nix Environment Requirements
+
+**ALWAYS use the Nix development environment:**
+```bash
+# From within /home/mike/repos/pipulate directory:
+nix develop .#quiet
+```
+
+- This is a **Nix flake** environment.
+- All dependencies are managed through Nix.
+- Do not use pip/conda to install packages.
+
+---
+
+## 2. The HTMX Chain Reaction Pattern
+
+*Source: `05_chain_reaction_pattern.mdc`*
+
+### Overview
+
+Pipulate workflows emulate a "Run All Cells" experience, exactly like Jupyter Notebooks. This is achieved by an HTMX-driven "chain reaction." When a step completes, its response HTML includes a trigger for the next step to load automatically.
+
+**The `run_all_cells()` method name is pedagogically brilliant** - it creates an immediate mental model that anyone familiar with notebooks understands instantly. This naming choice makes the entire system more intuitive for both users and AI assistants.
+
+**This pattern is critical and must be preserved exactly as implemented.** Modifying or removing `hx_trigger="load"` will break workflow progression.
+
+### The Core Pattern
+
+The fundamental structure returned by a step's GET or POST handler that continues the chain:
+
+```python
+# In a step's GET or POST handler
+return Div(
+    # Content of the CURRENT step (e.g., Card showing completed data or input form)
+    Card(H3(f"{step.show}: {current_step_data}")), # Example of completed view
+    
+    # CRITICAL: This inner Div triggers loading of the NEXT step.
+    # It MUST have hx_trigger="load".
+    Div(
+        id=next_step_id,  # e.g., "step_02" or "finalize"
+        hx_get=f"/{self.APP_NAME}/{next_step_id}",
+        hx_trigger="load" # This makes the magic happen. DO NOT REMOVE.
+    ),
+    id=current_step_id # e.g., "step_01". The hx-target of the form submission.
+)
+```
+
+### The `run_all_cells()` Method
+
+The `pip.run_all_cells()` method is the correct and only way to initialize a workflow chain reaction.
+
+```python
+# ✅ CLEAN, CONSISTENT PATTERN
+async def init(self, request):
+    return pip.run_all_cells(app_name, steps)
+
+async def handle_revert(self, request):
+    return pip.run_all_cells(app_name, steps)
+```
+
+- It creates a fresh container with all step placeholders.
+- It handles the first step loading trigger automatically.
+- It provides consistent initialization across all workflows and is used in `init`, `finalize`, `unfinalize`, and `handle_revert`.
+
+---
+
+## 3. The Auto-Key Generation Pattern
+
+*Source: `07_key_system.mdc`*
+
+This is the most important pattern that LLMs consistently miss. When a user hits Enter on an empty key field, this specific sequence occurs:
+
+1. **Form Submission**: POSTs to `/{APP_NAME}/init` with empty `pipeline_id`.
+2. **Server Response**: The `init` method MUST return an `HX-Refresh` response:
+   ```python
+   if not user_input:
+       from starlette.responses import Response
+       response = Response('')
+       response.headers['HX-Refresh'] = 'true'
+       return response
+   ```
+3. **Page Reload**: HTMX triggers a full page reload.
+4. **Auto-Key Population**: The `landing()` method calls `pip.generate_pipeline_key(self)` to populate the input field.
+5. **User Interaction**: User hits Enter again to start the workflow.
+
+**Critical Implementation Detail:**
+
+- The `_onfocus='this.setSelectionRange(this.value.length, this.value.length)'` attribute must be on the input to position the cursor at the end, allowing users to easily modify the suggested key.
+
+---
+
+## 4. HTMX Dynamic Button Text Pattern
+
+*Source: `htmx-dynamic-patterns.mdc`*
+
+This pattern enables buttons to change text based on form state (e.g., "Process Data" vs "Download Existing File").
+
+### Core Components That Must Never Be Removed:
+
+1. **Route Registration (in `__init__` method):**
+
+   ```python
+   app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
+   ```
+
+2. **Form HTMX Attributes:**
+
+   ```python
+   Form(
+       # ... form fields ...
+       hx_post=f'/{app_name}/update_button_text',
+       hx_target='#submit-button',
+       hx_trigger='change',
+       hx_include='closest form',
+       hx_swap='outerHTML'
+   )
+   ```
+
+3. **Button ID Consistency:**
+   The button must have `id='submit-button'` in both the initial form and in the response from the `update_button_text` method.
+
+4. **File Check Method:**
+   `check_file_exists` returns a tuple. It must be unpacked correctly: `exists, file_info = await self.check_file_exists(filepath)`.
+
+---
+
+## 5. Python Sorting Truthiness Gotcha
+
+*Source: `python_sorting_truthiness_gotcha.mdc`*
+
+### The Problem
+
+When sorting database records with priority fields, using `item.priority or default_value` causes items with `priority=0` to be treated as falsy and sorted incorrectly.
+
+### The Solution
+
+- **❌ WRONG:** `key=lambda item: item.priority or 99` (This causes priority=0 to become 99)
+- **✅ CORRECT:** `key=lambda item: item.priority if item.priority is not None else 99`
+
+Always use an explicit `is not None` check for numeric database fields where `0` is a valid, meaningful value.

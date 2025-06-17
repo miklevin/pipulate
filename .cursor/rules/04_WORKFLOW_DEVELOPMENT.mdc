@@ -1,0 +1,86 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Workflow Development Guide
+
+This guide covers the core concepts and patterns for developing workflows in Pipulate.
+
+---
+
+## 1. Workflow Core Concepts
+
+*Source: `04_workflow_core.mdc`*
+
+- **Step Definition**: Workflows are a series of steps defined using `namedtuple`. Each step has an `id` (for routing), `done` (text for completed view), `show` (text for active view), and optional `refill` and `transform` functions.
+  ```python
+  from collections import namedtuple
+  Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+  ```
+- **State Management**: Workflow state is stored as a JSON blob in the `pipeline` table, managed via `pipulate` helper methods.
+- **CRITICAL: `APP_NAME` vs. Filename**:
+  - **Filename** (`020_my_workflow.py`): Determines public URL and menu order.
+  - **`APP_NAME`** (class constant): Is the stable, internal identifier used for routing and database storage. **Never change `APP_NAME` after data has been created for a workflow.**
+
+---
+
+## 2. Workflow Creation with Helper Tools
+
+*Source: `06_workflow_creation_helpers.mdc`*
+
+Pipulate includes a suite of helper scripts to accelerate development. This is the **primary and recommended** way to create and modify workflows.
+
+### The 4-Tool Helper System
+
+1. **`create_workflow.py`**: Creates a new workflow file from a template (`blank`, `hello`, `quadfecta`). This is the starting point for all new workflows.
+2. **`manage_class_attributes.py`**: Merges class attributes (like `UI_CONSTANTS`) between workflows to share styles and configurations.
+3. **`splice_workflow_step.py`**: The **only safe way** to add a new placeholder step to an existing workflow without breaking the chain reaction. It uses markers (`--- STEPS_LIST_INSERTION_POINT ---` and `--- STEP_METHODS_INSERTION_POINT ---`) in the target file.
+4. **`swap_workflow_step.py`**: Replaces the logic of a target step with the logic from a source step, swapping both the GET and POST handlers.
+
+### The "Sausage Factory" Pattern
+
+This is the proven 5-command sequence for building a complex workflow from a blank slate, as demonstrated in `200_workflow_genesis.py`:
+
+```bash
+# 1. Create a blank foundation
+python helpers/create_workflow.py target.py ... --template blank
+
+# 2. Condition target with UI styles from a source
+python helpers/manage_class_attributes.py target.py source.py --attributes-to-merge UI_CONSTANTS
+
+# 3. Replace the first placeholder step with functional logic
+python helpers/swap_workflow_step.py target.py step_01 source.py step_01
+
+# 4. Add a new placeholder step
+python helpers/splice_workflow_step.py target.py
+
+# 5. Replace the new placeholder step with more functional logic
+python helpers/swap_workflow_step.py target.py step_02 source.py step_02
+```
+
+---
+
+## 3. Plugin Development Guidelines
+
+*Source: `12_plugin_development_guidelines.mdc`*
+
+- **Location**: All plugins reside in the `plugins/` directory.
+- **Naming**: `[NNN_]plugin_name.py`. The numeric prefix `NNN_` determines menu order.
+- **Auto-Registration**: The server automatically discovers and registers plugins.
+- **Skipping Files**: Files starting with `xx_` or containing `()` are skipped. Use this for work-in-progress.
+- **Git History**: Use `git mv` when renaming a plugin file to preserve its history.
+- **Request Handling**: All route-handling methods (`landing`, `init`, `step_XX`, `step_XX_submit`, etc.) must accept a `request` parameter.
+
+---
+
+## 4. WET Workflow Conventions & UX
+
+*Source: `15_wet_workflow_conventions.mdc`*
+
+- **Progressive Feedback**: Use the `message_queue` to provide continuous feedback to the user during long operations (e.g., "🔍 Finding optimal parameters...", "🎯 Optimal depth found.").
+- **Emoji Usage**: Use emojis consistently as visual anchors for status (🔍, 🎯, ⚠️, ❌, ✅) and data types (📊, 🔗, 📄).
+- **Deterministic File Paths**: Use consistent, predictable file naming and paths for generated files, always namespaced under `downloads/{self.APP_NAME}/`.
+- **Cache-Aware Buttons**: Button text should reflect file availability (e.g., "⬇️ Download Cached" vs. "📊 Generate"). See `01_CRITICAL_PATTERNS.mdc`.
+- **Jupyter-Friendly Output**: Generate Python and cURL code snippets for API calls to aid in debugging.
+- **Graceful Degradation**: Always provide fallback behavior in `try...except` blocks.

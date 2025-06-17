@@ -33,17 +33,17 @@ FILES_TO_INCLUDE_RAW = """\
 # BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
 
 # CORE FILES & DOCS (Setting the stage)
-# README.md         <-- Main GitHub README sets the tone
-# flake.nix         <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+README.md         <-- Main GitHub README sets the tone
+flake.nix         <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt  <-- Python package dependencies for the project
-# server.py         <-- Main server file for the project
+server.py         <-- Main server file for the project
 .gitignore
-/home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
+# /home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
 /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
-# /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
+/home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## NECESSARY FOR CURRENT PROMPT
-/home/mike/repos/pipulate/plugins/130_link_graph2.py
+# /home/mike/repos/pipulate/plugins/130_link_graph2.py
 
 ## BOTIFY API DOCUMENTATION
 # /home/mike/repos/pipulate/training/botify_api.md
@@ -106,6 +106,41 @@ requirements.txt  <-- Python package dependencies for the project
 # /home/mike/repos/pipulate/plugins/810_webbrowser.py
 # /home/mike/repos/pipulate/plugins/820_selenium.py
 # /home/mike/repos/pipulate/plugins/830_simon_mcp.py
+
+## DA RULES
+/home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
+/home/mike/repos/pipulate/.cursor/rules/00_meta_rule_routing.mdc
+/home/mike/repos/pipulate/.cursor/rules/01_philosophy.mdc
+/home/mike/repos/pipulate/.cursor/rules/02_architecture_overview.mdc
+/home/mike/repos/pipulate/.cursor/rules/03_environment_and_installation.mdc
+/home/mike/repos/pipulate/.cursor/rules/04_workflow_core.mdc
+/home/mike/repos/pipulate/.cursor/rules/05_chain_reaction_pattern.mdc
+/home/mike/repos/pipulate/.cursor/rules/06_workflow_creation_helpers.mdc
+/home/mike/repos/pipulate/.cursor/rules/07_key_system.mdc
+/home/mike/repos/pipulate/.cursor/rules/08_ui_and_htmx.mdc
+/home/mike/repos/pipulate/.cursor/rules/09_llm_integration.mdc
+/home/mike/repos/pipulate/.cursor/rules/10_data_and_file_operations.mdc
+/home/mike/repos/pipulate/.cursor/rules/11_browser_automation.mdc
+/home/mike/repos/pipulate/.cursor/rules/12_plugin_development_guidelines.mdc
+/home/mike/repos/pipulate/.cursor/rules/13_server_py_overview.mdc
+/home/mike/repos/pipulate/.cursor/rules/14_testing_and_debugging.mdc
+/home/mike/repos/pipulate/.cursor/rules/15_wet_workflow_conventions.mdc
+/home/mike/repos/pipulate/.cursor/rules/16_atomic_transplantation_system.mdc
+/home/mike/repos/pipulate/.cursor/rules/17_cleanup_helpers_philosophy.mdc
+/home/mike/repos/pipulate/.cursor/rules/18_evolutionary_vision.mdc
+/home/mike/repos/pipulate/.cursor/rules/botify-api-patterns.mdc
+/home/mike/repos/pipulate/.cursor/rules/botify_true_schema_discovery.mdc
+/home/mike/repos/pipulate/.cursor/rules/changelog-management.mdc
+/home/mike/repos/pipulate/.cursor/rules/documentation-system.mdc
+/home/mike/repos/pipulate/.cursor/rules/helper-scripts-usage.mdc
+/home/mike/repos/pipulate/.cursor/rules/htmx_dynamic_menu_patterns.mdc
+/home/mike/repos/pipulate/.cursor/rules/htmx-dynamic-patterns.mdc
+/home/mike/repos/pipulate/.cursor/rules/incremental-development-patterns.mdc
+/home/mike/repos/pipulate/.cursor/rules/internal-linking-patterns.mdc
+/home/mike/repos/pipulate/.cursor/rules/NOTEBOOK_COPY_SOLUTION.md
+/home/mike/repos/pipulate/.cursor/rules/pipulate-workflow-development.mdc
+/home/mike/repos/pipulate/.cursor/rules/python_sorting_truthiness_gotcha.mdc
+/home/mike/repos/pipulate/.cursor/rules/systematic_debugging_helper_scripts.mdc
 
 
 ## COMMON STATIC RESOURCES (The Usual Suspects / you're already trained on these) 
