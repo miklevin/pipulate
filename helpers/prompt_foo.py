@@ -134,23 +134,24 @@ server.py         <-- Main server file for the project
 
 ## PIPULATE.COM WEBSITE & GUIDE
 /home/mike/repos/Pipulate.com/about.md
-/home/mike/repos/Pipulate.com/architecture.md
 /home/mike/repos/Pipulate.com/development.md
 /home/mike/repos/Pipulate.com/documentation.md
-/home/mike/repos/Pipulate.com/guide.md
 /home/mike/repos/Pipulate.com/index.md
+/home/mike/repos/Pipulate.com/install.md
 /home/mike/repos/Pipulate.com/install.sh
-/home/mike/repos/Pipulate.com/philosophy.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-06-local-first-revolution.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-07-chain-reaction-pattern.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-08-the-future-is-simple.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-09-beyond-colab.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-13-understanding-keys.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-14-workflow-abstraction.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-15-anatomy-of-a-workflow.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-16-kickstarting-your-workflow.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-17-expanding-your-workflow.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-18-polishing-workflows.md
+/home/mike/repos/Pipulate.com/_layouts/post.html
+/home/mike/repos/Pipulate.com/guide.md
+/home/mike/repos/Pipulate.com/_guide/2025-01-01-the-wet-blueprint.md
+/home/mike/repos/Pipulate.com/_guide/2025-04-06-local-first-revolution.md
+/home/mike/repos/Pipulate.com/_guide/2025-04-07-chain-reaction-pattern.md
+/home/mike/repos/Pipulate.com/_guide/2025-04-08-the-future-is-simple.md
+/home/mike/repos/Pipulate.com/_guide/2025-04-09-beyond-colab.md
+/home/mike/repos/Pipulate.com/_guide/2025-04-13-understanding-keys.md
+/home/mike/repos/Pipulate.com/_guide/2025-04-14-workflow-abstraction.md
+/home/mike/repos/Pipulate.com/_guide/2025-04-15-anatomy-of-a-workflow.md
+/home/mike/repos/Pipulate.com/_guide/2025-04-16-kickstarting-your-workflow.md
+/home/mike/repos/Pipulate.com/_guide/2025-04-17-expanding-your-workflow.md
+/home/mike/repos/Pipulate.com/_guide/2025-04-18-polishing-workflows.md
 
 ## RECENT ARTICLES FROM MIKELEV.IN
 /home/mike/repos/MikeLev.in/_posts/2025-06-17-wet-blueprint-ai-coding-philosophy.md

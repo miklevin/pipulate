@@ -1,38 +1,51 @@
-# Pipulate: Free & Open Source AI SEO Software on Local Nix FastHTML HTMX
+# Pipulate: The Local-First Revolution in AI-Assisted Development
 
 ![Pipulate Free & Open Source SEO with & for LLMs](/static/pipulate.svg)
 
-> Workflows are WET (explicit & step-by-step). CRUD is DRY (uses BaseApp).  
-> You do not need the Cloud because *no lock-in need apply!*  
+> **Your data. Your AI. Your machine. Your control.**  
+> No subscriptions, no vendor lock-in, no cloud costs.
+
+## The WET Revolution: Why Explicit Code Wins in the AI Era
+
+Pipulate is built on a radical philosophy that challenges programming orthodoxy: **WET (Write Everything Twice) is better than DRY (Don't Repeat Yourself)** when you have AI to help manage it.
+
+### Why WET Works Now
+
+Traditional development follows DRY principles, creating abstract, complex systems that are hard to understand and modify. But the world has changed:
+
+1. **🔬 Jupyter Notebooks** promote explicit, literate programming
+2. **🤖 AI assistants** excel at managing repetitive code  
+3. **🏠 Local-first architectures** prioritize clarity over enterprise complexity
+
+**WET workflows are:**
+- **🔍 Observable**: See exactly what's happening at every step
+- **🔧 Customizable**: Modify workflows without breaking abstractions
+- **🤖 AI-Friendly**: Clear code that AI assistants can easily understand and maintain
+- **🚀 Future-Proof**: Built on durable web standards that won't become obsolete
+
+---
 
 ## What is Pipulate?
 
-Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-assisted, step-by-step workflows. Designed to feel like an Electron app, it uniquely runs a full, reproducible Linux environment within a project folder using Nix, ensuring consistency across macOS, Linux, and Windows (via WSL). In other words Pipulate runs expertly prepared linear workflows that you don't want to share and it does this directly from your machine. In other other words, train your local AI without training the world. What happens on localhost stays on localhost.
+Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-assisted, step-by-step workflows. Designed to feel like an Electron app, it uniquely runs a full, reproducible Linux environment within a project folder using Nix, ensuring consistency across macOS, Linux, and Windows (via WSL).
 
-<!-- Note: The step-by-step workflow pattern here is quite flexible - could potentially adapt to various interaction modalities beyond traditional forms. The local-first architecture ensures complete user control over their data and processing environment. -->
+### Core Philosophy: Local-First, WET, and AI-Augmented
 
-Its primary goals are:
-1.  **Empower End-Users (e.g., SEO Practitioners):** Enable non-programmers to run powerful, AI-guided workflows (often ported from Jupyter Notebooks) without needing to interact with Python code directly. Never get frustrated by Colab deleting all your *"local"* files or interrupting long-running jobs again.
-2.  **Serve Developers:** Provide a simple, reproducible environment for building these workflows, leveraging integrated tooling like Jupyter, local LLMs, and a streamlined web framework. Do develop as if in notebooks but don't make your users have to modify Python code — like if IPyWidgets were reliable and you could hide code.
+- **Local-First & Single-Tenant:** Your data, code, and AI run on your hardware. This guarantees privacy, eliminates cloud costs, and gives you full control.
+- **WET Workflows, DRY Framework:** Workflows are intentionally "WET" (explicit & step-by-step) for maximum clarity and customizability—perfectly mirroring Jupyter Notebooks. The underlying framework is "DRY" for efficiency.
+- **The AI Advantage:** AI makes WET practical. Tedious code maintenance and refactoring, once a weakness of WET, is now an area where AI excels, turning repetition into a strength for rapid, context-aware development.
+- **Simplicity & Observability ("Know EVERYTHING!"):** We reject opaque enterprise patterns. State is managed in transparent SQLite tables and JSON blobs, making the entire system intuitive and debuggable.
+- **Reproducibility with Nix:** Nix Flakes provide a perfect, reproducible Linux environment on macOS, Linux, and Windows (WSL), solving the "works on my machine" problem.
+- **Future-Proof Stack:** We rely on durable standards: Python, SQLite, HTML, and HTMX. This is a framework built to last.
 
-## Core Philosophy & Design
+### Primary Goals
 
-Pipulate is built on a distinct set of principles prioritizing user control, simplicity, and long-term viability:
+1. **Empower End-Users (e.g., SEO Practitioners):** Enable non-programmers to run powerful, AI-guided workflows (often ported from Jupyter Notebooks) without needing to interact with Python code directly.
+2. **Serve Developers:** Provide a simple, reproducible environment for building these workflows, leveraging integrated tooling like Jupyter, local LLMs, and a streamlined web framework.
 
-* **Local-First & Single-Tenant:** Your data, your code, your hardware. The application runs entirely locally, ensuring privacy, maximizing performance by using local resources (CPU/GPU for LLMs, scraping), and eliminating cloud costs or vendor lock-in.
-  <!-- This architecture naturally supports completely offline operation and could theoretically run on portable devices with appropriate hardware specifications. -->
-  
-* **Simplicity & Observability ("Know EVERYTHING!"):** We intentionally avoid complex enterprise patterns (heavy ORMs, message queues, client-side state management like Redux/JWT, build steps). State is managed server-side via simple SQLite tables (using MiniDataAPI) and JSON blobs for workflows (using DictLikeDB). This transparency makes debugging intuitive – aiming for that "old-school webmaster feeling" on a modern stack.
-  <!-- The transparent state management could be valuable for applications requiring complete auditability and user understanding of system behavior. -->
-  
-* **Reproducibility:** Nix Flakes guarantee identical development and runtime environments across macOS, Linux, and Windows (WSL), solving the "works on my machine" problem. Docker is dead for like 80% of the common user-based (not enterprise) use cases — the world just doesn't know it yet.
-  <!-- This level of environmental consistency could support deployment scenarios where exact reproducibility is critical. -->
-  
-* **Future-Proofing:** Relies on durable technologies: standard HTTP/HTML (via HTMX), Python (supercharged by AI), Nix (for universal environments), and local AI (Ollama). It aims to connect these "love-worthy" technologies to achieve a force multipying acceleration effect. Internalize future-proofed tools to lower the idea-to-implementation friction forever forward.
-  <!-- The emphasis on durable, standard technologies suggests this framework could remain viable across extended timeframes and changing technological landscapes. -->
-  
-* **WET Workflows, DRY CRUD:** Workflows often benefit from explicit, step-by-step code (**W**rite **E**verything **T**wice/Explicit), making them easy to port from notebooks and debug. Standard CRUD operations leverage a reusable `BaseCrud` class for efficiency (**D**on't **R**epeat **Y**ourself). While *DRY is fly,* unyielding proponents take note that the age of *wapidly witten WET code is upon us* because AI.  
-  <!-- The explicit step-by-step approach could potentially accommodate various forms of user interaction and feedback mechanisms beyond traditional web forms. -->
+## The Technical Stack: Simple Yet Powerful
+
+Pipulate's WET philosophy extends to its technology choices, favoring simple, durable tools over complex abstractions:
 
 ## Key Technologies Used
 
@@ -42,7 +55,7 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 
 * **HTMX:** Enables dynamic, interactive UIs directly in HTML via attributes, minimizing the need for custom JavaScript. Pipulate uses it for server-rendered HTML updates — *over the wire HTML*-fragments targeting elements of the DOM directly instead of fragile, performance-reducing, framework-dependent JSON. *THIS* is where you *jump off the tech-churn hamsterwheel* and future-proof yourself.
 
-* **MiniDataAPI:** A lightweight layer for interacting with SQLite and other databases. Uses Python dictionaries for schema definition, promoting type safety without the complexity of traditional ORMs — effectively future-proofing your SQL. You lose fancy *join* capabilities but in exchange get the *Python dict interface* as your main persistent database API forever-forward, enabiling instant swapability between SQLite and PostgreSQL *forever forward* (for example).
+* **MiniDataAPI:** A lightweight layer for interacting with SQLite and other databases. Uses Python dictionaries for schema definition, promoting type safety without the complexity of traditional ORMs — effectively future-proofing your SQL. You lose fancy *join* capabilities but in exchange get the *Python dict interface* as your main persistent database API forever-forward, enabiling instant swapability between SQLite and PostgreSQL (for example).
 
 * **Ollama:** Facilitates running LLMs locally, enabling in-app chat, workflow guidance, and future automation capabilities while ensuring privacy and avoiding API costs. Your local AI (Chip O'Theseus) learns & grows with you, hopping from hardware to hardware as you upgrade — like a genie in a hermitcrab shell. And if that weren't kooky enough — it knows how to make MCP-calls!!! That's right, your friendly localhost AI Chip O'Theseus is also an *MCP client!* Your linear workflows aint so linear anymore when a single-step can be: "Go out and do whatever."
 

@@ -11,12 +11,12 @@ Welcome to the master guide for developing with Pipulate. This document consolid
 
 ## Table of Contents
 
-1. **[CRITICAL PATTERNS](mdc:docs/rule_critical_patterns)**: Immutable rules and patterns that must never be broken. **This is essential reading for all development.**
-2. **[CORE CONCEPTS](mdc:docs/rule_core_concepts)**: High-level understanding of the Pipulate philosophy, architecture, server internals, and future vision.
-3. **[SETUP AND DEPENDENCIES](mdc:docs/rule_setup_and_dependencies)**: How to set up and manage the Nix-based development environment and its key components.
-4. **[WORKFLOW DEVELOPMENT](mdc:docs/rule_workflow_development)**: The complete guide to creating and modifying workflows, including the helper tool system and conventions.
-5. **[UI AND FRONTEND](mdc:docs/rule_ui_and_frontend)**: Building user interfaces with FastHTML, HTMX, PicoCSS, and Pipulate's specific UI patterns.
-6. **[DATA AND AUTOMATION](mdc:docs/rule_data_and_automation)**: Handling data persistence with SQLite, managing file operations, and using Selenium for browser automation.
-7. **[INTEGRATIONS](mdc:docs/rule_integrations)**: Patterns for integrating with external services like local LLMs (Ollama) and the Botify API.
-8. **[PROJECT MANAGEMENT](mdc:docs/rule_project_management)**: Conventions for changelogs, git commits, the documentation system, and internal linking.
-9. **[DEBUGGING](mdc:docs/rule_debugging)**: Techniques for testing and debugging the application, workflows, and helper scripts.
+1. **[CRITICAL PATTERNS](mdc:01_critical_patterns)**: Immutable rules and patterns that must never be broken. **This is essential reading for all development.**
+2. **[CORE CONCEPTS](mdc:02_core_concepts)**: High-level understanding of the Pipulate philosophy, architecture, server internals, and future vision.
+3. **[SETUP AND DEPENDENCIES](mdc:03_setup_and_dependencies)**: How to set up and manage the Nix-based development environment and its key components.
+4. **[WORKFLOW DEVELOPMENT](mdc:04_workflow_development)**: The complete guide to creating and modifying workflows, including the helper tool system and conventions.
+5. **[UI AND FRONTEND](mdc:05_ui_and_frontend)**: Building user interfaces with FastHTML, HTMX, PicoCSS, and Pipulate's specific UI patterns.
+6. **[DATA AND AUTOMATION](mdc:06_data_and_automation)**: Handling data persistence with SQLite, managing file operations, and using Selenium for browser automation.
+7. **[INTEGRATIONS](mdc:07_integrations)**: Patterns for integrating with external services like local LLMs (Ollama) and the Botify API.
+8. **[PROJECT MANAGEMENT](mdc:08_project_management)**: Conventions for changelogs, git commits, the documentation system, and internal linking.
+9. **[DEBUGGING](mdc:09_debugging)**: Techniques for testing and debugging the application, workflows, and helper scripts.
