@@ -28,16 +28,21 @@ class DocumentationPlugin:
         # Register routes for serving individual documents
         for doc_key, doc_info in self.DOCS.items():
             if doc_info.get('paginated'):
-                # Generic routes for paginated documents
-                app.route(f'/docs/{doc_key}', methods=['GET'])(
-                    lambda request, dk=doc_key: self.serve_paginated_toc(request, dk)
-                )
-                app.route(f'/docs/{doc_key}/toc', methods=['GET'])(
-                    lambda request, dk=doc_key: self.serve_paginated_toc(request, dk)
-                )
-                app.route(f'/docs/{doc_key}/page/{{page_num}}', methods=['GET'])(
-                    lambda request, dk=doc_key: self.serve_paginated_page(request, dk, request.path_params['page_num'])
-                )
+                # Generic routes for paginated documents - create proper async wrappers
+                def make_toc_handler(dk):
+                    async def handler(request):
+                        return await self.serve_paginated_toc(request, dk)
+                    return handler
+                
+                def make_page_handler(dk):
+                    async def handler(request):
+                        return await self.serve_paginated_page(request, dk, request.path_params['page_num'])
+                    return handler
+                
+                # Register the routes with proper async handlers
+                app.route(f'/docs/{doc_key}', methods=['GET'])(make_toc_handler(doc_key))
+                app.route(f'/docs/{doc_key}/toc', methods=['GET'])(make_toc_handler(doc_key))
+                app.route(f'/docs/{doc_key}/page/{{page_num}}', methods=['GET'])(make_page_handler(doc_key))
             else:
                 # Standard document route
                 app.route(f'/docs/{doc_key}', methods=['GET'])(self.serve_document)
