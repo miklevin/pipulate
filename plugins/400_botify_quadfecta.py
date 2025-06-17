@@ -285,13 +285,14 @@ class Quadfecta:
         },
         'GA Performance': {
             'name': 'GA Performance',
-            'description': 'Basic URL export to test GA data structure',
+            'description': 'Basic URL export to discover working GA fields',
             'export_type': 'ga_data',
-            'user_message': 'This will test GA data availability with a simple URL export first.',
-            'button_label_suffix': 'GA Test',
+            'user_message': 'This will test GA data availability with a simple URL-only export to discover working field structure.',
+            'button_label_suffix': 'GA Discovery',
             'query': {
-                'dimensions': ['google_analytics.url'],
-                'metrics': []
+                'dimensions': ['{collection}.url'],
+                'metrics': [],
+                'sort': []
             }
         },
     }
@@ -3632,8 +3633,8 @@ await main()
                 'collections': [collection],
                 'query': {
                     'dimensions': [],
-                    'metrics': [{'function': 'count', 'args': ['url']}],
-                    'filters': {'field': 'http_code', 'predicate': 'eq', 'value': 200}
+                    'metrics': [{'function': 'count', 'args': [f'{collection}.url']}],
+                    'filters': {'field': f'{collection}.http_code', 'predicate': 'eq', 'value': 200}
                 }
             }
             export_job_payload = {
