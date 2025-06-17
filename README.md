@@ -73,56 +73,71 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 
 ## How to Install Pipulate
 
+### Quick Start: Be Running in 5 Minutes
+
 This guide shows you how to install Pipulate using two main commands in your terminal. This works on macOS or on Windows using WSL (Windows Subsystem for Linux) with an Ubuntu (or similar Linux) terminal.
 
-1.  **Install Nix:**
-    * Nix manages the underlying software dependencies and ensures a consistent environment.
-    * Open your Terminal.
-    * Copy and paste this command, then press Enter:
-        ```shell
-        curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
-        ```
-    * Follow any instructions on the screen (you might need to type "Yes").
-    * **Important:** After the installation finishes, **close your Terminal window completely and open a new one.** This ensures Nix is correctly added to your system's PATH.
+## Quick Start: Be Running in 5 Minutes
 
-2.  **Install Pipulate (or a custom-named version):**
-    * Install with the default name "pipulate":
-      ```shell
-      curl -L https://pipulate.com/install.sh | sh
-      ```
-    * Install with a custom name (e.g., "Botifython"):
-      ```shell
-      curl -L https://pipulate.com/install.sh | sh -s Botifython
-      ```
-    * This will download the code into `~/[custom-name]` and set the application branding accordingly
+### 1. Install Nix (One-Time Setup)
 
-**That's it! Pipulate is installed.** You now have a self-contained, reproducible environment managed by Nix.
+```bash
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+```
 
-## How to Run Pipulate After Installation
+**Close your terminal and open a new one after installation.**
 
-Pipulate uses Nix Flakes to manage its environment. This means you activate the specific environment defined in the `flake.nix` file to run the application and its tools.
+### 2. Install Pipulate
 
-1.  Open a Terminal.
-2.  Navigate to the Pipulate directory. If you used the default install script, type:
-    ```shell
-    cd ~/pipulate
-    ```
-    *(If it was installed elsewhere, change `~/pipulate` to the correct path)*
-3.  Activate the Pipulate environment and start the services:
-    ```shell
-    nix develop
-    ```
-    * **What this command does:**
-        * Checks for updates to the Pipulate code via `git pull`.
-        * Enters the Nix environment defined in `flake.nix`, making all necessary tools (Python, system libraries, etc.) available.
-        * Executes the `shellHook` defined in `flake.nix`, which:
-            * Sets up the Python virtual environment (`.venv`).
-            * Installs/updates Python packages from `requirements.txt` using `pip`.
-            * Starts JupyterLab in the background (via `tmux`).
-            * Starts the Pipulate server (`server.py`) in the foreground.
-    * Your browser should open automatically to `http://localhost:5001` (Pipulate) and `http://localhost:8888` (JupyterLab).
-    * Press `Ctrl+C` in the terminal to stop the Pipulate server (and the `nix develop` session). JupyterLab will continue running in the background.
-    * To stop *all* services (including JupyterLab), you can run `pkill tmux` in a separate terminal.
+With a custom name
+```bash
+curl -L https://pipulate.com/install.sh | sh -s Botifython
+```
+
+Or default installation
+```bash
+curl -L https://pipulate.com/install.sh | sh
+```
+
+### 3. Start Building
+
+```bash
+cd ~/Botifython
+nix develop
+```
+
+These few commands:
+- ✅ Updates to the latest version automatically
+- ✅ Starts JupyterLab and the Pipulate server  
+- ✅ Opens web interfaces in your browser
+- ✅ Provides a complete, reproducible development environment
+
+**That's it!** You now have a local-first development environment with AI integration.
+
+### 4. Run It Again!
+
+1. You can just forcibly exit out of that Terminal it's running from.
+2. Open a new Terminal, and once again:
+
+```bash
+cd ~/Botifython
+nix develop
+```
+
+### 5. The Big Reset (If Necessary)
+
+Things sometimes go wrong. This is how you do a full Pipulate reset. This will also delete anything you downloaded with Pipulate. Adjust custom install name to what you used.
+
+```bash
+rm -rf ~/Botifython
+curl -L https://pipulate.com/install.sh | sh -s Botifython
+cd ~/Botifython
+nix develop
+```
+
+Wait for ***BOTH TABS*** to auto-open in your browser.
+
+---
 
 ## Developer Setup & Environment Notes
 
