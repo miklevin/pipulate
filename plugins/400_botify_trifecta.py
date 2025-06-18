@@ -726,12 +726,17 @@ class Trifecta:
                         step_context="Step 1: Save Analyses Data",
                         username=username, project_name=project_name
                     )
+                    # Get the response data for radical transparency
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        saved_data = json.load(f)
+                    
                     await pip.log_api_call_details(
                         pipeline_id=pipeline_id, step_id=step_id,
                         call_description="Fetch and Save Analyses Data",
                         method="GET", url=url, headers=headers,
                         response_status=200,
                         response_preview=f"Analyses data saved to: {filepath}",
+                        response_data=saved_data,  # Full response data for discovery transparency
                         curl_command=curl_cmd, python_command=python_cmd
                     )
                     
@@ -934,12 +939,17 @@ class Trifecta:
                         step_context="Step 2: Save Advanced Export Data",
                         username=username, project_name=project_name
                     )
+                    # Get the response data for radical transparency
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        saved_data = json.load(f)
+                    
                     await pip.log_api_call_details(
                         pipeline_id=pipeline_id, step_id=step_id,
                         call_description="Fetch and Save Advanced Export Data",
                         method="GET", url=url, headers=headers,
                         response_status=200,
                         response_preview=f"Advanced export data saved to: {filepath}",
+                        response_data=saved_data,  # Full response data for discovery transparency
                         curl_command=curl_cmd, python_command=python_cmd
                     )
                     

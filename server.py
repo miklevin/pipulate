@@ -990,7 +990,7 @@ class Pipulate:
             current_methods = methods_list_arg[0] if methods_list_arg else ['GET']
             plugin_instance.app.route(path, methods=current_methods)(handler)
 
-    async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str, method: str, url: str, headers: dict, payload: Optional[dict]=None, response_status: Optional[int]=None, response_preview: Optional[str]=None, curl_command: Optional[str]=None, python_command: Optional[str]=None, estimated_rows: Optional[int]=None, actual_rows: Optional[int]=None, file_path: Optional[str]=None, file_size: Optional[str]=None, notes: Optional[str]=None):
+    async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str, method: str, url: str, headers: dict, payload: Optional[dict]=None, response_status: Optional[int]=None, response_preview: Optional[str]=None, response_data: Optional[dict]=None, curl_command: Optional[str]=None, python_command: Optional[str]=None, estimated_rows: Optional[int]=None, actual_rows: Optional[int]=None, file_path: Optional[str]=None, file_size: Optional[str]=None, notes: Optional[str]=None):
         """Log complete API call details for extreme observability and Jupyter reproduction.
         
         This provides the same level of transparency for API calls as is used in BQL query logging,
@@ -1046,6 +1046,29 @@ class Pipulate:
                 log_entry_parts.append(f'  Response Preview:\n{pretty_preview}')
             except Exception:
                 log_entry_parts.append(f'  Response Preview:\n{response_preview}')
+        
+        # Enhanced transparency for discovery endpoints - log full response data
+        is_discovery_endpoint = self._is_discovery_endpoint(url)
+        if response_data and is_discovery_endpoint:
+            try:
+                pretty_response = json.dumps(response_data, indent=2)
+                log_entry_parts.append(f'  🔍 FULL RESPONSE DATA (Discovery Endpoint):\n{pretty_response}')
+                
+                # Also display in console for immediate visibility
+                discovery_table = Table(title=f'🔍 Discovery Response: {call_description}')
+                discovery_table.add_column('Response Data', style='cyan')
+                discovery_table.add_row(pretty_response)
+                print_and_log_table(discovery_table, "API DISCOVERY - ")
+                
+            except Exception as e:
+                log_entry_parts.append(f'  🔍 FULL RESPONSE DATA (Discovery Endpoint): [Error formatting JSON: {e}]\n{response_data}')
+                
+                # Still display in console even if JSON formatting fails
+                discovery_table = Table(title=f'🔍 Discovery Response: {call_description}')
+                discovery_table.add_column('Response Data', style='cyan')
+                discovery_table.add_row(str(response_data))
+                print_and_log_table(discovery_table, "API DISCOVERY - ")
+        
         if file_path:
             log_entry_parts.append(f'  Associated File Path: {file_path}')
         if file_size:
@@ -1056,6 +1079,22 @@ class Pipulate:
         full_log_message = '\n'.join(log_entry_parts)
         logger.info(f'\n🚀 === API CALL TRANSPARENCY ===\n{full_log_message}\n🚀 === END API TRANSPARENCY ===')
         is_bql = 'bql' in (call_description or '').lower() or 'botify query language' in (call_description or '').lower()
+    
+    def _is_discovery_endpoint(self, url: str) -> bool:
+        """Detect if this is a key discovery endpoint that should have full response logging.
+        
+        Args:
+            url: The API endpoint URL
+            
+        Returns:
+            bool: True if this is a discovery endpoint that should log full response data
+        """
+        discovery_patterns = [
+            '/analyses/',  # Covers both /analyses/{username}/{project}/light and regular analyses
+            '/advanced_export',  # Field discovery endpoint
+        ]
+        
+        return any(pattern in url for pattern in discovery_patterns)
 
     async def log_mcp_call_details(self, operation_id: str, tool_name: str, operation_type: str, mcp_block: str=None, request_payload: Optional[dict]=None, response_data: Optional[dict]=None, response_status: Optional[int]=None, external_api_url: Optional[str]=None, external_api_method: str='GET', external_api_headers: Optional[dict]=None, external_api_payload: Optional[dict]=None, external_api_response: Optional[dict]=None, external_api_status: Optional[int]=None, execution_time_ms: Optional[float]=None, notes: Optional[str]=None):
         """Log complete MCP operation details for extreme observability and Jupyter reproduction.
