@@ -946,6 +946,39 @@ class Quadfecta:
         analysis_slug = form.get('analysis_slug', '').strip()
         if not analysis_slug:
             return P('Error: No analysis selected', style=pip.get_style('error'))
+        
+        # NEW: Save advanced export data as soon as we have an analysis slug
+        api_token = self.read_api_token()
+        if api_token:
+            try:
+                await self.message_queue.add(pip, "🔍 Fetching advanced export data...", verbatim=True)
+                success, save_message, filepath = await self.save_advanced_export_to_json(username, project_name, analysis_slug, api_token)
+                await self.message_queue.add(pip, save_message, verbatim=True)
+                
+                if success and filepath:
+                    # Log the API call for debugging purposes
+                    url = f'https://api.botify.com/v1/analyses/{username}/{project_name}/{analysis_slug}/advanced_export'
+                    headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+                    curl_cmd, python_cmd = self._generate_api_call_representations(
+                        method="GET", url=url, headers=headers, 
+                        step_context="Step 2: Save Advanced Export Data",
+                        username=username, project_name=project_name
+                    )
+                    await pip.log_api_call_details(
+                        pipeline_id=pipeline_id, step_id=step_id,
+                        call_description="Fetch and Save Advanced Export Data",
+                        method="GET", url=url, headers=headers,
+                        response_status=200,
+                        response_preview=f"Advanced export data saved to: {filepath}",
+                        curl_command=curl_cmd, python_command=python_cmd
+                    )
+                    
+            except Exception as e:
+                await self.message_queue.add(pip, f"⚠️ Could not save advanced export data: {str(e)}", verbatim=True)
+                logging.exception(f'Error in advanced export data saving: {e}')
+        else:
+            await self.message_queue.add(pip, "⚠️ No API token found - skipping advanced export data save", verbatim=True)
+        
         # Get active template details and check for qualifier config
         active_analysis_template_key = self.get_configured_template('analysis')
         active_template_details = self.QUERY_TEMPLATES.get(active_analysis_template_key, {})
@@ -2764,6 +2797,78 @@ class Quadfecta:
         except Exception as e:
             logging.exception(f'Error saving analyses data: {str(e)}')
             return (False, f"Error saving analyses data: {str(e)}", None)
+
+    async def save_advanced_export_to_json(self, username, project_name, analysis_slug, api_token):
+        """
+        Fetch and save the advanced export data for a specific analysis to a local JSON file.
+        
+        This method fetches the advanced export data from the Botify API endpoint:
+        /api/v1/analyses/{username}/{project_name}/{analysis_slug}/advanced_export
+        
+        And saves it to a deterministic local path:
+        downloads/{APP_NAME}/{username}/{project_name}/{analysis_slug}/analysis_advanced.json
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug
+            analysis_slug: Analysis slug
+            api_token: Botify API token
+            
+        Returns:
+            tuple: (success: bool, message: str, filepath: str|None)
+        """
+        try:
+            # Create deterministic filepath for analysis_advanced.json
+            base_dir = f'downloads/{self.app_name}/{username}/{project_name}/{analysis_slug}'
+            advanced_export_filepath = f'{base_dir}/analysis_advanced.json'
+            
+            # Ensure directory exists
+            await self.ensure_directory_exists(advanced_export_filepath)
+            
+            # Check if file already exists
+            exists, file_info = await self.check_file_exists(advanced_export_filepath)
+            if exists:
+                return (True, f"📊 Advanced export data already cached: {file_info['size']}", advanced_export_filepath)
+            
+            # Fetch advanced export data from API
+            url = f'https://api.botify.com/v1/analyses/{username}/{project_name}/{analysis_slug}/advanced_export'
+            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers, timeout=60.0)
+            
+            if response.status_code != 200:
+                return (False, f"API error: Status {response.status_code} - {response.text}", None)
+            
+            # Get the response data
+            advanced_export_data = response.json()
+            
+            # Create comprehensive advanced export data structure with metadata
+            export_data = {
+                'metadata': {
+                    'organization': username,
+                    'project': project_name,
+                    'analysis_slug': analysis_slug,
+                    'fetch_timestamp': time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime()),
+                    'api_endpoint': f'/api/v1/analyses/{username}/{project_name}/{analysis_slug}/advanced_export'
+                },
+                'advanced_export': advanced_export_data
+            }
+            
+            # Save to JSON file
+            with open(advanced_export_filepath, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, indent=2, ensure_ascii=False)
+            
+            # Verify file was created successfully
+            exists, file_info = await self.check_file_exists(advanced_export_filepath)
+            if not exists:
+                return (False, "Failed to save advanced export data to file", None)
+            
+            return (True, f"📊 Advanced export data saved: {file_info['size']}", advanced_export_filepath)
+            
+        except Exception as e:
+            logging.exception(f'Error saving advanced export data: {str(e)}')
+            return (False, f"Error saving advanced export data: {str(e)}", None)
 
     async def _execute_qualifier_logic(self, username, project_name, analysis_slug, api_token, qualifier_config):
         """Execute the generic qualifier logic to determine a dynamic parameter.
