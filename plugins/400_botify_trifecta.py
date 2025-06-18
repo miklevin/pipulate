@@ -2211,23 +2211,15 @@ class Trifecta:
                     logging.error('Analyses list is empty')
                     return all_slugs
 
-                # Log first page in detail to API log
+                # Log first page with minimal info (analysis dropdown responses are too large for transparency)
                 if is_first_page:
-                    curl_cmd, python_cmd = self._generate_api_call_representations(
-                        method="GET", url=next_url, headers=headers, step_context="Step 2: Fetch Analysis List"
-                    )
-                    await self.pipulate.log_api_call_details(
-                        pipeline_id="fetch_analyses", step_id="analyses_list",
-                        call_description="Fetch Analysis List (First Page)",
-                        method="GET", url=next_url, headers=headers,
-                        response_status=response.status_code,
-                        response_preview=json.dumps(data),
-                        curl_command=curl_cmd, python_command=python_cmd
-                    )
+                    logger.info(f'📋 Fetching analysis list for project: {project}')
+                    logger.info(f'🔗 API URL: {next_url}')
+                    logger.info(f'📊 Found {len(analyses)} analyses on first page')
                     is_first_page = False
                 else:
                     # Just log that we're fetching subsequent pages
-                    logging.info(f'Fetching next page of analyses: {next_url}')
+                    logger.info(f'📋 Fetching next page of analyses: {next_url}')
 
                 page_slugs = [analysis.get('slug') for analysis in analyses if analysis.get('slug')]
                 all_slugs.extend(page_slugs)
