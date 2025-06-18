@@ -283,19 +283,24 @@ class Quadfecta:
                 'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
             }
         },
-        'GA Performance': {
-            'name': 'GA Performance',
-            'description': 'Basic URL export to discover working GA fields',
+        'GA Discovery': {
+            'name': 'GA Field Discovery',
+            'description': 'Simple URL export to test GA field availability and discover working field names',
             'export_type': 'ga_data',
-            'user_message': 'This will test GA data availability with a simple URL-only export to discover working field structure.',
+            'user_message': 'This will test GA data availability with a basic URL export. Use the generated /query debugging code to discover available GA fields.',
             'button_label_suffix': 'GA Discovery',
             'query': {
                 'dimensions': ['{collection}.url'],
-                'metrics': [],
+                'metrics': [
+                    # Start with the most basic metric that should exist if GA is connected
+                    # This will at least tell us if GA data is available at all
+                    {'function': 'count', 'args': ['{collection}.url'], 'name': 'URL Count'}
+                ],
                 'sort': []
             }
         },
     }
+
 
     # Template Configuration - Controls which templates are actually used
     # ===================================================================
@@ -305,7 +310,7 @@ class Quadfecta:
         'analysis': 'Link Graph Edges',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
         'crawler': 'Crawl Basic',  # New basic crawl for node metadata
         'gsc': 'GSC Performance',      # Options: 'GSC Performance'
-        'ga': 'GA Performance'
+        'ga': 'GA Discovery'       # Options: 'GA Discovery'
     }
 
     # Optional Features Configuration

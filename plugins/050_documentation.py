@@ -2142,10 +2142,19 @@ class DocumentationPlugin:
             prev_link = f'<a href="/docs/{doc_key}/page/{page_num - 1}" class="nav-button">← Previous</a>' if page_num > 1 else '<span class="nav-button disabled">← Previous</span>'
             next_link = f'<a href="/docs/{doc_key}/page/{page_num + 1}" class="nav-button">Next →</a>' if page_num < len(pages) else '<span class="nav-button disabled">Next →</span>'
 
+            # Get page title for display
+            lines = page_content.split('\n')
+            page_title = f"Page {page_num}"
+            for line in lines:
+                line = line.strip()
+                if line.startswith('# ') and not line.startswith('```'):
+                    page_title = line[2:].strip()
+                    break
+
             page_html = f"""<!DOCTYPE html>
 <html>
 <head>
-    <title>{doc_title} - Page {page_num}</title>
+    <title>{page_title} - {doc_title}</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
@@ -2173,6 +2182,39 @@ class DocumentationPlugin:
         .breadcrumb a {{
             color: #0066cc;
             text-decoration: none;
+        }}
+        .page-header {{
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .page-info {{
+            color: #666;
+        }}
+        .copy-markdown-btn {{
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }}
+        .copy-markdown-btn:hover {{
+            background: #218838;
+        }}
+        .copy-markdown-btn.copying {{
+            background: #ffc107;
+            color: #212529;
+        }}
+        .copy-markdown-btn.success {{
+            background: #20c997;
         }}
         .content {{
             background: #fff;
@@ -2204,10 +2246,25 @@ class DocumentationPlugin:
             background: #ccc;
             cursor: not-allowed;
         }}
-        .page-info {{
+        .nav-info {{
             text-align: center;
             color: #666;
             font-size: 0.9em;
+        }}
+        /* Responsive */
+        @media (max-width: 768px) {{
+            .page-header {{
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }}
+            .navigation {{
+                flex-direction: column;
+                gap: 15px;
+            }}
+            .nav-info {{
+                order: -1;
+            }}
         }}
     </style>
 </head>
@@ -2218,9 +2275,17 @@ class DocumentationPlugin:
         <strong>Page {page_num}</strong>
     </div>
 
+    <div class="page-header">
+        <div class="page-info">
+            <strong>{page_title}</strong><br>
+            Page {page_num} of {len(pages)}
+        </div>
+        <button id="copy-markdown-btn" class="copy-markdown-btn">📋 Copy Page Markdown</button>
+    </div>
+
     <div class="navigation">
         {prev_link}
-        <div class="page-info">
+        <div class="nav-info">
             <a href="/docs/{doc_key}/toc" style="color: #0066cc; text-decoration: none;">📖 Table of Contents</a><br>
             Page {page_num} of {len(pages)}
         </div>
@@ -2233,7 +2298,7 @@ class DocumentationPlugin:
 
     <div class="navigation">
         {prev_link}
-        <div class="page-info">
+        <div class="nav-info">
             <a href="/docs/{doc_key}/toc" style="color: #0066cc; text-decoration: none;">📖 Table of Contents</a><br>
             Page {page_num} of {len(pages)}
         </div>
@@ -2247,6 +2312,84 @@ class DocumentationPlugin:
         document.addEventListener('DOMContentLoaded', function() {{
             if (typeof Prism !== 'undefined') {{
                 Prism.highlightAll();
+            }}
+
+            // Add copy buttons to code blocks
+            document.querySelectorAll('pre code').forEach(function(block) {{
+                const button = document.createElement('button');
+                button.textContent = 'Copy';
+                button.className = 'copy-button';
+                button.style.position = 'absolute';
+                button.style.top = '5px';
+                button.style.right = '5px';
+                button.style.padding = '4px 8px';
+                button.style.fontSize = '12px';
+                button.style.background = '#0066cc';
+                button.style.color = 'white';
+                button.style.border = 'none';
+                button.style.borderRadius = '3px';
+                button.style.cursor = 'pointer';
+                button.style.zIndex = '10';
+
+                const pre = block.parentElement;
+                pre.style.position = 'relative';
+                pre.appendChild(button);
+
+                button.addEventListener('click', function() {{
+                    navigator.clipboard.writeText(block.textContent).then(function() {{
+                        button.textContent = 'Copied!';
+                        setTimeout(function() {{
+                            button.textContent = 'Copy';
+                        }}, 2000);
+                    }});
+                }});
+            }});
+
+            // Copy Page Markdown functionality
+            const copyMarkdownBtn = document.getElementById('copy-markdown-btn');
+            if (copyMarkdownBtn) {{
+                copyMarkdownBtn.addEventListener('click', async function() {{
+                    const button = this;
+                    const originalText = button.textContent;
+
+                    try {{
+                        // Show loading state
+                        button.textContent = '⏳ Copying...';
+                        button.classList.add('copying');
+                        button.disabled = true;
+
+                        // Get the raw page content
+                        const pageContent = {repr(page_content)};
+
+                        // Copy to clipboard
+                        await navigator.clipboard.writeText(pageContent);
+
+                        // Show success state
+                        button.textContent = '✅ Copied!';
+                        button.classList.remove('copying');
+                        button.classList.add('success');
+
+                        // Reset after 3 seconds
+                        setTimeout(function() {{
+                            button.textContent = originalText;
+                            button.classList.remove('success');
+                            button.disabled = false;
+                        }}, 3000);
+
+                    }} catch (error) {{
+                        console.error('Error copying markdown:', error);
+
+                        // Show error state
+                        button.textContent = '❌ Error';
+                        button.classList.remove('copying');
+
+                        // Reset after 3 seconds
+                        setTimeout(function() {{
+                            button.textContent = originalText;
+                            button.disabled = false;
+                        }}, 3000);
+                    }}
+                }});
             }}
         }});
     </script>
