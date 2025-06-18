@@ -318,6 +318,52 @@ def fig(text, font='slant', color='cyan', width=200):
     fig_text = figlet.renderText(str(text))
     colored_text = Text(fig_text, style=f'{color} on default')
     console.print(colored_text, style='on default')
+    
+    # Log text equivalent for server.log visibility
+    logger.info(f"🎨 BANNER: {text} (figlet: {font})")
+
+def log_rich_table(table, title_prefix=""):
+    """Log rich table content to server.log for radical transparency.
+    
+    Args:
+        table: Rich Table object to log
+        title_prefix: Optional prefix for the log entry
+    """
+    try:
+        # Extract table data for logging
+        table_title = getattr(table, 'title', 'Table')
+        if table_title:
+            table_title = str(table_title)
+        
+        # Start with title and add extra line for visibility
+        log_lines = [f"\n📊 {title_prefix}RICH TABLE: {table_title}"]
+        
+        # Add column headers if available
+        if hasattr(table, 'columns') and table.columns:
+            headers = []
+            for col in table.columns:
+                if hasattr(col, 'header'):
+                    headers.append(str(col.header))
+                elif hasattr(col, '_header'):
+                    headers.append(str(col._header))
+            if headers:
+                log_lines.append(f"Headers: {' | '.join(headers)}")
+        
+        # Add rows if available
+        if hasattr(table, '_rows') and table._rows:
+            for i, row in enumerate(table._rows):
+                if hasattr(row, '_cells'):
+                    cells = [str(cell) if cell else '' for cell in row._cells]
+                    log_lines.append(f"Row {i+1}: {' | '.join(cells)}")
+                else:
+                    log_lines.append(f"Row {i+1}: {str(row)}")
+        
+        # Log the complete table representation with extra spacing
+        logger.info('\n'.join(log_lines) + '\n')
+        
+    except Exception as e:
+        logger.error(f"Error logging rich table: {e}")
+        logger.info(f"📊 {title_prefix}RICH TABLE: [Unable to extract table data]")
 
 def set_current_environment(environment):
     ENV_FILE.write_text(environment)
@@ -2054,6 +2100,7 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
         table.add_row(role, content)
         logger.debug(f"🔍 DEBUG: Last message - role: {role}, content: '{content[:100]}...'")
     console.print(table)
+    log_rich_table(table, "LLM DEBUG - ")
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -2133,6 +2180,7 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                     table.add_column('Accumulated Response')
                     table.add_row(final_response, style='green')
                     console.print(table)
+                    log_rich_table(table, "LLM RESPONSE - ")
 
     except aiohttp.ClientConnectorError as e:
         error_msg = 'Unable to connect to Ollama server. Please ensure Ollama is running.'
@@ -2763,6 +2811,7 @@ async def synchronize_roles_to_db():
             roles_rich_table.add_row(str(role_item.id), role_item.text, '✅' if role_item.done else '❌', str(role_item.priority))
         console.print('\n')
         console.print(roles_rich_table)
+        log_rich_table(roles_rich_table, "ROLES SYNC - ")
         console.print('\n')
         logger.info('SYNC_ROLES: Roles synchronization display complete globally.')
     if TABLE_LIFECYCLE_LOGGING:
@@ -4358,6 +4407,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                 json_value = JSON.from_data(value, indent=2)
                 cookie_table.add_row(key, json_value)
             console.print(cookie_table)
+            log_rich_table(cookie_table, "STATE TABLES - ")
             pipeline_table = Table(title='➡️ Pipeline States')
             pipeline_table.add_column('Key', style='yellow')
             pipeline_table.add_column('Created', style='magenta')
@@ -4372,6 +4422,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                     log.error(f'Error parsing pipeline state for {record.pkey}', e)
                     pipeline_table.add_row(record.pkey, 'ERROR', 'Invalid State')
             console.print(pipeline_table)
+            log_rich_table(pipeline_table, "STATE TABLES - ")
         return response
 
 def print_routes():
@@ -4413,6 +4464,7 @@ def print_routes():
     for entry in route_entries:
         table.add_row(entry[0], entry[1], Text(entry[2], style=f'{entry[3]} on black'), entry[4])
     console.print(table)
+    log_rich_table(table, "ROUTES - ")
 
 @rt('/refresh-profile-menu')
 async def refresh_profile_menu(request):
