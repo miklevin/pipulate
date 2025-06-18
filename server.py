@@ -727,6 +727,64 @@ def set_current_environment(environment):
     ENV_FILE.write_text(environment)
     logger.info(f'Environment set to: {environment}')
 
+def _recursively_parse_json_strings(obj):
+    """
+    🔧 RECURSIVE JSON PARSER: Recursively parse JSON strings in nested data structures.
+    This makes deeply nested workflow data much more readable in logs.
+    
+    Handles:
+    - Dict values that are JSON strings
+    - List items that are JSON strings  
+    - Nested dicts and lists
+    - Graceful fallback if parsing fails
+    """
+    if isinstance(obj, dict):
+        result = {}
+        for key, value in obj.items():
+            if isinstance(value, str):
+                # Try to parse JSON strings
+                try:
+                    # Quick heuristic: if it starts with { or [ and ends with } or ], try parsing
+                    if (value.startswith('{') and value.endswith('}')) or \
+                       (value.startswith('[') and value.endswith(']')):
+                        parsed_value = json.loads(value)
+                        # Recursively process the parsed result
+                        result[key] = _recursively_parse_json_strings(parsed_value)
+                    else:
+                        result[key] = value
+                except (json.JSONDecodeError, TypeError):
+                    # If parsing fails, keep the original string
+                    result[key] = value
+            elif isinstance(value, (dict, list)):
+                # Recursively process nested structures
+                result[key] = _recursively_parse_json_strings(value)
+            else:
+                result[key] = value
+        return result
+    elif isinstance(obj, list):
+        result = []
+        for item in obj:
+            if isinstance(item, str):
+                # Try to parse JSON strings in lists
+                try:
+                    if (item.startswith('{') and item.endswith('}')) or \
+                       (item.startswith('[') and item.endswith(']')):
+                        parsed_item = json.loads(item)
+                        result.append(_recursively_parse_json_strings(parsed_item))
+                    else:
+                        result.append(item)
+                except (json.JSONDecodeError, TypeError):
+                    result.append(item)
+            elif isinstance(item, (dict, list)):
+                # Recursively process nested structures
+                result.append(_recursively_parse_json_strings(item))
+            else:
+                result.append(item)
+        return result
+    else:
+        # For non-dict/list objects, return as-is
+        return obj
+
 def _format_records_for_lifecycle_log(records_iterable):
     """Format records (list of dicts or objects) into a readable JSON string for logging.
     Handles empty records, dataclass-like objects, dictionaries, and attempts to convert SQLite rows to dicts.
@@ -752,16 +810,9 @@ def _format_records_for_lifecycle_log(records_iterable):
             processed_records.append(str(r))
             continue
             
-        # 🔧 SMART JSON PARSING: Parse JSON strings in 'data' field for readability
-        if record_dict and isinstance(record_dict, dict) and 'data' in record_dict:
-            try:
-                if isinstance(record_dict['data'], str):
-                    # Try to parse the JSON string to make it readable
-                    parsed_data = json.loads(record_dict['data'])
-                    record_dict['data'] = parsed_data  # Replace escaped string with actual object
-            except (json.JSONDecodeError, TypeError):
-                # If parsing fails, leave the original string as-is
-                pass
+        # 🔧 SMART JSON PARSING: Recursively parse JSON strings for maximum readability
+        if record_dict and isinstance(record_dict, dict):
+            record_dict = _recursively_parse_json_strings(record_dict)
                 
         processed_records.append(record_dict)
     
