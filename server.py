@@ -730,24 +730,41 @@ def set_current_environment(environment):
 def _format_records_for_lifecycle_log(records_iterable):
     """Format records (list of dicts or objects) into a readable JSON string for logging.
     Handles empty records, dataclass-like objects, dictionaries, and attempts to convert SQLite rows to dicts.
-    Excludes private attributes for cleaner logs."""
+    Excludes private attributes for cleaner logs. 
+    SMART FEATURE: Automatically parses JSON strings in 'data' fields to prevent ugly escaping."""
     if not records_iterable:
         return '[] # Empty'
     processed_records = []
     for r in records_iterable:
+        record_dict = None
         if hasattr(r, '_asdict'):
-            processed_records.append(r._asdict())
+            record_dict = r._asdict()
         elif hasattr(r, '__dict__') and (not isinstance(r, type)):
-            processed_records.append({k: v for k, v in r.__dict__.items() if not k.startswith('_sa_')})
+            record_dict = {k: v for k, v in r.__dict__.items() if not k.startswith('_sa_')}
         elif isinstance(r, dict):
-            processed_records.append(r)
+            record_dict = r
         elif hasattr(r, 'keys'):
             try:
-                processed_records.append(dict(r))
+                record_dict = dict(r)
             except:
-                processed_records.append(dict(zip(r.keys(), r)))
+                record_dict = dict(zip(r.keys(), r))
         else:
             processed_records.append(str(r))
+            continue
+            
+        # 🔧 SMART JSON PARSING: Parse JSON strings in 'data' field for readability
+        if record_dict and isinstance(record_dict, dict) and 'data' in record_dict:
+            try:
+                if isinstance(record_dict['data'], str):
+                    # Try to parse the JSON string to make it readable
+                    parsed_data = json.loads(record_dict['data'])
+                    record_dict['data'] = parsed_data  # Replace escaped string with actual object
+            except (json.JSONDecodeError, TypeError):
+                # If parsing fails, leave the original string as-is
+                pass
+                
+        processed_records.append(record_dict)
+    
     try:
         return json.dumps(processed_records, indent=2, default=str)
     except Exception as e:
