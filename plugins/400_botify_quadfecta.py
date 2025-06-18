@@ -730,7 +730,43 @@ class Quadfecta:
         project_data_str = json.dumps(project_data)
         await pip.set_step_data(pipeline_id, step_id, project_data_str, steps)
         await self.message_queue.add(pip, f"✳️ {step.show} complete: {project_data['project_name']}", verbatim=True)
+        
+        # NEW: Save analyses data as soon as we have a valid project URL
         project_name = project_data.get('project_name', '')
+        username = project_data.get('username', '')
+        
+        # Get API token and save analyses data
+        api_token = self.read_api_token()
+        if api_token:
+            try:
+                await self.message_queue.add(pip, "🔍 Fetching analyses data...", verbatim=True)
+                success, save_message, filepath = await self.save_analyses_to_json(username, project_name, api_token)
+                await self.message_queue.add(pip, save_message, verbatim=True)
+                
+                if success and filepath:
+                    # Log the API call for debugging purposes
+                    url = f'https://api.botify.com/v1/analyses/{username}/{project_name}/light'
+                    headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+                    curl_cmd, python_cmd = self._generate_api_call_representations(
+                        method="GET", url=url, headers=headers, 
+                        step_context="Step 1: Save Analyses Data",
+                        username=username, project_name=project_name
+                    )
+                    await pip.log_api_call_details(
+                        pipeline_id=pipeline_id, step_id=step_id,
+                        call_description="Fetch and Save Analyses Data",
+                        method="GET", url=url, headers=headers,
+                        response_status=200,
+                        response_preview=f"Analyses data saved to: {filepath}",
+                        curl_command=curl_cmd, python_command=python_cmd
+                    )
+                    
+            except Exception as e:
+                await self.message_queue.add(pip, f"⚠️ Could not save analyses data: {str(e)}", verbatim=True)
+                logging.exception(f'Error in analyses data saving: {e}')
+        else:
+            await self.message_queue.add(pip, "⚠️ No API token found - skipping analyses data save", verbatim=True)
+        
         project_url = project_data.get('url', '')
         project_info = Div(H4(f'Project: {project_name}'), Small(project_url, style='word-break: break-all;'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
         return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
@@ -2637,6 +2673,97 @@ class Quadfecta:
             return token
         except Exception:
             return None
+
+    async def save_analyses_to_json(self, username, project_name, api_token):
+        """
+        Fetch and save the complete analyses data to a local JSON file.
+        
+        This method fetches the full analyses data from the Botify API endpoint:
+        /analyses/{username}/{project_name}
+        
+        And saves it to a deterministic local path:
+        downloads/{APP_NAME}/{username}/{project_name}/analyses.json
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug  
+            api_token: Botify API token
+            
+        Returns:
+            tuple: (success: bool, message: str, filepath: str|None)
+        """
+        try:
+            # Create deterministic filepath for analyses.json at project level
+            base_dir = f'downloads/{self.app_name}/{username}/{project_name}'
+            analyses_filepath = f'{base_dir}/analyses.json'
+            
+            # Ensure directory exists
+            await self.ensure_directory_exists(analyses_filepath)
+            
+            # Check if file already exists
+            exists, file_info = await self.check_file_exists(analyses_filepath)
+            if exists:
+                return (True, f"📄 Analyses data already cached: {file_info['size']}", analyses_filepath)
+            
+            # Fetch analyses data from API
+            url = f'https://api.botify.com/v1/analyses/{username}/{project_name}/light'
+            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+            
+            all_analyses = []
+            next_url = url
+            page_count = 0
+            
+            # Fetch all pages of analyses data
+            while next_url:
+                page_count += 1
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(next_url, headers=headers, timeout=60.0)
+                
+                if response.status_code != 200:
+                    return (False, f"API error: Status {response.status_code} - {response.text}", None)
+                
+                data = response.json()
+                if 'results' not in data:
+                    return (False, f"No 'results' key in API response", None)
+                
+                # Add analyses from this page
+                analyses = data['results']
+                all_analyses.extend(analyses)
+                
+                # Get next page URL
+                next_url = data.get('next')
+                
+                # Log progress for multiple pages
+                if page_count > 1:
+                    await self.message_queue.add(self.pipulate, f"📄 Fetched page {page_count} of analyses data...", verbatim=True)
+            
+            # Create comprehensive analyses data structure
+            analyses_data = {
+                'metadata': {
+                    'organization': username,
+                    'project': project_name,
+                    'fetch_timestamp': time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime()),
+                    'total_analyses': len(all_analyses),
+                    'pages_fetched': page_count,
+                    'api_endpoint': f'/analyses/{username}/{project_name}'
+                },
+                'analyses': all_analyses
+            }
+            
+            # Save to JSON file
+            with open(analyses_filepath, 'w', encoding='utf-8') as f:
+                json.dump(analyses_data, f, indent=2, ensure_ascii=False)
+            
+            # Verify file was created successfully
+            exists, file_info = await self.check_file_exists(analyses_filepath)
+            if not exists:
+                return (False, "Failed to save analyses data to file", None)
+            
+            return (True, f"📄 Analyses data saved: {len(all_analyses)} analyses ({file_info['size']})", analyses_filepath)
+            
+        except Exception as e:
+            logging.exception(f'Error saving analyses data: {str(e)}')
+            return (False, f"Error saving analyses data: {str(e)}", None)
 
     async def _execute_qualifier_logic(self, username, project_name, analysis_slug, api_token, qualifier_config):
         """Execute the generic qualifier logic to determine a dynamic parameter.
