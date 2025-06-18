@@ -355,6 +355,184 @@ async def _builtin_get_cat_fact(params: dict) -> dict:
 # Register the built-in tool
 register_mcp_tool("get_cat_fact", _builtin_get_cat_fact)
 
+# ================================================================
+# BOTIFY MCP TOOLS - Core API Integration
+# ================================================================
+# 🔧 FINDER_TOKEN: BOTIFY_MCP_TOOLS_CORE
+# These tools provide direct access to Botify API endpoints via MCP.
+# They demonstrate the full pattern: authentication, API calls, error handling.
+
+async def _botify_ping(params: dict) -> dict:
+    """Test Botify API connectivity and authentication."""
+    api_token = params.get("api_token")
+    if not api_token:
+        return {"status": "error", "message": "api_token required in params"}
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Use the user endpoint as a simple ping/auth test
+            external_url = "https://api.botify.com/v1/user"
+            headers = {"Authorization": f"Token {api_token}"}
+            
+            async with session.get(external_url, headers=headers) as response:
+                if response.status == 200:
+                    user_data = await response.json()
+                    return {
+                        "status": "success",
+                        "result": {
+                            "message": "Botify API connection successful",
+                            "user": user_data.get("login", "unknown"),
+                            "organizations": len(user_data.get("organizations", []))
+                        },
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "message": f"Botify API authentication failed: {response.status}",
+                        "error_details": error_text,
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Network error: {str(e)}",
+            "external_api_url": external_url if 'external_url' in locals() else None,
+            "external_api_method": "GET"
+        }
+
+async def _botify_list_projects(params: dict) -> dict:
+    """List all projects for the authenticated user."""
+    api_token = params.get("api_token")
+    if not api_token:
+        return {"status": "error", "message": "api_token required in params"}
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            external_url = "https://api.botify.com/v1/projects"
+            headers = {"Authorization": f"Token {api_token}"}
+            
+            async with session.get(external_url, headers=headers) as response:
+                if response.status == 200:
+                    projects_data = await response.json()
+                    projects = projects_data.get("results", [])
+                    
+                    # Format for easy consumption
+                    formatted_projects = []
+                    for project in projects:
+                        formatted_projects.append({
+                            "slug": project.get("slug"),
+                            "name": project.get("name"),
+                            "url": project.get("url"),
+                            "organization": project.get("organization", {}).get("name"),
+                            "active": project.get("active", False)
+                        })
+                    
+                    return {
+                        "status": "success",
+                        "result": {
+                            "projects": formatted_projects,
+                            "total_count": len(formatted_projects)
+                        },
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "message": f"Failed to fetch projects: {response.status}",
+                        "error_details": error_text,
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Network error: {str(e)}",
+            "external_api_url": external_url if 'external_url' in locals() else None,
+            "external_api_method": "GET"
+        }
+
+async def _botify_simple_query(params: dict) -> dict:
+    """Execute a simple BQL query against Botify API."""
+    api_token = params.get("api_token")
+    org_slug = params.get("org_slug") 
+    project_slug = params.get("project_slug")
+    analysis_slug = params.get("analysis_slug")
+    query = params.get("query")
+    
+    # Validate required parameters
+    missing_params = []
+    if not api_token: missing_params.append("api_token")
+    if not org_slug: missing_params.append("org_slug") 
+    if not project_slug: missing_params.append("project_slug")
+    if not analysis_slug: missing_params.append("analysis_slug")
+    if not query: missing_params.append("query")
+    
+    if missing_params:
+        return {
+            "status": "error", 
+            "message": f"Missing required parameters: {', '.join(missing_params)}"
+        }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            external_url = f"https://api.botify.com/v1/projects/{org_slug}/{project_slug}/query"
+            headers = {
+                "Authorization": f"Token {api_token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Build the BQL query payload
+            payload = {
+                "query": query,
+                "analysis": analysis_slug,
+                "size": params.get("size", 100)  # Default to 100 results
+            }
+            
+            async with session.post(external_url, headers=headers, json=payload) as response:
+                if response.status == 200:
+                    query_result = await response.json()
+                    return {
+                        "status": "success",
+                        "result": query_result,
+                        "external_api_url": external_url,
+                        "external_api_method": "POST", 
+                        "external_api_status": response.status,
+                        "external_api_payload": payload
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "message": f"BQL query failed: {response.status}",
+                        "error_details": error_text,
+                        "external_api_url": external_url,
+                        "external_api_method": "POST",
+                        "external_api_status": response.status,
+                        "external_api_payload": payload
+                    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Network error: {str(e)}",
+            "external_api_url": external_url if 'external_url' in locals() else None,
+            "external_api_method": "POST"
+        }
+
+# Register Botify MCP tools
+register_mcp_tool("botify_ping", _botify_ping)
+register_mcp_tool("botify_list_projects", _botify_list_projects) 
+register_mcp_tool("botify_simple_query", _botify_simple_query)
+
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
