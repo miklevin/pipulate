@@ -38,8 +38,127 @@ from starlette.responses import FileResponse
 # Various debug settings
 DEBUG_MODE = False
 STATE_TABLES = True
-TABLE_LIFECYCLE_LOGGING = False
-API_LOG_ROTATION_COUNT = 5
+TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
+# 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
+# These control different aspects of logging and debugging
+
+# Initialize logging as early as possible in the startup process
+def setup_logging():
+    """
+    🔧 CLAUDE'S UNIFIED LOGGING SYSTEM
+    
+    Single source of truth logging with rolling server logs.
+    Designed for optimal debugging experience with surgical search capabilities.
+    
+    Features:
+    - server.log (current run, live tail-able)
+    - server-1.log, server-2.log, etc. (previous runs for context across restarts)
+    - Unified log stream with clear categorization and finder tokens
+    - No more fragmented api.log/lifecycle.log confusion
+    """
+    logger.remove()
+    logs_dir = Path('logs')
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    
+    # === ROLLING LOG ROTATION SYSTEM ===
+    # This preserves debugging context across server restarts
+    server_log_path = logs_dir / 'server.log'
+    MAX_ROLLED_LOGS = 10  # Keep last 10 server runs
+    
+    # Clean up old numbered logs beyond our limit
+    for i in range(MAX_ROLLED_LOGS + 1, 100):
+        old_log = logs_dir / f'server-{i}.log'
+        if old_log.exists():
+            try:
+                old_log.unlink()
+                print(f'🧹 Cleaned up old server log: {old_log}')
+            except Exception as e:
+                print(f'⚠️ Failed to delete old server log {old_log}: {e}')
+    
+    # Rotate existing logs: server-1.log → server-2.log, etc.
+    if server_log_path.exists():
+        for i in range(MAX_ROLLED_LOGS - 1, 0, -1):
+            old_path = logs_dir / f'server-{i}.log'
+            new_path = logs_dir / f'server-{i + 1}.log'
+            if old_path.exists():
+                try:
+                    old_path.rename(new_path)
+                    print(f'📁 Rotated: {old_path.name} → {new_path.name}')
+                except Exception as e:
+                    print(f'⚠️ Failed to rotate {old_path}: {e}')
+        
+        # Move current server.log to server-1.log
+        try:
+            server_log_path.rename(logs_dir / 'server-1.log')
+            print(f'📁 Archived current run: server.log → server-1.log')
+        except Exception as e:
+            print(f'⚠️ Failed to archive current server.log: {e}')
+    
+    # === CLEAN UP LEGACY LOG FILES ===
+    # Remove the old fragmented log system
+    legacy_files = ['api.log', 'lifecycle.log', 'table_lifecycle.log'] + [f'api-{i}.log' for i in range(1, 20)]
+    for legacy_file in legacy_files:
+        legacy_path = logs_dir / legacy_file
+        if legacy_path.exists():
+            try:
+                legacy_path.unlink()
+                print(f'🧹 Removed legacy log: {legacy_file}')
+            except Exception as e:
+                print(f'⚠️ Failed to remove legacy log {legacy_file}: {e}')
+    
+    # === UNIFIED LOG FORMAT ===
+    log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
+    time_format = '{time:HH:mm:ss}'
+    
+    # File logging - comprehensive for debugging
+    file_format = f'{time_format} | {{level: <8}} | {{name: <15}} | {{message}}'
+    logger.add(
+        server_log_path, 
+        level=log_level, 
+        format=file_format, 
+        enqueue=True,
+        backtrace=True,
+        diagnose=True
+    )
+    
+    # Console logging - clean for live monitoring
+    console_format = '<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}'
+    logger.add(
+        sys.stderr, 
+        level=log_level, 
+        format=console_format, 
+        colorize=True,
+        filter=lambda record: (
+            record['level'].name != 'DEBUG' or 
+            any(key in record['message'] for key in [
+                'FINDER_TOKEN', 'MCP', 'BOTIFY', 'API', 'Pipeline ID:', 
+                'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'
+            ])
+        )
+    )
+    
+    # === STARTUP MESSAGES ===
+    if STATE_TABLES:
+        logger.info('🔍 FINDER_TOKEN: STATE_TABLES_ENABLED - Console will show 🍪 and ➡️ table snapshots')
+    
+    # Welcome message for the new unified system
+    logger.info('🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized')
+    logger.info(f'📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last {MAX_ROLLED_LOGS} server runs for debugging context')
+    
+    return logger
+
+# Initialize logger immediately after basic configuration
+logger = setup_logging()
+
+# Log early startup phase
+logger.info('🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence')
+
+if __name__ == '__main__':
+    if DEBUG_MODE:
+        logger.info('🔍 Running in DEBUG mode (verbose logging enabled)')
+    else:
+        logger.info('🚀 Running in INFO mode (edit server.py and set DEBUG_MODE=True for verbose logging)')
+
 shared_app_state = {'critical_operation_in_progress': False}
 
 # Global message coordination to prevent race conditions between multiple message-sending systems
@@ -98,12 +217,16 @@ def get_current_environment():
         ENV_FILE.write_text('Development')
         return 'Development'
 APP_NAME = get_app_name()
+logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
+
 TONE = 'neutral'
 MODEL = 'gemma3'
 MAX_LLM_RESPONSE_WORDS = 80
 MAX_CONVERSATION_LENGTH = 10000
 HOME_MENU_ITEM = '👥 Roles (Home)'
 DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
+
+logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}')
 
 # ================================================================
 # INSTANCE-SPECIFIC CONFIGURATION - "The Crucible"
@@ -536,7 +659,10 @@ register_mcp_tool("botify_simple_query", _botify_simple_query)
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
+logger.info(f'📁 FINDER_TOKEN: DATA_DIR - Data directory ensured: {data_dir}')
+
 DB_FILENAME = get_db_filename()
+logger.info(f'💾 FINDER_TOKEN: DB_CONFIG - Database file: {DB_FILENAME}')
 
 def fig(text, font='slant', color='cyan', width=200):
     figlet = Figlet(font=font, width=width)
@@ -601,72 +727,6 @@ def set_current_environment(environment):
     ENV_FILE.write_text(environment)
     logger.info(f'Environment set to: {environment}')
 
-def setup_logging():
-    """Set up unified logging between console, file, and optional lifecycle log."""
-    logger.remove()
-    logs_dir = Path('logs')
-    logs_dir.mkdir(parents=True, exist_ok=True)
-    app_log_path = logs_dir / 'server.log'
-    api_log_path = logs_dir / 'api.log'
-    log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
-    if app_log_path.exists():
-        app_log_path.unlink()
-    for old_log in logs_dir.glob('server.????-??-??_*'):
-        try:
-            old_log.unlink()
-        except Exception as e:
-            print(f'Failed to delete old log file {old_log}: {e}')
-    if api_log_path.exists():
-        # First, clean up any logs beyond our rotation limit
-        for i in range(API_LOG_ROTATION_COUNT + 1, 100):  # Check up to api-99.log
-            old_log = logs_dir / f'api-{i}.log'
-            if old_log.exists():
-                try:
-                    old_log.unlink()
-                    print(f'Deleted old API log beyond rotation limit: {old_log}')
-                except Exception as e:
-                    print(f'Failed to delete old API log {old_log}: {e}')
-        
-        # Rotate existing numbered logs (shift them up by 1)
-        # This moves api-2.log → api-3.log, api-3.log → api-4.log, etc.
-        for i in range(API_LOG_ROTATION_COUNT - 1, 1, -1):
-            old_path = logs_dir / f'api-{i}.log'
-            new_path = logs_dir / f'api-{i + 1}.log'
-            if old_path.exists():
-                try:
-                    old_path.rename(new_path)
-                    print(f'Rotated API log: {old_path} → {new_path}')
-                except Exception as e:
-                    print(f'Failed to rotate API log {old_path}: {e}')
-        
-        # Move current api.log to api-2.log (preserves the original numbering scheme)
-        try:
-            api_log_path.rename(logs_dir / 'api-2.log')
-            print(f'Rotated current API log: {api_log_path} → api-2.log (previous run)')
-        except Exception as e:
-            print(f'Failed to rotate current API log: {e}')
-    time_format = '{time:HH:mm:ss}'
-    message_format = '{level: <8} | {name: <15} | {message}'
-    logger.add(app_log_path, level=log_level, format=f'{time_format} | {message_format}', enqueue=True)
-
-    def api_log_filter(record):
-        return record['extra'].get('api_call') is True
-    logger.add(api_log_path, level='INFO', format='{time:YYYY-MM-DD HH:mm:ss} | {message}', filter=api_log_filter, enqueue=True)
-    logger.add(sys.stderr, level=log_level, format='<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}', colorize=True, filter=lambda record: record['level'].name != 'DEBUG' or any((key in record['message'] for key in ['HTTP Request:', 'Pipeline ID:', 'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'])))
-    if STATE_TABLES:
-        logger.info(f'🔍 State tables ENABLED (🍪 and ➡️ tables will be displayed on console)')
-    if TABLE_LIFECYCLE_LOGGING:
-        lifecycle_log_path = logs_dir / 'table_lifecycle.log'
-        if lifecycle_log_path.exists():
-            lifecycle_log_path.unlink()
-
-        def lifecycle_filter(record):
-            return record['extra'].get('lifecycle') is True
-        logger.add(lifecycle_log_path, level='INFO', format='{time:YYYY-MM-DD HH:mm:ss.SSS} | {message}', filter=lifecycle_filter, enqueue=True, rotation='10 MB')
-        logger.bind(lifecycle=True).info('TABLE_LIFECYCLE_LOGGING ENABLED. This log will show table states at critical points.')
-        logger.info('📝 TABLE_LIFECYCLE_LOGGING is ENABLED. Detailed table states in logs/table_lifecycle.log')
-    return logger
-
 def _format_records_for_lifecycle_log(records_iterable):
     """Format records (list of dicts or objects) into a readable JSON string for logging.
     Handles empty records, dataclass-like objects, dictionaries, and attempts to convert SQLite rows to dicts.
@@ -694,43 +754,34 @@ def _format_records_for_lifecycle_log(records_iterable):
         return f'[Error formatting records for JSON: {e}] Processed: {str(processed_records)}'
 
 def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str=''):
-    """Logs state of a table obtained via a callable (e.g., fastlite table object)."""
-    if not TABLE_LIFECYCLE_LOGGING:
-        return
+    """
+    🔧 CLAUDE'S UNIFIED LOGGING: Logs table state to unified server.log
+    Simplified from the old lifecycle logging system.
+    """
     try:
         records = list(data_source_callable())
         content = _format_records_for_lifecycle_log(records)
-        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{table_name}' ---\n{content}\n--- End Snapshot '{table_name}' ---")
+        logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_{table_name.upper()} - {title_prefix} Snapshot:\n{content}")
     except Exception as e:
-        logger.bind(lifecycle=True).error(f"Failed to log state for table '{table_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
+        logger.error(f"❌ FINDER_TOKEN: TABLE_STATE_ERROR - Failed to log '{table_name}' ({title_prefix}): {e}")
 
 def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''):
-    """Logs state of a DictLikeDB instance.
-    
-    Args:
-        db_name: Name of the database for logging
-        db_instance: DictLikeDB instance to log
-        title_prefix: Optional prefix for the log title
     """
-    if not TABLE_LIFECYCLE_LOGGING:
-        return
+    🔧 CLAUDE'S UNIFIED LOGGING: Logs DictLikeDB state to unified server.log
+    Simplified from the old lifecycle logging system.
+    """
     try:
         items = dict(db_instance.items())
         content = json.dumps(items, indent=2, default=str)
-        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{db_name}' (Key-Value Store) ---\n{content}\n--- End Snapshot '{db_name}' ---")
+        logger.info(f"🔍 FINDER_TOKEN: DB_STATE_{db_name.upper()} - {title_prefix} Key-Value Store:\n{content}")
     except Exception as e:
-        logger.bind(lifecycle=True).error(f"Failed to log state for DictLikeDB '{db_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
+        logger.error(f"❌ FINDER_TOKEN: DB_STATE_ERROR - Failed to log DictLikeDB '{db_name}' ({title_prefix}): {e}")
 
 def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str=''):
-    """Logs state of a table using a raw SQL query via provided sqlite3 connection.
-    
-    Args:
-        db_conn: SQLite database connection
-        table_name: Name of the table to log
-        title_prefix: Optional prefix for the log title
     """
-    if not TABLE_LIFECYCLE_LOGGING:
-        return
+    🔧 CLAUDE'S UNIFIED LOGGING: Logs raw SQL table state to unified server.log
+    Simplified from the old lifecycle logging system.
+    """
     original_row_factory = db_conn.row_factory
     db_conn.row_factory = sqlite3.Row
     try:
@@ -738,17 +789,11 @@ def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str='
         cursor.execute(f'SELECT * FROM {table_name}')
         rows = cursor.fetchall()
         content = _format_records_for_lifecycle_log(rows)
-        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{table_name}' (Raw SQL) ---\n{content}\n--- End Snapshot '{table_name}' (Raw SQL) ---")
+        logger.info(f"🔍 FINDER_TOKEN: SQL_TABLE_{table_name.upper()} - {title_prefix} Raw SQL:\n{content}")
     except Exception as e:
-        logger.bind(lifecycle=True).error(f"Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
+        logger.error(f"❌ FINDER_TOKEN: SQL_TABLE_ERROR - Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}")
     finally:
         db_conn.row_factory = original_row_factory
-logger = setup_logging()
-if __name__ == '__main__':
-    if DEBUG_MODE:
-        logger.info('🔍 Running in DEBUG mode (verbose logging enabled)')
-    else:
-        logger.info('🚀 Running in INFO mode (edit server.py and set DEBUG_MODE=True for verbose logging)')
 
 class LogManager:
     """Central logging coordinator for artistic control of console and file output.
@@ -2481,10 +2526,26 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
             await chat.broadcast("Error: Could not understand the tool request.")
             return
 
-        logger.debug(f"🔧 MCP CLIENT: Executing tool '{tool_name}'")
+        # Extract parameters from the <params> section
+        params = {}
+        params_match = re.search(r'<params>(.*?)</params>', mcp_block, re.DOTALL)
+        if params_match:
+            params_text = params_match.group(1).strip()
+            try:
+                # Try to parse as JSON
+                import json
+                params = json.loads(params_text)
+                logger.debug(f"🔧 MCP CLIENT: Extracted params: {params}")
+            except json.JSONDecodeError as e:
+                logger.error(f"🔧 MCP CLIENT: Failed to parse params as JSON: {e}")
+                logger.debug(f"🔧 MCP CLIENT: Raw params text: {repr(params_text)}")
+        else:
+            logger.debug("🔧 MCP CLIENT: No params section found, using empty params")
+
+        logger.info(f"🔧 FINDER_TOKEN: MCP_EXECUTION_START - Tool '{tool_name}' with params: {params}")
         async with aiohttp.ClientSession() as session:
             url = "http://127.0.0.1:5001/mcp-tool-executor"
-            payload = {"tool": tool_name, "params": {}}
+            payload = {"tool": tool_name, "params": params}
             
             mcp_request_start = time.time()
             async with session.post(url, json=payload) as response:
@@ -2513,7 +2574,7 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
                 )
                 
                 if response.status == 200:
-                    logger.success(f"🔧 MCP CLIENT: Tool '{tool_name}' executed successfully.")
+                    logger.info(f"🎯 FINDER_TOKEN: MCP_SUCCESS - Tool '{tool_name}' executed successfully")
 
                     if tool_result.get("status") == "success":
                         fact_data = tool_result.get("result", {})
@@ -2775,13 +2836,23 @@ class Chat:
             self.logger.error(f'Error in broadcast: {e}')
 
 pipulate = Pipulate(pipeline)
+logger.info('🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized')
+
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], allow_credentials=True)
+logger.info('🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app')
+
 if not os.path.exists('plugins'):
     os.makedirs('plugins')
-    logger.debug('Created plugins directory')
+    logger.info('📁 FINDER_TOKEN: PLUGINS_DIR - Created plugins directory')
+else:
+    logger.info('📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists')
+
 chat = Chat(app, id_suffix='', pipulate_instance=pipulate)
+logger.info('💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized')
+
 # Critical: Set the chat reference back to pipulate so stream() method works
 pipulate.set_chat(chat)
+logger.info('🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance')
 
 def build_endpoint_messages(endpoint):
     endpoint_messages = {}
@@ -2937,7 +3008,7 @@ class DictLikeDB:
         self[key] = value
         return value
 db = DictLikeDB(store, Store)
-logger.debug('Database wrapper initialized.')
+logger.info('💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized')
 
 def populate_initial_data():
     """Populate initial data in the database."""
@@ -4125,6 +4196,62 @@ Do not say anything else. Just output the exact MCP block above."""
     # 3. Return an empty response to the HTMX request.
     return ""
 
+@rt('/poke-botify', methods=['POST'])
+async def poke_botify_test():
+    """
+    🔧 FINDER_TOKEN: BOTIFY_MCP_TEST_ENDPOINT
+    
+    🚀 Botify MCP Integration Test - Demonstrates end-to-end Botify API tool execution
+    
+    Tests the complete Botify MCP pipeline by prompting the LLM to use the 
+    botify_ping tool with test credentials, showcasing authentication, error 
+    handling, and full MCP transparency logging.
+    """
+    logger.info('🔧 BOTIFY MCP: Integration test initiated via poke-botify endpoint')
+
+    # 1. Send immediate feedback to chat
+    test_message = "🚀 Testing Botify MCP integration with botify_ping tool..."
+    asyncio.create_task(pipulate.message_queue.add(pipulate, test_message, verbatim=True, role='system', spaces_before=1))
+
+    # 2. Create Botify-specific MCP prompt
+    import time
+    import random
+    timestamp = int(time.time())
+    session_id = random.randint(1000, 9999)
+    
+    botify_mcp_prompt = f"""You are a helpful assistant with access to Botify API tools. When the user wants to test Botify connectivity, you must use the botify_ping tool.
+To use the tool, you MUST stop generating conversational text and output an MCP request block.
+Here are the available Botify tools:
+Tool Name: `botify_ping`
+Description: Tests Botify API connectivity and authentication
+Parameters: api_token (required)
+---
+🆔 Request ID: {session_id} | ⏰ Timestamp: {timestamp}
+The user wants to test Botify API connectivity. Use the `botify_ping` tool by generating this EXACT MCP request block:
+<mcp-request>
+  <tool name="botify_ping">
+    <params>
+    {{"api_token": "test_token_demo_123"}}
+    </params>
+  </tool>
+</mcp-request>
+Do not say anything else. Just output the exact MCP block above."""
+
+    # 3. Execute the Botify MCP test in background
+    async def consume_botify_mcp_response():
+        """Consume the Botify MCP response generator without displaying it."""
+        try:
+            async for chunk in process_llm_interaction(MODEL, [{"role": "user", "content": botify_mcp_prompt}]):
+                # Consume the chunks but don't display them - the tool execution handles the response
+                pass
+        except Exception as e:
+            logger.error(f"Error in Botify MCP tool call: {e}")
+    
+    asyncio.create_task(consume_botify_mcp_response())
+    
+    # 4. Return empty response to HTMX request
+    return ""
+
 @rt('/open-folder', methods=['GET'])
 async def open_folder_endpoint(request):
     """
@@ -4922,10 +5049,10 @@ def check_syntax(filename):
         ast.parse(source)
         return True
     except SyntaxError as e:
-        print(f'Syntax error in {filename}:')
-        print(f'  Line {e.lineno}: {e.text}')
-        print(f"  {' ' * (e.offset - 1)}^")
-        print(f'Error: {e}')
+        logger.error(f'🚨 FINDER_TOKEN: SYNTAX_ERROR - Syntax error in {filename}:')
+        logger.error(f'  Line {e.lineno}: {e.text}')
+        logger.error(f"  {' ' * (e.offset - 1)}^")
+        logger.error(f'Error: {e}')
         return False
 
 def restart_server():
@@ -4967,14 +5094,16 @@ class ServerRestartHandler(FileSystemEventHandler):
             if shared_app_state['critical_operation_in_progress'] or is_critical_operation_in_progress():
                 log.warning(f'Watchdog: Critical operation in progress. Deferring restart for {path}')
                 return
-            print(f'{path} has been modified. Checking syntax and restarting...')
+            logger.info(f'🔄 FINDER_TOKEN: FILE_MODIFIED - {path} has been modified. Checking syntax and restarting...')
             restart_server()
 
 def run_server_with_watchdog():
+    logger.info('🚀 FINDER_TOKEN: SERVER_STARTUP - Starting server with watchdog')
     fig('SERVER RESTART')
     fig(APP_NAME, font='standard')
     env = get_current_environment()
     env_db = DB_FILENAME
+    logger.info(f'🌍 FINDER_TOKEN: ENVIRONMENT - Current environment: {env}')
     if env == 'Development':
         log.warning('Development mode active', details=f'Using database: {env_db}')
     else:
@@ -4983,18 +5112,28 @@ def run_server_with_watchdog():
         log.startup('State tables enabled', details='Edit server.py and set STATE_TABLES=False to disable')
         print_routes()
     else:
+        logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice ASCII art (STATE_TABLES=False)')
         alice_buffer = 10
-        [print() for _ in range(alice_buffer)]
-        with open('static/alice.txt', 'r') as file:
-            print(file.read())
-        [print() for _ in range(alice_buffer)]
+        # Log Alice art to file but display directly to console for visual impact
+        try:
+            with open('static/alice.txt', 'r') as file:
+                alice_content = file.read()
+                logger.debug(f'🐰 FINDER_TOKEN: ALICE_CONTENT - ASCII art loaded from static/alice.txt')
+                # Still use print for ASCII art display to preserve visual formatting
+                [print() for _ in range(alice_buffer)]
+                print(alice_content)
+                [print() for _ in range(alice_buffer)]
+        except FileNotFoundError:
+            logger.warning('🐰 FINDER_TOKEN: ALICE_MISSING - static/alice.txt not found, skipping ASCII art display')
     event_handler = ServerRestartHandler()
     observer = Observer()
     observer.schedule(event_handler, path='.', recursive=True)
     observer.start()
     try:
         log.startup('Server starting on http://localhost:5001')
+        logger.info('🌐 FINDER_TOKEN: UVICORN_START - Starting uvicorn server on http://localhost:5001')
         log_level = 'debug' if DEBUG_MODE else 'warning'
+        logger.info(f'📊 FINDER_TOKEN: UVICORN_CONFIG - Log level: {log_level}, Access log: {DEBUG_MODE}')
         log_config = {'version': 1, 'disable_existing_loggers': False, 'formatters': {'default': {'()': 'uvicorn.logging.DefaultFormatter', 'fmt': '%(levelprefix)s %(asctime)s | %(message)s', 'use_colors': True}}, 'handlers': {'default': {'formatter': 'default', 'class': 'logging.StreamHandler', 'stream': 'ext://sys.stderr'}}, 'loggers': {'uvicorn': {'handlers': ['default'], 'level': log_level.upper()}, 'uvicorn.error': {'level': log_level.upper()}, 'uvicorn.access': {'handlers': ['default'], 'level': log_level.upper(), 'propagate': False}, 'uvicorn.asgi': {'handlers': ['default'], 'level': log_level.upper(), 'propagate': False}}}
         uvicorn.run(app, host='0.0.0.0', port=5001, log_level=log_level, access_log=DEBUG_MODE, log_config=log_config)
     except KeyboardInterrupt:
