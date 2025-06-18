@@ -31,8 +31,8 @@ class Quadfecta:
     """
     Botify Quadfecta Workflow - Multi-Export Data Collection
 
-    A comprehensive workflow that downloads five types of Botify data (link
-    graph, basic crawl, web logs, Search Console, and Google Analytics) and
+    A comprehensive workflow that downloads three types of Botify data (link
+    graph/crawl analysis, web logs, and Search Console) and
     generates Jupyter-friendly Python code for API debugging. This workflow
     demonstrates:
 
@@ -283,22 +283,7 @@ class Quadfecta:
                 'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
             }
         },
-        'GA Discovery': {
-            'name': 'GA Field Discovery',
-            'description': 'Simple URL export to test GA field availability and discover working field names',
-            'export_type': 'ga_data',
-            'user_message': 'This will test GA data availability with a basic URL export. Use the generated /query debugging code to discover available GA fields.',
-            'button_label_suffix': 'GA Discovery',
-            'query': {
-                'dimensions': ['{collection}.url'],
-                'metrics': [
-                    # Start with the most basic metric that should exist if GA is connected
-                    # This will at least tell us if GA data is available at all
-                    {'function': 'count', 'args': ['{collection}.url'], 'name': 'URL Count'}
-                ],
-                'sort': []
-            }
-        },
+
     }
 
 
@@ -310,7 +295,6 @@ class Quadfecta:
         'analysis': 'Link Graph Edges',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
         'crawler': 'Crawl Basic',  # New basic crawl for node metadata
         'gsc': 'GSC Performance',      # Options: 'GSC Performance'
-        'ga': 'GA Discovery'       # Options: 'GA Discovery'
     }
 
     # Optional Features Configuration
@@ -354,14 +338,7 @@ class Quadfecta:
             'error_prefix': 'FAILED to download Search Console data',
             'status_prefix': 'Project '
         },
-        'step_ga': {
-            'data_key': 'ga_check',
-            'status_field': 'has_ga',
-            'success_text': 'HAS Google Analytics data',
-            'failure_text': 'does NOT have Google Analytics data',
-            'error_prefix': 'FAILED to download Google Analytics data',
-            'status_prefix': 'Project '
-        },
+
     }
 
     # --- START_CLASS_ATTRIBUTES_BUNDLE ---
@@ -394,7 +371,6 @@ class Quadfecta:
                 Step(id='step_crawler', done='crawler_basic', show='Download Crawl Basic', refill=False),
                 Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False),
                 Step(id='step_gsc', done='gsc', show='Download Search Console', refill=False),
-                Step(id='step_ga', done='ga', show='Download Google Analytics', refill=False),
                 # --- STEPS_LIST_INSERTION_POINT ---
                 Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)
             ]
@@ -414,7 +390,7 @@ class Quadfecta:
         app.route(f'/{app_name}/step_webogs_complete', methods=['POST'])(self.step_webogs_complete)
         app.route(f'/{app_name}/step_crawler_complete', methods=['POST'])(self.step_crawler_complete)
         app.route(f'/{app_name}/step_gsc_complete', methods=['POST'])(self.step_gsc_complete)
-        app.route(f'/{app_name}/step_ga_complete', methods=['POST'])(self.step_ga_complete)
+
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
 
@@ -423,10 +399,10 @@ class Quadfecta:
             if step.id not in self.step_messages:
                 self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
         self.step_messages['step_gsc'] = {'input': f"❔{pip.fmt('step_gsc')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
-        self.step_messages['step_ga'] = {'input': f"❔{pip.fmt('step_ga')}: Please check if the project has Google Analytics data.", 'complete': 'Google Analytics check complete. Ready to finalize.'}
+
         self.step_messages['step_crawler'] = {'input': f"❔{pip.fmt('step_crawler')}: Please download basic crawl attributes for node metadata.", 'complete': '📊 Basic crawl data download complete. Continue to next step.'}
         self.step_messages['step_webogs'] = {'input': f"❔{pip.fmt('step_webogs')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
-        self.step_messages['step_ga'] = {'input': f"❔{pip.fmt('step_ga')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
+
 
     def get_available_templates_for_data_type(self, data_type):
         """Get available query templates for a specific data type."""
@@ -467,7 +443,6 @@ class Quadfecta:
         analysis_template = self.get_configured_template('analysis')
         crawler_template = self.get_configured_template('crawler')
         gsc_template = self.get_configured_template('gsc')
-        ga_template = self.get_configured_template('ga')
 
         # Base steps that are always present
         steps = [
@@ -483,7 +458,6 @@ class Quadfecta:
         steps.extend([
             Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False),
             Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False),
-            Step(id='step_ga', done='ga', show=f'Download Google Analytics: {ga_template}', refill=False),
             Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)
         ])
         
@@ -861,11 +835,7 @@ class Quadfecta:
                 if gsc_exists:
                     files_found.append('gsc.csv')
 
-                # Check GA data
-                ga_filepath = await self.get_deterministic_filepath(username, project_name, slug, 'ga_data')
-                ga_exists, _ = await self.check_file_exists(ga_filepath)
-                if ga_exists:
-                    files_found.append('ga.csv')
+
 
                 if files_found:
                     downloaded_files_info[slug] = files_found
@@ -2121,431 +2091,8 @@ class Quadfecta:
             logging.exception(f'Error in step_gsc_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
-    async def step_ga_complete(self, request):
-        """Handles completion after the progress indicator has been shown."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_ga'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        prev_step_id = 'step_analysis'
-        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
-        analysis_data_str = prev_step_data.get('analysis_selection', '')
-        if not analysis_data_str:
-            return P('Error: Analysis data not found.', style=pip.get_style('error'))
-        analysis_data = json.loads(analysis_data_str)
-        analysis_slug = analysis_data.get('analysis_slug', '')
-        
-        # Get project data
-        prev_step_id = 'step_project'
-        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
-        prev_data_str = prev_step_data.get('botify_project', '')
-        if not prev_data_str:
-            return P('Error: Project data not found.', style=pip.get_style('error'))
-        project_data = json.loads(prev_data_str)
-        project_name = project_data.get('project_name', '')
-        username = project_data.get('username', '')
-        
-        try:
-            has_ga, error_message = await self.check_if_project_has_ga_data(username, project_name, analysis_slug)
-            if error_message:
-                return Div(P(f'Error: {error_message}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-            check_result = {'has_ga': has_ga, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
-            if has_ga:
-                await self.message_queue.add(pip, f'✅ Project has Google Analytics data, downloading...', verbatim=True)
-                # Process GA data similar to Search Console processing
-                await self.process_google_analytics_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
-            else:
-                await self.message_queue.add(pip, f'❌ Project does not have Google Analytics data (skipping download)', verbatim=True)
-                
-                # Generate Python debugging code even when no GA data (for educational purposes)
-                try:
-                    analysis_date_obj = datetime.strptime(analysis_slug, '%Y%m%d')
-                    start_date = analysis_date_obj.strftime('%Y-%m-%d')
-                    end_date = (analysis_date_obj + timedelta(days=6)).strftime('%Y-%m-%d')
-                    
-                    # Create example GA export payload for educational purposes
-                    ga_template = self.get_configured_template('ga')
-                    example_export_payload = await self.build_exports(
-                        username, project_name, analysis_slug, 'ga_data', start_date, end_date
-                    )
-                    
-                    # Generate Python code for debugging
-                    _, _, python_command = self.generate_query_api_call(example_export_payload, username, project_name)
-                    check_result['python_command'] = python_command
-                except Exception as e:
-                    # Fallback to basic example if generation fails
-                    check_result['python_command'] = f'# Example GA query for {project_name} (no GA data available)\n# This project does not have Google Analytics data integrated.'
-                
-                check_result_str = json.dumps(check_result)
-                await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
-            status_text = 'HAS' if has_ga else 'does NOT have'
-            completed_message = 'GA data completed' if has_ga else 'No Google Analytics data available'
-            action_buttons = self._create_action_buttons(check_result, step_id)
 
-            widget = Div(
-                Div(
-                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
-                        hx_target=f'#{step_id}_widget',
-                        hx_swap='innerHTML'
-                    ),
-                    *action_buttons,
-                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
-                ),
-                Div(
-                    Pre(f'Status: Project {status_text} Google Analytics data', cls='code-block-container', style=f'color: {"green" if has_ga else "red"}; display: none;'),
-                    id=f'{step_id}_widget'
-                )
-            )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        except Exception as e:
-            logging.exception(f'Error in step_ga_complete: {e}')
-            return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
-    async def step_ga(self, request):
-        """Handles GET request for checking if a Botify project has Google Analytics data."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_ga'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        check_result_str = step_data.get(step.done, '')
-        check_result = json.loads(check_result_str) if check_result_str else {}
-        prev_step_id = 'step_project'
-        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
-        prev_data_str = prev_step_data.get('botify_project', '')
-        if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
-        project_data = json.loads(prev_data_str)
-        project_name = project_data.get('project_name', '')
-        username = project_data.get('username', '')
-        if check_result and state.get('_revert_target') != step_id:
-            has_ga = check_result.get('has_ga', False)
-            status_text = 'HAS Google Analytics data' if has_ga else 'does NOT have Google Analytics data'
-            status_color = 'green' if has_ga else 'red'
-            action_buttons = self._create_action_buttons(check_result, step_id)
-
-            widget = Div(
-                Div(
-                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
-                        hx_target=f'#{step_id}_widget',
-                        hx_swap='innerHTML'
-                    ),
-                    *action_buttons,
-                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
-                ),
-                Div(
-                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
-                    id=f'{step_id}_widget'
-                )
-            )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        else:
-            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            
-            # Get current analysis from step_analysis data for dynamic button text
-            current_analysis_slug = ''
-            try:
-                analysis_step_id = 'step_analysis'
-                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
-                if analysis_step_data:
-                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
-                    if analysis_data_str:
-                        try:
-                            analysis_data = json.loads(analysis_data_str)
-                            current_analysis_slug = analysis_data.get('analysis_slug', '')
-                        except (json.JSONDecodeError, AttributeError):
-                            pass
-            except Exception:
-                pass
-            
-            # Create form with HTMX dynamic button updates
-            ga_template = self.get_configured_template('ga')
-            initial_button_text = f'Download Google Analytics: {ga_template} ▸'
-            
-            # Create button row with conditional skip button
-            button_row_items = [
-                Button(initial_button_text, type='submit', name='action', value='download', 
-                       cls='primary', id='submit-button',
-                       **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
-            ]
-
-            # Add skip button if enabled in config
-            if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
-                button_row_items.append(
-                    Button(self.ui['BUTTON_LABELS']['SKIP_STEP'],
-                           type='submit', name='action', value='skip', cls='secondary outline',
-                           style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
-                )
-            
-            return Div(
-                Card(
-                    H3(f'{step.show}'),
-                    P(f"Download Google Analytics data for '{project_name}'"),
-                    P(f'Organization: {username}', cls='text-secondary'),
-                    Form(
-                        # Hidden inputs for HTMX context
-                        Input(type='hidden', name='analysis_slug', value=current_analysis_slug),
-                        Input(type='hidden', name='username', value=username),
-                        Input(type='hidden', name='project_name', value=project_name),
-                        Input(type='hidden', name='step_context', value='step_ga'),
-                        
-                        # Button row
-                        Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']),
-                        
-                        # Form submission attributes
-                        hx_post=f'/{app_name}/{step_id}_submit',
-                        hx_target=f'#{step_id}'
-                    ),
-                    # Separate script for initial button update check
-                    Script(f"""
-                        // Check for cached files when step loads
-                        htmx.ajax('POST', '/{app_name}/update_button_text', {{
-                            values: {{
-                                'analysis_slug': '{current_analysis_slug}',
-                                'username': '{username}',
-                                'project_name': '{project_name}',
-                                'step_context': 'step_ga'
-                            }},
-                            target: '#submit-button',
-                            swap: 'outerHTML'
-                        }});
-                    """)
-                ),
-                Div(id=next_step_id), 
-                id=step_id
-            )
-
-    async def step_ga_submit(self, request):
-        """Process the check for Botify Google Analytics data."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_ga'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
-
-        # Check if user clicked skip button
-        form = await request.form()
-        action = form.get('action', 'download')  # Default to download for backward compatibility
-
-        if action == 'skip':
-            # Handle skip action - create fake completion data and proceed to next step
-            await self.message_queue.add(pip, f"⏭️ Skipping Google Analytics download...", verbatim=True)
-
-            # Create skip data that indicates step was skipped
-            skip_result = {
-                'has_ga': False,
-                'skipped': True,
-                'skip_reason': 'User chose to skip Google Analytics download',
-                'download_complete': False,
-                'file_path': None,
-                'raw_python_code': '',
-                'query_python_code': '',
-                'jobs_payload': {}
-            }
-
-            await pip.set_step_data(pipeline_id, step_id, json.dumps(skip_result), steps)
-            await self.message_queue.add(pip, f"⏭️ Google Analytics step skipped. Proceeding to next step.", verbatim=True)
-
-            return Div(
-                pip.display_revert_widget(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f'{step.show}: Skipped',
-                    widget=Div(P('This step was skipped.', style='color: #888; font-style: italic;')),
-                    steps=steps
-                ),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )
-
-        # Handle normal download action
-        prev_step_id = 'step_project'
-        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
-        prev_data_str = prev_step_data.get('botify_project', '')
-        if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
-        project_data = json.loads(prev_data_str)
-        project_name = project_data.get('project_name', '')
-        username = project_data.get('username', '')
-
-        # Get analysis slug from step_analysis data
-        analysis_step_id = 'step_analysis'
-        analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
-        analysis_slug = ''
-        if analysis_step_data:
-            analysis_data_str = analysis_step_data.get('analysis_selection', '')
-            if analysis_data_str:
-                try:
-                    analysis_data = json.loads(analysis_data_str)
-                    analysis_slug = analysis_data.get('analysis_slug', '')
-                except (json.JSONDecodeError, AttributeError):
-                    pass
-
-        if not analysis_slug:
-            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
-
-        # Check if GA data is already cached
-        try:
-            is_cached, file_info = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'ga_data')
-            
-            if is_cached and file_info:
-                # Use cached file
-                await self.message_queue.add(pip, f"✅ Using cached GA data ({file_info['size']})...", verbatim=True)
-                
-                # Create cached result data
-                cached_result = {
-                    'has_ga': True,
-                    'project': project_name,
-                    'username': username,
-                    'analysis_slug': analysis_slug,
-                    'timestamp': datetime.now().isoformat(),
-                    'download_complete': True,
-                    'file_path': file_info['path'],
-                    'file_size': file_info['size'],
-                    'cached': True,
-                    'raw_python_code': '',
-                    'query_python_code': '',
-                    'jobs_payload': {}
-                }
-                
-                # Store the cached result
-                await pip.set_step_data(pipeline_id, step_id, json.dumps(cached_result), steps)
-                
-                # Create completion widget
-                action_buttons = self._create_action_buttons(cached_result, step_id)
-                widget = Div(
-                    Div(
-                        Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                            cls=self.ui['BUTTON_STYLES']['STANDARD'],
-                            hx_get=f'/{app_name}/toggle?step_id={step_id}',
-                            hx_target=f'#{step_id}_widget',
-                            hx_swap='innerHTML'
-                        ),
-                        *action_buttons,
-                        style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
-                    ),
-                    Div(
-                        Pre(f'Status: Using cached GA data ({file_info["size"]})', cls='code-block-container', style='color: green; display: none;'),
-                        id=f'{step_id}_widget'
-                    )
-                )
-                
-                return Div(
-                    pip.display_revert_widget(
-                        step_id=step_id,
-                        app_name=app_name,
-                        message=f'{step.show}: Using cached GA data ({file_info["size"]})',
-                        widget=widget,
-                        steps=steps
-                    ),
-                    Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                    id=step_id
-                )
-                
-        except Exception as e:
-            # If cache check fails, proceed with download
-            await self.message_queue.add(pip, f"Cache check failed, proceeding with download: {str(e)}", verbatim=True)
-
-        # Proceed with download if not cached
-        return Card(
-            H3(f'{step.show}'),
-            P(f"Downloading Google Analytics data for '{project_name}'..."),
-            Progress(style='margin-top: 10px;'),
-            Script(f"""
-                setTimeout(function() {{
-                    htmx.ajax('POST', '/{app_name}/{step_id}_complete', {{
-                        target: '#{step_id}',
-                        values: {{ 'delay_complete': 'true' }}
-                    }});
-                }}, 1500);
-            """),
-            id=step_id
-        )
-
-    async def check_if_project_has_ga_data(self, org_slug, project_slug, analysis_slug):
-        """
-        Checks if Google Analytics data is available for the given analysis.
-        
-        Unlike other data sources, GA data is not a separate collection but integrated
-        into the main dataset as fields. This method checks for the presence of GA fields
-        in the analysis datamodel.
-        
-        Args:
-            org_slug: Organization slug
-            project_slug: Project slug  
-            analysis_slug: Analysis slug (e.g., '20250514')
-            
-        Returns:
-            (True, None) if GA data found, (False, None) if not found, or (False, error_message) on error.
-        """
-        try:
-            if not os.path.exists(TOKEN_FILE):
-                return (False, f"Token file '{TOKEN_FILE}' not found.")
-            with open(TOKEN_FILE) as f:
-                content = f.read().strip()
-                api_key = content.split('\n')[0].strip()
-                if not api_key:
-                    return (False, f"Token file '{TOKEN_FILE}' is empty.")
-        except Exception as e:
-            return (False, f'Error loading API key: {e}')
-            
-        if not org_slug or not project_slug or not analysis_slug:
-            return (False, 'Organization, project, and analysis slugs are required.')
-            
-        # Check the datamodel for GA fields
-        datamodel_url = f'https://api.botify.com/v1/analyses/{org_slug}/{project_slug}/{analysis_slug}/urls/datamodel'
-        headers = {'Authorization': f'Token {api_key}', 'Content-Type': 'application/json'}
-        
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(datamodel_url, headers=headers, timeout=60.0)
-                
-            if response.status_code == 401:
-                return (False, 'Authentication failed (401). Check your API token.')
-            elif response.status_code == 403:
-                return (False, 'Forbidden (403). You may not have access to this analysis.')
-            elif response.status_code == 404:
-                return (False, 'Analysis not found (404). Check org/project/analysis slugs.')
-                
-            response.raise_for_status()
-            datamodel = response.json()
-            
-            # Convert datamodel to string and search for GA indicators
-            datamodel_str = json.dumps(datamodel).lower()
-            
-            # Look for various GA field patterns
-            ga_indicators = [
-                'google_analytics',
-                'ga:sessions',
-                'ga:pageviews', 
-                'analytics',
-                'bounce rate',
-                'session duration'
-            ]
-            
-            # Check if any GA indicators are present
-            has_ga_data = any(indicator in datamodel_str for indicator in ga_indicators)
-            
-            return (has_ga_data, None)
-            
-        except httpx.HTTPStatusError as e:
-            return (False, f'API Error: {e.response.status_code}')
-        except httpx.RequestError as e:
-            return (False, f'Network error: {e}')
-        except json.JSONDecodeError:
-            return (False, 'Could not decode the API response as JSON.')
-        except Exception as e:
-            return (False, f'An unexpected error occurred: {e}')
 
     def validate_botify_url(self, url):
         """Validate a Botify project URL and extract project information."""
@@ -3195,7 +2742,7 @@ class Quadfecta:
             'crawl_attributes': 'crawl.csv',
             'link_graph_edges': 'link_graph.csv',
             'gsc_data': 'gsc.csv',
-            'ga_data': 'ga.csv'
+    
         }
         
         if export_type not in filename_map:
@@ -3675,160 +3222,8 @@ await main()
             await self.message_queue.add(pip, f'❌ Error processing Search Console data: {str(e)}', verbatim=True)
             raise
 
-    async def process_google_analytics_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result):
-        """Process Google Analytics data download using the configured GA template."""
-        try:
-            # Get the configured GA template
-            ga_template_key = self.get_configured_template('ga')
-            ga_template = self.QUERY_TEMPLATES.get(ga_template_key, {})
-            
-            if not ga_template:
-                raise ValueError(f"GA template '{ga_template_key}' not found")
-            
-            # Get template details
-            export_type = ga_template.get('export_type', 'ga_data')
-            user_message = ga_template.get('user_message', 'Downloading Google Analytics data...')
-            
-            await self.message_queue.add(pip, user_message, verbatim=True)
-            
-            # Build the export using the GA template
-            export_config = await self.build_exports(
-                username=username,
-                project_name=project_name,
-                analysis_slug=analysis_slug,
-                data_type=export_type
-            )
-            
-            if export_config:
-                # Submit the export job
-                api_token = self.read_api_token()
-                base_url = "https://api.botify.com/v1/jobs"
-                headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
-                
-                export_job_payload = export_config['export_job_payload']
-                
-                # CRITICAL: Generate Python code BEFORE attempting API call
-                # This ensures we always have debugging code available, even if the API fails
-                try:
-                    _, _, python_command = self.generate_query_api_call(export_job_payload, username, project_name)
-                except Exception as code_gen_error:
-                    logger.warning(f'Failed to generate Python code for GA: {code_gen_error}')
-                    python_command = f"# Python code generation failed: {str(code_gen_error)}"
-                
-                # Store the Python command in check_result immediately
-                check_result.update({
-                    'jobs_payload': export_job_payload,
-                    'python_command': python_command,
-                    'template_used': ga_template_key,
-                    'export_type': export_type
-                })
-                
-                # Debug: Log the actual BQL query being sent (to server logs only)
-                logger.debug(f'GA Export Job Payload: {json.dumps(export_job_payload, indent=2)}')
-                
-                await self.message_queue.add(pip, f'🚀 Submitting Google Analytics export job...', verbatim=True)
-                
-                async with httpx.AsyncClient(timeout=60.0) as client:
-                    response = await client.post(base_url, json=export_job_payload, headers=headers)
-                    
-                if response.status_code not in [200, 201]:
-                    error_msg = f'Failed to submit GA export job: {response.status_code} - {response.text}'
-                    raise Exception(error_msg)
-                
-                job_data = response.json()
-                job_url = job_data.get('job_url')
-                
-                if not job_url:
-                    raise Exception('No job URL returned from export submission')
-                
-                await self.message_queue.add(pip, f'✅ GA export job submitted. Polling for completion...', verbatim=True)
-                
-                # Poll for job completion
-                success, result = await self.poll_job_status(job_url, api_token, step_context="export")
-                
-                if success:
-                    download_url = result.get('download_url')
-                    if not download_url:
-                        raise Exception('No download URL in completed job result')
-                    
-                    # Determine file path
-                    file_path = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'ga_data')
-                    await self.ensure_directory_exists(file_path)
-                    
-                    # Download and extract the file
-                    await self.message_queue.add(pip, f'📥 Downloading GA data file...', verbatim=True)
-                    
-                    async with httpx.AsyncClient(timeout=300.0) as client:
-                        download_response = await client.get(download_url)
-                        download_response.raise_for_status()
-                        
-                        # Handle ZIP extraction (similar to other steps)
-                        if download_url.endswith('.zip'):
-                            import zipfile
-                            import io
-                            
-                            with zipfile.ZipFile(io.BytesIO(download_response.content)) as zip_file:
-                                csv_files = [name for name in zip_file.namelist() if name.endswith('.csv')]
-                                if csv_files:
-                                    with zip_file.open(csv_files[0]) as csv_file:
-                                        with open(file_path, 'wb') as f:
-                                            f.write(csv_file.read())
-                                else:
-                                    raise Exception('No CSV file found in downloaded ZIP')
-                        else:
-                            # Direct CSV download
-                            with open(file_path, 'wb') as f:
-                                f.write(download_response.content)
-                    
-                    # Generate Python code for debugging
-                    _, _, python_command = self.generate_query_api_call(export_job_payload, username, project_name)
-                    
-                    # Update check_result with successful download data
-                    check_result.update({
-                        'download_complete': True,
-                        'file_path': file_path,
-                        'jobs_payload': export_job_payload,
-                        'python_command': python_command,
-                        'template_used': ga_template_key,
-                        'export_type': export_type,
-                        'row_count': result.get('row_count'),
-                        'file_size': result.get('file_size')
-                    })
-                    
-                    # Store the updated result
-                    check_result_str = json.dumps(check_result)
-                    await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
-                    
-                    await self.message_queue.add(pip, f'✅ Google Analytics data download completed', verbatim=True)
-                    
-                else:
-                    # Job failed
-                    error_msg = f'GA export job failed: {result}'
-                    raise Exception(error_msg)
-                    
-            else:
-                # Handle export config failure
-                error_msg = 'Failed to build GA export configuration'
-                check_result.update({
-                    'download_complete': False,
-                    'error': error_msg,
-                    'jobs_payload': {},
-                    'python_command': ''
-                })
-                
-                check_result_str = json.dumps(check_result)
-                await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
-                await self.message_queue.add(pip, f'❌ Google Analytics data download failed: {error_msg}', verbatim=True)
-                
-        except Exception as e:
-            logger.error(f'Error in process_google_analytics_data: {e}')
-            check_result['error'] = str(e)
-            check_result['download_complete'] = False
-            
-            # Ensure we always save the step data (including any Python command that was generated)
-            check_result_str = json.dumps(check_result)
-            await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
-            await self.message_queue.add(pip, f'❌ Error processing Google Analytics data: {str(e)}', verbatim=True)
+
+
 
     async def build_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None, dynamic_param_value=None, placeholder_for_dynamic_param=None):
         """Builds BQLv2 query objects and export job payloads.
@@ -4047,60 +3442,7 @@ await main()
                 curl_command=curl_cmd, python_command=python_cmd
             )
 
-        elif data_type == 'ga_data':
-            if not analysis_slug:
-                raise ValueError("analysis_slug is required for data_type 'ga_data'")
-            collection = f'crawl.{analysis_slug}'  # Try using main crawl collection first
-            # Use the configured GA template
-            ga_template = self.get_configured_template('ga')
-            template_query = self.apply_template(ga_template, collection)
 
-            bql_query = {
-                'collections': [collection],
-                'query': template_query
-            }
-            check_query_payload = {
-                'collections': [collection],
-                'query': {
-                    'dimensions': [],
-                    'metrics': [{'function': 'count', 'args': [f'{collection}.url']}],
-                    'filters': {'field': f'{collection}.http_code', 'predicate': 'eq', 'value': 200}
-                }
-            }
-            export_job_payload = {
-                'job_type': 'export',
-                'payload': {
-                    'username': username,
-                    'project': project_name,
-                    'connector': 'direct_download',
-                    'formatter': 'csv',
-                    'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],  # Use same size as crawl
-                    'query': bql_query,
-                    'formatter_config': {'print_header': True}
-                }
-            }
-
-            # Log the GA export details with template information
-            template_info = self.QUERY_TEMPLATES.get(ga_template, {})
-            curl_cmd, python_cmd = self._generate_api_call_representations(
-                method="POST", url=base_url, headers=headers, payload=export_job_payload,
-                step_context="Step 5: Google Analytics Export Job", template_info=template_info,
-                username=username, project_name=project_name
-            )
-            await self.pipulate.log_api_call_details(
-                pipeline_id="build_exports", step_id="ga_export",
-                call_description="Google Analytics Export Job Creation",
-                method="POST", url=base_url, headers=headers, payload=export_job_payload,
-                curl_command=curl_cmd, python_command=python_cmd
-            )
-
-            return {
-                'check_query_payload': check_query_payload,
-                'check_url': f'/v1/projects/{username}/{project_name}/query',
-                'export_job_payload': export_job_payload,
-                'export_url': '/v1/jobs',
-                'data_type': data_type
-            }
         else:
             raise ValueError(f'Unknown data type: {data_type}')
 
@@ -4944,13 +4286,13 @@ await main()
         """Get template configuration key and fallbacks for a given step context.
         
         Args:
-            step_context: The step context string (e.g., 'step_ga', 'step_crawler')
+            step_context: The step context string (e.g., 'step_crawler', 'step_gsc')
             
         Returns:
             tuple: (template_config_key, fallback_export_type, fallback_suffix)
         """
         step_mappings = {
-            'step_ga': ('ga', 'ga_data', 'GA Data'),
+    
             'step_gsc': ('gsc', 'gsc_data', 'GSC Data'),
             'step_crawler': ('crawler', 'crawl_attributes', 'Basic Attributes'),
             'step_webogs': ('weblog', 'weblog', 'Web Logs'),  # Web logs not templated
@@ -5813,8 +5155,8 @@ await main()
             expected_filename = 'weblog.csv'
         elif step_id == 'step_gsc':
             expected_filename = 'gsc.csv'
-        elif step_id == 'step_ga':
-            expected_filename = 'ga.csv'
+
+
 
         # Check if download was successful and try to find the file
         if download_complete and expected_filename and username and project_name and analysis_slug:
