@@ -27,9 +27,9 @@ TOKEN_FILE = 'botify_token.txt'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class Quadfecta:
+class Trifecta:
     """
-    Botify Quadfecta Workflow - Multi-Export Data Collection
+    Botify Trifecta Workflow - Multi-Export Data Collection
 
     A comprehensive workflow that downloads three types of Botify data (link
     graph/crawl analysis, web logs, and Search Console) and
@@ -79,7 +79,7 @@ class Quadfecta:
     ## Workflow Modularity & Flexibility
     ===================================
 
-    While this is called the "Botify Quadfecta" and downloads from four main data sources,
+    While this is called the "Botify Trifecta" and downloads from four main data sources,
     the workflow is highly modular:
 
     **REQUIRED STEP**: Only Step 2 (crawl data) is actually required because it:
@@ -176,7 +176,7 @@ class Quadfecta:
     **DO NOT REFACTOR THIS PATTERN WITHOUT UNDERSTANDING IT COMPLETELY**
     """
     APP_NAME = 'trifecta'
-    DISPLAY_NAME = 'Quadfecta 🏇'
+    DISPLAY_NAME = 'Trifecta 🏇'
     ENDPOINT_MESSAGE = 'Download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) — the Trifecta!'
     TRAINING_PROMPT = 'This workflow provides an example of how to download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) from the Botify API. The queries are different for each type. Downloading one of each type is often the precursor to a comprehensive Botify deliverable, incorporating the full funnel philosophy of the Botify way.'
 

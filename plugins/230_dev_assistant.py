@@ -1122,7 +1122,7 @@ class DevAssistant:
                    f"  {format_bash_command(version_data['training_prompt'])} \\\n" + \
                    f"  --template hello --role Core --force"
         
-        # Quadfecta template option
+        # Trifecta template option
         trifecta_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
                        f"  {format_bash_command(version_data['display_name'])} \\\n" + \
                        f"  {format_bash_command(version_data['endpoint_message'])} \\\n" + \
@@ -1177,9 +1177,9 @@ class DevAssistant:
                 style='margin-bottom: 1.5rem;'
             ),
             
-            # Quadfecta template option
+            # Trifecta template option
             Div(
-                H5('🏇 Quadfecta Template (Complex Workflow):', style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_PURPLE"]}; margin-bottom: 0.5rem;'),
+                H5('🏇 Trifecta Template (Complex Workflow):', style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_PURPLE"]}; margin-bottom: 0.5rem;'),
                 P('Complex 5-step workflow from Botify template for sophisticated data collection scenarios.',
                   style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-size: 0.9rem; margin-bottom: 0.5rem;'),
                 Pre(
