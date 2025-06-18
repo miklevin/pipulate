@@ -1001,7 +1001,7 @@ class Pipulate:
             log_entry_parts.append(f'  Notes: {notes}')
         
         full_log_message = '\n'.join(log_entry_parts)
-        logger.debug(f'\n--- API Call Log ---\n{full_log_message}\n--- End API Call Log ---')
+        logger.info(f'\n🚀 === API CALL TRANSPARENCY ===\n{full_log_message}\n🚀 === END API TRANSPARENCY ===')
         is_bql = 'bql' in (call_description or '').lower() or 'botify query language' in (call_description or '').lower()
 
     async def log_mcp_call_details(self, operation_id: str, tool_name: str, operation_type: str, mcp_block: str=None, request_payload: Optional[dict]=None, response_data: Optional[dict]=None, response_status: Optional[int]=None, external_api_url: Optional[str]=None, external_api_method: str='GET', external_api_headers: Optional[dict]=None, external_api_payload: Optional[dict]=None, external_api_response: Optional[dict]=None, external_api_status: Optional[int]=None, execution_time_ms: Optional[float]=None, notes: Optional[str]=None):
