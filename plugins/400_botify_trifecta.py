@@ -737,7 +737,7 @@ class Trifecta:
                     
             except Exception as e:
                 await self.message_queue.add(pip, f"⚠️ Could not save analyses data: {str(e)}", verbatim=True)
-                logging.exception(f'Error in analyses data saving: {e}')
+                logger.error(f'Error in analyses data saving: {e}')
         else:
             await self.message_queue.add(pip, "⚠️ No API token found - skipping analyses data save", verbatim=True)
         
@@ -796,9 +796,9 @@ class Trifecta:
             api_token = self.read_api_token()
             if not api_token:
                 return P('Error: Botify API token not found. Please connect with Botify first.', style=pip.get_style('error'))
-            logging.info(f'Getting analyses for {username}/{project_name}')
+            logger.info(f'Getting analyses for {username}/{project_name}')
             slugs = await self.fetch_analyses(username, project_name, api_token)
-            logging.info(f'Got {(len(slugs) if slugs else 0)} analyses')
+            logger.info(f'Got {(len(slugs) if slugs else 0)} analyses')
             if not slugs:
                 return P(f'Error: No analyses found for project {project_name}. Please check your API access.', style=pip.get_style('error'))
             selected_value = selected_slug if selected_slug else slugs[0]
@@ -893,7 +893,7 @@ class Trifecta:
                 id=step_id
             )
         except Exception as e:
-            logging.exception(f'Error in {step_id}: {e}')
+            logger.error(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
 
     async def step_analysis_submit(self, request):
@@ -945,7 +945,7 @@ class Trifecta:
                     
             except Exception as e:
                 await self.message_queue.add(pip, f"⚠️ Could not save advanced export data: {str(e)}", verbatim=True)
-                logging.exception(f'Error in advanced export data saving: {e}')
+                logger.error(f'Error in advanced export data saving: {e}')
         else:
             await self.message_queue.add(pip, "⚠️ No API token found - skipping advanced export data save", verbatim=True)
         
@@ -1458,7 +1458,7 @@ class Trifecta:
             return result
             
         except Exception as e:
-            logging.exception(f'Error in step_crawler_complete: {e}')
+            logger.error(f'Error in step_crawler_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_webogs(self, request):
@@ -2088,7 +2088,7 @@ class Trifecta:
             )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
-            logging.exception(f'Error in step_gsc_complete: {e}')
+            logger.error(f'Error in step_gsc_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
 
@@ -2185,7 +2185,7 @@ class Trifecta:
             List of analysis slugs or empty list on error
         """
         if not org or not project or (not api_token):
-            logging.error(f'Missing required parameters: org={org}, project={project}')
+            logger.error(f'Missing required parameters: org={org}, project={project}')
             return []
 
         all_slugs = []
@@ -2198,17 +2198,17 @@ class Trifecta:
                 async with httpx.AsyncClient() as client:
                     response = await client.get(next_url, headers=headers, timeout=60.0)
                 if response.status_code != 200:
-                    logging.error(f'API error: Status {response.status_code} for {next_url}')
+                    logger.error(f'API error: Status {response.status_code} for {next_url}')
                     return all_slugs
 
                 data = response.json()
                 if 'results' not in data:
-                    logging.error(f"No 'results' key in response: {data}")
+                    logger.error(f"No 'results' key in response: {data}")
                     return all_slugs
 
                 analyses = data['results']
                 if not analyses:
-                    logging.error('Analyses list is empty')
+                    logger.error('Analyses list is empty')
                     return all_slugs
 
                 # Log first page with minimal info (analysis dropdown responses are too large for transparency)
@@ -2228,10 +2228,10 @@ class Trifecta:
                 next_url = data.get('next')
 
             except Exception as e:
-                logging.exception(f'Error fetching analyses: {str(e)}')
+                logger.error(f'Error fetching analyses: {str(e)}')
                 return all_slugs
 
-        logging.info(f'Found {len(all_slugs)} total analyses')
+        logger.info(f'Found {len(all_slugs)} total analyses')
         return all_slugs
 
     def read_api_token(self):
@@ -2334,7 +2334,7 @@ class Trifecta:
             return (True, f"📄 Analyses data saved: {len(all_analyses)} analyses ({file_info['size']})", analyses_filepath)
             
         except Exception as e:
-            logging.exception(f'Error saving analyses data: {str(e)}')
+            logger.error(f'Error saving analyses data: {str(e)}')
             return (False, f"Error saving analyses data: {str(e)}", None)
 
     async def save_advanced_export_to_json(self, username, project_name, analysis_slug, api_token):
@@ -2406,7 +2406,7 @@ class Trifecta:
             return (True, f"📊 Advanced export data saved: {file_info['size']}", advanced_export_filepath)
             
         except Exception as e:
-            logging.exception(f'Error saving advanced export data: {str(e)}')
+            logger.error(f'Error saving advanced export data: {str(e)}')
             return (False, f"Error saving advanced export data: {str(e)}", None)
 
     async def extract_available_fields_from_advanced_export(self, username, project_name, analysis_slug, export_group='urls'):
@@ -2509,7 +2509,7 @@ class Trifecta:
                 'available_exports': []
             }
         except Exception as e:
-            logging.exception(f'Error extracting fields from advanced export: {str(e)}')
+            logger.error(f'Error extracting fields from advanced export: {str(e)}')
             return {
                 'success': False,
                 'message': f"Error extracting fields: {str(e)}",
@@ -3105,7 +3105,7 @@ await main()
 
     async def process_search_console_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result):
         """Process search console data in the background."""
-        logging.info(f'Starting real GSC data export for {username}/{project_name}/{analysis_slug}')
+        logger.info(f'Starting real GSC data export for {username}/{project_name}/{analysis_slug}')
         try:
             gsc_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'gsc')
             file_exists, file_info = await self.check_file_exists(gsc_filepath)
@@ -3137,24 +3137,24 @@ await main()
             _, _, python_command = self.generate_query_api_call(export_query['export_job_payload'], username, project_name)
             check_result['python_command'] = python_command
             try:
-                logging.info(f"Submitting export job with payload: {json.dumps(export_query['export_job_payload'], indent=2)}")
+                logger.info(f"Submitting export job with payload: {json.dumps(export_query['export_job_payload'], indent=2)}")
                 async with httpx.AsyncClient() as client:
                     response = await client.post(job_url, headers=headers, json=export_query['export_job_payload'], timeout=60.0)
-                    logging.info(f'Export job submission response status: {response.status_code}')
+                    logger.info(f'Export job submission response status: {response.status_code}')
                     try:
-                        logging.info(f'Export job response: {json.dumps(response.json(), indent=2)}')
+                        logger.info(f'Export job response: {json.dumps(response.json(), indent=2)}')
                     except:
-                        logging.info(f'Could not parse response as JSON. Raw: {response.text[:500]}')
+                        logger.info(f'Could not parse response as JSON. Raw: {response.text[:500]}')
                     response.raise_for_status()
                     job_data = response.json()
                     job_url_path = job_data.get('job_url')
                     if not job_url_path:
                         raise ValueError('Failed to get job URL from response')
                     full_job_url = f'https://api.botify.com{job_url_path}'
-                    logging.info(f'Got job URL: {full_job_url}')
+                    logger.info(f'Got job URL: {full_job_url}')
                     await self.message_queue.add(pip, '✅ Export job created successfully!', verbatim=True)
             except Exception as e:
-                logging.exception(f'Error creating export job: {str(e)}')
+                logger.error(f'Error creating export job: {str(e)}')
                 await self.message_queue.add(pip, f'❌ Error creating export job: {str(e)}', verbatim=True)
                 raise
             await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
@@ -3207,7 +3207,7 @@ await main()
             check_result_str = json.dumps(check_result)
             await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
         except Exception as e:
-            logging.exception(f'Error in process_search_console_data: {e}')
+            logger.error(f'Error in process_search_console_data: {e}')
             check_result.update({'download_complete': True, 'error': str(e)})
             check_result_str = json.dumps(check_result)
             await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
@@ -3479,25 +3479,25 @@ await main()
         else:
             step_prefix = ''
         poll_msg = f'{step_prefix}Starting polling for job: {job_url}' + (f' (ID: {job_id})' if job_id else '')
-        logging.info(poll_msg)
+        logger.info(poll_msg)
         await self.message_queue.add(self.pipulate, poll_msg, verbatim=True)
 
         while attempt < max_attempts:
             try:
                 if attempt == 0:
                     poll_attempt_msg = f'{step_prefix}Poll attempt {attempt + 1}/{max_attempts} for job: {job_url}'
-                    logging.info(poll_attempt_msg)
+                    logger.info(poll_attempt_msg)
                     await self.message_queue.add(self.pipulate, poll_attempt_msg, verbatim=True)
                 elif attempt > 0:
                     poll_attempt_msg = f'{step_prefix}Polling... (attempt {attempt + 1}/{max_attempts})'
-                    logging.info(poll_attempt_msg)
+                    logger.info(poll_attempt_msg)
                     await self.message_queue.add(self.pipulate, poll_attempt_msg, verbatim=True)
 
                 if consecutive_network_errors >= 2 and job_id:
                     alternative_url = f'https://api.botify.com/v1/jobs/{job_id}'
                     if alternative_url != job_url:
                         url_switch_msg = f'{step_prefix}Switching to direct job ID URL: {alternative_url}'
-                        logging.info(url_switch_msg)
+                        logger.info(url_switch_msg)
                         await self.message_queue.add(self.pipulate, url_switch_msg, verbatim=True)
                         job_url = alternative_url
 
@@ -3521,25 +3521,25 @@ await main()
                     try:
                         response_json = response.json()
                         if attempt == 0 or status == 'DONE':
-                            logging.debug(f'Poll response: {json.dumps(response_json, indent=2)}')
+                            logger.debug(f'Poll response: {json.dumps(response_json, indent=2)}')
                     except:
                         if attempt == 0 or status == 'DONE':
-                            logging.debug(f'Could not parse response as JSON. Status: {response.status_code}, Raw: {response.text[:500]}')
+                            logger.debug(f'Could not parse response as JSON. Status: {response.status_code}, Raw: {response.text[:500]}')
                     if response.status_code == 401:
                         error_msg = f'{step_prefix}Authentication failed. Please check your API token.'
-                        logging.error(error_msg)
+                        logger.error(error_msg)
                         await self.message_queue.add(self.pipulate, f'❌ {error_msg}', verbatim=True)
                         return (False, error_msg)
                     if response.status_code >= 400:
                         error_msg = f'{step_prefix}API error {response.status_code}: {response.text}'
-                        logging.error(error_msg)
+                        logger.error(error_msg)
                         await self.message_queue.add(self.pipulate, f'❌ {error_msg}', verbatim=True)
                         return (False, error_msg)
                     job_data = response.json()
                     status = job_data.get('job_status')
                     if attempt == 0:
                         status_msg = f'{step_prefix}Poll attempt {attempt + 1}: status={status}'
-                        logging.info(status_msg)
+                        logger.info(status_msg)
                         await self.message_queue.add(self.pipulate, status_msg, verbatim=True)
 
                     # Log the polling response
@@ -3555,7 +3555,7 @@ await main()
                     if status == 'DONE':
                         results = job_data.get('results', {})
                         success_msg = 'Job completed successfully!'
-                        logging.info(f'{step_prefix}{success_msg}')
+                        logger.info(f'{step_prefix}{success_msg}')
                         await self.message_queue.add(self.pipulate, f'✅ {success_msg}', verbatim=True)
                         return (True, {'download_url': results.get('download_url'), 'row_count': results.get('row_count'), 'file_size': results.get('file_size'), 'filename': results.get('filename'), 'expires_at': results.get('expires_at')})
                     if status == 'FAILED':
@@ -3563,7 +3563,7 @@ await main()
                         error_message = error_details.get('message', 'Unknown error')
                         error_type = error_details.get('type', 'Unknown type')
                         error_msg = f'{step_prefix}Job failed with error type: {error_type}, message: {error_message}'
-                        logging.error(error_msg)
+                        logger.error(error_msg)
                         await self.message_queue.add(self.pipulate, f'❌ {error_msg}', verbatim=True)
                         return (False, f'Export failed: {error_message} (Type: {error_type})')
                     attempt += 1
@@ -3571,38 +3571,38 @@ await main()
                         wait_msg = f'{step_prefix}Job still processing.'
                     else:
                         wait_msg = f'{step_prefix}Still processing...'
-                    logging.info(wait_msg)
+                    logger.info(wait_msg)
                     await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                     await asyncio.sleep(delay)
                     delay = min(int(delay * 1.5), 20)
             except (httpx.RequestError, socket.gaierror, socket.timeout) as e:
                 consecutive_network_errors += 1
                 error_msg = f'{step_prefix}Network error polling job status: {str(e)}'
-                logging.error(error_msg)
+                logger.error(error_msg)
                 await self.message_queue.add(self.pipulate, f'❌ {error_msg}', verbatim=True)
                 if job_id:
                     job_url = f'https://api.botify.com/v1/jobs/{job_id}'
                     retry_msg = f'{step_prefix}Retry with direct job ID URL: {job_url}'
-                    logging.warning(retry_msg)
+                    logger.warning(retry_msg)
                     await self.message_queue.add(self.pipulate, retry_msg, verbatim=True)
                 attempt += 1
                 wait_msg = f'{step_prefix}Network error.'
-                logging.info(wait_msg)
+                logger.info(wait_msg)
                 await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                 await asyncio.sleep(delay)
                 delay = min(int(delay * 2), 30)
             except Exception as e:
                 error_msg = f'{step_prefix}Unexpected error in polling: {str(e)}'
-                logging.exception(error_msg)
+                logger.error(error_msg)
                 await self.message_queue.add(self.pipulate, f'❌ {error_msg}', verbatim=True)
                 attempt += 1
                 wait_msg = f'{step_prefix}Unexpected error.'
-                logging.info(wait_msg)
+                logger.info(wait_msg)
                 await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                 await asyncio.sleep(delay)
                 delay = min(int(delay * 2), 30)
         max_attempts_msg = f'{step_prefix}Maximum polling attempts reached'
-        logging.warning(max_attempts_msg)
+        logger.warning(max_attempts_msg)
         await self.message_queue.add(self.pipulate, f'⚠️ {max_attempts_msg}', verbatim=True)
         return (False, 'Maximum polling attempts reached. The export job may still complete in the background.')
 
@@ -3737,7 +3737,7 @@ await main()
                 }
                 job_url = 'https://api.botify.com/v1/jobs'
                 headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
-                logging.info(f'Submitting crawl export job with payload: {json.dumps(export_query, indent=2)}')
+                logger.info(f'Submitting crawl export job with payload: {json.dumps(export_query, indent=2)}')
 
                 # Generate Python command snippet (using /query endpoint for Jupyter debugging)
                 _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
@@ -3751,10 +3751,10 @@ await main()
                             try:
                                 error_body = response.json()
                                 error_detail = json.dumps(error_body, indent=2)
-                                logging.error(f'API error details: {error_detail}')
+                                logger.error(f'API error details: {error_detail}')
                             except Exception:
                                 error_detail = response.text[:500]
-                                logging.error(f'API error text: {error_detail}')
+                                logger.error(f'API error text: {error_detail}')
                             response.raise_for_status()
                         job_data = response.json()
                         job_url_path = job_data.get('job_url')
@@ -3938,7 +3938,7 @@ await main()
             )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Analysis {status_text}{download_message}', widget=widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
-            logging.exception(f'Error in step_analysis_process: {e}')
+            logger.error(f'Error in step_analysis_process: {e}')
             return P(f'Error: {str(e)}', style=pip.get_style('error'))
 
     async def step_webogs_process(self, request):
@@ -4012,7 +4012,7 @@ await main()
                     export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': self.config['BOTIFY_API']['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
                     job_url = 'https://api.botify.com/v1/jobs'
                     headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
-                    logging.info(f'Submitting logs export job with payload: {json.dumps(export_query, indent=2)}')
+                    logger.info(f'Submitting logs export job with payload: {json.dumps(export_query, indent=2)}')
 
                     # Generate Python command snippet (using /query endpoint for Jupyter debugging)
                     _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
@@ -4027,10 +4027,10 @@ await main()
                                 try:
                                     error_body = response.json()
                                     error_detail = json.dumps(error_body, indent=2)
-                                    logging.error(f'API error details: {error_detail}')
+                                    logger.error(f'API error details: {error_detail}')
                                 except Exception:
                                     error_detail = response.text[:500]
-                                    logging.error(f'API error text: {error_detail}')
+                                    logger.error(f'API error text: {error_detail}')
                                 response.raise_for_status()
                             job_data = response.json()
                             job_url_path = job_data.get('job_url')
@@ -4130,7 +4130,7 @@ await main()
                                     with gzip.open(compressed_path, 'rb') as f_in:
                                         with open(logs_filepath, 'wb') as f_out:
                                             shutil.copyfileobj(f_in, f_out)
-                                    logging.info(f'Successfully extracted gzip file to {logs_filepath}')
+                                    logger.info(f'Successfully extracted gzip file to {logs_filepath}')
                                 except gzip.BadGzipFile:
                                     try:
                                         with zipfile.ZipFile(compressed_path, 'r') as zip_ref:
@@ -4140,10 +4140,10 @@ await main()
                                             with zip_ref.open(csv_files[0]) as source:
                                                 with open(logs_filepath, 'wb') as target:
                                                     shutil.copyfileobj(source, target)
-                                        logging.info(f'Successfully extracted zip file to {logs_filepath}')
+                                        logger.info(f'Successfully extracted zip file to {logs_filepath}')
                                     except zipfile.BadZipFile:
                                         shutil.copy(compressed_path, logs_filepath)
-                                        logging.info(f"File doesn't appear to be compressed, copying directly to {logs_filepath}")
+                                        logger.info(f"File doesn't appear to be compressed, copying directly to {logs_filepath}")
                                 if os.path.exists(compressed_path):
                                     os.remove(compressed_path)
                                 _, file_info = await self.check_file_exists(logs_filepath)
@@ -4206,7 +4206,7 @@ await main()
             )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} web logs{download_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
-            logging.exception(f'Error in step_webogs_process: {e}')
+            logger.error(f'Error in step_webogs_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
 
