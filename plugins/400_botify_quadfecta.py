@@ -3110,6 +3110,24 @@ class Quadfecta:
             try:
                 async with httpx.AsyncClient() as client:
                     response = await client.post(url, headers=headers, json=query_payload, timeout=60.0)
+                
+                # Log only the FIRST query in the depth-finding series for transparency
+                if current_iter_val == start_val:
+                    # Generate curl and python commands for the depth-finding query
+                    curl_cmd, python_cmd = self._generate_api_call_representations(
+                        method="POST", url=url, headers=headers, payload=query_payload,
+                        step_context=f"Depth Finding Query ({iter_param_name})",
+                        username=username, project_name=project_name
+                    )
+                    await pip.log_api_call_details(
+                        pipeline_id=pip.db.get('pipeline_id', 'unknown'), 
+                        step_id="depth_finding",
+                        call_description=f"First Depth Finding Query - {iter_param_name}={current_iter_val}",
+                        method="POST", url=url, headers=headers, payload=query_payload,
+                        response_status=response.status_code,
+                        curl_command=curl_cmd, python_command=python_cmd,
+                        notes=f"Finding optimal {iter_param_name} value (showing first query only to avoid spam)"
+                    )
 
                 if response.status_code != 200:
                     await self.message_queue.add(pip, f"API error during qualifier check at {iter_param_name}={current_iter_val}: Status {response.status_code}", verbatim=True)
