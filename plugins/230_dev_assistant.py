@@ -1123,11 +1123,11 @@ class DevAssistant:
                    f"  --template hello --role Core --force"
         
         # Quadfecta template option
-        quadfecta_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
+        trifecta_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
                        f"  {format_bash_command(version_data['display_name'])} \\\n" + \
                        f"  {format_bash_command(version_data['endpoint_message'])} \\\n" + \
                        f"  {format_bash_command(version_data['training_prompt'])} \\\n" + \
-                       f"  --template quadfecta --role Core --force"
+                       f"  --template trifecta --role Core --force"
         
         return [
             P(f'Generate commands to create a new version of {filename} as {next_filename}:',
@@ -1183,7 +1183,7 @@ class DevAssistant:
                 P('Complex 5-step workflow from Botify template for sophisticated data collection scenarios.',
                   style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-size: 0.9rem; margin-bottom: 0.5rem;'),
                 Pre(
-                    Code(quadfecta_cmd, cls='language-bash copy-code'),
+                    Code(trifecta_cmd, cls='language-bash copy-code'),
                     style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["ACCENT_PURPLE"]};'
                 ),
                 style='margin-bottom: 1rem;'
@@ -1191,7 +1191,7 @@ class DevAssistant:
             
             # Usage note
             Div(
-                P('💡 Copy any command above to create a new version. The blank template is recommended for general use, while quadfecta is perfect for complex data workflows like Parameter Buster or Link Graph Visualizer.',
+                P('💡 Copy any command above to create a new version. The blank template is recommended for general use, while trifecta is perfect for complex data workflows like Parameter Buster or Link Graph Visualizer.',
                   style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_TEAL"]}; font-style: italic; font-size: 0.9rem;'),
                 style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["WARNING_OVERLAY"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["INFO_TEAL"]};'
             )

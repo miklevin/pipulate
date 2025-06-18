@@ -34,7 +34,7 @@ FILENAME_MAPPINGS = {
     
     # Workshop → 400-499 Range
     "530_botify_api_tutorial.py": "410_botify_api_tutorial.py",
-    "535_botify_quadfecta.py": "400_botify_quadfecta.py",
+    "535_botify_trifecta.py": "400_botify_trifecta.py",
     "540_tab_opener.py": "430_tab_opener.py",
     "550_browser_automation.py": "440_browser_automation.py",
     "560_stream_simulator.py": "450_stream_simulator.py",

@@ -36,7 +36,7 @@ This guide covers patterns for integrating Pipulate with external services like 
   - **BQLv1**: For Web Logs. Uses `app.botify.com` base URL.
   - **BQLv2**: For Crawl/GSC data. Uses `api.botify.com` base URL.
 - **Payload Differences**: The two versions have different payload structures, especially for date handling.
-- **Templates**: The `400_botify_quadfecta.py` workflow uses query templates for BQLv2, but intentionally hardcodes the simple, unchanging BQLv1 query for Web Logs.
+- **Templates**: The `400_botify_trifecta.py` workflow uses query templates for BQLv2, but intentionally hardcodes the simple, unchanging BQLv1 query for Web Logs.
 
 ---
 
@@ -48,7 +48,7 @@ To build robust Botify queries, Pipulate includes a system to discover the compl
 - **Core Script**: `helpers/botify/true_schema_discoverer.py`
 - **Discovery Endpoints**: The script uses official Botify endpoints (`/urls/datamodel` and `/urls/datasets`) to get the real schema.
 - **Proven Results**: This method discovered **4,449 fields**, whereas a previous manual testing approach found only 18. This is the only reliable way to build queries.
-- **Workflow Integration**: The discovered fields can be used to enhance query templates in workflows like `400_botify_quadfecta.py`, allowing for richer data exports and dynamic field selection in the UI.
+- **Workflow Integration**: The discovered fields can be used to enhance query templates in workflows like `400_botify_trifecta.py`, allowing for richer data exports and dynamic field selection in the UI.
 - **Documentation**:
   - `training/botify_api.md`: High-level integration guide.
   - `training/botify_open_api.md`: The complete API reference that was key to finding the correct discovery endpoints.

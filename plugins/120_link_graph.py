@@ -4549,7 +4549,7 @@ await main()
             folder_path = str(analysis_folder.resolve())
             folder_title = f"Open analysis folder: {username}/{project_name}/{analysis_slug}"
         else:
-            # Fallback to general quadfecta folder if analysis info is missing
+            # Fallback to general trifecta folder if analysis info is missing
             analysis_folder = Path.cwd() / 'downloads' / self.APP_NAME
             folder_path = str(analysis_folder.resolve())
             folder_title = f"Open folder: {analysis_folder.resolve()}"

@@ -48,7 +48,7 @@ A workflow is a Python class in a file within the `plugins/` directory.
 
 This is the primary method for creating and modifying workflows.
 
-1. **`create_workflow.py`**: **Starts everything.** Creates a new workflow file from a template (`blank`, `hello`, `quadfecta`).
+1. **`create_workflow.py`**: **Starts everything.** Creates a new workflow file from a template (`blank`, `hello`, `trifecta`).
 2. **`manage_class_attributes.py`**: **Shares styles.** Merges class attributes (like `UI_CONSTANTS`) from a source workflow into a target.
 3. **`splice_workflow_step.py`**: **Adds steps.** The only safe way to add a new placeholder step to a workflow. It uses `---...---` markers in the target file.
 4. **`swap_workflow_step.py`**: **Adds logic.** Replaces a placeholder step's methods with functional logic from another workflow file.

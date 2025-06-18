@@ -452,7 +452,7 @@ Creates new workflows from templates:
 ```bash
 python create_workflow.py workflow.py MyWorkflow my_workflow \
   "My Workflow" "Welcome message" "Training prompt" \
-  --template quadfecta --force
+  --template trifecta --force
 ```
 
 ### `splice_workflow_step.py`
@@ -464,7 +464,7 @@ python splice_workflow_step.py workflow.py --position bottom
 
 ### Template System
 * `blank`: Minimal workflow with one step
-* `quadfecta`: Three-step workflow pattern
+* `trifecta`: Three-step workflow pattern
 * Automatic method generation and insertion
 
 ## Common LLM Implementation Mistakes

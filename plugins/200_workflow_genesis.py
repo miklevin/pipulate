@@ -49,7 +49,7 @@ class WorkflowGenesis:
 
     APP_NAME = 'workflow_genesis'
     DISPLAY_NAME = 'Workflow Genesis ⚡'
-    ENDPOINT_MESSAGE = """Create Pipulate workflows using three distinct approaches: blank placeholder for learning, hello world recreation for understanding helper tools, or quadfecta workflow for complex scenarios."""
+    ENDPOINT_MESSAGE = """Create Pipulate workflows using three distinct approaches: blank placeholder for learning, hello world recreation for understanding helper tools, or trifecta workflow for complex scenarios."""
     TRAINING_PROMPT = """You are assisting with workflow creation in Pipulate. Help users choose between three approaches: 1) Blank placeholder for beginners learning step management, 2) Hello world recreation for understanding helper tool sequences, 3) Quadfecta workflow for complex data collection scenarios. Guide them through command generation and explain the purpose of each approach."""
 
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
@@ -243,7 +243,7 @@ class WorkflowGenesis:
                 'description': 'Multi-step process demonstrating helper tool sequence',
                 'use_case': 'Understanding how helper tools work together to build complex workflows'
             },
-            'quadfecta': {
+            'trifecta': {
                 'name': 'Quadfecta Workflow',
                 'description': 'Complex workflow starting from Botify template',
                 'use_case': 'Building sophisticated data collection workflows with API integration'
@@ -430,8 +430,8 @@ class WorkflowGenesis:
             id=widget_id
         )
 
-    def create_quadfecta_workflow_experience(self, workflow_params, widget_id):
-        """Create experience for quadfecta workflow - complex template conditioning"""
+    def create_trifecta_workflow_experience(self, workflow_params, widget_id):
+        """Create experience for trifecta workflow - complex template conditioning"""
         filename = workflow_params.get('target_filename', '001_kungfu_workflow.py')
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
@@ -443,11 +443,11 @@ class WorkflowGenesis:
         # Ensure consistent plugins/ prefix for all commands
         plugins_filename = f"plugins/{filename}" if not filename.startswith('plugins/') else filename
 
-        # Quadfecta workflow commands - uses quadfecta template
+        # Quadfecta workflow commands - uses trifecta template
         cmd1 = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
                f"{self.format_bash_command(display_name)} " + \
                f"{self.format_bash_command(endpoint_message)} " + \
-               f"{self.format_bash_command(training_prompt)} --template quadfecta --role Core --force"
+               f"{self.format_bash_command(training_prompt)} --template trifecta --role Core --force"
 
         cmd2 = f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
 
@@ -456,7 +456,7 @@ class WorkflowGenesis:
                       f"  {self.format_bash_command(display_name)} \\\n" + \
                       f"  {self.format_bash_command(endpoint_message)} \\\n" + \
                       f"  {self.format_bash_command(training_prompt)} \\\n" + \
-                      f"  --template quadfecta --role Core --force && \\\n" + \
+                      f"  --template trifecta --role Core --force && \\\n" + \
                       f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
 
         return Div(
@@ -483,7 +483,7 @@ class WorkflowGenesis:
 
             # All-in-one section
             H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
-            P("Copy and paste this single command to create the quadfecta workflow with an additional placeholder step:",
+            P("Copy and paste this single command to create the trifecta workflow with an additional placeholder step:",
               style="color: #6c757d; margin-bottom: 0.5rem;"),
             Pre(Code(combined_cmd, cls='language-bash copy-code'),
                 style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
@@ -650,7 +650,7 @@ class WorkflowGenesis:
                     Select(
                     Option("Blank Placeholder - Learn step management basics", value="blank", selected=True),
                     Option("Hello World Recreation - Understand helper tool sequence", value="hello"),
-                    Option("Quadfecta Workflow - Build complex data collection workflow", value="quadfecta"),
+                    Option("Quadfecta Workflow - Build complex data collection workflow", value="trifecta"),
                         name="template",
                         id="template",
                         required=True
@@ -693,8 +693,8 @@ class WorkflowGenesis:
             experience_widget = self.create_blank_placeholder_experience(workflow_params, widget_id)
         elif selected_template == 'hello':
             experience_widget = self.create_hello_world_recreation_experience(workflow_params, widget_id)
-        elif selected_template == 'quadfecta':
-            experience_widget = self.create_quadfecta_workflow_experience(workflow_params, widget_id)
+        elif selected_template == 'trifecta':
+            experience_widget = self.create_trifecta_workflow_experience(workflow_params, widget_id)
         else:
             experience_widget = self.create_blank_placeholder_experience(workflow_params, widget_id)
 
@@ -914,13 +914,13 @@ class WorkflowGenesis:
                           f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom && " + \
                           f"python helpers/swap_workflow_step.py {plugins_filename} step_02 " + \
                           f"plugins/040_hello_workflow.py step_02 --force"
-        elif selected_template == 'quadfecta':
+        elif selected_template == 'trifecta':
             # Quadfecta workflow commands - use template-specific display name
-            quadfecta_display_name = "Kung Fu Quadfecta 🏇"
+            trifecta_display_name = "Kung Fu Quadfecta 🏇"
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
-                          f"{self.format_bash_command(quadfecta_display_name)} " + \
+                          f"{self.format_bash_command(trifecta_display_name)} " + \
                           f"{self.format_bash_command(endpoint_message)} " + \
-                          f"{self.format_bash_command(training_prompt)} --template quadfecta --role Core --force && " + \
+                          f"{self.format_bash_command(training_prompt)} --template trifecta --role Core --force && " + \
                           f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
         else:
             # Blank template - use template-specific display name

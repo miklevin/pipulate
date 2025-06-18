@@ -83,7 +83,7 @@ server.py         <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/300_blank_placeholder.py
 # /home/mike/repos/pipulate/plugins/320_dev_assistant.py
 # /home/mike/repos/pipulate/plugins/330_widget_shim.py
-# /home/mike/repos/pipulate/plugins/400_botify_quadfecta.py
+# /home/mike/repos/pipulate/plugins/400_botify_trifecta.py
 # /home/mike/repos/pipulate/plugins/430_tab_opener.py
 # /home/mike/repos/pipulate/plugins/440_browser_automation.py
 # /home/mike/repos/pipulate/plugins/450_stream_simulator.py
