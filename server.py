@@ -37,7 +37,7 @@ from starlette.responses import FileResponse
 
 # Various debug settings
 DEBUG_MODE = False
-STATE_TABLES = False
+STATE_TABLES = True
 TABLE_LIFECYCLE_LOGGING = False
 API_LOG_ROTATION_COUNT = 5
 shared_app_state = {'critical_operation_in_progress': False}
@@ -322,13 +322,20 @@ def fig(text, font='slant', color='cyan', width=200):
     # Log text equivalent for server.log visibility
     logger.info(f"🎨 BANNER: {text} (figlet: {font})")
 
-def log_rich_table(table, title_prefix=""):
-    """Log rich table content to server.log for radical transparency.
+def print_and_log_table(table, title_prefix=""):
+    """Print rich table to console AND log structured data to server.log for radical transparency.
+    
+    This single function ensures both console display and log transparency happen together,
+    preventing the mistake of using one without the other.
     
     Args:
-        table: Rich Table object to log
+        table: Rich Table object to display and log
         title_prefix: Optional prefix for the log entry
     """
+    # First, display the rich table in console with full formatting
+    console.print(table)
+    
+    # Then, extract and log the table data for server.log transparency
     try:
         # Extract table data for logging
         table_title = getattr(table, 'title', 'Table')
@@ -2099,8 +2106,7 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
             content = json.dumps(content, indent=2, ensure_ascii=False)
         table.add_row(role, content)
         logger.debug(f"🔍 DEBUG: Last message - role: {role}, content: '{content[:100]}...'")
-    console.print(table)
-    log_rich_table(table, "LLM DEBUG - ")
+    print_and_log_table(table, "LLM DEBUG - ")
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -2179,8 +2185,7 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                     table = Table(title='Chat Response')
                     table.add_column('Accumulated Response')
                     table.add_row(final_response, style='green')
-                    console.print(table)
-                    log_rich_table(table, "LLM RESPONSE - ")
+                    print_and_log_table(table, "LLM RESPONSE - ")
 
     except aiohttp.ClientConnectorError as e:
         error_msg = 'Unable to connect to Ollama server. Please ensure Ollama is running.'
@@ -2810,8 +2815,7 @@ async def synchronize_roles_to_db():
         for role_item in final_roles:
             roles_rich_table.add_row(str(role_item.id), role_item.text, '✅' if role_item.done else '❌', str(role_item.priority))
         console.print('\n')
-        console.print(roles_rich_table)
-        log_rich_table(roles_rich_table, "ROLES SYNC - ")
+        print_and_log_table(roles_rich_table, "ROLES SYNC - ")
         console.print('\n')
         logger.info('SYNC_ROLES: Roles synchronization display complete globally.')
     if TABLE_LIFECYCLE_LOGGING:
@@ -4406,8 +4410,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
             for key, value in db.items():
                 json_value = JSON.from_data(value, indent=2)
                 cookie_table.add_row(key, json_value)
-            console.print(cookie_table)
-            log_rich_table(cookie_table, "STATE TABLES - ")
+            print_and_log_table(cookie_table, "STATE TABLES - ")
             pipeline_table = Table(title='➡️ Pipeline States')
             pipeline_table.add_column('Key', style='yellow')
             pipeline_table.add_column('Created', style='magenta')
@@ -4421,8 +4424,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                 except (json.JSONDecodeError, AttributeError) as e:
                     log.error(f'Error parsing pipeline state for {record.pkey}', e)
                     pipeline_table.add_row(record.pkey, 'ERROR', 'Invalid State')
-            console.print(pipeline_table)
-            log_rich_table(pipeline_table, "STATE TABLES - ")
+            print_and_log_table(pipeline_table, "STATE TABLES - ")
         return response
 
 def print_routes():
@@ -4463,8 +4465,7 @@ def print_routes():
     route_entries.sort(key=lambda x: x[2])
     for entry in route_entries:
         table.add_row(entry[0], entry[1], Text(entry[2], style=f'{entry[3]} on black'), entry[4])
-    console.print(table)
-    log_rich_table(table, "ROUTES - ")
+    print_and_log_table(table, "ROUTES - ")
 
 @rt('/refresh-profile-menu')
 async def refresh_profile_menu(request):
