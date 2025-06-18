@@ -308,6 +308,53 @@ PCONFIG = {
 HOME_MENU_ITEM = PCONFIG['HOME_MENU_ITEM']
 DEFAULT_ACTIVE_ROLES = PCONFIG['DEFAULT_ACTIVE_ROLES']
 
+# ================================================================
+# MCP TOOL REGISTRY - Generic Tool Dispatch System
+# ================================================================
+# This registry allows plugins to register MCP tools that can be called
+# via the /mcp-tool-executor endpoint. Tools are simple async functions
+# that take parameters and return structured responses.
+
+# Global registry for MCP tools - populated by plugins during startup
+MCP_TOOL_REGISTRY = {}
+
+def register_mcp_tool(tool_name: str, handler_func):
+    """Register an MCP tool handler function.
+    
+    Args:
+        tool_name: Name of the tool (e.g., 'get_cat_fact', 'botify_query')
+        handler_func: Async function that takes (params: dict) -> dict
+    """
+    logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
+    MCP_TOOL_REGISTRY[tool_name] = handler_func
+
+# Register the built-in cat fact tool to maintain backwards compatibility
+async def _builtin_get_cat_fact(params: dict) -> dict:
+    """Built-in cat fact tool - demonstrates the MCP tool pattern."""
+    async with aiohttp.ClientSession() as session:
+        external_url = "https://catfact.ninja/fact"
+        async with session.get(external_url) as response:
+            if response.status == 200:
+                cat_fact_result = await response.json()
+                return {
+                    "status": "success",
+                    "result": cat_fact_result,
+                    "external_api_url": external_url,
+                    "external_api_method": "GET",
+                    "external_api_status": response.status
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": f"External API returned status {response.status}",
+                    "external_api_url": external_url,
+                    "external_api_method": "GET",
+                    "external_api_status": response.status
+                }
+
+# Register the built-in tool
+register_mcp_tool("get_cat_fact", _builtin_get_cat_fact)
+
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
@@ -4114,9 +4161,10 @@ async def save_split_sizes(request):
 @rt('/mcp-tool-executor', methods=['POST'])
 async def mcp_tool_executor_endpoint(request):
     """
-    This endpoint now acts as a generic tool executor.
-    For this PoC, it specifically handles the 'get_cat_fact' tool
-    by calling the external Cat Fact API.
+    Generic MCP tool executor that dispatches to registered tools.
+    
+    🔧 FINDER_TOKEN: MCP_TOOL_EXECUTOR_GENERIC_DISPATCH
+    This endpoint now uses the MCP_TOOL_REGISTRY for dynamic tool dispatch.
     """
     import uuid
     start_time = time.time()
@@ -4127,78 +4175,63 @@ async def mcp_tool_executor_endpoint(request):
         tool_name = data.get("tool")
         params = data.get("params", {})
         
+        logger.info(f"🔧 MCP SERVER: Tool '{tool_name}' requested with params: {params}")
         log.event('mcp_server', f"MCP call received for tool: '{tool_name}'", f"Params: {params}")
 
-        if tool_name == "get_cat_fact":
-            # Call the external Cat Fact API - 100% external, no fallbacks
-            async with aiohttp.ClientSession() as session:
-                external_url = "https://catfact.ninja/fact"
-                logger.info(f"🔧 MCP SERVER: Calling external API: {external_url}")
-                
-                external_start_time = time.time()
-                async with session.get(external_url) as response:
-                    external_end_time = time.time()
-                    external_execution_time = (external_end_time - external_start_time) * 1000
-                    
-                    if response.status == 200:
-                        cat_fact_result = await response.json()
-                        logger.success(f"🔧 MCP SERVER: Received cat fact from API: {cat_fact_result.get('fact')}")
-                        
-                        # Log detailed external API call information
-                        await pipulate.log_mcp_call_details(
-                            operation_id=f"{operation_id}-ext",
-                            tool_name=tool_name,
-                            operation_type="external_api_call",
-                            mcp_block=None,
-                            request_payload=data,
-                            response_data={"status": "success", "result": cat_fact_result},
-                            response_status=200,
-                            external_api_url=external_url,
-                            external_api_method="GET",
-                            external_api_headers=None,
-                            external_api_payload=None,
-                            external_api_response=cat_fact_result,
-                            external_api_status=response.status,
-                            execution_time_ms=external_execution_time,
-                            notes=f"External Cat Fact API call from MCP tool executor"
-                        )
-                        
-                        # Return the cat fact in our standard format
-                        return JSONResponse({
-                            "status": "success",
-                            "result": cat_fact_result
-                        })
-                    else:
-                        error_response = {"status": "error", "message": f"External API returned status {response.status}"}
-                        logger.error(f"🔧 MCP SERVER: Cat Fact API returned status {response.status}")
-                        
-                        # Log failed external API call
-                        await pipulate.log_mcp_call_details(
-                            operation_id=f"{operation_id}-ext-fail",
-                            tool_name=tool_name,
-                            operation_type="external_api_call_failed",
-                            mcp_block=None,
-                            request_payload=data,
-                            response_data=error_response,
-                            response_status=503,
-                            external_api_url=external_url,
-                            external_api_method="GET",
-                            external_api_headers=None,
-                            external_api_payload=None,
-                            external_api_response=None,
-                            external_api_status=response.status,
-                            execution_time_ms=external_execution_time,
-                            notes=f"Failed external Cat Fact API call - status {response.status}"
-                        )
-                        
-                        return JSONResponse(error_response, status_code=503)
+        # Check if tool is registered
+        if tool_name not in MCP_TOOL_REGISTRY:
+            available_tools = list(MCP_TOOL_REGISTRY.keys())
+            logger.warning(f"🔧 MCP SERVER: Unknown tool '{tool_name}'. Available tools: {available_tools}")
+            return JSONResponse({
+                "status": "error", 
+                "message": f"Tool '{tool_name}' not found. Available tools: {available_tools}"
+            }, status_code=404)
+
+        # Execute the registered tool
+        tool_handler = MCP_TOOL_REGISTRY[tool_name]
+        logger.info(f"🔧 MCP SERVER: Executing tool '{tool_name}' via registry")
+        
+        external_start_time = time.time()
+        tool_result = await tool_handler(params)
+        external_end_time = time.time()
+        external_execution_time = (external_end_time - external_start_time) * 1000
+        
+        # Extract external API details from tool result for logging
+        external_api_url = tool_result.get("external_api_url")
+        external_api_method = tool_result.get("external_api_method", "UNKNOWN")
+        external_api_status = tool_result.get("external_api_status")
+        external_api_response = tool_result.get("result")
+        
+        # Log the tool execution with full transparency
+        operation_type = "external_api_call" if tool_result.get("status") == "success" else "external_api_call_failed"
+        await pipulate.log_mcp_call_details(
+            operation_id=f"{operation_id}-{tool_name}",
+            tool_name=tool_name,
+            operation_type=operation_type,
+            mcp_block=None,
+            request_payload=data,
+            response_data=tool_result,
+            response_status=200 if tool_result.get("status") == "success" else 503,
+            external_api_url=external_api_url,
+            external_api_method=external_api_method,
+            external_api_headers=None,
+            external_api_payload=None,
+            external_api_response=external_api_response,
+            external_api_status=external_api_status,
+            execution_time_ms=external_execution_time,
+            notes=f"MCP tool '{tool_name}' executed via registry"
+        )
+        
+        if tool_result.get("status") == "success":
+            logger.success(f"🔧 MCP SERVER: Tool '{tool_name}' executed successfully")
+            return JSONResponse(tool_result)
         else:
-            logger.warning(f"🔧 MCP SERVER: Unknown tool requested: {tool_name}")
-            return JSONResponse({"status": "error", "message": "Tool not found"}, status_code=404)
+            logger.error(f"🔧 MCP SERVER: Tool '{tool_name}' returned error: {tool_result.get('message')}")
+            return JSONResponse(tool_result, status_code=503)
 
     except Exception as e:
-        logger.error(f"🔧 MCP SERVER: Error processing request: {e}")
-        return JSONResponse({"status": "error", "message": "Invalid request format"}, status_code=400)
+        logger.error(f"🔧 MCP SERVER: Error processing request: {e}", exc_info=True)
+        return JSONResponse({"status": "error", "message": f"Tool execution failed: {str(e)}"}, status_code=500)
 
 @rt('/clear-pipeline', methods=['POST'])
 async def clear_pipeline(request):
