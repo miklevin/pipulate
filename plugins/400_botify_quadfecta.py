@@ -2870,6 +2870,181 @@ class Quadfecta:
             logging.exception(f'Error saving advanced export data: {str(e)}')
             return (False, f"Error saving advanced export data: {str(e)}", None)
 
+    async def extract_available_fields_from_advanced_export(self, username, project_name, analysis_slug, export_group='urls'):
+        """
+        Extract available fields from the analysis_advanced.json file for use in query metrics.
+        
+        This function reads the cached advanced export data and extracts the field lists
+        from specific export types, making them available for use in QUERY_TEMPLATES metrics.
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug
+            analysis_slug: Analysis slug
+            export_group: Filter by export group ('urls', 'links', or None for all)
+            
+        Returns:
+            dict: {
+                'success': bool,
+                'message': str,
+                'fields': list,
+                'available_exports': list  # List of export IDs that were found
+            }
+        """
+        try:
+            # Build path to the cached analysis_advanced.json file
+            advanced_export_filepath = f'downloads/{self.app_name}/{username}/{project_name}/{analysis_slug}/analysis_advanced.json'
+            
+            # Check if file exists
+            exists, file_info = await self.check_file_exists(advanced_export_filepath)
+            if not exists:
+                return {
+                    'success': False,
+                    'message': f"Advanced export file not found: {advanced_export_filepath}",
+                    'fields': [],
+                    'available_exports': []
+                }
+            
+            # Read and parse the JSON file
+            with open(advanced_export_filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # Extract the advanced_export array
+            advanced_exports = data.get('advanced_export', [])
+            if not advanced_exports:
+                return {
+                    'success': False,
+                    'message': "No advanced export data found in file",
+                    'fields': [],
+                    'available_exports': []
+                }
+            
+            # Collect fields from exports matching the specified group
+            all_fields = set()
+            available_exports = []
+            
+            for export in advanced_exports:
+                export_id = export.get('id', '')
+                export_name = export.get('name', '')
+                export_group_name = export.get('group', '')
+                fields = export.get('fields', [])
+                
+                # Filter by group if specified
+                if export_group and export_group_name != export_group:
+                    continue
+                
+                # Add this export to our list
+                available_exports.append({
+                    'id': export_id,
+                    'name': export_name,
+                    'group': export_group_name,
+                    'field_count': len(fields),
+                    'fields': fields
+                })
+                
+                # Add all fields to our master set
+                all_fields.update(fields)
+            
+            # Convert set to sorted list for consistent ordering
+            sorted_fields = sorted(list(all_fields))
+            
+            # Build success message
+            total_exports = len(available_exports)
+            total_fields = len(sorted_fields)
+            group_filter_msg = f" (filtered by group: {export_group})" if export_group else ""
+            
+            message = f"Found {total_fields} unique fields from {total_exports} exports{group_filter_msg}"
+            
+            return {
+                'success': True,
+                'message': message,
+                'fields': sorted_fields,
+                'available_exports': available_exports
+            }
+            
+        except json.JSONDecodeError as e:
+            return {
+                'success': False,
+                'message': f"Invalid JSON in advanced export file: {str(e)}",
+                'fields': [],
+                'available_exports': []
+            }
+        except Exception as e:
+            logging.exception(f'Error extracting fields from advanced export: {str(e)}')
+            return {
+                'success': False,
+                'message': f"Error extracting fields: {str(e)}",
+                'fields': [],
+                'available_exports': []
+            }
+
+    async def test_extract_available_fields(self, username, project_name, analysis_slug):
+        """
+        Test function to verify extract_available_fields_from_advanced_export works correctly.
+        
+        This function tests the field extraction and provides detailed output for verification.
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug
+            analysis_slug: Analysis slug
+            
+        Returns:
+            str: Formatted test results for display
+        """
+        try:
+            # Test with URLs group
+            url_result = await self.extract_available_fields_from_advanced_export(
+                username, project_name, analysis_slug, export_group='urls'
+            )
+            
+            # Test with links group
+            links_result = await self.extract_available_fields_from_advanced_export(
+                username, project_name, analysis_slug, export_group='links'
+            )
+            
+            # Test with no group filter (all)
+            all_result = await self.extract_available_fields_from_advanced_export(
+                username, project_name, analysis_slug, export_group=None
+            )
+            
+            # Build formatted test results
+            test_results = []
+            test_results.append("=== Field Extraction Test Results ===\n")
+            
+            # URLs group results
+            test_results.append("📊 URLs Group Fields:")
+            test_results.append(f"Status: {'✅ Success' if url_result['success'] else '❌ Failed'}")
+            test_results.append(f"Message: {url_result['message']}")
+            if url_result['success']:
+                test_results.append(f"Available Exports: {len(url_result['available_exports'])}")
+                for export in url_result['available_exports']:
+                    test_results.append(f"  - {export['id']}: {export['field_count']} fields")
+                test_results.append(f"Sample Fields: {', '.join(url_result['fields'][:10])}...")
+            test_results.append("")
+            
+            # Links group results
+            test_results.append("🔗 Links Group Fields:")
+            test_results.append(f"Status: {'✅ Success' if links_result['success'] else '❌ Failed'}")
+            test_results.append(f"Message: {links_result['message']}")
+            if links_result['success']:
+                test_results.append(f"Available Exports: {len(links_result['available_exports'])}")
+                test_results.append(f"Sample Fields: {', '.join(links_result['fields'][:10])}...")
+            test_results.append("")
+            
+            # All groups results
+            test_results.append("🌐 All Groups Combined:")
+            test_results.append(f"Status: {'✅ Success' if all_result['success'] else '❌ Failed'}")
+            test_results.append(f"Message: {all_result['message']}")
+            if all_result['success']:
+                test_results.append(f"Total Available Exports: {len(all_result['available_exports'])}")
+                test_results.append(f"Total Unique Fields: {len(all_result['fields'])}")
+            
+            return "\n".join(test_results)
+            
+        except Exception as e:
+            return f"❌ Test failed with error: {str(e)}"
+
     async def _execute_qualifier_logic(self, username, project_name, analysis_slug, api_token, qualifier_config):
         """Execute the generic qualifier logic to determine a dynamic parameter.
 

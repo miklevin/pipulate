@@ -328,12 +328,12 @@ def setup_logging():
     logger.remove()
     logs_dir = Path('logs')
     logs_dir.mkdir(parents=True, exist_ok=True)
-    app_log_path = logs_dir / f'{APP_NAME}.log'
+    app_log_path = logs_dir / 'server.log'
     api_log_path = logs_dir / 'api.log'
     log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
     if app_log_path.exists():
         app_log_path.unlink()
-    for old_log in logs_dir.glob(f'{APP_NAME}.????-??-??_*'):
+    for old_log in logs_dir.glob('server.????-??-??_*'):
         try:
             old_log.unlink()
         except Exception as e:
