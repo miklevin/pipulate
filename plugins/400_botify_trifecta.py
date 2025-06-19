@@ -5271,49 +5271,42 @@ await main()
         Call via: /trifecta/discover-fields/username/project/analysis
         
         Returns JSON with all available dimensions and metrics.
+        Uses cached analysis_advanced.json file for fast, reliable field discovery.
         """
         username = request.path_params['username']
         project = request.path_params['project'] 
         analysis = request.path_params['analysis']
         
         try:
-            # Use the existing API token reading logic
-            api_token = self.read_api_token()
-            if not api_token:
+            # Use the existing cached file parser to extract fields
+            result = await self.extract_available_fields_from_advanced_export(
+                username, project, analysis, export_group=None
+            )
+            
+            if not result['success']:
                 return JSONResponse({
-                    'error': 'No Botify API token found',
-                    'message': 'Please ensure botify_token.txt exists'
-                }, status_code=401)
+                    'error': 'Field discovery failed',
+                    'message': result['message'],
+                    'hint': 'Try running the Trifecta workflow first to cache the analysis data'
+                }, status_code=404)
             
-            # Call the advanced_export endpoint to get field schema
-            url = f'https://api.botify.com/v1/analyses/{username}/{project}/{analysis}/advanced_export'
-            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
-            
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url, headers=headers, timeout=60.0)
-            
-            if response.status_code != 200:
-                return JSONResponse({
-                    'error': f'API error: Status {response.status_code}',
-                    'response': response.text
-                }, status_code=response.status_code)
-            
-            data = response.json()
-            
-            # Extract field information from the response
+            # Transform the extracted fields into the expected format
             available_fields = {
-                'dimensions': [],
-                'metrics': [],
-                'collections': []
+                'dimensions': result['fields'],  # All unique fields as dimensions
+                'metrics': [],  # No metrics in advanced export structure
+                'collections': [export['id'] for export in result['available_exports']]  # Export IDs as collections
             }
             
-            # Parse the schema data (structure depends on API response)
-            if 'dimensions' in data:
-                available_fields['dimensions'] = data['dimensions']
-            if 'metrics' in data:
-                available_fields['metrics'] = data['metrics']
-            if 'collections' in data:
-                available_fields['collections'] = data['collections']
+            # Add detailed export information
+            export_details = {
+                export['id']: {
+                    'name': export.get('name', export['id']),
+                    'group': export.get('group', 'unknown'),
+                    'field_count': export['field_count'],
+                    'fields': export['fields']
+                }
+                for export in result['available_exports']
+            }
             
             # Log the discovery for debugging
             logger.info(f"🔍 FINDER_TOKEN: FIELD_DISCOVERY - Discovered {len(available_fields['dimensions'])} dimensions, {len(available_fields['metrics'])} metrics for {username}/{project}/{analysis}")
@@ -5322,12 +5315,15 @@ await main()
                 'project': f'{username}/{project}',
                 'analysis': analysis,
                 'discovered_at': datetime.now().isoformat(),
+                'source': 'cached_analysis_advanced.json',
                 'available_fields': available_fields,
                 'field_count': {
                     'dimensions': len(available_fields['dimensions']),
                     'metrics': len(available_fields['metrics']),
                     'collections': len(available_fields['collections'])
-                }
+                },
+                'export_details': export_details,
+                'summary': result['message']
             })
             
         except Exception as e:
