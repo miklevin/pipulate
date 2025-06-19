@@ -5271,24 +5271,55 @@ await main()
         Call via: /trifecta/discover-fields/username/project/analysis
         
         Returns JSON with all available dimensions and metrics.
-        Uses cached analysis_advanced.json file for fast, reliable field discovery.
+        If cached analysis_advanced.json file doesn't exist, it will be automatically 
+        generated using the same method as the Trifecta workflow.
         """
         username = request.path_params['username']
         project = request.path_params['project'] 
         analysis = request.path_params['analysis']
         
         try:
-            # Use the existing cached file parser to extract fields
+            # First, try to use the existing cached file parser to extract fields
             result = await self.extract_available_fields_from_advanced_export(
                 username, project, analysis, export_group=None
             )
             
+            # If cache doesn't exist, generate it automatically
             if not result['success']:
-                return JSONResponse({
-                    'error': 'Field discovery failed',
-                    'message': result['message'],
-                    'hint': 'Try running the Trifecta workflow first to cache the analysis data'
-                }, status_code=404)
+                logger.info(f"🔍 FINDER_TOKEN: CACHE_MISS - No cached data for {username}/{project}/{analysis}, generating cache...")
+                
+                # Get API token
+                api_token = self.read_api_token()
+                if not api_token:
+                    return JSONResponse({
+                        'error': 'No Botify API token found',
+                        'message': 'Please ensure botify_token.txt exists in the project root'
+                    }, status_code=401)
+                
+                # Generate the cache using the same method as Trifecta workflow
+                success, cache_message, cache_filepath = await self.save_advanced_export_to_json(
+                    username, project, analysis, api_token
+                )
+                
+                if not success:
+                    return JSONResponse({
+                        'error': 'Failed to generate cache',
+                        'message': cache_message,
+                        'hint': 'Check that the username, project, and analysis are correct and accessible'
+                    }, status_code=400)
+                
+                logger.info(f"🔍 FINDER_TOKEN: CACHE_GENERATED - Successfully cached analysis data: {cache_message}")
+                
+                # Now try again to extract fields from the newly cached data
+                result = await self.extract_available_fields_from_advanced_export(
+                    username, project, analysis, export_group=None
+                )
+                
+                if not result['success']:
+                    return JSONResponse({
+                        'error': 'Field extraction failed after cache generation',
+                        'message': result['message']
+                    }, status_code=500)
             
             # Transform the extracted fields into the expected format
             available_fields = {
@@ -5308,6 +5339,10 @@ await main()
                 for export in result['available_exports']
             }
             
+            # Determine source for transparency
+            cache_message = locals().get('cache_message', '')
+            source = 'freshly_generated_cache' if cache_message and 'already cached' not in cache_message else 'cached_analysis_advanced.json'
+            
             # Log the discovery for debugging
             logger.info(f"🔍 FINDER_TOKEN: FIELD_DISCOVERY - Discovered {len(available_fields['dimensions'])} dimensions, {len(available_fields['metrics'])} metrics for {username}/{project}/{analysis}")
             
@@ -5315,7 +5350,7 @@ await main()
                 'project': f'{username}/{project}',
                 'analysis': analysis,
                 'discovered_at': datetime.now().isoformat(),
-                'source': 'cached_analysis_advanced.json',
+                'source': source,
                 'available_fields': available_fields,
                 'field_count': {
                     'dimensions': len(available_fields['dimensions']),
@@ -5323,7 +5358,8 @@ await main()
                     'collections': len(available_fields['collections'])
                 },
                 'export_details': export_details,
-                'summary': result['message']
+                'summary': result['message'],
+                'cache_info': locals().get('cache_message', 'Used existing cache')
             })
             
         except Exception as e:
