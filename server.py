@@ -1096,6 +1096,205 @@ register_mcp_tool("botify_execute_custom_bql_query", _botify_execute_custom_bql_
 # Register Pipeline State Inspector
 register_mcp_tool("pipeline_state_inspector", _pipeline_state_inspector)
 
+# Register Local LLM Helper Tools (Limited file access for local LLMs)
+async def _local_llm_read_file(params: dict) -> dict:
+    """Local LLM helper: Read specific file contents (limited to safe files)"""
+    try:
+        file_path = params.get('file_path', '')
+        max_lines = params.get('max_lines', 100)  # Limit for context window
+        
+        # Security: Only allow specific safe directories/files
+        safe_paths = [
+            'training/', 'plugins/', 'helpers/', 'logs/server.log', 
+            'README.md', 'requirements.txt', 'pyproject.toml'
+        ]
+        
+        if not any(file_path.startswith(safe) for safe in safe_paths):
+            return {
+                "success": False,
+                "error": f"File access restricted. Allowed paths: {', '.join(safe_paths)}",
+                "file_path": file_path
+            }
+        
+        file_obj = Path(file_path)
+        if not file_obj.exists():
+            return {
+                "success": False,
+                "error": "File not found",
+                "file_path": file_path
+            }
+        
+        # Read file with line limit
+        lines = file_obj.read_text().splitlines()
+        if len(lines) > max_lines:
+            content = '\n'.join(lines[:max_lines])
+            content += f"\n\n... [File truncated at {max_lines} lines. Total lines: {len(lines)}]"
+        else:
+            content = '\n'.join(lines)
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_FILE_READ - {file_path} ({len(lines)} lines)")
+        
+        return {
+            "success": True,
+            "content": content,
+            "file_path": file_path,
+            "total_lines": len(lines),
+            "displayed_lines": min(len(lines), max_lines)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_FILE_READ_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "file_path": params.get('file_path', 'unknown')
+        }
+
+async def _local_llm_grep_logs(params: dict) -> dict:
+    """Local LLM helper: Search recent server logs for patterns"""
+    try:
+        pattern = params.get('pattern', '')
+        max_results = params.get('max_results', 20)
+        
+        if not pattern:
+            return {
+                "success": False,
+                "error": "Pattern parameter required"
+            }
+        
+        log_file = Path('logs/server.log')
+        if not log_file.exists():
+            return {
+                "success": False,
+                "error": "Server log file not found"
+            }
+        
+        # Read recent log entries and search
+        lines = log_file.read_text().splitlines()
+        matches = []
+        
+        for i, line in enumerate(lines):
+            if pattern.lower() in line.lower():
+                matches.append({
+                    "line_number": i + 1,
+                    "content": line.strip()
+                })
+                
+                if len(matches) >= max_results:
+                    break
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_GREP - Pattern '{pattern}' found {len(matches)} matches")
+        
+        return {
+            "success": True,
+            "pattern": pattern,
+            "matches": matches,
+            "total_matches": len(matches),
+            "log_file": str(log_file)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_GREP_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "pattern": params.get('pattern', 'unknown')
+        }
+
+async def _local_llm_list_files(params: dict) -> dict:
+    """Local LLM helper: List files in safe directories"""
+    try:
+        directory = params.get('directory', '.')
+        
+        # Security: Only allow specific safe directories
+        safe_dirs = ['training', 'plugins', 'helpers', 'logs', '.']
+        
+        if directory not in safe_dirs:
+            return {
+                "success": False,
+                "error": f"Directory access restricted. Allowed directories: {', '.join(safe_dirs)}",
+                "directory": directory
+            }
+        
+        dir_path = Path(directory)
+        if not dir_path.exists():
+            return {
+                "success": False,
+                "error": "Directory not found",
+                "directory": directory
+            }
+        
+        files = []
+        for item in dir_path.iterdir():
+            if item.is_file():
+                files.append({
+                    "name": item.name,
+                    "type": "file",
+                    "size": item.stat().st_size
+                })
+            elif item.is_dir():
+                files.append({
+                    "name": item.name,
+                    "type": "directory"
+                })
+        
+        # Sort files by name
+        files.sort(key=lambda x: x['name'])
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_LIST_FILES - Directory '{directory}' has {len(files)} items")
+        
+        return {
+            "success": True,
+            "directory": directory,
+            "files": files,
+            "count": len(files)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_LIST_FILES_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "directory": params.get('directory', 'unknown')
+        }
+
+async def _local_llm_get_context(params: dict) -> dict:
+    """Local LLM helper: Get pre-seeded system context for immediate capability awareness"""
+    try:
+        context_file = Path('data/local_llm_context.json')
+        
+        if not context_file.exists():
+            return {
+                "success": False,
+                "error": "Context file not found - system may still be initializing",
+                "suggestion": "Wait a few seconds and try again"
+            }
+        
+        import json
+        with open(context_file, 'r') as f:
+            context_data = json.load(f)
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_CONTEXT_ACCESS - Context retrieved for local LLM")
+        
+        return {
+            "success": True,
+            "context": context_data,
+            "usage_note": "This context provides system overview and available tools for local LLM assistance"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_CONTEXT_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "suggestion": "Try using other MCP tools or ask user for specific information"
+        }
+
+register_mcp_tool("local_llm_read_file", _local_llm_read_file)
+register_mcp_tool("local_llm_grep_logs", _local_llm_grep_logs)
+register_mcp_tool("local_llm_list_files", _local_llm_list_files)
+register_mcp_tool("local_llm_get_context", _local_llm_get_context)
+
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
@@ -3881,6 +4080,9 @@ async def startup_event():
     
     # Warm up Botify schema cache for instant AI enlightenment
     asyncio.create_task(warm_up_botify_schema_cache())
+    
+    # Pre-seed local LLM context for immediate capability awareness
+    asyncio.create_task(prepare_local_llm_context())
 ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in ordered_plugins and module_name in plugin_instances:
@@ -5695,6 +5897,85 @@ async def warm_up_botify_schema_cache():
         logger.error(f"Error during Botify schema cache warmup: {e}")
         # Don't fail startup if cache warmup fails
 
+async def prepare_local_llm_context():
+    """Pre-seed context for local LLMs with essential system information.
+    
+    This function creates a digestible context package for local LLMs to provide
+    immediate capability awareness without overwhelming their smaller context windows.
+    Unlike advanced AIs who can explore the system, local LLMs need pre-computed context.
+    """
+    await asyncio.sleep(8)  # Let startup and cache warmup complete first
+    
+    try:
+        # Build essential context summary for local LLMs
+        context_summary = {
+            "system_overview": {
+                "name": "Pipulate - Local-First Web Framework",
+                "architecture": "FastHTML + HTMX + SQLite + MCP Tools",
+                "philosophy": "Radical Transparency for AI Development",
+                "local_llm_role": "Guided Assistant with MCP Tool Access"
+            },
+            "available_mcp_tools": {
+                "file_access": ["local_llm_read_file", "local_llm_list_files"],
+                "log_search": ["local_llm_grep_logs"],
+                "state_inspection": ["pipeline_state_inspector"],
+                "botify_api": ["botify_get_full_schema", "botify_list_available_analyses", "botify_execute_custom_bql_query"]
+            },
+            "key_directories": {
+                "training": "AI training materials and guides",
+                "plugins": "Workflow applications and business logic",
+                "helpers": "Utility scripts and API integrations",
+                "logs": "Server logs with FINDER_TOKEN patterns"
+            },
+            "botify_capabilities": {
+                "demo_projects": ["uhnd.com-demo-account", "mikelev.in"],
+                "key_features": ["GA4/Adobe Analytics integration", "Traffic source attribution", "Custom BQL queries"],
+                "field_count": "4,449+ fields available via schema discovery"
+            },
+            "transparency_patterns": {
+                "log_tokens": "Search logs with FINDER_TOKEN patterns",
+                "mcp_execution": "All tool calls logged with full transparency",
+                "state_tracking": "Application state stored in DictLikeDB"
+            }
+        }
+        
+        # Store context for local LLM access
+        import json
+        context_file = Path('data/local_llm_context.json')
+        context_file.parent.mkdir(exist_ok=True)
+        
+        with open(context_file, 'w') as f:
+            json.dump(context_summary, f, indent=2)
+        
+        logger.info(f"LOCAL LLM CONTEXT: Pre-seeded context package ready at {context_file}")
+        
+        # Send welcome message to local LLM via message queue
+        if pipulate and pipulate.message_queue:
+            try:
+                welcome_msg = """🤖 **Local LLM Context Ready**
+
+Your MCP tools are available:
+• `local_llm_read_file` - Read training materials and code
+• `local_llm_list_files` - Explore safe directories  
+• `local_llm_grep_logs` - Search server logs for patterns
+• `pipeline_state_inspector` - Check application state
+• Botify API tools - Full schema access with 4,449+ fields
+
+Use these tools to assist users within your capabilities. Advanced AI exploration is handled by Claude/GPT when needed."""
+                
+                await pipulate.message_queue.add(
+                    pipulate, 
+                    welcome_msg,
+                    verbatim=True, 
+                    role='system', 
+                    spaces_after=1
+                )
+            except Exception as msg_error:
+                logger.debug(f"Could not send local LLM welcome message: {msg_error}")
+        
+    except Exception as e:
+        logger.error(f"Error preparing local LLM context: {e}")
+        # Don't fail startup if context preparation fails
 
 ALL_ROUTES = list(set([''] + MENU_ITEMS))
 for item in ALL_ROUTES:
