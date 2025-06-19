@@ -755,10 +755,65 @@ async def _pipeline_state_inspector(params: dict) -> dict:
             "pipeline_id": pipeline_id
         }
 
+async def _botify_get_full_schema(params: dict) -> dict:
+    """Discover complete Botify API schema using the true_schema_discoverer.py module.
+    
+    This tool fetches the comprehensive schema from Botify's official datamodel endpoints,
+    providing access to all 4,449+ fields for building advanced queries.
+    """
+    api_token = params.get("api_token")
+    org = params.get("org")
+    project = params.get("project")
+    analysis = params.get("analysis")
+    
+    # Validate required parameters
+    missing_params = []
+    if not api_token: missing_params.append("api_token")
+    if not org: missing_params.append("org")
+    if not project: missing_params.append("project")
+    if not analysis: missing_params.append("analysis")
+    
+    if missing_params:
+        return {
+            "status": "error",
+            "message": f"Missing required parameters: {', '.join(missing_params)}"
+        }
+    
+    try:
+        # Import the schema discoverer
+        from helpers.botify.true_schema_discoverer import BotifySchemaDiscoverer
+        
+        # Create discoverer instance
+        discoverer = BotifySchemaDiscoverer(org, project, analysis, api_token)
+        
+        # Execute the discovery
+        schema_results = await discoverer.discover_complete_schema()
+        
+        return {
+            "status": "success",
+            "result": schema_results,
+            "external_api_method": "GET",
+            "summary": {
+                "total_fields_discovered": schema_results.get("total_fields_discovered", 0),
+                "collections_discovered": len(schema_results.get("collections_discovered", [])),
+                "discovery_timestamp": schema_results.get("project_info", {}).get("discovery_timestamp")
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Schema discovery error: {str(e)}",
+            "org": org,
+            "project": project,
+            "analysis": analysis
+        }
+
 # Register Botify MCP tools
 register_mcp_tool("botify_ping", _botify_ping)
 register_mcp_tool("botify_list_projects", _botify_list_projects) 
 register_mcp_tool("botify_simple_query", _botify_simple_query)
+register_mcp_tool("botify_get_full_schema", _botify_get_full_schema)
 
 # Register Pipeline State Inspector
 register_mcp_tool("pipeline_state_inspector", _pipeline_state_inspector)
