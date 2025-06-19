@@ -120,30 +120,30 @@ sidebarWs.onmessage = function(event) {
     }
     sidebarCurrentMessage.dataset.rawText += event.data;
     
-    // Debug logging for marked.js
-    console.log('marked.js available:', typeof marked !== 'undefined');
-    if (typeof marked !== 'undefined') {
-        console.log('marked.parse available:', typeof marked.parse === 'function');
-        console.log('Current raw text:', sidebarCurrentMessage.dataset.rawText);
-    }
-    
-    // Render the accumulated Markdown - but avoid parsing incomplete code fences
+    // Render the accumulated Markdown with improved code fence detection
     if (typeof marked !== 'undefined') {
         try {
             const rawText = sidebarCurrentMessage.dataset.rawText;
             
-            // Check for incomplete code fences that would break MarkedJS
-            const openCodeFences = (rawText.match(/```\w*/g) || []).length;
-            const closeCodeFences = (rawText.match(/^```$/gm) || []).length;
-            const hasIncompleteCodeFence = openCodeFences > closeCodeFences;
+            // Enhanced code fence detection - handle both ``` and ~~~ fences
+            const codeFenceRegex = /^(```|~~~)/gm;
+            const allFences = rawText.match(codeFenceRegex) || [];
+            const hasIncompleteCodeFence = allFences.length % 2 !== 0;
             
             if (hasIncompleteCodeFence) {
                 // Don't parse incomplete markdown - show as plain text for now
-                sidebarCurrentMessage.textContent = rawText;
+                // But preserve basic formatting for readability
+                const lines = rawText.split('\n');
+                const formattedLines = lines.map(line => {
+                    // Basic HTML escaping for safety
+                    return line.replace(/&/g, '&amp;')
+                              .replace(/</g, '&lt;')
+                              .replace(/>/g, '&gt;');
+                });
+                sidebarCurrentMessage.innerHTML = formattedLines.join('<br>');
             } else {
                 // Safe to parse complete markdown
                 const renderedHtml = marked.parse(rawText);
-                console.log('Rendered HTML:', renderedHtml);
                 sidebarCurrentMessage.innerHTML = renderedHtml;
                 
                 // Apply syntax highlighting if Prism is available
@@ -153,13 +153,23 @@ sidebarWs.onmessage = function(event) {
             }
         } catch (e) {
             console.error('Error rendering Markdown:', e);
-            // Fallback to plain text if Markdown rendering fails
-            sidebarCurrentMessage.textContent = sidebarCurrentMessage.dataset.rawText;
+            // Fallback to safely formatted plain text
+            const escapedText = sidebarCurrentMessage.dataset.rawText
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\n/g, '<br>');
+            sidebarCurrentMessage.innerHTML = escapedText;
         }
     } else {
         // Fallback to plain text if marked.js is not available
-        console.error('marked.js is not available');
-        sidebarCurrentMessage.textContent = sidebarCurrentMessage.dataset.rawText;
+        console.warn('marked.js is not available - using plain text');
+        const escapedText = sidebarCurrentMessage.dataset.rawText
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\n/g, '<br>');
+        sidebarCurrentMessage.innerHTML = escapedText;
     }
     
     // Keep the latest message in view
