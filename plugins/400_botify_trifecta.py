@@ -1167,7 +1167,9 @@ class Trifecta:
             has_crawler = check_result.get('has_crawler', False)
             status_text = 'Downloaded basic crawl attributes' if has_crawler else 'Basic crawl attributes not available'
             status_color = 'green' if has_crawler else 'red'
-            action_buttons = self._create_action_buttons(check_result, step_id)
+            # Standardize step data before creating action buttons (fixes regression)
+            standardized_step_data = self._prepare_action_button_data(check_result, step_id, pipeline_id)
+            action_buttons = self._create_action_buttons(standardized_step_data, step_id)
 
             widget = Div(
                 Div(
@@ -1558,7 +1560,9 @@ class Trifecta:
             has_logs = check_result.get('has_logs', False)
             status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
             status_color = 'green' if has_logs else 'red'
-            action_buttons = self._create_action_buttons(check_result, step_id)
+            # Standardize step data before creating action buttons (fixes regression)
+            standardized_step_data = self._prepare_action_button_data(check_result, step_id, pipeline_id)
+            action_buttons = self._create_action_buttons(standardized_step_data, step_id)
 
             widget = Div(
                 Div(
@@ -1855,7 +1859,9 @@ class Trifecta:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
             status_color = 'green' if has_search_console else 'red'
-            action_buttons = self._create_action_buttons(check_result, step_id)
+            # Standardize step data before creating action buttons (fixes regression)
+            standardized_step_data = self._prepare_action_button_data(check_result, step_id, pipeline_id)
+            action_buttons = self._create_action_buttons(standardized_step_data, step_id)
 
             widget = Div(
                 Div(
@@ -2147,7 +2153,9 @@ class Trifecta:
                 await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
             status_text = 'HAS' if has_search_console else 'does NOT have'
             completed_message = 'Data downloaded successfully' if has_search_console else 'No Search Console data available'
-            action_buttons = self._create_action_buttons(check_result, step_id)
+            # Standardize step data before creating action buttons (fixes regression)
+            standardized_step_data = self._prepare_action_button_data(check_result, step_id, pipeline_id)
+            action_buttons = self._create_action_buttons(standardized_step_data, step_id)
 
             widget = Div(
                 Div(
@@ -4291,7 +4299,9 @@ await main()
                 status_color = 'green' if has_logs else 'red'
                 download_message = ' (data downloaded)' if has_logs else ''
 
-            action_buttons = self._create_action_buttons(check_result, step_id)
+            # Standardize step data before creating action buttons (fixes regression)
+            standardized_step_data = self._prepare_action_button_data(check_result, step_id, pipeline_id)
+            action_buttons = self._create_action_buttons(standardized_step_data, step_id)
 
             widget = Div(
                 Div(
@@ -5188,6 +5198,62 @@ await main()
 
         except Exception as e:
             return f"Diagnosis failed: {str(e)}"
+
+    def _prepare_action_button_data(self, raw_step_data, step_id, pipeline_id):
+        """Standardize step data for action buttons across all steps.
+        
+        This method ensures consistent data structure regardless of which step is calling it.
+        Fixes the whack-a-mole regression pattern by centralizing data preparation.
+        """
+        # Start with the raw data
+        standardized_data = raw_step_data.copy() if raw_step_data else {}
+        
+        # Ensure we have the essential project context
+        if not standardized_data.get('username') or not standardized_data.get('project_name') or not standardized_data.get('analysis_slug'):
+            # Try to get missing data from pipeline state
+            try:
+                # Get project data from step_project
+                project_step_data = self.pipulate.get_step_data(pipeline_id, 'step_project', {})
+                project_data_str = project_step_data.get('botify_project', '')
+                if project_data_str:
+                    project_data = json.loads(project_data_str)
+                    if not standardized_data.get('username'):
+                        standardized_data['username'] = project_data.get('username', '')
+                    if not standardized_data.get('project_name'):
+                        standardized_data['project_name'] = project_data.get('project_name', '')
+                
+                # Get analysis slug from step_analysis if missing
+                if not standardized_data.get('analysis_slug'):
+                    analysis_step_data = self.pipulate.get_step_data(pipeline_id, 'step_analysis', {})
+                    if analysis_step_data:
+                        # Try multiple possible keys
+                        analysis_data_str = analysis_step_data.get('analysis_selection', '')
+                        if analysis_data_str:
+                            try:
+                                analysis_data = json.loads(analysis_data_str)
+                                standardized_data['analysis_slug'] = analysis_data.get('analysis_slug', '')
+                            except (json.JSONDecodeError, AttributeError):
+                                pass
+                        
+                        # If that didn't work, try other keys
+                        if not standardized_data.get('analysis_slug'):
+                            for key, value in analysis_step_data.items():
+                                if isinstance(value, str):
+                                    try:
+                                        data = json.loads(value)
+                                        if isinstance(data, dict) and 'analysis_slug' in data:
+                                            standardized_data['analysis_slug'] = data['analysis_slug']
+                                            break
+                                    except (json.JSONDecodeError, AttributeError):
+                                        continue
+            except Exception as e:
+                logger.debug(f"Error getting pipeline context for action buttons: {e}")
+        
+        # Ensure download_complete flag is set if not present
+        if 'download_complete' not in standardized_data:
+            standardized_data['download_complete'] = raw_step_data and raw_step_data.get('has_crawler', False) or raw_step_data.get('has_file', False)
+        
+        return standardized_data
 
     def _create_action_buttons(self, step_data, step_id):
         """Create View Folder and Download CSV buttons for a step."""
