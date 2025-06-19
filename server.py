@@ -531,9 +531,14 @@ async def _botify_ping(params: dict) -> dict:
 
 async def _botify_list_projects(params: dict) -> dict:
     """List all projects for the authenticated user."""
-    api_token = params.get("api_token")
+    # Read API token from standard location (never pass as parameter)
+    api_token = _read_botify_api_token()
     if not api_token:
-        return {"status": "error", "message": "api_token required in params"}
+        return {
+            "status": "error", 
+            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
+            "token_location": "helpers/botify/botify_token.txt"
+        }
     
     try:
         async with aiohttp.ClientSession() as session:
@@ -586,15 +591,22 @@ async def _botify_list_projects(params: dict) -> dict:
 
 async def _botify_simple_query(params: dict) -> dict:
     """Execute a simple BQL query against Botify API."""
-    api_token = params.get("api_token")
+    # Read API token from standard location (never pass as parameter)
+    api_token = _read_botify_api_token()
+    if not api_token:
+        return {
+            "status": "error",
+            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
+            "token_location": "helpers/botify/botify_token.txt"
+        }
+    
     org_slug = params.get("org_slug") 
     project_slug = params.get("project_slug")
     analysis_slug = params.get("analysis_slug")
     query = params.get("query")
     
-    # Validate required parameters
+    # Validate required parameters (token no longer required as param)
     missing_params = []
-    if not api_token: missing_params.append("api_token")
     if not org_slug: missing_params.append("org_slug") 
     if not project_slug: missing_params.append("project_slug")
     if not analysis_slug: missing_params.append("analysis_slug")
@@ -603,7 +615,8 @@ async def _botify_simple_query(params: dict) -> dict:
     if missing_params:
         return {
             "status": "error", 
-            "message": f"Missing required parameters: {', '.join(missing_params)}"
+            "message": f"Missing required parameters: {', '.join(missing_params)}",
+            "required_params": ["org_slug", "project_slug", "analysis_slug", "query"]
         }
     
     try:
@@ -755,20 +768,44 @@ async def _pipeline_state_inspector(params: dict) -> dict:
             "pipeline_id": pipeline_id
         }
 
+def _read_botify_api_token() -> str:
+    """Read Botify API token from the standard token file location.
+    
+    Returns the token string or None if file doesn't exist or can't be read.
+    This follows the same pattern used by all other Botify integrations.
+    """
+    try:
+        token_file = "helpers/botify/botify_token.txt"
+        if not os.path.exists(token_file):
+            return None
+        with open(token_file) as f:
+            content = f.read().strip()
+            token = content.split('\n')[0].strip()
+        return token
+    except Exception:
+        return None
+
 async def _botify_get_full_schema(params: dict) -> dict:
     """Discover complete Botify API schema using the true_schema_discoverer.py module.
     
     This tool fetches the comprehensive schema from Botify's official datamodel endpoints,
     providing access to all 4,449+ fields for building advanced queries.
     """
-    api_token = params.get("api_token")
+    # Read API token from standard location (never pass as parameter)
+    api_token = _read_botify_api_token()
+    if not api_token:
+        return {
+            "status": "error",
+            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
+            "token_location": "helpers/botify/botify_token.txt"
+        }
+    
     org = params.get("org")
     project = params.get("project")
     analysis = params.get("analysis")
     
-    # Validate required parameters
+    # Validate required parameters (token no longer required as param)
     missing_params = []
-    if not api_token: missing_params.append("api_token")
     if not org: missing_params.append("org")
     if not project: missing_params.append("project")
     if not analysis: missing_params.append("analysis")
@@ -776,7 +813,8 @@ async def _botify_get_full_schema(params: dict) -> dict:
     if missing_params:
         return {
             "status": "error",
-            "message": f"Missing required parameters: {', '.join(missing_params)}"
+            "message": f"Missing required parameters: {', '.join(missing_params)}",
+            "required_params": ["org", "project", "analysis"]
         }
     
     try:
@@ -879,15 +917,22 @@ async def _botify_execute_custom_bql_query(params: dict) -> dict:
     This is the core 'query wizard' tool that enables LLMs to construct and execute
     sophisticated BQL queries with custom dimensions, metrics, and filters.
     """
-    api_token = params.get("api_token")
+    # Read API token from standard location (never pass as parameter)
+    api_token = _read_botify_api_token()
+    if not api_token:
+        return {
+            "status": "error",
+            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
+            "token_location": "helpers/botify/botify_token.txt"
+        }
+    
     org_slug = params.get("org_slug")
     project_slug = params.get("project_slug") 
     analysis_slug = params.get("analysis_slug")
     query_json = params.get("query_json")
     
-    # Validate required parameters
+    # Validate required parameters (token no longer required as param)
     missing_params = []
-    if not api_token: missing_params.append("api_token")
     if not org_slug: missing_params.append("org_slug")
     if not project_slug: missing_params.append("project_slug")
     if not analysis_slug: missing_params.append("analysis_slug")
@@ -896,7 +941,8 @@ async def _botify_execute_custom_bql_query(params: dict) -> dict:
     if missing_params:
         return {
             "status": "error",
-            "message": f"Missing required parameters: {', '.join(missing_params)}"
+            "message": f"Missing required parameters: {', '.join(missing_params)}",
+            "required_params": ["org_slug", "project_slug", "analysis_slug", "query_json"]
         }
     
     # Validate query_json structure
