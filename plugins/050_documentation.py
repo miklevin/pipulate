@@ -15,6 +15,67 @@ class DocumentationPlugin:
     NAME = "documentation"
     DISPLAY_NAME = "Documentation 📚"
     ENDPOINT_MESSAGE = "📚 Documentation Browser: When you view any document, its content is automatically added to my conversation history so you can ask me specific questions about it. Browse guides, training files, and framework rules - I'll have the full context to help you understand the content."
+    
+    # Bootstrap instructions for AI assistants - added silently to conversation history
+    TRAINING_PROMPT = """🔥 AI Assistant Bootstrap Instructions - Pipulate Radical Transparency System
+
+## 🎯 Magic Bootstrap Phrases (Copy & Use These)
+
+**Most Common Bootstrap**: "I need help with my Pipulate workflow. My pipeline_id is [PIPELINE_ID]. Please use the pipeline_state_inspector MCP tool to grab my complete workflow state, then tell me what you found and how you can help."
+
+**Mid-Session Debugging**: "My trifecta workflow is stuck at [STEP_NAME]. Pipeline: [PIPELINE_ID]. Please inspect my pipeline state and check the logs for errors."
+
+**File/Data Investigation**: "I have data at downloads/trifecta/[USERNAME]/[PROJECT]/[ANALYSIS]/. Please analyze what files exist and help me understand the data structure."
+
+**API/Template Issues**: "My Botify API call failed for [USERNAME]/[PROJECT]/[ANALYSIS]. Please use the discover-fields endpoint to check available fields and validate my template configuration."
+
+## 🔧 Essential MCP Tools Available
+
+### pipeline_state_inspector
+```
+curl -X POST "http://localhost:5001/mcp-tool-executor" -H "Content-Type: application/json" -d '{"tool": "pipeline_state_inspector", "params": {"pipeline_id": "PIPELINE_ID"}}'
+```
+
+### botify_simple_query  
+```
+curl -X POST "http://localhost:5001/mcp-tool-executor" -H "Content-Type: application/json" -d '{"tool": "botify_simple_query", "params": {"query": {"dimensions": ["url"], "metrics": []}, "username": "USERNAME", "project": "PROJECT", "analysis": "ANALYSIS"}}'
+```
+
+## 🌐 Key Direct Endpoints (Session-less Development)
+
+- **Field Discovery**: `http://localhost:5001/trifecta/discover-fields?username=USERNAME&project=PROJECT&analysis=ANALYSIS`
+- **Any Workflow Step**: `http://localhost:5001/trifecta/step_[STEP_NAME]?pipeline_id=PIPELINE_ID`
+- **File Downloads**: `http://localhost:5001/download_file?path=downloads/trifecta/[USERNAME]/[PROJECT]/[ANALYSIS]/[FILENAME]`
+
+## 🔍 Searchable Log Tokens
+
+When checking logs, search for these unique tokens:
+- `🔍 FINDER_TOKEN` - Specific feature tracking
+- `🎯 TEMPLATE_VALIDATION` - Template field validation
+- `🌐 API_CALL` - External API interactions  
+- `📁 FILE_OPERATION` - File system operations
+- `🚀 WORKFLOW_STEP` - Workflow progression
+
+## 🔥 What This Unlocks
+
+- 📊 **Full Pipeline State**: Current step, completed data, file status
+- 🎯 **Field Discovery**: Available Botify fields for any project/analysis  
+- 🔍 **Template Validation**: Check if your query templates match available data
+- 🌐 **Direct Endpoint Testing**: Hit any workflow step without UI navigation
+- 📁 **File System Transparency**: Complete visibility into downloads and structure
+- 🔧 **API Call Recreation**: Python code generation for debugging
+
+## 💯 The Radical Transparency Achievement
+
+This system provides unprecedented debugging power:
+
+- **Zero-Ceremony Session-less Development**: Any endpoint, any time, without UI navigation
+- **AI-Powered Mid-Session Debugging**: Any AI can drop into any workflow with full context
+- **Complete State Reconstruction**: From `pipeline_id` alone to full workflow understanding
+- **3-Second Development Loop**: Make change → test endpoint → check logs
+- **Searchable Log Token System**: Find exactly what you need with unique markers
+
+**The Magic**: When you visit `/docs` through the redirect system, this entire bootstrap guide is automatically loaded into my conversation history, giving me instant knowledge of all transparency capabilities."""
 
     def __init__(self, app, pipulate, pipeline, db):
         logger.debug(f"DocumentationPlugin initialized with NAME: {self.NAME}")
@@ -937,6 +998,7 @@ class DocumentationPlugin:
                 <h2>{title}</h2>
                 <p>{welcome_text}</p>
                 <p><em>Documentation is automatically discovered from training/ and .cursor/rules/ directories.</em></p>
+                {self.get_bootstrap_instructions() if category == 'all' else ''}
             </div>
         </div>
     </div>
@@ -947,6 +1009,184 @@ class DocumentationPlugin:
 </html>"""
 
         return HTMLResponse(page_html)
+
+    def get_bootstrap_instructions(self):
+        """Generate AI assistant bootstrap instructions for common scenarios"""
+        return """
+        <div style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #0066cc;">
+            <h3 style="margin: 0 0 1rem 0; color: #495057; font-size: 1.1em;">🤖 AI Assistant Bootstrap Instructions</h3>
+            <p style="margin: 0 0 1rem 0; color: #6c757d; font-size: 0.9em;">
+                <strong>Lost Context?</strong> Use these magic phrases to instantly restore full workflow transparency:
+            </p>
+            
+            <!-- Common Scenarios -->
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">🎯 <strong>Most Common Bootstrap</strong></h4>
+                <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
+                    "I need help with my Pipulate workflow. My pipeline_id is [PIPELINE_ID].<br>
+                    Please use the pipeline_state_inspector MCP tool to grab my complete workflow state,<br>
+                    then tell me what you found and how you can help."
+                </div>
+                <div style="margin-top: 0.5rem; padding: 0.75rem; background: #e3f2fd; border-radius: 4px; font-size: 0.85em; color: #1976d2;">
+                    💡 <strong>Pro Tip:</strong> Your pipeline_id appears in the URL bar or forms when using workflows.
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">🔍 <strong>Mid-Session Debugging</strong></h4>
+                <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
+                    "My trifecta workflow is stuck at [STEP_NAME]. Pipeline: [PIPELINE_ID].<br>
+                    Please inspect my pipeline state and check the logs for errors."
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">📁 <strong>File/Data Investigation</strong></h4>
+                <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
+                    "I have data at downloads/trifecta/[USERNAME]/[PROJECT]/[ANALYSIS]/.<br>
+                    Please analyze what files exist and help me understand the data structure."
+                </div>
+                <div style="margin-top: 0.5rem; padding: 0.75rem; background: #fff3cd; border-radius: 4px; font-size: 0.85em; color: #856404;">
+                    💡 <strong>Example:</strong> "I have data at downloads/trifecta/uhnd-com/uhnd.com-demo-account/20250616/. Please analyze what files exist."
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">🌐 <strong>API/Template Issues</strong></h4>
+                <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
+                    "My Botify API call failed for [USERNAME]/[PROJECT]/[ANALYSIS].<br>
+                    Please use the discover-fields endpoint to check available fields<br>
+                    and validate my template configuration."
+                </div>
+                <div style="margin-top: 0.5rem; padding: 0.75rem; background: #d4edda; border-radius: 4px; font-size: 0.85em; color: #155724;">
+                    💡 <strong>Example:</strong> "My Botify API call failed for uhnd-com/uhnd.com-demo-account/20250616. Please discover available fields."
+                </div>
+            </div>
+
+            <!-- Power User Section -->
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">⚡ <strong>Power User: Direct MCP Call</strong></h4>
+                <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
+                    curl -X POST "http://localhost:5001/mcp-tool-executor" \\<br>
+                    &nbsp;&nbsp;-H "Content-Type: application/json" \\<br>
+                    &nbsp;&nbsp;-d '{"tool": "pipeline_state_inspector", "params": {"pipeline_id": "YOUR_PIPELINE_ID"}}'
+                </div>
+            </div>
+
+            <!-- Quick Tools Section -->
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">🚀 <strong>Quick Transparency Tools</strong></h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0.5rem 0;">
+                    <a href="/trifecta/discover-fields/uhnd-com/uhnd.com-demo-account/20250616" target="_blank" 
+                       style="display: block; padding: 0.75rem; background: #e3f2fd; border-radius: 4px; text-decoration: none; color: #1976d2; font-size: 0.85em;">
+                        🔍 <strong>Demo Field Discovery</strong><br>
+                        <span style="font-size: 0.8em; color: #666;">See available Botify fields</span>
+                    </a>
+                    <a href="/trifecta" target="_blank" 
+                       style="display: block; padding: 0.75rem; background: #f3e5f5; border-radius: 4px; text-decoration: none; color: #7b1fa2; font-size: 0.85em;">
+                        🏇 <strong>Start Trifecta Workflow</strong><br>
+                        <span style="font-size: 0.8em; color: #666;">Begin a new workflow instance</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Key Capabilities -->
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">🔥 <strong>What This Unlocks</strong></h4>
+                <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0; color: #6c757d; font-size: 0.9em;">
+                    <li>📊 <strong>Full Pipeline State</strong>: Current step, completed data, file status</li>
+                    <li>🎯 <strong>Field Discovery</strong>: Available Botify fields for any project/analysis</li>
+                    <li>🔍 <strong>Template Validation</strong>: Check if your query templates match available data</li>
+                    <li>🌐 <strong>Direct Endpoint Testing</strong>: Hit any workflow step without UI navigation</li>
+                    <li>📁 <strong>File System Transparency</strong>: Complete visibility into downloads and structure</li>
+                    <li>🔧 <strong>API Call Recreation</strong>: Python code generation for debugging</li>
+                </ul>
+            </div>
+        </div>
+        """
+
+    def get_bootstrap_instructions_markdown(self):
+        """Generate markdown version of bootstrap instructions for LLM conversation history"""
+        return """
+# 🤖 AI Assistant Bootstrap Instructions
+
+**Lost Context?** Use these magic phrases to instantly restore full workflow transparency:
+
+## 🎯 Most Common Bootstrap
+
+```
+"I need help with my Pipulate workflow. My pipeline_id is [PIPELINE_ID].
+Please use the pipeline_state_inspector MCP tool to grab my complete workflow state,
+then tell me what you found and how you can help."
+```
+
+💡 **Pro Tip:** Your pipeline_id appears in the URL bar or forms when using workflows.
+
+## 🔍 Mid-Session Debugging
+
+```
+"My trifecta workflow is stuck at [STEP_NAME]. Pipeline: [PIPELINE_ID].
+Please inspect my pipeline state and check the logs for errors."
+```
+
+## 📁 File/Data Investigation
+
+```
+"I have data at downloads/trifecta/[USERNAME]/[PROJECT]/[ANALYSIS]/.
+Please analyze what files exist and help me understand the data structure."
+```
+
+💡 **Example:** "I have data at downloads/trifecta/uhnd-com/uhnd.com-demo-account/20250616/. Please analyze what files exist."
+
+## 🌐 API/Template Issues
+
+```
+"My Botify API call failed for [USERNAME]/[PROJECT]/[ANALYSIS].
+Please use the discover-fields endpoint to check available fields
+and validate my template configuration."
+```
+
+💡 **Example:** "My Botify API call failed for uhnd-com/uhnd.com-demo-account/20250616. Please discover available fields."
+
+## ⚡ Power User: Direct MCP Call
+
+```bash
+curl -X POST "http://localhost:5001/mcp-tool-executor" \
+  -H "Content-Type: application/json" \
+  -d '{"tool": "pipeline_state_inspector", "params": {"pipeline_id": "YOUR_PIPELINE_ID"}}'
+```
+
+## 🚀 Quick Transparency Tools
+
+- **Demo Field Discovery**: http://localhost:5001/trifecta/discover-fields/uhnd-com/uhnd.com-demo-account/20250616
+- **Start Trifecta Workflow**: http://localhost:5001/trifecta
+
+## 🔥 What This Unlocks
+
+- 📊 **Full Pipeline State**: Current step, completed data, file status
+- 🎯 **Field Discovery**: Available Botify fields for any project/analysis  
+- 🔍 **Template Validation**: Check if your query templates match available data
+- 🌐 **Direct Endpoint Testing**: Hit any workflow step without UI navigation
+- 📁 **File System Transparency**: Complete visibility into downloads and structure
+- 🔧 **API Call Recreation**: Python code generation for debugging
+
+## 💯 The Radical Transparency Achievement
+
+This system provides unprecedented debugging power:
+
+- **Zero-Ceremony Session-less Development**: Any endpoint, any time, without UI navigation
+- **AI-Powered Mid-Session Debugging**: Any AI can drop into any workflow with full context
+- **Complete State Reconstruction**: From `pipeline_id` alone to full workflow understanding
+- **3-Second Development Loop**: Make change → test endpoint → check logs
+- **Searchable Log Token System**: Find exactly what you need with unique markers
+
+**The Magic**: When you visit `/docs` through the redirect system, this entire bootstrap guide is automatically loaded into my conversation history, giving me instant knowledge of all transparency capabilities.
+        """
+
+    def get_endpoint_message(self):
+        """Generate the endpoint message for display to user (without bootstrap instructions)"""
+        # Bootstrap instructions are now handled via TRAINING_PROMPT for silent addition to conversation history
+        return self.ENDPOINT_MESSAGE
 
     def clean_description_for_nav(self, description):
         """Clean markdown from descriptions for navigation display"""

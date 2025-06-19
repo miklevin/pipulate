@@ -651,10 +651,117 @@ async def _botify_simple_query(params: dict) -> dict:
             "external_api_method": "POST"
         }
 
+async def _pipeline_state_inspector(params: dict) -> dict:
+    """Fetch complete pipeline state for any workflow instance.
+    
+    This tool enables full transparency into any pipeline's state, allowing AIs to:
+    - Drop into any workflow at any point with complete context
+    - Understand exactly what data has been collected
+    - See which steps are complete and what files exist
+    - Simulate user actions with full knowledge of current state
+    
+    The returned state blob contains everything needed to continue or debug a workflow.
+    """
+    pipeline_id = params.get("pipeline_id")
+    
+    if not pipeline_id:
+        return {
+            "status": "error",
+            "message": "Missing required parameter: pipeline_id"
+        }
+    
+    try:
+        # Use the global pipulate instance to read state
+        state = pipulate.read_state(pipeline_id)
+        
+        if not state:
+            return {
+                "status": "success",
+                "pipeline_id": pipeline_id,
+                "state": {},
+                "message": "Pipeline not found or has no state data",
+                "app_name": None,
+                "current_step": None,
+                "completed_steps": [],
+                "collected_data": {}
+            }
+        
+        # Extract key information for easier AI consumption
+        app_name = state.get('app_name', 'unknown')
+        completed_steps = []
+        collected_data = {}
+        current_step = None
+        
+        # Analyze state to find completed steps and collected data
+        for key, value in state.items():
+            if key.startswith('step_') and isinstance(value, dict):
+                step_id = key
+                step_data = value
+                
+                # Check if this step has completion indicators
+                has_data = bool(step_data)
+                completion_keys = [k for k in step_data.keys() if any(
+                    completion_word in k.lower() 
+                    for completion_word in ['complete', 'done', 'finished', 'selection', 'result']
+                )]
+                
+                if has_data:
+                    completed_steps.append({
+                        "step_id": step_id,
+                        "completion_keys": completion_keys,
+                        "data_keys": list(step_data.keys()),
+                        "has_completion_indicators": len(completion_keys) > 0
+                    })
+                    collected_data[step_id] = step_data
+        
+        # Determine current step (last step with data, or first incomplete step)
+        if completed_steps:
+            current_step = completed_steps[-1]["step_id"]
+        
+        # Parse pipeline_id for workflow context if it follows standard format
+        workflow_context = {}
+        try:
+            # Standard format: app_name_YYYYMMDD_HHMMSS
+            parts = pipeline_id.split('_')
+            if len(parts) >= 4:
+                workflow_context = {
+                    "app_name_from_id": parts[0],
+                    "date": parts[1],
+                    "time": parts[2] + '_' + parts[3] if len(parts) > 3 else parts[2]
+                }
+        except:
+            workflow_context = {"parse_error": "Could not parse pipeline_id format"}
+        
+        return {
+            "status": "success",
+            "pipeline_id": pipeline_id,
+            "app_name": app_name,
+            "current_step": current_step,
+            "completed_steps": completed_steps,
+            "collected_data": collected_data,
+            "workflow_context": workflow_context,
+            "state": state,  # Full raw state for complete transparency
+            "summary": {
+                "total_steps_with_data": len(completed_steps),
+                "last_updated": state.get('updated', 'unknown'),
+                "state_size_kb": round(len(str(state)) / 1024, 2)
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error reading pipeline state: {str(e)}",
+            "pipeline_id": pipeline_id
+        }
+
 # Register Botify MCP tools
 register_mcp_tool("botify_ping", _botify_ping)
 register_mcp_tool("botify_list_projects", _botify_list_projects) 
 register_mcp_tool("botify_simple_query", _botify_simple_query)
+
+# Register Pipeline State Inspector
+register_mcp_tool("pipeline_state_inspector", _pipeline_state_inspector)
 
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
