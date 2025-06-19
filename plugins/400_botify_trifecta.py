@@ -875,7 +875,10 @@ class Trifecta:
             if selected_analysis:
                 is_cached, file_info = await self.check_cached_file_for_button_text(username, project_name, selected_analysis, export_type)
 
-            button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
+            if is_cached and file_info:
+                button_text = f'Use Cached {button_suffix} ({file_info["size"]}) ▸'
+            else:
+                button_text = f'Download {button_suffix} ▸'
 
             return Div(
                 Card(
@@ -1863,12 +1866,15 @@ class Trifecta:
 
                 # Only check for cached files if we found an analysis slug
                 if current_analysis_slug:
-                    gsc_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/gsc.csv"
-                    is_cached = os.path.exists(gsc_path)
+                    # Use the proper template-aware file checking method
+                    is_cached, file_info = await self.check_cached_file_for_template_config(username, project_name, current_analysis_slug, 'gsc')
             except Exception:
-                is_cached = False
+                is_cached, file_info = False, None
 
-            button_text = f'Use Cached Search Console: {gsc_template} ▸' if is_cached else f'Download Search Console: {gsc_template} ▸'
+            if is_cached and file_info:
+                button_text = f'Use Cached Search Console: {gsc_template} ({file_info["size"]}) ▸'
+            else:
+                button_text = f'Download Search Console: {gsc_template} ▸'
 
             # Create button row with conditional skip button
             button_row_items = [
@@ -4381,7 +4387,10 @@ await main()
             # Check if files are cached for the selected analysis
             is_cached, file_info = await self.check_cached_file_for_template_config(username, project_name, analysis_slug, template_config_key)
             
-            button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
+            if is_cached and file_info:
+                button_text = f'Use Cached {button_suffix} ({file_info["size"]}) ▸'
+            else:
+                button_text = f'Download {button_suffix} ▸'
                 
             return Button(button_text, type='submit', cls='mt-10px primary', id='submit-button',
                          **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
