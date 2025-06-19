@@ -5376,6 +5376,104 @@ await main()
                 'details': str(e)
             }, status_code=500)
 
+    async def validate_template_fields(self, template_key, username, project, analysis):
+        """
+        🔍 SIMPLE FIELD VALIDATION (Baby Step 1)
+        
+        Validates template fields against discovered fields for a project.
+        Returns validation info without changing any existing functionality.
+        
+        Args:
+            template_key: Key from QUERY_TEMPLATES
+            username, project, analysis: Botify project identifiers
+            
+        Returns:
+            dict: Validation results with field status
+        """
+        # Get the template
+        if template_key not in self.QUERY_TEMPLATES:
+            return {
+                'success': False,
+                'error': f"Unknown template: {template_key}",
+                'template_name': None,
+                'fields_in_template': [],
+                'available_fields': [],
+                'valid_fields': [],
+                'missing_fields': []
+            }
+        
+        template = self.QUERY_TEMPLATES[template_key]
+        template_name = template.get('name', template_key)
+        
+        # Get template fields
+        query = template.get('query', {})
+        dimensions = query.get('dimensions', [])
+        
+        # Extract field names from dimensions (simple extraction for now)
+        template_fields = []
+        for dim in dimensions:
+            # Simple field extraction - just get the part after the last dot
+            if '{collection}.' in dim:
+                field_name = dim.split('{collection}.')[-1]
+                template_fields.append(field_name)
+            elif '.' in dim and not dim.startswith('{'):
+                field_name = dim.split('.')[-1]
+                template_fields.append(field_name)
+            else:
+                template_fields.append(dim)
+        
+        # Discover available fields
+        try:
+            result = await self.extract_available_fields_from_advanced_export(
+                username, project, analysis, export_group=None
+            )
+            
+            if result['success']:
+                available_fields = result['fields']
+                
+                # Check which template fields are available
+                valid_fields = []
+                missing_fields = []
+                
+                for field in template_fields:
+                    if field in available_fields:
+                        valid_fields.append(field)
+                    else:
+                        missing_fields.append(field)
+                
+                return {
+                    'success': True,
+                    'template_name': template_name,
+                    'template_key': template_key,
+                    'fields_in_template': template_fields,
+                    'available_fields': available_fields,
+                    'valid_fields': valid_fields,
+                    'missing_fields': missing_fields,
+                    'validation_summary': f"{len(valid_fields)}/{len(template_fields)} fields available"
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': f"Field discovery failed: {result['message']}",
+                    'template_name': template_name,
+                    'fields_in_template': template_fields,
+                    'available_fields': [],
+                    'valid_fields': [],
+                    'missing_fields': template_fields
+                }
+                
+        except Exception as e:
+            logger.error(f"Template validation failed: {e}")
+            return {
+                'success': False,
+                'error': f"Validation error: {str(e)}",
+                'template_name': template_name,
+                'fields_in_template': template_fields,
+                'available_fields': [],
+                'valid_fields': [],
+                'missing_fields': template_fields
+            }
+
     # --- STEP_METHODS_INSERTION_POINT ---
 
 
