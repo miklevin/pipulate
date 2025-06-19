@@ -37,7 +37,7 @@ from starlette.responses import FileResponse
 
 # Various debug settings
 DEBUG_MODE = False
-STATE_TABLES = True
+STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
 # 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
 # These control different aspects of logging and debugging
