@@ -859,14 +859,24 @@ class Trifecta:
             # Build dropdown options with human-readable descriptions
             dropdown_options = []
             for slug in slugs:
-                # Convert analysis slug to readable date format
+                # Convert analysis slug to readable date format (handle extensions like -2, -3)
                 try:
-                    # Parse YYYYMMDD format to readable date
-                    if len(slug) == 8 and slug.isdigit():
-                        year, month, day = slug[:4], slug[4:6], slug[6:8]
+                    # Parse YYYYMMDD format with optional -N extension
+                    base_slug = slug
+                    run_number = None
+                    
+                    # Check for -N extension (e.g., 20230802-2)
+                    if '-' in slug:
+                        parts = slug.split('-')
+                        if len(parts) == 2 and parts[1].isdigit():
+                            base_slug, run_number = parts[0], int(parts[1])
+                    
+                    # Parse the base date part
+                    if len(base_slug) == 8 and base_slug.isdigit():
+                        year, month, day = base_slug[:4], base_slug[4:6], base_slug[6:8]
                         from datetime import datetime
                         date_obj = datetime(int(year), int(month), int(day))
-                        readable_date = date_obj.strftime('%Y %B %d')  # e.g., "2025 May 25th"
+                        
                         # Add proper ordinal suffix
                         day_int = int(day)
                         if 10 <= day_int % 100 <= 13:  # Special case for 11th, 12th, 13th
@@ -879,7 +889,12 @@ class Trifecta:
                             day_suffix = 'rd'
                         else:
                             day_suffix = 'th'
+                        
                         readable_date = f"{date_obj.strftime('%Y %B')} {day_int}{day_suffix}"
+                        
+                        # Add run number if present
+                        if run_number:
+                            readable_date += f" (Run #{run_number})"
                     else:
                         readable_date = slug
                 except:
