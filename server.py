@@ -809,11 +809,76 @@ async def _botify_get_full_schema(params: dict) -> dict:
             "analysis": analysis
         }
 
+async def _botify_list_available_analyses(params: dict) -> dict:
+    """List available analyses from the local analyses.json file.
+    
+    This tool reads the cached analyses data to help LLMs select the correct
+    analysis_slug for queries without requiring live API calls.
+    """
+    username = params.get("username", "michaellevin-org")
+    project_name = params.get("project_name", "mikelev.in")
+    
+    try:
+        # Construct the path to the analyses.json file
+        from pathlib import Path
+        analyses_path = Path(f"downloads/quadfecta/{username}/{project_name}/analyses.json")
+        
+        if not analyses_path.exists():
+            return {
+                "status": "error",
+                "message": f"Analyses file not found at {analyses_path}",
+                "file_path": str(analyses_path)
+            }
+        
+        # Read and parse the analyses file
+        with open(analyses_path, 'r') as f:
+            import json
+            analyses_data = json.load(f)
+        
+        # Extract simplified analysis info for LLM consumption
+        analyses_list = []
+        for analysis in analyses_data.get("results", []):
+            analyses_list.append({
+                "slug": analysis.get("slug"),
+                "name": analysis.get("name"),
+                "date_finished": analysis.get("date_finished"),
+                "urls_done": analysis.get("urls_done", 0),
+                "status": analysis.get("status"),
+                "id": analysis.get("id")
+            })
+        
+        # Sort by date_finished (most recent first)
+        analyses_list.sort(key=lambda x: x.get("date_finished", ""), reverse=True)
+        
+        return {
+            "status": "success",
+            "result": {
+                "analyses": analyses_list,
+                "total_count": len(analyses_list),
+                "file_path": str(analyses_path),
+                "most_recent": analyses_list[0] if analyses_list else None
+            },
+            "summary": {
+                "total_analyses": len(analyses_list),
+                "file_checked": str(analyses_path)
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error", 
+            "message": f"Error reading analyses: {str(e)}",
+            "username": username,
+            "project_name": project_name,
+            "attempted_path": str(analyses_path) if 'analyses_path' in locals() else None
+        }
+
 # Register Botify MCP tools
 register_mcp_tool("botify_ping", _botify_ping)
 register_mcp_tool("botify_list_projects", _botify_list_projects) 
 register_mcp_tool("botify_simple_query", _botify_simple_query)
 register_mcp_tool("botify_get_full_schema", _botify_get_full_schema)
+register_mcp_tool("botify_list_available_analyses", _botify_list_available_analyses)
 
 # Register Pipeline State Inspector
 register_mcp_tool("pipeline_state_inspector", _pipeline_state_inspector)
