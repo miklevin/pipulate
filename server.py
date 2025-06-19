@@ -2856,26 +2856,9 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/marked.min.js'),
         Script(src='/static/marked-init.js'),
         Script(src='/static/prism.js'),
+        Script(src='/static/theme-init.js'),
         Script(src='/static/widget-scripts.js'),
         create_chat_scripts('.sortable'),
-        Script("""
-            // Initialize theme on page load - sticky preference
-            (function() {
-                // Get theme from localStorage - this is the source of truth for stickiness
-                let themeToApply = localStorage.getItem('theme_preference');
-                
-                if (!themeToApply || (themeToApply !== 'light' && themeToApply !== 'dark')) {
-                    // Default to dark mode for new users (sticky preference)
-                    themeToApply = 'dark';
-                    localStorage.setItem('theme_preference', themeToApply);
-                }
-                
-                document.documentElement.setAttribute('data-theme', themeToApply);
-            })();
-            
-            // Search plugins keyboard navigation is now handled by external JavaScript
-            // in chat-interactions.js via initializeSearchPluginsKeyboardNav()
-        """),
         Script(type='module')
     ),
     store={
