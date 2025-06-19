@@ -4256,10 +4256,14 @@ async def poke_flyout(request):
     reset_db_button = Button('🔄 Reset Entire DEV Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
-    # Build list items in the requested order: Theme Toggle, Lock Profile, Clear Workflows, Reset Database, MCP Test
+    # Add Update button
+    update_button = Button('🔄 Update Pipulate', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
+    
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, MCP Test
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
-        Li(lock_button, cls='flyout-list-item')
+        Li(lock_button, cls='flyout-list-item'),
+        Li(update_button, cls='flyout-list-item')
     ]
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
@@ -4834,6 +4838,81 @@ async def clear_db(request):
     html_response = HTMLResponse('<div>Database reset complete</div>')
     html_response.headers['HX-Refresh'] = 'true'
     return html_response
+
+@rt('/update-pipulate', methods=['POST'])
+async def update_pipulate(request):
+    """Update Pipulate by performing a git pull"""
+    try:
+        # Send immediate feedback to the user
+        await pipulate.stream('🔄 Checking for Pipulate updates...', verbatim=True, role='system')
+        
+        import subprocess
+        import os
+        
+        # Check if we're in a git repository
+        if not os.path.exists('.git'):
+            await pipulate.stream('❌ Not in a git repository. Cannot update automatically.', verbatim=True, role='system')
+            return ""
+        
+        # Fetch latest changes from remote
+        await pipulate.stream('📡 Fetching latest changes...', verbatim=True, role='system')
+        fetch_result = subprocess.run(['git', 'fetch', 'origin'], capture_output=True, text=True)
+        
+        if fetch_result.returncode != 0:
+            await pipulate.stream(f'❌ Failed to fetch updates: {fetch_result.stderr}', verbatim=True, role='system')
+            return ""
+        
+        # Check if there are updates available
+        local_result = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True)
+        remote_result = subprocess.run(['git', 'rev-parse', '@{u}'], capture_output=True, text=True)
+        
+        if local_result.returncode != 0 or remote_result.returncode != 0:
+            await pipulate.stream('❌ Failed to check for updates', verbatim=True, role='system')
+            return ""
+        
+        local_hash = local_result.stdout.strip()
+        remote_hash = remote_result.stdout.strip()
+        
+        if local_hash == remote_hash:
+            await pipulate.stream('✅ Already up to date!', verbatim=True, role='system')
+            return ""
+        
+        # Stash any local changes to prevent conflicts
+        await pipulate.stream('💾 Stashing local changes...', verbatim=True, role='system')
+        stash_result = subprocess.run(['git', 'stash', 'push', '--quiet', '--include-untracked', '--message', 'Auto-stash before update'], 
+                                    capture_output=True, text=True)
+        
+        # Perform the git pull
+        await pipulate.stream('⬇️ Pulling latest changes...', verbatim=True, role='system')
+        pull_result = subprocess.run(['git', 'pull', '--ff-only'], capture_output=True, text=True)
+        
+        if pull_result.returncode != 0:
+            await pipulate.stream(f'❌ Failed to pull updates: {pull_result.stderr}', verbatim=True, role='system')
+            # Try to restore stashed changes
+            subprocess.run(['git', 'stash', 'pop', '--quiet'], capture_output=True)
+            return ""
+        
+        # Try to restore stashed changes
+        stash_list = subprocess.run(['git', 'stash', 'list'], capture_output=True, text=True)
+        if 'Auto-stash before update' in stash_list.stdout:
+            await pipulate.stream('🔄 Restoring local changes...', verbatim=True, role='system')
+            stash_apply = subprocess.run(['git', 'stash', 'apply', '--quiet'], capture_output=True, text=True)
+            if stash_apply.returncode == 0:
+                subprocess.run(['git', 'stash', 'drop', '--quiet'], capture_output=True)
+            else:
+                await pipulate.stream('⚠️ Some local changes could not be restored automatically', verbatim=True, role='system')
+        
+        await pipulate.stream('✅ Update complete! Restarting server...', verbatim=True, role='system')
+        
+        # Restart the server to apply updates
+        asyncio.create_task(delayed_restart(2))
+        
+        return ""
+        
+    except Exception as e:
+        logger.error(f"Error updating Pipulate: {e}")
+        await pipulate.stream(f'❌ Update failed: {str(e)}', verbatim=True, role='system')
+        return ""
 
 @rt('/select_profile', methods=['POST'])
 async def select_profile(request):
