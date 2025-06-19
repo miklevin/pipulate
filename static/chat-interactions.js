@@ -64,71 +64,6 @@ function setupWebSocketAndSSE() {
         }
     };
 
-    // WebSocket message handler
-    window.handleWebSocketMessage = function(event) {
-        console.log('Sidebar received:', event.data);
-        
-        // Check if the message is a script
-        if (event.data.trim().startsWith('<script>')) {
-            const scriptContent = event.data.replace(/<\/?script>/g, '').trim();
-            console.log('Executing script:', scriptContent);
-            try {
-                eval(scriptContent);
-            } catch (e) {
-                console.error('Error executing script:', e);
-            }
-            return;
-        }
-        
-        // Check if the response is an HTML element
-        if (event.data.trim().startsWith('<')) {
-            try {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(event.data.trim(), 'text/html');
-                const element = doc.body.firstChild;
-                
-                if (element && element.hasAttribute('data-id')) {
-                    const todoList = document.getElementById('todo-list');
-                    if (todoList) {
-                        todoList.appendChild(element);
-                        if (window.Sortable && !todoList.classList.contains('sortable-initialized')) {
-                            new Sortable(todoList, {
-                                animation: 150,
-                                ghostClass: 'blue-background-class'
-                            });
-                            todoList.classList.add('sortable-initialized');
-                        }
-                    }
-                    return;
-                }
-            } catch (e) {
-                console.error('Error parsing HTML:', e);
-            }
-        }
-        
-        // Handle regular chat messages
-        const sidebarMsgList = document.getElementById('msg-list');
-        const sidebarCurrentMessage = document.createElement('div');
-        sidebarCurrentMessage.className = 'message assistant';
-        
-        if (!sidebarCurrentMessage.parentElement) {
-            sidebarMsgList.appendChild(sidebarCurrentMessage);
-        }
-        
-        // Handle line breaks in messages
-        if (event.data.includes('\\n')) {
-            const lines = event.data.split('\\n');
-            sidebarCurrentMessage.innerHTML += lines.map(line => {
-                const linkedLine = linkifyText(line);
-                return line.trim() ? `<p>${linkedLine}</p>` : '<br>';
-            }).join('');
-        } else {
-            sidebarCurrentMessage.innerHTML += linkifyText(event.data);
-        }
-        
-        sidebarMsgList.scrollTop = sidebarMsgList.scrollHeight;
-    };
-
     // Test functions
     window.testSSE = function() {
         alert('Latest SSE message: ' + (lastMessage || 'No messages received yet'));
@@ -138,7 +73,7 @@ function setupWebSocketAndSSE() {
         return lastMessage;
     }
     
-    console.log('WebSocket and SSE handlers initialized');
+    console.log('SSE handlers initialized (WebSocket handled by websocket-config.js)');
 }
 
 function setupInteractions() {
