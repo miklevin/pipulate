@@ -205,7 +205,15 @@ class Trifecta:
             'user_message': 'This will download basic crawl data including URLs, HTTP status codes, and page titles.',
             'button_label_suffix': 'Basic Attributes',
             'query': {
-                'dimensions': ['{collection}.url', '{collection}.http_code', '{collection}.metadata.title.content'],
+                'dimensions': [
+                    '{collection}.url', 
+                    '{collection}.http_code', 
+                    '{collection}.metadata.title.content',
+                    '{collection}.segments.pagetype.value',
+                    '{collection}.compliant.is_compliant',
+                    '{collection}.canonical.to.equal',
+                    '{collection}.sitemaps.present'
+                ],
                 'metrics': [],
                 'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}
             }
@@ -283,7 +291,6 @@ class Trifecta:
                 'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
             }
         },
-
     }
 
 
