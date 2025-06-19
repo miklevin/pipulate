@@ -4351,8 +4351,23 @@ await main()
         widget_visible_key = f'{step_id}_widget_visible'
         is_visible = state.get(widget_visible_key, False)
         
-        # Determine content to show
-        python_command = data_obj.get('python_command', '# No Python code available for this step.')
+        # 🚨 ANTI-REGRESSION: Always generate Python code (cached OR fresh downloads)
+        python_command = data_obj.get('python_command', None)
+        
+        # If no Python code in step data, generate it for cached data consistency
+        if not python_command or python_command == '# No Python code available for this step.':
+            # Extract necessary parameters from step data or state
+            username = data_obj.get('username', state.get('username', 'unknown'))
+            project_name = data_obj.get('project', data_obj.get('project_name', state.get('project_name', 'unknown')))
+            analysis_slug = data_obj.get('analysis_slug', state.get('analysis_slug', 'unknown'))
+            
+            # Generate Python code for this step context
+            python_command = self._generate_python_code_for_cached_data(
+                step_context=step_id,
+                username=username,
+                project_name=project_name,
+                analysis_slug=analysis_slug
+            )
         
         # Handle simple content case first
         if 'simple_content' in config:
@@ -4469,6 +4484,119 @@ await main()
                 
             return Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary', id='submit-button',
                          **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
+
+    def _generate_python_code_for_cached_data(self, step_context, username, project_name, analysis_slug, export_type=None):
+        """
+        🚨 ANTI-REGRESSION GUARDIAN: Hide/Show Code Feature Protection
+        =============================================================
+        
+        CRITICAL PROBLEM SOLVED: AI assistants keep breaking the "Hide/Show Code" 
+        functionality because Python code is only generated during actual downloads,
+        not when displaying cached data. This causes the feature to inconsistently 
+        work, creating a whack-a-mole regression pattern.
+        
+        SYSTEMATIC SOLUTION: This method ensures Python code is ALWAYS available
+        for the "Hide/Show Code" button, regardless of download vs cached workflow.
+        
+        🎯 Why This Method Exists:
+        - Users expect to see Python code examples whether they downloaded fresh or used cached data
+        - The code helps with Jupyter debugging and API understanding
+        - Consistency is crucial for user experience and workflow reliability
+        - Prevents AI from removing this feature during future refactoring
+        
+        Args:
+            step_context: The step identifier ('step_crawler', 'step_webogs', 'step_gsc')
+            username: Organization slug for API URLs
+            project_name: Project name for API URLs  
+            analysis_slug: Analysis identifier for the data
+            export_type: Optional export type override
+            
+        Returns:
+            str: Python code that recreates the equivalent API call for debugging
+        """
+        
+        try:
+            # Determine the template and export configuration
+            template_config_key, fallback_export_type, fallback_suffix = self._get_template_config_for_step_context(step_context)
+            
+            if export_type is None:
+                try:
+                    export_type = self.get_export_type_for_template_config(template_config_key)
+                except (ValueError, KeyError):
+                    export_type = fallback_export_type
+            
+            # Handle web logs special case (BQLv1, non-templated)
+            if step_context == 'step_webogs':
+                # Create a mock BQLv1 payload for web logs (following actual BQLv1 structure)
+                mock_payload = {
+                    'job_type': 'logs_urls_export',
+                    'payload': {
+                        'date_start': '2024-01-01',  # BQLv1 structure - dates at payload level
+                        'date_end': '2024-12-31',
+                        'query': {
+                            'dimensions': ['url', 'crawls.google.count'],
+                            'metrics': [],
+                            'filters': {
+                                'field': 'crawls.google.count',
+                                'predicate': 'gt',
+                                'value': 0
+                            }
+                        }
+                    }
+                }
+                
+                # Generate the Python code using the weblog-specific method
+                try:
+                    # For BQLv1 (weblogs), generate_query_api_call returns (logs_url, query_payload, python_code)
+                    logs_url, query_payload, python_code = self.generate_query_api_call(mock_payload, username, project_name, 100)
+                    return python_code
+                except Exception as e:
+                    return f"# Error generating web logs Python code: {str(e)}"
+            
+            # Handle templated data types (crawler, gsc)
+            else:
+                try:
+                    # Get the active template
+                    active_template_key = self.get_configured_template(template_config_key)
+                    template_details = self.QUERY_TEMPLATES.get(active_template_key, {})
+                    
+                    if not template_details:
+                        return f"# Python code not available - template '{active_template_key}' not found"
+                    
+                    # Apply the template to create the query
+                    applied_template = self.apply_template(active_template_key, collection=analysis_slug)
+                    
+                    # Create a mock jobs payload from the template
+                    mock_payload = {
+                        'job_type': 'export',
+                        'payload': {
+                            'query': {
+                                'collections': [analysis_slug],
+                                'query': applied_template
+                            }
+                        }
+                    }
+                    
+                    # For GSC, add period information
+                    if export_type == 'gsc_data':
+                        mock_payload['payload']['query']['periods'] = [
+                            {'start_date': '2024-01-01', 'end_date': '2024-12-31'}  # Placeholder
+                        ]
+                    
+                    # Generate the Python code
+                    try:
+                        # For BQLv2 (crawler/gsc), generate_query_api_call returns (query_url, python_code)
+                        query_url, python_code = self.generate_query_api_call(mock_payload, username, project_name, 100)
+                        return python_code
+                    except Exception as e:
+                        return f"# Error generating BQLv2 Python code: {str(e)}"
+                    
+                except Exception as template_error:
+                    return f"# Python code generation failed for {step_context}: {str(template_error)}"
+                
+        except Exception as e:
+            # Fallback for any unexpected errors
+            return f"# Python code generation error for {step_context}: {str(e)}"
 
     def convert_jobs_to_query_payload(self, jobs_payload, username, project_name, page_size=100):
         """
