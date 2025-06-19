@@ -3016,7 +3016,8 @@ class DictLikeDB:
             logger.debug(f'Retrieved from DB: {key} = {value}')
             return value
         except NotFoundError:
-            logger.error(f'Key not found: {key}')
+            # Don't log as error - this is expected behavior when checking for keys
+            logger.debug(f'Key not found: {key}')
             raise KeyError(key)
 
     @db_operation
@@ -3117,6 +3118,9 @@ def populate_initial_data():
     if 'profile_locked' not in db:
         db['profile_locked'] = '0'
         logger.debug("Initialized profile_locked to '0'")
+    if 'split-sizes' not in db:
+        db['split-sizes'] = '[65, 35]'  # Default split panel sizes
+        logger.debug("Initialized split-sizes to default '[65, 35]'")
     if TABLE_LIFECYCLE_LOGGING:
         log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles AFTER')
         log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db AFTER')
@@ -3386,7 +3390,8 @@ for module_name, class_name, workflow_class in discovered_classes:
                 endpoint_message = get_endpoint_message(module_name)
                 logger.debug(f'Endpoint message for {module_name}: {endpoint_message}')
             except Exception as e:
-                logger.warning(f'Error instantiating workflow {module_name}.{class_name}: {str(e)}')
+                # Log as debug since some plugins may have expected attribute errors during initialization
+                logger.debug(f'Error instantiating workflow {module_name}.{class_name}: {str(e)}')
                 continue
         except Exception as e:
             logger.warning(f'Issue with workflow {module_name}.{class_name} - continuing anyway')
