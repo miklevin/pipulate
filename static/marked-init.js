@@ -37,11 +37,9 @@ window.initializeMarked = function() {
                 return `<pre><code class="language-${lang}">${code}</code></pre>`;
             },
             
-            // Make links open in new tabs for external URLs
+            // Disable automatic URL linking - return just the text
             link(href, title, text) {
-                const titleAttr = title ? ` title="${title}"` : '';
-                const external = href.startsWith('http') ? ' target="_blank" rel="noopener noreferrer"' : '';
-                return `<a href="${href}"${titleAttr}${external}>${text}</a>`;
+                return text;
             }
         }
     });

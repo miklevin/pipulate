@@ -45,13 +45,7 @@ sidebarWs.onerror = function(error) {
     console.error('Sidebar WebSocket error:', error);
 };
 
-// Add this function at the top of the file
-function linkifyText(text) {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.replace(urlRegex, function(url) {
-        return '<a href="' + url + '" target="_blank">' + url + '</a>';
-    });
-}
+// Removed linkifyText function - no automatic URL linking
 
 // Timer-based UI prediction removed - server now controls streaming state completely
 sidebarWs.onmessage = function(event) {
@@ -135,14 +129,15 @@ sidebarWs.onmessage = function(event) {
                 // But preserve basic formatting for readability
                 const lines = rawText.split('\n');
                 const formattedLines = lines.map(line => {
-                    // Basic HTML escaping for safety
+                    // Basic HTML escaping for safety, but preserve <br> tags
                     return line.replace(/&/g, '&amp;')
                               .replace(/</g, '&lt;')
-                              .replace(/>/g, '&gt;');
+                              .replace(/>/g, '&gt;')
+                              .replace(/&lt;br&gt;/g, '<br>'); // Convert escaped <br> back to actual breaks
                 });
                 sidebarCurrentMessage.innerHTML = formattedLines.join('<br>');
             } else {
-                // Safe to parse complete markdown
+                // Safe to parse complete markdown using pre-configured marked
                 const renderedHtml = marked.parse(rawText);
                 sidebarCurrentMessage.innerHTML = renderedHtml;
                 
@@ -154,22 +149,24 @@ sidebarWs.onmessage = function(event) {
         } catch (e) {
             console.error('Error rendering Markdown:', e);
             // Fallback to safely formatted plain text
-            const escapedText = sidebarCurrentMessage.dataset.rawText
+            const processedText = sidebarCurrentMessage.dataset.rawText
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
+                .replace(/&lt;br&gt;/g, '<br>') // Convert escaped <br> back to actual breaks
                 .replace(/\n/g, '<br>');
-            sidebarCurrentMessage.innerHTML = escapedText;
+            sidebarCurrentMessage.innerHTML = processedText;
         }
     } else {
         // Fallback to plain text if marked.js is not available
         console.warn('marked.js is not available - using plain text');
-        const escapedText = sidebarCurrentMessage.dataset.rawText
+        const processedText = sidebarCurrentMessage.dataset.rawText
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
+            .replace(/&lt;br&gt;/g, '<br>') // Convert escaped <br> back to actual breaks
             .replace(/\n/g, '<br>');
-        sidebarCurrentMessage.innerHTML = escapedText;
+        sidebarCurrentMessage.innerHTML = processedText;
     }
     
     // Keep the latest message in view
