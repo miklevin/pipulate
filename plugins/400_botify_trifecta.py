@@ -3354,8 +3354,8 @@ await main()
             try:
                 validation_result = await self.validate_template_fields(gsc_template, username, project_name, analysis_slug or 'unknown')
                 if validation_result['success']:
-                    fields_available = validation_result['fields_status']['available_count']
-                    fields_total = validation_result['fields_status']['total_count'] 
+                    fields_available = len(validation_result.get('valid_fields', []))
+                    fields_total = len(validation_result.get('fields_in_template', []))
                     logger.info(f"🎯 TEMPLATE_VALIDATION: GSC template '{gsc_template}' - {fields_available}/{fields_total} fields available for {username}/{project_name}")
                 else:
                     logger.warning(f"🚨 TEMPLATE_VALIDATION: GSC template '{gsc_template}' validation failed - {validation_result.get('error', 'Unknown error')}")
@@ -3424,8 +3424,8 @@ await main()
             try:
                 validation_result = await self.validate_template_fields(analysis_template, username, project_name, analysis_slug)
                 if validation_result['success']:
-                    fields_available = validation_result['fields_status']['available_count']
-                    fields_total = validation_result['fields_status']['total_count'] 
+                    fields_available = len(validation_result.get('valid_fields', []))
+                    fields_total = len(validation_result.get('fields_in_template', []))
                     logger.info(f"🎯 TEMPLATE_VALIDATION: Crawl template '{analysis_template}' - {fields_available}/{fields_total} fields available for {username}/{project_name}/{analysis_slug}")
                 else:
                     logger.warning(f"🚨 TEMPLATE_VALIDATION: Crawl template '{analysis_template}' validation failed - {validation_result.get('error', 'Unknown error')}")
