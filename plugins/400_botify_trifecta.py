@@ -3282,6 +3282,19 @@ await main()
             # Use the configured GSC template
             gsc_template = self.get_configured_template('gsc')
             template_query = self.apply_template(gsc_template)
+            
+            # 🔍 BABY STEP 2: Non-intrusive validation logging
+            try:
+                validation_result = await self.validate_template_fields(gsc_template, username, project_name, analysis_slug or 'unknown')
+                if validation_result['success']:
+                    fields_available = validation_result['fields_status']['available_count']
+                    fields_total = validation_result['fields_status']['total_count'] 
+                    logger.info(f"🎯 TEMPLATE_VALIDATION: GSC template '{gsc_template}' - {fields_available}/{fields_total} fields available for {username}/{project_name}")
+                else:
+                    logger.warning(f"🚨 TEMPLATE_VALIDATION: GSC template '{gsc_template}' validation failed - {validation_result.get('error', 'Unknown error')}")
+            except Exception as e:
+                logger.debug(f"🔍 TEMPLATE_VALIDATION: GSC validation check failed (non-critical): {e}")
+                # Continue normally - validation failure doesn't break existing functionality
             export_job_payload = {
                 'job_type': 'export',
                 'payload': {
@@ -3339,6 +3352,19 @@ await main()
             # Use the configured crawl template
             analysis_template = self.get_configured_template('analysis')
             template_query = self.apply_template(analysis_template, collection)
+            
+            # 🔍 BABY STEP 2: Non-intrusive validation logging
+            try:
+                validation_result = await self.validate_template_fields(analysis_template, username, project_name, analysis_slug)
+                if validation_result['success']:
+                    fields_available = validation_result['fields_status']['available_count']
+                    fields_total = validation_result['fields_status']['total_count'] 
+                    logger.info(f"🎯 TEMPLATE_VALIDATION: Crawl template '{analysis_template}' - {fields_available}/{fields_total} fields available for {username}/{project_name}/{analysis_slug}")
+                else:
+                    logger.warning(f"🚨 TEMPLATE_VALIDATION: Crawl template '{analysis_template}' validation failed - {validation_result.get('error', 'Unknown error')}")
+            except Exception as e:
+                logger.debug(f"🔍 TEMPLATE_VALIDATION: Crawl validation check failed (non-critical): {e}")
+                # Continue normally - validation failure doesn't break existing functionality
 
             # Apply dynamic parameter substitution if needed
             if placeholder_for_dynamic_param and dynamic_param_value is not None:
