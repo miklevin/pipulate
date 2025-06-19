@@ -37,12 +37,14 @@ README.md         <-- Main GitHub README sets the tone
 flake.nix         <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt  <-- Python package dependencies for the project
 server.py         <-- Main server file for the project
-# .gitignore
-# /home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
-# /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
-# /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
+.gitignore
+/home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
+/home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
+/home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## NECESSARY FOR CURRENT PROMPT
+# /home/mike/repos/pipulate/downloads/trifecta/michaellevin-org/mikelev.in/analyses.json
+# /home/mike/repos/pipulate/downloads/trifecta/michaellevin-org/mikelev.in/20250608/analysis_advanced.json
 
 ## BOTIFY API DOCUMENTATION
 # /home/mike/repos/pipulate/training/botify_api.md
@@ -154,7 +156,7 @@ server.py         <-- Main server file for the project
 /home/mike/repos/Pipulate.com/_guide/2025-04-18-polishing-workflows.md
 
 ## RECENT ARTICLES FROM MIKELEV.IN
-/home/mike/repos/MikeLev.in/_posts/2025-06-17-wet-blueprint-ai-coding-philosophy.md
+# /home/mike/repos/MikeLev.in/_posts/2025-06-17-wet-blueprint-ai-coding-philosophy.md
 
 ## COMMON STATIC RESOURCES (The Usual Suspects / you're already trained on these) 
 # /home/mike/repos/pipulate/static/fasthtml.js
