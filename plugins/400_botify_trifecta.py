@@ -393,6 +393,9 @@ class Trifecta:
 
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
+        
+        # Field Discovery Endpoint - Foundation for BQL template validation
+        app.route(f'/{app_name}/discover-fields/{{username}}/{{project}}/{{analysis}}', methods=['GET'])(self.discover_fields_endpoint)
 
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_analysis': {'input': f"❔{pip.fmt('step_analysis')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in self.steps:
@@ -5260,7 +5263,79 @@ await main()
 
         return buttons
 
-
+    async def discover_fields_endpoint(self, request):
+        """
+        🔍 FIELD DISCOVERY ENDPOINT
+        
+        Simple endpoint to discover available fields for a Botify project analysis.
+        Call via: /trifecta/discover-fields/username/project/analysis
+        
+        Returns JSON with all available dimensions and metrics.
+        """
+        username = request.path_params['username']
+        project = request.path_params['project'] 
+        analysis = request.path_params['analysis']
+        
+        try:
+            # Use the existing API token reading logic
+            api_token = self.read_api_token()
+            if not api_token:
+                return JSONResponse({
+                    'error': 'No Botify API token found',
+                    'message': 'Please ensure botify_token.txt exists'
+                }, status_code=401)
+            
+            # Call the advanced_export endpoint to get field schema
+            url = f'https://api.botify.com/v1/analyses/{username}/{project}/{analysis}/advanced_export'
+            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers, timeout=60.0)
+            
+            if response.status_code != 200:
+                return JSONResponse({
+                    'error': f'API error: Status {response.status_code}',
+                    'response': response.text
+                }, status_code=response.status_code)
+            
+            data = response.json()
+            
+            # Extract field information from the response
+            available_fields = {
+                'dimensions': [],
+                'metrics': [],
+                'collections': []
+            }
+            
+            # Parse the schema data (structure depends on API response)
+            if 'dimensions' in data:
+                available_fields['dimensions'] = data['dimensions']
+            if 'metrics' in data:
+                available_fields['metrics'] = data['metrics']
+            if 'collections' in data:
+                available_fields['collections'] = data['collections']
+            
+            # Log the discovery for debugging
+            logger.info(f"🔍 FINDER_TOKEN: FIELD_DISCOVERY - Discovered {len(available_fields['dimensions'])} dimensions, {len(available_fields['metrics'])} metrics for {username}/{project}/{analysis}")
+            
+            return JSONResponse({
+                'project': f'{username}/{project}',
+                'analysis': analysis,
+                'discovered_at': datetime.now().isoformat(),
+                'available_fields': available_fields,
+                'field_count': {
+                    'dimensions': len(available_fields['dimensions']),
+                    'metrics': len(available_fields['metrics']),
+                    'collections': len(available_fields['collections'])
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Field discovery failed for {username}/{project}/{analysis}: {e}")
+            return JSONResponse({
+                'error': 'Field discovery failed',
+                'details': str(e)
+            }, status_code=500)
 
     # --- STEP_METHODS_INSERTION_POINT ---
 
