@@ -5288,23 +5288,25 @@ def run_server_with_watchdog():
         log.warning('Development mode active', details=f'Using database: {env_db}')
     else:
         log.startup('Production mode active', details=f'Using database: {env_db}')
+    # Always show Alice ASCII art on server startup - it's delightful!
+    logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice ASCII art on startup')
+    alice_buffer = 10
+    # Log Alice art to file but display directly to console for visual impact
+    try:
+        with open('static/alice.txt', 'r') as file:
+            alice_content = file.read()
+            logger.debug(f'🐰 FINDER_TOKEN: ALICE_CONTENT - ASCII art loaded from static/alice.txt')
+            # Still use print for ASCII art display to preserve visual formatting
+            [print() for _ in range(alice_buffer)]
+            print(alice_content)
+            [print() for _ in range(alice_buffer)]
+    except FileNotFoundError:
+        logger.warning('🐰 FINDER_TOKEN: ALICE_MISSING - static/alice.txt not found, skipping ASCII art display')
+    
+    # Additionally show debug information if STATE_TABLES is enabled
     if STATE_TABLES:
         log.startup('State tables enabled', details='Edit server.py and set STATE_TABLES=False to disable')
         print_routes()
-    else:
-        logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice ASCII art (STATE_TABLES=False)')
-        alice_buffer = 10
-        # Log Alice art to file but display directly to console for visual impact
-        try:
-            with open('static/alice.txt', 'r') as file:
-                alice_content = file.read()
-                logger.debug(f'🐰 FINDER_TOKEN: ALICE_CONTENT - ASCII art loaded from static/alice.txt')
-                # Still use print for ASCII art display to preserve visual formatting
-                [print() for _ in range(alice_buffer)]
-                print(alice_content)
-                [print() for _ in range(alice_buffer)]
-        except FileNotFoundError:
-            logger.warning('🐰 FINDER_TOKEN: ALICE_MISSING - static/alice.txt not found, skipping ASCII art display')
     event_handler = ServerRestartHandler()
     observer = Observer()
     observer.schedule(event_handler, path='.', recursive=True)
