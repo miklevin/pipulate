@@ -1576,13 +1576,16 @@ class Trifecta:
 
                 # Only check for cached files if we found an analysis slug
                 if current_analysis_slug:
-                    weblog_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/weblog.csv"
-                    is_cached = os.path.exists(weblog_path)
+                    # Use the legacy file checking method for weblog (not templated)
+                    is_cached, file_info = await self.check_cached_file_for_button_text(username, project_name, current_analysis_slug, 'weblog')
             except Exception:
-                is_cached = False
+                is_cached, file_info = False, None
 
             # Set button text based on cache status
-            button_text = 'Use Cached Web Logs ▸' if is_cached else 'Download Web Logs ▸'
+            if is_cached and file_info:
+                button_text = f'Use Cached Web Logs ({file_info["size"]}) ▸'
+            else:
+                button_text = 'Download Web Logs ▸'
 
             # Create button row with conditional skip button
             button_row_items = [
