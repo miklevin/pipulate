@@ -825,18 +825,20 @@ class Trifecta:
             user_message = active_template_details.get('user_message', 'This will download crawl data.')
             button_suffix = active_template_details.get('button_label_suffix', 'Data')
 
-            # Check for downloaded files using the active template's export type
+            # Check for downloaded files - COMPREHENSIVE APPROACH
+            # Check ALL possible file types regardless of current template selection
             downloaded_files_info = {}
             for slug in slugs:
-                # Check all possible file types for this analysis
                 files_found = []
 
-                # Check crawl data (using active template's export type)
-                crawl_filepath = await self.get_deterministic_filepath(username, project_name, slug, active_template_details.get('export_type', 'crawl_attributes'))
-                crawl_exists, crawl_info = await self.check_file_exists(crawl_filepath)
-                if crawl_exists:
-                    filename = os.path.basename(crawl_filepath)
-                    files_found.append(filename)
+                # Check ALL possible crawl data types
+                all_export_types = ['crawl_attributes', 'link_graph_edges']
+                for export_type in all_export_types:
+                    crawl_filepath = await self.get_deterministic_filepath(username, project_name, slug, export_type)
+                    crawl_exists, _ = await self.check_file_exists(crawl_filepath)
+                    if crawl_exists:
+                        filename = os.path.basename(crawl_filepath)
+                        files_found.append(filename)
 
                 # Check weblog data
                 weblog_filepath = await self.get_deterministic_filepath(username, project_name, slug, 'weblog')
@@ -845,25 +847,55 @@ class Trifecta:
                     files_found.append('weblog.csv')
 
                 # Check GSC data
-                gsc_filepath = await self.get_deterministic_filepath(username, project_name, slug, 'gsc')
+                gsc_filepath = await self.get_deterministic_filepath(username, project_name, slug, 'gsc_data')
                 gsc_exists, _ = await self.check_file_exists(gsc_filepath)
                 if gsc_exists:
                     files_found.append('gsc.csv')
-
-
 
                 if files_found:
                     downloaded_files_info[slug] = files_found
             await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('input', f'Select an analysis for {project_name}'), verbatim=True)
 
-            # Build dropdown options with file summaries
+            # Build dropdown options with human-readable descriptions
             dropdown_options = []
             for slug in slugs:
+                # Convert analysis slug to readable date format
+                try:
+                    # Parse YYYYMMDD format to readable date
+                    if len(slug) == 8 and slug.isdigit():
+                        year, month, day = slug[:4], slug[4:6], slug[6:8]
+                        from datetime import datetime
+                        date_obj = datetime(int(year), int(month), int(day))
+                        readable_date = date_obj.strftime('%Y %B %d')  # e.g., "2025 May 25th"
+                        # Add proper ordinal suffix
+                        day_int = int(day)
+                        if 10 <= day_int % 100 <= 13:  # Special case for 11th, 12th, 13th
+                            day_suffix = 'th'
+                        elif day_int % 10 == 1:
+                            day_suffix = 'st'
+                        elif day_int % 10 == 2:
+                            day_suffix = 'nd'
+                        elif day_int % 10 == 3:
+                            day_suffix = 'rd'
+                        else:
+                            day_suffix = 'th'
+                        readable_date = f"{date_obj.strftime('%Y %B')} {day_int}{day_suffix}"
+                    else:
+                        readable_date = slug
+                except:
+                    readable_date = slug
+                
+                # Create descriptive option text
+                template_name = active_template_details.get('name', 'Crawl Data')
+                base_text = f"Download {template_name} for {readable_date}"
+                
+                # Add file info if files exist
                 if slug in downloaded_files_info:
                     files_summary = ', '.join(downloaded_files_info[slug])
-                    option_text = f'{slug} ({files_summary})'
+                    option_text = f"{base_text} ({slug}) - Files: {files_summary}"
                 else:
-                    option_text = slug
+                    option_text = f"{base_text} ({slug})"
+                    
                 dropdown_options.append(Option(option_text, value=slug, selected=slug == selected_value))
 
             # Check if files are cached for the selected analysis to determine button text
