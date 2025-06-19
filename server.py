@@ -5880,18 +5880,14 @@ async def warm_up_botify_schema_cache():
             
             logger.info(f"SCHEMA CACHE WARMUP: {total_projects} projects, {cache_hits} cache hits, {total_fields:,} total fields ready for AI")
             
-            # Send notification to user via message queue if significant caching occurred
-            if total_projects > 0 and pipulate and pipulate.message_queue:
+            # Add cache status to conversation history silently for AI context
+            if total_projects > 0:
                 try:
-                    await pipulate.message_queue.add(
-                        pipulate, 
-                        f"🔍 **Botify Schema Cache Ready** - {total_projects} projects with {total_fields:,} fields available for instant AI queries",
-                        verbatim=True, 
-                        role='system', 
-                        spaces_after=1
-                    )
+                    cache_msg = f"🔍 Botify Schema Cache Ready - {total_projects} projects with {total_fields:,} fields available for instant AI queries"
+                    # Add to conversation history silently (not to visible chat)
+                    append_to_conversation(cache_msg, role='system')
                 except Exception as msg_error:
-                    logger.debug(f"Could not send cache warmup message: {msg_error}")
+                    logger.debug(f"Could not add cache warmup to conversation: {msg_error}")
         
     except Exception as e:
         logger.error(f"Error during Botify schema cache warmup: {e}")
@@ -5949,29 +5945,25 @@ async def prepare_local_llm_context():
         
         logger.info(f"LOCAL LLM CONTEXT: Pre-seeded context package ready at {context_file}")
         
-        # Send welcome message to local LLM via message queue
-        if pipulate and pipulate.message_queue:
-            try:
-                welcome_msg = """🤖 **Local LLM Context Ready**
+        # Add context message silently to conversation history for local LLM
+        try:
+            context_msg = """🤖 Local LLM Context Initialized
 
-Your MCP tools are available:
-• `local_llm_read_file` - Read training materials and code
-• `local_llm_list_files` - Explore safe directories  
-• `local_llm_grep_logs` - Search server logs for patterns
-• `pipeline_state_inspector` - Check application state
+Your MCP tools are now available:
+• local_llm_get_context - Get system overview
+• local_llm_read_file - Read training materials and code  
+• local_llm_list_files - Explore safe directories
+• local_llm_grep_logs - Search server logs for patterns
+• pipeline_state_inspector - Check application state
 • Botify API tools - Full schema access with 4,449+ fields
 
-Use these tools to assist users within your capabilities. Advanced AI exploration is handled by Claude/GPT when needed."""
-                
-                await pipulate.message_queue.add(
-                    pipulate, 
-                    welcome_msg,
-                    verbatim=True, 
-                    role='system', 
-                    spaces_after=1
-                )
-            except Exception as msg_error:
-                logger.debug(f"Could not send local LLM welcome message: {msg_error}")
+Use these tools to assist users within your guided capabilities. Remember that advanced AI exploration (file system access, complex debugging) is handled by Claude/GPT in Cursor/Windsurf/VSCode when needed."""
+            
+            # Add to conversation history silently (not to visible chat)
+            append_to_conversation(context_msg, role='system')
+            
+        except Exception as msg_error:
+            logger.debug(f"Could not add local LLM context to conversation: {msg_error}")
         
     except Exception as e:
         logger.error(f"Error preparing local LLM context: {e}")
