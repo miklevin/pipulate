@@ -5660,17 +5660,31 @@ await main()
 
     async def validate_template_fields(self, template_key, username, project, analysis):
         """
-        🔍 SIMPLE FIELD VALIDATION (Baby Step 1)
+        🔍 EXPLICIT FIELD VALIDATION (Baby Step 12 - Major Simplification)
         
-        Validates template fields against discovered fields for a project.
-        Returns validation info without changing any existing functionality.
+        Validates template fields against discovered fields using EXPLICIT field paths.
+        This method was simplified to eliminate brittle field name extraction and mapping.
+        
+        🎯 EXPLICITNESS OVER AMBIGUITY: 
+        - Template fields are kept exactly as written (e.g., '{collection}.metadata.title.content')
+        - Only {collection} prefix is normalized for comparison with discovered fields
+        - Zero hidden mapping logic - what you see is what gets validated
+        
+        🚨 ANTI-REGRESSION PROTECTION:
+        - Removed complex .split() logic that caused field name ambiguity
+        - Eliminated "simplified" field extraction that introduced mapping errors
+        - Preserved exact template field paths for complete transparency
         
         Args:
             template_key: Key from QUERY_TEMPLATES
             username, project, analysis: Botify project identifiers
             
         Returns:
-            dict: Validation results with field status
+            dict: Validation results with explicit field status
+                - fields_in_template: Exact field paths from template
+                - valid_fields: Template fields found in discovered fields
+                - missing_fields: Template fields not found
+                - validation_summary: X/Y fields available ratio
         """
         # Get the template
         if template_key not in self.QUERY_TEMPLATES:
