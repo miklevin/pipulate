@@ -1178,12 +1178,15 @@ class Trifecta:
 
                 # Only check for cached files if we found an analysis slug
                 if current_analysis_slug:
-                    basic_crawl_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/crawler.csv"  
-                    is_cached = os.path.exists(basic_crawl_path)
+                    # Use the proper template-aware file checking method
+                    is_cached, file_info = await self.check_cached_file_for_template_config(username, project_name, current_analysis_slug, 'crawler')
             except Exception:
-                is_cached = False
+                is_cached, file_info = False, None
 
-            button_text = f'Use Cached Basic Crawl: {crawler_template} ▸' if is_cached else f'Download Basic Crawl Attributes: {crawler_template} ▸'
+            if is_cached and file_info:
+                button_text = f'Use Cached Basic Crawl: {crawler_template} ({file_info["size"]}) ▸'
+            else:
+                button_text = f'Download Basic Crawl Attributes: {crawler_template} ▸'
 
             # Create button row with conditional skip button
             button_row_items = [
