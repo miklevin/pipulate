@@ -144,7 +144,7 @@ class HelloFlow:
     4. UI Components: Using helper methods for consistent UI
     """
     APP_NAME = 'hello'
-    DISPLAY_NAME = 'Hello Workflow🐇🕳️'
+    DISPLAY_NAME = 'Hello Workflow️ 👋'
     ENDPOINT_MESSAGE = 'Start a new Hello Workflow. Keys automatically are: PROFILE_Name-APP_Name-XX (just press Enter)...'
     TRAINING_PROMPT = 'hello_workflow.md'
 

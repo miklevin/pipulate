@@ -18,9 +18,9 @@ window.initializeMarked = function() {
     
     // Configure marked with GFM and sensible defaults for chat
     marked.use({
-        // Enable GitHub Flavored Markdown line breaks
-        // Single newlines become <br> tags instead of being collapsed
-        breaks: true,
+        // Disable automatic line breaks - use standard Markdown behavior
+        // Two spaces + newline OR double newline for breaks
+        breaks: false,
         
         // Enable GitHub Flavored Markdown features
         gfm: true,
