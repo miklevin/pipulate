@@ -873,12 +873,117 @@ async def _botify_list_available_analyses(params: dict) -> dict:
             "attempted_path": str(analyses_path) if 'analyses_path' in locals() else None
         }
 
+async def _botify_execute_custom_bql_query(params: dict) -> dict:
+    """Execute a custom BQL query with full parameter control.
+    
+    This is the core 'query wizard' tool that enables LLMs to construct and execute
+    sophisticated BQL queries with custom dimensions, metrics, and filters.
+    """
+    api_token = params.get("api_token")
+    org_slug = params.get("org_slug")
+    project_slug = params.get("project_slug") 
+    analysis_slug = params.get("analysis_slug")
+    query_json = params.get("query_json")
+    
+    # Validate required parameters
+    missing_params = []
+    if not api_token: missing_params.append("api_token")
+    if not org_slug: missing_params.append("org_slug")
+    if not project_slug: missing_params.append("project_slug")
+    if not analysis_slug: missing_params.append("analysis_slug")
+    if not query_json: missing_params.append("query_json")
+    
+    if missing_params:
+        return {
+            "status": "error",
+            "message": f"Missing required parameters: {', '.join(missing_params)}"
+        }
+    
+    # Validate query_json structure
+    if not isinstance(query_json, dict):
+        return {
+            "status": "error", 
+            "message": "query_json must be a dictionary containing the BQL query structure"
+        }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            external_url = f"https://api.botify.com/v1/projects/{org_slug}/{project_slug}/query"
+            headers = {
+                "Authorization": f"Token {api_token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Build the complete payload with analysis
+            payload = dict(query_json)  # Copy the query structure
+            payload["analysis"] = analysis_slug
+            
+            # Set default size if not specified
+            if "size" not in payload:
+                payload["size"] = 100
+            
+            async with session.post(external_url, headers=headers, json=payload) as response:
+                if response.status == 200:
+                    query_result = await response.json()
+                    
+                    # Extract result summary for easier consumption
+                    result_summary = {
+                        "total_results": len(query_result.get("results", [])),
+                        "has_pagination": "next" in query_result,
+                        "query_size_requested": payload.get("size", 100)
+                    }
+                    
+                    return {
+                        "status": "success",
+                        "result": query_result,
+                        "result_summary": result_summary,
+                        "external_api_url": external_url,
+                        "external_api_method": "POST",
+                        "external_api_status": response.status,
+                        "external_api_payload": payload,
+                        "query_info": {
+                            "org": org_slug,
+                            "project": project_slug,
+                            "analysis": analysis_slug,
+                            "query_type": "custom_bql"
+                        }
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "message": f"Custom BQL query failed: {response.status}",
+                        "error_details": error_text,
+                        "external_api_url": external_url,
+                        "external_api_method": "POST",
+                        "external_api_status": response.status,
+                        "external_api_payload": payload,
+                        "query_info": {
+                            "org": org_slug,
+                            "project": project_slug,
+                            "analysis": analysis_slug
+                        }
+                    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Network error: {str(e)}",
+            "external_api_url": external_url if 'external_url' in locals() else None,
+            "external_api_method": "POST",
+            "query_info": {
+                "org": org_slug,
+                "project": project_slug,
+                "analysis": analysis_slug
+            }
+        }
+
 # Register Botify MCP tools
 register_mcp_tool("botify_ping", _botify_ping)
 register_mcp_tool("botify_list_projects", _botify_list_projects) 
 register_mcp_tool("botify_simple_query", _botify_simple_query)
 register_mcp_tool("botify_get_full_schema", _botify_get_full_schema)
 register_mcp_tool("botify_list_available_analyses", _botify_list_available_analyses)
+register_mcp_tool("botify_execute_custom_bql_query", _botify_execute_custom_bql_query)
 
 # Register Pipeline State Inspector
 register_mcp_tool("pipeline_state_inspector", _pipeline_state_inspector)
