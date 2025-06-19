@@ -5687,22 +5687,18 @@ await main()
         template = self.QUERY_TEMPLATES[template_key]
         template_name = template.get('name', template_key)
         
-        # Get template fields
+        # Get template fields - USE EXACT FIELD PATHS (Baby Step 12 Simplification)
         query = template.get('query', {})
         dimensions = query.get('dimensions', [])
         
-        # Extract field names from dimensions (simple extraction for now)
+        # 🎯 EXPLICITNESS OVER AMBIGUITY: Use full field paths with {collection} placeholders
+        # This eliminates brittleness from field name extraction and mapping logic.
+        # Developer explicitness is preferred over user-friendly shortcuts in template definitions.
         template_fields = []
         for dim in dimensions:
-            # Simple field extraction - just get the part after the last dot
-            if '{collection}.' in dim:
-                field_name = dim.split('{collection}.')[-1]
-                template_fields.append(field_name)
-            elif '.' in dim and not dim.startswith('{'):
-                field_name = dim.split('.')[-1]
-                template_fields.append(field_name)
-            else:
-                template_fields.append(dim)
+            # Keep the full field path exactly as defined in the template
+            # This makes validation unambiguous and matches exactly what's sent to the API
+            template_fields.append(dim)
         
         # Discover available fields
         try:
@@ -5714,14 +5710,21 @@ await main()
                 available_fields = result['fields']
                 
                 # Check which template fields are available
+                # Template fields may have {collection} placeholders, so we need to normalize for comparison
                 valid_fields = []
                 missing_fields = []
                 
-                for field in template_fields:
-                    if field in available_fields:
-                        valid_fields.append(field)
+                for template_field in template_fields:
+                    # For comparison purposes, remove {collection}. prefix to match against discovered fields
+                    comparison_field = template_field
+                    if '{collection}.' in template_field:
+                        comparison_field = template_field.replace('{collection}.', '')
+                    
+                    # Check if this normalized field exists in the discovered fields
+                    if comparison_field in available_fields:
+                        valid_fields.append(template_field)  # Keep original template field format
                     else:
-                        missing_fields.append(field)
+                        missing_fields.append(template_field)  # Keep original template field format
                 
                 return {
                     'success': True,
