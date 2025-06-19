@@ -789,7 +789,8 @@ async def _botify_get_full_schema(params: dict) -> dict:
     """Discover complete Botify API schema using the true_schema_discoverer.py module.
     
     This tool fetches the comprehensive schema from Botify's official datamodel endpoints,
-    providing access to all 4,449+ fields for building advanced queries.
+    providing access to all 4,449+ fields for building advanced queries. Implements intelligent
+    caching for instant access to support "radical transparency" AI context bootstrapping.
     """
     # Read API token from standard location (never pass as parameter)
     api_token = _read_botify_api_token()
@@ -803,6 +804,7 @@ async def _botify_get_full_schema(params: dict) -> dict:
     org = params.get("org")
     project = params.get("project")
     analysis = params.get("analysis")
+    force_refresh = params.get("force_refresh", False)
     
     # Validate required parameters (token no longer required as param)
     missing_params = []
@@ -817,8 +819,49 @@ async def _botify_get_full_schema(params: dict) -> dict:
             "required_params": ["org", "project", "analysis"]
         }
     
+    # Implement intelligent caching for instant schema access
     try:
-        # Import the schema discoverer
+        import json
+        from datetime import datetime, timedelta
+        from pathlib import Path
+        
+        # Define cache file path
+        cache_dir = Path("downloads/botify_schema_cache")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_file = cache_dir / f"{org}_{project}_{analysis}_schema.json"
+        
+        # Check if cached file exists and is recent (within 24 hours)
+        if cache_file.exists() and not force_refresh:
+            try:
+                with open(cache_file, 'r') as f:
+                    cached_data = json.load(f)
+                
+                # Check cache age
+                cache_timestamp = datetime.fromisoformat(cached_data.get("cache_metadata", {}).get("cached_at", "1970-01-01"))
+                cache_age = datetime.now() - cache_timestamp
+                
+                if cache_age < timedelta(hours=24):
+                    # Return fresh cached data
+                    cached_data["cache_metadata"]["cache_hit"] = True
+                    cached_data["cache_metadata"]["cache_age_hours"] = round(cache_age.total_seconds() / 3600, 2)
+                    
+                    return {
+                        "status": "success",
+                        "result": cached_data,
+                        "external_api_method": "GET",
+                        "summary": {
+                            "total_fields_discovered": cached_data.get("total_fields_discovered", 0),
+                            "collections_discovered": len(cached_data.get("collections_discovered", [])),
+                            "discovery_timestamp": cached_data.get("project_info", {}).get("discovery_timestamp"),
+                            "cache_used": True,
+                            "cache_age_hours": round(cache_age.total_seconds() / 3600, 2)
+                        }
+                    }
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # Cache file corrupted, proceed with fresh discovery
+                pass
+        
+        # Perform live schema discovery
         from helpers.botify.true_schema_discoverer import BotifySchemaDiscoverer
         
         # Create discoverer instance
@@ -827,6 +870,23 @@ async def _botify_get_full_schema(params: dict) -> dict:
         # Execute the discovery
         schema_results = await discoverer.discover_complete_schema()
         
+        # Add cache metadata
+        schema_results["cache_metadata"] = {
+            "cached_at": datetime.now().isoformat(),
+            "cache_hit": False,
+            "org": org,
+            "project": project,
+            "analysis": analysis
+        }
+        
+        # Save to cache for future use
+        try:
+            with open(cache_file, 'w') as f:
+                json.dump(schema_results, f, indent=2)
+        except Exception as cache_error:
+            # Don't fail the main operation if caching fails
+            logger.warning(f"Failed to save schema cache: {cache_error}")
+        
         return {
             "status": "success",
             "result": schema_results,
@@ -834,7 +894,9 @@ async def _botify_get_full_schema(params: dict) -> dict:
             "summary": {
                 "total_fields_discovered": schema_results.get("total_fields_discovered", 0),
                 "collections_discovered": len(schema_results.get("collections_discovered", [])),
-                "discovery_timestamp": schema_results.get("project_info", {}).get("discovery_timestamp")
+                "discovery_timestamp": schema_results.get("project_info", {}).get("discovery_timestamp"),
+                "cache_used": False,
+                "cache_saved": cache_file.exists()
             }
         }
         
@@ -3816,6 +3878,9 @@ async def startup_event():
     
     # Send environment mode message after a short delay to let UI initialize
     asyncio.create_task(send_startup_environment_message())
+    
+    # Warm up Botify schema cache for instant AI enlightenment
+    asyncio.create_task(warm_up_botify_schema_cache())
 ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in ordered_plugins and module_name in plugin_instances:
@@ -5543,6 +5608,92 @@ async def send_startup_environment_message():
     finally:
         # Clear startup flag
         message_coordination['startup_in_progress'] = False
+
+async def warm_up_botify_schema_cache():
+    """Warm up Botify schema cache on startup for instant AI enlightenment.
+    
+    This function proactively populates schema cache for known projects to ensure
+    AI assistants have instant access to complete Botify API schema without waiting
+    for live API calls during development sessions.
+    """
+    await asyncio.sleep(5)  # Let startup complete first
+    
+    try:
+        # Check if we have Botify token available
+        api_token = _read_botify_api_token()
+        if not api_token:
+            logger.debug("No Botify API token found - skipping schema cache warmup")
+            return
+        
+        # List of known projects to warm up (can be expanded)
+        projects_to_warm = [
+            {"org": "uhnd-com", "project": "uhnd.com-demo-account", "analysis": "20250616"},
+            {"org": "michaellevin-org", "project": "mikelev.in", "analysis": "20241211"}
+        ]
+        
+        cache_warmed = []
+        for project_info in projects_to_warm:
+            try:
+                # Check if we have recent analyses cached locally first
+                from pathlib import Path
+                analyses_path = Path(f"downloads/quadfecta/{project_info['org']}/{project_info['project']}/analyses.json")
+                
+                if analyses_path.exists():
+                    # Try to get latest analysis from cache
+                    import json
+                    with open(analyses_path, 'r') as f:
+                        analyses_data = json.load(f)
+                    
+                    if analyses_data.get("results"):
+                        # Use most recent analysis
+                        latest_analysis = max(analyses_data["results"], 
+                                            key=lambda x: x.get("date_finished", ""))
+                        project_info["analysis"] = latest_analysis.get("slug", project_info["analysis"])
+                
+                # Attempt to warm cache (will use existing cache if available)
+                cache_result = await _botify_get_full_schema({
+                    "org": project_info["org"],
+                    "project": project_info["project"], 
+                    "analysis": project_info["analysis"]
+                })
+                
+                if cache_result.get("status") == "success":
+                    cache_used = cache_result.get("summary", {}).get("cache_used", False)
+                    fields_count = cache_result.get("summary", {}).get("total_fields_discovered", 0)
+                    cache_warmed.append({
+                        "project": f"{project_info['org']}/{project_info['project']}",
+                        "analysis": project_info["analysis"],
+                        "cache_hit": cache_used,
+                        "fields": fields_count
+                    })
+                    
+            except Exception as project_error:
+                logger.debug(f"Could not warm cache for {project_info['org']}/{project_info['project']}: {project_error}")
+                continue
+        
+        if cache_warmed:
+            total_projects = len(cache_warmed)
+            cache_hits = sum(1 for p in cache_warmed if p["cache_hit"])
+            total_fields = sum(p["fields"] for p in cache_warmed)
+            
+            logger.info(f"SCHEMA CACHE WARMUP: {total_projects} projects, {cache_hits} cache hits, {total_fields:,} total fields ready for AI")
+            
+            # Send notification to user via message queue if significant caching occurred
+            if total_projects > 0 and pipulate and pipulate.message_queue:
+                try:
+                    await pipulate.message_queue.add(
+                        pipulate, 
+                        f"🔍 **Botify Schema Cache Ready** - {total_projects} projects with {total_fields:,} fields available for instant AI queries",
+                        verbatim=True, 
+                        role='system', 
+                        spaces_after=1
+                    )
+                except Exception as msg_error:
+                    logger.debug(f"Could not send cache warmup message: {msg_error}")
+        
+    except Exception as e:
+        logger.error(f"Error during Botify schema cache warmup: {e}")
+        # Don't fail startup if cache warmup fails
 
 
 ALL_ROUTES = list(set([''] + MENU_ITEMS))

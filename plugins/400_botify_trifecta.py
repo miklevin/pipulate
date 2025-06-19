@@ -178,7 +178,60 @@ class Trifecta:
     APP_NAME = 'trifecta'
     DISPLAY_NAME = 'Trifecta 🏇'
     ENDPOINT_MESSAGE = 'Download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) — the Trifecta!'
-    TRAINING_PROMPT = 'This workflow provides an example of how to download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) from the Botify API. The queries are different for each type. Downloading one of each type is often the precursor to a comprehensive Botify deliverable, incorporating the full funnel philosophy of the Botify way.'
+    TRAINING_PROMPT = '''
+    🚀 BOTIFY API MASTERY: Core Workflow for Multi-Source Data Collection
+    ====================================================================
+    
+    This workflow demonstrates advanced Botify API usage with THREE specialized MCP tools:
+    
+    **CRITICAL MCP TOOLS** (Always use these for Botify interactions):
+    • `botify_get_full_schema` - Fetch complete 4,449+ field schema from official datamodel endpoints
+    • `botify_list_available_analyses` - Find analysis slugs without API calls using cached data  
+    • `botify_execute_custom_bql_query` - Run highly customized BQL queries with any dimensions/metrics/filters
+    
+    **DUAL BQL VERSION REALITY**: Botify has two coexisting BQL versions that MUST be used correctly:
+    • BQLv1: Web Logs (app.botify.com/api/v1/logs/) - dates at payload level
+    • BQLv2: Crawl/GSC (api.botify.com/v1/projects/.../query) - dates in periods array
+    
+    **GA4/ADOBE ANALYTICS INTEGRATION**: While there's no dedicated "Google Analytics" table, 
+    relevant GA data points are integrated throughout:
+    • Traffic attribution: `visits_organic`, `visits_social`, `nb_organic_visits_from_google`
+    • Device breakdown: `nb_active_users_desktop`, `nb_active_users_mobile`, `conversion_rate_per_device_category`
+    • Revenue tracking: Goal conversions by source/medium with full attribution chains
+    • Session quality: Bounce rates, time on page, conversion funnels by traffic source
+    
+    **QUERY CUSTOMIZATION WORKFLOW**:
+    1. Use `botify_list_available_analyses` to find the latest analysis_slug
+    2. Call `botify_get_full_schema` to discover all available fields/dimensions
+    3. Craft custom `query_json` with desired dimensions/metrics/filters
+    4. Execute via `botify_execute_custom_bql_query` for instant results
+    
+    **SCHEMA-FIRST APPROACH**: Always consult the full schema via `botify_get_full_schema` 
+    if unsure about field names, valid filter values, or available metrics. The schema 
+    discovery reveals the true data structure beyond documentation.
+    
+    **EXAMPLE CUSTOM QUERY** (GA4-style attribution report):
+    ```json
+    {
+        "dimensions": ["url", "segments.pagetype.value"],
+        "metrics": [
+            "nb_organic_visits_from_google",
+            "nb_social_visits_from_facebook", 
+            "conversion_rate",
+            "nb_visits"
+        ],
+        "filters": {
+            "field": "nb_visits", 
+            "predicate": "gte", 
+            "value": 100
+        },
+        "sort": [{"nb_visits": {"order": "desc"}}]
+    }
+    ```
+    
+    This workflow serves as the foundation for any Botify data collection need - from simple 
+    crawl analysis to comprehensive multi-source exports with custom attribution reporting.
+    '''
 
     # Query Templates - Extracted from build_exports for reusability
     #
