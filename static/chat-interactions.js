@@ -272,36 +272,32 @@ function linkifyText(text) {
 // Splitter initialization removed - now handled by dedicated splitter-init.js
 
 function setupMenuFlashFeedback() {
-    console.log('🔔 Setting up simplified menu flash feedback system');
+    console.log('🔔 Setting up enhanced menu flash feedback system');
     
-    // Simple debouncing to prevent multiple rapid fires
-    let profileFlashTimeout = null;
-    let appFlashTimeout = null;
-    
-    // Add minimal CSS for flash animation
+    // Enhanced CSS for stronger, more appealing flash animation
     if (!document.getElementById('menu-flash-styles')) {
         const style = document.createElement('style');
         style.id = 'menu-flash-styles';
         style.textContent = `
             .menu-flash {
-                animation: menuFlash 0.4s ease-out;
+                animation: menuFlash 0.6s ease-out;
                 position: relative;
                 z-index: 10;
             }
             
             @keyframes menuFlash {
                 0% { box-shadow: 0 0 0 0 rgba(74, 171, 247, 0.9); }
-                50% { box-shadow: 0 0 0 10px rgba(74, 171, 247, 0.6); }
+                50% { box-shadow: 0 0 0 12px rgba(74, 171, 247, 0.7); }
                 100% { box-shadow: 0 0 0 0 rgba(74, 171, 247, 0); }
             }
             
             [data-theme="dark"] .menu-flash {
-                animation: menuFlashDark 0.4s ease-out;
+                animation: menuFlashDark 0.6s ease-out;
             }
             
             @keyframes menuFlashDark {
                 0% { box-shadow: 0 0 0 0 rgba(120, 220, 255, 0.8); }
-                50% { box-shadow: 0 0 0 10px rgba(120, 220, 255, 0.5); }
+                50% { box-shadow: 0 0 0 12px rgba(120, 220, 255, 0.6); }
                 100% { box-shadow: 0 0 0 0 rgba(120, 220, 255, 0); }
             }
             
@@ -312,69 +308,86 @@ function setupMenuFlashFeedback() {
         document.head.appendChild(style);
     }
     
-    // Simple flash function with debouncing
-    function flashMenu(elementId, menuType) {
-        const element = document.getElementById(elementId);
-        if (!element) return;
-        
-        // Clear any existing timeout and class
-        if (menuType === 'PROFILE') {
-            clearTimeout(profileFlashTimeout);
-        } else {
-            clearTimeout(appFlashTimeout);
-        }
-        
-        element.classList.remove('menu-flash');
-        element.offsetHeight; // Force reflow
-        element.classList.add('menu-flash');
-        
-        // Set timeout to remove class
-        const timeout = setTimeout(() => {
+    // Enhanced flash function with consistent timing
+    function flashMenu(elementId, menuType, delay = 0) {
+        setTimeout(() => {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
             element.classList.remove('menu-flash');
-        }, 400);
-        
-        if (menuType === 'PROFILE') {
-            profileFlashTimeout = timeout;
-        } else {
-            appFlashTimeout = timeout;
-        }
-        
-        console.log(`🔔 ${menuType} menu flashed`);
+            element.offsetHeight; // Force reflow
+            element.classList.add('menu-flash');
+            
+            // Remove class after animation completes
+            setTimeout(() => {
+                element.classList.remove('menu-flash');
+            }, 600);
+            
+            console.log(`🔔 ${menuType} menu flashed`);
+        }, delay);
     }
     
-    // Only listen to the most reliable event - HTMX afterSwap on the menu containers
-    document.addEventListener('htmx:afterSwap', function(event) {
-        const targetId = event.target.id;
-        
-        if (targetId === 'profile-dropdown-menu') {
-            flashMenu('profile-id', 'PROFILE');
-        } else if (targetId === 'app-dropdown-menu') {
-            flashMenu('app-id', 'APP');
-        }
-    });
+    // Enhanced detection system for all menu update triggers
     
-    // Listen for HTMX requests that will trigger page refresh (Select All/Deselect All/Default)
+    // 1. Listen for HTMX requests that will trigger page refresh or menu updates
     document.addEventListener('htmx:beforeRequest', function(event) {
         const target = event.target;
         if (target && target.getAttribute) {
             const hxPost = target.getAttribute('hx-post');
+            
+            // Roles bulk operations (page refresh)
             if (hxPost && (hxPost.includes('select_all') || hxPost.includes('deselect_all') || hxPost.includes('select_default'))) {
-                // Store flag that we just triggered a roles bulk action
-                sessionStorage.setItem('pipulate_roles_bulk_action', 'true');
-                console.log('🔔 Roles bulk action detected, will flash menu after refresh');
+                sessionStorage.setItem('pipulate_app_menu_flash', 'true');
+                console.log('🔔 Roles bulk action detected, will flash APP menu after refresh');
+            }
+            
+            // Role toggle operations (HTMX swap)
+            if (hxPost && hxPost.includes('/roles/toggle/')) {
+                sessionStorage.setItem('pipulate_app_menu_flash_immediate', 'true');
+                console.log('🔔 Role toggle detected, will flash APP menu after swap');
+            }
+            
+            // Profile operations (HTMX swap)
+            if (hxPost && (hxPost.includes('/profiles/') || hxPost.includes('profiles'))) {
+                sessionStorage.setItem('pipulate_profile_menu_flash_immediate', 'true');
+                console.log('🔔 Profile operation detected, will flash PROFILE menu after swap');
             }
         }
     });
     
-    // Flash app menu after page load if we just did a roles bulk action
-    if (sessionStorage.getItem('pipulate_roles_bulk_action') === 'true') {
-        sessionStorage.removeItem('pipulate_roles_bulk_action');
-        // Small delay to ensure DOM is ready
-        setTimeout(() => {
-            flashMenu('app-id', 'APP');
-            console.log('🔔 APP menu flashed after roles bulk action');
-        }, 150);
+    // 2. Listen for HTMX afterSwap for immediate flash triggers
+    document.addEventListener('htmx:afterSwap', function(event) {
+        const targetId = event.target.id;
+        
+        // Check for stored flash flags and execute immediately
+        if (sessionStorage.getItem('pipulate_app_menu_flash_immediate') === 'true') {
+            sessionStorage.removeItem('pipulate_app_menu_flash_immediate');
+            flashMenu('app-id', 'APP', 50); // Small delay for smooth effect
+        }
+        
+        if (sessionStorage.getItem('pipulate_profile_menu_flash_immediate') === 'true') {
+            sessionStorage.removeItem('pipulate_profile_menu_flash_immediate');
+            flashMenu('profile-id', 'PROFILE', 50);
+        }
+        
+        // Direct menu container updates (fallback)
+        if (targetId === 'profile-dropdown-menu') {
+            flashMenu('profile-id', 'PROFILE', 50);
+        } else if (targetId === 'app-dropdown-menu') {
+            flashMenu('app-id', 'APP', 50);
+        }
+    });
+    
+    // 3. Check for page refresh flash flags on load
+    if (sessionStorage.getItem('pipulate_app_menu_flash') === 'true') {
+        sessionStorage.removeItem('pipulate_app_menu_flash');
+        flashMenu('app-id', 'APP', 150); // Longer delay for page refresh
     }
     
-    console.log('🔔 Simplified menu flash system initialized');
+    if (sessionStorage.getItem('pipulate_profile_menu_flash') === 'true') {
+        sessionStorage.removeItem('pipulate_profile_menu_flash');
+        flashMenu('profile-id', 'PROFILE', 150);
+    }
+    
+    console.log('🔔 Enhanced menu flash feedback system initialized');
 }

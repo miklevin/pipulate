@@ -131,7 +131,7 @@ class CrudCustomizer(BaseCrud):
             return HTMLResponse('')
 
     async def toggle_role(self, request):
-        """Custom toggle method that includes Default button update."""
+        """Custom toggle method that includes Default button update and messaging."""
         try:
             # Extract item_id from the request path
             path_parts = request.url.path.split('/')
@@ -139,11 +139,17 @@ class CrudCustomizer(BaseCrud):
             
             # Get the item and toggle its done status
             item = self.table[item_id]
+            old_status = item.done
             
             # Toggle the done status (but Core is always done)
             if item.text != "Core":
                 item.done = not item.done
                 self.table.update(item)
+                
+                # Send message to msg-list like tasks app does
+                status_text = 'enabled' if item.done else 'disabled'
+                action_details = f"The role '{item.text}' is now {status_text}."
+                self.send_message(action_details, verbatim=True)
             
             # Render the updated item
             updated_item_html = self.render_item(item)
@@ -417,11 +423,22 @@ class CrudUI(PluginIdentityManager):
         try:
             # Get all roles except Core
             all_roles = self.table()
+            enabled_roles = []
             for role in all_roles:
                 if role.text != "Core" and not role.done:
                     # Update using proper fastlite syntax
                     role.done = True
                     self.table.update(role)
+                    enabled_roles.append(role.text)
+            
+            # Send message via temp_message system (survives page refresh)
+            if enabled_roles:
+                roles_list = ', '.join(enabled_roles)
+                action_details = f"Enabled all roles: {roles_list}"
+                self.db_dictlike['temp_message'] = action_details
+            else:
+                action_details = "All roles were already enabled."
+                self.db_dictlike['temp_message'] = action_details
             
             # Return HX-Refresh header to trigger full page reload
             from fasthtml.common import HTMLResponse
@@ -441,11 +458,22 @@ class CrudUI(PluginIdentityManager):
         try:
             # Get all roles except Core
             all_roles = self.table()
+            disabled_roles = []
             for role in all_roles:
                 if role.text != "Core" and role.done:
                     # Update using proper fastlite syntax
                     role.done = False
                     self.table.update(role)
+                    disabled_roles.append(role.text)
+            
+            # Send message via temp_message system (survives page refresh)
+            if disabled_roles:
+                roles_list = ', '.join(disabled_roles)
+                action_details = f"Disabled all roles: {roles_list}"
+                self.db_dictlike['temp_message'] = action_details
+            else:
+                action_details = "All roles were already disabled (except Core)."
+                self.db_dictlike['temp_message'] = action_details
             
             # Return HX-Refresh header to trigger full page reload
             from fasthtml.common import HTMLResponse
@@ -478,12 +506,15 @@ class CrudUI(PluginIdentityManager):
             all_roles = self.table()
             logger.info(f"DEFAULT: Found {len(all_roles)} roles in database")
             
+            changes_made = []
             for role in all_roles:
                 # Reset selection state
                 should_be_active = role.text in default_active
                 role_changed = role.done != should_be_active
                 if role_changed:
                     role.done = should_be_active
+                    status = 'enabled' if should_be_active else 'disabled'
+                    changes_made.append(f"{role.text} {status}")
                 
                 # Reset priority to config ROLES_CONFIG (the same source as initialization)
                 original_priority = roles_config.get(role.text, {}).get('priority', 99)
@@ -501,6 +532,15 @@ class CrudUI(PluginIdentityManager):
                     logger.info(f"DEFAULT: UPDATE COMPLETE for role '{role.text}'")
                 else:
                     logger.info(f"DEFAULT: No changes needed for role '{role.text}'")
+            
+            # Send message via temp_message system (survives page refresh)
+            if changes_made:
+                changes_list = ', '.join(changes_made)
+                action_details = f"Reset to default roles: {changes_list}"
+                self.db_dictlike['temp_message'] = action_details
+            else:
+                action_details = "Roles were already at default settings."
+                self.db_dictlike['temp_message'] = action_details
             
             # Return HX-Refresh header to trigger full page reload
             from fasthtml.common import HTMLResponse
