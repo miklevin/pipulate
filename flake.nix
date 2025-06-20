@@ -520,11 +520,13 @@
             fi
           fi
           
-          # Set up the Python virtual environment
-          test -d .venv || ${pkgs.python312}/bin/python -m venv .venv
+          # Set up the Python virtual environment with explicit Python 3.12 isolation
+          test -d .venv || ${pkgs.python312}/bin/python -m venv .venv --clear
           export VIRTUAL_ENV="$(pwd)/.venv"
           export PATH="$VIRTUAL_ENV/bin:$PATH"
-          export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
+          # Prioritize Python 3.12 libraries first to avoid version conflicts
+          export LD_LIBRARY_PATH=${pkgs.python312}/lib:${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
+          export PYTHONPATH=""
 
 
 
@@ -603,11 +605,13 @@ EOF
               cudaPackages
             );
             shellHook = ''
-              # Set up the Python virtual environment (minimal, no pip install)
-              test -d .venv || ${pkgs.python312}/bin/python -m venv .venv
+              # Set up the Python virtual environment (minimal, no pip install) with Python 3.12 isolation
+              test -d .venv || ${pkgs.python312}/bin/python -m venv .venv --clear
               export VIRTUAL_ENV="$(pwd)/.venv"
               export PATH="$VIRTUAL_ENV/bin:$PATH"
-              export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
+              # Prioritize Python 3.12 libraries first to avoid version conflicts
+              export LD_LIBRARY_PATH=${pkgs.python312}/lib:${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
+              export PYTHONPATH=""
               
               # --- JupyterLab Local Configuration for Quiet Shell ---
               export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
