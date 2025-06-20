@@ -1305,26 +1305,44 @@ async def _ui_flash_element(params: dict) -> dict:
         }
     
     try:
-        # Create JavaScript to flash the element
+        # Create JavaScript to flash the element 10 times for teaching emphasis
         flash_script = f"""
         <script>
-        console.log('🔔 UI Flash script received for element: {element_id}');
+        console.log('🔔 UI Flash script received for element: {element_id} (10x teaching mode)');
         setTimeout(() => {{
             const element = document.getElementById('{element_id}');
             console.log('🔔 Element lookup result:', element);
             if (element) {{
-                console.log('🔔 Element found, applying flash effect');
-                // Use the same flash effect as menus
-                element.classList.remove('menu-flash');
-                element.offsetHeight; // Force reflow
-                element.classList.add('menu-flash');
+                console.log('🔔 Element found, applying 10x flash effect for teaching');
                 
-                setTimeout(() => {{
+                let flashCount = 0;
+                const maxFlashes = 10; // Hardcoded for teaching emphasis
+                
+                function doFlash() {{
+                    if (flashCount >= maxFlashes) {{
+                        console.log('🔔 10x Flash sequence completed for: {element_id}');
+                        return;
+                    }}
+                    
+                    // Remove and add class for flash effect
                     element.classList.remove('menu-flash');
-                    console.log('🔔 Flash effect completed for: {element_id}');
-                }}, 600);
+                    element.offsetHeight; // Force reflow
+                    element.classList.add('menu-flash');
+                    
+                    flashCount++;
+                    console.log(`🔔 Flash ${{flashCount}}/10 for: {element_id}`);
+                    
+                    // Schedule next flash after this one completes
+                    setTimeout(() => {{
+                        element.classList.remove('menu-flash');
+                        // Small gap between flashes for visibility
+                        setTimeout(doFlash, 100);
+                    }}, 600);
+                }}
                 
-                console.log('🔔 Flashed element: {element_id}');
+                // Start the 10x flash sequence
+                doFlash();
+                
             }} else {{
                 console.warn('⚠️ Element not found: {element_id}');
                 console.log('🔔 Available elements with IDs:', Array.from(document.querySelectorAll('[id]')).map(el => el.id));
@@ -1358,7 +1376,7 @@ async def _ui_flash_element(params: dict) -> dict:
         return {
             "success": True,
             "element_id": element_id,
-            "message": message if message else f"Flashed element: {element_id}",
+            "message": message if message else f"Flashed element: {element_id} (10x teaching mode)",
             "delay": delay
         }
         
