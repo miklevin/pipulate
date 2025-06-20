@@ -216,6 +216,30 @@ def get_current_environment():
     else:
         ENV_FILE.write_text('Development')
         return 'Development'
+
+def get_nix_version():
+    """Get the Nix flake version by parsing flake.nix file."""
+    import os
+    import re
+    from pathlib import Path
+    
+    # Check if we're in a Nix shell
+    if not (os.environ.get('IN_NIX_SHELL') or 'nix' in os.environ.get('PS1', '')):
+        return "Not in Nix environment"
+    
+    # Try to parse version from flake.nix
+    try:
+        flake_path = Path('flake.nix')
+        if flake_path.exists():
+            flake_content = flake_path.read_text()
+            # Look for: version = "x.x.x (description)";
+            version_match = re.search(r'version\s*=\s*"([^"]+)"', flake_content)
+            if version_match:
+                return version_match.group(1)
+    except Exception as e:
+        logger.debug(f"Could not parse version from flake.nix: {e}")
+    
+    return "Unknown version"
 APP_NAME = get_app_name()
 logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
 
@@ -4797,6 +4821,13 @@ async def poke_flyout(request):
     # Add Update button
     update_button = Button('🔄 Update Pipulate', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
+    # Add version info display
+    nix_version = get_nix_version()
+    version_info = Div(
+        Span(f'🧊 Pipulate: {nix_version}', style='font-size: 0.85em; color: var(--pico-muted-color); font-family: monospace;'),
+        style='padding: 0.5rem 1rem; border-top: 1px solid var(--pico-muted-border-color); text-align: center;'
+    )
+    
     # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, MCP Test
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
@@ -4812,7 +4843,7 @@ async def poke_flyout(request):
     # Always use nav flyout now - no more fallback to old flyout
     target_id = 'nav-flyout-panel'
     css_class = 'nav-flyout-panel visible'
-    return Div(id=target_id, cls=css_class, hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Settings'), Ul(*list_items), cls='flyout-content'))
+    return Div(id=target_id, cls=css_class, hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Settings'), Ul(*list_items), version_info, cls='flyout-content'))
 
 @rt('/poke-flyout-hide', methods=['GET'])
 async def poke_flyout_hide(request):

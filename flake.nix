@@ -75,7 +75,7 @@
   # In this case, it's a development shell that works across different systems
   outputs = { self, nixpkgs, flake-utils }:
     let
-      version = "1.0.7 (Self-Healing Git Updates)";  # Final version with robust stash/pull/pop system
+      version = "1.0.8 (JupyterLab Python Version Fix)";  # Fixed Python 3.12/3.13 conflict causing JupyterLab failures
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
