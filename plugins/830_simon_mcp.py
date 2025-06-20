@@ -276,70 +276,6 @@ class SimonSaysMcpWidget:
         # Simplified mode selection - store in a simple class attribute since this is a utility
         current_mode = getattr(self, 'current_mode', 'flash_chat')
         
-        # Optimized UI Flash prompt for guaranteed success
-        simon_says_prompt = """I need you to flash the chat message list to show the user where their conversation appears. Use this exact tool call:
-
-<mcp-request>
-  <tool name="ui_flash_element">
-    <params>
-      <element_id>msg-list</element_id>
-      <message>This is where your conversation with the AI appears!</message>
-      <delay>500</delay>
-    </params>
-  </tool>
-</mcp-request>
-
-Output only the MCP block above. Do not add any other text."""
-
-        # Alternative: Cat fact baseline for testing MCP system
-        cat_fact_prompt = """I need you to fetch a random cat fact to test the MCP system. Use this exact tool call:
-
-<mcp-request>
-  <tool name="get_cat_fact" />
-</mcp-request>
-
-Output only the MCP block above. Do not add any other text."""
-
-        # Advanced UI Flash prompt with multiple options
-        advanced_ui_prompt = """You are a UI guidance assistant. Flash ONE of these key interface elements to help the user:
-
-GUARANTEED WORKING ELEMENTS:
-- msg-list (chat conversation area)
-- app-id (main app dropdown menu)  
-- profile-id (profile dropdown menu)
-- send-btn (chat send button)
-- nav-group (top navigation bar)
-- poke-summary (settings gear icon)
-
-Choose ONE element and use this EXACT format:
-
-<mcp-request>
-  <tool name="ui_flash_element">
-    <params>
-      <element_id>app-id</element_id>
-      <message>This is the main app selection menu!</message>
-      <delay>500</delay>
-    </params>
-  </tool>
-</mcp-request>
-
-Replace 'app-id' with your chosen element ID. Output ONLY the MCP block."""
-
-        # Alternative prompt to list all elements first
-        list_elements_prompt = """You are a helpful assistant with UI interaction tools. The user wants to see all available UI elements that can be flashed for guidance.
-
-Here are the tools you have available:
-- Tool Name: `ui_list_elements` - Lists all available UI elements you can flash
-- Tool Name: `ui_flash_element` - Flashes a specific UI element by ID
-
-Use the `ui_list_elements` tool to show all available elements by generating this EXACT MCP request block:
-
-<mcp-request>
-  <tool name="ui_list_elements" />
-</mcp-request>
-
-Do not say anything else. Just output the exact MCP block above."""
-
         # Explicit flash commands for each UI element
         flash_chat_prompt = """Flash the chat conversation area:
 
@@ -413,6 +349,12 @@ Do not say anything else. Just output the exact MCP block above."""
   </tool>
 </mcp-request>"""
 
+        cat_fact_prompt = """Get a random cat fact:
+
+<mcp-request>
+  <tool name="get_cat_fact" />
+</mcp-request>"""
+
         # Mode configuration - each element gets its own explicit command
         mode_config = {
             'flash_chat': {
@@ -473,16 +415,80 @@ Do not say anything else. Just output the exact MCP block above."""
             style='margin-bottom: 1rem;'
         )
         
+        # Create training envelope for copying
+        training_envelope = f"""🎓 MCP Crash Course Training Session
+
+This is an MCP (Model Context Protocol) training exercise. I want you to execute the exact MCP command below to learn how MCP tools work in practice.
+
+**Instructions:**
+1. Read the MCP command carefully
+2. Execute it exactly as written
+3. Simon Says: Repeat back exactly what I'm asking you to do with nothing other than the MCP call
+
+**MCP Command to Execute:**
+
+{current_config['prompt']}
+
+**Training Complete:** Execute the MCP block above exactly as shown. No additional commentary needed - just the MCP tool execution."""
+
         # Direct action content container (for HTMX swapping)
         action_content = Div(
             P(f"Ready to flash: {current_config['display_name']}", 
               style="margin-bottom: 1rem; padding: 0.5rem; background: var(--pico-secondary-background); border-radius: 4px;"),
-            Button(
-                current_config['button_text'], 
-                type='submit', 
-                cls='primary', 
-                style=current_config['button_style'],
-                **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}
+            Div(
+                Button(
+                    current_config['button_text'], 
+                    type='submit', 
+                    cls='primary', 
+                    style=current_config['button_style'] + ' margin-right: 0.5rem;',
+                    **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}
+                ),
+                Button(
+                    '📋 Copy for Chat',
+                    type='button',
+                    cls='secondary',
+                    id=f'copy-mcp-btn-{current_mode}',
+                    style='margin-top: 1rem; background-color: var(--pico-color-grey-500);',
+                    **{
+                        'data-copy-text': training_envelope,
+                        'onclick': f'''
+                            const button = this;
+                            const originalText = button.textContent;
+                            const textToCopy = button.getAttribute('data-copy-text');
+                            
+                            // Show loading state
+                            button.textContent = '⏳ Copying...';
+                            button.disabled = true;
+                            
+                            navigator.clipboard.writeText(textToCopy).then(function() {{
+                                // Show success state
+                                button.textContent = '✅ Copied!';
+                                button.style.backgroundColor = 'var(--pico-color-green-500)';
+                                
+                                // Reset after 3 seconds
+                                setTimeout(function() {{
+                                    button.textContent = originalText;
+                                    button.style.backgroundColor = 'var(--pico-color-grey-500)';
+                                    button.disabled = false;
+                                }}, 3000);
+                            }}).catch(function(error) {{
+                                console.error('Error copying to clipboard:', error);
+                                
+                                // Show error state
+                                button.textContent = '❌ Error';
+                                button.style.backgroundColor = 'var(--pico-color-red-500)';
+                                
+                                // Reset after 3 seconds
+                                setTimeout(function() {{
+                                    button.textContent = originalText;
+                                    button.style.backgroundColor = 'var(--pico-color-grey-500)';
+                                    button.disabled = false;
+                                }}, 3000);
+                            }});
+                        '''
+                    }
+                ),
+                style='display: flex; gap: 0.5rem; align-items: flex-start; flex-wrap: wrap;'
             ),
             id='action-content'
         )
@@ -496,7 +502,12 @@ Do not say anything else. Just output the exact MCP block above."""
         )
         
         return Div(
-            Card(H3('🎪 UI Flash Testing'), form_content),
+            Card(
+                H3('🎪 UI Flash Testing'), 
+                P('🎯 Direct Execution: Click the colored button to immediately flash the selected UI element.'),
+                P('📋 Training Mode: Click "Copy for Chat" to copy the MCP command with training envelope, then paste it in the chat to teach your local LLM how MCP tools work.'),
+                form_content
+            ),
             id=step_id
         )
 
@@ -624,39 +635,125 @@ Do not say anything else. Just output the exact MCP block above."""
             # Store the new mode in simple class attribute since this is a utility
             self.current_mode = selected_mode
             
+            # Explicit flash commands for each UI element
+            flash_chat_prompt = """Flash the chat conversation area:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>msg-list</element_id>
+      <message>This is where your conversation with the AI appears!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+            flash_app_menu_prompt = """Flash the main app selection menu:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>app-id</element_id>
+      <message>This is the main app selection menu!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+            flash_profile_menu_prompt = """Flash the profile selection menu:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>profile-id</element_id>
+      <message>This is the profile selection menu!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+            flash_send_button_prompt = """Flash the chat send button:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>send-btn</element_id>
+      <message>This is the send message button!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+            flash_nav_bar_prompt = """Flash the top navigation bar:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>nav-group</element_id>
+      <message>This is the top navigation bar!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+            flash_settings_prompt = """Flash the settings gear icon:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>poke-summary</element_id>
+      <message>This is the settings gear icon!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+            cat_fact_prompt = """Get a random cat fact:
+
+<mcp-request>
+  <tool name="get_cat_fact" />
+</mcp-request>"""
+
             # Mode configuration - each element gets its own explicit command
             mode_config = {
                 'flash_chat': {
+                    'prompt': flash_chat_prompt,
                     'button_text': 'Flash Chat Area ▸',
                     'button_style': 'margin-top: 1rem;',
                     'display_name': 'Flash Chat Area'
                 },
                 'flash_app_menu': {
+                    'prompt': flash_app_menu_prompt,
                     'button_text': 'Flash App Menu ▸',
                     'button_style': 'margin-top: 1rem; background-color: var(--pico-color-blue-500);',
                     'display_name': 'Flash App Menu'
                 },
                 'flash_profile_menu': {
+                    'prompt': flash_profile_menu_prompt,
                     'button_text': 'Flash Profile Menu ▸',
                     'button_style': 'margin-top: 1rem; background-color: var(--pico-color-green-500);',
                     'display_name': 'Flash Profile Menu'
                 },
                 'flash_send_button': {
+                    'prompt': flash_send_button_prompt,
                     'button_text': 'Flash Send Button ▸',
                     'button_style': 'margin-top: 1rem; background-color: var(--pico-color-orange-500);',
                     'display_name': 'Flash Send Button'
                 },
                 'flash_nav_bar': {
+                    'prompt': flash_nav_bar_prompt,
                     'button_text': 'Flash Navigation Bar ▸',
                     'button_style': 'margin-top: 1rem; background-color: var(--pico-color-purple-500);',
                     'display_name': 'Flash Navigation Bar'
                 },
                 'flash_settings': {
+                    'prompt': flash_settings_prompt,
                     'button_text': 'Flash Settings Gear ▸',
                     'button_style': 'margin-top: 1rem; background-color: var(--pico-color-red-500);',
                     'display_name': 'Flash Settings Gear'
                 },
                 'cat_fact': {
+                    'prompt': cat_fact_prompt,
                     'button_text': 'Get Cat Fact ▸',
                     'button_style': 'margin-top: 1rem; background-color: var(--pico-color-amber-500);',
                     'display_name': 'Cat Fact Test'
@@ -665,16 +762,80 @@ Do not say anything else. Just output the exact MCP block above."""
             
             current_config = mode_config.get(selected_mode, mode_config['flash_chat'])
             
+            # Create training envelope for copying
+            training_envelope = f"""🎓 MCP Crash Course Training Session
+
+This is an MCP (Model Context Protocol) training exercise. I want you to execute the exact MCP command below to learn how MCP tools work in practice.
+
+**Instructions:**
+1. Read the MCP command carefully
+2. Execute it exactly as written
+3. Simon Says: Repeat back exactly what I'm asking you to do with nothing other than the MCP call
+
+**MCP Command to Execute:**
+
+{current_config['prompt']}
+
+**Training Complete:** Execute the MCP block above exactly as shown. No additional commentary needed - just the MCP tool execution."""
+            
             # Return the updated action content div
             return Div(
                 P(f"Ready to flash: {current_config['display_name']}", 
                   style="margin-bottom: 1rem; padding: 0.5rem; background: var(--pico-secondary-background); border-radius: 4px;"),
-                Button(
-                    current_config['button_text'], 
-                    type='submit', 
-                    cls='primary', 
-                    style=current_config['button_style'],
-                    **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}
+                Div(
+                    Button(
+                        current_config['button_text'], 
+                        type='submit', 
+                        cls='primary', 
+                        style=current_config['button_style'] + ' margin-right: 0.5rem;',
+                        **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}
+                    ),
+                    Button(
+                        '📋 Copy for Chat',
+                        type='button',
+                        cls='secondary',
+                        id=f'copy-mcp-btn-{selected_mode}',
+                        style='margin-top: 1rem; background-color: var(--pico-color-grey-500);',
+                        **{
+                            'data-copy-text': training_envelope,
+                            'onclick': f'''
+                                const button = this;
+                                const originalText = button.textContent;
+                                const textToCopy = button.getAttribute('data-copy-text');
+                                
+                                // Show loading state
+                                button.textContent = '⏳ Copying...';
+                                button.disabled = true;
+                                
+                                navigator.clipboard.writeText(textToCopy).then(function() {{
+                                    // Show success state
+                                    button.textContent = '✅ Copied!';
+                                    button.style.backgroundColor = 'var(--pico-color-green-500)';
+                                    
+                                    // Reset after 3 seconds
+                                    setTimeout(function() {{
+                                        button.textContent = originalText;
+                                        button.style.backgroundColor = 'var(--pico-color-grey-500)';
+                                        button.disabled = false;
+                                    }}, 3000);
+                                }}).catch(function(error) {{
+                                    console.error('Error copying to clipboard:', error);
+                                    
+                                    // Show error state
+                                    button.textContent = '❌ Error';
+                                    button.style.backgroundColor = 'var(--pico-color-red-500)';
+                                    
+                                    // Reset after 3 seconds
+                                    setTimeout(function() {{
+                                        button.textContent = originalText;
+                                        button.style.backgroundColor = 'var(--pico-color-grey-500)';
+                                        button.disabled = false;
+                                    }}, 3000);
+                                }});
+                            '''
+                        }
+                    ),
+                    style='display: flex; gap: 0.5rem; align-items: flex-start; flex-wrap: wrap;'
                 ),
                 id='action-content'
             )
