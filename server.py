@@ -5830,8 +5830,8 @@ async def send_startup_environment_message():
     # Set startup coordination flag
     message_coordination['startup_in_progress'] = True
     
-    # Longer wait for fresh nix develop startup to ensure chat system is fully ready
-    await asyncio.sleep(5)  # Increased from 3 to 5 seconds
+    # Wait for chat system to be fully ready, but not too long to avoid user confusion
+    await asyncio.sleep(3)  # Reduced back to 3 seconds for better timing
     
     try:
         current_env = get_current_environment()
@@ -5918,7 +5918,7 @@ async def warm_up_botify_schema_cache():
     AI assistants have instant access to complete Botify API schema without waiting
     for live API calls during development sessions.
     """
-    await asyncio.sleep(5)  # Let startup complete first
+    await asyncio.sleep(7)  # Let startup message complete first, then warm cache
     
     try:
         # Check if we have Botify token available
@@ -6000,7 +6000,7 @@ async def prepare_local_llm_context():
     immediate capability awareness without overwhelming their smaller context windows.
     Unlike advanced AIs who can explore the system, local LLMs need pre-computed context.
     """
-    await asyncio.sleep(8)  # Let startup and cache warmup complete first
+    await asyncio.sleep(10)  # Let startup message and cache warmup complete first
     
     try:
         # Build essential context summary for local LLMs
