@@ -19,14 +19,14 @@ from server import MODEL
 
 class SimonSaysMcpWidget:
     """
-    Simon Says UI Flash Workflow
-    Educational tool for teaching users how to craft prompts that will make the LLM flash UI elements for guidance.
-    This workflow demonstrates the complete MCP interaction loop with UI element flashing capabilities.
+    UI Flash Testing Utility
+    Direct MCP tool execution for testing UI element flashing capabilities.
+    This utility provides immediate access to flash specific UI elements without requiring pipeline keys or LLM interpretation.
     """
     APP_NAME = 'simon_mcp'
-    DISPLAY_NAME = 'Simon Says UI Flash 🎪'
-    ENDPOINT_MESSAGE = """Let's teach the LLM to flash UI elements for user guidance. Edit the prompt below to play Simon Says."""
-    TRAINING_PROMPT = """This workflow is a game called 'Simon Says UI Flash'. The user will provide a detailed prompt to instruct the LLM on how to formulate MCP requests that flash specific UI elements. Your role is to assist the user in refining these prompts and understanding the results."""
+    DISPLAY_NAME = 'UI Flash Testing 🎪'
+    ENDPOINT_MESSAGE = """Direct UI flash testing utility. Select a UI element and click to flash it 10 times for teaching emphasis."""
+    TRAINING_PROMPT = """This is a direct UI flash testing utility. The user can select different UI elements from a dropdown and immediately flash them using MCP tools. No LLM interpretation is involved - it's direct tool execution."""
 
     # --- START_CLASS_ATTRIBUTES_BUNDLE ---
     UI_CONSTANTS = {
@@ -271,10 +271,10 @@ class SimonSaysMcpWidget:
         pip = self.pipulate
         
         # Simple utility - no pipeline state management needed
-        await self.message_queue.add(pip, "🎪 Ready to play Simon Says UI Flash! Edit the prompt below to instruct the LLM to flash UI elements. Each flash repeats 10 times for teaching emphasis!", verbatim=True)
+        await self.message_queue.add(pip, "🎪 Ready to test UI Flash! Select a UI element from the dropdown and click the button to flash it 10 times for teaching emphasis!", verbatim=True)
         
         # Simplified mode selection - store in a simple class attribute since this is a utility
-        current_mode = getattr(self, 'current_mode', 'simple_flash')
+        current_mode = getattr(self, 'current_mode', 'flash_chat')
         
         # Optimized UI Flash prompt for guaranteed success
         simon_says_prompt = """I need you to flash the chat message list to show the user where their conversation appears. Use this exact tool call:
@@ -305,23 +305,25 @@ Output only the MCP block above. Do not add any other text."""
 
 GUARANTEED WORKING ELEMENTS:
 - msg-list (chat conversation area)
-- app-id (main app menu)  
-- profile-id (profile selector)
+- app-id (main app dropdown menu)  
+- profile-id (profile dropdown menu)
 - send-btn (chat send button)
+- nav-group (top navigation bar)
+- poke-summary (settings gear icon)
 
 Choose ONE element and use this EXACT format:
 
 <mcp-request>
   <tool name="ui_flash_element">
     <params>
-      <element_id>msg-list</element_id>
-      <message>This is where your conversation appears!</message>
+      <element_id>app-id</element_id>
+      <message>This is the main app selection menu!</message>
       <delay>500</delay>
     </params>
   </tool>
 </mcp-request>
 
-Replace 'msg-list' with your chosen element ID. Output ONLY the MCP block."""
+Replace 'app-id' with your chosen element ID. Output ONLY the MCP block."""
 
         # Alternative prompt to list all elements first
         list_elements_prompt = """You are a helpful assistant with UI interaction tools. The user wants to see all available UI elements that can be flashed for guidance.
@@ -338,35 +340,126 @@ Use the `ui_list_elements` tool to show all available elements by generating thi
 
 Do not say anything else. Just output the exact MCP block above."""
 
-        # Mode configuration
+        # Explicit flash commands for each UI element
+        flash_chat_prompt = """Flash the chat conversation area:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>msg-list</element_id>
+      <message>This is where your conversation with the AI appears!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+        flash_app_menu_prompt = """Flash the main app selection menu:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>app-id</element_id>
+      <message>This is the main app selection menu!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+        flash_profile_menu_prompt = """Flash the profile selection menu:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>profile-id</element_id>
+      <message>This is the profile selection menu!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+        flash_send_button_prompt = """Flash the chat send button:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>send-btn</element_id>
+      <message>This is the send message button!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+        flash_nav_bar_prompt = """Flash the top navigation bar:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>nav-group</element_id>
+      <message>This is the top navigation bar!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+        flash_settings_prompt = """Flash the settings gear icon:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>poke-summary</element_id>
+      <message>This is the settings gear icon!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>"""
+
+        # Mode configuration - each element gets its own explicit command
         mode_config = {
-            'simple_flash': {
-                'prompt': simon_says_prompt,
+            'flash_chat': {
+                'prompt': flash_chat_prompt,
                 'button_text': 'Flash Chat Area ▸',
                 'button_style': 'margin-top: 1rem;',
-                'display_name': 'Simple Flash'
+                'display_name': 'Flash Chat Area'
+            },
+            'flash_app_menu': {
+                'prompt': flash_app_menu_prompt,
+                'button_text': 'Flash App Menu ▸',
+                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-blue-500);',
+                'display_name': 'Flash App Menu'
+            },
+            'flash_profile_menu': {
+                'prompt': flash_profile_menu_prompt,
+                'button_text': 'Flash Profile Menu ▸',
+                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-green-500);',
+                'display_name': 'Flash Profile Menu'
+            },
+            'flash_send_button': {
+                'prompt': flash_send_button_prompt,
+                'button_text': 'Flash Send Button ▸',
+                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-orange-500);',
+                'display_name': 'Flash Send Button'
+            },
+            'flash_nav_bar': {
+                'prompt': flash_nav_bar_prompt,
+                'button_text': 'Flash Navigation Bar ▸',
+                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-purple-500);',
+                'display_name': 'Flash Navigation Bar'
+            },
+            'flash_settings': {
+                'prompt': flash_settings_prompt,
+                'button_text': 'Flash Settings Gear ▸',
+                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-red-500);',
+                'display_name': 'Flash Settings Gear'
             },
             'cat_fact': {
                 'prompt': cat_fact_prompt,
                 'button_text': 'Get Cat Fact ▸',
-                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-orange-500);',
+                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-amber-500);',
                 'display_name': 'Cat Fact Test'
-            },
-            'advanced_flash': {
-                'prompt': advanced_ui_prompt,
-                'button_text': 'Flash UI Element (Advanced) ▸',
-                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-blue-500);',
-                'display_name': 'Advanced Flash'
-            },
-            'list_elements': {
-                'prompt': list_elements_prompt,
-                'button_text': 'List UI Elements ▸',
-                'button_style': 'margin-top: 1rem; background-color: var(--pico-secondary-background);',
-                'display_name': 'List Elements'
             }
         }
         
-        current_config = mode_config.get(current_mode, mode_config['simple_flash'])
+        current_config = mode_config.get(current_mode, mode_config['flash_chat'])
         
         # Mode selection dropdown
         mode_dropdown = Select(
@@ -374,20 +467,16 @@ Do not say anything else. Just output the exact MCP block above."""
               for mode, config in mode_config.items()],
             name='mode_select',
             hx_post=f'/{app_name}/{step_id}_change_mode',
-            hx_target='#prompt-content',
+            hx_target='#action-content',
             hx_swap='outerHTML',
             hx_include='closest form',
             style='margin-bottom: 1rem;'
         )
         
-        # Prompt content container (for HTMX swapping)
-        prompt_content = Div(
-            Textarea(
-                current_config['prompt'],
-                name="simon_says_prompt",
-                required=True,
-                style=self._get_textarea_style()
-            ),
+        # Direct action content container (for HTMX swapping)
+        action_content = Div(
+            P(f"Ready to flash: {current_config['display_name']}", 
+              style="margin-bottom: 1rem; padding: 0.5rem; background: var(--pico-secondary-background); border-radius: 4px;"),
             Button(
                 current_config['button_text'], 
                 type='submit', 
@@ -395,59 +484,101 @@ Do not say anything else. Just output the exact MCP block above."""
                 style=current_config['button_style'],
                 **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}
             ),
-            id='prompt-content'
+            id='action-content'
         )
         
         form_content = Form(
-            Label("Select Mode:", **{'for': 'mode_select'}),
+            Label("Select UI Element to Flash:", **{'for': 'mode_select'}),
             mode_dropdown,
-            prompt_content,
+            action_content,
             hx_post=f'/{app_name}/{step_id}_submit',
             hx_target=f'#{step_id}'
         )
         
         return Div(
-            Card(H3('🎪 Simon Says UI Flash'), form_content),
+            Card(H3('🎪 UI Flash Testing'), form_content),
             id=step_id
         )
 
     async def step_01_submit(self, request):
-        """Process the 'Simon Says' prompt and trigger the LLM interaction."""
+        """Process the 'Simon Says' prompt and directly execute the MCP tool."""
         app_name = self.app_name
         step_id = 'step_01'
         pip = self.pipulate
 
         try:
             form = await request.form()
-            prompt_text = form.get('simon_says_prompt', '').strip()
+            selected_mode = form.get('mode_select', 'flash_chat')
             
-            if not prompt_text:
-                return P('Please provide a prompt for the LLM interaction.', style='color: red;')
-
-            # Prepare messages for LLM interaction
-            messages = [
-                {'role': 'system', 'content': 'You are a helpful assistant capable of making tool calls when needed.'},
-                {'role': 'user', 'content': prompt_text}
-            ]
-
-            # Process the LLM interaction - collect response silently
-            full_response = ""
-            async for chunk in pip.process_llm_interaction(MODEL, messages):
-                full_response += chunk
+            # Get current mode to determine which element to flash
+            current_mode = getattr(self, 'current_mode', selected_mode)
             
-            # Add the full interaction to conversation history silently (for LLM context)
-            if full_response:
-                await self.message_queue.add(pip, f"Simon Says prompt: {prompt_text}", verbatim=True, role='user')
-                await self.message_queue.add(pip, full_response, verbatim=True, role='assistant')
+            # Map modes to direct MCP tool calls
+            mode_to_element = {
+                'flash_chat': {'element_id': 'msg-list', 'message': 'This is where your conversation with the AI appears!'},
+                'flash_app_menu': {'element_id': 'app-id', 'message': 'This is the main app selection menu!'},
+                'flash_profile_menu': {'element_id': 'profile-id', 'message': 'This is the profile selection menu!'},
+                'flash_send_button': {'element_id': 'send-btn', 'message': 'This is the send message button!'},
+                'flash_nav_bar': {'element_id': 'nav-group', 'message': 'This is the top navigation bar!'},
+                'flash_settings': {'element_id': 'poke-summary', 'message': 'This is the settings gear icon!'},
+                'cat_fact': {'tool': 'get_cat_fact', 'params': {}}
+            }
             
-            # Just show clean completion message to user
-            await pip.stream('✅ Simon Says complete! The UI element should have flashed 10 times.', role='system')
+            if current_mode not in mode_to_element:
+                return P(f'Unknown mode: {current_mode}', style='color: red;')
+            
+            config = mode_to_element[current_mode]
+            
+            # Handle cat fact separately (different tool)
+            if current_mode == 'cat_fact':
+                import httpx
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        "http://localhost:5001/mcp-tool-executor",
+                        headers={"Content-Type": "application/json"},
+                        json={"tool": "get_cat_fact", "params": {}},
+                        timeout=10
+                    )
+                    
+                    if response.status_code in [200, 503]:
+                        result = response.json()
+                        if result.get('success') or result.get('fact'):
+                            fact = result.get('fact', 'No fact returned')
+                            await pip.stream(f'🐱 Cat Fact: {fact}', role='system')
+                        else:
+                            await pip.stream(f'❌ Cat fact failed: {result.get("error", "Unknown error")}', role='system')
+                    else:
+                        await pip.stream(f'❌ Cat fact HTTP error: {response.status_code}', role='system')
+            else:
+                # Handle UI flash elements
+                import httpx
+                async with httpx.AsyncClient() as client:
+                    params = {
+                        'element_id': config['element_id'],
+                        'message': config['message'],
+                        'delay': 500
+                    }
+                    response = await client.post(
+                        "http://localhost:5001/mcp-tool-executor",
+                        headers={"Content-Type": "application/json"},
+                        json={"tool": "ui_flash_element", "params": params},
+                        timeout=10
+                    )
+                    
+                    if response.status_code in [200, 503]:
+                        result = response.json()
+                        if result.get('success'):
+                            await pip.stream(f'✅ Flashed {config["element_id"]} successfully! (10x teaching mode)', role='system')
+                        else:
+                            await pip.stream(f'❌ Flash failed: {result.get("error", "Unknown error")}', role='system')
+                    else:
+                        await pip.stream(f'❌ Flash HTTP error: {response.status_code}', role='system')
             
             # Return fresh form for immediate re-testing
             return Div(id=step_id, hx_get=f'/{app_name}/{step_id}', hx_trigger='load')
 
         except Exception as e:
-            error_msg = f'Error during MCP interaction processing: {str(e)}'
+            error_msg = f'Error during MCP tool execution: {str(e)}'
             logger.error(f"Error in step_01_submit: {error_msg}")
             await pip.stream(f'❌ Error: {error_msg}', role='system')
             return P(error_msg, style='color: red;')
@@ -459,104 +590,56 @@ Do not say anything else. Just output the exact MCP block above."""
         
         try:
             form = await request.form()
-            selected_mode = form.get('mode_select', 'simple_flash')
+            selected_mode = form.get('mode_select', 'flash_chat')
             
             # Store the new mode in simple class attribute since this is a utility
             self.current_mode = selected_mode
             
-            # Define prompt templates (same as in step_01)
-            simon_says_prompt = f"""I need you to flash the chat message list to show the user where their conversation appears. Use this exact tool call:
-
-<mcp-request>
-  <tool name="ui_flash_element">
-    <params>
-      <element_id>msg-list</element_id>
-      <message>This is where your conversation with the AI appears!</message>
-      <delay>500</delay>
-    </params>
-  </tool>
-</mcp-request>
-
-Output only the MCP block above. Do not add any other text."""
-
-            cat_fact_prompt = """I need you to fetch a random cat fact to test the MCP system. Use this exact tool call:
-
-<mcp-request>
-  <tool name="get_cat_fact" />
-</mcp-request>
-
-Output only the MCP block above. Do not add any other text."""
-
-            advanced_ui_prompt = f"""You are a UI guidance assistant. Flash ONE of these key interface elements to help the user:
-
-GUARANTEED WORKING ELEMENTS:
-- msg-list (chat conversation area)
-- app-id (main app menu)  
-- profile-id (profile selector)
-- send-btn (chat send button)
-
-Choose ONE element and use this EXACT format:
-
-<mcp-request>
-  <tool name="ui_flash_element">
-    <params>
-      <element_id>msg-list</element_id>
-      <message>This is where your conversation appears!</message>
-      <delay>500</delay>
-    </params>
-  </tool>
-</mcp-request>
-
-Replace 'msg-list' with your chosen element ID. Output ONLY the MCP block."""
-
-            list_elements_prompt = """You are a helpful assistant with UI interaction tools. The user wants to see all available UI elements that can be flashed for guidance.
-
-Here are the tools you have available:
-- Tool Name: `ui_list_elements` - Lists all available UI elements you can flash
-- Tool Name: `ui_flash_element` - Flashes a specific UI element by ID
-
-Use the `ui_list_elements` tool to show all available elements by generating this EXACT MCP request block:
-
-<mcp-request>
-  <tool name="ui_list_elements" />
-</mcp-request>
-
-Do not say anything else. Just output the exact MCP block above."""
-
-            # Mode configuration
+            # Mode configuration - each element gets its own explicit command
             mode_config = {
-                'simple_flash': {
-                    'prompt': simon_says_prompt,
+                'flash_chat': {
                     'button_text': 'Flash Chat Area ▸',
-                    'button_style': 'margin-top: 1rem;'
+                    'button_style': 'margin-top: 1rem;',
+                    'display_name': 'Flash Chat Area'
+                },
+                'flash_app_menu': {
+                    'button_text': 'Flash App Menu ▸',
+                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-blue-500);',
+                    'display_name': 'Flash App Menu'
+                },
+                'flash_profile_menu': {
+                    'button_text': 'Flash Profile Menu ▸',
+                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-green-500);',
+                    'display_name': 'Flash Profile Menu'
+                },
+                'flash_send_button': {
+                    'button_text': 'Flash Send Button ▸',
+                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-orange-500);',
+                    'display_name': 'Flash Send Button'
+                },
+                'flash_nav_bar': {
+                    'button_text': 'Flash Navigation Bar ▸',
+                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-purple-500);',
+                    'display_name': 'Flash Navigation Bar'
+                },
+                'flash_settings': {
+                    'button_text': 'Flash Settings Gear ▸',
+                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-red-500);',
+                    'display_name': 'Flash Settings Gear'
                 },
                 'cat_fact': {
-                    'prompt': cat_fact_prompt,
                     'button_text': 'Get Cat Fact ▸',
-                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-orange-500);'
-                },
-                'advanced_flash': {
-                    'prompt': advanced_ui_prompt,
-                    'button_text': 'Flash UI Element (Advanced) ▸',
-                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-blue-500);'
-                },
-                'list_elements': {
-                    'prompt': list_elements_prompt,
-                    'button_text': 'List UI Elements ▸',
-                    'button_style': 'margin-top: 1rem; background-color: var(--pico-secondary-background);'
+                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-amber-500);',
+                    'display_name': 'Cat Fact Test'
                 }
             }
             
-            current_config = mode_config.get(selected_mode, mode_config['simple_flash'])
+            current_config = mode_config.get(selected_mode, mode_config['flash_chat'])
             
-            # Return the updated prompt content div
+            # Return the updated action content div
             return Div(
-                Textarea(
-                    current_config['prompt'],
-                    name="simon_says_prompt",
-                    required=True,
-                    style=self._get_textarea_style()
-                ),
+                P(f"Ready to flash: {current_config['display_name']}", 
+                  style="margin-bottom: 1rem; padding: 0.5rem; background: var(--pico-secondary-background); border-radius: 4px;"),
                 Button(
                     current_config['button_text'], 
                     type='submit', 
@@ -564,11 +647,11 @@ Do not say anything else. Just output the exact MCP block above."""
                     style=current_config['button_style'],
                     **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}
                 ),
-                id='prompt-content'
+                id='action-content'
             )
             
         except Exception as e:
             logger.error(f"Error in step_01_change_mode: {str(e)}")
-            return P(f"Error changing mode: {str(e)}", style=pip.get_style('error'))
+            return P(f"Error changing mode: {str(e)}", style='color: red;')
 
     # --- STEP_METHODS_INSERTION_POINT ---
