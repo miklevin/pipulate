@@ -3487,7 +3487,11 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
                 if response.status == 200:
                     logger.info(f"🎯 FINDER_TOKEN: MCP_SUCCESS - Tool '{tool_name}' executed successfully")
 
-                    if tool_result.get("success"):
+                    # Check for success in multiple formats: "success": true OR "status": "success"
+                    is_success = (tool_result.get("success") is True or 
+                                 tool_result.get("status") == "success")
+                    
+                    if is_success:
                         # Handle different tool types
                         if tool_name == "get_cat_fact":
                             # Cat fact specific handling
@@ -3513,13 +3517,16 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
                         
                         elif tool_name == "ui_list_elements":
                             # UI list elements specific handling
-                            elements = tool_result.get("elements", {})
+                            elements = tool_result.get("ui_elements", {})
                             logger.success(f"✅ UI LIST: Listed {len(elements)} element categories")
                             final_message = f"📋 **Available UI Elements** 📋\n\n"
                             for category, items in elements.items():
                                 final_message += f"**{category.upper()}:**\n"
-                                for element_id, description in items.items():
-                                    final_message += f"• `{element_id}` - {description}\n"
+                                if isinstance(items, dict):
+                                    for element_id, description in items.items():
+                                        final_message += f"• `{element_id}` - {description}\n"
+                                else:
+                                    final_message += f"• {items}\n"
                                 final_message += "\n"
                             final_message += "You can flash any of these elements using the `ui_flash_element` tool!"
                             await pipulate.message_queue.add(pipulate, final_message, verbatim=True, role='assistant')

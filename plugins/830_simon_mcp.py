@@ -333,29 +333,52 @@ class SimonSaysMcpWidget:
                 }
             }
             
-            simon_says_prompt = f"""You are a helpful assistant with UI interaction tools. To help users learn the interface, you can flash any UI element to draw attention to it.
-
-Here are the tools you have available:
-- Tool Name: `ui_list_elements` - Lists all available UI elements you can flash
-- Tool Name: `ui_flash_element` - Flashes a specific UI element by ID
-  Parameters: element_id (required), message (optional), delay (optional)
-
-AVAILABLE UI ELEMENTS MAP:
-{json.dumps(ui_elements_map, indent=2)}
-
-The user wants to learn about the interface. Choose an interesting UI element and flash it to demonstrate the system. Use the `ui_flash_element` tool by generating this EXACT MCP request block format:
+            # Optimized UI Flash prompt for guaranteed success
+            simon_says_prompt = f"""I need you to flash the chat message list to show the user where their conversation appears. Use this exact tool call:
 
 <mcp-request>
   <tool name="ui_flash_element">
     <params>
-      <element_id>CHOOSE_AN_ELEMENT_ID</element_id>
-      <message>A helpful message explaining what this element does</message>
+      <element_id>msg-list</element_id>
+      <message>This is where your conversation with the AI appears!</message>
       <delay>500</delay>
     </params>
   </tool>
 </mcp-request>
 
-Replace CHOOSE_AN_ELEMENT_ID with an actual element ID from the map above (e.g., 'app-id', 'profile-id', 'msg-list'). Do not say anything else. Just output the exact MCP block."""
+Output only the MCP block above. Do not add any other text."""
+
+            # Alternative: Cat fact baseline for testing MCP system
+            cat_fact_prompt = """I need you to fetch a random cat fact to test the MCP system. Use this exact tool call:
+
+<mcp-request>
+  <tool name="get_cat_fact" />
+</mcp-request>
+
+Output only the MCP block above. Do not add any other text."""
+
+            # Advanced UI Flash prompt with multiple options
+            advanced_ui_prompt = f"""You are a UI guidance assistant. Flash ONE of these key interface elements to help the user:
+
+GUARANTEED WORKING ELEMENTS:
+- msg-list (chat conversation area)
+- app-id (main app menu)  
+- profile-id (profile selector)
+- send-btn (chat send button)
+
+Choose ONE element and use this EXACT format:
+
+<mcp-request>
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>msg-list</element_id>
+      <message>This is where your conversation appears!</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>
+
+Replace 'msg-list' with your chosen element ID. Output ONLY the MCP block."""
 
             # Alternative prompt to list all elements first
             list_elements_prompt = """You are a helpful assistant with UI interaction tools. The user wants to see all available UI elements that can be flashed for guidance.
@@ -372,17 +395,25 @@ Use the `ui_list_elements` tool to show all available elements by generating thi
 
 Do not say anything else. Just output the exact MCP block above."""
 
-            # Choose which prompt to show based on step data or default to flash prompt
+            # Choose which prompt to show based on step data
             step_data = pip.get_step_data(db.get('pipeline_id', 'unknown'), step_id, {})
-            show_list_prompt = step_data.get('show_list_prompt', False)
+            prompt_mode = step_data.get('prompt_mode', 'simple_flash')  # simple_flash, cat_fact, advanced_flash, list_elements
             
-            if show_list_prompt:
+            if prompt_mode == 'cat_fact':
+                display_value = interaction_result if step.refill and interaction_result else cat_fact_prompt
+                button_text = 'Get Cat Fact ▸'
+                button_style = 'margin-top: 1rem; background-color: var(--pico-color-orange-500);'
+            elif prompt_mode == 'advanced_flash':
+                display_value = interaction_result if step.refill and interaction_result else advanced_ui_prompt
+                button_text = 'Flash UI Element (Advanced) ▸'
+                button_style = 'margin-top: 1rem; background-color: var(--pico-color-blue-500);'
+            elif prompt_mode == 'list_elements':
                 display_value = interaction_result if step.refill and interaction_result else list_elements_prompt
                 button_text = 'List UI Elements ▸'
                 button_style = 'margin-top: 1rem; background-color: var(--pico-secondary-background);'
-            else:
+            else:  # simple_flash (default)
                 display_value = interaction_result if step.refill and interaction_result else simon_says_prompt
-                button_text = 'Flash UI Element ▸'
+                button_text = 'Flash Chat Area ▸'
                 button_style = 'margin-top: 1rem;'
             form_content = Form(
                 Textarea(
@@ -394,7 +425,7 @@ Do not say anything else. Just output the exact MCP block above."""
                 Div(
                     Button(button_text, type='submit', cls='primary', style=button_style, **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}),
                     Button(
-                        'Switch to List Elements' if not show_list_prompt else 'Switch to Flash Element',
+                        '🔄 Switch Mode',
                         type='button',
                         cls='secondary',
                         style='margin-top: 1rem; margin-left: 1rem;',
@@ -403,6 +434,9 @@ Do not say anything else. Just output the exact MCP block above."""
                     ),
                     style='display: flex; align-items: center;'
                 ),
+                P(f"Current mode: {prompt_mode.replace('_', ' ').title()}", 
+                  cls='text-secondary', 
+                  style='margin-top: 0.5rem; font-size: 0.9em;'),
                 hx_post=f'/{app_name}/{step_id}_submit',
                 hx_target=f'#{step_id}'
             )
@@ -500,16 +534,24 @@ Do not say anything else. Just output the exact MCP block above."""
     # --- END_STEP_BUNDLE: step_01 ---
 
     async def step_01_toggle(self, request):
-        """Toggle between flash element and list elements prompts."""
+        """Cycle through different prompt modes."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
         
         pipeline_id = db.get('pipeline_id', 'unknown')
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_mode = step_data.get('show_list_prompt', False)
+        current_mode = step_data.get('prompt_mode', 'simple_flash')
         
-        # Toggle the mode
-        step_data['show_list_prompt'] = not current_mode
+        # Cycle through modes: simple_flash -> cat_fact -> advanced_flash -> list_elements -> simple_flash
+        mode_cycle = {
+            'simple_flash': 'cat_fact',
+            'cat_fact': 'advanced_flash', 
+            'advanced_flash': 'list_elements',
+            'list_elements': 'simple_flash'
+        }
+        
+        next_mode = mode_cycle.get(current_mode, 'simple_flash')
+        step_data['prompt_mode'] = next_mode
         await pip.set_step_data(pipeline_id, step_id, step_data, steps, clear_previous=False)
         
         # Redirect to the step to refresh the view
