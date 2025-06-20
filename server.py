@@ -1499,12 +1499,42 @@ def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix:
 def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''):
     """
     🔧 CLAUDE'S UNIFIED LOGGING: Logs DictLikeDB state to unified server.log
-    Simplified from the old lifecycle logging system.
+    Enhanced with semantic meaning for AI assistant understanding.
     """
     try:
         items = dict(db_instance.items())
         content = json.dumps(items, indent=2, default=str)
+        
+        # Add semantic context for AI assistants
+        semantic_info = []
+        for key, value in items.items():
+            if key == "last_profile_id":
+                semantic_info.append(f"🧑 Active user profile: {value}")
+            elif key == "last_app_choice":
+                semantic_info.append(f"📱 Current app/workflow: {value or 'None (Home page)'}")
+            elif key == "current_environment":
+                semantic_info.append(f"🌍 Environment mode: {value}")
+            elif key == "profile_locked":
+                lock_status = "🔒 LOCKED" if value == "1" else "🔓 Unlocked"
+                semantic_info.append(f"👤 Profile editing: {lock_status}")
+            elif key == "theme_preference":
+                semantic_info.append(f"🎨 UI theme: {value}")
+            elif key == "split-sizes":
+                semantic_info.append(f"📐 UI layout split: {value}")
+            elif key == "last_visited_url":
+                semantic_info.append(f"🔗 Last page visited: {value}")
+            elif key.startswith("endpoint_message_sent"):
+                env = key.replace("endpoint_message_sent__", "")
+                semantic_info.append(f"📨 Startup message sent for {env}: {value}")
+            elif key == "temp_message":
+                semantic_info.append(f"💬 Temporary UI message: {value}")
+        
         logger.info(f"🔍 FINDER_TOKEN: DB_STATE_{db_name.upper()} - {title_prefix} Key-Value Store:\n{content}")
+        
+        if semantic_info:
+            semantic_summary = "\n".join(f"    {info}" for info in semantic_info)
+            logger.info(f"🔍 SEMANTIC_DB_{db_name.upper()}: {title_prefix} Human-readable state:\n{semantic_summary}")
+            
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: DB_STATE_ERROR - Failed to log DictLikeDB '{db_name}' ({title_prefix}): {e}")
 
@@ -3768,9 +3798,6 @@ def populate_initial_data():
     if 'split-sizes' not in db:
         db['split-sizes'] = '[65, 35]'  # Default split panel sizes
         logger.debug("Initialized split-sizes to default '[65, 35]'")
-    if 'theme_preference' not in db:
-        db['theme_preference'] = 'auto'  # Default theme preference
-        logger.debug("Initialized theme_preference to 'auto'")
     if TABLE_LIFECYCLE_LOGGING:
         log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles AFTER')
         log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db AFTER')
@@ -4818,7 +4845,6 @@ async def poke_flyout(request):
         style='padding: 0.5rem 1rem; display: flex; align-items: center;'
     )
     delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
-    reset_python_button = Button('🐍 Reset Python Environment', hx_post='/reset-python-env', hx_target='body', hx_confirm='⚠️ ADVANCED: This will delete your Python environment and exit the server. You will need to manually restart with "exit" then "nix develop". Only use if JupyterLab fails to start. Continue?', hx_swap='outerHTML', cls='secondary outline', style='opacity: 0.7; font-size: 0.85em;') if is_dev_mode else None
     reset_db_button = Button('🔄 Reset Entire DEV Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
@@ -4832,7 +4858,7 @@ async def poke_flyout(request):
         style='padding: 0.5rem 1rem; border-top: 1px solid var(--pico-muted-border-color); text-align: center;'
     )
     
-    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, Reset Python Env, MCP Test
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, MCP Test
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
         Li(lock_button, cls='flyout-list-item'),
@@ -4842,7 +4868,6 @@ async def poke_flyout(request):
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
-        list_items.append(Li(reset_python_button, cls='flyout-list-item'))
     list_items.append(Li(mcp_test_button, cls='flyout-list-item'))
     
     # Always use nav flyout now - no more fallback to old flyout
@@ -5222,26 +5247,50 @@ async def mcp_tool_executor_endpoint(request):
         tool_name = data.get("tool")
         params = data.get("params", {})
         
-        logger.info(f"🔧 MCP SERVER: Tool '{tool_name}' requested with params: {params}")
+        # Enhanced MCP call transparency
+        logger.info(f"🔧 MCP_CALL_START: Tool '{tool_name}' | Operation ID: {operation_id}")
+        logger.info(f"🔧 MCP_PARAMS: {params}")
         log.event('mcp_server', f"MCP call received for tool: '{tool_name}'", f"Params: {params}")
 
         # Check if tool is registered
         if tool_name not in MCP_TOOL_REGISTRY:
             available_tools = list(MCP_TOOL_REGISTRY.keys())
-            logger.warning(f"🔧 MCP SERVER: Unknown tool '{tool_name}'. Available tools: {available_tools}")
+            logger.warning(f"🔧 MCP_ERROR: Unknown tool '{tool_name}'. Available: {available_tools}")
             return JSONResponse({
                 "status": "error", 
                 "message": f"Tool '{tool_name}' not found. Available tools: {available_tools}"
             }, status_code=404)
 
-        # Execute the registered tool
+        # Execute the registered tool with enhanced logging
         tool_handler = MCP_TOOL_REGISTRY[tool_name]
-        logger.info(f"🔧 MCP SERVER: Executing tool '{tool_name}' via registry")
+        logger.info(f"🔧 MCP_EXECUTE: Starting '{tool_name}' via registry handler")
         
         external_start_time = time.time()
         tool_result = await tool_handler(params)
         external_end_time = time.time()
         external_execution_time = (external_end_time - external_start_time) * 1000
+        
+        # Log the actual result with semantic context
+        result_status = tool_result.get("status", "unknown")
+        result_size = len(str(tool_result.get("result", "")))
+        logger.info(f"🔧 MCP_RESULT: Tool '{tool_name}' | Status: {result_status} | Response size: {result_size} chars | Time: {external_execution_time:.1f}ms")
+        
+        # Add semantic meaning to common tool results
+        if tool_name == "pipeline_state_inspector":
+            pipeline_count = len(tool_result.get("result", {}).get("pipelines", []))
+            logger.info(f"🔧 MCP_SEMANTIC: Pipeline inspector found {pipeline_count} active pipelines")
+        elif tool_name.startswith("botify_"):
+            if "projects" in str(tool_result.get("result", "")):
+                logger.info(f"🔧 MCP_SEMANTIC: Botify API call returned project data")
+            elif "schema" in str(tool_result.get("result", "")):
+                logger.info(f"🔧 MCP_SEMANTIC: Botify API call returned schema information")
+        elif tool_name.startswith("local_llm_"):
+            if tool_name == "local_llm_grep_logs":
+                matches = tool_result.get("result", {}).get("matches", [])
+                logger.info(f"🔧 MCP_SEMANTIC: Log grep found {len(matches)} matches")
+            elif tool_name == "local_llm_list_files":
+                files = tool_result.get("result", {}).get("files", [])
+                logger.info(f"🔧 MCP_SEMANTIC: File listing returned {len(files)} files")
         
         # Extract external API details from tool result for logging
         external_api_url = tool_result.get("external_api_url")
@@ -5270,14 +5319,15 @@ async def mcp_tool_executor_endpoint(request):
         )
         
         if tool_result.get("status") == "success":
-            logger.success(f"🔧 MCP SERVER: Tool '{tool_name}' executed successfully")
+            logger.info(f"🔧 MCP_SUCCESS: Tool '{tool_name}' completed successfully | Operation ID: {operation_id}")
             return JSONResponse(tool_result)
         else:
-            logger.error(f"🔧 MCP SERVER: Tool '{tool_name}' returned error: {tool_result.get('message')}")
+            error_msg = tool_result.get('message', 'Unknown error')
+            logger.error(f"🔧 MCP_FAILED: Tool '{tool_name}' error: {error_msg} | Operation ID: {operation_id}")
             return JSONResponse(tool_result, status_code=503)
 
     except Exception as e:
-        logger.error(f"🔧 MCP SERVER: Error processing request: {e}", exc_info=True)
+        logger.error(f"🔧 MCP_EXCEPTION: Tool execution failed | Operation ID: {operation_id} | Error: {e}", exc_info=True)
         return JSONResponse({"status": "error", "message": f"Tool execution failed: {str(e)}"}, status_code=500)
 
 @rt('/clear-pipeline', methods=['POST'])
@@ -5313,73 +5363,6 @@ async def clear_pipeline(request):
     html_response = HTMLResponse(str(response))
     html_response.headers['HX-Refresh'] = 'true'
     return html_response
-
-@rt('/reset-python-env', methods=['POST'])
-async def reset_python_env(request):
-    """Reset Python environment by removing .venv directory."""
-    current_env = get_current_environment()
-    
-    if current_env != 'Development':
-        await pipulate.stream('❌ Python environment reset is only allowed in Development mode for safety.', 
-                            verbatim=True, role='system', spaces_before=1)
-        return ""
-    
-    try:
-        import shutil
-        from pathlib import Path
-        
-        # Check if another critical operation is in progress
-        if is_critical_operation_in_progress():
-            await pipulate.stream("⚠️ Another critical operation is in progress. Please wait and try again.", verbatim=True, role='system')
-            return ""
-        
-        # Set flag to prevent watchdog restarts during operation
-        logger.info("[RESET_PYTHON_ENV] Starting critical operation. Pausing Watchdog restarts.")
-        set_critical_operation_flag()
-        
-        try:
-            venv_path = Path('.venv')
-            if venv_path.exists():
-                shutil.rmtree(venv_path)
-                logger.info(f"🐍 Python environment removed: {venv_path}")
-                await pipulate.stream(f'✅ Python environment deleted successfully.', 
-                                    verbatim=True, role='system', spaces_before=1)
-            else:
-                await pipulate.stream(f'ℹ️ No Python environment found to reset.', 
-                                    verbatim=True, role='system', spaces_before=1)
-            
-            await pipulate.stream("🚪 Server will exit in 3 seconds...", verbatim=True, role='system')
-            await pipulate.stream("📋 **Manual restart required:**", verbatim=True, role='system', spaces_before=1)
-            await pipulate.stream("   1. Type `exit` to leave the Nix shell", verbatim=True, role='system')
-            await pipulate.stream("   2. Type `nix develop` to restart with fresh Python environment", verbatim=True, role='system')
-            await pipulate.stream("   3. JupyterLab should now start correctly", verbatim=True, role='system')
-            
-        finally:
-            # Always reset the flag, even if operation fails
-            logger.info("[RESET_PYTHON_ENV] Critical operation finished. Resuming Watchdog restarts.")
-            clear_critical_operation_flag()
-            
-            # For Python environment reset, we need a clean exit to let Nix recreate the environment
-            logger.info("[RESET_PYTHON_ENV] Forcing clean server exit. Nix watchdog will restart with fresh Python environment.")
-            
-            # Schedule clean exit after giving user time to read instructions
-            import asyncio
-            async def clean_exit():
-                await asyncio.sleep(3.0)  # Give user time to read the manual restart instructions
-                logger.info("[RESET_PYTHON_ENV] Exiting cleanly. User must manually restart with 'exit' then 'nix develop'.")
-                import os
-                os._exit(0)  # Clean exit - user must manually restart
-            
-            asyncio.create_task(clean_exit())
-        
-    except Exception as e:
-        error_message = f"❌ Error resetting Python environment: {str(e)}"
-        logger.error(error_message)
-        await pipulate.stream(error_message, verbatim=True, role='system', spaces_before=1)
-        # Reset flag on error
-        clear_critical_operation_flag()
-    
-    return ""
 
 @rt('/clear-db', methods=['POST'])
 async def clear_db(request):
@@ -5659,8 +5642,55 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
         is_static = endpoint.startswith('/static/')
         is_ws = endpoint == '/ws'
         is_sse = endpoint == '/sse'
+        
+        # Enhanced labeling for network requests with correlation tracking
         if not (is_static or is_ws or is_sse):
-            log.event('network', f'{method} {endpoint}')
+            # Generate correlation ID for tracking requests through the system
+            import uuid
+            correlation_id = str(uuid.uuid4())[:8]
+            
+            # Add context about the request source
+            user_agent = request.headers.get('user-agent', '')
+            referer = request.headers.get('referer', '')
+            request_context = ""
+            
+            # Identify common request sources
+            if endpoint == '/':
+                if 'curl' in user_agent.lower():
+                    request_context = " (curl health check)"
+                elif 'python' in user_agent.lower() or 'httpx' in user_agent.lower():
+                    request_context = " (Python client)"
+                elif 'chrome' in user_agent.lower() or 'firefox' in user_agent.lower() or 'safari' in user_agent.lower():
+                    # Check for startup-related browser requests
+                    accept_header = request.headers.get('accept', '')
+                    connection_header = request.headers.get('connection', '')
+                    
+                    if 'text/html' in accept_header and not referer:
+                        request_context = " (browser startup/auto-open)"
+                    elif referer and 'localhost' in referer:
+                        request_context = " (live-reload check)"
+                    elif 'keep-alive' in connection_header:
+                        request_context = " (browser reload)"
+                    else:
+                        request_context = " (browser request)"
+                elif not user_agent:
+                    request_context = " (unknown client)"
+                else:
+                    request_context = f" (client: {user_agent[:30]}...)" if len(user_agent) > 30 else f" (client: {user_agent})"
+            elif endpoint.startswith('/redirect/'):
+                request_context = " (HTMX navigation)"
+            elif endpoint.startswith('/poke'):
+                request_context = " (chat interaction)"
+            elif endpoint in ['/toggle_theme', '/toggle_profile_lock', '/sync_theme']:
+                request_context = " (UI setting)"
+            elif endpoint.startswith('/mcp-'):
+                request_context = " (MCP tool)"
+            elif endpoint.startswith('/clear-'):
+                request_context = " (reset operation)"
+            elif 'submit' in endpoint or 'complete' in endpoint:
+                request_context = " (workflow step)"
+            
+            log.event('network', f'{method} {endpoint}{request_context} | ID: {correlation_id}')
         else:
             log.debug('network', f'{method} {endpoint}')
         response = await call_next(request)
@@ -5833,8 +5863,8 @@ async def send_startup_environment_message():
     # Set startup coordination flag
     message_coordination['startup_in_progress'] = True
     
-    # Wait for chat system to be fully ready, but not too long to avoid user confusion
-    await asyncio.sleep(3)  # Reduced back to 3 seconds for better timing
+    # Longer wait for fresh nix develop startup to ensure chat system is fully ready
+    await asyncio.sleep(5)  # Increased from 3 to 5 seconds
     
     try:
         current_env = get_current_environment()
@@ -5921,7 +5951,7 @@ async def warm_up_botify_schema_cache():
     AI assistants have instant access to complete Botify API schema without waiting
     for live API calls during development sessions.
     """
-    await asyncio.sleep(7)  # Let startup message complete first, then warm cache
+    await asyncio.sleep(5)  # Let startup complete first
     
     try:
         # Check if we have Botify token available
@@ -6003,7 +6033,7 @@ async def prepare_local_llm_context():
     immediate capability awareness without overwhelming their smaller context windows.
     Unlike advanced AIs who can explore the system, local LLMs need pre-computed context.
     """
-    await asyncio.sleep(10)  # Let startup message and cache warmup complete first
+    await asyncio.sleep(8)  # Let startup and cache warmup complete first
     
     try:
         # Build essential context summary for local LLMs
