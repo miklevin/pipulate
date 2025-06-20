@@ -527,8 +527,8 @@
             if [ -n "$VENV_PYTHON_DIRS" ] && [[ "$VENV_PYTHON_DIRS" != *"python3.12"* ]]; then
               DETECTED_VERSION=$(basename "$VENV_PYTHON_DIRS")
               echo "⚠️  WARNING: Detected virtual environment with $DETECTED_VERSION (we need python3.12)."
-              echo "   If you experience JupyterLab startup issues, use the '🐍 Reset Python Environment'"
-              echo "   button in Settings (poke/gear icon) to fix this automatically."
+              echo "   If JupyterLab fails to start, use the '🐍 Reset Python Environment' button"
+              echo "   in Settings (gear icon), then manually restart with 'exit' + 'nix develop'."
               echo
             fi
           fi

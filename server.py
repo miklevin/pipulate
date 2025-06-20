@@ -4815,7 +4815,7 @@ async def poke_flyout(request):
         style='padding: 0.5rem 1rem; display: flex; align-items: center;'
     )
     delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
-    reset_python_button = Button('🐍 Reset Python Environment', hx_post='/reset-python-env', hx_target='body', hx_confirm='This will reset your Python environment to fix startup issues. The server will restart automatically. Continue?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
+    reset_python_button = Button('🐍 Reset Python Environment', hx_post='/reset-python-env', hx_target='body', hx_confirm='⚠️ ADVANCED: This will delete your Python environment and exit the server. You will need to manually restart with "exit" then "nix develop". Only use if JupyterLab fails to start. Continue?', hx_swap='outerHTML', cls='secondary outline', style='opacity: 0.7; font-size: 0.85em;') if is_dev_mode else None
     reset_db_button = Button('🔄 Reset Entire DEV Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
@@ -5339,13 +5339,17 @@ async def reset_python_env(request):
             if venv_path.exists():
                 shutil.rmtree(venv_path)
                 logger.info(f"🐍 Python environment removed: {venv_path}")
-                await pipulate.stream(f'✅ Python environment reset successfully. {APP_NAME} will restart with a fresh Python environment.', 
+                await pipulate.stream(f'✅ Python environment deleted successfully.', 
                                     verbatim=True, role='system', spaces_before=1)
             else:
-                await pipulate.stream(f'ℹ️ No Python environment found to reset. {APP_NAME} will restart normally.', 
+                await pipulate.stream(f'ℹ️ No Python environment found to reset.', 
                                     verbatim=True, role='system', spaces_before=1)
             
-            await pipulate.stream("🔄 Server restart will be triggered after operation completion...", verbatim=True, role='system')
+            await pipulate.stream("🚪 Server will exit in 3 seconds...", verbatim=True, role='system')
+            await pipulate.stream("📋 **Manual restart required:**", verbatim=True, role='system', spaces_before=1)
+            await pipulate.stream("   1. Type `exit` to leave the Nix shell", verbatim=True, role='system')
+            await pipulate.stream("   2. Type `nix develop` to restart with fresh Python environment", verbatim=True, role='system')
+            await pipulate.stream("   3. JupyterLab should now start correctly", verbatim=True, role='system')
             
         finally:
             # Always reset the flag, even if operation fails
@@ -5355,13 +5359,13 @@ async def reset_python_env(request):
             # For Python environment reset, we need a clean exit to let Nix recreate the environment
             logger.info("[RESET_PYTHON_ENV] Forcing clean server exit. Nix watchdog will restart with fresh Python environment.")
             
-            # Schedule clean exit after a brief delay to let response be sent
+            # Schedule clean exit after giving user time to read instructions
             import asyncio
             async def clean_exit():
-                await asyncio.sleep(0.5)  # Let response be sent
-                logger.info("[RESET_PYTHON_ENV] Exiting cleanly for Python environment reset...")
+                await asyncio.sleep(3.0)  # Give user time to read the manual restart instructions
+                logger.info("[RESET_PYTHON_ENV] Exiting cleanly. User must manually restart with 'exit' then 'nix develop'.")
                 import os
-                os._exit(0)  # Clean exit, let watchdog restart
+                os._exit(0)  # Clean exit - user must manually restart
             
             asyncio.create_task(clean_exit())
         
