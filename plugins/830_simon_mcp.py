@@ -433,18 +433,15 @@ Do not say anything else. Just output the exact MCP block above."""
                 {'role': 'user', 'content': prompt_text}
             ]
 
-            # Process the LLM interaction through the Pipulate instance
-            mcp_result = None
+            # Process the LLM interaction - collect response without streaming every token
+            full_response = ""
             async for chunk in pip.process_llm_interaction(MODEL, messages):
-                await pip.stream(chunk, verbatim=True, role='assistant', simulate_typing=False)
-                # Capture the MCP result if it's a cat fact
-                if 'Cat Fact Alert!' in chunk and 'Would you like another fact?' in chunk:
-                    mcp_result = chunk
+                full_response += chunk
             
-            # Add the MCP result to conversation history if we got one
-            if mcp_result:
-                await self.message_queue.add(pip, mcp_result, verbatim=True, role='assistant')
-
+            # Show just a summary instead of streaming wall of text
+            if full_response:
+                await pip.stream(f'🎯 LLM responded with {len(full_response)} characters. Check server logs for MCP tool execution details.', role='system')
+            
             # Simple success message and reset form
             await pip.stream('✅ Simon Says interaction complete! Try another prompt.', role='system')
             
