@@ -290,8 +290,8 @@ function setupMenuFlashFeedback() {
             }
             
             @keyframes menuFlash {
-                0% { box-shadow: 0 0 0 0 rgba(74, 171, 247, 0.6); }
-                50% { box-shadow: 0 0 0 4px rgba(74, 171, 247, 0.3); }
+                0% { box-shadow: 0 0 0 0 rgba(74, 171, 247, 0.9); }
+                50% { box-shadow: 0 0 0 10px rgba(74, 171, 247, 0.6); }
                 100% { box-shadow: 0 0 0 0 rgba(74, 171, 247, 0); }
             }
             
@@ -300,8 +300,8 @@ function setupMenuFlashFeedback() {
             }
             
             @keyframes menuFlashDark {
-                0% { box-shadow: 0 0 0 0 rgba(120, 220, 255, 0.5); }
-                50% { box-shadow: 0 0 0 4px rgba(120, 220, 255, 0.25); }
+                0% { box-shadow: 0 0 0 0 rgba(120, 220, 255, 0.8); }
+                50% { box-shadow: 0 0 0 10px rgba(120, 220, 255, 0.5); }
                 100% { box-shadow: 0 0 0 0 rgba(120, 220, 255, 0); }
             }
             
@@ -352,6 +352,29 @@ function setupMenuFlashFeedback() {
             flashMenu('app-id', 'APP');
         }
     });
+    
+    // Listen for HTMX requests that will trigger page refresh (Select All/Deselect All/Default)
+    document.addEventListener('htmx:beforeRequest', function(event) {
+        const target = event.target;
+        if (target && target.getAttribute) {
+            const hxPost = target.getAttribute('hx-post');
+            if (hxPost && (hxPost.includes('select_all') || hxPost.includes('deselect_all') || hxPost.includes('select_default'))) {
+                // Store flag that we just triggered a roles bulk action
+                sessionStorage.setItem('pipulate_roles_bulk_action', 'true');
+                console.log('🔔 Roles bulk action detected, will flash menu after refresh');
+            }
+        }
+    });
+    
+    // Flash app menu after page load if we just did a roles bulk action
+    if (sessionStorage.getItem('pipulate_roles_bulk_action') === 'true') {
+        sessionStorage.removeItem('pipulate_roles_bulk_action');
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+            flashMenu('app-id', 'APP');
+            console.log('🔔 APP menu flashed after roles bulk action');
+        }, 150);
+    }
     
     console.log('🔔 Simplified menu flash system initialized');
 }
