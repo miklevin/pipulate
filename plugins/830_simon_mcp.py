@@ -424,26 +424,24 @@ Do not say anything else. Just output the exact MCP block above."""
             if not prompt_text:
                 return P('Please provide a prompt for the LLM interaction.', style='color: red;')
 
-            # Show clean initiation message
-            await pip.stream(f'🎪 Simon Says: Sending your prompt to the LLM...', role='system')
-
             # Prepare messages for LLM interaction
             messages = [
                 {'role': 'system', 'content': 'You are a helpful assistant capable of making tool calls when needed.'},
                 {'role': 'user', 'content': prompt_text}
             ]
 
-            # Process the LLM interaction - collect response without streaming every token
+            # Process the LLM interaction - collect response silently
             full_response = ""
             async for chunk in pip.process_llm_interaction(MODEL, messages):
                 full_response += chunk
             
-            # Show just a summary instead of streaming wall of text
+            # Add the full interaction to conversation history silently (for LLM context)
             if full_response:
-                await pip.stream(f'🎯 LLM responded with {len(full_response)} characters. Check server logs for MCP tool execution details.', role='system')
+                await self.message_queue.add(pip, f"Simon Says prompt: {prompt_text}", verbatim=True, role='user')
+                await self.message_queue.add(pip, full_response, verbatim=True, role='assistant')
             
-            # Simple success message and reset form
-            await pip.stream('✅ Simon Says interaction complete! Try another prompt.', role='system')
+            # Just show clean completion message to user
+            await pip.stream('✅ Simon Says complete! The UI element should have flashed 10 times.', role='system')
             
             # Return fresh form for immediate re-testing
             return Div(id=step_id, hx_get=f'/{app_name}/{step_id}', hx_trigger='load')
