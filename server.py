@@ -5352,9 +5352,18 @@ async def reset_python_env(request):
             logger.info("[RESET_PYTHON_ENV] Critical operation finished. Resuming Watchdog restarts.")
             clear_critical_operation_flag()
             
-            # Trigger restart now that the critical operation is complete
-            logger.info("[RESET_PYTHON_ENV] Triggering server restart after Python environment reset.")
-            restart_server()
+            # For Python environment reset, we need a clean exit to let Nix recreate the environment
+            logger.info("[RESET_PYTHON_ENV] Forcing clean server exit. Nix watchdog will restart with fresh Python environment.")
+            
+            # Schedule clean exit after a brief delay to let response be sent
+            import asyncio
+            async def clean_exit():
+                await asyncio.sleep(0.5)  # Let response be sent
+                logger.info("[RESET_PYTHON_ENV] Exiting cleanly for Python environment reset...")
+                import os
+                os._exit(0)  # Clean exit, let watchdog restart
+            
+            asyncio.create_task(clean_exit())
         
     except Exception as e:
         error_message = f"❌ Error resetting Python environment: {str(e)}"
