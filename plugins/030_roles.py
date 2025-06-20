@@ -686,6 +686,78 @@ def render_item(item, app_instance):
 # Supporting functions for plugin discovery and visibility
 def get_plugin_list():
     """Get list of all available plugins with their roles."""
+    plugins = []
+    
+    # Import plugin_instances from server to use actual loaded instances
+    try:
+        from server import plugin_instances
+        logger.debug(f"get_plugin_list: Found {len(plugin_instances)} plugin instances")
+        
+        for plugin_key, plugin_instance in plugin_instances.items():
+            # Skip the special plugins that don't belong in role lists
+            if plugin_key in ['profiles', 'roles']:
+                logger.debug(f"get_plugin_list: Skipping special plugin {plugin_key}")
+                continue
+                
+            try:
+                # Get the plugin module to access ROLES
+                plugin_module = sys.modules.get(plugin_instance.__module__)
+                plugin_roles = getattr(plugin_module, 'ROLES', []) if plugin_module else []
+                
+                # Get display name from the actual instance
+                display_name = getattr(plugin_instance, 'DISPLAY_NAME', plugin_key.replace('_', ' ').title())
+                
+                # Convert plugin_key back to filename format for consistency
+                # Most plugins have numeric prefixes, so we need to find the actual filename
+                plugin_filename = None
+                plugin_dir = Path(__file__).parent
+                
+                # Try different patterns to match the plugin key to a filename
+                possible_patterns = [
+                    f"*_{plugin_key}.py",  # e.g., 060_tasks.py
+                    f"{plugin_key}.py",   # e.g., tasks.py
+                    f"*{plugin_key}.py"   # e.g., 060tasks.py (less likely)
+                ]
+                
+                for pattern in possible_patterns:
+                    matches = list(plugin_dir.glob(pattern))
+                    if matches:
+                        plugin_filename = matches[0].name  # Take the first match
+                        break
+                
+                if not plugin_filename:
+                    # Final fallback: assume it follows the simple pattern
+                    plugin_filename = f"{plugin_key}.py"
+                
+                logger.debug(f"get_plugin_list: Mapped {plugin_key} to filename {plugin_filename}")
+                
+                logger.debug(f"get_plugin_list: Plugin {plugin_key} -> {display_name} -> roles: {plugin_roles}")
+                
+                plugins.append({
+                    'filename': plugin_filename,
+                    'module_name': plugin_key,
+                    'display_name': display_name,
+                    'roles': plugin_roles
+                })
+                
+            except Exception as e:
+                logger.debug(f"Could not process plugin {plugin_key}: {e}")
+                continue
+                
+    except ImportError as e:
+        logger.error(f"Could not import plugin_instances from server: {e}")
+        # Fallback to the old file-based discovery method
+        return get_plugin_list_fallback()
+    
+    logger.debug(f"get_plugin_list: Returning {len(plugins)} plugins")
+    core_plugins = [p for p in plugins if 'Core' in p['roles']]
+    logger.debug(f"get_plugin_list: Found {len(core_plugins)} Core plugins: {[p['display_name'] for p in core_plugins]}")
+    
+    return sorted(plugins, key=lambda x: x['filename'])
+
+
+def get_plugin_list_fallback():
+    """Fallback plugin discovery method using file system scanning."""
     plugin_dir = Path(__file__).parent
     plugins = []
 
@@ -745,8 +817,6 @@ def get_plugin_list():
 
     return sorted(plugins, key=lambda x: x['filename'])
 
-
-
 def get_plugin_emoji(module_name):
     """Get the real emoji for a plugin by importing and checking its EMOJI attribute."""
     try:
@@ -776,6 +846,10 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     """Create a discrete expandable accordion showing plugins with real emojis."""
     plugin_list = get_plugin_list()
     affected_plugins = [plugin for plugin in plugin_list if role_name in plugin['roles']]
+    
+    logger.debug(f"create_plugin_visibility_table: Role '{role_name}' has {len(affected_plugins)} plugins")
+    for plugin in affected_plugins:
+        logger.debug(f"  - {plugin['display_name']} (from {plugin['filename']})")
 
     if not affected_plugins:
         return Details(

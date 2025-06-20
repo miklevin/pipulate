@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 class PluginIdentityManager:
     # Override this in subclasses to customize the emoji
-    EMOJI = '️'
+    EMOJI = ''
 
     def __init__(self, filename=None):
         if not filename:
@@ -87,7 +87,7 @@ class CrudCustomizer(BaseCrud):
 
 class CrudUI(PluginIdentityManager):
     # Override this to customize the emoji for this specific plugin
-    EMOJI = '️✔️'
+    EMOJI = '✔️'
 
     @property
 
