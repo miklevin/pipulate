@@ -171,11 +171,42 @@
           # Install Python packages from requirements.txt
           # This allows flexibility to use the latest PyPI packages
           # Note: This makes the environment less deterministic
-          echo "- Confirming pip packages..."
-          if pip install --upgrade pip --quiet && \
-            pip install -r requirements.txt --quiet; then
+          
+          # Check if this is a fresh Python environment (after reset)
+          FRESH_ENV=false
+          if [ ! -d .venv/lib/python*/site-packages ] || [ $(find .venv/lib/python*/site-packages -name "*.dist-info" 2>/dev/null | wc -l) -lt 10 ]; then
+            FRESH_ENV=true
+            echo "🔧 Fresh Python environment detected - installing packages (this may take 2-3 minutes)..."
+            echo "   This is normal after using '🐍 Reset Python Environment' button."
+          else
+            echo "- Confirming pip packages..."
+          fi
+          
+          if [ "$FRESH_ENV" = true ]; then
+            # For fresh environments, show progress and don't suppress output completely
+            if pip install --upgrade pip --quiet && \
+              pip install -r requirements.txt --progress-bar off; then
+              true  # Success case handled below
+            else
+              false  # Error case handled below
+            fi
+          else
+            # For existing environments, keep it quiet and fast
+            if pip install --upgrade pip --quiet && \
+              pip install -r requirements.txt --quiet; then
+              true  # Success case handled below
+            else
+              false  # Error case handled below
+            fi
+          fi
+          
+          if [ $? -eq 0 ]; then
               package_count=$(pip list --format=freeze | wc -l)
-              echo "- Done. $package_count pip packages present."
+              if [ "$FRESH_ENV" = true ]; then
+                echo "✅ Fresh Python environment build complete! $package_count packages installed."
+              else
+                echo "- Done. $package_count pip packages present."
+              fi
           else
               echo "Warning: An error occurred during pip setup."
           fi
