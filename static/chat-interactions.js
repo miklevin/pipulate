@@ -272,176 +272,86 @@ function linkifyText(text) {
 // Splitter initialization removed - now handled by dedicated splitter-init.js
 
 function setupMenuFlashFeedback() {
-    console.log('🔔 Setting up menu flash feedback system');
+    console.log('🔔 Setting up simplified menu flash feedback system');
     
-    // Add CSS for flash animation if not already present
+    // Simple debouncing to prevent multiple rapid fires
+    let profileFlashTimeout = null;
+    let appFlashTimeout = null;
+    
+    // Add minimal CSS for flash animation
     if (!document.getElementById('menu-flash-styles')) {
         const style = document.createElement('style');
         style.id = 'menu-flash-styles';
         style.textContent = `
             .menu-flash {
-                animation: menuUpdateFlash 0.6s ease-out;
-                transform-origin: center;
+                animation: menuFlash 0.4s ease-out;
                 position: relative;
                 z-index: 10;
             }
             
-            @keyframes menuUpdateFlash {
-                0% { 
-                    box-shadow: 0 0 0 0 rgba(74, 171, 247, 0.5);
-                    transform: scale(1);
-                }
-                25% { 
-                    box-shadow: 0 0 0 6px rgba(74, 171, 247, 0.3);
-                    transform: scale(1.015);
-                }
-                50% { 
-                    box-shadow: 0 0 0 10px rgba(74, 171, 247, 0.15);
-                    transform: scale(1.01);
-                }
-                75% { 
-                    box-shadow: 0 0 0 12px rgba(74, 171, 247, 0.08);
-                    transform: scale(1.005);
-                }
-                100% { 
-                    box-shadow: 0 0 0 0 rgba(74, 171, 247, 0);
-                    transform: scale(1);
-                }
+            @keyframes menuFlash {
+                0% { box-shadow: 0 0 0 0 rgba(74, 171, 247, 0.6); }
+                50% { box-shadow: 0 0 0 4px rgba(74, 171, 247, 0.3); }
+                100% { box-shadow: 0 0 0 0 rgba(74, 171, 247, 0); }
             }
             
-            /* Darker theme variant with cooler blue */
             [data-theme="dark"] .menu-flash {
-                animation: menuUpdateFlashDark 0.6s ease-out;
+                animation: menuFlashDark 0.4s ease-out;
             }
             
-            @keyframes menuUpdateFlashDark {
-                0% { 
-                    box-shadow: 0 0 0 0 rgba(120, 220, 255, 0.4);
-                    transform: scale(1);
-                }
-                25% { 
-                    box-shadow: 0 0 0 6px rgba(120, 220, 255, 0.25);
-                    transform: scale(1.015);
-                }
-                50% { 
-                    box-shadow: 0 0 0 10px rgba(120, 220, 255, 0.12);
-                    transform: scale(1.01);
-                }
-                75% { 
-                    box-shadow: 0 0 0 12px rgba(120, 220, 255, 0.06);
-                    transform: scale(1.005);
-                }
-                100% { 
-                    box-shadow: 0 0 0 0 rgba(120, 220, 255, 0);
-                    transform: scale(1);
-                }
+            @keyframes menuFlashDark {
+                0% { box-shadow: 0 0 0 0 rgba(120, 220, 255, 0.5); }
+                50% { box-shadow: 0 0 0 4px rgba(120, 220, 255, 0.25); }
+                100% { box-shadow: 0 0 0 0 rgba(120, 220, 255, 0); }
             }
             
-            /* Respect reduced motion preferences for accessibility */
             @media (prefers-reduced-motion: reduce) {
-                .menu-flash {
-                    animation: menuUpdateFlashReduced 0.3s ease-out;
-                }
-                
-                @keyframes menuUpdateFlashReduced {
-                    0% { 
-                        box-shadow: 0 0 0 0 rgba(74, 171, 247, 0.3);
-                    }
-                    50% { 
-                        box-shadow: 0 0 0 4px rgba(74, 171, 247, 0.2);
-                    }
-                    100% { 
-                        box-shadow: 0 0 0 0 rgba(74, 171, 247, 0);
-                    }
-                }
-                
-                [data-theme="dark"] .menu-flash {
-                    animation: menuUpdateFlashReducedDark 0.3s ease-out;
-                }
-                
-                @keyframes menuUpdateFlashReducedDark {
-                    0% { 
-                        box-shadow: 0 0 0 0 rgba(120, 220, 255, 0.25);
-                    }
-                    50% { 
-                        box-shadow: 0 0 0 4px rgba(120, 220, 255, 0.15);
-                    }
-                    100% { 
-                        box-shadow: 0 0 0 0 rgba(120, 220, 255, 0);
-                    }
-                }
+                .menu-flash { animation: none; }
             }
         `;
         document.head.appendChild(style);
     }
     
-    // Function to flash a menu element
-    function flashMenuElement(elementId, menuType) {
+    // Simple flash function with debouncing
+    function flashMenu(elementId, menuType) {
         const element = document.getElementById(elementId);
-        if (!element) {
-            console.warn(`🔔 Menu flash: Element ${elementId} not found`);
-            return;
+        if (!element) return;
+        
+        // Clear any existing timeout and class
+        if (menuType === 'PROFILE') {
+            clearTimeout(profileFlashTimeout);
+        } else {
+            clearTimeout(appFlashTimeout);
         }
         
-        console.log(`🔔 Flashing ${menuType} menu (${elementId})`);
-        
-        // Remove any existing flash class
         element.classList.remove('menu-flash');
-        
-        // Force reflow to ensure the class removal takes effect
-        element.offsetHeight;
-        
-        // Add flash class
+        element.offsetHeight; // Force reflow
         element.classList.add('menu-flash');
         
-        // Determine animation duration based on reduced motion preference
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const animationDuration = prefersReducedMotion ? 300 : 600;
-        
-        // Remove the class after animation completes
-        setTimeout(() => {
+        // Set timeout to remove class
+        const timeout = setTimeout(() => {
             element.classList.remove('menu-flash');
-        }, animationDuration);
+        }, 400);
+        
+        if (menuType === 'PROFILE') {
+            profileFlashTimeout = timeout;
+        } else {
+            appFlashTimeout = timeout;
+        }
+        
+        console.log(`🔔 ${menuType} menu flashed`);
     }
     
-    // Listen for HTMX afterSwap events to detect menu updates
+    // Only listen to the most reliable event - HTMX afterSwap on the menu containers
     document.addEventListener('htmx:afterSwap', function(event) {
         const targetId = event.target.id;
         
         if (targetId === 'profile-dropdown-menu') {
-            console.log('🔔 Profile menu updated via HTMX');
-            flashMenuElement('profile-id', 'PROFILE');
+            flashMenu('profile-id', 'PROFILE');
         } else if (targetId === 'app-dropdown-menu') {
-            console.log('🔔 App menu updated via HTMX');
-            flashMenuElement('app-id', 'APP');
+            flashMenu('app-id', 'APP');
         }
     });
     
-    // Listen for HX-Trigger events directly (more reliable than custom events)
-    document.addEventListener('htmx:trigger', function(event) {
-        if (event.detail && event.detail.refreshProfileMenu !== undefined) {
-            console.log('🔔 Profile menu refresh trigger detected');
-            // Small delay to ensure the HTMX swap happens first
-            setTimeout(() => flashMenuElement('profile-id', 'PROFILE'), 25);
-        }
-        
-        if (event.detail && event.detail.refreshAppMenu !== undefined) {
-            console.log('🔔 App menu refresh trigger detected');
-            // Small delay to ensure the HTMX swap happens first
-            setTimeout(() => flashMenuElement('app-id', 'APP'), 25);
-        }
-    });
-    
-    // Also listen for custom events that might trigger menu updates (fallback)
-    document.addEventListener('refreshProfileMenu', function() {
-        console.log('🔔 Profile menu refresh event detected (custom event)');
-        setTimeout(() => flashMenuElement('profile-id', 'PROFILE'), 25);
-    });
-    
-    document.addEventListener('refreshAppMenu', function() {
-        console.log('🔔 App menu refresh event detected (custom event)');
-        setTimeout(() => flashMenuElement('app-id', 'APP'), 25);
-    });
-    
-    console.log('🔔 Menu flash feedback system initialized with enhanced animations');
+    console.log('🔔 Simplified menu flash system initialized');
 }

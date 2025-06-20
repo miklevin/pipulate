@@ -3445,6 +3445,8 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/theme-init.js'),
         Script(src='/static/widget-scripts.js'),
         create_chat_scripts('.sortable'),
+        # Add menu flash demo script in development environments
+        Script(src='/static/menu-flash-demo.js') if get_current_environment() == 'development' else Script(''),
         Script(type='module')
     ),
     store={
