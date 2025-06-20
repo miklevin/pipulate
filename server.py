@@ -3768,6 +3768,9 @@ def populate_initial_data():
     if 'split-sizes' not in db:
         db['split-sizes'] = '[65, 35]'  # Default split panel sizes
         logger.debug("Initialized split-sizes to default '[65, 35]'")
+    if 'theme_preference' not in db:
+        db['theme_preference'] = 'auto'  # Default theme preference
+        logger.debug("Initialized theme_preference to 'auto'")
     if TABLE_LIFECYCLE_LOGGING:
         log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles AFTER')
         log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db AFTER')
@@ -4829,7 +4832,7 @@ async def poke_flyout(request):
         style='padding: 0.5rem 1rem; border-top: 1px solid var(--pico-muted-border-color); text-align: center;'
     )
     
-    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Python Env, Reset Database, MCP Test
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, Reset Python Env, MCP Test
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
         Li(lock_button, cls='flyout-list-item'),
@@ -4838,8 +4841,8 @@ async def poke_flyout(request):
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
-        list_items.append(Li(reset_python_button, cls='flyout-list-item'))
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
+        list_items.append(Li(reset_python_button, cls='flyout-list-item'))
     list_items.append(Li(mcp_test_button, cls='flyout-list-item'))
     
     # Always use nav flyout now - no more fallback to old flyout
