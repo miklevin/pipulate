@@ -77,6 +77,9 @@ class SimonSaysMcpWidget:
 
         # Use centralized route registration helper
         pipulate.register_workflow_routes(self)
+        
+        # Register custom route for mode changing
+        self.app.route(f'/{self.APP_NAME}/step_01_change_mode', methods=['POST'])(self.step_01_change_mode)
 
         self.step_messages = {}
         for step_obj in self.steps:
