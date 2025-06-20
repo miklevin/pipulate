@@ -4815,6 +4815,7 @@ async def poke_flyout(request):
         style='padding: 0.5rem 1rem; display: flex; align-items: center;'
     )
     delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
+    reset_python_button = Button('🐍 Reset Python Environment', hx_post='/reset-python-env', hx_target='body', hx_confirm='This will reset your Python environment to fix startup issues. The server will restart automatically. Continue?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
     reset_db_button = Button('🔄 Reset Entire DEV Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
@@ -4828,7 +4829,7 @@ async def poke_flyout(request):
         style='padding: 0.5rem 1rem; border-top: 1px solid var(--pico-muted-border-color); text-align: center;'
     )
     
-    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, MCP Test
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Python Env, Reset Database, MCP Test
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
         Li(lock_button, cls='flyout-list-item'),
@@ -4837,6 +4838,7 @@ async def poke_flyout(request):
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
+        list_items.append(Li(reset_python_button, cls='flyout-list-item'))
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
     list_items.append(Li(mcp_test_button, cls='flyout-list-item'))
     
@@ -5308,6 +5310,40 @@ async def clear_pipeline(request):
     html_response = HTMLResponse(str(response))
     html_response.headers['HX-Refresh'] = 'true'
     return html_response
+
+@rt('/reset-python-env', methods=['POST'])
+async def reset_python_env(request):
+    """Reset Python environment by removing .venv directory."""
+    current_env = get_current_environment()
+    
+    if current_env != 'Development':
+        await pipulate.stream('❌ Python environment reset is only allowed in Development mode for safety.', 
+                            verbatim=True, role='system', spaces_before=1)
+        return ""
+    
+    try:
+        import shutil
+        from pathlib import Path
+        
+        venv_path = Path('.venv')
+        if venv_path.exists():
+            shutil.rmtree(venv_path)
+            logger.info(f"🐍 Python environment removed: {venv_path}")
+            await pipulate.stream(f'✅ Python environment reset successfully. {APP_NAME} will restart with a fresh Python environment.', 
+                                verbatim=True, role='system', spaces_before=1)
+        else:
+            await pipulate.stream(f'ℹ️ No Python environment found to reset. {APP_NAME} will restart normally.', 
+                                verbatim=True, role='system', spaces_before=1)
+        
+        # Schedule restart after a short delay
+        asyncio.create_task(delayed_restart(3))
+        
+    except Exception as e:
+        error_message = f"❌ Error resetting Python environment: {str(e)}"
+        logger.error(error_message)
+        await pipulate.stream(error_message, verbatim=True, role='system', spaces_before=1)
+    
+    return ""
 
 @rt('/clear-db', methods=['POST'])
 async def clear_db(request):
