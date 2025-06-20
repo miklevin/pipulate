@@ -4819,7 +4819,7 @@ async def poke_flyout(request):
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
     # Add Update button
-    update_button = Button('🔄 Update Pipulate', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
+    update_button = Button(f'🔄 Update {APP_NAME}', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
     # Add version info display
     nix_version = get_nix_version()
