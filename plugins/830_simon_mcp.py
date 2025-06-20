@@ -95,11 +95,15 @@ class SimonSaysMcpWidget:
                 }
 
     async def landing(self, request):
-        """Generate the landing page using the standardized helper while maintaining WET explicitness."""
-        pip = self.pipulate
-
-        # Use centralized landing page helper - maintains WET principle by explicit call
-        return pip.create_standard_landing_page(self)
+        """Direct utility - skip pipeline keys and go straight to Simon Says testing."""
+        # Bypass the entire pipeline system - this is a utility tool, not a data workflow
+        return Div(
+            H2(self.DISPLAY_NAME),
+            P(self.ENDPOINT_MESSAGE),
+            # Jump straight to step_01 - no keys needed
+            Div(id='step_01', hx_get=f'/{self.APP_NAME}/step_01', hx_trigger='load'),
+            id=f'{self.APP_NAME}-container'
+        )
 
     async def init(self, request):
         pip, db = self.pipulate, self.db
@@ -260,84 +264,20 @@ class SimonSaysMcpWidget:
         """Deprecated - use _get_display_style() or _get_textarea_style() instead."""
         return self._get_display_style()
 
-    # --- START_STEP_BUNDLE: step_01 ---
     async def step_01(self, request):
-        """ Handles GET request for Step 1: Displays the Simon Says textarea form. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        """Simon Says UI Flash testing interface - simplified utility."""
+        app_name = self.app_name
         step_id = 'step_01'
-        step_index = self.steps_indices[step_id] # Ensure we have the index
-        step = self.steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        interaction_result = step_data.get(step.done, '')
-        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-
-        # Phase 1: Finalized View
-        if 'finalized' in finalize_data and interaction_result:
-            locked_content = pip.finalized_content(
-                message=f"🔒 {step.show}: Interaction Complete",
-                content=Pre(interaction_result, style=self._get_display_style())
-            )
-            next_step_trigger = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
-            return Div(locked_content, next_step_trigger, id=step_id)
-
-        # Phase 2: Revert View
-        elif interaction_result and state.get('_revert_target') != step_id:
-            revert_widget = pip.display_revert_widget(
-                step_id=step_id, app_name=app_name, message=f"{step.show}: Interaction Log",
-                widget=Pre(interaction_result, style=self._get_display_style()),
-                steps=steps
-            )
-            next_step_trigger = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
-            return Div(revert_widget, next_step_trigger, id=step_id)
-
-        # Phase 3: Get Input View
-        else:
-            # Keep this message since it's the main instructional content
-            await self.message_queue.add(pip, "🎪 Ready to play Simon Says UI Flash! Edit the prompt below to instruct the LLM to flash UI elements.", verbatim=True)
-            
-            # UI Elements Map for LLM training - based on actual server.py IDs
-            ui_elements_map = {
-                "navigation": {
-                    "profile-id": "Profile dropdown summary - click to open profile selection menu",
-                    "profile-dropdown-menu": "Profile dropdown container - shows all available profiles",
-                    "app-id": "App dropdown summary - click to open app/workflow selection menu", 
-                    "app-dropdown-menu": "App dropdown container - shows available apps/workflows",
-                    "nav-plugin-search": "Plugin search input - type to find specific features",
-                    "search-results-dropdown": "Search results dropdown - shows matching plugins",
-                    "env-id": "Environment selector - switch between development/production modes",
-                    "poke-summary": "Settings gear icon - hover to access system settings"
-                },
-                "chat": {
-                    "chat-interface": "Entire chat panel - where conversation happens",
-                    "msg-list": "Chat message list - scrollable conversation history",
-                    "msg": "Chat input textarea - where users type messages to the LLM",
-                    "send-btn": "Send message button - submits chat input to the LLM",
-                    "stop-btn": "Stop streaming button - halts LLM responses mid-generation",
-                    "input-group": "Chat input container - holds the textarea and buttons"
-                },
-                "layout": {
-                    "nav-group": "Top navigation bar - contains all navigation elements",
-                    "grid-left-content": "Left panel - contains the workflow interface",
-                    "nav-flyout-panel": "Settings flyout panel - system configuration options",
-                    "scroll-to-top-link": "Scroll to top button - returns to top of page"
-                },
-                "workflow_elements": {
-                    "step_01": "First workflow step - usually data input or configuration",
-                    "step_02": "Second workflow step - data processing or analysis", 
-                    "finalize": "Finalize step - completes and locks the workflow"
-                },
-                "settings": {
-                    "theme-switch-container": "Theme toggle - switch between light and dark modes",
-                    "poke-dropdown-menu": "Settings dropdown - system configuration options"
-                }
-            }
-            
-            # Optimized UI Flash prompt for guaranteed success
-            simon_says_prompt = f"""I need you to flash the chat message list to show the user where their conversation appears. Use this exact tool call:
+        pip = self.pipulate
+        
+        # Simple utility - no pipeline state management needed
+        await self.message_queue.add(pip, "🎪 Ready to play Simon Says UI Flash! Edit the prompt below to instruct the LLM to flash UI elements. Each flash repeats 10 times for teaching emphasis!", verbatim=True)
+        
+        # Simplified mode selection - store in a simple class attribute since this is a utility
+        current_mode = getattr(self, 'current_mode', 'simple_flash')
+        
+        # Optimized UI Flash prompt for guaranteed success
+        simon_says_prompt = """I need you to flash the chat message list to show the user where their conversation appears. Use this exact tool call:
 
 <mcp-request>
   <tool name="ui_flash_element">
@@ -351,8 +291,8 @@ class SimonSaysMcpWidget:
 
 Output only the MCP block above. Do not add any other text."""
 
-            # Alternative: Cat fact baseline for testing MCP system
-            cat_fact_prompt = """I need you to fetch a random cat fact to test the MCP system. Use this exact tool call:
+        # Alternative: Cat fact baseline for testing MCP system
+        cat_fact_prompt = """I need you to fetch a random cat fact to test the MCP system. Use this exact tool call:
 
 <mcp-request>
   <tool name="get_cat_fact" />
@@ -360,8 +300,8 @@ Output only the MCP block above. Do not add any other text."""
 
 Output only the MCP block above. Do not add any other text."""
 
-            # Advanced UI Flash prompt with multiple options
-            advanced_ui_prompt = f"""You are a UI guidance assistant. Flash ONE of these key interface elements to help the user:
+        # Advanced UI Flash prompt with multiple options
+        advanced_ui_prompt = """You are a UI guidance assistant. Flash ONE of these key interface elements to help the user:
 
 GUARANTEED WORKING ELEMENTS:
 - msg-list (chat conversation area)
@@ -383,8 +323,8 @@ Choose ONE element and use this EXACT format:
 
 Replace 'msg-list' with your chosen element ID. Output ONLY the MCP block."""
 
-            # Alternative prompt to list all elements first
-            list_elements_prompt = """You are a helpful assistant with UI interaction tools. The user wants to see all available UI elements that can be flashed for guidance.
+        # Alternative prompt to list all elements first
+        list_elements_prompt = """You are a helpful assistant with UI interaction tools. The user wants to see all available UI elements that can be flashed for guidance.
 
 Here are the tools you have available:
 - Tool Name: `ui_list_elements` - Lists all available UI elements you can flash
@@ -398,121 +338,91 @@ Use the `ui_list_elements` tool to show all available elements by generating thi
 
 Do not say anything else. Just output the exact MCP block above."""
 
-            # Choose which prompt to show based on step data
-            step_data = pip.get_step_data(db.get('pipeline_id', 'unknown'), step_id, {})
-            prompt_mode = step_data.get('prompt_mode', 'simple_flash')  # simple_flash, cat_fact, advanced_flash, list_elements
-            
-            # Mode configuration
-            mode_config = {
-                'simple_flash': {
-                    'prompt': simon_says_prompt,
-                    'button_text': 'Flash Chat Area ▸',
-                    'button_style': 'margin-top: 1rem;',
-                    'display_name': 'Simple Flash'
-                },
-                'cat_fact': {
-                    'prompt': cat_fact_prompt,
-                    'button_text': 'Get Cat Fact ▸',
-                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-orange-500);',
-                    'display_name': 'Cat Fact Test'
-                },
-                'advanced_flash': {
-                    'prompt': advanced_ui_prompt,
-                    'button_text': 'Flash UI Element (Advanced) ▸',
-                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-blue-500);',
-                    'display_name': 'Advanced Flash'
-                },
-                'list_elements': {
-                    'prompt': list_elements_prompt,
-                    'button_text': 'List UI Elements ▸',
-                    'button_style': 'margin-top: 1rem; background-color: var(--pico-secondary-background);',
-                    'display_name': 'List Elements'
-                }
+        # Mode configuration
+        mode_config = {
+            'simple_flash': {
+                'prompt': simon_says_prompt,
+                'button_text': 'Flash Chat Area ▸',
+                'button_style': 'margin-top: 1rem;',
+                'display_name': 'Simple Flash'
+            },
+            'cat_fact': {
+                'prompt': cat_fact_prompt,
+                'button_text': 'Get Cat Fact ▸',
+                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-orange-500);',
+                'display_name': 'Cat Fact Test'
+            },
+            'advanced_flash': {
+                'prompt': advanced_ui_prompt,
+                'button_text': 'Flash UI Element (Advanced) ▸',
+                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-blue-500);',
+                'display_name': 'Advanced Flash'
+            },
+            'list_elements': {
+                'prompt': list_elements_prompt,
+                'button_text': 'List UI Elements ▸',
+                'button_style': 'margin-top: 1rem; background-color: var(--pico-secondary-background);',
+                'display_name': 'List Elements'
             }
-            
-            current_config = mode_config.get(prompt_mode, mode_config['simple_flash'])
-            display_value = interaction_result if step.refill and interaction_result else current_config['prompt']
-            
-            # Mode selection dropdown
-            mode_dropdown = Select(
-                *[Option(config['display_name'], value=mode, selected=(mode == prompt_mode)) 
-                  for mode, config in mode_config.items()],
-                name='mode_select',
-                hx_post=f'/{app_name}/{step_id}_change_mode',
-                hx_target='#prompt-content',
-                hx_swap='outerHTML',
-                hx_include='closest form',
-                style='margin-bottom: 1rem;'
-            )
-            
-            # Prompt content container (for HTMX swapping)
-            prompt_content = Div(
-                Textarea(
-                    display_value,
-                    name="simon_says_prompt",
-                    required=True,
-                    style=self._get_textarea_style()
-                ),
-                Button(
-                    current_config['button_text'], 
-                    type='submit', 
-                    cls='primary', 
-                    style=current_config['button_style'],
-                    **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}
-                ),
-                id='prompt-content'
-            )
-            
-            form_content = Form(
-                Label("Select Mode:", **{'for': 'mode_select'}),
-                mode_dropdown,
-                prompt_content,
-                hx_post=f'/{app_name}/{step_id}_submit',
-                hx_target=f'#{step_id}'
-            )
-            
-            # This phase correctly breaks the chain, waiting for user input.
-            return Div(
-                Card(H3(f'🎪 {step.show}'), form_content),
-                id=step_id
-            )
+        }
+        
+        current_config = mode_config.get(current_mode, mode_config['simple_flash'])
+        
+        # Mode selection dropdown
+        mode_dropdown = Select(
+            *[Option(config['display_name'], value=mode, selected=(mode == current_mode)) 
+              for mode, config in mode_config.items()],
+            name='mode_select',
+            hx_post=f'/{app_name}/{step_id}_change_mode',
+            hx_target='#prompt-content',
+            hx_swap='outerHTML',
+            hx_include='closest form',
+            style='margin-bottom: 1rem;'
+        )
+        
+        # Prompt content container (for HTMX swapping)
+        prompt_content = Div(
+            Textarea(
+                current_config['prompt'],
+                name="simon_says_prompt",
+                required=True,
+                style=self._get_textarea_style()
+            ),
+            Button(
+                current_config['button_text'], 
+                type='submit', 
+                cls='primary', 
+                style=current_config['button_style'],
+                **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}
+            ),
+            id='prompt-content'
+        )
+        
+        form_content = Form(
+            Label("Select Mode:", **{'for': 'mode_select'}),
+            mode_dropdown,
+            prompt_content,
+            hx_post=f'/{app_name}/{step_id}_submit',
+            hx_target=f'#{step_id}'
+        )
+        
+        return Div(
+            Card(H3('🎪 Simon Says UI Flash'), form_content),
+            id=step_id
+        )
 
     async def step_01_submit(self, request):
         """Process the 'Simon Says' prompt and trigger the LLM interaction."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        app_name = self.app_name
         step_id = 'step_01'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
+        pip = self.pipulate
 
         try:
             form = await request.form()
-            raw_input = form.get('simon_says_prompt', '').strip()
+            prompt_text = form.get('simon_says_prompt', '').strip()
             
-            if not raw_input:
-                error_msg = 'Please provide a prompt for the LLM interaction.'
-                logger.error(f"Error in {app_name}/{step_id}: {error_msg}")
-                return P(error_msg, style=pip.get_style('error'))
-            
-            # Extract clean prompt text, removing any previous formatting
-            if '--- Simon Says Prompt ---' in raw_input:
-                # Extract the actual prompt content between the markers
-                lines = raw_input.split('\n')
-                start_collecting = False
-                prompt_lines = []
-                
-                for line in lines:
-                    if line.strip() == '--- Simon Says Prompt ---':
-                        start_collecting = True
-                        continue
-                    elif line.strip() == '--- Result ---':
-                        break
-                    elif start_collecting:
-                        prompt_lines.append(line)
-                
-                prompt_text = '\n'.join(prompt_lines).strip()
-            else:
-                # No formatting present, use as-is
-                prompt_text = raw_input
+            if not prompt_text:
+                return P('Please provide a prompt for the LLM interaction.', style='color: red;')
 
             # Show clean initiation message
             await pip.stream(f'🎪 Simon Says: Sending your prompt to the LLM...', role='system')
@@ -535,48 +445,29 @@ Do not say anything else. Just output the exact MCP block above."""
             if mcp_result:
                 await self.message_queue.add(pip, mcp_result, verbatim=True, role='assistant')
 
-            # Store a summary for the revert state
-            interaction_summary = f"--- Simon Says Prompt ---\n{prompt_text}\n\n--- Result ---\nCheck the chat panel and server logs for the detailed interaction and observability report."
-            await pip.set_step_data(
-                pipeline_id=db.get('pipeline_id', 'unknown'),
-                step_id=step_id,
-                step_value=interaction_summary,
-                steps=steps
-            )
+            # Simple success message and reset form
+            await pip.stream('✅ Simon Says interaction complete! Try another prompt.', role='system')
             
-            # Use display_revert_widget to show the full content, not just abbreviated label
-            next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-            revert_widget = pip.display_revert_widget(
-                step_id=step_id, 
-                app_name=app_name, 
-                message=f"{step.show}: Interaction Complete",
-                widget=Pre(interaction_summary, style=self._get_display_style()),
-                steps=steps
-            )
-            next_step_trigger = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
-            return Div(revert_widget, next_step_trigger, id=step_id)
+            # Return fresh form for immediate re-testing
+            return Div(id=step_id, hx_get=f'/{app_name}/{step_id}', hx_trigger='load')
 
         except Exception as e:
             error_msg = f'Error during MCP interaction processing: {str(e)}'
             logger.error(f"Error in step_01_submit: {error_msg}")
             await pip.stream(f'❌ Error: {error_msg}', role='system')
-            return P(error_msg, style=pip.get_style('error'))
+            return P(error_msg, style='color: red;')
     # --- END_STEP_BUNDLE: step_01 ---
 
     async def step_01_change_mode(self, request):
         """Handle dropdown mode change with HTMX swap."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_01'
+        app_name = self.app_name
         
         try:
             form = await request.form()
             selected_mode = form.get('mode_select', 'simple_flash')
             
-            # Store the new mode
-            pipeline_id = db.get('pipeline_id', 'unknown')
-            step_data = pip.get_step_data(pipeline_id, step_id, {})
-            step_data['prompt_mode'] = selected_mode
-            await pip.set_step_data(pipeline_id, step_id, step_data, steps, clear_previous=False)
+            # Store the new mode in simple class attribute since this is a utility
+            self.current_mode = selected_mode
             
             # Define prompt templates (same as in step_01)
             simon_says_prompt = f"""I need you to flash the chat message list to show the user where their conversation appears. Use this exact tool call:
