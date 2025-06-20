@@ -2,7 +2,9 @@
 import asyncio
 from collections import namedtuple
 from datetime import datetime
+import json
 from fasthtml.common import * # type: ignore
+from starlette.responses import RedirectResponse
 from loguru import logger
 import inspect
 from pathlib import Path
@@ -17,14 +19,14 @@ from server import MODEL
 
 class SimonSaysMcpWidget:
     """
-    Simon Says MCP Workflow
-    Educational tool for teaching users how to craft prompts that will make the LLM generate MCP tool calls.
-    This workflow demonstrates the complete MCP interaction loop with full observability.
+    Simon Says UI Flash Workflow
+    Educational tool for teaching users how to craft prompts that will make the LLM flash UI elements for guidance.
+    This workflow demonstrates the complete MCP interaction loop with UI element flashing capabilities.
     """
     APP_NAME = 'simon_mcp'
-    DISPLAY_NAME = 'Simon Says MCP 🎪'
-    ENDPOINT_MESSAGE = """Let's teach the LLM to make tool calls. Edit the prompt below to play Simon Says."""
-    TRAINING_PROMPT = """This workflow is a game called 'Simon Says MCP'. The user will provide a detailed prompt to instruct the LLM on how to formulate a specific MCP request. Your role is to assist the user in refining these prompts and understanding the results."""
+    DISPLAY_NAME = 'Simon Says UI Flash 🎪'
+    ENDPOINT_MESSAGE = """Let's teach the LLM to flash UI elements for user guidance. Edit the prompt below to play Simon Says."""
+    TRAINING_PROMPT = """This workflow is a game called 'Simon Says UI Flash'. The user will provide a detailed prompt to instruct the LLM on how to formulate MCP requests that flash specific UI elements. Your role is to assist the user in refining these prompts and understanding the results."""
 
     # --- START_CLASS_ATTRIBUTES_BUNDLE ---
     UI_CONSTANTS = {
@@ -292,22 +294,96 @@ class SimonSaysMcpWidget:
         # Phase 3: Get Input View
         else:
             # Keep this message since it's the main instructional content
-            await self.message_queue.add(pip, "🎪 Ready to play Simon Says! Edit the prompt below to instruct the LLM to make a tool call.", verbatim=True)
+            await self.message_queue.add(pip, "🎪 Ready to play Simon Says UI Flash! Edit the prompt below to instruct the LLM to flash UI elements.", verbatim=True)
             
-            simon_says_prompt = """You are a helpful assistant with a tool that can fetch random cat facts. To use the tool, you MUST stop generating conversational text and output an MCP request block.
+            # UI Elements Map for LLM training - based on actual server.py IDs
+            ui_elements_map = {
+                "navigation": {
+                    "profile-id": "Profile dropdown summary - click to open profile selection menu",
+                    "profile-dropdown-menu": "Profile dropdown container - shows all available profiles",
+                    "app-id": "App dropdown summary - click to open app/workflow selection menu", 
+                    "app-dropdown-menu": "App dropdown container - shows available apps/workflows",
+                    "nav-plugin-search": "Plugin search input - type to find specific features",
+                    "search-results-dropdown": "Search results dropdown - shows matching plugins",
+                    "env-id": "Environment selector - switch between development/production modes",
+                    "poke-summary": "Settings gear icon - hover to access system settings"
+                },
+                "chat": {
+                    "chat-interface": "Entire chat panel - where conversation happens",
+                    "msg-list": "Chat message list - scrollable conversation history",
+                    "msg": "Chat input textarea - where users type messages to the LLM",
+                    "send-btn": "Send message button - submits chat input to the LLM",
+                    "stop-btn": "Stop streaming button - halts LLM responses mid-generation",
+                    "input-group": "Chat input container - holds the textarea and buttons"
+                },
+                "layout": {
+                    "nav-group": "Top navigation bar - contains all navigation elements",
+                    "grid-left-content": "Left panel - contains the workflow interface",
+                    "nav-flyout-panel": "Settings flyout panel - system configuration options",
+                    "scroll-to-top-link": "Scroll to top button - returns to top of page"
+                },
+                "workflow_elements": {
+                    "step_01": "First workflow step - usually data input or configuration",
+                    "step_02": "Second workflow step - data processing or analysis", 
+                    "finalize": "Finalize step - completes and locks the workflow"
+                },
+                "settings": {
+                    "theme-switch-container": "Theme toggle - switch between light and dark modes",
+                    "poke-dropdown-menu": "Settings dropdown - system configuration options"
+                }
+            }
+            
+            simon_says_prompt = f"""You are a helpful assistant with UI interaction tools. To help users learn the interface, you can flash any UI element to draw attention to it.
 
-Here is the only tool you have available:
-- Tool Name: `get_cat_fact`
-- Description: Fetches a random cat fact from an external API.
-- Parameters: None
+Here are the tools you have available:
+- Tool Name: `ui_list_elements` - Lists all available UI elements you can flash
+- Tool Name: `ui_flash_element` - Flashes a specific UI element by ID
+  Parameters: element_id (required), message (optional), delay (optional)
 
-The user wants to learn something interesting about cats. Use the `get_cat_fact` tool by generating this EXACT MCP request block:
+AVAILABLE UI ELEMENTS MAP:
+{json.dumps(ui_elements_map, indent=2)}
+
+The user wants to learn about the interface. Choose an interesting UI element and flash it to demonstrate the system. Use the `ui_flash_element` tool by generating this EXACT MCP request block format:
+
 <mcp-request>
-  <tool name="get_cat_fact" />
+  <tool name="ui_flash_element">
+    <params>
+      <element_id>CHOOSE_AN_ELEMENT_ID</element_id>
+      <message>A helpful message explaining what this element does</message>
+      <delay>500</delay>
+    </params>
+  </tool>
+</mcp-request>
+
+Replace CHOOSE_AN_ELEMENT_ID with an actual element ID from the map above. Do not say anything else. Just output the exact MCP block."""
+
+            # Alternative prompt to list all elements first
+            list_elements_prompt = """You are a helpful assistant with UI interaction tools. The user wants to see all available UI elements that can be flashed for guidance.
+
+Here are the tools you have available:
+- Tool Name: `ui_list_elements` - Lists all available UI elements you can flash
+- Tool Name: `ui_flash_element` - Flashes a specific UI element by ID
+
+Use the `ui_list_elements` tool to show all available elements by generating this EXACT MCP request block:
+
+<mcp-request>
+  <tool name="ui_list_elements" />
 </mcp-request>
 
 Do not say anything else. Just output the exact MCP block above."""
-            display_value = interaction_result if step.refill and interaction_result else simon_says_prompt
+
+            # Choose which prompt to show based on step data or default to flash prompt
+            step_data = pip.get_step_data(db.get('pipeline_id', 'unknown'), step_id, {})
+            show_list_prompt = step_data.get('show_list_prompt', False)
+            
+            if show_list_prompt:
+                display_value = interaction_result if step.refill and interaction_result else list_elements_prompt
+                button_text = 'List UI Elements ▸'
+                button_style = 'margin-top: 1rem; background-color: var(--pico-secondary-background);'
+            else:
+                display_value = interaction_result if step.refill and interaction_result else simon_says_prompt
+                button_text = 'Flash UI Element ▸'
+                button_style = 'margin-top: 1rem;'
             form_content = Form(
                 Textarea(
                     display_value,
@@ -315,7 +391,18 @@ Do not say anything else. Just output the exact MCP block above."""
                     required=True,
                     style=self._get_textarea_style()
                 ),
-                Button('Play Simon Says ▸', type='submit', cls='primary', style='margin-top: 1rem;', **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}),
+                Div(
+                    Button(button_text, type='submit', cls='primary', style=button_style, **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}),
+                    Button(
+                        'Switch to List Elements' if not show_list_prompt else 'Switch to Flash Element',
+                        type='button',
+                        cls='secondary',
+                        style='margin-top: 1rem; margin-left: 1rem;',
+                        hx_post=f'/{app_name}/{step_id}_toggle',
+                        hx_target=f'#{step_id}'
+                    ),
+                    style='display: flex; align-items: center;'
+                ),
                 hx_post=f'/{app_name}/{step_id}_submit',
                 hx_target=f'#{step_id}'
             )
@@ -411,5 +498,21 @@ Do not say anything else. Just output the exact MCP block above."""
             await pip.stream(f'❌ Error: {error_msg}', role='system')
             return P(error_msg, style=pip.get_style('error'))
     # --- END_STEP_BUNDLE: step_01 ---
+
+    async def step_01_toggle(self, request):
+        """Toggle between flash element and list elements prompts."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_01'
+        
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        current_mode = step_data.get('show_list_prompt', False)
+        
+        # Toggle the mode
+        step_data['show_list_prompt'] = not current_mode
+        await pip.set_step_data(pipeline_id, step_id, step_data, steps, clear_previous=False)
+        
+        # Redirect to the step to refresh the view
+        return RedirectResponse(url=f'/{app_name}/{step_id}', status_code=303)
 
     # --- STEP_METHODS_INSERTION_POINT ---

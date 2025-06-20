@@ -1282,6 +1282,120 @@ async def _local_llm_list_files(params: dict) -> dict:
             "directory": params.get('directory', 'unknown')
         }
 
+async def _ui_flash_element(params: dict) -> dict:
+    """Flash a UI element by ID to draw user attention.
+    
+    Args:
+        params: Dict containing:
+            - element_id: The DOM ID of the element to flash
+            - message: Optional message to display in chat
+            - delay: Optional delay in milliseconds (default: 0)
+    
+    Returns:
+        Dict with success status and details
+    """
+    element_id = params.get('element_id', '').strip()
+    message = params.get('message', '').strip()
+    delay = params.get('delay', 0)
+    
+    if not element_id:
+        return {
+            "success": False,
+            "error": "element_id is required"
+        }
+    
+    try:
+        # Create JavaScript to flash the element
+        flash_script = f"""
+        <script>
+        setTimeout(() => {{
+            const element = document.getElementById('{element_id}');
+            if (element) {{
+                // Use the same flash effect as menus
+                element.classList.remove('menu-flash');
+                element.offsetHeight; // Force reflow
+                element.classList.add('menu-flash');
+                
+                setTimeout(() => {{
+                    element.classList.remove('menu-flash');
+                }}, 600);
+                
+                console.log('🔔 Flashed element: {element_id}');
+            }} else {{
+                console.warn('⚠️ Element not found: {element_id}');
+            }}
+        }}, {delay});
+        </script>
+        """
+        
+        # Send the script via chat if we have a chat instance
+        if hasattr(pipulate, 'chat') and pipulate.chat:
+            # Send script to execute the flash
+            await pipulate.chat.broadcast(flash_script)
+            
+            # Send optional message
+            if message:
+                await pipulate.chat.broadcast(message)
+        
+        return {
+            "success": True,
+            "element_id": element_id,
+            "message": message if message else f"Flashed element: {element_id}",
+            "delay": delay
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to flash element: {str(e)}"
+        }
+
+async def _ui_list_elements(params: dict) -> dict:
+    """List common UI element IDs that can be flashed for user guidance.
+    
+    Returns:
+        Dict with categorized UI element IDs and descriptions
+    """
+    try:
+        ui_elements = {
+            "navigation": {
+                "profile-id": "Profile dropdown menu summary",
+                "app-id": "App dropdown menu summary", 
+                "nav-plugin-search": "Plugin search input field",
+                "search-results-dropdown": "Plugin search results dropdown"
+            },
+            "chat": {
+                "msg-list": "Chat message list container",
+                "msg": "Chat input textarea",
+                "send-btn": "Send message button",
+                "stop-btn": "Stop streaming button"
+            },
+            "common_workflow_elements": {
+                "Note": "These IDs are dynamically generated per workflow:",
+                "Examples": [
+                    "step_01", "step_02", "step_03", "finalize",
+                    "input_data", "process_data", "output_data"
+                ]
+            },
+            "profile_roles": {
+                "profiles-list": "Profile list container",
+                "roles-list": "Roles list container",
+                "default-button": "Reset to default roles button"
+            }
+        }
+        
+        return {
+            "success": True,
+            "ui_elements": ui_elements,
+            "note": "Use ui_flash_element tool with any of these IDs to guide users"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to list UI elements: {str(e)}"
+        }
+
 async def _local_llm_get_context(params: dict) -> dict:
     """Local LLM helper: Get pre-seeded system context for immediate capability awareness"""
     try:
@@ -1318,6 +1432,10 @@ register_mcp_tool("local_llm_read_file", _local_llm_read_file)
 register_mcp_tool("local_llm_grep_logs", _local_llm_grep_logs)
 register_mcp_tool("local_llm_list_files", _local_llm_list_files)
 register_mcp_tool("local_llm_get_context", _local_llm_get_context)
+
+# Register UI interaction tools
+register_mcp_tool("ui_flash_element", _ui_flash_element)
+register_mcp_tool("ui_list_elements", _ui_list_elements)
 
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
@@ -3293,13 +3411,27 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
         if params_match:
             params_text = params_match.group(1).strip()
             try:
-                # Try to parse as JSON
+                # Try to parse as JSON first
                 import json
                 params = json.loads(params_text)
-                logger.debug(f"🔧 MCP CLIENT: Extracted params: {params}")
-            except json.JSONDecodeError as e:
-                logger.error(f"🔧 MCP CLIENT: Failed to parse params as JSON: {e}")
-                logger.debug(f"🔧 MCP CLIENT: Raw params text: {repr(params_text)}")
+                logger.debug(f"🔧 MCP CLIENT: Extracted JSON params: {params}")
+            except json.JSONDecodeError:
+                # If JSON parsing fails, try XML parsing
+                logger.debug("🔧 MCP CLIENT: JSON parsing failed, trying XML parsing")
+                import xml.etree.ElementTree as ET
+                try:
+                    # Wrap in a root element to make it valid XML
+                    xml_text = f"<root>{params_text}</root>"
+                    root = ET.fromstring(xml_text)
+                    
+                    # Extract all child elements as key-value pairs
+                    for child in root:
+                        params[child.tag] = child.text
+                    
+                    logger.debug(f"🔧 MCP CLIENT: Extracted XML params: {params}")
+                except ET.ParseError as e:
+                    logger.error(f"🔧 MCP CLIENT: Failed to parse params as XML: {e}")
+                    logger.debug(f"🔧 MCP CLIENT: Raw params text: {repr(params_text)}")
         else:
             logger.debug("🔧 MCP CLIENT: No params section found, using empty params")
 
@@ -3337,22 +3469,55 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
                 if response.status == 200:
                     logger.info(f"🎯 FINDER_TOKEN: MCP_SUCCESS - Tool '{tool_name}' executed successfully")
 
-                    if tool_result.get("status") == "success":
-                        fact_data = tool_result.get("result", {})
-                        the_fact = fact_data.get("fact")
+                    if tool_result.get("success"):
+                        # Handle different tool types
+                        if tool_name == "get_cat_fact":
+                            # Cat fact specific handling
+                            fact_data = tool_result.get("result", {})
+                            the_fact = fact_data.get("fact")
+                            
+                            if the_fact:
+                                logger.success(f"✅ RELIABLE FORMATTING: Directly formatting fact: {the_fact}")
+                                final_message = f"🐱 **Cat Fact Alert!** 🐱\n\n{the_fact}\n\nWould you like another fact?"
+                                await pipulate.message_queue.add(pipulate, final_message, verbatim=True, role='assistant')
+                            else:
+                                error_message = "The cat fact API returned a success, but the fact was missing."
+                                logger.warning(f"🔧 MCP CLIENT: {error_message}")
+                                await pipulate.message_queue.add(pipulate, error_message, verbatim=True, role='system')
                         
-                        if the_fact:
-                            logger.success(f"✅ RELIABLE FORMATTING: Directly formatting fact: {the_fact}")
-                            # Format the fact with consistent, clean styling
-                            final_message = f"🐱 **Cat Fact Alert!** 🐱\n\n{the_fact}\n\nWould you like another fact?"
-                            # Let pipulate.stream handle the conversation history
+                        elif tool_name == "ui_flash_element":
+                            # UI flash specific handling
+                            element_id = tool_result.get("element_id")
+                            message = tool_result.get("message", "Element flashed successfully!")
+                            logger.success(f"✅ UI FLASH: Element '{element_id}' flashed successfully")
+                            final_message = f"✨ **UI Element Flashed!** ✨\n\n🎯 **Element:** {element_id}\n💬 **Message:** {message}\n\nThe element should now be glowing on your screen!"
                             await pipulate.message_queue.add(pipulate, final_message, verbatim=True, role='assistant')
+                        
+                        elif tool_name == "ui_list_elements":
+                            # UI list elements specific handling
+                            elements = tool_result.get("elements", {})
+                            logger.success(f"✅ UI LIST: Listed {len(elements)} element categories")
+                            final_message = f"📋 **Available UI Elements** 📋\n\n"
+                            for category, items in elements.items():
+                                final_message += f"**{category.upper()}:**\n"
+                                for element_id, description in items.items():
+                                    final_message += f"• `{element_id}` - {description}\n"
+                                final_message += "\n"
+                            final_message += "You can flash any of these elements using the `ui_flash_element` tool!"
+                            await pipulate.message_queue.add(pipulate, final_message, verbatim=True, role='assistant')
+                        
                         else:
-                            error_message = "The cat fact API returned a success, but the fact was missing."
-                            logger.warning(f"🔧 MCP CLIENT: {error_message}")
-                            await pipulate.message_queue.add(pipulate, error_message, verbatim=True, role='system')
+                            # Generic success handling for other tools
+                            success_message = f"✅ Tool '{tool_name}' executed successfully!"
+                            result_data = tool_result.get("result")
+                            if result_data:
+                                success_message += f"\n\nResult: {result_data}"
+                            await pipulate.message_queue.add(pipulate, success_message, verbatim=True, role='assistant')
                     else:
-                        error_message = "Sorry, I couldn't fetch a cat fact at this time. The API may be down."
+                        error_message = f"Sorry, the '{tool_name}' tool encountered an error."
+                        error_details = tool_result.get("error")
+                        if error_details:
+                            error_message += f" Error: {error_details}"
                         logger.error(f"🔧 MCP CLIENT: Tool returned non-success status: {tool_result}")
                         await pipulate.message_queue.add(pipulate, error_message, verbatim=True, role='system')
                 else:
@@ -5301,7 +5466,8 @@ async def mcp_tool_executor_endpoint(request):
         external_api_response = tool_result.get("result")
         
         # Log the tool execution with full transparency
-        operation_type = "external_api_call" if tool_result.get("status") == "success" else "external_api_call_failed"
+        is_success_for_logging = (tool_result.get("status") == "success" or tool_result.get("success") is True)
+        operation_type = "external_api_call" if is_success_for_logging else "external_api_call_failed"
         await pipulate.log_mcp_call_details(
             operation_id=f"{operation_id}-{tool_name}",
             tool_name=tool_name,
@@ -5309,7 +5475,7 @@ async def mcp_tool_executor_endpoint(request):
             mcp_block=None,
             request_payload=data,
             response_data=tool_result,
-            response_status=200 if tool_result.get("status") == "success" else 503,
+            response_status=200 if is_success_for_logging else 503,
             external_api_url=external_api_url,
             external_api_method=external_api_method,
             external_api_headers=None,
@@ -5320,11 +5486,15 @@ async def mcp_tool_executor_endpoint(request):
             notes=f"MCP tool '{tool_name}' executed via registry"
         )
         
-        if tool_result.get("status") == "success":
+        # Check for success in multiple formats
+        is_success = (tool_result.get("status") == "success" or 
+                     tool_result.get("success") is True)
+        
+        if is_success:
             logger.info(f"🔧 MCP_SUCCESS: Tool '{tool_name}' completed successfully | Operation ID: {operation_id}")
             return JSONResponse(tool_result)
         else:
-            error_msg = tool_result.get('message', 'Unknown error')
+            error_msg = tool_result.get('message') or tool_result.get('error', 'Unknown error')
             logger.error(f"🔧 MCP_FAILED: Tool '{tool_name}' error: {error_msg} | Operation ID: {operation_id}")
             return JSONResponse(tool_result, status_code=503)
 
