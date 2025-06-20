@@ -420,16 +420,19 @@ class SimonSaysMcpWidget:
 
 This is an MCP (Model Context Protocol) training exercise. I want you to execute the exact MCP command below to learn how MCP tools work in practice.
 
-**Instructions:**
-1. Read the MCP command carefully
-2. Execute it exactly as written
-3. Simon Says: Repeat back exactly what I'm asking you to do with nothing other than the MCP call
+**CRITICAL INSTRUCTION: You MUST output the exact MCP XML block below. Do NOT describe what you would do - actually output the XML tags exactly as written.**
 
-**MCP Command to Execute:**
+**Step-by-Step Instructions:**
+1. Read the MCP command carefully
+2. Copy the exact XML block and output it in your response
+3. Do NOT add any explanation or description
+4. Do NOT say "I will execute" or "I would run" - just output the XML
+
+**MCP Command to Execute (OUTPUT THIS EXACTLY):**
 
 {current_config['prompt']}
 
-**Training Complete:** Execute the MCP block above exactly as shown. No additional commentary needed - just the MCP tool execution."""
+**REMEMBER: Output the XML block above exactly as written. The system will automatically detect and execute it when you output the raw XML tags.**"""
 
         # Direct action content container (for HTMX swapping)
         action_content = Div(
@@ -767,16 +770,19 @@ This is an MCP (Model Context Protocol) training exercise. I want you to execute
 
 This is an MCP (Model Context Protocol) training exercise. I want you to execute the exact MCP command below to learn how MCP tools work in practice.
 
-**Instructions:**
-1. Read the MCP command carefully
-2. Execute it exactly as written
-3. Simon Says: Repeat back exactly what I'm asking you to do with nothing other than the MCP call
+**CRITICAL INSTRUCTION: You MUST output the exact MCP XML block below. Do NOT describe what you would do - actually output the XML tags exactly as written.**
 
-**MCP Command to Execute:**
+**Step-by-Step Instructions:**
+1. Read the MCP command carefully
+2. Copy the exact XML block and output it in your response
+3. Do NOT add any explanation or description
+4. Do NOT say "I will execute" or "I would run" - just output the XML
+
+**MCP Command to Execute (OUTPUT THIS EXACTLY):**
 
 {current_config['prompt']}
 
-**Training Complete:** Execute the MCP block above exactly as shown. No additional commentary needed - just the MCP tool execution."""
+**REMEMBER: Output the XML block above exactly as written. The system will automatically detect and execute it when you output the raw XML tags.**"""
             
             # Return the updated action content div
             return Div(
