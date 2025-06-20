@@ -5325,23 +5325,43 @@ async def reset_python_env(request):
         import shutil
         from pathlib import Path
         
-        venv_path = Path('.venv')
-        if venv_path.exists():
-            shutil.rmtree(venv_path)
-            logger.info(f"🐍 Python environment removed: {venv_path}")
-            await pipulate.stream(f'✅ Python environment reset successfully. {APP_NAME} will restart with a fresh Python environment.', 
-                                verbatim=True, role='system', spaces_before=1)
-        else:
-            await pipulate.stream(f'ℹ️ No Python environment found to reset. {APP_NAME} will restart normally.', 
-                                verbatim=True, role='system', spaces_before=1)
+        # Check if another critical operation is in progress
+        if is_critical_operation_in_progress():
+            await pipulate.stream("⚠️ Another critical operation is in progress. Please wait and try again.", verbatim=True, role='system')
+            return ""
         
-        # Schedule restart after a short delay
-        asyncio.create_task(delayed_restart(3))
+        # Set flag to prevent watchdog restarts during operation
+        logger.info("[RESET_PYTHON_ENV] Starting critical operation. Pausing Watchdog restarts.")
+        set_critical_operation_flag()
+        
+        try:
+            venv_path = Path('.venv')
+            if venv_path.exists():
+                shutil.rmtree(venv_path)
+                logger.info(f"🐍 Python environment removed: {venv_path}")
+                await pipulate.stream(f'✅ Python environment reset successfully. {APP_NAME} will restart with a fresh Python environment.', 
+                                    verbatim=True, role='system', spaces_before=1)
+            else:
+                await pipulate.stream(f'ℹ️ No Python environment found to reset. {APP_NAME} will restart normally.', 
+                                    verbatim=True, role='system', spaces_before=1)
+            
+            await pipulate.stream("🔄 Server restart will be triggered after operation completion...", verbatim=True, role='system')
+            
+        finally:
+            # Always reset the flag, even if operation fails
+            logger.info("[RESET_PYTHON_ENV] Critical operation finished. Resuming Watchdog restarts.")
+            clear_critical_operation_flag()
+            
+            # Trigger restart now that the critical operation is complete
+            logger.info("[RESET_PYTHON_ENV] Triggering server restart after Python environment reset.")
+            restart_server()
         
     except Exception as e:
         error_message = f"❌ Error resetting Python environment: {str(e)}"
         logger.error(error_message)
         await pipulate.stream(error_message, verbatim=True, role='system', spaces_before=1)
+        # Reset flag on error
+        clear_critical_operation_flag()
     
     return ""
 
