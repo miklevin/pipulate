@@ -545,10 +545,24 @@ Do not say anything else. Just output the exact MCP block above."""
                         if result.get('success') or result.get('fact'):
                             fact = result.get('fact', 'No fact returned')
                             await pip.stream(f'🐱 Cat Fact: {fact}', role='system')
+                            
+                            # Add to conversation history for LLM training
+                            await self.message_queue.add(pip, f"User selected: Cat Fact Test", verbatim=True, role='user')
+                            await self.message_queue.add(pip, f"MCP Tool Execution: get_cat_fact → Success. Fact: {fact}", verbatim=True, role='assistant')
                         else:
-                            await pip.stream(f'❌ Cat fact failed: {result.get("error", "Unknown error")}', role='system')
+                            error_msg = result.get("error", "Unknown error")
+                            await pip.stream(f'❌ Cat fact failed: {error_msg}', role='system')
+                            
+                            # Add failure to conversation history for LLM learning
+                            await self.message_queue.add(pip, f"User selected: Cat Fact Test", verbatim=True, role='user')
+                            await self.message_queue.add(pip, f"MCP Tool Execution: get_cat_fact → Failed. Error: {error_msg}", verbatim=True, role='assistant')
                     else:
+                        error_msg = f'HTTP error: {response.status_code}'
                         await pip.stream(f'❌ Cat fact HTTP error: {response.status_code}', role='system')
+                        
+                        # Add HTTP failure to conversation history
+                        await self.message_queue.add(pip, f"User selected: Cat Fact Test", verbatim=True, role='user')
+                        await self.message_queue.add(pip, f"MCP Tool Execution: get_cat_fact → HTTP Error {response.status_code}", verbatim=True, role='assistant')
             else:
                 # Handle UI flash elements
                 import httpx
@@ -569,10 +583,25 @@ Do not say anything else. Just output the exact MCP block above."""
                         result = response.json()
                         if result.get('success'):
                             await pip.stream(f'✅ Flashed {config["element_id"]} successfully! (10x teaching mode)', role='system')
+                            
+                            # Add successful flash to conversation history for LLM training
+                            element_name = mode_to_element[current_mode]
+                            await self.message_queue.add(pip, f"User selected: {current_mode.replace('_', ' ').title()}", verbatim=True, role='user')
+                            await self.message_queue.add(pip, f"MCP Tool Execution: ui_flash_element(element_id='{config['element_id']}', message='{config['message']}', delay=500) → Success. Element flashed 10 times.", verbatim=True, role='assistant')
                         else:
-                            await pip.stream(f'❌ Flash failed: {result.get("error", "Unknown error")}', role='system')
+                            error_msg = result.get("error", "Unknown error")
+                            await pip.stream(f'❌ Flash failed: {error_msg}', role='system')
+                            
+                            # Add failure to conversation history for LLM learning
+                            await self.message_queue.add(pip, f"User selected: {current_mode.replace('_', ' ').title()}", verbatim=True, role='user')
+                            await self.message_queue.add(pip, f"MCP Tool Execution: ui_flash_element(element_id='{config['element_id']}') → Failed. Error: {error_msg}", verbatim=True, role='assistant')
                     else:
+                        error_msg = f'HTTP error: {response.status_code}'
                         await pip.stream(f'❌ Flash HTTP error: {response.status_code}', role='system')
+                        
+                        # Add HTTP failure to conversation history
+                        await self.message_queue.add(pip, f"User selected: {current_mode.replace('_', ' ').title()}", verbatim=True, role='user')
+                        await self.message_queue.add(pip, f"MCP Tool Execution: ui_flash_element → HTTP Error {response.status_code}", verbatim=True, role='assistant')
             
             # Return fresh form for immediate re-testing
             return Div(id=step_id, hx_get=f'/{app_name}/{step_id}', hx_trigger='load')
