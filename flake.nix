@@ -322,18 +322,36 @@
           # Start JupyterLab in a tmux session
           copy_notebook_if_needed
           tmux kill-session -t jupyter 2>/dev/null || true
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=pipulate-main --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
-          # Wait for JupyterLab to start
-          echo "JupyterLab is starting..."
+          # Start JupyterLab with error logging
+          echo "Starting JupyterLab..."
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --workspace=pipulate-main --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True 2>&1 | tee /tmp/jupyter-startup.log"
+          
+          # Wait for JupyterLab to start with better feedback
+          echo "Waiting for JupyterLab to start (checking http://localhost:8888)..."
+          JUPYTER_STARTED=false
           for i in {1..30}; do
-            if curl -s http://localhost:8888 > /dev/null; then
-              echo "JupyterLab is ready!"
+            if curl -s http://localhost:8888 > /dev/null 2>&1; then
+              echo "✅ JupyterLab is ready at http://localhost:8888!"
+              JUPYTER_STARTED=true
               break
             fi
             sleep 1
             echo -n "."
           done
+          
+          # If JupyterLab didn't start, show the logs
+          if [ "$JUPYTER_STARTED" = false ]; then
+            echo
+            echo "❌ JupyterLab failed to start within 30 seconds."
+            echo "📋 Recent JupyterLab logs:"
+            if [ -f /tmp/jupyter-startup.log ]; then
+              tail -20 /tmp/jupyter-startup.log | sed 's/^/    /'
+            fi
+            echo "📋 To see full JupyterLab logs: tmux attach -t jupyter"
+            echo "📋 To check if tmux session exists: tmux list-sessions"
+            echo
+          fi
           
           # Kill any running server instances
           pkill -f "python server.py" || true
