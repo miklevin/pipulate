@@ -100,7 +100,7 @@
         # Common packages that we want available in our environment
         # regardless of the operating system
         commonPackages = with pkgs; [
-          python3Full                  # Python 3.x interpreter (highest stable?)
+          python312Full                # Python 3.12 interpreter (consistent version)
           figlet                       # For creating ASCII art welcome messages
           tmux                         # Terminal multiplexer for managing sessions
           zlib                         # Compression library for data compression
@@ -503,7 +503,7 @@
           fi
           
           # Set up the Python virtual environment
-          test -d .venv || ${pkgs.python3}/bin/python -m venv .venv
+          test -d .venv || ${pkgs.python312}/bin/python -m venv .venv
           export VIRTUAL_ENV="$(pwd)/.venv"
           export PATH="$VIRTUAL_ENV/bin:$PATH"
           export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
@@ -586,7 +586,7 @@ EOF
             );
             shellHook = ''
               # Set up the Python virtual environment (minimal, no pip install)
-              test -d .venv || ${pkgs.python3}/bin/python -m venv .venv
+              test -d .venv || ${pkgs.python312}/bin/python -m venv .venv
               export VIRTUAL_ENV="$(pwd)/.venv"
               export PATH="$VIRTUAL_ENV/bin:$PATH"
               export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
