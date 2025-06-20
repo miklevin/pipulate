@@ -182,22 +182,12 @@
             echo "- Confirming pip packages..."
           fi
           
-          if [ "$FRESH_ENV" = true ]; then
-            # For fresh environments, show progress and don't suppress output completely
-            if pip install --upgrade pip --quiet && \
-              pip install -r requirements.txt --progress-bar off; then
-              true  # Success case handled below
-            else
-              false  # Error case handled below
-            fi
+          # Always keep pip installation quiet - no scary technical output for users
+          if pip install --upgrade pip --quiet && \
+            pip install -r requirements.txt --quiet; then
+            true  # Success case handled below
           else
-            # For existing environments, keep it quiet and fast
-            if pip install --upgrade pip --quiet && \
-              pip install -r requirements.txt --quiet; then
-              true  # Success case handled below
-            else
-              false  # Error case handled below
-            fi
+            false  # Error case handled below
           fi
           
           if [ $? -eq 0 ]; then
