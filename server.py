@@ -1308,9 +1308,12 @@ async def _ui_flash_element(params: dict) -> dict:
         # Create JavaScript to flash the element
         flash_script = f"""
         <script>
+        console.log('🔔 UI Flash script received for element: {element_id}');
         setTimeout(() => {{
             const element = document.getElementById('{element_id}');
+            console.log('🔔 Element lookup result:', element);
             if (element) {{
+                console.log('🔔 Element found, applying flash effect');
                 // Use the same flash effect as menus
                 element.classList.remove('menu-flash');
                 element.offsetHeight; // Force reflow
@@ -1318,24 +1321,39 @@ async def _ui_flash_element(params: dict) -> dict:
                 
                 setTimeout(() => {{
                     element.classList.remove('menu-flash');
+                    console.log('🔔 Flash effect completed for: {element_id}');
                 }}, 600);
                 
                 console.log('🔔 Flashed element: {element_id}');
             }} else {{
                 console.warn('⚠️ Element not found: {element_id}');
+                console.log('🔔 Available elements with IDs:', Array.from(document.querySelectorAll('[id]')).map(el => el.id));
             }}
         }}, {delay});
         </script>
         """
         
-        # Send the script via chat if we have a chat instance
-        if hasattr(pipulate, 'chat') and pipulate.chat:
+        # Send the script via chat - use global chat instance
+        # The chat instance is available globally after server startup
+        global chat
+        if 'chat' in globals() and chat:
+            logger.info(f"🔔 UI FLASH: Broadcasting script via global chat for element: {element_id}")
             # Send script to execute the flash
-            await pipulate.chat.broadcast(flash_script)
+            await chat.broadcast(flash_script)
             
             # Send optional message
             if message:
-                await pipulate.chat.broadcast(message)
+                await chat.broadcast(message)
+        else:
+            logger.warning(f"🔔 UI FLASH: Global chat not available, trying fallback for element: {element_id}")
+            # Fallback: try to use pipulate.chat if available
+            if hasattr(pipulate, 'chat') and pipulate.chat:
+                logger.info(f"🔔 UI FLASH: Using pipulate.chat fallback for element: {element_id}")
+                await pipulate.chat.broadcast(flash_script)
+                if message:
+                    await pipulate.chat.broadcast(message)
+            else:
+                logger.error(f"🔔 UI FLASH: No chat instance available for element: {element_id}")
         
         return {
             "success": True,

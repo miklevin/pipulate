@@ -355,7 +355,7 @@ The user wants to learn about the interface. Choose an interesting UI element an
   </tool>
 </mcp-request>
 
-Replace CHOOSE_AN_ELEMENT_ID with an actual element ID from the map above. Do not say anything else. Just output the exact MCP block."""
+Replace CHOOSE_AN_ELEMENT_ID with an actual element ID from the map above (e.g., 'app-id', 'profile-id', 'msg-list'). Do not say anything else. Just output the exact MCP block."""
 
             # Alternative prompt to list all elements first
             list_elements_prompt = """You are a helpful assistant with UI interaction tools. The user wants to see all available UI elements that can be flashed for guidance.
