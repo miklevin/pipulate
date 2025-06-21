@@ -10,32 +10,28 @@ The Roles plugin serves **dual purposes**:
 
 This dual nature makes it unique - it's both a **workflow management interface** and a **system configuration tool**.
 
-## 🏗️ **Advanced Architecture**
+## 🏗️ **How It Works**
 
-### **Dynamic Plugin Discovery**
-- **Real-time discovery**: Scans all plugins and their `ROLES = ['Role Name']` declarations
-- **Automatic synchronization**: New plugins are automatically discovered and categorized
-- **Emoji integration**: Displays real plugin emojis from their `EMOJI` class attributes
-- **Intelligent fallback**: Handles both modern and legacy plugin patterns
+### **Automatic Plugin Management**
+- **Self-discovering**: New plugins automatically appear in the appropriate roles
+- **Always up-to-date**: The system finds and categorizes plugins as they're added
+- **Visual appeal**: Each plugin displays with its own unique emoji
+- **No manual setup**: Everything works automatically without configuration
 
-### **Configuration-Driven Design**
-The system is powered by a sophisticated configuration system:
-```python
-ROLES_CONFIG = {
-    'Core': {'priority': 1, 'description': 'Essential system plugins'},
-    'Botify Employee': {'priority': 0, 'description': 'Internal Botify tools'},
-    'Tutorial': {'priority': 2, 'description': 'Learning workflows'},
-    'Developer': {'priority': 3, 'description': 'Development tools'},
-    'Workshop': {'priority': 4, 'description': 'Training demos'},
-    'Components': {'priority': 5, 'description': 'UI examples'}
-}
-```
+### **Built-in Role Types**
+The system comes with six predefined roles, each serving different user needs:
+- **Core**: Essential system plugins (always available)
+- **Botify Employee**: Internal Botify tools and workflows
+- **Tutorial**: Learning workflows and guided examples
+- **Developer**: Development tools and advanced features
+- **Workshop**: Training demos and presentation materials
+- **Components**: UI examples and interface elements
 
-### **Smart State Management**
-- **Default state detection**: Knows when roles are in their original configuration
-- **Persistent preferences**: Role selections survive server restarts
-- **Profile-aware**: Different profiles can have different role configurations
-- **Automatic initialization**: Missing roles are created automatically
+### **Smart Memory**
+- **Remembers your choices**: Your role selections are saved and restored automatically
+- **Survives restarts**: Settings persist even when the server restarts
+- **Profile-specific**: Different user profiles can have different role setups
+- **Self-maintaining**: The system keeps itself organized without manual intervention
 
 ## 🎨 **Sophisticated User Interface**
 
@@ -67,25 +63,24 @@ Each role displays:
 - **Persistent ordering**: Custom order survives server restarts
 - **Smart conflict resolution**: Prevents accidental clicks during drag
 
-## 🔧 **Technical Excellence**
+## 🔧 **Responsive Experience**
 
-### **HTMX-Powered Interactivity**
-- **Out-of-band updates**: Button states update automatically
-- **Optimistic UI**: Immediate feedback with server synchronization
-- **Error handling**: Graceful fallbacks for network issues
-- **Menu refresh**: APP menu updates automatically when roles change
+### **Instant Updates**
+- **Real-time changes**: When you check/uncheck roles, the APP menu updates immediately
+- **Smart buttons**: Control buttons automatically update their state based on your selections
+- **No page refreshes**: Everything happens smoothly without reloading the page
+- **Immediate feedback**: You see the results of your actions right away
 
-### **Database Integration**
-- **FastLite ORM**: Modern database operations with dataclass returns
-- **Atomic updates**: Role changes are transactional
-- **Migration support**: Handles schema changes gracefully
-- **Performance optimization**: Efficient queries with proper indexing
+### **Reliable Data Storage**
+- **Persistent settings**: Your role selections are saved automatically and survive server restarts
+- **Safe operations**: All changes are saved securely to prevent data loss
+- **Consistent state**: Your interface always reflects your actual settings
 
-### **Message System Integration**
-- **Temporary messages**: Status updates that survive page refreshes
-- **Chat integration**: Role changes are communicated to the LLM
-- **User feedback**: Clear confirmation of all actions
-- **Error reporting**: Detailed error messages for troubleshooting
+### **Clear Communication**
+- **Status messages**: You get clear feedback about what happened after each action
+- **Chat integration**: The AI assistant knows about your role changes and can help accordingly
+- **Error guidance**: If something goes wrong, you get helpful error messages
+- **Visual feedback**: Button states and indicators show you exactly what's active
 
 ## 🎯 **Use Cases & Workflows**
 
