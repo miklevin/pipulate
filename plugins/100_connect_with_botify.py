@@ -403,7 +403,7 @@ class BotifyConnect:
         step_id = form.get("step_id")
         pipeline_id = db.get("pipeline_id", "unknown")
         if not step_id:
-            return P("Error: No step specified", style=pip.get_style("error"))
+            return P("Error: No step specified", cls="text-invalid")
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state["_revert_target"] = step_id
