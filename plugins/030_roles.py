@@ -658,7 +658,7 @@ def render_item(item, app_instance):
         Span(item.text, cls="role-title"),
         ": ",
         Span(description, cls="role-description"),
-        style="flex: 1;"
+        cls="flex-1"
     )
 
     # Create discrete expandable plugin list with real emojis
@@ -669,7 +669,7 @@ def render_item(item, app_instance):
         Div(
             checkbox,
             title_and_description,
-            style=f"display: flex; align-items: center; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']}; cursor: pointer;",
+            cls="flex-center-items",
             onmousedown="this.parentElement._mouseDownPos = {x: event.clientX, y: event.clientY};",
             onclick=f"""
                 // Only handle click if it wasn't a drag operation and wasn't on checkbox
@@ -694,8 +694,7 @@ def render_item(item, app_instance):
         # Discrete expandable plugin list
         plugin_info,
         id=item_id,
-        cls=f"card-container {get_role_css_class(item.text)}",
-        style=f"list-style-type: none; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['CARD_MARGIN']}; padding: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']}; border-radius: {app_instance.plugin.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; background-color: var(--pico-card-background-color); cursor: pointer;",
+        cls=f"card-container card-list-item {get_role_css_class(item.text)}",
         onmousedown="this._mouseDownPos = {x: event.clientX, y: event.clientY};",
         onclick=f"""
             // Only handle click if it wasn't a drag operation

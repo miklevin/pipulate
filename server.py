@@ -4481,9 +4481,9 @@ def create_env_menu():
     """Create environment selection dropdown menu."""
     current_env = get_current_environment()
     display_env = 'DEV' if current_env == 'Development' else 'Prod'
-    env_summary_style = 'white-space: nowrap; display: inline-block; min-width: max-content;'
+    env_summary_classes = 'inline-nowrap'
     if current_env == 'Development':
-        env_summary_style += ' color: #f77; font-weight: bold;'
+        env_summary_classes += ' env-dev-style'
     menu_items = []
     is_dev = current_env == 'Development'
     dev_classes = 'menu-item-base menu-item-hover'
@@ -4498,7 +4498,7 @@ def create_env_menu():
     prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'Prod'), cls=prod_classes, id='prod-env-item')
     menu_items.append(prod_item)
     dropdown_style = 'padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'
-    return Details(Summary(display_env, style=env_summary_style, id='env-id'), Ul(*menu_items, cls='dropdown-menu', style=dropdown_style), cls='dropdown', id='env-dropdown-menu')
+    return Details(Summary(display_env, cls=env_summary_classes, id='env-id'), Ul(*menu_items, cls='dropdown-menu', style=dropdown_style), cls='dropdown', id='env-dropdown-menu')
 
 def create_nav_menu():
     logger.debug('Creating navigation menu.')
