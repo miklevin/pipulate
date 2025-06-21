@@ -344,9 +344,12 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 .nav-breadcrumb {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     width: 100%;
     justify-content: space-between;
+    flex-wrap: nowrap;
+    min-height: var(--nav-group-actual-height);
+    gap: 1rem;
     /* margin-left: 2vw; */
 }
 
@@ -357,14 +360,18 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     align-items: center;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
     flex-shrink: 1;
+    min-width: 0; /* Allow flex item to shrink below content size */
 }
 
 .nav-menu-group {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    min-width: 0; /* Allow flex items to shrink */
 }
 
 /* Grid Layout - Modified for Split.js draggable splitter */
@@ -1340,6 +1347,8 @@ input[type="password"]:focus {
 .search-dropdown-container {
     position: relative;
     margin-right: 1rem;
+    flex-shrink: 1;
+    min-width: 200px; /* Match search input minimum */
 }
 
 .search-dropdown {
@@ -1376,6 +1385,8 @@ input[type="password"]:focus {
 .nav-search-input {
     width: 340px;
     border-radius: 20px;
+    min-width: 200px; /* Allow shrinking but maintain minimum usability */
+    max-width: 340px;
 }
 
 /* Menu item base styling */
