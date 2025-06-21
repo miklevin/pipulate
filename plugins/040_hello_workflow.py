@@ -280,7 +280,7 @@ class HelloFlow:
             if finalize_step.done in finalize_data:
                 return Card(
                     H3(f'{self.ui["EMOJIS"]["LOCKED"]} Workflow is locked.'),
-                    P('Each step can do ANYTHING. With this you can change the world — or at least show how to in a workflow.', style=pip.get_style('muted')),
+                    P('Each step can do ANYTHING. With this you can change the world — or at least show how to in a workflow.', cls='text-muted'),
                     Form(
                         Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE']),
                         hx_post=f'/{app_name}/unfinalize',
@@ -294,7 +294,7 @@ class HelloFlow:
                 if all_steps_complete:
                     return Card(
                         H3(f'{self.ui["EMOJIS"]["SUCCESS"]} All steps complete. Finalize?'),
-                        P('At the end they get locked. Or you can go back.', style=pip.get_style('muted')),
+                        P('At the end they get locked. Or you can go back.', cls='text-muted'),
                         Form(
                             Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY']),
                             hx_post=f'/{app_name}/finalize',
