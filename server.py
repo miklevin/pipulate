@@ -5179,12 +5179,7 @@ def redirect_handler(request):
         logger.debug(f"Set temp_message for redirect to: {path}")
             
     build_endpoint_training(path)
-    
-    # Use HTMX-friendly redirect to prevent black flash
-    from starlette.responses import Response
-    response = Response('')
-    response.headers['HX-Redirect'] = f'/{path}'
-    return response
+    return Redirect(f'/{path}')
 
 @rt('/poke', methods=['POST'])
 async def poke_chatbot():
