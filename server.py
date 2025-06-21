@@ -5812,6 +5812,13 @@ async def update_pipulate(request):
 @rt('/reset-python-env', methods=['POST'])
 async def reset_python_env(request):
     """Reset the Python virtual environment by removing .venv directory."""
+    current_env = get_current_environment()
+    
+    if current_env != 'Development':
+        await pipulate.stream('❌ Python environment reset is only allowed in Development mode for safety.',
+                            verbatim=True, role='system')
+        return ""
+    
     try:
         import shutil
         import os
