@@ -153,6 +153,7 @@
     --pipulate-padding-button-compact: 0.25rem 0.5rem;  /* Compact button padding */
     --pipulate-padding-container: 1rem;            /* Container/card padding */
     --pipulate-padding-section: 1em;               /* Section padding */
+    --pipulate-padding-dropdown-item: 0.5rem 1rem; /* Dropdown menu item padding (perfect spacing) */
     
     /* ========================================================================
        PIPULATE COLOR SYSTEM - Semantic Color Variables
@@ -392,7 +393,7 @@ details.dropdown summary + ul li .dropdown-item {
     display: flex;
     align-items: center;
     margin: 0;
-    padding: 0.5rem 1rem;
+    padding: var(--pipulate-padding-dropdown-item);
     color: var(--pico-dropdown-color);
     text-decoration: none;
     text-overflow: ellipsis;
@@ -1659,6 +1660,40 @@ input[type="password"]:focus {
 }
 
 /* CONSOLIDATED: Now handled in main icon & link section above */
+
+/* ============================================================================
+   DROPDOWN MENU CONSISTENCY - Semantic Spacing Solution
+   ============================================================================
+   
+   Provides consistent "perfect" dropdown spacing across APP, PROFILE, and DEV
+   menus by applying the same semantic padding used in .dropdown-item class.
+   
+   🎯 PROBLEM: PROFILE and DEV menus missing .dropdown-item class styling
+   🎯 SOLUTION: Semantic .dropdown-menu-item class with consistent spacing
+   ============================================================================ */
+
+/* Dropdown menu item - consistent spacing for all dropdown labels */
+.dropdown-menu-item {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: var(--pipulate-padding-dropdown-item);
+    color: var(--pico-dropdown-color);
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    background-color: transparent;
+}
+
+.dropdown-menu-item:hover {
+    background-color: var(--pico-primary-focus);
+}
+
+.dropdown-menu-item input[type="radio"] {
+    min-width: 1rem;
+    margin-right: 0.5rem;
+}
 
 /* Breadcrumb separator */
 .breadcrumb-separator {
