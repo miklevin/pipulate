@@ -893,9 +893,9 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
 
     if not affected_plugins:
         return Details(
-            Summary(f"{len(affected_plugins)} APPs", style="font-size: 0.75em; color: var(--pico-muted-color); opacity: 0.7; cursor: pointer;"),
+            Summary(f"{len(affected_plugins)} APPs", cls="role-plugin-summary"),
             P("No plugins assigned to this role.", style="font-style: italic; color: var(--pico-muted-color); margin: 0.5rem 0;"),
-            style="margin-top: 0.5rem;"
+            cls="role-plugin-details"
         )
 
     # Create discrete plugin links using display names as-is
@@ -915,12 +915,10 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
                     A(
                         display_name,
                         href=plugin_url,
-                        style="font-size: 0.8em; color: rgba(255, 255, 255, 0.9); text-decoration: none;",
-                        onmouseover="this.style.color = 'var(--pico-primary)'; this.style.textDecoration = 'underline';",
-                        onmouseout="this.style.color = 'rgba(255, 255, 255, 0.9)'; this.style.textDecoration = 'none';",
+                        cls="plugin-link",
                         onclick="event.stopPropagation();"
                     ),
-                    style="margin: 0; padding: 0; line-height: 1.2;",
+                    cls="plugin-list-item",
                     title=f"Navigate to {display_name}"
                 )
         )
@@ -928,9 +926,8 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     return Details(
         Summary(
             f"{len(affected_plugins)} APPs",
-            cls="role-plugin-summary",
-            style="font-size: 0.75em; color: var(--pico-muted-color); opacity: 0.7; cursor: pointer;"
+            cls="role-plugin-summary"
         ),
-        Ol(*plugin_items, cls="role-plugin-ordered-list", style="margin: 0.25rem 0; padding-left: 1.5rem;"),
-        style="margin-top: 0.5rem;"
+        Ol(*plugin_items, cls="role-plugin-ordered-list role-plugin-list"),
+        cls="role-plugin-details"
     )

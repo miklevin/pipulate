@@ -8,6 +8,7 @@
    3. 🏗️  CORE LAYOUT (Main structure, navigation, grid)
    4. 🎨 ROLE-BASED COLORS (Menu item colors by plugin role)
    5. 🔧 UTILITY CLASSES (Text, spacing, etc.)
+   6. 🧹 SEMANTIC CLEANUP CLASSES (Replacing inline styles)
    
    ⭐ KEY COLORS TO KNOW:
    • Key Fields (search/password): BLACK (#000000) - "Key hole" styling
@@ -1255,4 +1256,181 @@ input[type="password"]:focus {
     align-items: center;
     margin-bottom: 5px;
 }
+
+/* ============================================================================
+   SEMANTIC CLEANUP CLASSES - Replacing Inline Style Pollution
+   ============================================================================
+   
+   These classes replace the most common inline styles found in the HTML output.
+   Designed for LLM automation and clean semantic DOM structure.
+   
+   🎯 STRATEGY: Target the highest-impact inline styles first (80/20 rule)
+   🧹 GOAL: Clean HTML that's automation-friendly
+   
+   ============================================================================ */
+
+/* Plugin list item styling - replaces 34 instances of inline styles */
+.plugin-list-item {
+    margin: 0;
+    padding: 0;
+    line-height: 1.2;
+}
+
+/* Plugin link styling - replaces 34 instances of inline styles */
+.plugin-link {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+}
+
+.plugin-link:hover {
+    color: var(--pico-primary);
+    text-decoration: underline;
+}
+
+/* Role plugin summary styling */
+.role-plugin-summary {
+    font-size: 0.75em;
+    color: var(--pico-muted-color);
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+/* Role plugin list container */
+.role-plugin-list {
+    margin: 0.25rem 0;
+    padding-left: 1.5rem;
+}
+
+/* Role plugin details container */
+.role-plugin-details {
+    margin-top: 0.5rem;
+}
+
+/* Menu item hover effects - CSS-only approach */
+.menu-item-hover {
+    transition: background-color 0.2s ease;
+    border-radius: var(--pico-border-radius);
+    cursor: pointer;
+}
+
+.menu-item-hover:hover {
+    background-color: var(--pico-primary-hover-background);
+}
+
+/* Navigation link hover effects */
+.nav-link-hover {
+    color: inherit;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+}
+
+.nav-link-hover:hover {
+    color: #4dabf7;
+    text-decoration: underline;
+}
+
+/* Breadcrumb separator */
+.breadcrumb-separator {
+    padding: 0 0.3rem;
+}
+
+/* Search dropdown positioning */
+.search-dropdown-container {
+    position: relative;
+    margin-right: 1rem;
+}
+
+.search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: var(--pico-background-color);
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+}
+
+/* Profile dropdown menu styling */
+.profile-dropdown-menu {
+    min-width: max-content;
+    padding-left: 0;
+}
+
+.profile-menu-item {
+    align-items: center;
+    display: flex;
+    padding: 0.5rem 1rem;
+}
+
+.profile-menu-separator {
+    margin: 0;
+}
+
+/* Navigation search input */
+.nav-search-input {
+    width: 340px;
+    border-radius: 20px;
+}
+
+/* Menu item base styling */
+.menu-item-base {
+    text-align: left;
+    padding: 1vh 0px 0px .5vw;
+    display: flex;
+    border-radius: var(--pico-border-radius);
+}
+
+/* Active menu item */
+.menu-item-active {
+    background-color: var(--pico-primary-focus);
+}
+
+/* Icon sizing for small icons */
+.icon-small {
+    width: 14px;
+    height: 14px;
+    margin-right: 0.25rem;
+    filter: brightness(0) invert(1);
+}
+
+/* Flex utilities for common patterns */
+.flex-1 {
+    flex: 1;
+}
+
+.flex-center-items {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.25rem;
+    cursor: pointer;
+}
+
+/* Card-like list items */
+.card-list-item {
+    list-style-type: none;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    background-color: var(--pico-card-background-color);
+    cursor: pointer;
+}
+
+/* Margin utilities for common spacing */
+.mt-half {
+    margin-top: 0.5rem;
+}
+
+.ml-quarter {
+    margin-left: 0.25rem;
+}
+
+/* ============================================================================
+   END SEMANTIC CLEANUP CLASSES
+   ============================================================================ */
 

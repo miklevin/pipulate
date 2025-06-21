@@ -4484,14 +4484,18 @@ def create_env_menu():
     env_summary_style = 'white-space: nowrap; display: inline-block; min-width: max-content;'
     if current_env == 'Development':
         env_summary_style += ' color: #f77; font-weight: bold;'
-    menu_item_style = 'text-align: left; {pipulate.MENU_ITEM_PADDING} display: flex; border-radius: var(--pico-border-radius);'
-    radio_style = 'min-width: 1rem; margin-right: 0.5rem;'
     menu_items = []
     is_dev = current_env == 'Development'
-    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', style=radio_style), 'DEV', style=menu_item_style, onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_dev else 'transparent')}';", id='dev-env-item'))
+    dev_classes = 'menu-item-base menu-item-hover'
+    if is_dev:
+        dev_classes += ' menu-item-active'
+    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'DEV'), cls=dev_classes, id='dev-env-item')
     menu_items.append(dev_item)
     is_prod = current_env == 'Production'
-    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', style=radio_style), 'Prod', style=menu_item_style, onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_prod else 'transparent')}';", id='prod-env-item'))
+    prod_classes = 'menu-item-base menu-item-hover'
+    if is_prod:
+        prod_classes += ' menu-item-active'
+    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'Prod'), cls=prod_classes, id='prod-env-item')
     menu_items.append(prod_item)
     dropdown_style = 'padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'
     return Details(Summary(display_env, style=env_summary_style, id='env-id'), Ul(*menu_items, cls='dropdown-menu', style=dropdown_style), cls='dropdown', id='env-dropdown-menu')
@@ -4505,12 +4509,8 @@ def create_nav_menu():
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for menu creation")
         return Div(H1('Error: Profiles plugin not found', cls='text-invalid'), cls='nav-breadcrumb')
-    link_style = 'text-decoration: underline; color: inherit; transition: color 0.2s; white-space: nowrap;'
-    hover_style = "this.style.color='#4dabf7'; this.style.textDecoration='underline';"
-    normal_style = "this.style.color='inherit'; this.style.textDecoration='underline';"
-    separator_style = 'padding: 0 0.3rem;'
-    home_link = A(APP_NAME, href='/redirect/', title=f'Go to {HOME_MENU_ITEM.lower()}', style=link_style, onmouseover=hover_style, onmouseout=normal_style)
-    separator = Span(' / ', style=separator_style)
+    home_link = A(APP_NAME, href='/redirect/', title=f'Go to {HOME_MENU_ITEM.lower()}', cls='nav-link-hover')
+    separator = Span(' / ', cls='breadcrumb-separator')
     profile_text = Span(title_name(selected_profile_name))
     endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM)
     breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text, role='banner', aria_label='Current location breadcrumb')
@@ -4527,16 +4527,15 @@ def create_nav_menu():
     # Create navigation search field (positioned before PROFILE)
     # HTMX real-time search implementation with keyboard navigation
     # Search container with dropdown results
-    search_results_dropdown = Div(id='search-results-dropdown', style='position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; background: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 8px; max-height: 300px; overflow-y: auto; display: none;', role='listbox', aria_label='Search results')
+    search_results_dropdown = Div(id='search-results-dropdown', cls='search-dropdown', role='listbox', aria_label='Search results')
     
     nav_search_container = Div(
         Input(
             type='search',
             name='search',
             placeholder='Search plugins (Ctrl+K)',
-            cls='nav-search',
+            cls='nav-search nav-search-input',
             id='nav-plugin-search',
-            style='width: 340px; border-radius: 20px;',
             hx_post='/search-plugins',
             hx_target='#search-results-dropdown',
             hx_trigger='input changed delay:300ms, keyup[key==\'Enter\']',
@@ -4549,7 +4548,7 @@ def create_nav_menu():
             # Keyboard navigation now handled by external JavaScript in chat-interactions.js
         ),
         search_results_dropdown,
-        style='position: relative; margin-right: 1rem;',
+        cls='search-dropdown-container',
         role='search',
         aria_label='Plugin search'
     )
@@ -4563,12 +4562,8 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
     profile_locked = db.get('profile_locked', '0') == '1'
-    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile'), style=(
-        'align-items: center; ',
-        'display: flex; ',
-        'padding: 0.5rem 1rem'
-    )))
-    menu_items.append(Li(Hr(style='margin: 0'), cls='block'))
+    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile'), cls='profile-menu-item'))
+    menu_items.append(Li(Hr(cls='profile-menu-separator'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for profile menu creation")
@@ -4596,10 +4591,10 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         item_style = 'background-color: var(--pico-primary-focus);' if is_selected else ''
         radio_input = Input(type='radio', name='profile_radio_select', value=str(profile_item.id), checked=is_selected, hx_post='/select_profile', hx_vals=json.dumps({'profile_id': str(profile_item.id)}), hx_target='body', hx_swap='outerHTML')
         profile_label = Label(radio_input, profile_item.name)
-        hover_style = "this.style.backgroundColor='var(--pico-primary-hover-background)';"
-        default_bg = 'var(--pico-primary-focus)' if is_selected else 'transparent'
-        mouseout_style = f"this.style.backgroundColor='{default_bg}';"
-        menu_items.append(Li(profile_label, style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {item_style} display: flex; border-radius: var(--pico-border-radius);', onmouseover=hover_style, onmouseout=mouseout_style))
+        menu_item_classes = 'menu-item-base menu-item-hover'
+        if is_selected:
+            menu_item_classes += ' menu-item-active'
+        menu_items.append(Li(profile_label, cls=menu_item_classes))
     summary_profile_name_to_display = selected_profile_name
     if not summary_profile_name_to_display and selected_profile_id:
         try:
@@ -4609,10 +4604,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         except Exception:
             pass
     summary_profile_name_to_display = summary_profile_name_to_display or 'Select'
-    return Details(Summary('👤 PROFILE', cls='inline-nowrap', id='profile-id', aria_label='Profile selection menu'), Ul(*menu_items, style=(
-        'min-width: max-content; ',
-        'padding-left: 0'
-    ), cls='dropdown-menu', role='menu', aria_label='Profile options'), cls='dropdown', id='profile-dropdown-menu', role='group', aria_label='Profile management')
+    return Details(Summary('👤 PROFILE', cls='inline-nowrap', id='profile-id', aria_label='Profile selection menu'), Ul(*menu_items, cls='dropdown-menu profile-dropdown-menu', role='menu', aria_label='Profile options'), cls='dropdown', id='profile-dropdown-menu', role='group', aria_label='Profile management')
 
 def normalize_menu_path(path):
     """Convert empty paths to empty string and return the path otherwise."""
