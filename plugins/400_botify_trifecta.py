@@ -763,7 +763,7 @@ class Trifecta:
         botify_url = form.get('botify_url', '').strip()
         is_valid, message, project_data = self.validate_botify_url(botify_url)
         if not is_valid:
-            return P(f'Error: {message}', style=pip.get_style('error'))
+            return P(f'Error: {message}', cls='text-invalid')
         project_data_str = json.dumps(project_data)
         await pip.set_step_data(pipeline_id, step_id, project_data_str, steps)
         await self.message_queue.add(pip, f"✳️ {step.show} complete: {project_data['project_name']}", verbatim=True)
@@ -830,7 +830,7 @@ class Trifecta:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -863,12 +863,12 @@ class Trifecta:
         try:
             api_token = self.read_api_token()
             if not api_token:
-                return P('Error: Botify API token not found. Please connect with Botify first.', style=pip.get_style('error'))
+                return P('Error: Botify API token not found. Please connect with Botify first.', cls='text-invalid')
             logger.info(f'Getting analyses for {username}/{project_name}')
             slugs = await self.fetch_analyses(username, project_name, api_token)
             logger.info(f'Got {(len(slugs) if slugs else 0)} analyses')
             if not slugs:
-                return P(f'Error: No analyses found for project {project_name}. Please check your API access.', style=pip.get_style('error'))
+                return P(f'Error: No analyses found for project {project_name}. Please check your API access.', cls='text-invalid')
             selected_value = selected_slug if selected_slug else slugs[0]
 
             # Get active template details for dynamic UI
@@ -1012,7 +1012,7 @@ class Trifecta:
             )
         except Exception as e:
             logger.error(f'Error in {step_id}: {e}')
-            return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error fetching analyses: {str(e)}', cls='text-invalid')
 
     async def step_analysis_submit(self, request):
         """Process the selected analysis slug for step_analysis and download crawl data."""
@@ -1026,14 +1026,14 @@ class Trifecta:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
         form = await request.form()
         analysis_slug = form.get('analysis_slug', '').strip()
         if not analysis_slug:
-            return P('Error: No analysis selected', style=pip.get_style('error'))
+            return P('Error: No analysis selected', cls='text-invalid')
         
         # NEW: Save advanced export data as soon as we have an analysis slug
         api_token = self.read_api_token()
@@ -1152,7 +1152,7 @@ class Trifecta:
             try:
                 api_token = self.read_api_token()
                 if not api_token:
-                    return P('Error: Botify API token not found. Please connect with Botify first.', style=pip.get_style('error'))
+                    return P('Error: Botify API token not found. Please connect with Botify first.', cls='text-invalid')
 
                 await self.message_queue.add(pip, qualifier_config['user_message_running'], verbatim=True)
                 qualifier_outcome = await self._execute_qualifier_logic(username, project_name, analysis_slug, api_token, qualifier_config)
@@ -1212,7 +1212,7 @@ class Trifecta:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -1357,7 +1357,7 @@ class Trifecta:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -1376,7 +1376,7 @@ class Trifecta:
                     pass
 
         if not analysis_slug:
-            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
+            return P('Error: Analysis data not found. Please complete step 2 first.', cls='text-invalid')
 
         # Check if basic crawl data is already cached
         try:
@@ -1508,7 +1508,7 @@ class Trifecta:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found.', style=pip.get_style('error'))
+            return P('Error: Project data not found.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -1517,7 +1517,7 @@ class Trifecta:
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
         if not analysis_data_str:
-            return P('Error: Analysis data not found.', style=pip.get_style('error'))
+            return P('Error: Analysis data not found.', cls='text-invalid')
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
 
@@ -1587,7 +1587,7 @@ class Trifecta:
             
         except Exception as e:
             logger.error(f'Error in step_crawler_complete: {e}')
-            return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(P(f'Error: {str(e)}', cls='text-invalid'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_webogs(self, request):
         """Handles GET request for checking if a Botify project has web logs."""
@@ -1605,7 +1605,7 @@ class Trifecta:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -1756,7 +1756,7 @@ class Trifecta:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -1764,7 +1764,7 @@ class Trifecta:
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
         if not analysis_data_str:
-            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
+            return P('Error: Analysis data not found. Please complete step 2 first.', cls='text-invalid')
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
 
@@ -1883,7 +1883,7 @@ class Trifecta:
                     pass
         
         if not all([analysis_slug, username, project_name]):
-            return P('Error: Missing required parameters', style=pip.get_style('error'))
+            return P('Error: Missing required parameters', cls='text-invalid')
             
         # Call the existing step_webogs_process logic
         return await self.step_webogs_process(request)
@@ -1904,7 +1904,7 @@ class Trifecta:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -2050,7 +2050,7 @@ class Trifecta:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -2069,7 +2069,7 @@ class Trifecta:
                     pass
 
         if not analysis_slug:
-            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
+            return P('Error: Analysis data not found. Please complete step 2 first.', cls='text-invalid')
 
         # Check if GSC data is already cached
         try:
@@ -2161,7 +2161,7 @@ class Trifecta:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found.', style=pip.get_style('error'))
+            return P('Error: Project data not found.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -2169,13 +2169,13 @@ class Trifecta:
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
         if not analysis_data_str:
-            return P('Error: Analysis data not found.', style=pip.get_style('error'))
+            return P('Error: Analysis data not found.', cls='text-invalid')
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
         try:
             has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
             if error_message:
-                return Div(P(f'Error: {error_message}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+                return Div(P(f'Error: {error_message}', cls='text-invalid'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
             if has_search_console:
                 await self.message_queue.add(pip, f'✅ Project has Search Console data, downloading...', verbatim=True)
@@ -2229,7 +2229,7 @@ class Trifecta:
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logger.error(f'Error in step_gsc_complete: {e}')
-            return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(P(f'Error: {str(e)}', cls='text-invalid'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
 
 
@@ -3786,7 +3786,7 @@ await main()
         username = form.get('username', '').strip()
         project_name = form.get('project_name', '').strip()
         if not all([analysis_slug, username, project_name]):
-            return P('Error: Missing required parameters', style=pip.get_style('error'))
+            return P('Error: Missing required parameters', cls='text-invalid')
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         analysis_result_str = step_data.get(step.done, '')
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
@@ -4105,7 +4105,7 @@ await main()
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Analysis {status_text}{download_message}', widget=widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logger.error(f'Error in step_analysis_process: {e}')
-            return P(f'Error: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error: {str(e)}', cls='text-invalid')
 
     async def step_webogs_process(self, request):
         """Process the web logs check and download if available."""
@@ -4120,11 +4120,11 @@ await main()
         username = form.get('username', '').strip()
         project_name = form.get('project_name', '').strip()
         if not all([analysis_slug, username, project_name]):
-            return P('Error: Missing required parameters', style=pip.get_style('error'))
+            return P('Error: Missing required parameters', cls='text-invalid')
         try:
             has_logs, error_message = await self.check_if_project_has_collection(username, project_name, 'logs')
             if error_message:
-                return P(f'Error: {error_message}', style=pip.get_style('error'))
+                return P(f'Error: {error_message}', cls='text-invalid')
             check_result = {'has_logs': has_logs, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
             status_text = 'HAS' if has_logs else 'does NOT have'
             await self.message_queue.add(pip, f'{step.show} complete: Project {status_text} web logs', verbatim=True)
@@ -4375,7 +4375,7 @@ await main()
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} web logs{download_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logger.error(f'Error in step_webogs_process: {e}')
-            return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(P(f'Error: {str(e)}', cls='text-invalid'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
 
 
