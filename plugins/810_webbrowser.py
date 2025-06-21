@@ -120,7 +120,7 @@ class WebbrowserUrlOpenerWidget:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=pip.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -156,7 +156,7 @@ class WebbrowserUrlOpenerWidget:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             explanation = 'Enter a URL to open in your default browser (e.g., https://example.com).'
             await self.message_queue.add(pip, explanation, verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, style=pip.get_style('muted')), Form(Div(Input(type='url', name=step.done, placeholder='https://example.com', required=True, value=display_value, cls='contrast'), Div(Button('Open URL ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, cls='text-secondary'), Form(Div(Input(type='url', name=step.done, placeholder='https://example.com', required=True, value=display_value, cls='contrast'), Div(Button('Open URL ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -168,7 +168,7 @@ class WebbrowserUrlOpenerWidget:
         form = await request.form()
         url_to_open = form.get(step.done, '').strip()
         if not url_to_open:
-            return P('Error: URL is required', style=pip.get_style('error'))
+            return P('Error: URL is required', cls='text-invalid')
         if not url_to_open.startswith(('http://', 'https://')):
             url_to_open = f'https://{url_to_open}'
         await pip.set_step_data(pipeline_id, step_id, url_to_open, steps)
@@ -179,7 +179,7 @@ class WebbrowserUrlOpenerWidget:
             error_msg = f'Error opening URL with webbrowser: {str(e)}'
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            error_widget = P(error_msg, style=pip.get_style('error'))
+            error_widget = P(error_msg, cls='text-invalid')
             url_widget_display_on_error = self._create_url_display(url_to_open)
             content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Error Opening URL', widget=Div(error_widget, url_widget_display_on_error), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)

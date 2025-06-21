@@ -127,7 +127,7 @@ class SeleniumUrlOpenerWidget:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=pip.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -202,7 +202,7 @@ class SeleniumUrlOpenerWidget:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             explanation = 'Enter a URL to open with Selenium (e.g., https://www.google.com).'
             await self.message_queue.add(pip, explanation, verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, style=pip.get_style('muted')), Form(Div(Input(type='url', name=step.done, placeholder='https://www.google.com', required=True, value=display_value, cls='contrast'), Div(Button('Open with Selenium ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, cls='text-secondary'), Form(Div(Input(type='url', name=step.done, placeholder='https://www.google.com', required=True, value=display_value, cls='contrast'), Div(Button('Open with Selenium ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -214,7 +214,7 @@ class SeleniumUrlOpenerWidget:
         form = await request.form()
         url_to_open = form.get(step.done, '').strip()
         if not url_to_open:
-            return P('Error: URL is required', style=pip.get_style('error'))
+            return P('Error: URL is required', cls='text-invalid')
         if not url_to_open.startswith(('http://', 'https://')):
             url_to_open = f'https://{url_to_open}'
         await pip.set_step_data(pipeline_id, step_id, url_to_open, steps)
@@ -236,9 +236,9 @@ class SeleniumUrlOpenerWidget:
         form = await request.form()
         url_to_open = form.get('url', '').strip()
         if not url_to_open:
-            return P('Error: URL for reopening is missing.', style=pip.get_style('error'))
+            return P('Error: URL for reopening is missing.', cls='text-invalid')
         success, message = await self._execute_selenium_open(url_to_open)
         if success:
             return P(f"Successfully reopened: {url_to_open}. Page title: {message.split('Page title: ')[-1]}", style='color: green;')
         else:
-            return P(f'Error reopening URL: {message}', style=pip.get_style('error'))
+            return P(f'Error reopening URL: {message}', cls='text-invalid')

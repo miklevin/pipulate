@@ -186,7 +186,7 @@ class BrowserAutomation:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=self.pipulate.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         if step_id == 'step_03':
@@ -238,7 +238,7 @@ class BrowserAutomation:
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
-            return P('Error: URL is required', style=pip.get_style('error'))
+            return P('Error: URL is required', cls='text-invalid')
         if not url.startswith(('http://', 'https://')):
             url = f'https://{url}'
         await pip.set_step_data(pipeline_id, step_id, url, steps)
@@ -275,7 +275,7 @@ class BrowserAutomation:
             logger.error(error_msg)
             safe_error_msg = error_msg.replace('<', '&lt;').replace('>', '&gt;')
             await self.message_queue.add(pip, safe_error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style('error'))
+            return P(error_msg, cls='text-invalid')
         url_widget = Div(P(f'URL opened (and closed): ', B(url)), Div(id=f'{step_id}-status'))
         content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'Open URL: {url}', widget=url_widget, steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
@@ -286,7 +286,7 @@ class BrowserAutomation:
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
-            return P('Error: URL is required', style=pip.get_style('error'))
+            return P('Error: URL is required', cls='text-invalid')
         try:
             chrome_options = Options()
             chrome_options.add_argument('--no-sandbox')
@@ -320,7 +320,7 @@ class BrowserAutomation:
             error_msg = f'Error reopening URL with Selenium: {str(e)}'
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style('error'))
+            return P(error_msg, cls='text-invalid')
 
     async def step_02(self, request):
         """Handles GET request for Crawl URL step (identical to Step 1, independent state, crawl semantics)."""
@@ -362,7 +362,7 @@ class BrowserAutomation:
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
-            return P('Error: URL is required', style=pip.get_style('error'))
+            return P('Error: URL is required', cls='text-invalid')
         if not url.startswith(('http://', 'https://')):
             url = f'https://{url}'
         try:
@@ -433,7 +433,7 @@ class BrowserAutomation:
             logger.error(error_msg)
             safe_error_msg = error_msg.replace('<', '&lt;').replace('>', '&gt;')
             await self.message_queue.add(pip, safe_error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style('error'))
+            return P(error_msg, cls='text-invalid')
 
     def _get_selenium_profile_paths(self, pipeline_id: str, desired_profile_leaf_name: str = 'google_session') -> tuple[str, str]:
         """Get the user data directory and profile directory paths for Chrome.

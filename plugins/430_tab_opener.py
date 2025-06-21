@@ -140,7 +140,7 @@ class BlankWorkflow:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=self.pipulate.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -155,7 +155,7 @@ class BlankWorkflow:
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
-            return P('Error: URL is required', style=pip.get_style('error'))
+            return P('Error: URL is required', cls='text-invalid')
         try:
             chrome_options = Options()
             chrome_options.add_argument('--no-sandbox')
@@ -189,7 +189,7 @@ class BlankWorkflow:
             error_msg = f'Error reopening URL with Selenium: {str(e)}'
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style('error'))
+            return P(error_msg, cls='text-invalid')
 
     async def step_01(self, request):
         """Handles GET request for URL input step."""
@@ -229,7 +229,7 @@ class BlankWorkflow:
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
-            return P('Error: URL is required', style=pip.get_style('error'))
+            return P('Error: URL is required', cls='text-invalid')
         if not url.startswith(('http://', 'https://')):
             url = f'https://{url}'
         await pip.set_step_data(pipeline_id, step_id, url, steps)
@@ -275,7 +275,7 @@ class BlankWorkflow:
         form = await request.form()
         query = form.get('query', '').strip()
         if not query:
-            return P('Error: Search query is required', style=pip.get_style('error'))
+            return P('Error: Search query is required', cls='text-invalid')
         await pip.set_step_data(pipeline_id, step_id, query, steps)
         search_url = f'https://www.google.com/search?q={query}'
         import webbrowser
@@ -318,7 +318,7 @@ class BlankWorkflow:
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
-            return P('Error: URL is required', style=pip.get_style('error'))
+            return P('Error: URL is required', cls='text-invalid')
         if not url.startswith(('http://', 'https://')):
             url = f'https://{url}'
         await pip.set_step_data(pipeline_id, step_id, url, steps)
@@ -354,7 +354,7 @@ class BlankWorkflow:
             error_msg = f'Error opening URL with Selenium: {str(e)}'
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style('error'))
+            return P(error_msg, cls='text-invalid')
         url_widget = Div(P(f'URL configured: ', B(url)), Form(Input(type='hidden', name='url', value=url), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{app_name}/reopen_url', hx_target=f'#{step_id}-status'), Div(id=f'{step_id}-status'))
         content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url}', widget=url_widget, steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
