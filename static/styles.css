@@ -587,13 +587,8 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     border-radius: 3px;
 }
 
-/* Utility Classes */
-.text-secondary {
-    font-size: 0.9em;
-    color: var(--pico-muted-color);
-}
-
-/* CONSOLIDATED: text-muted is now an alias for text-secondary since they serve the same semantic purpose */
+/* Utility Classes - CONSOLIDATED: text-secondary and text-muted are semantically identical */
+.text-secondary,
 .text-muted {
     font-size: 0.9em;
     color: var(--pico-muted-color);
