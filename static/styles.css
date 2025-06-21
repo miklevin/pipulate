@@ -353,14 +353,6 @@ details.dropdown summary {
     font-weight: bold;
 }
 
-/* PROFILE dropdown specific width constraint - matches APP button width */
-#profile-dropdown-menu summary {
-    max-width: 6.5rem; /* Constrain PROFILE to match APP button width */
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
 /* Dropdown Menu Styles */
 details.dropdown {
     position: relative;

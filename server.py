@@ -4609,7 +4609,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         except Exception:
             pass
     summary_profile_name_to_display = summary_profile_name_to_display or 'Select'
-    return Details(Summary('👤 PROFILE', cls='inline-nowrap', id='profile-id', aria_label='Profile selection menu'), Ul(*menu_items, cls='dropdown-menu profile-dropdown-menu', role='menu', aria_label='Profile options'), cls='dropdown', id='profile-dropdown-menu', role='group', aria_label='Profile management')
+    return Details(Summary('👤 USER', cls='inline-nowrap', id='profile-id', aria_label='Profile selection menu'), Ul(*menu_items, cls='dropdown-menu profile-dropdown-menu', role='menu', aria_label='Profile options'), cls='dropdown', id='profile-dropdown-menu', role='group', aria_label='Profile management')
 
 def normalize_menu_path(path):
     """Convert empty paths to empty string and return the path otherwise."""
