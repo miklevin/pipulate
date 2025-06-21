@@ -3924,7 +3924,11 @@ def db_operation(func):
                         log.debug('database', f'DB {func.__name__}: {key}', f'value: {str(value)[:30]}...' if len(str(value)) > 30 else f'value: {value}')
             return result
         except Exception as e:
-            log.error(f'Database operation {func.__name__} failed', e)
+            # Don't log KeyError as ERROR for __getitem__ - it's expected behavior
+            if func.__name__ == '__getitem__' and isinstance(e, KeyError):
+                logger.debug(f'Key not found in database: {e}')
+            else:
+                log.error(f'Database operation {func.__name__} failed', e)
             raise
     return wrapper
 
@@ -4050,6 +4054,9 @@ def populate_initial_data():
     if 'theme_preference' not in db:
         db['theme_preference'] = 'auto'  # Default theme preference
         logger.debug("Initialized theme_preference to 'auto'")
+    if 'intro_current_page' not in db:
+        db['intro_current_page'] = '1'  # Default to page 1 of introduction
+        logger.debug("Initialized intro_current_page to '1'")
     if TABLE_LIFECYCLE_LOGGING:
         log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles AFTER')
         log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db AFTER')
@@ -4494,16 +4501,16 @@ def create_env_menu():
     dev_classes = 'menu-item-base menu-item-hover'
     if is_dev:
         dev_classes += ' menu-item-active'
-    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'DEV', cls='dropdown-menu-item'), cls=dev_classes, id='dev-env-item')
+    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'DEV'), cls=dev_classes, id='dev-env-item')
     menu_items.append(dev_item)
     is_prod = current_env == 'Production'
     prod_classes = 'menu-item-base menu-item-hover'
     if is_prod:
         prod_classes += ' menu-item-active'
-    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'Prod', cls='dropdown-menu-item'), cls=prod_classes, id='prod-env-item')
+    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'Prod'), cls=prod_classes, id='prod-env-item')
     menu_items.append(prod_item)
     dropdown_style = 'padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'
-    return Details(Summary(display_env, cls=env_summary_classes, id='env-id', aria_label='Environment selection menu', aria_expanded='false', aria_haspopup='menu'), Ul(*menu_items, cls='dropdown-menu', role='menu', aria_label='Environment options', aria_labelledby='env-id', style=dropdown_style), cls='dropdown', id='env-dropdown-menu', aria_label='Environment management')
+    return Details(Summary(display_env, cls=env_summary_classes, id='env-id'), Ul(*menu_items, cls='dropdown-menu', style=dropdown_style), cls='dropdown', id='env-dropdown-menu')
 
 def create_nav_menu():
     logger.debug('Creating navigation menu.')
@@ -4567,7 +4574,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
     profile_locked = db.get('profile_locked', '0') == '1'
-    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile', cls='dropdown-menu-item'), cls='profile-menu-item'))
+    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile'), cls='profile-menu-item'))
     menu_items.append(Li(Hr(cls='profile-menu-separator'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
@@ -4595,7 +4602,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         is_selected = str(profile_item.id) == str(selected_profile_id)
         item_style = 'background-color: var(--pico-primary-focus);' if is_selected else ''
         radio_input = Input(type='radio', name='profile_radio_select', value=str(profile_item.id), checked=is_selected, hx_post='/select_profile', hx_vals=json.dumps({'profile_id': str(profile_item.id)}), hx_target='body', hx_swap='outerHTML')
-        profile_label = Label(radio_input, profile_item.name, cls='dropdown-menu-item')
+        profile_label = Label(radio_input, profile_item.name)
         menu_item_classes = 'menu-item-base menu-item-hover'
         if is_selected:
             menu_item_classes += ' menu-item-active'
@@ -4609,7 +4616,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         except Exception:
             pass
     summary_profile_name_to_display = summary_profile_name_to_display or 'Select'
-    return Details(Summary('👤 PROFILE', cls='inline-nowrap', id='profile-id', aria_label='Profile selection menu', aria_expanded='false', aria_haspopup='menu'), Ul(*menu_items, cls='dropdown-menu profile-dropdown-menu', role='menu', aria_label='Profile options', aria_labelledby='profile-id'), cls='dropdown', id='profile-dropdown-menu', aria_label='Profile management')
+    return Details(Summary('👤 PROFILE', cls='inline-nowrap', id='profile-id', aria_label='Profile selection menu'), Ul(*menu_items, cls='dropdown-menu profile-dropdown-menu', role='menu', aria_label='Profile options'), cls='dropdown', id='profile-dropdown-menu', role='group', aria_label='Profile management')
 
 def normalize_menu_path(path):
     """Convert empty paths to empty string and return the path otherwise."""
@@ -4757,7 +4764,7 @@ def should_include_plugin(instance, active_role_names):
 
 def create_menu_container(menu_items):
     """Create the final menu container with all items."""
-    return Details(Summary('⚡ APP', cls='inline-nowrap', id='app-id', aria_label='Application menu', aria_expanded='false', aria_haspopup='menu'), Ul(*menu_items, cls='dropdown-menu', role='menu', aria_label='Application options', aria_labelledby='app-id'), cls='dropdown', id='app-dropdown-menu', aria_label='Application selection')
+    return Details(Summary('⚡ APP', cls='inline-nowrap', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
 
 def get_dynamic_role_css():
     """Generate dynamic role CSS from centralized PCONFIG - single source of truth."""

@@ -303,7 +303,11 @@ class IntroductionPlugin:
         from server import APP_NAME, MODEL
 
         # Store current page in database
-        self.db['intro_current_page'] = str(page_num)
+        try:
+            self.db['intro_current_page'] = str(page_num)
+        except Exception as e:
+            logger.warning(f"Could not store intro_current_page: {e}")
+            # Continue without storing - this is non-critical
 
         # Always update LLM context when page changes
         if self.pipulate and self._last_streamed_page != page_num:
