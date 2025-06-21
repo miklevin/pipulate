@@ -3,52 +3,138 @@ description:
 globs: 
 alwaysApply: false
 ---
-# External Service Integrations
+# External Service Integrations: MCP & API Mastery
 
-This guide covers patterns for integrating Pipulate with external services like Ollama and the Botify API.
-
----
-
-## 1. LLM Integration (Ollama)
-
-
-- **Local First**: Pipulate integrates with a locally running Ollama instance (`http://localhost:11434`).
-- **WebSockets**: Real-time streaming chat is handled via the `/ws` WebSocket endpoint.
-- **Context Management**: A global conversation history (`global_conversation_history`) is maintained.
-- **Keeping the LLM Informed**: It's crucial to update the LLM's context as the user navigates the UI and completes workflow steps. This is done by adding system messages to the conversation history.
-- **`Pipulate.message_queue`**: This is the primary tool for synchronizing the UI and LLM context. It ensures messages are displayed and added to the LLM history in the correct order.
-  ```python
-  # Use this in workflows to inform the user AND the LLM of an event
-  await self.message_queue.add(
-      self.pipulate,
-      "Step 1 processing complete. Value saved: XYZ.",
-      verbatim=True,  # True: display message as-is.
-      role="system"   # Adds the message to the LLM's context.
-  )
-  ```
+This guide covers patterns for integrating Pipulate with external services, emphasizing **MCP tools** as the primary interface for AI assistant interactions.
 
 ---
 
-## 2. Botify API Patterns
+## 1. MCP Tools: The AI Assistant Interface
 
+### **What are MCP Tools?**
+**Model Context Protocol (MCP) tools** are Pipulate's programmatic interface designed specifically for AI assistant interactions. Every complex operation has an MCP tool equivalent.
 
-- **Dual API Versions**: Botify has two coexisting BQL (Botify Query Language) versions that **must** be used for different data types.
-  - **BQLv1**: For Web Logs. Uses `app.botify.com` base URL.
-  - **BQLv2**: For Crawl/GSC data. Uses `api.botify.com` base URL.
-- **Payload Differences**: The two versions have different payload structures, especially for date handling.
-- **Templates**: The `400_botify_trifecta.py` workflow uses query templates for BQLv2, but intentionally hardcodes the simple, unchanging BQLv1 query for Web Logs.
+### **Primary MCP Tool Categories**
+
+#### **Core Transparency & Debugging**
+- **`pipeline_state_inspector`**: THE game changer - complete workflow state visibility
+- **`local_llm_grep_logs`**: Programmatic log analysis for debugging
+- **`local_llm_read_file`**: Direct file access for code inspection
+- **`local_llm_list_files`**: Directory exploration and file discovery
+
+#### **Botify API Intelligence** 
+- **`botify_get_full_schema`**: **The 4,449 field revolution** - complete schema discovery
+- **`botify_list_available_analyses`**: Find analysis slugs without API calls
+- **`botify_execute_custom_bql_query`**: Run fully customized BQL queries
+- **`botify_ping`**: Connection testing and API token validation
+- **`botify_list_projects`**: Project discovery and access verification
+
+#### **UI Interaction Tools**
+- **`ui_flash_element`**: Visual debugging and user guidance
+- **`ui_list_elements`**: Programmatic UI element discovery
+- **`local_llm_get_context`**: Current application state for AI context
+
+### **MCP Tool Usage Pattern**
+```python
+# Every MCP tool call is logged with FINDER_TOKENs for transparency
+await mcp_tool_executor({
+    "tool_name": "botify_get_full_schema",
+    "parameters": {"username": "user", "project": "example"}
+})
+```
 
 ---
 
-## 3. Botify True Schema Discovery
+## 2. Botify API: Dual Version Mastery
 
+### **The Painful Reality**
+Botify has **two coexisting BQL versions** that MUST be used correctly:
 
-To build robust Botify queries, Pipulate includes a system to discover the complete, up-to-date data schema directly from the Botify API.
+#### **BQLv1: Web Logs**
+- **Base URL**: `app.botify.com/api/v1/logs/`
+- **Date Structure**: Dates at payload level
+- **Use Case**: Web log analysis only
+- **Simple & Consistent**: Rarely changes, intentionally hardcoded
 
-- **Core Script**: `helpers/botify/true_schema_discoverer.py`
-- **Discovery Endpoints**: The script uses official Botify endpoints (`/urls/datamodel` and `/urls/datasets`) to get the real schema.
-- **Proven Results**: This method discovered **4,449 fields**, whereas a previous manual testing approach found only 18. This is the only reliable way to build queries.
-- **Workflow Integration**: The discovered fields can be used to enhance query templates in workflows like `400_botify_trifecta.py`, allowing for richer data exports and dynamic field selection in the UI.
-- **Documentation**:
-  - `training/botify_api.md`: High-level integration guide.
-  - `training/botify_open_api.md`: The complete API reference that was key to finding the correct discovery endpoints.
+#### **BQLv2: Crawl & GSC Data**  
+- **Base URL**: `api.botify.com/v1/projects/.../query`
+- **Date Structure**: Dates in periods array
+- **Use Case**: All other data types
+- **Template-Driven**: Uses sophisticated query templates
+
+### **Critical Schema Discovery Revolution**
+**`botify_get_full_schema` MCP Tool** - The game changer:
+- **4,449 fields discovered** (vs 18 manual fields)
+- Uses official Botify endpoints (`/urls/datamodel`, `/urls/datasets`)
+- **Only reliable method** for building robust queries
+- Cached for performance, refreshed automatically
+
+### **Query Templates (BQLv2)**
+Located in `400_botify_trifecta.py QUERY_TEMPLATES`:
+- **Crawl Basic**: URL, HTTP status, page title
+- **Not Compliant**: Non-compliant pages with reasons
+- **Link Graph Edges**: Internal link relationships with optimal depth
+- **GSC Performance**: Search Console impressions, clicks, CTR
+
+---
+
+## 3. LLM Integration (Ollama)
+
+### **Local-First Architecture**
+- **Endpoint**: `http://localhost:11434`
+- **Protocol**: WebSocket via `/ws` for real-time streaming
+- **Context**: Global conversation history maintained
+
+### **Context Synchronization**
+**`Pipulate.message_queue`** - The coordination system:
+```python
+await self.message_queue.add(
+    self.pipulate,
+    "Step 1 processing complete. Value saved: XYZ.",
+    verbatim=True,  # Display message as-is
+    role="system"   # Adds to LLM context
+)
+```
+
+**Critical Pattern**: Keep LLM informed as user navigates UI and completes workflow steps.
+
+---
+
+## 4. API Call Transparency System
+
+### **Automatic Logging**
+Every API call generates:
+- **FINDER_TOKEN: API_CALL_TRANSPARENCY** logs
+- **FINDER_TOKEN: PYTHON_CODE_GENERATED** for debugging
+- Curl command equivalents for manual testing
+- Python code for Jupyter notebook debugging
+
+### **The Transparency Advantage**
+```bash
+# Debug any API interaction
+grep "FINDER_TOKEN: API_CALL_TRANSPARENCY" logs/server.log
+grep "FINDER_TOKEN: BOTIFY_SCHEMA_CACHE" logs/server.log
+```
+
+---
+
+## 5. Integration Best Practices
+
+### **For AI Assistants**
+1. **Always use MCP tools** instead of direct API calls
+2. **Check logs** with FINDER_TOKENs for debugging
+3. **Use `pipeline_state_inspector`** before assuming workflow issues
+4. **Leverage schema discovery** via `botify_get_full_schema` for robust queries
+
+### **For Botify Workflows**
+1. **Template-first approach**: Use query templates in `QUERY_TEMPLATES`
+2. **Version awareness**: BQLv1 for web logs, BQLv2 for everything else
+3. **Schema-driven development**: Always consult full schema before building queries
+4. **Caching strategy**: Leverage analysis slug caching for performance
+
+### **For LLM Integration**
+1. **Message queue coordination**: Use `message_queue.add()` for synchronization
+2. **System role context**: Add system messages to keep LLM informed
+3. **WebSocket responsiveness**: Maintain real-time chat experience
+
+**This integration system enables sophisticated AI-human collaboration while maintaining complete transparency and debuggability.**
