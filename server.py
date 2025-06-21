@@ -5848,7 +5848,7 @@ async def reset_python_env(request):
                 await pipulate.stream('   2. Type `nix develop` to rebuild the environment', verbatim=True, role='system')
                 await pipulate.stream('   3. The fresh environment build will take 2-3 minutes', verbatim=True, role='system')
                 await pipulate.stream('', verbatim=True, role='system')  # Empty line for spacing
-                await pipulate.stream('⚠️ The server will now exit to ensure a clean restart.', verbatim=True, role='system')
+                await pipulate.stream('🚪 Server will exit in 3 seconds...', verbatim=True, role='system')
                 
                 # Log the reset operation for debugging
                 logger.info("🐍 FINDER_TOKEN: PYTHON_ENV_RESET - User triggered Python environment reset")
@@ -5864,9 +5864,15 @@ async def reset_python_env(request):
             # For Python environment reset, we need a clean exit to let Nix recreate the environment
             logger.info("[RESET_PYTHON_ENV] Forcing clean server exit. Nix watchdog will restart with fresh Python environment.")
             
-            # Exit the server to force manual restart
-            import sys
-            sys.exit(0)
+            # Schedule clean exit after giving user time to read instructions
+            import asyncio
+            async def clean_exit():
+                await asyncio.sleep(3.0)  # Give user time to read the manual restart instructions
+                logger.info("[RESET_PYTHON_ENV] Exiting cleanly. User must manually restart with 'exit' then 'nix develop'.")
+                import os
+                os._exit(0)  # Clean exit - user must manually restart
+            
+            asyncio.create_task(clean_exit())
         
         return ""
         
