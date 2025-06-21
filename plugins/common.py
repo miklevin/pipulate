@@ -52,13 +52,44 @@ class BaseCrud:
         return f'/{self.name}/{action}/{item_id}'
 
     def render_item(self, item):
-        return Li(A('🗑', href='#', hx_swap='outerHTML', hx_delete=f'/task/delete/{item.id}', hx_target=f'#todo-{item.id}', _class='delete-icon', style=(
-        'cursor: pointer; ',
-        'display: inline'
-    )), Input(type='checkbox', checked='1' if item.done else '0', hx_post=f'/task/toggle/{item.id}', hx_swap='outerHTML', hx_target=f'#todo-{item.id}'), A(item.name, href='#', _class='todo-title', style=(
-        'color: inherit; ',
-        'text-decoration: none'
-    )), data_id=item.id, data_priority=item.priority, id=f'todo-{item.id}', cls='list-style-none')
+        item_name = getattr(item, self.item_name_field, 'Item')
+        toggle_state = getattr(item, self.toggle_field, False) if self.toggle_field else False
+        
+        return Li(
+            A('🗑', 
+              href='#', 
+              hx_swap='outerHTML', 
+              hx_delete=f'/task/delete/{item.id}', 
+              hx_target=f'#todo-{item.id}', 
+              _class='delete-icon', 
+              style=('cursor: pointer; ', 'display: inline'),
+              role='button',
+              aria_label=f'Delete {self.name} item: {item_name}',
+              title=f'Delete {item_name}'
+            ), 
+            Input(
+                type='checkbox', 
+                checked='1' if toggle_state else '0', 
+                hx_post=f'/task/toggle/{item.id}', 
+                hx_swap='outerHTML', 
+                hx_target=f'#todo-{item.id}',
+                aria_label=f'Toggle {self.name} item: {item_name}',
+                aria_describedby=f'todo-{item.id}-label'
+            ), 
+            A(item_name, 
+              href='#', 
+              _class='todo-title', 
+              style=('color: inherit; ', 'text-decoration: none'),
+              id=f'todo-{item.id}-label',
+              aria_label=f'{self.name.capitalize()} item: {item_name}'
+            ), 
+            data_id=item.id, 
+            data_priority=getattr(item, self.sort_field, 0) if self.sort_field else 0, 
+            id=f'todo-{item.id}', 
+            cls='list-style-none',
+            role='listitem',
+            aria_label=f'{self.name.capitalize()} item {item.id}: {item_name}'
+        )
 
     async def delete_item(self, request, item_id: int):
         try:
