@@ -841,6 +841,39 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     margin-bottom: 2rem;
 }
 
+/* Profiles Plugin Semantic Classes
+   ==================================
+   Consolidated from 7 inline styles in profiles plugin
+   ================================== */
+
+/* List styling */
+.list-unstyled {
+    padding-left: 0;
+    list-style-type: none;
+}
+
+/* Container patterns */
+.container-centered {
+    max-width: 98%;
+    margin: 0 auto;
+}
+
+/* Profile-specific layouts */
+.profile-display-flex {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.profile-delete-icon {
+    cursor: pointer;
+    margin-left: auto;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
 /* Workflow Genesis Plugin Semantic Classes
    ==========================================
    Consolidated from 50+ inline styles in workflow genesis plugin
