@@ -153,6 +153,56 @@
     --pipulate-padding-button-compact: 0.25rem 0.5rem;  /* Compact button padding */
     --pipulate-padding-container: 1rem;            /* Container/card padding */
     --pipulate-padding-section: 1em;               /* Section padding */
+    
+    /* ========================================================================
+       PIPULATE COLOR SYSTEM - Semantic Color Variables
+       ========================================================================
+       Unified color palette for consistent visual communication across
+       UI components. Colors are organized by semantic meaning rather than
+       visual properties to enable cross-cutting theme adjustments.
+       ======================================================================== */
+    
+    /* ========================================================================
+       STATUS & FEEDBACK COLORS - Semantic Communication
+       ========================================================================
+       Colors that communicate system state, user feedback, and workflow status
+       across headings, buttons, text, and interactive elements.
+       ======================================================================== */
+    --pipulate-color-primary: #007bff;             /* Primary action color (step headings, focus states) */
+    --pipulate-color-success: #28a745;             /* Success state (command headings, success borders) */
+    --pipulate-color-warning: orange;              /* Warning state (text-warning, alert messages) */
+    --pipulate-color-info: #495057;                /* Information state (section headings, neutral content) */
+    --pipulate-color-danger: #f77;                 /* Danger/error state (env-dev-style, critical alerts) */
+    
+    /* ========================================================================
+       TEXT CONTENT COLORS - Information Hierarchy
+       ========================================================================
+       Colors for different levels of text content importance and
+       supporting information across descriptions and content areas.
+       ======================================================================== */
+    --pipulate-color-text-muted: #6c757d;          /* Muted descriptive text (text-description, secondary info) */
+    --pipulate-color-text-light: #e9ecef;          /* Light content text (section-title, subtle content) */
+    --pipulate-color-text-white: #ffffff;          /* Pure white text (button text, high contrast) */
+    
+    /* ========================================================================
+       INTERACTIVE ELEMENT COLORS - User Interface
+       ========================================================================
+       Colors for buttons, links, and interactive components that
+       provide clear visual feedback for user interactions.
+       ======================================================================== */
+    --pipulate-color-button-revert: #db92ad;       /* Revert button background (pastel pink) */
+    --pipulate-color-button-revert-hover: #ffc2d9; /* Revert button hover state (lighter pink) */
+    --pipulate-color-link-primary: #0066cc;        /* Primary link color (nav-link-block) */
+    --pipulate-color-link-hover: #4dabf7;          /* Link hover state (nav-link-hover) */
+    
+    /* ========================================================================
+       TECHNICAL & CODE COLORS - Development Interface
+       ========================================================================
+       Colors for code blocks, technical content, and development-related
+       UI elements that need to stand out from regular content.
+       ======================================================================== */
+    --pipulate-color-code-background: #2d3748;     /* Code block background (dark slate) */
+    --pipulate-color-success-accent: #28a745;      /* Success accent (code block borders, success indicators) */
 
     /* ========================================================================
        CUSTOM COLOR DEFINITIONS - Available for Scoped Usage
@@ -825,24 +875,24 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 .section-heading {
     margin: 0 0 0.5rem 0;
-    color: #495057;
+    color: var(--pipulate-color-info);
     font-size: 1em;
 }
 
 .step-heading {
-    color: #007bff;
+    color: var(--pipulate-color-primary);
     margin-bottom: 0.25rem;
 }
 
 .command-heading {
-    color: #28a745;
+    color: var(--pipulate-color-success);
     margin-bottom: 0.75rem;
 }
 
 /* CONSOLIDATED: Text content with semantic colors */
 .text-description,
 .section-description {
-    color: #6c757d;
+    color: var(--pipulate-color-text-muted);
     font-size: var(--pipulate-font-size-small);
     margin-bottom: var(--pipulate-spacing-content-bottom);
 }
@@ -852,12 +902,12 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 }
 
 .section-title {
-    color: #e9ecef;
+    color: var(--pipulate-color-text-light);
     margin-bottom: 1rem;
 }
 
 .text-warning {
-    color: orange;
+    color: var(--pipulate-color-warning);
 }
 
 /* Roles Plugin Semantic Classes
@@ -992,7 +1042,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 /* Code block patterns */
 .code-block-standard {
-    background-color: #2d3748;
+    background-color: var(--pipulate-color-code-background);
     padding: var(--pipulate-padding-container);
     border-radius: 4px;
     margin-bottom: var(--pipulate-spacing-component-gap);
@@ -1001,10 +1051,10 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 }
 
 .code-block-success {
-    background-color: #2d3748;
+    background-color: var(--pipulate-color-code-background);
     padding: var(--pipulate-padding-container);
     border-radius: 4px;
-    border-left: 4px solid #28a745;
+    border-left: 4px solid var(--pipulate-color-success-accent);
     overflow-x: auto;
     position: relative;
 }
@@ -1050,8 +1100,8 @@ article > div:first-child {
 
 /* Button Styles */
 .button-revert {
-    background-color: #db92ad;  /* Pastel pink */
-    color: #ffffff;
+    background-color: var(--pipulate-color-button-revert);
+    color: var(--pipulate-color-text-white);
     border: 1px solid var(--pico-muted-border-color);
     padding: var(--pipulate-padding-button-compact);
     border-radius: var(--pico-border-radius);
@@ -1061,7 +1111,7 @@ article > div:first-child {
 }
 
 .button-revert:hover {
-    background-color: #ffc2d9;  /* Slightly darker pastel pink on hover */
+    background-color: var(--pipulate-color-button-revert-hover);
     color: black;
     border-color: var(--pico-muted-hover-border-color);
 }
@@ -1466,7 +1516,7 @@ input[type="password"]:focus {
 }
 
 .env-dev-style {
-    color: #f77;
+    color: var(--pipulate-color-danger);
     font-weight: bold;
 }
 
@@ -1739,7 +1789,7 @@ input[type="password"]:focus {
 }
 
 .nav-link-block {
-    color: #0066cc;
+    color: var(--pipulate-color-link-primary);
     text-decoration: underline;
     display: block;
     margin: 2px 0;
@@ -1766,7 +1816,7 @@ input[type="password"]:focus {
 }
 
 .nav-link-hover:hover {
-    color: #4dabf7;
+    color: var(--pipulate-color-link-hover);
     text-decoration: underline;
 }
 
