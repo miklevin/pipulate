@@ -874,6 +874,37 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     flex-shrink: 0;
 }
 
+/* Tasks Plugin Semantic Classes
+   ===============================
+   Consolidated from 5 inline styles in tasks plugin
+   =============================== */
+
+/* Task item layout */
+.task-item {
+    list-style-type: none;
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+/* Task interaction elements */
+.task-delete-icon {
+    cursor: pointer;
+    display: inline;
+    margin-left: 5px;
+    text-decoration: none;
+}
+
+.task-text-display {
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+.task-update-form {
+    display: none;
+    margin-left: 5px;
+}
+
 /* Workflow Genesis Plugin Semantic Classes
    ==========================================
    Consolidated from 50+ inline styles in workflow genesis plugin
