@@ -1688,8 +1688,7 @@ input[type="password"]:focus {
 }
 
 /* Link styling patterns - CONSOLIDATED */
-.link-primary,
-.primary-link {
+.link-primary {
     color: var(--pico-primary);
     text-decoration: none;
 }
