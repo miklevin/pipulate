@@ -3381,8 +3381,8 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                             # This handles regular, non-tool-call conversations.
                             word_buffer += content
                             
-                            # Check if word_buffer contains start of potential MCP/tool tag
-                            if '<tool' in word_buffer or '<mcp-request' in word_buffer:
+                            # Check if word_buffer contains start of potential MCP/tool tag or markdown code block
+                            if '<tool' in word_buffer or '<mcp-request' in word_buffer or '```xml' in word_buffer:
                                 # Hold off on yielding if we might be building a tool call
                                 continue
                             
