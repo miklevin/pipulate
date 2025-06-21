@@ -662,6 +662,10 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     margin-bottom: 1rem;
 }
 
+.mb-sm {
+    margin-bottom: 5px;
+}
+
 .p-2 {
     padding: 0.5rem;
 }
@@ -705,6 +709,21 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 .progress-spaced {
     margin-top: 10px;
     /* Standard spacing for progress indicators */
+}
+
+/* Project Information Display */
+.project-info-box {
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    /* Consistent styling for project information containers */
+}
+
+/* Status Message Display */
+.status-success-hidden {
+    color: green;
+    display: none;
+    /* Initially hidden success status messages */
 }
 
 /* Components */

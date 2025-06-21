@@ -704,7 +704,7 @@ class Trifecta:
         elif project_data and state.get('_revert_target') != step_id:
             project_name = project_data.get('project_name', '')
             username = project_data.get('username', '')
-            project_info = Div(H4(f'Project: {project_name}'), P(f'Username: {username}'), Small(project_url, cls='url-breakable'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
+            project_info = Div(H4(f'Project: {project_name}'), P(f'Username: {username}'), Small(project_url, cls='url-breakable'), cls='project-info-box')
             return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             display_value = project_url if step.refill and project_url else ''
@@ -810,7 +810,7 @@ class Trifecta:
             await self.message_queue.add(pip, "⚠️ No API token found - skipping analyses data save", verbatim=True)
         
         project_url = project_data.get('url', '')
-        project_info = Div(H4(f'Project: {project_name}'), Small(project_url, cls='url-breakable'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
+        project_info = Div(H4(f'Project: {project_name}'), Small(project_url, cls='url-breakable'), cls='project-info-box')
         return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_analysis(self, request):
@@ -836,7 +836,7 @@ class Trifecta:
         username = project_data.get('username', '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and selected_slug:
-            return Div(Card(H3(f'🔒 {step.show}'), Div(P(f'Project: {project_name}', style='margin-bottom: 5px;'), P(f'Selected Analysis: {selected_slug}', style='font-weight: bold;'), cls='custom-card-padding-bg')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(Card(H3(f'🔒 {step.show}'), Div(P(f'Project: {project_name}', cls='mb-sm'), P(f'Selected Analysis: {selected_slug}', cls='font-bold'), cls='custom-card-padding-bg')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif selected_slug and state.get('_revert_target') != step_id:
             # Get step data to create action buttons
             analysis_result_str = step_data.get(step.done, '')
@@ -855,7 +855,7 @@ class Trifecta:
                     style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
-                    Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', style='display: none;'),
+                    Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', cls='hidden'),
                     id=f'{step_id}_widget'
                 )
             )
@@ -985,7 +985,7 @@ class Trifecta:
                     H3(f'{step.show}'), 
                     P(f"Select an analysis for project '{project_name}'"), 
                     P(f'Organization: {username}', cls='text-secondary'), 
-                    P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), 
+                    P(user_message, cls='text-muted', cls='font-italic progress-spaced'), 
                     Form(
                                             Select(
                         *dropdown_options, 
@@ -1116,7 +1116,7 @@ class Trifecta:
                         style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                     ),
                     Div(
-                        Pre(f'Status: {completed_message}', cls='code-block-container', style='color: green; display: none;'),
+                        Pre(f'Status: {completed_message}', cls='code-block-container', cls='status-success-hidden'),
                         id=f'{step_id}_widget'
                     )
                 )
@@ -1457,7 +1457,7 @@ class Trifecta:
                         style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                     ),
                     Div(
-                        Pre(f'Status: Using cached basic crawl data ({file_info["size"]})', cls='code-block-container', style='color: green; display: none;'),
+                        Pre(f'Status: Using cached basic crawl data ({file_info["size"]})', cls='code-block-container', cls='status-success-hidden'),
                         id=f'{step_id}_widget'
                     )
                 )
@@ -1807,7 +1807,7 @@ class Trifecta:
                         style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                     ),
                     Div(
-                        Pre(f'Status: Using cached Web Logs data ({file_info["size"]})', cls='code-block-container', style='color: green; display: none;'),
+                        Pre(f'Status: Using cached Web Logs data ({file_info["size"]})', cls='code-block-container', cls='status-success-hidden'),
                         id=f'{step_id}_widget'
                     )
                 )
@@ -2112,7 +2112,7 @@ class Trifecta:
                         style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                     ),
                     Div(
-                        Pre(f'Status: Using cached GSC data ({file_info["size"]})', cls='code-block-container', style='color: green; display: none;'),
+                        Pre(f'Status: Using cached GSC data ({file_info["size"]})', cls='code-block-container', cls='status-success-hidden'),
                         id=f'{step_id}_widget'
                     )
                 )
