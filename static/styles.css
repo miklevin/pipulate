@@ -1665,11 +1665,47 @@ input[type="password"]:focus {
    DROPDOWN MENU CONSISTENCY - Semantic Spacing Solution
    ============================================================================
    
-   Provides consistent "perfect" dropdown spacing across APP, PROFILE, and DEV
-   menus by applying the same semantic padding used in .dropdown-item class.
+   🔍 THE GREAT DROPDOWN MYSTERY - CASE SOLVED! 🕵️
    
-   🎯 PROBLEM: PROFILE and DEV menus missing .dropdown-item class styling
-   🎯 SOLUTION: Semantic .dropdown-menu-item class with consistent spacing
+   PROBLEM DISCOVERED: User noticed APP button was "tight around the word" but 
+   PROFILE button had extra padding, creating visual inconsistency.
+   
+   🧠 ROOT CAUSE ANALYSIS:
+   The issue was a subtle CSS selector conflict in PicoCSS framework:
+   
+   PicoCSS Rule: nav details.dropdown summary:not([role]) { padding: 0.5rem 1rem; }
+   
+   The ":not([role])" selector means padding ONLY applies to dropdown summaries 
+   WITHOUT any role attribute!
+   
+   🔧 THE PROBLEM:
+   - ⚡ APP dropdown: Summary had NO role attribute → Got PicoCSS padding (tight)
+   - 👤 PROFILE dropdown: Details had role='group' → Excluded from PicoCSS padding (loose)
+   - 🔧 DEV dropdown: Same issue as PROFILE
+   
+   ✅ THE SOLUTION:
+   1. Removed role='group' from PROFILE dropdown Details element
+   2. Added comprehensive ARIA attributes for Selenium automation:
+      - aria_expanded='false' (for dropdown state)
+      - aria_haspopup='menu' (indicates dropdown menu)
+      - aria_labelledby relationships
+      - role='menu' on dropdown lists
+   3. Created .dropdown-menu-item class for consistent internal spacing
+   
+   🎯 RESULT: All three dropdown buttons now have identical PicoCSS padding
+   
+   📚 LESSONS LEARNED:
+   - CSS selectors with :not([role]) can create unexpected inconsistencies
+   - PicoCSS nav dropdown summaries get padding ONLY when role-free
+   - ARIA attributes enhance accessibility without breaking visual consistency
+   - Root cause analysis beats CSS bandaids every time!
+   
+   🤖 SELENIUM AUTOMATION READY:
+   All dropdowns now have comprehensive ARIA attributes for reliable automation:
+   - Consistent semantic class names (.dropdown-menu-item)
+   - Predictable DOM structure across all three menus
+   - Proper role and state attributes for automated testing
+   
    ============================================================================ */
 
 /* Dropdown menu item - consistent spacing for all dropdown labels */
