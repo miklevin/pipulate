@@ -638,7 +638,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 /* Utility Classes - CONSOLIDATED: text-secondary and text-muted are semantically identical */
 .text-secondary,
 .text-muted {
-    font-size: 0.9em;
+    font-size: var(--pipulate-font-size-secondary);
     color: var(--pico-muted-color);
 }
 
@@ -661,7 +661,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 /* CONSOLIDATED: text-sm serves same purpose as text-secondary font size - merge into unified text-small */
 .text-sm,
 .text-small {
-    font-size: 0.9em;
+    font-size: var(--pipulate-font-size-secondary);
 }
 
 /* Typography utilities */
@@ -717,7 +717,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 /* Consolidated margin-bottom scale */
 .mb-2,
 .mb-sm {
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--pipulate-spacing-content-bottom);
 }
 
 .mb-4,
@@ -750,7 +750,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 /* Padding utilities */
 .p-2 {
-    padding: 0.5rem;
+    padding: var(--pipulate-padding-standard);
 }
 
 .pl-lg {
@@ -787,7 +787,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 /* Progress and Status Utilities */
 .progress-spaced {
-    margin-top: 10px;
+    margin-top: var(--pipulate-spacing-progress-top);
     /* Standard spacing for progress indicators */
 }
 
@@ -821,7 +821,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 .section-heading,
 .step-heading,
 .command-heading {
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--pipulate-spacing-content-bottom);
     font-weight: 500;
 }
 
@@ -845,8 +845,8 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 .text-description,
 .section-description {
     color: #6c757d;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
+    font-size: var(--pipulate-font-size-small);
+    margin-bottom: var(--pipulate-spacing-content-bottom);
 }
 
 .section-description {
@@ -869,8 +869,8 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 /* Role badge styling (4 instances) */
 .role-badge {
-    font-size: 0.8rem;
-    padding: 0.25rem 0.5rem;
+    font-size: var(--pipulate-font-size-badge);
+    padding: var(--pipulate-padding-badge);
     display: flex;
     align-items: center;
 }
@@ -947,11 +947,11 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     display: none;
 }
 
-/* CONSOLIDATED: Task spacing utility */
+/* CONSOLIDATED: Task spacing utility - Using semantic variable */
 .task-delete-icon,
 .task-text-display,
 .task-update-form {
-    margin-left: 5px;
+    margin-left: var(--pipulate-spacing-element-offset);
 }
 
 /* Form Input Plugin Semantic Classes
