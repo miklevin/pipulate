@@ -4045,6 +4045,9 @@ def populate_initial_data():
     if 'split-sizes' not in db:
         db['split-sizes'] = '[65, 35]'  # Default split panel sizes
         logger.debug("Initialized split-sizes to default '[65, 35]'")
+    if 'theme_preference' not in db:
+        db['theme_preference'] = 'auto'  # Default theme preference
+        logger.debug("Initialized theme_preference to 'auto'")
     if TABLE_LIFECYCLE_LOGGING:
         log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles AFTER')
         log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db AFTER')
