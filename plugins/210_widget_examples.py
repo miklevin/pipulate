@@ -198,7 +198,7 @@ class WidgetExamples:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=pip.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -486,11 +486,11 @@ class WidgetExamples:
         try:
             json_data = json.loads(user_val)
             if not isinstance(json_data, list) or not json_data:
-                return P('Invalid JSON: Must be a non-empty array of objects', style=pip.get_style('error'))
+                return P('Invalid JSON: Must be a non-empty array of objects', cls='text-invalid')
             if not all((isinstance(item, dict) for item in json_data)):
-                return P('Invalid JSON: All items must be objects (dictionaries)', style=pip.get_style('error'))
+                return P('Invalid JSON: All items must be objects (dictionaries)', cls='text-invalid')
         except json.JSONDecodeError:
-            return P('Invalid JSON format. Please check your syntax.', style=pip.get_style('error'))
+            return P('Invalid JSON format. Please check your syntax.', cls='text-invalid')
         await pip.set_step_data(pipeline_id, step_id, user_val, steps)
         pip.append_to_history(f'[WIDGET CONTENT] Pandas Table Data:\n{user_val}')
         try:
@@ -788,11 +788,11 @@ class WidgetExamples:
             import json
             data = json.loads(counter_data)
             if not isinstance(data, dict):
-                return P('Invalid JSON: Must be an object (dictionary) with keys and values', style=pip.get_style('error'))
+                return P('Invalid JSON: Must be an object (dictionary) with keys and values', cls='text-invalid')
             if not data:
-                return P('Invalid data: Counter cannot be empty', style=pip.get_style('error'))
+                return P('Invalid data: Counter cannot be empty', cls='text-invalid')
         except json.JSONDecodeError:
-            return P('Invalid JSON format. Please check your syntax.', style=pip.get_style('error'))
+            return P('Invalid JSON format. Please check your syntax.', cls='text-invalid')
         await pip.set_step_data(pipeline_id, step_id, counter_data, steps)
         try:
             histogram_widget = self.create_matplotlib_histogram(counter_data)
@@ -802,7 +802,7 @@ class WidgetExamples:
             return HTMLResponse(to_xml(response_content))
         except Exception as e:
             logger.error(f'Error creating histogram visualization: {e}')
-            return P(f'Error creating histogram: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error creating histogram: {str(e)}', cls='text-invalid')
 
     async def step_08(self, request):
         """
@@ -847,7 +847,7 @@ class WidgetExamples:
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
-            return P('Error: URL is required', style=pip.get_style('error'))
+            return P('Error: URL is required', cls='text-invalid')
         if not url.startswith(('http://', 'https://')):
             url = f'https://{url}'
         await pip.set_step_data(pipeline_id, step_id, url, steps)
@@ -964,11 +964,11 @@ class WidgetExamples:
         try:
             data = json.loads(table_data)
             if not isinstance(data, list) or not data:
-                return P('Invalid JSON: Must be a non-empty array of objects', style=pip.get_style('error'))
+                return P('Invalid JSON: Must be a non-empty array of objects', cls='text-invalid')
             if not all((isinstance(item, dict) for item in data)):
-                return P('Invalid JSON: All items must be objects (dictionaries)', style=pip.get_style('error'))
+                return P('Invalid JSON: All items must be objects (dictionaries)', cls='text-invalid')
         except json.JSONDecodeError:
-            return P('Invalid JSON format. Please check your syntax.', style=pip.get_style('error'))
+            return P('Invalid JSON format. Please check your syntax.', cls='text-invalid')
         await pip.set_step_data(pipeline_id, step_id, table_data, steps)
         try:
             table_widget = self.create_rich_table_widget(data)
@@ -978,7 +978,7 @@ class WidgetExamples:
             return HTMLResponse(to_xml(response_content))
         except Exception as e:
             logger.error(f'Error creating table widget: {e}')
-            return P(f'Error creating table: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error creating table: {str(e)}', cls='text-invalid')
 
     def create_rich_table_widget(self, data):
         """Create a rich table widget with beautiful styling."""
@@ -1036,7 +1036,7 @@ class WidgetExamples:
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
-            return P('Error: URL is required', style=pip.get_style('error'))
+            return P('Error: URL is required', cls='text-invalid')
         if not url.startswith(('http://', 'https://')):
             url = f'https://{url}'
         await pip.set_step_data(pipeline_id, step_id, url, steps)
@@ -1072,7 +1072,7 @@ class WidgetExamples:
             error_msg = f'Error opening URL with Selenium: {str(e)}'
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style('error'))
+            return P(error_msg, cls='text-invalid')
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{url}')
         pip.append_to_history(f'[WIDGET STATE] {step.show}: Step completed')
         await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
@@ -1128,7 +1128,7 @@ class WidgetExamples:
             error_msg = f'Error creating save directory: {str(e)}'
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P('Error creating save directory. Please try again.', style=pip.get_style('error'))
+            return P('Error creating save directory. Please try again.', cls='text-invalid')
         file_info = []
         total_size = 0
         saved_files = []
@@ -1146,7 +1146,7 @@ class WidgetExamples:
                 error_msg = f'Error saving file {file.filename}: {str(e)}'
                 logger.error(error_msg)
                 await self.message_queue.add(pip, error_msg, verbatim=True)
-                return P(f'Error saving file {file.filename}. Please try again.', style=pip.get_style('error'))
+                return P(f'Error saving file {file.filename}. Please try again.', cls='text-invalid')
         file_summary = '\n'.join(file_info)
         file_summary += f'\n\nTotal: {len(uploaded_files)} files, {total_size:,} bytes'
         file_summary += f'\nSaved to: {save_directory}'
@@ -1162,7 +1162,7 @@ class WidgetExamples:
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
-            return P('Error: URL is required', style=pip.get_style('error'))
+            return P('Error: URL is required', cls='text-invalid')
         try:
             chrome_options = Options()
             chrome_options.add_argument('--no-sandbox')
@@ -1196,4 +1196,4 @@ class WidgetExamples:
             error_msg = f'Error reopening URL with Selenium: {str(e)}'
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style('error'))
+            return P(error_msg, cls='text-invalid')

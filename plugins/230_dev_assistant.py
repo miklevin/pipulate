@@ -214,7 +214,7 @@ class DevAssistant:
         pipeline_id = db.get('pipeline_id', 'unknown')
 
         if not step_id:
-            return P('Error: No step specified for revert.', style=pip.get_style('error'))
+            return P('Error: No step specified for revert.', cls='text-invalid')
 
         await pip.clear_steps_from(pipeline_id, step_id, self.steps)
 

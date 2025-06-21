@@ -120,7 +120,7 @@ class RichTableWidget:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=pip.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -211,11 +211,11 @@ class RichTableWidget:
         try:
             data = json.loads(table_data)
             if not isinstance(data, list) or not data:
-                return P('Invalid JSON: Must be a non-empty array of objects', style=pip.get_style('error'))
+                return P('Invalid JSON: Must be a non-empty array of objects', cls='text-invalid')
             if not all((isinstance(item, dict) for item in data)):
-                return P('Invalid JSON: All items must be objects (dictionaries)', style=pip.get_style('error'))
+                return P('Invalid JSON: All items must be objects (dictionaries)', cls='text-invalid')
         except json.JSONDecodeError:
-            return P('Invalid JSON format. Please check your syntax.', style=pip.get_style('error'))
+            return P('Invalid JSON format. Please check your syntax.', cls='text-invalid')
         await pip.set_step_data(pipeline_id, step_id, table_data, steps)
         try:
             table_widget = self.create_rich_table_widget(data)
@@ -225,4 +225,4 @@ class RichTableWidget:
             return HTMLResponse(to_xml(response_content))
         except Exception as e:
             logger.error(f'Error creating table widget: {e}')
-            return P(f'Error creating table: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error creating table: {str(e)}', cls='text-invalid')

@@ -219,7 +219,7 @@ class SimonSaysMcpWidget:
         pipeline_id = db.get('pipeline_id', 'unknown')
 
         if not step_id_to_revert_to:
-            return P('Error: No step specified for revert.', style=pip.get_style('error'))
+            return P('Error: No step specified for revert.', cls='text-invalid')
 
         await pip.clear_steps_from(pipeline_id, step_id_to_revert_to, current_steps_to_pass_helpers)
         state = pip.read_state(pipeline_id)

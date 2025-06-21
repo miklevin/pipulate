@@ -148,7 +148,7 @@ class MatplotlibWidget:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=pip.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -213,11 +213,11 @@ class MatplotlibWidget:
         try:
             data = json.loads(counter_data)
             if not isinstance(data, dict):
-                return P('Invalid JSON: Must be an object (dictionary) with keys and values', style=pip.get_style('error'))
+                return P('Invalid JSON: Must be an object (dictionary) with keys and values', cls='text-invalid')
             if not data:
-                return P('Invalid data: Counter cannot be empty', style=pip.get_style('error'))
+                return P('Invalid data: Counter cannot be empty', cls='text-invalid')
         except json.JSONDecodeError:
-            return P('Invalid JSON format. Please check your syntax.', style=pip.get_style('error'))
+            return P('Invalid JSON format. Please check your syntax.', cls='text-invalid')
         await pip.set_step_data(pipeline_id, step_id, counter_data, steps)
         try:
             histogram_widget = self.create_matplotlib_histogram(counter_data)
@@ -227,7 +227,7 @@ class MatplotlibWidget:
             return HTMLResponse(to_xml(response_content))
         except Exception as e:
             logger.error(f'Error creating histogram visualization: {e}')
-            return P(f'Error creating histogram: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error creating histogram: {str(e)}', cls='text-invalid')
 
     def create_matplotlib_histogram(self, data_str):
         """

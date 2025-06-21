@@ -120,7 +120,7 @@ class PandasTableWidget:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=pip.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -194,7 +194,7 @@ class PandasTableWidget:
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
         explanation = 'Enter table data as JSON array of objects. Example is pre-populated. Format: `[{"name": "value", "value1": number, ...}, {...}]`'
         await self.message_queue.add(pip, explanation, verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, style=pip.get_style('muted')), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON array of objects for the DataFrame', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Draw Table ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, cls='text-secondary'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON array of objects for the DataFrame', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Draw Table ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -211,11 +211,11 @@ class PandasTableWidget:
         try:
             json_data = json.loads(user_val)
             if not isinstance(json_data, list) or not json_data:
-                return P('Invalid JSON: Must be a non-empty array of objects', style=pip.get_style('error'))
+                return P('Invalid JSON: Must be a non-empty array of objects', cls='text-invalid')
             if not all((isinstance(item, dict) for item in json_data)):
-                return P('Invalid JSON: All items must be objects (dictionaries)', style=pip.get_style('error'))
+                return P('Invalid JSON: All items must be objects (dictionaries)', cls='text-invalid')
         except json.JSONDecodeError:
-            return P('Invalid JSON format. Please check your syntax.', style=pip.get_style('error'))
+            return P('Invalid JSON format. Please check your syntax.', cls='text-invalid')
         await pip.set_step_data(pipeline_id, step_id, user_val, steps)
         pip.append_to_history(f'[WIDGET CONTENT] {step.show} (JSON Data):\n{user_val}')
         try:

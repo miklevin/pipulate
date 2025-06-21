@@ -150,7 +150,7 @@ class FileUploadWidget:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=pip.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -292,7 +292,7 @@ class FileUploadWidget:
         explanation = 'Select one or more files. They will be saved to the `downloads` directory in a subfolder named after this workflow.'
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
         await self.message_queue.add(pip, explanation, verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(explanation, style=pip.get_style('muted')), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast'), Button('Upload Files ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(explanation, cls='text-secondary'), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast'), Button('Upload Files ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         """ Process the submission for file upload widget. """
@@ -307,7 +307,7 @@ class FileUploadWidget:
         if not uploaded_files or not uploaded_files[0].filename:
             await self.message_queue.add(pip, 'No files selected. Please try again.', verbatim=True)
             explanation = 'Select one or more files. They will be saved to the `downloads` directory.'
-            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P('No files were selected. Please try again.', style=pip.get_style('error')), P(explanation, style=pip.get_style('muted')), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast'), Button('Upload Files ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P('No files were selected. Please try again.', cls='text-invalid'), P(explanation, cls='text-secondary'), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast'), Button('Upload Files ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
 
         # Use the same base directory as the download endpoint
         save_directory = PLUGIN_DOWNLOADS_BASE_DIR / app_name
@@ -317,7 +317,7 @@ class FileUploadWidget:
             error_msg = f'Error creating save directory {save_directory}: {str(e)}'
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P(f'Error creating save directory. Please check permissions or disk space. Details: {error_msg}', style=pip.get_style('error'))
+            return P(f'Error creating save directory. Please check permissions or disk space. Details: {error_msg}', cls='text-invalid')
 
         file_info_list_for_summary = []  # For the existing text summary
         actual_saved_file_details = []    # New list to store structured details
@@ -350,7 +350,7 @@ class FileUploadWidget:
                 error_msg = f'Error saving file {uploaded_file.filename}: {str(e)}'
                 logger.error(error_msg)
                 await self.message_queue.add(pip, error_msg, verbatim=True)
-                return P(f'Error saving file {uploaded_file.filename}. Details: {error_msg}', style=pip.get_style('error'))
+                return P(f'Error saving file {uploaded_file.filename}. Details: {error_msg}', cls='text-invalid')
 
         # Construct the text summary
         file_summary = '\n'.join(file_info_list_for_summary)

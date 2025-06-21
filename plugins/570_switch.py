@@ -124,7 +124,7 @@ class SwitchWorkflow:
         form = await request.form()
         step_id = form.get('step_id', '')
         if step_id not in self.steps_indices:
-            return P('Error: Invalid step', style=self.pipulate.get_style('error'))
+            return P('Error: Invalid step', cls='text-invalid')
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
