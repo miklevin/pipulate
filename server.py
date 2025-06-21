@@ -4438,7 +4438,7 @@ def create_nav_group():
     nav = create_nav_menu()
     refresh_listener = Div(id='profile-menu-refresh-listener', hx_get='/refresh-profile-menu', hx_trigger='refreshProfileMenu from:body', hx_target='#profile-dropdown-menu', hx_swap='outerHTML', cls='hidden')
     app_menu_refresh_listener = Div(id='app-menu-refresh-listener', hx_get='/refresh-app-menu', hx_trigger='refreshAppMenu from:body', hx_target='#app-dropdown-menu', hx_swap='outerHTML', cls='hidden')
-    return Group(nav, refresh_listener, app_menu_refresh_listener, id='nav-group')
+    return Div(nav, refresh_listener, app_menu_refresh_listener, id='nav-group', role='navigation', aria_label='Main navigation')
 
 def create_env_menu():
     """Create environment selection dropdown menu."""
@@ -4476,7 +4476,7 @@ def create_nav_menu():
     separator = Span(' / ', style=separator_style)
     profile_text = Span(title_name(selected_profile_name))
     endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM)
-    breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text)
+    breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text, role='banner', aria_label='Current location breadcrumb')
     # Create navigation poke button for the nav area
     # Create SVG icon for poke button
     settings_svg = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-settings"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'''
@@ -4490,7 +4490,7 @@ def create_nav_menu():
     # Create navigation search field (positioned before PROFILE)
     # HTMX real-time search implementation with keyboard navigation
     # Search container with dropdown results
-    search_results_dropdown = Div(id='search-results-dropdown', style='position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; background: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 8px; max-height: 300px; overflow-y: auto; display: none;')
+    search_results_dropdown = Div(id='search-results-dropdown', style='position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; background: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 8px; max-height: 300px; overflow-y: auto; display: none;', role='listbox', aria_label='Search results')
     
     nav_search_container = Div(
         Input(
@@ -4503,11 +4503,18 @@ def create_nav_menu():
             hx_post='/search-plugins',
             hx_target='#search-results-dropdown',
             hx_trigger='input changed delay:300ms, keyup[key==\'Enter\']',
-            hx_swap='innerHTML'
+            hx_swap='innerHTML',
+            role='searchbox',
+            aria_label='Search plugins',
+            aria_describedby='search-results-dropdown',
+            aria_autocomplete='list',
+            aria_expanded='false'
             # Keyboard navigation now handled by external JavaScript in chat-interactions.js
         ),
         search_results_dropdown,
-        style='position: relative; margin-right: 1rem;'
+        style='position: relative; margin-right: 1rem;',
+        role='search',
+        aria_label='Plugin search'
     )
     
     menus = Div(nav_search_container, create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu(), poke_section, cls='nav-menu-group')
@@ -4565,10 +4572,10 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         except Exception:
             pass
     summary_profile_name_to_display = summary_profile_name_to_display or 'Select'
-    return Details(Summary('👤 PROFILE', cls='inline-nowrap', id='profile-id'), Ul(*menu_items, style=(
+    return Details(Summary('👤 PROFILE', cls='inline-nowrap', id='profile-id', aria_label='Profile selection menu'), Ul(*menu_items, style=(
         'min-width: max-content; ',
         'padding-left: 0'
-    ), cls='dropdown-menu'), cls='dropdown', id='profile-dropdown-menu')
+    ), cls='dropdown-menu', role='menu', aria_label='Profile options'), cls='dropdown', id='profile-dropdown-menu', role='group', aria_label='Profile management')
 
 def normalize_menu_path(path):
     """Convert empty paths to empty string and return the path otherwise."""
