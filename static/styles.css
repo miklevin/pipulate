@@ -855,6 +855,23 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     /* Initially hidden success status messages */
 }
 
+/* Dropdown Menu Utilities */
+.env-dropdown-menu {
+    padding-left: 0;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    width: 8rem;
+    max-height: 75vh;
+    overflow-y: auto;
+    /* Environment dropdown specific styling */
+}
+
+.profile-menu-item-selected,
+.app-menu-item-selected {
+    background-color: var(--pico-primary-focus);
+    /* Selected menu item highlighting for profile and app menus */
+}
+
 /* Documentation Plugin Semantic Classes
    ========================================
    Consolidated from 50+ inline styles in documentation plugin

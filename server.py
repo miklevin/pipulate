@@ -4509,8 +4509,7 @@ def create_env_menu():
         prod_classes += ' menu-item-active'
     prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'Prod', cls='dropdown-menu-item'), cls=prod_classes, id='prod-env-item')
     menu_items.append(prod_item)
-    dropdown_style = 'padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'
-    return Details(Summary(display_env, cls=env_summary_classes, id='env-id'), Ul(*menu_items, cls='dropdown-menu', style=dropdown_style), cls='dropdown', id='env-dropdown-menu')
+    return Details(Summary(display_env, cls=env_summary_classes, id='env-id'), Ul(*menu_items, cls='dropdown-menu env-dropdown-menu'), cls='dropdown', id='env-dropdown-menu')
 
 def create_nav_menu():
     logger.debug('Creating navigation menu.')
@@ -4600,9 +4599,11 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         logger.error("Global 'profiles' table object not available for create_profile_menu.")
     for profile_item in active_profiles_list:
         is_selected = str(profile_item.id) == str(selected_profile_id)
-        item_style = 'background-color: var(--pico-primary-focus);' if is_selected else ''
         radio_input = Input(type='radio', name='profile_radio_select', value=str(profile_item.id), checked=is_selected, hx_post='/select_profile', hx_vals=json.dumps({'profile_id': str(profile_item.id)}), hx_target='body', hx_swap='outerHTML')
-        profile_label = Label(radio_input, profile_item.name, cls='dropdown-menu-item')
+        label_classes = 'dropdown-menu-item'
+        if is_selected:
+            label_classes += ' profile-menu-item-selected'
+        profile_label = Label(radio_input, profile_item.name, cls=label_classes)
         menu_item_classes = 'menu-item-base menu-item-hover'
         if is_selected:
             menu_item_classes += ' menu-item-active'
@@ -4708,7 +4709,9 @@ def create_home_menu_item(menux):
     is_home_selected = menux == ''
     home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML')
     home_css_classes = 'dropdown-item'
-    home_label = Label(home_radio, HOME_MENU_ITEM, cls=home_css_classes, style='background-color: var(--pico-primary-focus)' if is_home_selected else '')
+    if is_home_selected:
+        home_css_classes += ' app-menu-item-selected'
+    home_label = Label(home_radio, HOME_MENU_ITEM, cls=home_css_classes)
     menu_items.append(Li(home_label))
     return menu_items
 
@@ -4748,8 +4751,10 @@ def create_plugin_menu_item(plugin_key, menux, active_role_names):
     primary_role = get_plugin_primary_role(instance)
     role_class = f'menu-role-{primary_role}' if primary_role else ''
     css_classes = f'dropdown-item {role_class}'.strip()
+    if is_selected:
+        css_classes += ' app-menu-item-selected'
     radio_input = Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML')
-    return Li(Label(radio_input, display_name, cls=css_classes, style='background-color: var(--pico-primary-focus)' if is_selected else ''))
+    return Li(Label(radio_input, display_name, cls=css_classes))
 
 def should_include_plugin(instance, active_role_names):
     """Determine if plugin should be included based on its roles."""
