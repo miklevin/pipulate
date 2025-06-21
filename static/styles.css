@@ -714,10 +714,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     padding-left: 1.5rem;
 }
 
-/* Typography */
-.font-code {
-    font-family: var(--pico-font-family-monospace);
-}
+/* Typography - CONSOLIDATED: font-code already defined in main typography section */
 
 /* Borders and Shapes */
 .rounded-default {
