@@ -855,7 +855,7 @@ class Trifecta:
                     style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
-                    Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', cls='hidden'),
+                    Pre(f'Selected analysis: {selected_slug}', cls='code-block-container hidden'),
                     id=f'{step_id}_widget'
                 )
             )
@@ -985,7 +985,7 @@ class Trifecta:
                     H3(f'{step.show}'), 
                     P(f"Select an analysis for project '{project_name}'"), 
                     P(f'Organization: {username}', cls='text-secondary'), 
-                    P(user_message, cls='text-muted', cls='font-italic progress-spaced'), 
+                    P(user_message, cls='text-muted font-italic progress-spaced'), 
                     Form(
                                             Select(
                         *dropdown_options, 
@@ -1116,7 +1116,7 @@ class Trifecta:
                         style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                     ),
                     Div(
-                        Pre(f'Status: {completed_message}', cls='code-block-container', cls='status-success-hidden'),
+                        Pre(f'Status: {completed_message}', cls='code-block-container status-success-hidden'),
                         id=f'{step_id}_widget'
                     )
                 )
@@ -1457,7 +1457,7 @@ class Trifecta:
                         style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                     ),
                     Div(
-                        Pre(f'Status: Using cached basic crawl data ({file_info["size"]})', cls='code-block-container', cls='status-success-hidden'),
+                        Pre(f'Status: Using cached basic crawl data ({file_info["size"]})', cls='code-block-container status-success-hidden'),
                         id=f'{step_id}_widget'
                     )
                 )
@@ -1807,7 +1807,7 @@ class Trifecta:
                         style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                     ),
                     Div(
-                        Pre(f'Status: Using cached Web Logs data ({file_info["size"]})', cls='code-block-container', cls='status-success-hidden'),
+                        Pre(f'Status: Using cached Web Logs data ({file_info["size"]})', cls='code-block-container status-success-hidden'),
                         id=f'{step_id}_widget'
                     )
                 )
@@ -2112,7 +2112,7 @@ class Trifecta:
                         style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                     ),
                     Div(
-                        Pre(f'Status: Using cached GSC data ({file_info["size"]})', cls='code-block-container', cls='status-success-hidden'),
+                        Pre(f'Status: Using cached GSC data ({file_info["size"]})', cls='code-block-container status-success-hidden'),
                         id=f'{step_id}_widget'
                     )
                 )
