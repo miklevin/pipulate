@@ -634,16 +634,25 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     font-family: var(--pico-font-family-monospace);
 }
 
-.w-full {
-    width: 100%;
-}
+/* ================================================================ */
+/* CONSOLIDATED DISPLAY & LAYOUT UTILITIES */
+/* ================================================================ */
 
+/* Display utilities */
 .hidden {
     display: none;
 }
 
+.block {
+    display: block;
+}
+
 .overflow-auto {
     overflow: auto;
+}
+
+.w-full {
+    width: 100%;
 }
 
 /* Spacing Utilities - CONSOLIDATED SYSTEMATIC SCALE */
@@ -798,7 +807,18 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
    Consolidated from 14 inline styles in introduction plugin
    ===================================== */
 
-/* Layout utilities */
+/* CONSOLIDATED: Container and layout patterns */
+.container-centered {
+    max-width: 98%;
+    margin: 0 auto;
+}
+
+.list-unstyled {
+    padding-left: 0;
+    list-style-type: none;
+}
+
+/* CONSOLIDATED: Sizing utilities */
 .min-height-300 {
     min-height: 300px;
 }
@@ -812,28 +832,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 /* CONSOLIDATED: Now handled in main icon & link section above */
 
-/* Card pattern (6 instances via card_style variable) */
-.intro-card {
-    min-height: 400px;
-    margin-bottom: 2rem;
-}
-
-/* Profiles Plugin Semantic Classes
-   ==================================
-   Consolidated from 7 inline styles in profiles plugin
-   ================================== */
-
-/* List styling */
-.list-unstyled {
-    padding-left: 0;
-    list-style-type: none;
-}
-
-/* Container patterns */
-.container-centered {
-    max-width: 98%;
-    margin: 0 auto;
-}
+/* CONSOLIDATED: Now handled in main display & layout section above */
 
 /* Profile-specific layouts */
 .profile-display-flex {
@@ -1262,51 +1261,7 @@ input[type="password"]:focus {
 }
 
 /* ============================================================================
-   ROLE-BASED COLOR SYSTEM - NOW GENERATED DYNAMICALLY!
-   ============================================================================
-   
-   🎨 ROLE COLORS ARE NOW CONTROLLED BY PYTHON - SINGLE SOURCE OF TRUTH!
-   
-   ✅ TO CHANGE ROLE COLORS: Edit the ROLE_COLORS in pipulate/plugins/030_roles.py
-   ❌ DO NOT EDIT CSS HERE: These static rules have been replaced by dynamic generation
-   
-   HOW IT WORKS:
-   1. Colors defined in Python: pipulate/plugins/030_roles.py -> UI_CONSTANTS -> ROLE_COLORS
-   2. CSS generated dynamically: CrudUI.generate_role_css() method  
-   3. CSS injected at runtime: server.py -> get_dynamic_role_css() -> Style() tag
-   
-   BENEFITS:
-   • Single source of truth - edit colors in one place only
-   • No more sync issues between Python and CSS
-   • Dynamic updates without server restart
-   • Maintainable and less error-prone
-   
-   COLOR PALETTE REFERENCE (edit in Python):
-   🔵 BLUE    = #3b82f6 (rgba(59, 130, 246, 0.1))
-   🟣 PURPLE  = #a855f7 (rgba(168, 85, 247, 0.1))
-   🟢 GREEN   = #22c55e (rgba(34, 197, 94, 0.1))
-   🟠 ORANGE  = #f97316 (rgba(249, 115, 22, 0.1))
-   🟡 YELLOW  = #eab308 (rgba(234, 179, 8, 0.1))
-   ⚫ GRAY    = #6b7280 (rgba(107, 114, 128, 0.1))
-   
-   ============================================================================ */
-
-/* 
-   The following CSS is now GENERATED DYNAMICALLY from Python:
-   - .menu-role-core
-   - .menu-role-botify-employee  
-   - .menu-role-tutorial
-   - .menu-role-developer
-   - .menu-role-components
-   - .menu-role-workshop
-   - [data-theme="light"] variations
-   - Selected state rules
-   
-   Edit colors in: pipulate/plugins/030_roles.py -> UI_CONSTANTS -> ROLE_COLORS
-*/
-
-/* ============================================================================
-   ROLE CONTENT STYLING - Role descriptions and plugin links
+   ROLE CONTENT STYLING - Consolidated Theme Support
    ============================================================================ */
 
 /* Role Description Styling - Grayer and smaller */
@@ -1316,91 +1271,61 @@ input[type="password"]:focus {
     opacity: 0.8;
 }
 
-/* Role Plugin Links Styling - Whiter, smaller, tighter spacing */
-.role-plugin-links {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 1em;
-    line-height: 1.2;
-}
-
-.role-plugin-links a {
-    color: rgba(255, 255, 255, 0.9);
-    text-decoration: none;
-    font-size: inherit;
-}
-
-/* Preserve hover effects - blue and underlined */
-.role-plugin-links a:hover {
-    color: var(--pico-primary);
-    text-decoration: underline;
-}
-
-/* Role Plugin Ordered List - Shows numbering for ordered plugin lists */
+/* CONSOLIDATED: Role Plugin Links - Both .role-plugin-links and .role-plugin-ordered-list */
+.role-plugin-links,
 .role-plugin-ordered-list {
     color: rgba(255, 255, 255, 0.9);
     font-size: 1em;
     line-height: 1.2;
+}
+
+.role-plugin-ordered-list {
     list-style-type: decimal;
 }
 
+.role-plugin-links a,
 .role-plugin-ordered-list a {
     color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
     font-size: inherit;
 }
 
+/* Preserve hover effects - blue and underlined */
+.role-plugin-links a:hover,
 .role-plugin-ordered-list a:hover {
     color: var(--pico-primary);
     text-decoration: underline;
 }
 
-/* Ensure proper contrast in both themes */
-[data-theme="light"] .role-plugin-links {
-    color: rgba(0, 0, 0, 0.7);
-}
-
-[data-theme="light"] .role-plugin-links a {
-    color: rgba(0, 0, 0, 0.7);
-}
-
-[data-theme="dark"] .role-plugin-links {
-    color: rgba(255, 255, 255, 0.9);
-}
-
-[data-theme="dark"] .role-plugin-links a {
-    color: rgba(255, 255, 255, 0.9);
-}
-
+/* CONSOLIDATED: Theme variations for both role plugin classes */
+[data-theme="light"] .role-plugin-links,
 [data-theme="light"] .role-plugin-ordered-list {
     color: rgba(0, 0, 0, 0.7);
 }
 
+[data-theme="light"] .role-plugin-links a,
 [data-theme="light"] .role-plugin-ordered-list a {
     color: rgba(0, 0, 0, 0.7);
 }
 
+[data-theme="dark"] .role-plugin-links,
 [data-theme="dark"] .role-plugin-ordered-list {
     color: rgba(255, 255, 255, 0.9);
 }
 
+[data-theme="dark"] .role-plugin-links a,
 [data-theme="dark"] .role-plugin-ordered-list a {
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* Dark mode system preference */
+/* Dark mode system preference - CONSOLIDATED */
 @media only screen and (prefers-color-scheme: dark) {
-    :root:not([data-theme]) .role-plugin-links {
-        color: rgba(255, 255, 255, 0.9);
-    }
-    
-    :root:not([data-theme]) .role-plugin-links a {
-        color: rgba(255, 255, 255, 0.9);
-    }
-    
+    :root:not([data-theme]) .role-plugin-links,
     :root:not([data-theme]) .role-plugin-ordered-list {
         color: rgba(255, 255, 255, 0.9);
     }
     
+    :root:not([data-theme]) .role-plugin-links a,
     :root:not([data-theme]) .role-plugin-ordered-list a {
         color: rgba(255, 255, 255, 0.9);
     }
@@ -1464,19 +1389,39 @@ input[type="password"]:focus {
    UTILITY CLASSES - Common property patterns from inline styles
    ============================================================================ */
 
-/* Card-like containers with consistent styling */
-.card-container {
+/* CONSOLIDATED: Card-like containers */
+.card-container,
+.intro-card,
+.card-list-item {
     background-color: var(--pico-card-background-color);
     border-radius: var(--pico-border-radius);
-    margin-bottom: 2vh;
+    margin-bottom: 1rem;
     padding: 1rem;
 }
 
-/* Inline elements that need to maintain their content width */
-.inline-nowrap {
+.intro-card {
+    min-height: 400px;
+    margin-bottom: 2rem;
+}
+
+.card-list-item {
+    list-style-type: none;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem;
+    cursor: pointer;
+}
+
+/* CONSOLIDATED: Inline and nowrap utilities */
+.inline-nowrap,
+.env-dev-style {
     display: inline-block;
     min-width: max-content;
     white-space: nowrap;
+}
+
+.env-dev-style {
+    color: #f77;
+    font-weight: bold;
 }
 
 /* ================================================================ */
@@ -1696,27 +1641,12 @@ input[type="password"]:focus {
 /* Flex utilities for common patterns */
 /* CONSOLIDATED: Now handled in main flex layout section above */
 
-/* Card-like list items */
-.card-list-item {
-    list-style-type: none;
-    margin-bottom: 0.5rem;
-    padding: 0.25rem;
-    border-radius: 0.25rem;
-    background-color: var(--pico-card-background-color);
-    cursor: pointer;
-}
+/* CONSOLIDATED: Now handled in main display & layout section above */
 
 /* Margin utilities for common spacing */
 /* CONSOLIDATED: These are now handled in the main spacing section above */
 
-/* Additional cleanup classes for remaining patterns */
-.env-dev-style {
-    white-space: nowrap;
-    display: inline-block;
-    min-width: max-content;
-    color: #f77;
-    font-weight: bold;
-}
+/* CONSOLIDATED: Now handled in main display & layout section above */
 
 .search-result-tag {
     font-size: 0.8rem;
