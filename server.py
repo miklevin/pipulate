@@ -4567,7 +4567,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
     profile_locked = db.get('profile_locked', '0') == '1'
-    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile'), cls='profile-menu-item'))
+    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile', cls='dropdown-menu-item'), cls='profile-menu-item'))
     menu_items.append(Li(Hr(cls='profile-menu-separator'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
