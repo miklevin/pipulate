@@ -3,20 +3,96 @@ description:
 globs: 
 alwaysApply: false
 ---
-# Pipulate Master Development Guide
+# Pipulate Master Guide: AI Assistant Crash Course
 
-Welcome to the master guide for developing with Pipulate. This document consolidates all the rules and best practices into a structured format.
+**🚀 INSTANT PIPULATE MASTERY FOR AI ASSISTANTS**
 
-**📚 Interactive Documentation**: When viewing this in the documentation browser, all links below are clickable and will take you directly to the detailed guides. The same content that guides AI development is now available for human developers.
+This is your **immediate crash course** in Pipulate's radical transparency system. Start here for instant productivity.
 
-## Table of Contents
+---
 
-1. **[CRITICAL PATTERNS](mdc:01_critical_patterns)**: Immutable rules and patterns that must never be broken. **This is essential reading for all development.**
-2. **[CORE CONCEPTS](mdc:02_core_concepts)**: High-level understanding of the Pipulate philosophy, architecture, server internals, and future vision.
-3. **[SETUP AND DEPENDENCIES](mdc:03_setup_and_dependencies)**: How to set up and manage the Nix-based development environment and its key components.
-4. **[WORKFLOW DEVELOPMENT](mdc:04_workflow_development)**: The complete guide to creating and modifying workflows, including the helper tool system and conventions.
-5. **[UI AND FRONTEND](mdc:05_ui_and_frontend)**: Building user interfaces with FastHTML, HTMX, PicoCSS, and Pipulate's specific UI patterns.
-6. **[DATA AND AUTOMATION](mdc:06_data_and_automation)**: Handling data persistence with SQLite, managing file operations, and using Selenium for browser automation.
-7. **[INTEGRATIONS](mdc:07_integrations)**: Patterns for integrating with external services like local LLMs (Ollama) and the Botify API.
-8. **[PROJECT MANAGEMENT](mdc:08_project_management)**: Conventions for changelogs, git commits, the documentation system, and internal linking.
-9. **[DEBUGGING](mdc:09_debugging)**: Techniques for testing and debugging the application, workflows, and helper scripts.
+## 🚨 **PRIORITY READING ORDER**
+
+### **🔥 CRITICAL - READ FIRST** 
+**[RADICAL TRANSPARENCY](mdc:09_debugging)** - **THE DEBUGGING REVOLUTION**
+- **The Righteous Positive Feedback Loop** - Your primary debugging methodology
+- **MCP Tools Mastery** - `pipeline_state_inspector`, `botify_get_full_schema`, and the complete toolkit
+- **FINDER_TOKENs** - Magic words for surgical log analysis (`grep "FINDER_TOKEN"`)
+- **Direct endpoint testing** - Every workflow step is curl-testable
+- **Complete system observability** - No black boxes, ever
+
+### **⚡ ESSENTIAL - READ SECOND**
+**[MCP & API INTEGRATIONS](mdc:07_integrations)** - **THE AI ASSISTANT INTERFACE**
+- **MCP Tools as Primary Interface** - Every complex operation has an MCP equivalent
+- **Botify API Dual Version Mastery** - BQLv1 vs BQLv2 painful reality
+- **The 4,449 Field Discovery Revolution** - Schema discovery that changes everything
+- **API Call Transparency System** - Every call logged for debugging
+
+### **💡 FOUNDATIONAL - READ THIRD**
+**[CORE PHILOSOPHY](mdc:02_core_concepts)** - **DIGITAL WORKSHOP REVOLUTION**
+- **Local-First Sovereignty** - Data, Environment, AI, Privacy sovereignty
+- **The Modern Webmaster Paradigm** - One person, entire stack understanding
+- **WET/DRY Balance** - Explicit workflows, efficient infrastructure
+- **Future-Proofing Strategy** - Durable technologies over frameworks
+
+---
+
+## 📋 **COMPLETE REFERENCE GUIDE**
+
+### **System Fundamentals**
+1. **[CRITICAL PATTERNS](mdc:01_critical_patterns)** - Immutable rules that must never be broken
+2. **[CORE PHILOSOPHY](mdc:02_core_concepts)** - Digital workshop revolution and sovereignty principles
+3. **[SETUP & ENVIRONMENT](mdc:03_setup_and_dependencies)** - Nix-based development environment
+
+### **Development Excellence**
+4. **[WORKFLOW DEVELOPMENT](mdc:04_workflow_development)** - Creating and modifying multi-step workflows
+5. **[SEMANTIC UI DESIGN](mdc:05_ui_and_frontend)** - Accessible, semantic HTML with HTMX patterns
+6. **[DATA & AUTOMATION](mdc:06_data_and_automation)** - SQLite persistence and browser automation
+
+### **AI Collaboration**
+7. **[MCP INTEGRATIONS](mdc:07_integrations)** - AI assistant interface and API mastery
+8. **[PROJECT MANAGEMENT](mdc:08_project_management)** - Git conventions and documentation
+9. **[RADICAL TRANSPARENCY](mdc:09_debugging)** - The debugging revolution
+
+---
+
+## 🎯 **AI ASSISTANT QUICK START**
+
+### **Immediate Actions**
+1. **Use `pipeline_state_inspector` first** - Always check workflow state before assuming issues
+2. **Check logs with FINDER_TOKENs** - `grep "FINDER_TOKEN: MCP_CALL_START" logs/server.log`
+3. **Leverage MCP tools** - Never make direct API calls when MCP tools exist
+4. **Test endpoints directly** - `curl -X GET "http://localhost:7860/workflow/step"`
+
+### **Key MCP Tools to Master**
+- **`pipeline_state_inspector`** - THE debugging game changer
+- **`botify_get_full_schema`** - 4,449 field discovery revolution  
+- **`local_llm_grep_logs`** - Programmatic log analysis
+- **`ui_flash_element`** - Visual debugging and user guidance
+
+### **Essential Patterns**
+- **Chain Reaction Workflows** - Each step triggers the next via `hx_trigger="load"`
+- **Semantic CSS Classes** - `cls='text-invalid'` vs deprecated `style=pip.get_style('error')`
+- **HTMX Dynamic Buttons** - `hx_swap='outerHTML'` with consistent `id='submit-button'`
+- **Background Processing** - Long operations with progress tracking
+
+---
+
+## 🏆 **WHY THIS SYSTEM IS REVOLUTIONARY**
+
+### **Complete Observability**
+- Every operation leaves traces in logs with FINDER_TOKENs
+- MCP tools provide programmatic access to all system state
+- Direct endpoint testing without complex setup
+
+### **AI-Friendly Architecture**  
+- Logs designed for AI assistant consumption
+- MCP tools as standardized AI interface
+- Semantic HTML enables AI understanding of UI structure
+
+### **Local-First Sovereignty**
+- Your data, environment, and AI - completely under your control
+- No external dependencies for core functionality
+- Privacy-enabling creative freedom
+
+**Master this system. Use it. This is your competitive advantage in AI-collaborative development.**

@@ -192,8 +192,7 @@ class FileUploadWidget:
                             href=f"/download_file?file={urllib.parse.quote(path_for_url)}",
                             target="_blank",
                             role="button",
-                            cls="outline contrast",
-                            style="margin-left: 10px;"
+                            cls="outline contrast ml-sm"
                         )
                         file_buttons.append(download_file_link_ui)
                 open_folder_link_ui = A(
@@ -202,11 +201,10 @@ class FileUploadWidget:
                     hx_get="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())),
                     hx_swap="none",
                     title=f"Open folder: {save_directory.resolve()}",
-                    style="margin-right: 10px;",
-                    role="button",
-                    cls="outline contrast"
+                    cls="mr-sm outline contrast",
+                    role="button"
                 )
-                return Div(Card(H3(f'🔒 {step.show}'), P('Uploaded files summary:'), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; background-color: var(--pico-card-background-color); padding: 1em; border-radius: var(--pico-border-radius);'), P(open_folder_link_ui, *file_buttons, style="margin-top: 1em; display: flex; gap: 0.5em; flex-wrap: wrap;")), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+                return Div(Card(H3(f'🔒 {step.show}'), P('Uploaded files summary:'), Pre(file_summary, cls='upload-summary-pre'), P(open_folder_link_ui, *file_buttons, cls='upload-file-buttons')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             except Exception as e:
                 logger.error(f'Error creating file summary in locked view: {str(e)}')
                 return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
@@ -232,8 +230,7 @@ class FileUploadWidget:
                             href=f"/download_file?file={urllib.parse.quote(path_for_url)}",
                             target="_blank",
                             role="button",
-                            cls="outline contrast",
-                            style="margin-left: 10px;"
+                            cls="outline contrast ml-sm"
                         )
                         file_buttons.append(download_file_link_ui)
                 open_folder_link_ui = A(
@@ -242,11 +239,10 @@ class FileUploadWidget:
                     hx_get="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())),
                     hx_swap="none",
                     title=f"Open folder: {save_directory.resolve()}",
-                    style="margin-right: 10px;",
-                    role="button",
-                    cls="outline contrast"
+                    cls="mr-sm outline contrast",
+                    role="button"
                 )
-                return Div(Card(f'🔒 {step.show}', P("Uploaded files summary:"), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; background-color: var(--pico-card-background-color); padding: 1em; border-radius: var(--pico-border-radius);'), P(open_folder_link_ui, *file_buttons, style="margin-top: 1em; display: flex; gap: 0.5em; flex-wrap: wrap;")), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+                return Div(Card(f'🔒 {step.show}', P("Uploaded files summary:"), Pre(file_summary, cls='upload-summary-pre'), P(open_folder_link_ui, *file_buttons, cls='upload-file-buttons')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
             except Exception as e:
                 logger.error(f'Error creating file summary in locked view: {str(e)}')
                 return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
@@ -258,9 +254,8 @@ class FileUploadWidget:
                 hx_get="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())),
                 hx_swap="none",
                 title=f"Open folder: {save_directory.resolve()}",
-                style="margin-right: 10px;",
-                role="button",
-                cls="outline contrast"
+                cls="mr-sm outline contrast",
+                    role="button"
             )
             # Parse file_summary to extract file names (if possible)
             file_lines = file_summary.split('\n') if file_summary else []
@@ -280,13 +275,12 @@ class FileUploadWidget:
                         href=f"/download_file?file={urllib.parse.quote(path_for_url)}",
                         target="_blank",
                         role="button",
-                        cls="outline contrast",
-                        style="margin-left: 10px;"
+                        cls="outline contrast ml-sm"
                     )
                     file_buttons.append(download_file_link_ui)
             content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Files previously uploaded', widget=Div(
                 Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; margin-top:1em; padding: 1em; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius);'),
-                P(open_folder_link_ui, *file_buttons, style="margin-top: 1em; display: flex; gap: 0.5em; flex-wrap: wrap;")
+                P(open_folder_link_ui, *file_buttons, cls='upload-file-buttons')
             ), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         explanation = 'Select one or more files. They will be saved to the `downloads` directory in a subfolder named after this workflow.'
@@ -394,9 +388,8 @@ class FileUploadWidget:
                     hx_get="/open-folder?path=" + urllib.parse.quote(str(parent_dir_abs_path)),
                     hx_swap="none",
                     title=f"Open folder: {parent_dir_abs_path}",
-                    style="margin-right: 10px;",
-                    role="button",
-                    cls="outline contrast"
+                    cls="mr-sm outline contrast",
+                    role="button"
                 )
 
                 download_file_link_ui = A(
