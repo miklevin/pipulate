@@ -286,39 +286,39 @@ class WorkflowGenesis:
                       f"echo '{splice_top_cmd}'"
 
         return Div(
-            H4("Blank Placeholder Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
+            H4("Blank Placeholder Experience", cls="section-title"),
             P("Creates a single-step workflow and demonstrates step positioning. Like Jupyter's Cell Above/Below concept.",
-              style="color: #6c757d; margin-bottom: 1.5rem;"),
+              cls="section-description"),
 
             # Individual commands section
             H5("Individual Commands:", style="color: #17a2b8; margin-bottom: 0.75rem;"),
 
             Div(
-                H6("1. Create Base Workflow", style="color: #007bff; margin-bottom: 0.25rem;"),
+                H6("1. Create Base Workflow", cls="step-heading"),
                 P("Creates single-step placeholder workflow ready for customization",
-                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                  cls="text-description"),
                 Pre(Code(create_cmd, cls='language-bash copy-code'),
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
+                    cls="code-block-standard"),
 
-                H6("2. Add Step at Bottom", style="color: #007bff; margin-bottom: 0.25rem;"),
+                H6("2. Add Step at Bottom", cls="step-heading"),
                 P("Adds new step before finalize (default positioning)",
-                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                  cls="text-description"),
                 Pre(Code(splice_bottom_cmd, cls='language-bash copy-code'),
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
+                    cls="code-block-standard"),
 
-                H6("3. Add Step at Top", style="color: #007bff; margin-bottom: 0.25rem;"),
+                H6("3. Add Step at Top", cls="step-heading"),
                 P("Adds new step as first data step",
-                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                  cls="text-description"),
                 Pre(Code(splice_top_cmd, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto; position: relative;")
             ),
 
             # All-in-one section
-            H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
+            H5("All-in-One Command:", cls="command-heading"),
             P("Copy and paste this single command to create the workflow and see positioning options:",
               style="color: #6c757d; margin-bottom: 0.5rem;"),
             Pre(Code(combined_cmd, cls='language-bash copy-code'),
-                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
+                cls="code-block-success"),
 
             id=widget_id
         )
@@ -368,9 +368,9 @@ class WorkflowGenesis:
                       f"  plugins/040_hello_workflow.py step_02 --force"
 
         return Div(
-            H4("Hello World Recreation Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
+            H4("Hello World Recreation Experience", cls="section-title"),
             P("Recreates Hello World workflow using the complete helper tool sequence. This demonstrates the FULL STORY of workflow construction.",
-              style="color: #6c757d; margin-bottom: 1.5rem;"),
+              cls="section-description"),
 
             # Story explanation
             Div(
@@ -381,7 +381,7 @@ class WorkflowGenesis:
                     Li("Swap step_01 placeholder with real name collection logic"),
                     Li("Add step_02 placeholder (CRITICAL: step_01 must exist first!)"),
                     Li("Swap step_02 placeholder with greeting generation logic"),
-                    style="color: #6c757d; margin-bottom: 1.5rem;"
+                    cls="section-description"
                 ),
             ),
 
@@ -389,43 +389,43 @@ class WorkflowGenesis:
             H5("Individual Commands:", style="color: #17a2b8; margin-bottom: 0.75rem;"),
 
             Div(
-                H6("1. Create Base Workflow (Blank Template)", style="color: #007bff; margin-bottom: 0.25rem;"),
+                H6("1. Create Base Workflow (Blank Template)", cls="step-heading"),
                 P("Creates blank workflow - we'll transform it into Hello World step by step",
-                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                  cls="text-description"),
                 Pre(Code(cmd1, cls='language-bash copy-code'),
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
+                    cls="code-block-standard"),
 
-                H6("2. Condition with UI Constants", style="color: #007bff; margin-bottom: 0.25rem;"),
+                H6("2. Condition with UI Constants", cls="step-heading"),
                 P("Prepares workflow with styling constants it will need later",
-                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                  cls="text-description"),
                 Pre(Code(cmd2, cls='language-bash copy-code'),
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
+                    cls="code-block-standard"),
 
-                H6("3. Replace Step 1 with Name Collection", style="color: #007bff; margin-bottom: 0.25rem;"),
+                H6("3. Replace Step 1 with Name Collection", cls="step-heading"),
                 P("Swaps placeholder step_01 with Hello World's name input logic",
-                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                  cls="text-description"),
                 Pre(Code(cmd3, cls='language-bash copy-code'),
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
+                    cls="code-block-standard"),
 
-                H6("4. Add Step 2 Placeholder", style="color: #007bff; margin-bottom: 0.25rem;"),
+                H6("4. Add Step 2 Placeholder", cls="step-heading"),
                 P("Creates new blank step_02 - CRITICAL that step_01 exists first!",
-                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                  cls="text-description"),
                 Pre(Code(cmd4, cls='language-bash copy-code'),
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
+                    cls="code-block-standard"),
 
-                H6("5. Replace Step 2 with Greeting Generation", style="color: #007bff; margin-bottom: 0.25rem;"),
+                H6("5. Replace Step 2 with Greeting Generation", cls="step-heading"),
                 P("Swaps placeholder step_02 with Hello World's greeting logic",
-                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                  cls="text-description"),
                 Pre(Code(cmd5, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto; position: relative;")
             ),
 
             # All-in-one section
-            H5("Complete Recreation Sequence:", style="color: #28a745; margin-bottom: 0.75rem;"),
+            H5("Complete Recreation Sequence:", cls="command-heading"),
             P("Copy and paste this single command to recreate Hello World workflow from scratch:",
               style="color: #6c757d; margin-bottom: 0.5rem;"),
             Pre(Code(combined_cmd, cls='language-bash copy-code'),
-                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
+                cls="code-block-success"),
 
             id=widget_id
         )
@@ -460,33 +460,33 @@ class WorkflowGenesis:
                       f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
 
         return Div(
-            H4("Trifecta Workflow Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
+            H4("Trifecta Workflow Experience", cls="section-title"),
             P("Starts with the sophisticated Botify Trifecta template and adds a blank placeholder for your custom step.",
-              style="color: #6c757d; margin-bottom: 1.5rem;"),
+              cls="section-description"),
 
             # Individual commands section
             H5("Individual Commands:", style="color: #17a2b8; margin-bottom: 0.75rem;"),
 
             Div(
-                H6("1. Create Trifecta Workflow", style="color: #007bff; margin-bottom: 0.25rem;"),
+                H6("1. Create Trifecta Workflow", cls="step-heading"),
                 P("Creates complex 5-step workflow from Botify Trifecta template",
-                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                  cls="text-description"),
                 Pre(Code(cmd1, cls='language-bash copy-code'),
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
+                    cls="code-block-standard"),
 
-                H6("2. Add Blank Placeholder Step", style="color: #007bff; margin-bottom: 0.25rem;"),
+                H6("2. Add Blank Placeholder Step", cls="step-heading"),
                 P("Adds a new blank placeholder step at the end of the workflow for customization",
-                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                  cls="text-description"),
                 Pre(Code(cmd2, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto; position: relative;")
             ),
 
             # All-in-one section
-            H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
+            H5("All-in-One Command:", cls="command-heading"),
             P("Copy and paste this single command to create the trifecta workflow with an additional placeholder step:",
               style="color: #6c757d; margin-bottom: 0.5rem;"),
             Pre(Code(combined_cmd, cls='language-bash copy-code'),
-                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
+                cls="code-block-success"),
 
             id=widget_id
         )
@@ -854,7 +854,7 @@ class WorkflowGenesis:
                     style="background-color: rgba(23, 162, 184, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #17a2b8; margin-bottom: 1.5rem;"
                 ),
 
-                P("Ready to create your workflow and restart the server?", style="color: #e9ecef; margin-bottom: 1rem;"),
+                P("Ready to create your workflow and restart the server?", cls="section-title"),
                 Button('🚀 Execute & Restart Server', type='submit', cls='primary', 
                        **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Execute & Restart Server"'}),
                 hx_post=f'/{app_name}/{step_id}_submit',
@@ -1048,7 +1048,7 @@ class WorkflowGenesis:
 
                 Div(
                     H5("📁 File Location:", style="color: #28a745; margin-bottom: 0.5rem;"),
-                    P(f"Created in: {plugins_dir}", style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                    P(f"Created in: {plugins_dir}", cls="text-description"),
                     open_plugins_folder_ui,
                     style="background-color: rgba(40, 167, 69, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 1rem;"
                 ),
@@ -1089,7 +1089,7 @@ class WorkflowGenesis:
 
                 Div(
                     H5("📁 Project Location:", style="color: #6c757d; margin-bottom: 0.5rem;"),
-                    P(f"Check: {plugins_dir}", style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                    P(f"Check: {plugins_dir}", cls="text-description"),
                     open_plugins_folder_ui,
                     style="background-color: rgba(108, 117, 125, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #6c757d;"
                 )

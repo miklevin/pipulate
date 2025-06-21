@@ -766,6 +766,57 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     margin-bottom: 1.5rem;
 }
 
+/* Workflow Genesis Plugin Semantic Classes
+   ==========================================
+   Consolidated from 50+ inline styles in workflow genesis plugin
+   ========================================== */
+
+/* Text content patterns */
+.text-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.step-heading {
+    color: #007bff;
+    margin-bottom: 0.25rem;
+}
+
+.section-title {
+    color: #e9ecef;
+    margin-bottom: 1rem;
+}
+
+.section-description {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+}
+
+.command-heading {
+    color: #28a745;
+    margin-bottom: 0.75rem;
+}
+
+/* Code block patterns */
+.code-block-standard {
+    background-color: #2d3748;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    position: relative;
+}
+
+.code-block-success {
+    background-color: #2d3748;
+    padding: 1rem;
+    border-radius: 4px;
+    border-left: 4px solid #28a745;
+    overflow-x: auto;
+    position: relative;
+}
+
 /* Components */
 hr {
     margin: 1rem 0;
