@@ -5085,7 +5085,7 @@ async def poke_flyout(request):
                 hx_target='#theme-switch-container',
                 hx_swap='outerHTML'
             ), 
-            Span('🌙 Dark Mode', style='margin-left: 0.5rem;')
+            Span('🌙 Dark Mode', cls='ml-quarter')
         ),
         Script(f"""
             // Ensure switch state matches localStorage (sticky preference)
@@ -5114,7 +5114,7 @@ async def poke_flyout(request):
             }})();
         """),
         id='theme-switch-container',
-        style='padding: 0.5rem 1rem; display: flex; align-items: center;'
+        cls='theme-switch-container'
     )
     delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
     reset_db_button = Button('🔄 Reset Entire DEV Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
@@ -5123,8 +5123,7 @@ async def poke_flyout(request):
                                 hx_target='#msg-list', 
                                 hx_swap='beforeend', 
                                 hx_confirm='⚠️ This will remove the .venv directory and require a manual restart. You will need to type "exit" then "nix develop" to rebuild the environment. Continue?', 
-                                cls='secondary outline', 
-                                style='opacity: 0.7; font-size: 0.9em;') if is_dev_mode else None
+                                cls='secondary outline dev-button-muted') if is_dev_mode else None
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
     # Add Update button
@@ -5133,8 +5132,8 @@ async def poke_flyout(request):
     # Add version info display
     nix_version = get_nix_version()
     version_info = Div(
-        Span(f'🧊 Pipulate: {nix_version}', style='font-size: 0.85em; color: var(--pico-muted-color); font-family: monospace;'),
-        style='padding: 0.5rem 1rem; border-top: 1px solid var(--pico-muted-border-color); text-align: center;'
+        Span(f'🧊 Pipulate: {nix_version}', cls='version-info-text'),
+        cls='version-info-container'
     )
     
     # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, MCP Test
@@ -5357,7 +5356,7 @@ async def toggle_theme(request):
                 hx_target='#theme-switch-container',
                 hx_swap='outerHTML'
             ), 
-            Span('🌙 Dark Mode', style='margin-left: 0.5rem;')
+            Span('🌙 Dark Mode', cls='ml-quarter')
         ),
         Script(f"""
             // Apply theme to HTML element
@@ -5366,7 +5365,7 @@ async def toggle_theme(request):
             localStorage.setItem('theme_preference', '{new_theme}');
         """),
         id='theme-switch-container',
-        style='padding: 0.5rem 1rem; display: flex; align-items: center;'
+        cls='theme-switch-container'
     )
     
     return theme_switch
@@ -5476,7 +5475,7 @@ async def search_plugins(request):
     except Exception as e:
         logger.error(f"Error in search_plugins: {e}")
         return HTMLResponse(f"""
-        <div style="padding: 1rem; color: var(--pico-form-element-invalid-active-border-color);">
+        <div class="search-error-message">
             Search error: {str(e)}
         </div>
         <script>

@@ -872,6 +872,40 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     /* Selected menu item highlighting for profile and app menus */
 }
 
+/* Theme Switch and Settings Panel Utilities */
+.theme-switch-container {
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    /* Theme toggle container styling */
+}
+
+.version-info-container {
+    padding: 0.5rem 1rem;
+    border-top: 1px solid var(--pico-muted-border-color);
+    text-align: center;
+    /* Version information display styling */
+}
+
+.version-info-text {
+    font-size: 0.85em;
+    color: var(--pico-muted-color);
+    font-family: monospace;
+    /* Version text styling */
+}
+
+.dev-button-muted {
+    opacity: 0.7;
+    font-size: 0.9em;
+    /* Development mode button styling */
+}
+
+.search-error-message {
+    padding: 1rem;
+    color: var(--pico-form-element-invalid-active-border-color);
+    /* Error message styling for search functionality */
+}
+
 /* Documentation Plugin Semantic Classes
    ========================================
    Consolidated from 50+ inline styles in documentation plugin
