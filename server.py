@@ -2889,7 +2889,35 @@ class Pipulate:
         """
         button_style = 'display: inline-block;cursor: pointer;width: auto !important;white-space: nowrap;'
         container_style = 'display: flex;align-items: center;gap: 0.5rem;'
-        return Div(input_element, Button(button_label, type='submit', cls=button_class, style=button_style), style=container_style)
+        
+        # Generate unique IDs for input-button association
+        input_id = input_element.attrs.get('id') or f'input-{hash(str(input_element))}'
+        button_id = f'btn-{input_id}'
+        
+        # Enhance input element with semantic attributes if not already present
+        if 'aria_describedby' not in input_element.attrs:
+            input_element.attrs['aria_describedby'] = button_id
+        if 'id' not in input_element.attrs:
+            input_element.attrs['id'] = input_id
+            
+        # Create enhanced button with semantic attributes
+        enhanced_button = Button(
+            button_label, 
+            type='submit', 
+            cls=button_class, 
+            style=button_style,
+            id=button_id,
+            aria_label=f'Submit {input_element.attrs.get("placeholder", "input")}',
+            title=f'Submit form ({button_label})'
+        )
+        
+        return Div(
+            input_element, 
+            enhanced_button, 
+            style=container_style,
+            role='group',
+            aria_label='Input with submit button'
+        )
 
     def create_standard_landing_page(self, plugin_instance):
         """
@@ -2926,8 +2954,8 @@ class Pipulate:
         
         return Container(
             Card(
-                H2(title),
-                P(plugin_instance.ENDPOINT_MESSAGE, cls='text-secondary'),
+                H2(title, role='heading', aria_level='2'),
+                P(plugin_instance.ENDPOINT_MESSAGE, cls='text-secondary', role='doc-subtitle'),
                 Form(
                     self.wrap_with_inline_button(
                         Input(
@@ -2939,17 +2967,24 @@ class Pipulate:
                             autofocus=True,
                             value=full_key,
                             _onfocus='this.setSelectionRange(this.value.length, this.value.length)',
-                            cls='contrast'
+                            cls='contrast',
+                            aria_label='Pipeline ID input',
+                            aria_describedby='pipeline-help'
                         ),
                         button_label=ui_constants['BUTTON_LABELS']['ENTER_KEY'],
                         button_class=ui_constants['BUTTON_STYLES']['SECONDARY']
                     ),
                     self.update_datalist('pipeline-ids', options=matching_records, clear=not matching_records),
+                    Small('Enter a new ID or select from existing pipelines', id='pipeline-help', cls='text-muted'),
                     hx_post=f'/{plugin_instance.APP_NAME}/init',
-                    hx_target=f'#{plugin_instance.APP_NAME}-container'
-                )
+                    hx_target=f'#{plugin_instance.APP_NAME}-container',
+                    role='form',
+                    aria_label=f'Initialize {title} workflow'
+                ),
+                role='main',
+                aria_label=f'{title} workflow landing page'
             ),
-            Div(id=f'{plugin_instance.APP_NAME}-container')
+            Div(id=f'{plugin_instance.APP_NAME}-container', role='region', aria_label=f'{title} workflow content')
         )
 
     async def get_state_message(self, pkey: str, steps: list, messages: dict) -> str:
