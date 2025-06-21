@@ -405,7 +405,7 @@ class HelloFlow:
             return Div(
                 Card(
                     H3(f'{self.ui["EMOJIS"]["USER_INPUT"]} {pip.fmt(step.id)}: Enter {step.show}'),
-                    P(explanation, style=pip.get_style('muted')),
+                    P(explanation, cls='text-muted'),
                     Form(
                         pip.wrap_with_inline_button(
                             Input(
@@ -450,7 +450,7 @@ class HelloFlow:
         if not user_val:
             error_msg = f'{self.ui["EMOJIS"]["ERROR"]} Please enter a value'
             await self.message_queue.add(self.pipulate, error_msg, verbatim=True)
-            return P(error_msg, style=self.pipulate.get_style('error'))
+            return P(error_msg, cls='text-invalid')
 
         # Update state
         await self.pipulate.set_step_data(pipeline_id, step_id, user_val, self.steps)
@@ -513,7 +513,7 @@ class HelloFlow:
             return Div(
                 Card(
                     H3(f'{self.ui["EMOJIS"]["GREETING"]} {pip.fmt(step.id)}: Enter {step.show}'),
-                    P(explanation, style=pip.get_style('muted')),
+                    P(explanation, cls='text-muted'),
                     Form(
                         pip.wrap_with_inline_button(
                             Input(
