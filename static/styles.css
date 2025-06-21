@@ -773,16 +773,51 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 /* CONSOLIDATED: Now handled in main icon & link section above */
 
-/* Section heading pattern (7 instances) */
+/* ================================================================ */
+/* CONSOLIDATED TEXT CONTENT SYSTEM - Unified Headings & Descriptions */
+/* ================================================================ */
+
+/* CONSOLIDATED: Heading patterns with consistent spacing */
+.section-heading,
+.step-heading,
+.command-heading {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
 .section-heading {
     margin: 0 0 0.5rem 0;
     color: #495057;
     font-size: 1em;
 }
 
-/* CONSOLIDATED: These are now handled in the main spacing section above */
+.step-heading {
+    color: #007bff;
+    margin-bottom: 0.25rem;
+}
 
-/* Warning text styling */
+.command-heading {
+    color: #28a745;
+    margin-bottom: 0.75rem;
+}
+
+/* CONSOLIDATED: Text content with semantic colors */
+.text-description,
+.section-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.section-description {
+    margin-bottom: 1.5rem;
+}
+
+.section-title {
+    color: #e9ecef;
+    margin-bottom: 1rem;
+}
+
 .text-warning {
     color: orange;
 }
@@ -917,32 +952,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
    Consolidated from 50+ inline styles in workflow genesis plugin
    ========================================== */
 
-/* Text content patterns */
-.text-description {
-    color: #6c757d;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-}
-
-.step-heading {
-    color: #007bff;
-    margin-bottom: 0.25rem;
-}
-
-.section-title {
-    color: #e9ecef;
-    margin-bottom: 1rem;
-}
-
-.section-description {
-    color: #6c757d;
-    margin-bottom: 1.5rem;
-}
-
-.command-heading {
-    color: #28a745;
-    margin-bottom: 0.75rem;
-}
+/* CONSOLIDATED: Now handled in main text content system above */
 
 /* Code block patterns */
 .code-block-standard {
