@@ -5833,34 +5833,40 @@ async def reset_python_env(request):
         logger.info("[RESET_PYTHON_ENV] Starting critical operation. Pausing Watchdog restarts.")
         set_critical_operation_flag()
         
-        # Send immediate feedback to the user
-        await pipulate.stream('🐍 Resetting Python environment...', verbatim=True, role='system')
-        
-        # Check if .venv exists
-        if os.path.exists('.venv'):
-            await pipulate.stream('🗑️ Removing .venv directory...', verbatim=True, role='system')
-            shutil.rmtree('.venv')
-            await pipulate.stream('✅ Python environment reset complete.', verbatim=True, role='system')
-            await pipulate.stream('', verbatim=True, role='system')  # Empty line for spacing
-            await pipulate.stream('📝 **Next Steps Required:**', verbatim=True, role='system')
-            await pipulate.stream('   1. Type `exit` to leave the current nix shell', verbatim=True, role='system')
-            await pipulate.stream('   2. Type `nix develop` to rebuild the environment', verbatim=True, role='system')
-            await pipulate.stream('   3. The fresh environment build will take 2-3 minutes', verbatim=True, role='system')
-            await pipulate.stream('', verbatim=True, role='system')  # Empty line for spacing
-            await pipulate.stream('⚠️ The server will now exit to ensure a clean restart.', verbatim=True, role='system')
+        try:
+            # Send immediate feedback to the user
+            await pipulate.stream('🐍 Resetting Python environment...', verbatim=True, role='system')
             
-            # Log the reset operation for debugging
-            logger.info("🐍 FINDER_TOKEN: PYTHON_ENV_RESET - User triggered Python environment reset")
-            
-            # Clear the critical operation flag before exit
+            # Check if .venv exists
+            if os.path.exists('.venv'):
+                await pipulate.stream('🗑️ Removing .venv directory...', verbatim=True, role='system')
+                shutil.rmtree('.venv')
+                await pipulate.stream('✅ Python environment reset complete.', verbatim=True, role='system')
+                await pipulate.stream('', verbatim=True, role='system')  # Empty line for spacing
+                await pipulate.stream('📝 **Next Steps Required:**', verbatim=True, role='system')
+                await pipulate.stream('   1. Type `exit` to leave the current nix shell', verbatim=True, role='system')
+                await pipulate.stream('   2. Type `nix develop` to rebuild the environment', verbatim=True, role='system')
+                await pipulate.stream('   3. The fresh environment build will take 2-3 minutes', verbatim=True, role='system')
+                await pipulate.stream('', verbatim=True, role='system')  # Empty line for spacing
+                await pipulate.stream('⚠️ The server will now exit to ensure a clean restart.', verbatim=True, role='system')
+                
+                # Log the reset operation for debugging
+                logger.info("🐍 FINDER_TOKEN: PYTHON_ENV_RESET - User triggered Python environment reset")
+                
+            else:
+                await pipulate.stream('ℹ️ No .venv directory found to reset.', verbatim=True, role='system')
+                
+        finally:
+            # Always reset the flag, even if operation fails
             logger.info("[RESET_PYTHON_ENV] Critical operation finished. Resuming Watchdog restarts.")
             clear_critical_operation_flag()
+            
+            # For Python environment reset, we need a clean exit to let Nix recreate the environment
+            logger.info("[RESET_PYTHON_ENV] Forcing clean server exit. Nix watchdog will restart with fresh Python environment.")
             
             # Exit the server to force manual restart
             import sys
             sys.exit(0)
-        else:
-            await pipulate.stream('ℹ️ No .venv directory found to reset.', verbatim=True, role='system')
         
         return ""
         
@@ -5868,6 +5874,8 @@ async def reset_python_env(request):
         logger.error(f"Error resetting Python environment: {e}")
         error_msg = f'❌ Error resetting Python environment: {str(e)}'
         await pipulate.stream(error_msg, verbatim=True, role='system')
+        # Reset flag on error
+        clear_critical_operation_flag()
         return ""
 
 @rt('/select_profile', methods=['POST'])
