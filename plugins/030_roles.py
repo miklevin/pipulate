@@ -344,7 +344,7 @@ class CrudUI(PluginIdentityManager):
                 P(
                     f"New to {self.get_app_name()}? Start with the ",
                     A("Introduction", href="/redirect/introduction", 
-                      style="color: var(--pico-primary-color); text-decoration: underline; font-weight: 500;",
+                      cls="link-primary-bold",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
                     " for a guided overview. Chat not working? Optionally install ",
@@ -353,12 +353,12 @@ class CrudUI(PluginIdentityManager):
                           alt='External link', 
                           style='width: 14px; height: 14px; margin-left: 0.25rem; vertical-align: middle; filter: brightness(0) invert(1);'),
                       href="https://ollama.com/", target="_blank",
-                      style="color: var(--pico-primary-color); text-decoration: underline; font-weight: 500;",
+                      cls="link-primary-bold",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
                     ". ",
                     A("Developer?", href="/redirect/documentation", 
-                      style="color: var(--pico-primary-color); text-decoration: underline; font-weight: 500;",
+                      cls="link-primary-bold",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
                     style="margin-bottom: 1rem; color: var(--pico-muted-color); font-size: 0.9em;"
@@ -379,34 +379,30 @@ class CrudUI(PluginIdentityManager):
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
                            "Select ALL", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/select_all",
-                           cls="secondary",
-                           style="font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center;"),
+                           cls="secondary role-badge"),
                     Button(Img(src='/static/feather/square.svg', 
                               alt='Deselect all', 
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
                            "Deselect ALL", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/deselect_all",
-                           cls="secondary outline",
-                           style="font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center;"),
+                           cls="secondary outline role-badge"),
                     Button(Img(src='/static/feather/chevrons-down.svg', 
                               alt='Expand all', 
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
                            "Expand ALL", 
                            onclick=f"document.querySelectorAll('#{self.CONTAINER_ID} details').forEach(function(details) {{ details.open = true; }});",
-                           cls="secondary",
-                           style="font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center;"),
+                           cls="secondary role-badge"),
                     Button(Img(src='/static/feather/chevrons-up.svg', 
                               alt='Collapse all', 
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
                            "Collapse ALL", 
                            onclick=f"document.querySelectorAll('#{self.CONTAINER_ID} details').forEach(function(details) {{ details.open = false; }});",
-                           cls="secondary outline",
-                           style="font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center;"),
+                           cls="secondary outline role-badge"),
                     style="margin-bottom: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap; justify-content: center;"
                 ),
                 Ol(
                     *[self.app_instance.render_item(item) for item in items],
-                    id=self.LIST_ID, cls='sortable', style="padding-left: 1.5rem;",
+                    id=self.LIST_ID, cls="sortable pl-lg",
                     hx_post=f"{self.ENDPOINT_PREFIX}_sort", hx_swap="none",
                     data_plugin_name=self.name
                 )
@@ -563,7 +559,7 @@ class CrudUI(PluginIdentityManager):
         
         return Ol(
             *[self.app_instance.render_item(item) for item in items],
-            id=self.LIST_ID, cls='sortable', style="padding-left: 1.5rem;",
+            id=self.LIST_ID, cls="sortable pl-lg",
             hx_post=f"{self.ENDPOINT_PREFIX}_sort", hx_swap="none",
             data_plugin_name=self.name
         )

@@ -1542,7 +1542,7 @@ class DevAssistant:
 
         return Div(
             Card(
-                H3(f"Analysis: {filename}", style="margin-bottom: 1.5rem;"),
+                H3(f"Analysis: {filename}", cls="mb-lg"),
 
                 # WHAT NEEDS FIXING (Primary Focus)
                 (Div(
@@ -1559,11 +1559,11 @@ class DevAssistant:
                     ) if template_issues else None,
                     (P("✅ No critical issues found!", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; font-weight: bold; font-size: 1.1rem;")
                      if not functional_issues and not template_issues else None),
-                    style="margin-bottom: 2rem;"
+                    cls="mb-2xl"
                 ) if functional_issues or template_issues else Div(
                     H4("✅ NO ISSUES FOUND", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; padding-bottom: 0.5rem;"),
                     P("This plugin appears to be correctly implemented!", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; font-weight: bold; font-size: 1.1rem;"),
-                    style="margin-bottom: 2rem;"
+                    cls="mb-2xl"
                 )),
 
                 # CAPABILITIES (Secondary Info)

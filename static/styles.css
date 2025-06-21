@@ -766,6 +766,41 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     margin-bottom: 1.5rem;
 }
 
+/* Extra large bottom margin pattern */
+.mb-2xl {
+    margin-bottom: 2rem;
+}
+
+/* Warning text styling */
+.text-warning {
+    color: orange;
+}
+
+/* Roles Plugin Semantic Classes
+   ===============================
+   Consolidated from 22 inline styles in roles plugin
+   =============================== */
+
+/* Role badge styling (4 instances) */
+.role-badge {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    display: flex;
+    align-items: center;
+}
+
+/* Primary bold link styling (3 instances) */
+.link-primary-bold {
+    color: var(--pico-primary-color);
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+/* Left padding utility (2 instances) */
+.pl-lg {
+    padding-left: 1.5rem;
+}
+
 /* Workflow Genesis Plugin Semantic Classes
    ==========================================
    Consolidated from 50+ inline styles in workflow genesis plugin
