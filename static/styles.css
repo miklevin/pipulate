@@ -921,6 +921,36 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     min-height: 44px;
 }
 
+/* Upload Plugin Semantic Classes
+   ================================
+   Consolidated from 14 inline styles in upload plugin
+   ================================ */
+
+/* Margin utilities */
+.ml-sm {
+    margin-left: 10px;
+}
+
+.mr-sm {
+    margin-right: 10px;
+}
+
+/* Upload-specific patterns */
+.upload-summary-pre {
+    white-space: pre-wrap;
+    font-size: 0.9em;
+    background-color: var(--pico-card-background-color);
+    padding: 1em;
+    border-radius: var(--pico-border-radius);
+}
+
+.upload-file-buttons {
+    margin-top: 1em;
+    display: flex;
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+
 /* Workflow Genesis Plugin Semantic Classes
    ==========================================
    Consolidated from 50+ inline styles in workflow genesis plugin
