@@ -156,10 +156,10 @@ class IntroductionPlugin:
             return Card(
                 H3("Page Not Found"),
                 P(f"Introduction page {page_num} not found."),
-                style="min-height: 300px;"
+                cls="min-height-300"
             )
 
-        card_style = "min-height: 400px; margin-bottom: 2rem;"
+        card_class = "intro-card"
 
         if page_num == 1:
             return Card(
@@ -174,11 +174,11 @@ class IntroductionPlugin:
                     hx_post='/introduction/page/2',
                     hx_target='#grid-left-content',
                     hx_swap='innerHTML',
-                    style='color: inherit; text-decoration: underline; cursor: pointer;',
+                    cls='link-inherit-underline',
                     onmouseover='this.style.color="#007bff";',
                     onmouseout='this.style.color="inherit";'),
                   ' to continue.'),
-                style=card_style
+                cls=card_class
             )
 
         elif page_num == 2:
@@ -193,7 +193,7 @@ class IntroductionPlugin:
                             A('DOWNLOAD OLLAMA', 
                               href='https://ollama.com/', 
                               target='_blank',
-                              style='text-decoration: none; color: inherit;',
+                              cls='link-inherit-plain',
                               onmouseover='this.style.textDecoration="underline"; this.style.color="#007bff";',
                               onmouseout='this.style.textDecoration="none"; this.style.color="inherit";'),
                             Img(src='/static/feather/external-link.svg', 
@@ -206,7 +206,7 @@ class IntroductionPlugin:
                     *[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['installation_steps'][1:]]
                 ),
                 P(page_data['fallback_note']),
-                style=card_style
+                cls=card_class
             )
 
         elif page_num == 3:
@@ -215,7 +215,7 @@ class IntroductionPlugin:
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['experimenting_steps']]),
                 H3(page_data['interface_title']),
                 Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['interface_items']]),
-                style=card_style
+                cls=card_class
             )
 
         elif page_num == 4:
@@ -227,7 +227,7 @@ class IntroductionPlugin:
                                    href='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())),
                                    hx_get='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())),
                                    hx_swap='none')),
-                style=card_style
+                cls=card_class
             )
 
         elif page_num == 5:
@@ -237,7 +237,7 @@ class IntroductionPlugin:
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['advantages']]),
                 H4(page_data['benefits_title']),
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['benefits']]),
-                style=card_style
+                cls=card_class
             )
 
         elif page_num == 6:
@@ -247,7 +247,7 @@ class IntroductionPlugin:
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['llm_features']]),
                 H4('How to Use the LLM'),
                 Ul(*[Li(tip) for tip in page_data['usage_tips']]),
-                style=card_style
+                cls=card_class
             )
 
         elif page_num == 7:
@@ -260,7 +260,7 @@ class IntroductionPlugin:
                 Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['examples']]),
                 Hr(),
                 P(Strong('🧪 Test the System: '), page_data['testing_tip']),
-                style=card_style
+                cls=card_class
             )
 
     def create_llm_context(self, page_num: int, app_name: str, model: str):
@@ -369,8 +369,7 @@ class IntroductionPlugin:
             hx_post=f'/introduction/page/{current_page - 1}' if current_page > 1 else '#',
             hx_target='#grid-left-content',
             hx_swap='innerHTML',
-            cls='primary outline' if current_page == 1 else 'primary',
-            style='min-width: 160px; width: 160px;',
+            cls=f"{'primary outline' if current_page == 1 else 'primary'} width-160",
             disabled=current_page == 1
         )
 
@@ -379,15 +378,14 @@ class IntroductionPlugin:
             hx_post=f'/introduction/page/{current_page + 1}' if current_page < 7 else '#',
             hx_target='#grid-left-content',
             hx_swap='innerHTML',
-            cls='primary outline' if current_page == 7 else 'primary',
-            style='min-width: 160px; width: 160px;',
+            cls=f"{'primary outline' if current_page == 7 else 'primary'} width-160",
             disabled=current_page == 7
         )
 
         nav_arrows = Div(
             prev_button,
             next_button,
-            style='display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;'
+            cls='flex-center-gap'
         )
 
         # Create the current page content

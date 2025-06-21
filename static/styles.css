@@ -801,6 +801,46 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     padding-left: 1.5rem;
 }
 
+/* Introduction Plugin Semantic Classes
+   =====================================
+   Consolidated from 14 inline styles in introduction plugin
+   ===================================== */
+
+/* Layout utilities */
+.min-height-300 {
+    min-height: 300px;
+}
+
+.width-160 {
+    min-width: 160px;
+    width: 160px;
+}
+
+.flex-center-gap {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+/* Link styling patterns */
+.link-inherit-underline {
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.link-inherit-plain {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Card pattern (6 instances via card_style variable) */
+.intro-card {
+    min-height: 400px;
+    margin-bottom: 2rem;
+}
+
 /* Workflow Genesis Plugin Semantic Classes
    ==========================================
    Consolidated from 50+ inline styles in workflow genesis plugin
