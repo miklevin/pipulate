@@ -353,6 +353,15 @@ details.dropdown summary {
     font-weight: bold;
 }
 
+/* Navigation dropdown button consistency - semantic width constraint */
+.nav-menu-group details.dropdown summary {
+    min-width: fit-content;
+    max-width: 7.5rem; /* Allow PROFILE to fit but prevent excessive width */
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
 /* Dropdown Menu Styles */
 details.dropdown {
     position: relative;
