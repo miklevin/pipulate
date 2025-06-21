@@ -905,6 +905,22 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     margin-left: 5px;
 }
 
+/* Form Input Plugin Semantic Classes
+   ====================================
+   Consolidated from form input plugins (text_area, text_field, radios)
+   ==================================== */
+
+/* Form field styling */
+.textarea-standard {
+    min-height: 200px;
+    width: 100%;
+    padding: 8px;
+}
+
+.textfield-standard {
+    min-height: 44px;
+}
+
 /* Workflow Genesis Plugin Semantic Classes
    ==========================================
    Consolidated from 50+ inline styles in workflow genesis plugin
