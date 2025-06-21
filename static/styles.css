@@ -353,10 +353,9 @@ details.dropdown summary {
     font-weight: bold;
 }
 
-/* Navigation dropdown button consistency - semantic width constraint */
-.nav-menu-group details.dropdown summary {
-    min-width: fit-content;
-    max-width: 7.5rem; /* Allow PROFILE to fit but prevent excessive width */
+/* PROFILE dropdown specific width constraint - matches APP button width */
+#profile-dropdown-menu summary {
+    max-width: 6.5rem; /* Constrain PROFILE to match APP button width */
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
