@@ -259,6 +259,11 @@ details.dropdown {
     position: relative;
 }
 
+/* Ensure profile dropdown container has relative positioning */
+#profile-dropdown-menu {
+    position: relative;
+}
+
 details.dropdown summary + ul {
     position: absolute;
     z-index: 1000;
@@ -1367,8 +1372,16 @@ input[type="password"]:focus {
 
 /* Profile dropdown menu styling */
 .profile-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 1000;
     min-width: max-content;
     padding-left: 0;
+    background: var(--pico-background-color);
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .profile-menu-item {

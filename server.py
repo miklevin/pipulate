@@ -5101,6 +5101,13 @@ async def poke_flyout(request):
     )
     delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
     reset_db_button = Button('🔄 Reset Entire DEV Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
+    reset_python_button = Button('🐍 Reset Python Environment', 
+                                hx_post='/reset-python-env', 
+                                hx_target='#msg-list', 
+                                hx_swap='beforeend', 
+                                hx_confirm='⚠️ This will remove the .venv directory and require a manual restart. You will need to type "exit" then "nix develop" to rebuild the environment. Continue?', 
+                                cls='secondary outline', 
+                                style='opacity: 0.7; font-size: 0.9em;') if is_dev_mode else None
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
     # Add Update button
@@ -5123,6 +5130,7 @@ async def poke_flyout(request):
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
+        list_items.append(Li(reset_python_button, cls='flyout-list-item'))
     list_items.append(Li(mcp_test_button, cls='flyout-list-item'))
     
     # Always use nav flyout now - no more fallback to old flyout
@@ -5798,6 +5806,46 @@ async def update_pipulate(request):
         await pipulate.stream(f'❌ Update failed: {str(e)}', verbatim=True, role='system')
         return ""
 
+@rt('/reset-python-env', methods=['POST'])
+async def reset_python_env(request):
+    """Reset the Python virtual environment by removing .venv directory."""
+    try:
+        import shutil
+        import os
+        
+        # Send immediate feedback to the user
+        await pipulate.stream('🐍 Resetting Python environment...', verbatim=True, role='system')
+        
+        # Check if .venv exists
+        if os.path.exists('.venv'):
+            await pipulate.stream('🗑️ Removing .venv directory...', verbatim=True, role='system')
+            shutil.rmtree('.venv')
+            await pipulate.stream('✅ Python environment reset complete.', verbatim=True, role='system')
+            await pipulate.stream('', verbatim=True, role='system')  # Empty line for spacing
+            await pipulate.stream('📝 **Next Steps Required:**', verbatim=True, role='system')
+            await pipulate.stream('   1. Type `exit` to leave the current nix shell', verbatim=True, role='system')
+            await pipulate.stream('   2. Type `nix develop` to rebuild the environment', verbatim=True, role='system')
+            await pipulate.stream('   3. The fresh environment build will take 2-3 minutes', verbatim=True, role='system')
+            await pipulate.stream('', verbatim=True, role='system')  # Empty line for spacing
+            await pipulate.stream('⚠️ The server will now exit to ensure a clean restart.', verbatim=True, role='system')
+            
+            # Log the reset operation for debugging
+            logger.info("🐍 FINDER_TOKEN: PYTHON_ENV_RESET - User triggered Python environment reset")
+            
+            # Exit the server to force manual restart
+            import sys
+            sys.exit(0)
+        else:
+            await pipulate.stream('ℹ️ No .venv directory found to reset.', verbatim=True, role='system')
+        
+        return ""
+        
+    except Exception as e:
+        logger.error(f"Error resetting Python environment: {e}")
+        error_msg = f'❌ Error resetting Python environment: {str(e)}'
+        await pipulate.stream(error_msg, verbatim=True, role='system')
+        return ""
+
 @rt('/select_profile', methods=['POST'])
 async def select_profile(request):
     logger.debug('Entering select_profile function')
@@ -6124,7 +6172,7 @@ async def send_startup_environment_message():
     message_coordination['startup_in_progress'] = True
     
     # Longer wait for fresh nix develop startup to ensure chat system is fully ready
-    await asyncio.sleep(5)  # Increased from 3 to 5 seconds
+    await asyncio.sleep(3)  # Reduced from 5 to 3 seconds for faster startup
     
     try:
         current_env = get_current_environment()
@@ -6211,7 +6259,7 @@ async def warm_up_botify_schema_cache():
     AI assistants have instant access to complete Botify API schema without waiting
     for live API calls during development sessions.
     """
-    await asyncio.sleep(5)  # Let startup complete first
+    await asyncio.sleep(7)  # Let startup complete first (staggered from startup message)
     
     try:
         # Check if we have Botify token available
@@ -6293,7 +6341,7 @@ async def prepare_local_llm_context():
     immediate capability awareness without overwhelming their smaller context windows.
     Unlike advanced AIs who can explore the system, local LLMs need pre-computed context.
     """
-    await asyncio.sleep(8)  # Let startup and cache warmup complete first
+    await asyncio.sleep(10)  # Let startup and cache warmup complete first (fully staggered)
     
     try:
         # Build essential context summary for local LLMs
