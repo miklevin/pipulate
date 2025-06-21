@@ -684,6 +684,29 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     border-radius: 0.5rem;
 }
 
+/* ============================================================================
+   SEMANTIC CLEANUP CLASSES - Replacing Inline Styles
+   ============================================================================
+   
+   These classes replace common inline style patterns with semantic alternatives.
+   Each class represents a specific UI purpose rather than visual properties.
+   
+   🎯 DESIGN PRINCIPLE: 80/20 rule - consolidate styles that are 80% similar
+   and serve the same semantic purpose across the application.
+   ============================================================================ */
+
+/* URL Display Utilities */
+.url-breakable {
+    word-break: break-all;
+    /* Allows long URLs to break properly in containers */
+}
+
+/* Progress and Status Utilities */
+.progress-spaced {
+    margin-top: 10px;
+    /* Standard spacing for progress indicators */
+}
+
 /* Components */
 hr {
     margin: 1rem 0;

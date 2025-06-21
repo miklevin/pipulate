@@ -700,11 +700,11 @@ class Trifecta:
         project_url = project_data.get('url', '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and project_data:
-            return Div(Card(H3(f'🔒 {step.show}'), Div(P(f"Project: {project_data.get('project_name', '')}"), Small(project_url, style='word-break: break-all;'), cls='custom-card-padding-bg')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(Card(H3(f'🔒 {step.show}'), Div(P(f"Project: {project_data.get('project_name', '')}"), Small(project_url, cls='url-breakable'), cls='custom-card-padding-bg')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif project_data and state.get('_revert_target') != step_id:
             project_name = project_data.get('project_name', '')
             username = project_data.get('username', '')
-            project_info = Div(H4(f'Project: {project_name}'), P(f'Username: {username}'), Small(project_url, style='word-break: break-all;'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
+            project_info = Div(H4(f'Project: {project_name}'), P(f'Username: {username}'), Small(project_url, cls='url-breakable'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
             return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             display_value = project_url if step.refill and project_url else ''
@@ -810,7 +810,7 @@ class Trifecta:
             await self.message_queue.add(pip, "⚠️ No API token found - skipping analyses data save", verbatim=True)
         
         project_url = project_data.get('url', '')
-        project_info = Div(H4(f'Project: {project_name}'), Small(project_url, style='word-break: break-all;'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
+        project_info = Div(H4(f'Project: {project_name}'), Small(project_url, cls='url-breakable'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
         return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_analysis(self, request):
@@ -1180,7 +1180,7 @@ class Trifecta:
         return Card(
             H3(f'{step.show}'),
             P(f"Downloading data for analysis '{analysis_slug}'..."),
-            Progress(style='margin-top: 10px;'),
+            Progress(cls='progress-spaced'),
             Script(f"""
                 setTimeout(function() {{
                     htmx.ajax('POST', '/{app_name}/step_analysis_process', {{
@@ -1345,7 +1345,7 @@ class Trifecta:
                     step_id=step_id,
                     app_name=app_name,
                     message=f'{step.show}: Skipped',
-                    widget=Div(P('This step was skipped.', style='color: #888; font-style: italic;')),
+                    widget=Div(P('This step was skipped.', cls='text-secondary')),
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
@@ -1482,7 +1482,7 @@ class Trifecta:
         return Card(
             H3(f'{step.show}'),
             P(f"Downloading basic crawl data for '{project_name}'..."),
-            Progress(style='margin-top: 10px;'),
+            Progress(cls='progress-spaced'),
             Script(f"""
                 setTimeout(function() {{
                     htmx.ajax('POST', '/{app_name}/{step_id}_complete', {{
@@ -1744,7 +1744,7 @@ class Trifecta:
                     step_id=step_id,
                     app_name=app_name,
                     message=f'{step.show}: Skipped',
-                    widget=Div(P('This step was skipped.', style='color: #888; font-style: italic;')),
+                    widget=Div(P('This step was skipped.', cls='text-secondary')),
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
@@ -1830,7 +1830,7 @@ class Trifecta:
         return Card(
             H3(f'{step.show}'),
             P(f"Downloading Web Logs for '{project_name}'..."),
-            Progress(style='margin-top: 10px;'),
+            Progress(cls='progress-spaced'),
             Script(f"""
                 setTimeout(function() {{
                     htmx.ajax('POST', '/{app_name}/step_webogs_complete', {{
@@ -2038,7 +2038,7 @@ class Trifecta:
                     step_id=step_id,
                     app_name=app_name,
                     message=f'{step.show}: Skipped',
-                    widget=Div(P('This step was skipped.', style='color: #888; font-style: italic;')),
+                    widget=Div(P('This step was skipped.', cls='text-secondary')),
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
@@ -2137,7 +2137,7 @@ class Trifecta:
         return Card(
             H3(f'{step.show}'),
             P(f"Downloading Search Console data for '{project_name}'..."),
-            Progress(style='margin-top: 10px;'),
+            Progress(cls='progress-spaced'),
             Script(f"""
                 setTimeout(function() {{
                     htmx.ajax('POST', '/{app_name}/{step_id}_complete', {{
