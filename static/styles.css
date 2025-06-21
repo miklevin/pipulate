@@ -1541,8 +1541,8 @@ input[type="password"]:focus {
 .button-row,
 .button-row-center {
     display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
+    gap: var(--pipulate-spacing-component-gap);
+    margin-top: var(--pipulate-spacing-component-gap);
 }
 
 .button-row-center {
@@ -1555,7 +1555,7 @@ input[type="password"]:focus {
     list-style-type: none;
     display: flex;
     align-items: center;
-    margin-bottom: 5px;
+    margin-bottom: var(--pipulate-spacing-element-offset);
 }
 
 /* ============================================================================
@@ -1579,7 +1579,7 @@ input[type="password"]:focus {
 
 /* Plugin link styling - replaces 34 instances of inline styles */
 .plugin-link {
-    font-size: 0.8em;
+    font-size: var(--pipulate-font-size-badge);
     color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
 }
@@ -1591,7 +1591,7 @@ input[type="password"]:focus {
 
 /* Role plugin summary styling */
 .role-plugin-summary {
-    font-size: 0.75em;
+    font-size: var(--pipulate-font-size-tiny);
     color: var(--pico-muted-color);
     opacity: 0.7;
     cursor: pointer;
@@ -1599,13 +1599,13 @@ input[type="password"]:focus {
 
 /* Role plugin list container */
 .role-plugin-list {
-    margin: 0.25rem 0;
-    padding-left: 1.5rem;
+    margin: var(--pipulate-spacing-tight) 0;
+    padding-left: var(--pipulate-spacing-comfortable);
 }
 
 /* Role plugin details container */
 .role-plugin-details {
-    margin-top: 0.5rem;
+    margin-top: var(--pipulate-spacing-content-bottom);
 }
 
 /* CONSOLIDATED: Now handled in main icon & link section above */
@@ -1654,7 +1654,7 @@ input[type="password"]:focus {
 .profile-menu-item {
     align-items: center;
     display: flex;
-    padding: 0.5rem 1rem;
+    padding: var(--pipulate-padding-standard) var(--pipulate-padding-container);
 }
 
 .profile-menu-separator {
@@ -1695,8 +1695,8 @@ input[type="password"]:focus {
 /* CONSOLIDATED: Now handled in main display & layout section above */
 
 .search-result-tag {
-    font-size: 0.8rem;
-    padding: 0.25rem 0.5rem;
+    font-size: var(--pipulate-font-size-badge);
+    padding: var(--pipulate-padding-badge);
     display: flex;
     align-items: center;
 }
@@ -1717,12 +1717,12 @@ input[type="password"]:focus {
 .icon-inline {
     width: 14px;
     height: 14px;
-    margin-right: 0.25rem;
+    margin-right: var(--pipulate-spacing-tight);
     filter: brightness(0) invert(1);
 }
 
 .icon-inline {
-    margin-left: 0.25rem;
+    margin-left: var(--pipulate-spacing-tight);
     vertical-align: middle;
 }
 
