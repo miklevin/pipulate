@@ -726,6 +726,46 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     /* Initially hidden success status messages */
 }
 
+/* Documentation Plugin Semantic Classes
+   ========================================
+   Consolidated from 50+ inline styles in documentation plugin
+   ======================================== */
+
+/* Icon spacing for emoji icons (10 instances) */
+.icon-spaced {
+    margin-right: 0.25rem;
+}
+
+/* Link styling patterns */
+.link-primary {
+    color: var(--pico-primary);
+    text-decoration: none;
+}
+
+.nav-link-block {
+    color: #0066cc;
+    text-decoration: underline;
+    display: block;
+    margin: 2px 0;
+}
+
+/* Vertical spacing utilities */
+.my-xs {
+    margin: 0.25rem 0;
+}
+
+/* Section heading pattern (7 instances) */
+.section-heading {
+    margin: 0 0 0.5rem 0;
+    color: #495057;
+    font-size: 1em;
+}
+
+/* Large bottom margin pattern (4 instances) */
+.mb-lg {
+    margin-bottom: 1.5rem;
+}
+
 /* Components */
 hr {
     margin: 1rem 0;

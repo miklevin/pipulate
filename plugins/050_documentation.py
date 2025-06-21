@@ -822,17 +822,17 @@ This system provides unprecedented debugging power:
         # Create stats content - either filtered or all with links
         if category == 'all':
             stats_content = f"""
-                <a href="/docs" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📊 {len(self.DOCS)} documents discovered</a>
-                <a href="/docs?category=featured" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">🌟 {len(featured_docs)} featured guides</a>
-                <a href="/docs?category=training" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📖 {len(training_docs)} training files</a>
-                <a href="/docs?category=rules" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">⚙️ {len(rules_docs)} framework rules</a>
-                <a href="/docs?category=paginated" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📚 {len(paginated_docs)} paginated documents</a>
+                <a href="/docs" cls="nav-link-block">📊 {len(self.DOCS)} documents discovered</a>
+                <a href="/docs?category=featured" cls="nav-link-block">🌟 {len(featured_docs)} featured guides</a>
+                <a href="/docs?category=training" cls="nav-link-block">📖 {len(training_docs)} training files</a>
+                <a href="/docs?category=rules" cls="nav-link-block">⚙️ {len(rules_docs)} framework rules</a>
+                <a href="/docs?category=paginated" cls="nav-link-block">📚 {len(paginated_docs)} paginated documents</a>
                 <hr style="margin: 15px 0; border: none; border-top: 1px solid #e9ecef;">
                 <div style="font-weight: bold; margin-bottom: 8px; color: #495057; font-size: 0.9em;">🌐 PUBLIC DOCS</div>
-                <a href="https://pipulate.com/documentation/" target="_blank" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📚 Official Documentation</a>
-                <a href="https://pipulate.com/development/" target="_blank" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">👨‍💻 1-Pager Development Guide</a>
-                <a href="https://pipulate.com/guide/" target="_blank" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📖 Paginated Guide</a>
-                <a href="https://github.com/miklevin/pipulate" target="_blank" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">🐙 GitHub Repository</a>
+                <a href="https://pipulate.com/documentation/" target="_blank" cls="nav-link-block">📚 Official Documentation</a>
+                <a href="https://pipulate.com/development/" target="_blank" cls="nav-link-block">👨‍💻 1-Pager Development Guide</a>
+                <a href="https://pipulate.com/guide/" target="_blank" cls="nav-link-block">📖 Paginated Guide</a>
+                <a href="https://github.com/miklevin/pipulate" target="_blank" cls="nav-link-block">🐙 GitHub Repository</a>
             """
         else:
             # Show count for current category only
@@ -1020,8 +1020,8 @@ This system provides unprecedented debugging power:
             </p>
             
             <!-- Common Scenarios -->
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">🎯 <strong>Most Common Bootstrap</strong></h4>
+            <div cls="mb-lg">
+                <h4 cls="section-heading">🎯 <strong>Most Common Bootstrap</strong></h4>
                 <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
                     "I need help with my Pipulate workflow. My pipeline_id is [PIPELINE_ID].<br>
                     Please use the pipeline_state_inspector MCP tool to grab my complete workflow state,<br>
@@ -1032,16 +1032,16 @@ This system provides unprecedented debugging power:
                 </div>
             </div>
 
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">🔍 <strong>Mid-Session Debugging</strong></h4>
+            <div cls="mb-lg">
+                <h4 cls="section-heading">🔍 <strong>Mid-Session Debugging</strong></h4>
                 <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
                     "My trifecta workflow is stuck at [STEP_NAME]. Pipeline: [PIPELINE_ID].<br>
                     Please inspect my pipeline state and check the logs for errors."
                 </div>
             </div>
 
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">📁 <strong>File/Data Investigation</strong></h4>
+            <div cls="mb-lg">
+                <h4 cls="section-heading">📁 <strong>File/Data Investigation</strong></h4>
                 <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
                     "I have data at downloads/trifecta/[USERNAME]/[PROJECT]/[ANALYSIS]/.<br>
                     Please analyze what files exist and help me understand the data structure."
@@ -1051,8 +1051,8 @@ This system provides unprecedented debugging power:
                 </div>
             </div>
 
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">🌐 <strong>API/Template Issues</strong></h4>
+            <div cls="mb-lg">
+                <h4 cls="section-heading">🌐 <strong>API/Template Issues</strong></h4>
                 <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
                     "My Botify API call failed for [USERNAME]/[PROJECT]/[ANALYSIS].<br>
                     Please use the discover-fields endpoint to check available fields<br>
@@ -1065,7 +1065,7 @@ This system provides unprecedented debugging power:
 
             <!-- Power User Section -->
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">⚡ <strong>Power User: Direct MCP Call</strong></h4>
+                <h4 cls="section-heading">⚡ <strong>Power User: Direct MCP Call</strong></h4>
                 <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
                     curl -X POST "http://localhost:5001/mcp-tool-executor" \\<br>
                     &nbsp;&nbsp;-H "Content-Type: application/json" \\<br>
@@ -1075,7 +1075,7 @@ This system provides unprecedented debugging power:
 
             <!-- Quick Tools Section -->
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">🚀 <strong>Quick Transparency Tools</strong></h4>
+                <h4 cls="section-heading">🚀 <strong>Quick Transparency Tools</strong></h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0.5rem 0;">
                     <a href="/trifecta/discover-fields/uhnd-com/uhnd.com-demo-account/20250616" target="_blank" 
                        style="display: block; padding: 0.75rem; background: #e3f2fd; border-radius: 4px; text-decoration: none; color: #1976d2; font-size: 0.85em;">
@@ -1092,7 +1092,7 @@ This system provides unprecedented debugging power:
 
             <!-- Key Capabilities -->
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1em;">🔥 <strong>What This Unlocks</strong></h4>
+                <h4 cls="section-heading">🔥 <strong>What This Unlocks</strong></h4>
                 <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0; color: #6c757d; font-size: 0.9em;">
                     <li>📊 <strong>Full Pipeline State</strong>: Current step, completed data, file status</li>
                     <li>🎯 <strong>Field Discovery</strong>: Available Botify fields for any project/analysis</li>
@@ -1995,69 +1995,69 @@ This system provides unprecedented debugging power:
 
             # Quick stats summary with clickable links to browse sections
             Div(
-                P(A(Span("📄", cls="emoji", style="margin-right: 0.25rem;"), "README - Project Overview",
+                P(A(Span("📄", cls="emoji icon-spaced"), "README - Project Overview",
                     href="/docs/readme", target="_blank",
                     style="color: var(--pico-primary); text-decoration: none; font-weight: bold;",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
-                  style="margin: 0.25rem 0;"),
+                  cls="my-xs"),
                 Hr(style="border: none; height: 1px; background: #e9ecef; margin: 8px 0;"),
-                P(A(Span("📊", cls="emoji", style="margin-right: 0.25rem;"), f"{len(self.DOCS)} documents discovered",
+                P(A(Span("📊", cls="emoji icon-spaced"), f"{len(self.DOCS)} documents discovered",
                     href="/docs", target="_blank",
-                    style="color: var(--pico-primary); text-decoration: none;",
+                    cls="link-primary",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
-                  style="margin: 0.25rem 0;"),
-                P(A(Span("🌟", cls="emoji", style="margin-right: 0.25rem;"), f"{len(featured_docs)} featured guides",
+                  cls="my-xs"),
+                P(A(Span("🌟", cls="emoji icon-spaced"), f"{len(featured_docs)} featured guides",
                     href="/docs?category=featured", target="_blank",
-                    style="color: var(--pico-primary); text-decoration: none;",
+                    cls="link-primary",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
-                  style="margin: 0.25rem 0;"),
-                P(A(Span("📖", cls="emoji", style="margin-right: 0.25rem;"), f"{len(training_docs)} training files",
+                  cls="my-xs"),
+                P(A(Span("📖", cls="emoji icon-spaced"), f"{len(training_docs)} training files",
                     href="/docs?category=training", target="_blank",
-                    style="color: var(--pico-primary); text-decoration: none;",
+                    cls="link-primary",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
-                  style="margin: 0.25rem 0;"),
-                P(A(Span("⚙️", cls="emoji", style="margin-right: 0.25rem;"), f"{len(rules_docs)} framework rules",
+                  cls="my-xs"),
+                P(A(Span("⚙️", cls="emoji icon-spaced"), f"{len(rules_docs)} framework rules",
                     href="/docs?category=rules", target="_blank",
-                    style="color: var(--pico-primary); text-decoration: none;",
+                    cls="link-primary",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
-                  style="margin: 0.25rem 0;"),
-                P(A(Span("📚", cls="emoji", style="margin-right: 0.25rem;"), f"{len(paginated_docs)} paginated documents",
+                  cls="my-xs"),
+                P(A(Span("📚", cls="emoji icon-spaced"), f"{len(paginated_docs)} paginated documents",
                     href="/docs?category=paginated", target="_blank",
-                    style="color: var(--pico-primary); text-decoration: none;",
+                    cls="link-primary",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
-                  style="margin: 0.25rem 0;"),
+                  cls="my-xs"),
                 Hr(style="border: none; height: 1px; background: #e9ecef; margin: 8px 0;"),
                 P(Strong("🌐 Public Docs"), style="margin: 0.5rem 0 0.25rem 0; font-size: 0.9em; color: var(--pico-muted-color);"),
-                P(A(Span("📚", cls="emoji", style="margin-right: 0.25rem;"), "Official Documentation",
+                P(A(Span("📚", cls="emoji icon-spaced"), "Official Documentation",
                     href="https://pipulate.com/documentation/", target="_blank",
-                    style="color: var(--pico-primary); text-decoration: none;",
+                    cls="link-primary",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
-                  style="margin: 0.25rem 0;"),
-                P(A(Span("👨‍💻", cls="emoji", style="margin-right: 0.25rem;"), "1-Pager Development Guide",
+                  cls="my-xs"),
+                P(A(Span("👨‍💻", cls="emoji icon-spaced"), "1-Pager Development Guide",
                     href="https://pipulate.com/development/", target="_blank",
-                    style="color: var(--pico-primary); text-decoration: none;",
+                    cls="link-primary",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
-                  style="margin: 0.25rem 0;"),
-                P(A(Span("📖", cls="emoji", style="margin-right: 0.25rem;"), "Paginated Guide",
+                  cls="my-xs"),
+                P(A(Span("📖", cls="emoji icon-spaced"), "Paginated Guide",
                     href="https://pipulate.com/guide/", target="_blank",
-                    style="color: var(--pico-primary); text-decoration: none;",
+                    cls="link-primary",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
-                  style="margin: 0.25rem 0;"),
-                P(A(Span("🐙", cls="emoji", style="margin-right: 0.25rem;"), "GitHub Repository",
+                  cls="my-xs"),
+                P(A(Span("🐙", cls="emoji icon-spaced"), "GitHub Repository",
                     href="https://github.com/miklevin/pipulate", target="_blank",
-                    style="color: var(--pico-primary); text-decoration: none;",
+                    cls="link-primary",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
-                  style="margin: 0.25rem 0;"),
+                  cls="my-xs"),
                 style="background-color: var(--pico-card-sectionning-background-color); padding: 1rem; margin: 1rem 0; border-radius: var(--pico-border-radius); font-weight: 500;"
             ),
 
