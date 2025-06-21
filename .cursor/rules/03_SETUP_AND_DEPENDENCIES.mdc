@@ -40,7 +40,48 @@ This system allows a simple `curl | sh` installation without requiring users to 
 
 ---
 
-## 4. Notebook Copy Solution: Preventing Git Conflicts
+## 4. 🚀 CRITICAL: Cursor IDE Configuration
+
+**This is the breakthrough setup that eliminates environment struggles!**
+
+To ensure Cursor's terminal uses the **exact same Python environment** as the server:
+
+### **Step-by-Step Cursor Setup**
+
+1. **Open Command Palette**: Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
+2. **Select Python Interpreter**: Choose `"Python: Select Interpreter"`
+3. **Enter Custom Path**: Select `"Enter Interpreter Path"`
+4. **Navigate to .venv**: Browse to your pipulate directory
+5. **Show Hidden Files**: Click `"Show Hidden"` if necessary to see `.venv`
+6. **Select Python**: Choose `./pipulate/.venv/bin/python`
+   - ⚠️ **Important**: Choose `python` (not `python3` or `python3.12`)
+
+### **Why This is Revolutionary**
+
+✅ **Environment Consistency**: Terminal commands use the same Python as the server
+✅ **Same Dependencies**: FastHTML, Starlette, Uvicorn versions match exactly  
+✅ **Same Database**: Terminal operations read/write to the same `data/data.db`
+✅ **Direct Testing**: Import and test server modules without environment setup
+✅ **MCP Tool Testing**: Test MCP tools directly from terminal with matching environment
+✅ **Plugin Development**: Import and test plugin code directly
+
+### **Verification**
+
+After configuration, verify the setup:
+
+```bash
+# Check Python path
+which python
+# Should output: /path/to/pipulate/.venv/bin/python
+
+# Verify environment consistency
+python -c "import sys; print(sys.executable)"
+# Should match the server's Python executable
+```
+
+---
+
+## 5. Notebook Copy Solution: Preventing Git Conflicts
 
 
 To prevent `git pull` conflicts from user edits to the introductory Jupyter Notebook, a "copy-on-first-run" system is used.

@@ -74,10 +74,10 @@ Browser (User Interface) ←→ Human Creativity
 | +-------↓-----------+ +------------------------+ |
 |         | MiniDataAPI / DictLikeDB               |
 |         ↓                                        |
-| +-------------------+  +---------------------+  |
-| |   SQLite Database |  |   JupyterLab        |  |
-| | (Complete State)  |  | (Prototyping Env)   |  |
-| +-------------------+  +---------------------+  |
+| +-------------------+  +----------------------+  |
+| |   SQLite Database |  |   JupyterLab         |  |
+| | (Complete State)  |  | (Prototyping Env)    |  |
+| +-------------------+  +----------------------+  |
 +--------------------------------------------------+
 ```
 
