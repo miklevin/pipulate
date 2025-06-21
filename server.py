@@ -4948,7 +4948,7 @@ def create_chat_interface(autofocus=False):
         del db['temp_message']
     init_script = f'\n    // Set global variables for the external script\n    window.PCONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
     # Enter/Shift+Enter handling is now externalized in chat-interactions.js
-    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-config.js'), Script('initializeChatInterface();')), id='chat-interface')
+    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height, role='log', aria_label='Chat conversation', aria_live='polite'), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)', role='form', aria_label='Chat input form'), Script(init_script), Script(src='/static/websocket-config.js'), Script('initializeChatInterface();')), id='chat-interface', role='complementary', aria_label='AI Assistant Chat')
 
 # Global variable to track streaming state
 is_streaming = False
@@ -4980,6 +4980,10 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
             autofocus='autofocus' if autofocus else None,
             required=True,
             aria_required='true',
+            aria_label='Chat message input',
+            aria_describedby='send-btn',
+            role='textbox',
+            aria_multiline='true'
         ),
         Div(
             Button(
@@ -4987,6 +4991,8 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
                 type='submit',
                 id='send-btn',
                 disabled=disabled,
+                aria_label='Send message to AI assistant',
+                title='Send message (Enter or click)'
             ),
             Button(
                 Img(src='/static/feather/x-octagon.svg', alt='Stop'),
@@ -4994,10 +5000,13 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
                 id='stop-btn',
                 disabled=False,  # Enabled, JS will control visibility
                 onclick='stopSidebarStream()',
+                aria_label='Stop AI response streaming',
+                title='Stop current response'
             ),
             cls='button-container',
         ),
         id='input-group',
+        aria_label='Chat input controls'
     )
 
 # Old create_poke_button function removed - now using nav poke button
