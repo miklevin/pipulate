@@ -5823,6 +5823,16 @@ async def reset_python_env(request):
         import shutil
         import os
         
+        # Check if another critical operation is in progress
+        if is_critical_operation_in_progress():
+            await pipulate.stream("⚠️ Another critical operation is in progress. Please wait and try again.", 
+                                verbatim=True, role='system')
+            return ""
+        
+        # Set flag to prevent watchdog restarts during operation
+        logger.info("[RESET_PYTHON_ENV] Starting critical operation. Pausing Watchdog restarts.")
+        set_critical_operation_flag()
+        
         # Send immediate feedback to the user
         await pipulate.stream('🐍 Resetting Python environment...', verbatim=True, role='system')
         
@@ -5841,6 +5851,10 @@ async def reset_python_env(request):
             
             # Log the reset operation for debugging
             logger.info("🐍 FINDER_TOKEN: PYTHON_ENV_RESET - User triggered Python environment reset")
+            
+            # Clear the critical operation flag before exit
+            logger.info("[RESET_PYTHON_ENV] Critical operation finished. Resuming Watchdog restarts.")
+            clear_critical_operation_flag()
             
             # Exit the server to force manual restart
             import sys
