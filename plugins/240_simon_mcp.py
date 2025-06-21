@@ -10,7 +10,7 @@ import inspect
 from pathlib import Path
 import re
 
-ROLES = ['Developer'] # Defines which user roles can see this plugin
+ROLES = ['Components'] # Defines which user roles can see this plugin
 
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None, None, None, False, None))
 
@@ -19,14 +19,14 @@ from server import MODEL
 
 class SimonSaysMcpWidget:
     """
-    UI Flash Testing Utility
-    Direct MCP tool execution for testing UI element flashing capabilities.
-    This utility provides immediate access to flash specific UI elements without requiring pipeline keys or LLM interpretation.
+    Simon Says Make MCP Call
+    Direct MCP tool execution for testing and training with UI element flashing and other MCP capabilities.
+    This utility provides immediate access to MCP tools without requiring pipeline keys or LLM interpretation.
     """
     APP_NAME = 'simon_mcp'
-    DISPLAY_NAME = 'UI Flash Testing 🎪'
-    ENDPOINT_MESSAGE = """Direct UI flash testing utility. Select a UI element and click to flash it 10 times for teaching emphasis."""
-    TRAINING_PROMPT = """This is a direct UI flash testing utility. The user can select different UI elements from a dropdown and immediately flash them using MCP tools. No LLM interpretation is involved - it's direct tool execution."""
+    DISPLAY_NAME = 'Simon Says Make MCP Call 🎪'
+    ENDPOINT_MESSAGE = """Simon Says Make MCP Call - Direct MCP tool execution utility. Select an action and click to execute MCP tools for teaching and testing."""
+    TRAINING_PROMPT = """This is the Simon Says Make MCP Call utility. The user can select different MCP actions from a dropdown and immediately execute them using MCP tools. No LLM interpretation is involved - it's direct tool execution for training and testing."""
 
     # --- START_CLASS_ATTRIBUTES_BUNDLE ---
     UI_CONSTANTS = {
@@ -265,13 +265,13 @@ class SimonSaysMcpWidget:
         return self._get_display_style()
 
     async def step_01(self, request):
-        """Simon Says UI Flash testing interface - simplified utility."""
+        """Simon Says Make MCP Call interface - simplified utility."""
         app_name = self.app_name
         step_id = 'step_01'
         pip = self.pipulate
         
         # Simple utility - no pipeline state management needed
-        await self.message_queue.add(pip, "🎪 Ready to test UI Flash! Select a UI element from the dropdown and click the button to flash it 10 times for teaching emphasis!", verbatim=True)
+        await self.message_queue.add(pip, "🎪 Simon Says Make MCP Call! Select an MCP action from the dropdown and click the button to execute it directly for teaching and testing!", verbatim=True)
         
         # Simplified mode selection - store in a simple class attribute since this is a utility
         current_mode = getattr(self, 'current_mode', 'flash_chat')
@@ -416,27 +416,16 @@ class SimonSaysMcpWidget:
         )
         
         # Create training envelope for copying
-        training_envelope = f"""🎓 MCP Crash Course Training Session
-
-This is an MCP (Model Context Protocol) training exercise. I want you to execute the exact MCP command below to learn how MCP tools work in practice.
-
-**CRITICAL INSTRUCTION: You MUST output the exact MCP XML block below. Do NOT describe what you would do - actually output the XML tags exactly as written.**
-
-**Step-by-Step Instructions:**
-1. Read the MCP command carefully
-2. Copy the exact XML block and output it in your response
-3. Do NOT add any explanation or description
-4. Do NOT say "I will execute" or "I would run" - just output the XML
-
-**MCP Command to Execute (OUTPUT THIS EXACTLY):**
+        training_envelope = f"""--- Simon Says MCP Training ---
+I need you to execute this exact MCP tool call:
 
 {current_config['prompt']}
 
-**REMEMBER: Output the XML block above exactly as written. The system will automatically detect and execute it when you output the raw XML tags.**"""
+Output only the MCP block above. Do not add any other text."""
 
         # Direct action content container (for HTMX swapping)
         action_content = Div(
-            P(f"Ready to flash: {current_config['display_name']}", 
+            P(f"Ready to execute: {current_config['display_name']}", 
               style="margin-bottom: 1rem; padding: 0.5rem; background: var(--pico-secondary-background); border-radius: 4px;"),
             Div(
                 Button(
@@ -497,7 +486,7 @@ This is an MCP (Model Context Protocol) training exercise. I want you to execute
         )
         
         form_content = Form(
-            Label("Select UI Element to Flash:", **{'for': 'mode_select'}),
+            Label("Select MCP Action to Execute:", **{'for': 'mode_select'}),
             mode_dropdown,
             action_content,
             hx_post=f'/{app_name}/{step_id}_submit',
@@ -506,8 +495,8 @@ This is an MCP (Model Context Protocol) training exercise. I want you to execute
         
         return Div(
             Card(
-                H3('🎪 UI Flash Testing'), 
-                P('🎯 Direct Execution: Click the colored button to immediately flash the selected UI element.'),
+                H3('🎪 Simon Says Make MCP Call'), 
+                P('🎯 Direct Execution: Click the colored button to immediately execute the selected MCP action.'),
                 P('📋 Training Mode: Click "Copy for Chat" to copy the MCP command with training envelope, then paste it in the chat to teach your local LLM how MCP tools work.'),
                 form_content
             ),
@@ -768,27 +757,16 @@ This is an MCP (Model Context Protocol) training exercise. I want you to execute
             current_config = mode_config.get(selected_mode, mode_config['flash_chat'])
             
             # Create training envelope for copying
-            training_envelope = f"""🎓 MCP Crash Course Training Session
-
-This is an MCP (Model Context Protocol) training exercise. I want you to execute the exact MCP command below to learn how MCP tools work in practice.
-
-**CRITICAL INSTRUCTION: You MUST output the exact MCP XML block below. Do NOT describe what you would do - actually output the XML tags exactly as written.**
-
-**Step-by-Step Instructions:**
-1. Read the MCP command carefully
-2. Copy the exact XML block and output it in your response
-3. Do NOT add any explanation or description
-4. Do NOT say "I will execute" or "I would run" - just output the XML
-
-**MCP Command to Execute (OUTPUT THIS EXACTLY):**
+            training_envelope = f"""--- Simon Says MCP Training ---
+I need you to execute this exact MCP tool call:
 
 {current_config['prompt']}
 
-**REMEMBER: Output the XML block above exactly as written. The system will automatically detect and execute it when you output the raw XML tags.**"""
+Output only the MCP block above. Do not add any other text."""
             
             # Return the updated action content div
             return Div(
-                P(f"Ready to flash: {current_config['display_name']}", 
+                P(f"Ready to execute: {current_config['display_name']}", 
                   style="margin-bottom: 1rem; padding: 0.5rem; background: var(--pico-secondary-background); border-radius: 4px;"),
                 Div(
                     Button(
