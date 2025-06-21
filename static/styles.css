@@ -593,7 +593,9 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     color: var(--pico-muted-color);
 }
 
+/* CONSOLIDATED: text-muted is now an alias for text-secondary since they serve the same semantic purpose */
 .text-muted {
+    font-size: 0.9em;
     color: var(--pico-muted-color);
 }
 
@@ -613,6 +615,13 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     color: var(--pico-primary);
 }
 
+/* CONSOLIDATED: text-sm serves same purpose as text-secondary font size - merge into unified text-small */
+.text-sm,
+.text-small {
+    font-size: 0.9em;
+}
+
+/* Typography utilities */
 .font-bold {
     font-weight: bold;
 }
@@ -621,62 +630,84 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     font-style: italic;
 }
 
+.font-code {
+    font-family: var(--pico-font-family-monospace);
+}
+
 .w-full {
     width: 100%;
-}
-
-.flex {
-    display: flex;
-}
-
-.block {
-    display: block;
 }
 
 .hidden {
     display: none;
 }
 
-.items-center {
-    align-items: center;
-}
-
 .overflow-auto {
     overflow: auto;
 }
 
-/* Spacing Utilities */
+/* Spacing Utilities - CONSOLIDATED SYSTEMATIC SCALE */
 .mt-vh {
     margin-top: var(--spacing-vh);
 }
 
-.mt-4 {
+/* Consolidated margin-top scale */
+.mt-4,
+.mt-lg {
     margin-top: 1rem;
 }
 
-.mb-2 {
+.mt-half,
+.mt-sm {
+    margin-top: 0.5rem;
+}
+
+/* Consolidated margin-bottom scale */
+.mb-2,
+.mb-sm {
     margin-bottom: 0.5rem;
 }
 
-.mb-4 {
+.mb-4,
+.mb-lg {
     margin-bottom: 1rem;
 }
 
-.mb-sm {
-    margin-bottom: 5px;
+.mb-lg-alt {
+    margin-bottom: 1.5rem;
 }
 
+.mb-2xl {
+    margin-bottom: 2rem;
+}
+
+/* Consolidated margin utilities */
+.ml-sm,
+.ml-quarter {
+    margin-left: 0.5rem;
+}
+
+.mr-sm {
+    margin-right: 0.5rem;
+}
+
+/* Vertical margin utility */
+.my-xs {
+    margin: 0.25rem 0;
+}
+
+/* Padding utilities */
 .p-2 {
     padding: 0.5rem;
+}
+
+.pl-lg {
+    padding-left: 1.5rem;
 }
 
 /* Typography */
 .font-code {
     font-family: var(--pico-font-family-monospace);
-}
-
-.text-sm {
-    font-size: 0.9em;
 }
 
 /* Borders and Shapes */
@@ -731,28 +762,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
    Consolidated from 50+ inline styles in documentation plugin
    ======================================== */
 
-/* Icon spacing for emoji icons (10 instances) */
-.icon-spaced {
-    margin-right: 0.25rem;
-}
-
-/* Link styling patterns */
-.link-primary {
-    color: var(--pico-primary);
-    text-decoration: none;
-}
-
-.nav-link-block {
-    color: #0066cc;
-    text-decoration: underline;
-    display: block;
-    margin: 2px 0;
-}
-
-/* Vertical spacing utilities */
-.my-xs {
-    margin: 0.25rem 0;
-}
+/* CONSOLIDATED: Now handled in main icon & link section above */
 
 /* Section heading pattern (7 instances) */
 .section-heading {
@@ -761,15 +771,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     font-size: 1em;
 }
 
-/* Large bottom margin pattern (4 instances) */
-.mb-lg {
-    margin-bottom: 1.5rem;
-}
-
-/* Extra large bottom margin pattern */
-.mb-2xl {
-    margin-bottom: 2rem;
-}
+/* CONSOLIDATED: These are now handled in the main spacing section above */
 
 /* Warning text styling */
 .text-warning {
@@ -789,17 +791,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     align-items: center;
 }
 
-/* Primary bold link styling (3 instances) */
-.link-primary-bold {
-    color: var(--pico-primary-color);
-    text-decoration: underline;
-    font-weight: 500;
-}
-
-/* Left padding utility (2 instances) */
-.pl-lg {
-    padding-left: 1.5rem;
-}
+/* CONSOLIDATED: Now handled in main icon & link section above */
 
 /* Introduction Plugin Semantic Classes
    =====================================
@@ -816,24 +808,9 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     width: 160px;
 }
 
-.flex-center-gap {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin-top: 1rem;
-}
+/* CONSOLIDATED: Now handled in main flex layout section above */
 
-/* Link styling patterns */
-.link-inherit-underline {
-    color: inherit;
-    text-decoration: underline;
-    cursor: pointer;
-}
-
-.link-inherit-plain {
-    text-decoration: none;
-    color: inherit;
-}
+/* CONSOLIDATED: Now handled in main icon & link section above */
 
 /* Card pattern (6 instances via card_style variable) */
 .intro-card {
@@ -879,13 +856,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
    Consolidated from 5 inline styles in tasks plugin
    =============================== */
 
-/* Task item layout */
-.task-item {
-    list-style-type: none;
-    display: flex;
-    align-items: center;
-    margin-bottom: 5px;
-}
+/* CONSOLIDATED: Now handled in main flex layout section above */
 
 /* Task interaction elements */
 .task-delete-icon {
@@ -925,15 +896,6 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
    ================================
    Consolidated from 14 inline styles in upload plugin
    ================================ */
-
-/* Margin utilities */
-.ml-sm {
-    margin-left: 10px;
-}
-
-.mr-sm {
-    margin-right: 10px;
-}
 
 /* Upload-specific patterns */
 .upload-summary-pre {
@@ -1518,21 +1480,12 @@ input[type="password"]:focus {
 }
 
 /* ================================================================ */
-/* SEMANTIC LAYOUT UTILITIES - Extracted from repeated inline patterns */
+/* CONSOLIDATED FLEX LAYOUT SYSTEM - Unified Approach */
 /* ================================================================ */
 
-/* Flex container patterns found throughout plugins */
-.flex-row {
+/* Basic flex containers */
+.flex {
     display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.flex-row-wide {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    gap: 10px;
 }
 
 .flex-column {
@@ -1540,15 +1493,51 @@ input[type="password"]:focus {
     flex-direction: column;
 }
 
-.flex-center {
+/* Flex containers with alignment - CONSOLIDATED */
+.flex-row,
+.flex-center-items,
+.items-center {
+    display: flex;
+    align-items: center;
+}
+
+.flex-row {
+    gap: 10px;
+}
+
+.flex-center-items {
+    margin-bottom: 0.25rem;
+    cursor: pointer;
+}
+
+.flex-row-wide,
+.profile-layout {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+}
+
+.profile-layout {
+    padding: 0.5rem 0;
+}
+
+/* Centered flex containers - CONSOLIDATED */
+.flex-center,
+.flex-center-gap {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 1rem;
 }
 
-/* Flex item behaviors */
-.flex-grow {
+.flex-center-gap {
+    margin-top: 1rem;
+}
+
+/* Flex item behaviors - CONSOLIDATED */
+.flex-grow,
+.flex-1 {
     flex-grow: 1;
     min-width: 0; /* Prevents flex items from overflowing */
 }
@@ -1557,30 +1546,21 @@ input[type="password"]:focus {
     flex-shrink: 0;
 }
 
-/* Common button layout patterns */
-.button-row {
+/* Button layout patterns - CONSOLIDATED */
+.button-row,
+.button-row-center {
     display: flex;
     gap: 1rem;
     margin-top: 1rem;
 }
 
 .button-row-center {
-    display: flex;
-    gap: 1rem;
     justify-content: center;
-    margin-top: 1rem;
 }
 
-/* Profile/item layout patterns */
-.profile-layout {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    gap: 10px;
-    padding: 0.5rem 0;
-}
-
-.item-layout {
+/* List item layouts - CONSOLIDATED */
+.item-layout,
+.task-item {
     list-style-type: none;
     display: flex;
     align-items: center;
@@ -1637,29 +1617,7 @@ input[type="password"]:focus {
     margin-top: 0.5rem;
 }
 
-/* Menu item hover effects - CSS-only approach */
-.menu-item-hover {
-    transition: background-color 0.2s ease;
-    border-radius: var(--pico-border-radius);
-    cursor: pointer;
-}
-
-.menu-item-hover:hover {
-    background-color: var(--pico-primary-hover-background);
-}
-
-/* Navigation link hover effects */
-.nav-link-hover {
-    color: inherit;
-    text-decoration: underline;
-    transition: color 0.2s ease;
-    white-space: nowrap;
-}
-
-.nav-link-hover:hover {
-    color: #4dabf7;
-    text-decoration: underline;
-}
+/* CONSOLIDATED: Now handled in main icon & link section above */
 
 /* Breadcrumb separator */
 .breadcrumb-separator {
@@ -1733,25 +1691,10 @@ input[type="password"]:focus {
     background-color: var(--pico-primary-focus);
 }
 
-/* Icon sizing for small icons */
-.icon-small {
-    width: 14px;
-    height: 14px;
-    margin-right: 0.25rem;
-    filter: brightness(0) invert(1);
-}
+/* CONSOLIDATED: Now handled in main icon & link section above */
 
 /* Flex utilities for common patterns */
-.flex-1 {
-    flex: 1;
-}
-
-.flex-center-items {
-    display: flex;
-    align-items: center;
-    margin-bottom: 0.25rem;
-    cursor: pointer;
-}
+/* CONSOLIDATED: Now handled in main flex layout section above */
 
 /* Card-like list items */
 .card-list-item {
@@ -1764,13 +1707,7 @@ input[type="password"]:focus {
 }
 
 /* Margin utilities for common spacing */
-.mt-half {
-    margin-top: 0.5rem;
-}
-
-.ml-quarter {
-    margin-left: 0.25rem;
-}
+/* CONSOLIDATED: These are now handled in the main spacing section above */
 
 /* Additional cleanup classes for remaining patterns */
 .env-dev-style {
@@ -1788,21 +1725,83 @@ input[type="password"]:focus {
     align-items: center;
 }
 
+/* CONSOLIDATED: Now handled in main icon & link section above */
+
+/* ============================================================================
+   END SEMANTIC CLEANUP CLASSES
+   ============================================================================ */
+
+/* ================================================================ */
+/* CONSOLIDATED ICON & LINK SYSTEM - Unified Approach */
+/* ================================================================ */
+
+/* Icon sizing - CONSOLIDATED */
+.icon-spaced,
+.icon-small,
+.icon-inline {
+    width: 14px;
+    height: 14px;
+    margin-right: 0.25rem;
+    filter: brightness(0) invert(1);
+}
+
+.icon-inline {
+    margin-left: 0.25rem;
+    vertical-align: middle;
+}
+
+/* Link styling patterns - CONSOLIDATED */
+.link-primary,
 .primary-link {
+    color: var(--pico-primary);
+    text-decoration: none;
+}
+
+.link-primary-bold {
     color: var(--pico-primary-color);
     text-decoration: underline;
     font-weight: 500;
 }
 
-.icon-inline {
-    width: 14px;
-    height: 14px;
-    margin-left: 0.25rem;
-    vertical-align: middle;
-    filter: brightness(0) invert(1);
+.nav-link-block {
+    color: #0066cc;
+    text-decoration: underline;
+    display: block;
+    margin: 2px 0;
 }
 
-/* ============================================================================
-   END SEMANTIC CLEANUP CLASSES
-   ============================================================================ */
+/* Link inheritance patterns - CONSOLIDATED */
+.link-inherit-underline {
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.link-inherit-plain {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Hover effects - CONSOLIDATED */
+.nav-link-hover {
+    color: inherit;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+}
+
+.nav-link-hover:hover {
+    color: #4dabf7;
+    text-decoration: underline;
+}
+
+.menu-item-hover {
+    transition: background-color 0.2s ease;
+    border-radius: var(--pico-border-radius);
+    cursor: pointer;
+}
+
+.menu-item-hover:hover {
+    background-color: var(--pico-primary-hover-background);
+}
 
