@@ -107,6 +107,54 @@
     --custom-form-icon-chevron-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 
     /* ========================================================================
+       PIPULATE SEMANTIC DESIGN SYSTEM - Cross-Cutting Visual Consistency
+       ========================================================================
+       
+       These variables provide unified control over common design patterns
+       discovered through CSS consolidation analysis. They enable cross-cutting
+       adjustments to spacing, typography, and layout while maintaining semantic
+       meaning across different UI components.
+       
+       🎯 PHILOSOPHY: Semantic variables for consistent visual language
+       ======================================================================== */
+    
+    /* ========================================================================
+       PIPULATE SPACING SYSTEM - Semantic Spacing Variables
+       ========================================================================
+       Based on consolidation analysis of common spacing patterns across
+       task elements, descriptions, progress indicators, and UI components.
+       ======================================================================== */
+    --pipulate-spacing-element-offset: 5px;        /* Task/element left spacing (task-*, profile-*) */
+    --pipulate-spacing-content-bottom: 0.5rem;     /* Standard content bottom margin */
+    --pipulate-spacing-progress-top: 10px;         /* Progress indicator top spacing */
+    --pipulate-spacing-component-gap: 1rem;        /* Standard component separation */
+    --pipulate-spacing-tight: 0.25rem;             /* Tight spacing for badges/small elements */
+    --pipulate-spacing-comfortable: 1.5rem;        /* Comfortable spacing for sections */
+    
+    /* ========================================================================
+       PIPULATE TYPOGRAPHY SYSTEM - Semantic Font Sizing
+       ========================================================================
+       Unified font sizing for consistent information hierarchy across
+       secondary text, descriptions, badges, and supporting content.
+       ======================================================================== */
+    --pipulate-font-size-secondary: 0.9em;         /* Secondary/muted text (text-secondary, text-muted) */
+    --pipulate-font-size-small: 0.9rem;            /* Small descriptive text */
+    --pipulate-font-size-badge: 0.8rem;            /* Badges and labels */
+    --pipulate-font-size-tiny: 0.75em;             /* Very small supporting text */
+    
+    /* ========================================================================
+       PIPULATE PADDING SYSTEM - Semantic Padding Variables  
+       ========================================================================
+       Standard padding patterns for buttons, badges, containers, and
+       interactive elements to maintain consistent touch targets and spacing.
+       ======================================================================== */
+    --pipulate-padding-standard: 0.5rem;           /* Standard element padding */
+    --pipulate-padding-badge: 0.25rem 0.5rem;      /* Badge/tag padding */
+    --pipulate-padding-button-compact: 0.25rem 0.5rem;  /* Compact button padding */
+    --pipulate-padding-container: 1rem;            /* Container/card padding */
+    --pipulate-padding-section: 1em;               /* Section padding */
+
+    /* ========================================================================
        CUSTOM COLOR DEFINITIONS - Available for Scoped Usage
        ========================================================================
        
