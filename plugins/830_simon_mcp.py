@@ -556,8 +556,10 @@ This is an MCP (Model Context Protocol) training exercise. I want you to execute
                     
                     if response.status_code in [200, 503]:
                         result = response.json()
-                        if result.get('success') or result.get('fact'):
-                            fact = result.get('fact', 'No fact returned')
+                        # Check for success in the correct format: status="success" with nested result
+                        if result.get('status') == 'success' and result.get('result'):
+                            fact_data = result.get('result', {})
+                            fact = fact_data.get('fact', 'No fact returned')
                             await pip.stream(f'🐱 Cat Fact: {fact}', role='system')
                             
                             # Add to conversation history for LLM training
