@@ -1968,13 +1968,14 @@ class Pipulate:
     "vibrating edge" of creative freedom that powers genuine innovation.
     """
     PRESERVE_REFILL = True
-    ERROR_STYLE = 'color: red;'
-    SUCCESS_STYLE = 'color: green;'
+    # DEPRECATED: Style constants removed. Use CSS classes instead:
+    # ERROR_STYLE → cls='text-invalid'
+    # MUTED_TEXT_STYLE → cls='text-secondary'
+    # SUCCESS_STYLE → cls='text-success' (if needed)
     WARNING_BUTTON_STYLE = None
     PRIMARY_BUTTON_STYLE = None
     SECONDARY_BUTTON_STYLE = None
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
-    MUTED_TEXT_STYLE = 'font-size: 0.9em; color: var(--pico-muted-color);'
     CONTENT_STYLE = 'margin-top: 1vh; border-top: 1px solid var(--pico-muted-border-color); padding-top: 1vh;'
     FINALIZED_CONTENT_STYLE = 'margin-top: 0.5vh; padding: 0.5vh 0;'
     MENU_ITEM_PADDING = 'padding: 1vh 0px 0px .5vw;'
@@ -2123,8 +2124,9 @@ class Pipulate:
             button_text = f'{symbol}\xa0Step\xa0{visual_step_number}'
         return button_text
 
-    def get_style(self, style_type):
-        return getattr(self, f'{style_type.upper()}_STYLE', None)
+    # DEPRECATED: get_style() method removed. Use CSS classes instead:
+    # - 'error' style → cls='text-invalid'  
+    # - 'muted' style → cls='text-secondary'
     
     def get_ui_constants(self):
         """Access centralized UI constants through dependency injection."""
@@ -3174,7 +3176,7 @@ class Pipulate:
                 is_valid = False
                 error_msg = custom_error
         if not is_valid:
-            return (False, error_msg, P(error_msg, style=self.get_style('error')))
+            return (False, error_msg, P(error_msg, cls='text-invalid'))
         return (True, '', None)
 
     async def set_step_data(self, pipeline_id, step_id, step_value, steps, clear_previous=True):
