@@ -3,67 +3,137 @@ description:
 globs: 
 alwaysApply: false
 ---
-# Pipulate Core Concepts
+# Pipulate Core Concepts: Philosophy & Architecture
 
-This guide provides a high-level understanding of the Pipulate framework, its architecture, and its guiding principles.
-
----
-
-## 1. Core Philosophy: The Digital Workbench
-
-- **Local-First Reality**: Your data (SQLite), environment (Nix), and LLM (Ollama) reside and run on your machine. This ensures privacy, control, speed, and offline capability.
-- **Modern Webmaster Thinking**: One person should be able to understand and manage the entire stack.
-- **Simplicity & Observability ("Know EVERYTHING!")**: Avoids complex enterprise patterns. State is transparent and debugging is intuitive.
-- **Reproducibility**: Nix Flakes guarantee identical environments across all systems.
-- **WET Workflows, DRY CRUD**: Workflows are intentionally explicit ("Write Everything Twice") for clarity. Standard CRUD operations are DRY ("Don't Repeat Yourself").
-- **Future-Proofing**: Relies on durable technologies: HTTP/HTML (via HTMX), Python, Nix, and local AI.
+This guide provides a deep understanding of Pipulate's revolutionary approach to **local-first development** and **radical transparency**.
 
 ---
 
-## 2. Architecture Overview
+## 1. Core Philosophy: The Digital Workshop Revolution
 
-### Key Components & Data Flow
+### **Local-First Sovereignty**
+- **Data Sovereignty**: Your SQLite database, your control
+- **Environment Sovereignty**: Nix Flakes ensure reproducible, portable environments  
+- **AI Sovereignty**: Local Ollama LLM, no external dependencies
+- **Privacy Sovereignty**: Everything runs on your machine, no cloud dependencies
 
+### **The Modern Webmaster Paradigm**
+**One person should understand the entire stack.** This isn't about scaling to enterprise complexity - it's about individual empowerment and creative freedom.
+
+### **Radical Transparency Breakthrough**
+**"Know EVERYTHING that's happening!"** - Every operation is observable:
+- **State Transparency**: Complete workflow state via `pipeline_state_inspector`
+- **API Transparency**: Every external call logged with Python/curl equivalents
+- **Log Transparency**: FINDER_TOKENs enable surgical debugging
+- **Process Transparency**: Real-time operation visibility
+
+### **The WET/DRY Balance**
+- **WET Workflows**: "Write Everything Twice" for explicit, debuggable workflow steps
+- **DRY CRUD**: Standard database operations follow DRY principles
+- **Justification**: Workflows need transparency; infrastructure needs efficiency
+
+### **Future-Proofing Strategy**
+Built on **durable technologies** that will outlast frameworks:
+- **HTTP/HTML** via HTMX (timeless web standards)
+- **Python** (battle-tested, widely adopted)
+- **Nix** (mathematical reproducibility)
+- **Local AI** (sovereignty over intelligence)
+
+---
+
+## 2. The Righteous Positive Feedback Loop
+
+**The Development Cycle That Changes Everything:**
 ```
-Browser (User Interface)
+Code Change → Watchdog Restart → Test Endpoint → Check Logs → Repeat
+```
+
+This cycle enables:
+- **Immediate Feedback**: See results instantly
+- **Complete Observability**: Every operation leaves traces
+- **Debuggable Development**: No black boxes, ever
+- **AI Collaboration**: Logs designed for AI assistant consumption
+
+---
+
+## 3. Architecture: Sovereign Computing Stack
+
+### **The Complete Picture**
+```
+Browser (User Interface) ←→ Human Creativity
 ↑ ↓ HTTP/HTMX, WebSockets
-+---------------------------------------+
-|         Nix Flake Shell (Host)        |
-| +-----------------+ +---------------+ |
-| |  FastHTML App   | | Ollama        | |
-| |   (server.py)   | | (Local LLM)   | |
-| +-------↓---------+ +---------------+ |
-|         | MiniDataAPI / DictLikeDB    |
-|         ↓                             |
-| +-----------------+                   |
-| |   SQLite DB     |                   |
-| | (data/data.db)  |                   |
-| +-----------------+                   |
-+---------------------------------------+
++--------------------------------------------------+
+|         Nix Flake Shell (Sovereign Host)         |
+| +-------------------+ +------------------------+ |
+| |  FastHTML Server  | |     Local AI Stack     | |
+| |   (server.py)     | |   (Ollama + Models)    | |
+| |                   | |                        | |
+| | - Plugin System   | | - Local LLM Processing | |
+| | - HTMX Endpoints  | | - WebSocket Streaming  | |
+| | - MCP Tools       | | - Context Management   | | 
+| +-------↓-----------+ +------------------------+ |
+|         | MiniDataAPI / DictLikeDB               |
+|         ↓                                        |
+| +-------------------+  +---------------------+  |
+| |   SQLite Database |  |   JupyterLab        |  |
+| | (Complete State)  |  | (Prototyping Env)   |  |
+| +-------------------+  +---------------------+  |
++--------------------------------------------------+
 ```
 
-- **FastHTML App (`server.py`)**: Serves HTML, manages routing, WebSockets, and hosts plugins.
-- **Ollama**: Runs LLMs locally.
-- **MiniDataAPI & DictLikeDB**: Pythonic wrappers for SQLite.
-- **JupyterLab**: Runs alongside, sharing the same Python environment for prototyping.
-- **Communication**: Primarily HTTP/HTMX, with WebSockets for real-time chat.
+### **Key Architectural Principles**
+- **Single Process**: FastHTML server coordinates everything
+- **Shared Environment**: JupyterLab and server share exact Python environment
+- **State Centralization**: SQLite holds all persistent state
+- **Plugin Architecture**: Modular, discoverable, dependency-injected
+- **MCP Interface**: AI assistants interact via standardized tools
 
 ---
 
-## 3. `server.py` Overview
+## 4. The Digital Workshop Vision: Beyond Linear Workflows
 
-- **Application Setup (`fast_app`)**: Initializes the main `app` instance, the `rt` route decorator, and the MiniDataAPI table objects (`store`, `profiles`, `pipeline`).
-- **Core Global Instances**: `logger`, `db` (key-value store), `pipulate` (workflow helpers), `chat` (WebSocket manager), `plugin_instances` (dictionary of all active plugins).
-- **Routing**: Handles static core routes and dynamic plugin routes. A catch-all `/{path:path}` handles plugin landing pages.
-- **Plugin Discovery**: On startup, `server.py` scans the `plugins/` directory, imports valid `.py` files, and instantiates the plugin classes, passing them the core global instances they need (dependency injection).
-- **Main Execution (`run_server_with_watchdog`)**: Starts the Uvicorn server and a `watchdog` observer that monitors for file changes to trigger a server restart.
+### **Current State: Linear Excellence**
+Pipulate excels at **notebook-to-workflow porting** with:
+- Chain reaction progression through steps
+- State persistence across sessions
+- Background processing with progress tracking
+- Generated code for debugging and iteration
+
+### **Future Vision: Creative Sovereignty**
+Evolution toward comprehensive **digital workshop**:
+
+#### **Sub-Plugin Architecture**
+Individual workflow steps evolve into **full-screen experiences**:
+- Data visualizer that "pops out" from a step
+- Image sorting interface with return-to-workflow
+- Custom analysis tools that integrate seamlessly
+
+#### **Content-First Philosophy**
+- **Media as First-Class Citizens**: Images, videos, documents treated as core data types
+- **Interconnected Content**: Relationships between different content types
+- **Creative Workflows**: Tools designed for content creation, not just processing
+
+#### **The Privacy Advantage**
+**Local-first architecture enables fearless creativity:**
+- Experiment without external judgment
+- Process sensitive data without privacy concerns
+- Build personal tools without platform dependencies
+- Own your digital creative process completely
 
 ---
 
-## 4. Evolutionary Vision: Beyond Linear Workflows
+## 5. Why This Matters: The Sovereignty Advantage
 
-Pipulate's trajectory moves beyond simple notebook-to-workflow porting toward a comprehensive **digital workshop** for content curation, exploration, and creative expression.
+### **For Individuals**
+- **Creative Freedom**: Build exactly what you need
+- **Learning Opportunity**: Understand your entire stack
+- **Data Ownership**: Your data stays yours
+- **Tool Mastery**: Deep understanding enables true productivity
 
-- **Sub-Plugin Architecture**: The vision is for individual workflow steps to "pop out" into full-screen interactive experiences (like a data visualizer or image sorter) and then return seamlessly to the linear flow.
-- **Content as First-Class Citizens**: Future development will focus on managing images and other media as part of an interconnected system.
-- **Privacy-Enabling Creativity**: The local-first architecture is the key to enabling free and open creative exploration.
+### **For AI Collaboration**
+- **Transparent Operations**: AI can see and understand everything
+- **Debuggable Interactions**: Every AI suggestion can be traced
+- **Local Context**: AI has complete access to your environment
+- **Iterative Improvement**: Transparent feedback enables AI learning
+
+**Pipulate isn't just a framework - it's a philosophy of computing sovereignty and creative empowerment.**
