@@ -2753,13 +2753,13 @@ class Pipulate:
             logger.warning(f"Step id '{step_id}' (show: '{step.show}') not found in data_collection_steps. Revert button will show 'Step N/A'.")
         refill = getattr(step, 'refill', False)
         target_id = target_id or f'{app_name}-container'
-        form = Form(Input(type='hidden', name='step_id', value=step_id), Button(self.step_button(visual_step_number, refill, revert_label), type='submit', cls='button-revert'), hx_post=f'/{app_name}/revert', hx_target=f'#{target_id}', hx_swap='outerHTML')
+        form = Form(Input(type='hidden', name='step_id', value=step_id), Button(self.step_button(visual_step_number, refill, revert_label), type='submit', cls='button-revert', aria_label=f'Revert to step {visual_step_number}: {step.show}', title=f'Go back to modify {step.show}'), hx_post=f'/{app_name}/revert', hx_target=f'#{target_id}', hx_swap='outerHTML', role='form', aria_label=f'Revert to {step.show} form')
         if not message:
             return form
         article_style = 'display: flex; align-items: center; justify-content: space-between; background-color: var(--pico-card-background-color);'
         if remove_padding:
             article_style += ' padding: 0;'
-        return Card(Div(message, style='flex: 1'), Div(form, style='flex: 0'), style=article_style)
+        return Card(Div(message, style='flex: 1', role='status', aria_label=f'Step result: {message}'), Div(form, style='flex: 0'), style=article_style, role='region', aria_label=f'Step {visual_step_number} controls')
 
     def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str=None, widget=None, target_id: str=None, revert_label: str=None, widget_style=None, finalized_content=None, next_step_id: str=None):
         """Create a standardized container for widgets and visualizations.
@@ -2806,8 +2806,10 @@ class Pipulate:
                 finalized_content = P(f"Step completed: {message or step_title}")
             
             locked_card = Card(
-                H3(f"🔒 {step_title}"),
-                Div(finalized_content, cls='custom-card-padding-bg')
+                H3(f"🔒 {step_title}", role='heading', aria_level='3'),
+                Div(finalized_content, cls='custom-card-padding-bg', role='status', aria_label=f'Finalized content for {step_title}'),
+                role='region',
+                aria_label=f'Finalized step: {step_title}'
             )
             
             # Add next step trigger if provided
@@ -2825,7 +2827,7 @@ class Pipulate:
         if widget is None or revert_row is None:
             return revert_row
         applied_style = widget_style or self.CONTENT_STYLE
-        return Div(revert_row, Div(widget, style=applied_style, id=f'{step_id}-widget-{hash(str(widget))}'), id=f'{step_id}-content', cls='card-container')
+        return Div(revert_row, Div(widget, style=applied_style, id=f'{step_id}-widget-{hash(str(widget))}', role='region', aria_label=f'Widget content for {step_id}'), id=f'{step_id}-content', cls='card-container', role='article', aria_label=f'Step content: {step_id}')
 
     def tree_display(self, content):
         """Create a styled display for file paths in tree or box format.
