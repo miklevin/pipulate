@@ -40,7 +40,6 @@ server.py         <-- Main server file for the project
 .gitignore
 /home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
 /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
-/home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## NECESSARY FOR CURRENT PROMPT
 # /home/mike/repos/pipulate/downloads/trifecta/michaellevin-org/mikelev.in/analyses.json
@@ -85,7 +84,7 @@ server.py         <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/300_blank_placeholder.py
 # /home/mike/repos/pipulate/plugins/320_dev_assistant.py
 # /home/mike/repos/pipulate/plugins/330_widget_shim.py
-/home/mike/repos/pipulate/plugins/400_botify_trifecta.py
+# /home/mike/repos/pipulate/plugins/400_botify_trifecta.py
 # /home/mike/repos/pipulate/plugins/430_tab_opener.py
 # /home/mike/repos/pipulate/plugins/440_browser_automation.py
 # /home/mike/repos/pipulate/plugins/450_stream_simulator.py
@@ -109,42 +108,49 @@ server.py         <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/830_simon_mcp.py
 
 ## DA RULES
-# /home/mike/repos/pipulate/.cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc
-# /home/mike/repos/pipulate/.cursor/rules/01_CRITICAL_PATTERNS.mdc
-# /home/mike/repos/pipulate/.cursor/rules/02_CORE_CONCEPTS.mdc
-# /home/mike/repos/pipulate/.cursor/rules/03_SETUP_AND_DEPENDENCIES.mdc
-# /home/mike/repos/pipulate/.cursor/rules/04_WORKFLOW_DEVELOPMENT.mdc
-# /home/mike/repos/pipulate/.cursor/rules/05_UI_AND_FRONTEND.mdc
-# /home/mike/repos/pipulate/.cursor/rules/06_DATA_AND_AUTOMATION.mdc
-# /home/mike/repos/pipulate/.cursor/rules/07_INTEGRATIONS.mdc
-# /home/mike/repos/pipulate/.cursor/rules/08_PROJECT_MANAGEMENT.mdc
-# /home/mike/repos/pipulate/.cursor/rules/09_DEBUGGING.mdc
+/home/mike/repos/pipulate/.cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc
+/home/mike/repos/pipulate/.cursor/rules/01_CRITICAL_PATTERNS.mdc
+/home/mike/repos/pipulate/.cursor/rules/02_CORE_CONCEPTS.mdc
+/home/mike/repos/pipulate/.cursor/rules/03_SETUP_AND_DEPENDENCIES.mdc
+/home/mike/repos/pipulate/.cursor/rules/04_WORKFLOW_DEVELOPMENT.mdc
+/home/mike/repos/pipulate/.cursor/rules/05_UI_AND_FRONTEND.mdc
+/home/mike/repos/pipulate/.cursor/rules/06_DATA_AND_AUTOMATION.mdc
+/home/mike/repos/pipulate/.cursor/rules/07_INTEGRATIONS.mdc
+/home/mike/repos/pipulate/.cursor/rules/08_PROJECT_MANAGEMENT.mdc
+/home/mike/repos/pipulate/.cursor/rules/09_DEBUGGING.mdc
 
 ## TRAINING FILES
+/home/mike/repos/pipulate/training/advanced_ai_guide.md
 # /home/mike/repos/pipulate/training/botify_api.md
 # /home/mike/repos/pipulate/training/botify_open_api.md
+# /home/mike/repos/pipulate/training/botify_query_guide.md
 # /home/mike/repos/pipulate/training/change_log.md
 # /home/mike/repos/pipulate/training/cleanup_helpers_guide.md
+# /home/mike/repos/pipulate/training/debugging_transparency_system.md
 # /home/mike/repos/pipulate/training/dev_assistant.md
 # /home/mike/repos/pipulate/training/hello_workflow.md
+# /home/mike/repos/pipulate/training/HTML_CLEANUP_SUMMARY.md
 # /home/mike/repos/pipulate/training/link_graph_visualizer.md
-# /home/mike/repos/pipulate/training/QUICK_REFERENCE.md
 # /home/mike/repos/pipulate/training/roles.md
+# /home/mike/repos/pipulate/training/SEMANTIC_ENHANCEMENT_SUMMARY.md
 # /home/mike/repos/pipulate/training/system_prompt.md
 # /home/mike/repos/pipulate/training/tasks.md
+# /home/mike/repos/pipulate/training/TRANSPARENCY_ENHANCEMENTS.md
+# /home/mike/repos/pipulate/training/transparency_system.md
 # /home/mike/repos/pipulate/training/widget_examples.md
 
+
 ## PIPULATE.COM WEBSITE & GUIDE
-# /home/mike/repos/Pipulate.com/about.md
-# /home/mike/repos/Pipulate.com/development.md
-# /home/mike/repos/Pipulate.com/documentation.md
-# /home/mike/repos/Pipulate.com/index.md
-# /home/mike/repos/Pipulate.com/install.md
-# /home/mike/repos/Pipulate.com/install.sh
-# /home/mike/repos/Pipulate.com/_layouts/post.html
-# /home/mike/repos/Pipulate.com/guide.md
-# /home/mike/repos/Pipulate.com/_guide/2025-01-01-the-wet-blueprint.md
-# /home/mike/repos/Pipulate.com/_guide/2025-04-06-local-first-revolution.md
+/home/mike/repos/Pipulate.com/about.md
+/home/mike/repos/Pipulate.com/development.md
+/home/mike/repos/Pipulate.com/documentation.md
+/home/mike/repos/Pipulate.com/index.md
+/home/mike/repos/Pipulate.com/install.md
+/home/mike/repos/Pipulate.com/install.sh
+/home/mike/repos/Pipulate.com/_layouts/post.html
+/home/mike/repos/Pipulate.com/guide.md
+/home/mike/repos/Pipulate.com/_guide/2025-01-01-the-wet-blueprint.md
+/home/mike/repos/Pipulate.com/_guide/2025-04-06-local-first-revolution.md
 # /home/mike/repos/Pipulate.com/_guide/2025-04-07-chain-reaction-pattern.md
 # /home/mike/repos/Pipulate.com/_guide/2025-04-08-the-future-is-simple.md
 # /home/mike/repos/Pipulate.com/_guide/2025-04-09-beyond-colab.md
