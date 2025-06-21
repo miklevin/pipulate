@@ -4501,13 +4501,13 @@ def create_env_menu():
     dev_classes = 'menu-item-base menu-item-hover'
     if is_dev:
         dev_classes += ' menu-item-active'
-    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'DEV'), cls=dev_classes, id='dev-env-item')
+    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'DEV', cls='dropdown-menu-item'), cls=dev_classes, id='dev-env-item')
     menu_items.append(dev_item)
     is_prod = current_env == 'Production'
     prod_classes = 'menu-item-base menu-item-hover'
     if is_prod:
         prod_classes += ' menu-item-active'
-    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'Prod'), cls=prod_classes, id='prod-env-item')
+    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'Prod', cls='dropdown-menu-item'), cls=prod_classes, id='prod-env-item')
     menu_items.append(prod_item)
     dropdown_style = 'padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'
     return Details(Summary(display_env, cls=env_summary_classes, id='env-id'), Ul(*menu_items, cls='dropdown-menu', style=dropdown_style), cls='dropdown', id='env-dropdown-menu')
@@ -4574,7 +4574,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
     profile_locked = db.get('profile_locked', '0') == '1'
-    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile'), cls='profile-menu-item'))
+    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile', cls='dropdown-menu-item'), cls='profile-menu-item'))
     menu_items.append(Li(Hr(cls='profile-menu-separator'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
@@ -4602,7 +4602,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         is_selected = str(profile_item.id) == str(selected_profile_id)
         item_style = 'background-color: var(--pico-primary-focus);' if is_selected else ''
         radio_input = Input(type='radio', name='profile_radio_select', value=str(profile_item.id), checked=is_selected, hx_post='/select_profile', hx_vals=json.dumps({'profile_id': str(profile_item.id)}), hx_target='body', hx_swap='outerHTML')
-        profile_label = Label(radio_input, profile_item.name)
+        profile_label = Label(radio_input, profile_item.name, cls='dropdown-menu-item')
         menu_item_classes = 'menu-item-base menu-item-hover'
         if is_selected:
             menu_item_classes += ' menu-item-active'
