@@ -889,21 +889,25 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 /* CONSOLIDATED: Now handled in main flex layout section above */
 
-/* Task interaction elements */
+/* Task interaction elements - CONSOLIDATED margin-left pattern */
 .task-delete-icon {
     cursor: pointer;
     display: inline;
-    margin-left: 5px;
     text-decoration: none;
 }
 
 .task-text-display {
-    margin-left: 5px;
     cursor: pointer;
 }
 
 .task-update-form {
     display: none;
+}
+
+/* CONSOLIDATED: Task spacing utility */
+.task-delete-icon,
+.task-text-display,
+.task-update-form {
     margin-left: 5px;
 }
 
