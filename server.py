@@ -4501,13 +4501,13 @@ def create_env_menu():
     dev_classes = 'menu-item-base menu-item-hover'
     if is_dev:
         dev_classes += ' menu-item-active'
-    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'DEV', cls='dropdown-menu-item'), cls=dev_classes, id='dev-env-item')
+    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Development environment'), 'DEV', cls='dropdown-menu-item'), cls=dev_classes, id='dev-env-item')
     menu_items.append(dev_item)
     is_prod = current_env == 'Production'
     prod_classes = 'menu-item-base menu-item-hover'
     if is_prod:
         prod_classes += ' menu-item-active'
-    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter'), 'Prod', cls='dropdown-menu-item'), cls=prod_classes, id='prod-env-item')
+    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Production environment'), 'Prod', cls='dropdown-menu-item'), cls=prod_classes, id='prod-env-item')
     menu_items.append(prod_item)
     return Details(Summary(display_env, cls=env_summary_classes, id='env-id'), Ul(*menu_items, cls='dropdown-menu env-dropdown-menu'), cls='dropdown', id='env-dropdown-menu')
 
@@ -4573,7 +4573,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
     profile_locked = db.get('profile_locked', '0') == '1'
-    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile', cls='dropdown-menu-item'), cls='profile-menu-item'))
+    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', aria_label='Lock or unlock profile editing'), 'Lock Profile', cls='dropdown-menu-item'), cls='profile-menu-item'))
     menu_items.append(Li(Hr(cls='profile-menu-separator'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
@@ -4599,7 +4599,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         logger.error("Global 'profiles' table object not available for create_profile_menu.")
     for profile_item in active_profiles_list:
         is_selected = str(profile_item.id) == str(selected_profile_id)
-        radio_input = Input(type='radio', name='profile_radio_select', value=str(profile_item.id), checked=is_selected, hx_post='/select_profile', hx_vals=json.dumps({'profile_id': str(profile_item.id)}), hx_target='body', hx_swap='outerHTML')
+        radio_input = Input(type='radio', name='profile_radio_select', value=str(profile_item.id), checked=is_selected, hx_post='/select_profile', hx_vals=json.dumps({'profile_id': str(profile_item.id)}), hx_target='body', hx_swap='outerHTML', aria_label=f'Select {profile_item.name} profile')
         label_classes = 'dropdown-menu-item'
         if is_selected:
             label_classes += ' profile-menu-item-selected'
@@ -4707,7 +4707,7 @@ def create_home_menu_item(menux):
     """Create menu items list starting with Home option."""
     menu_items = []
     is_home_selected = menux == ''
-    home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML')
+    home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML', aria_label='Navigate to home page')
     home_css_classes = 'dropdown-item'
     if is_home_selected:
         home_css_classes += ' app-menu-item-selected'
@@ -4753,7 +4753,7 @@ def create_plugin_menu_item(plugin_key, menux, active_role_names):
     css_classes = f'dropdown-item {role_class}'.strip()
     if is_selected:
         css_classes += ' app-menu-item-selected'
-    radio_input = Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML')
+    radio_input = Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML', aria_label=f'Navigate to {display_name}')
     return Li(Label(radio_input, display_name, cls=css_classes))
 
 def should_include_plugin(instance, active_role_names):
