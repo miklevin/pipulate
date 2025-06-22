@@ -629,12 +629,12 @@ class Trifecta:
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
             if finalize_step.done in finalize_data:
-                return Card(H3(self.ui['MESSAGES']['WORKFLOW_LOCKED']), Form(Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE']), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                return Card(H3(self.ui['MESSAGES']['WORKFLOW_LOCKED']), Form(Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE'], id='trifecta-unlock-button', aria_label='Unlock workflow to make changes', data_testid='trifecta-unlock-button'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
                     await self.message_queue.add(pip, 'All steps are complete. You can now finalize the workflow or revert to any step to make changes.', verbatim=True)
-                    return Card(H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), Form(Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY']), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                    return Card(H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), Form(Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY'], id='trifecta-finalize-button', aria_label='Finalize workflow and lock all steps', data_testid='trifecta-finalize-button'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -732,10 +732,16 @@ class Trifecta:
                             value=display_value,
                             required=True,
                             pattern='https://(app|analyze)\\.botify\\.com/[^/]+/[^/]+/[^/]+.*',
-                            cls='w-full'
+                            cls='w-full',
+                            id='trifecta-botify-url-input',
+                            aria_label='Enter Botify project URL',
+                            data_testid='trifecta-botify-url-input'
                         ),
                         Div(
-                            Button('Use this URL ▸', type='submit', cls='primary'),
+                            Button('Use this URL ▸', type='submit', cls='primary',
+                                   id='trifecta-url-submit-button',
+                                   aria_label='Submit Botify project URL',
+                                   data_testid='trifecta-url-submit-button'),
                             cls='mt-vh text-end'
                         ),
                         hx_post=f'/{app_name}/{step_id}_submit',
@@ -992,16 +998,24 @@ class Trifecta:
                         name='analysis_slug', 
                         required=True, 
                         autofocus=True,
+                        id='trifecta-analysis-select',
+                        aria_label='Select analysis for data download',
+                        data_testid='trifecta-analysis-select',
                         hx_post=f'/{app_name}/update_button_text',
                         hx_target='#submit-button',
                         hx_trigger='change',
                         hx_include='closest form',
                         hx_swap='outerHTML'
                     ),
-                        Input(type='hidden', name='username', value=username),
-                        Input(type='hidden', name='project_name', value=project_name),
-                        Input(type='hidden', name='step_context', value='step_analysis'),
+                        Input(type='hidden', name='username', value=username,
+                              data_testid='trifecta-hidden-username'),
+                        Input(type='hidden', name='project_name', value=project_name,
+                              data_testid='trifecta-hidden-project-name'),
+                        Input(type='hidden', name='step_context', value='step_analysis',
+                              data_testid='trifecta-hidden-step-context'),
                         Button(button_text, type='submit', cls='mt-10px primary', id='submit-button',
+                               aria_label='Download selected analysis data',
+                               data_testid='trifecta-analysis-submit-button',
                                **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}), 
                         hx_post=f'/{app_name}/{step_id}_submit', 
                         hx_target=f'#{step_id}'
