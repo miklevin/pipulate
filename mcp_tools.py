@@ -432,7 +432,8 @@ async def _browser_stealth_search(params: dict) -> dict:
             "max_results": 10,                   # Optional: max results to extract
             "take_screenshot": True,             # Optional: capture visual proof
             "save_page_source": True,            # Optional: save full page HTML
-            "human_behavior": True               # Optional: simulate human interactions
+            "human_behavior": True,              # Optional: simulate human interactions
+            "captcha_pause_seconds": 45          # Optional: time to manually solve CAPTCHA
         }
     
     Returns:
@@ -472,6 +473,7 @@ async def _browser_stealth_search(params: dict) -> dict:
         take_screenshot = params.get('take_screenshot', True)
         save_page_source = params.get('save_page_source', True)
         human_behavior = params.get('human_behavior', True)
+        captcha_pause_seconds = params.get('captcha_pause_seconds', 45)  # Time to manually solve CAPTCHA
         
         # Set up directories
         browser_automation_dir = 'browser_automation'
@@ -650,21 +652,6 @@ async def _browser_stealth_search(params: dict) -> dict:
             # Wait for results to load
             time.sleep(3)
             
-            # Check for CAPTCHA or blocking
-            page_source = driver.page_source.lower()
-            if any(indicator in page_source for indicator in ['captcha', 'unusual traffic', 'blocked']):
-                logger.warning("🤖 FINDER_TOKEN: CAPTCHA_DETECTED - Bot detection triggered")
-                
-                if take_screenshot:
-                    screenshot_file = os.path.join(temp_scripts_dir, f"captcha_{timestamp}.png")
-                    driver.save_screenshot(screenshot_file)
-                
-                return {
-                    "success": False, 
-                    "error": "CAPTCHA or bot detection triggered",
-                    "screenshot": screenshot_file if take_screenshot else None
-                }
-            
             # Extract search results with multiple selector fallbacks
             results = []
             result_selectors = [
@@ -702,6 +689,84 @@ async def _browser_stealth_search(params: dict) -> dict:
                 except Exception as e:
                     logger.warning(f"⚠️ FINDER_TOKEN: RESULT_EXTRACTION_ERROR - Position {i+1}: {str(e)}")
                     continue
+            
+            # Check for CAPTCHA AFTER extracting results (CAPTCHA often appears after result extraction)
+            page_source = driver.page_source.lower()
+            captcha_indicators = ['captcha', 'unusual traffic', 'blocked', 'verify you are human', 'prove you are not a robot', 'recaptcha']
+            captcha_detected = any(indicator in page_source for indicator in captcha_indicators)
+            
+            if captcha_detected:
+                logger.warning("🤖 FINDER_TOKEN: CAPTCHA_DETECTED_AFTER_RESULTS - Bot detection triggered after result extraction")
+                
+                # Take screenshot of CAPTCHA
+                if take_screenshot:
+                    captcha_screenshot = os.path.join(temp_scripts_dir, f"captcha_{timestamp}.png")
+                    driver.save_screenshot(captcha_screenshot)
+                    logger.info(f"📸 FINDER_TOKEN: CAPTCHA_SCREENSHOT - Saved to {captcha_screenshot}")
+                
+                # Save page source for debugging
+                if save_page_source:
+                    captcha_source = os.path.join(temp_scripts_dir, f"captcha_source_{timestamp}.html")
+                    with open(captcha_source, 'w', encoding='utf-8') as f:
+                        f.write(driver.page_source)
+                    logger.info(f"💾 FINDER_TOKEN: CAPTCHA_SOURCE - Saved to {captcha_source}")
+                
+                # Keep browser open for manual CAPTCHA solving
+                logger.warning(f"⏳ FINDER_TOKEN: CAPTCHA_PAUSE - Keeping browser open for {captcha_pause_seconds} seconds for manual CAPTCHA solving")
+                logger.warning(f"🖱️ FINDER_TOKEN: CAPTCHA_INSTRUCTIONS - Please solve the CAPTCHA in the browser window and wait for results to load")
+                
+                # Wait for manual CAPTCHA solving
+                time.sleep(captcha_pause_seconds)
+                
+                # Check if CAPTCHA was solved by looking for results again
+                try:
+                    new_search_results = []
+                    for selector in result_selectors:
+                        try:
+                            new_search_results = driver.find_elements(By.CSS_SELECTOR, selector)
+                            if new_search_results:
+                                logger.info(f"✅ FINDER_TOKEN: CAPTCHA_SOLVED - Found {len(new_search_results)} results after CAPTCHA pause")
+                                
+                                # Re-extract results after CAPTCHA solving
+                                results = []
+                                for i, result in enumerate(new_search_results[:max_results]):
+                                    try:
+                                        title_elem = result.find_element(By.CSS_SELECTOR, "h3")
+                                        title = title_elem.text if title_elem else "No title"
+                                        
+                                        link_elem = result.find_element(By.CSS_SELECTOR, "a")
+                                        url = link_elem.get_attribute("href") if link_elem else "No URL"
+                                        
+                                        results.append({
+                                            "position": i + 1,
+                                            "title": title,
+                                            "url": url
+                                        })
+                                    except Exception as e:
+                                        logger.warning(f"⚠️ FINDER_TOKEN: RESULT_RE_EXTRACTION_ERROR - Position {i+1}: {str(e)}")
+                                        continue
+                                break
+                        except:
+                            continue
+                    
+                    if not new_search_results:
+                        logger.error("❌ FINDER_TOKEN: CAPTCHA_NOT_SOLVED - No results found after CAPTCHA pause")
+                        return {
+                            "success": False, 
+                            "error": f"CAPTCHA detected and not solved within {captcha_pause_seconds} seconds",
+                            "results": results,  # Return any results we got before CAPTCHA
+                            "captcha_screenshot": captcha_screenshot if take_screenshot else None,
+                            "captcha_source": captcha_source if save_page_source else None
+                        }
+                        
+                except Exception as e:
+                    logger.error(f"❌ FINDER_TOKEN: CAPTCHA_RECHECK_ERROR - {e}")
+                    return {
+                        "success": False, 
+                        "error": f"Error checking CAPTCHA resolution: {str(e)}",
+                        "results": results,  # Return any results we got before CAPTCHA
+                        "captcha_screenshot": captcha_screenshot if take_screenshot else None
+                    }
             
             # Save files
             files_created = {}

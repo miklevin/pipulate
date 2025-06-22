@@ -292,6 +292,7 @@ class SimonSaysMcpWidget:
       <max_results>5</max_results>
       <take_screenshot>true</take_screenshot>
       <save_page_source>true</save_page_source>
+      <captcha_pause_seconds>60</captcha_pause_seconds>
     </params>
   </tool>
 </mcp-request>"""
@@ -543,7 +544,8 @@ Output only the MCP block above. Do not add any other text."""
                     'query': 'python programming tutorial',
                     'max_results': 5,
                     'take_screenshot': True,
-                    'save_page_source': True
+                    'save_page_source': True,
+                    'captcha_pause_seconds': 60  # Give 60 seconds to solve CAPTCHA manually
                 }},
                 'flash_chat': {'element_id': 'msg-list', 'message': 'This is where your conversation with the AI appears!'},
                 'flash_app_menu': {'element_id': 'app-id', 'message': 'This is the main app selection menu!'},
@@ -690,6 +692,7 @@ Output only the MCP block above. Do not add any other text."""
       <max_results>5</max_results>
       <take_screenshot>true</take_screenshot>
       <save_page_source>true</save_page_source>
+      <captcha_pause_seconds>60</captcha_pause_seconds>
     </params>
   </tool>
 </mcp-request>"""
