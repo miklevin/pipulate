@@ -3374,20 +3374,23 @@ class Pipulate:
         # Add new key button if requested
         if show_new_key_button and app_name:
             ui_constants = PCONFIG['UI_CONSTANTS']
-            # Styled emoji button with PicoCSS background and even spacing
+            # Styled emoji button to match main button height and appearance
+            border_radius = PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
             new_key_style = (
                 'display: inline-block;'
                 'cursor: pointer;'
                 'width: auto !important;'
                 'white-space: nowrap;'
-                'border: none !important;'
-                'padding: 0.5rem !important;'  # Even padding to match button spacing
+                'border: 1px solid var(--pico-muted-border-color) !important;'  # Match button border
+                f'border-radius: {border_radius} !important;'  # Match global border radius
+                'padding: 0.75rem 1rem !important;'  # Match typical button padding for height consistency
                 'margin: 0 !important;'
-                'background-color: var(--pico-secondary-background) !important;'  # PicoCSS secondary background
+                'background-color: var(--pico-secondary-background) !important;'
                 'box-shadow: none !important;'
-                'line-height: 1;'
-                'font-size: 1.5rem;'
-                'opacity: 0.8;'  # Slightly less transparent for better visibility with background
+                'line-height: 1.25;'  # Match button line height
+                'font-size: 1.2rem;'  # Slightly smaller emoji for better proportion
+                'opacity: 0.9;'  # Higher opacity for better integration
+                'vertical-align: middle;'  # Ensure proper alignment with main button
             )
             new_key_button = Button(
                 ui_constants['BUTTON_LABELS']['NEW_KEY'],
