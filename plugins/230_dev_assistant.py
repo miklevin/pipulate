@@ -233,7 +233,9 @@ class DevAssistant:
             return "No automation analysis available for this plugin."
         
         prompt_parts = [
-            f"# 🤖 AI Code Assistant: Fix Automation & Accessibility Issues in {filename}",
+            f"# 🤖 AI Code Assistant: Fix Automation & Accessibility Issues",
+            "",
+            f"**Plugin File**: `{filename}`",
             "",
             "## 📋 Current Analysis Results",
             f"- **Overall Score**: {automation_readiness.get('accessibility_score', 0)}/100",
@@ -1458,7 +1460,7 @@ class DevAssistant:
                 P('Single-step workflow for learning step management and customization.',
                   style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-size: 0.9rem; margin-bottom: 0.5rem;'),
                 Pre(
-                    Code(blank_cmd, cls='language-bash copy-code'),
+                                                    Code(blank_cmd, cls='language-bash'),
                     style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]};'
                 ),
                 style='margin-bottom: 1.5rem;'
@@ -1470,7 +1472,7 @@ class DevAssistant:
                 P('Multi-step process demonstrating helper tool sequence and workflow construction.',
                   style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-size: 0.9rem; margin-bottom: 0.5rem;'),
                 Pre(
-                    Code(hello_cmd, cls='language-bash copy-code'),
+                                                    Code(hello_cmd, cls='language-bash'),
                     style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'
                 ),
                 style='margin-bottom: 1.5rem;'
@@ -1482,7 +1484,7 @@ class DevAssistant:
                 P('Complex 5-step workflow from Botify template for sophisticated data collection scenarios.',
                   style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-size: 0.9rem; margin-bottom: 0.5rem;'),
                 Pre(
-                    Code(trifecta_cmd, cls='language-bash copy-code'),
+                                                    Code(trifecta_cmd, cls='language-bash'),
                     style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["ACCENT_PURPLE"]};'
                 ),
                 style='margin-bottom: 1rem;'
@@ -1972,7 +1974,7 @@ class DevAssistant:
                                 Div(
                                     H5(f'Fix #{i+1}:', style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-top: 1.5rem; margin-bottom: 0.5rem;'),
                                     Pre(
-                                        Code(prompt, cls='language-markdown copy-code'),
+                                        Code(prompt, cls='language-markdown'),
                                         cls='line-numbers',
                                         style=f'position: relative; background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'
                                     ),
@@ -2012,7 +2014,7 @@ class DevAssistant:
                                 Div(
                                     H6(f"{cmd['step_id']}:", style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-bottom: 0.25rem; margin-top: 1rem;'),
                                     Pre(
-                                        Code(cmd['command'], cls='language-bash copy-code'),
+                                        Code(cmd['command'], cls='language-bash'),
                                         style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 0.75rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 3px solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.5rem;'
                                     ),
                                     style='margin-bottom: 1rem;'
@@ -2030,133 +2032,30 @@ class DevAssistant:
                        cls='secondary',
                        style='margin-top: 1rem;'),
 
-                # Add Prism initialization and copy functionality script
+                # Initialize Prism highlighting and Pipulate copy functionality
                 Script(f"""
                 (function() {{
-                    // Initialize Prism immediately when the script loads
+                    // Initialize Prism highlighting (includes built-in copy-to-clipboard)
                     if (typeof Prism !== 'undefined') {{
                         Prism.highlightAllUnder(document.getElementById('{widget_id}'));
                     }}
 
-                    // Also listen for the HX-Trigger event as a backup
+                    // Re-initialize Pipulate copy functionality for new content
+                    if (typeof PipulateCopy !== 'undefined') {{
+                        PipulateCopy.initializeDataCopyButtons();
+                        PipulateCopy.initializeInlineCodeCopy();
+                    }}
+
+                    // Listen for HX-Trigger event as backup
                     document.body.addEventListener('initializePrism', function(event) {{
                         if (event.detail.targetId === '{widget_id}') {{
-                            console.log('Received initializePrism event for {widget_id}');
                             if (typeof Prism !== 'undefined') {{
                                 Prism.highlightAllUnder(document.getElementById('{widget_id}'));
-                            }} else {{
-                                console.error('Prism library not found for {widget_id}');
                             }}
-                        }}
-                    }});
-
-                    // Add copy buttons to code blocks
-                    document.querySelectorAll('pre code.copy-code').forEach(function(block) {{
-                        const button = document.createElement('button');
-                        button.textContent = 'Copy';
-                        button.className = 'copy-button';
-                        button.style.cssText = `
-                            position: absolute !important;
-                            top: 5px !important;
-                            right: 5px !important;
-                            padding: 4px 8px !important;
-                            font-size: 12px !important;
-                            background: #0066cc !important;
-                            color: white !important;
-                            border: none !important;
-                            border-radius: 3px !important;
-                            cursor: pointer !important;
-                            transition: background-color 0.2s ease !important;
-                            z-index: 10 !important;
-                        `;
-
-                        const pre = block.parentElement;
-                        pre.style.position = 'relative';
-                        pre.appendChild(button);
-
-                        button.addEventListener('click', function() {{
-                            navigator.clipboard.writeText(block.textContent).then(function() {{
-                                button.textContent = 'Copied!';
-                                button.style.background = '#28a745 !important';
-                                setTimeout(function() {{
-                                    button.textContent = 'Copy';
-                                    button.style.background = '#0066cc !important';
-                                }}, 2000);
-                            }}).catch(function(err) {{
-                                console.error('Failed to copy text: ', err);
-                                button.textContent = 'Error';
-                                button.style.background = '#dc3545 !important';
-                                setTimeout(function() {{
-                                    button.textContent = 'Copy';
-                                    button.style.background = '#0066cc !important';
-                                }}, 2000);
-                            }});
-                        }});
-
-                        button.addEventListener('mouseenter', function() {{
-                            if (button.textContent === 'Copy') {{
-                                button.style.background = '#0052a3 !important';
+                            if (typeof PipulateCopy !== 'undefined') {{
+                                PipulateCopy.initializeDataCopyButtons();
+                                PipulateCopy.initializeInlineCodeCopy();
                             }}
-                        }});
-
-                        button.addEventListener('mouseleave', function() {{
-                            if (button.textContent === 'Copy') {{
-                                button.style.background = '#0066cc !important';
-                            }}
-                        }});
-                    }});
-
-                    // Handle copy buttons with data-copy-text attribute (for AI prompts)
-                    document.querySelectorAll('button[data-copy-text]').forEach(function(button) {{
-                        button.addEventListener('click', function() {{
-                            const textToCopy = button.getAttribute('data-copy-text');
-                            const originalText = button.textContent;
-                            
-                            navigator.clipboard.writeText(textToCopy).then(function() {{
-                                button.textContent = '✅ Copied!';
-                                button.style.background = '#28a745';
-                                setTimeout(function() {{
-                                    button.textContent = originalText;
-                                    button.style.background = '#0066cc';
-                                }}, 3000);
-                            }}).catch(function(err) {{
-                                console.error('Failed to copy text: ', err);
-                                button.textContent = '❌ Error';
-                                button.style.background = '#dc3545';
-                                setTimeout(function() {{
-                                    button.textContent = originalText;
-                                    button.style.background = '#0066cc';
-                                }}, 3000);
-                            }});
-                        }});
-                    }});
-
-                    // Add click-to-copy functionality for inline code elements
-                    document.querySelectorAll('code:not(.copy-code):not([class*="language-"])').forEach(function(code) {{
-                        // Only add to code elements that look like commands (contain spaces or special chars)
-                        if (code.textContent.includes(' ') || code.textContent.includes('python') || code.textContent.includes('--')) {{
-                            code.style.cursor = 'pointer';
-                            code.title = 'Click to copy';
-                            code.addEventListener('click', function() {{
-                                navigator.clipboard.writeText(code.textContent).then(function() {{
-                                    const originalBg = code.style.backgroundColor;
-                                    code.style.backgroundColor = '#28a745';
-                                    code.style.color = 'white';
-                                    setTimeout(function() {{
-                                        code.style.backgroundColor = originalBg;
-                                        code.style.color = '';
-                                    }}, 1000);
-                                }}).catch(function(err) {{
-                                    console.error('Failed to copy text: ', err);
-                                    const originalBg = code.style.backgroundColor;
-                                    code.style.backgroundColor = '#dc3545';
-                                    code.style.color = 'white';
-                                    setTimeout(function() {{
-                                        code.style.backgroundColor = originalBg;
-                                        code.style.color = '';
-                                    }}, 1000);
-                                }});
-                            }});
                         }}
                     }});
                 }})();

@@ -3689,6 +3689,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/marked.min.js'),
         Script(src='/static/marked-init.js'),
         Script(src='/static/prism.js'),
+        Script(src='/static/copy-functionality.js'),
         Script(src='/static/theme-init.js'),
         Script(src='/static/widget-scripts.js'),
         create_chat_scripts('.sortable'),
