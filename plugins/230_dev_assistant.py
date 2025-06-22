@@ -1564,7 +1564,7 @@ class DevAssistant:
                          data-plugin-filename="{plugin['filename']}"
                          data-plugin-display="{plugin['display_name']}"
                          style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--pico-muted-border-color);"
-                         onclick="console.log('🔍 Click detected on:', '{escaped_filename}'); window.selectDevAssistantPlugin('{escaped_filename}', '{escaped_display_name}')"
+                         data-click-action="select-plugin"
                          onmouseover="this.style.backgroundColor = 'var(--pico-primary-hover-background)';"
                          onmouseout="this.style.backgroundColor = 'transparent';">
                         <strong>{plugin['display_name']}</strong>
@@ -1881,15 +1881,20 @@ class DevAssistant:
                         console.log('🔍 Set selected input to:', filename);
                     }}
                     
-                    if (searchResults) {{
-                        searchResults.style.display = 'none';
-                        console.log('🔍 Hid search results');
-                    }}
+                                         if (searchResults) {{
+                         searchResults.style.display = 'none';
+                         console.log('🔍 Hid search results');
+                     }}
+                     
+                     // Remove focus from search input to prevent accidental reopening
+                     if (searchInput) {{
+                         searchInput.blur();
+                     }}
                     
-                    if (searchInput) {{
-                        searchInput.value = displayName;
-                        console.log('🔍 Set search input to:', displayName);
-                    }}
+                                         if (searchInput) {{
+                         searchInput.value = displayName;
+                         console.log('🔍 Set search input to:', displayName);
+                     }}
                     
                     if (analyzeBtn) {{
                         analyzeBtn.disabled = false;
@@ -2029,6 +2034,21 @@ class DevAssistant:
                     }} else {{
                         // Multiple results - no auto-highlight, let user navigate
                         window.devAssistantSelectedIndex = -1;
+                    }}
+                }}
+            }});
+
+            // Global event delegation for plugin selection - survives HTMX content replacement
+            document.body.addEventListener('click', function(event) {{
+                if (event.target.closest('[data-click-action="select-plugin"]')) {{
+                    const element = event.target.closest('[data-click-action="select-plugin"]');
+                    const filename = element.getAttribute('data-plugin-filename');
+                    const displayName = element.getAttribute('data-plugin-display');
+                    
+                    console.log('🔍 Click detected via delegation on:', filename);
+                    
+                    if (filename && displayName) {{
+                        window.selectDevAssistantPlugin(filename, displayName);
                     }}
                 }}
             }});
