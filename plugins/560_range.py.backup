@@ -18,22 +18,6 @@ class RangeSelectorWorkflow:
     This workflow provides a clean environment to focus on range selector development without the complexity
     of a full workflow implementation.
     """
-    # Template compatibility markers
-    # STEPS_LIST_INSERTION_POINT
-    # STEP_METHODS_INSERTION_POINT
-    
-    # UI Constants for automation testing
-    UI_CONSTANTS = {
-        'RANGE_SLIDER': 'range-widget-slider-input',
-        'RANGE_NUMBER': 'range-widget-number-input',
-        'RANGE_LABEL': 'range-widget-label',
-        'RANGE_FORM': 'range-widget-form',
-        'FINALIZE_BUTTON': 'range-widget-finalize-button', 
-        'UNLOCK_BUTTON': 'range-widget-unlock-button',
-        'NEXT_BUTTON': 'range-widget-next-button',
-        'REVERT_BUTTON': 'range-widget-revert-button'
-    }
-
     APP_NAME = 'range_selector'
     DISPLAY_NAME = 'Range Selector Widget'
     ENDPOINT_MESSAGE = 'Welcome to the Range Selector Widget! This is a focused environment for designing and testing range input-based interactions in isolation. Use this space to prototype and refine your range selector designs without distractions.'
@@ -110,11 +94,11 @@ class RangeSelectorWorkflow:
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
             if finalize_step.done in finalize_data:
-                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline', data_testid='range-widget-unlock-button', aria_label='Unlock range workflow for editing'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary', data_testid='range-widget-finalize-button', aria_label='Finalize range workflow'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -140,7 +124,7 @@ class RangeSelectorWorkflow:
         form = await request.form()
         step_id = form.get('step_id', '')
         if step_id not in self.steps_indices:
-            return P('Error: Invalid step', cls='text-invalid')
+            return P('Error: Invalid step', style=pip.ERROR_STYLE)
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
@@ -175,13 +159,13 @@ class RangeSelectorWorkflow:
             pip.append_to_history(f'[WIDGET STATE] {step.show}: Showing input form')
             await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('input', f'Complete {step.show}'), verbatim=True)
             try:
-                range_input = Input(type='range', name=f'{step.done}_slider', id=f'{step.done}_slider', min=self.RANGE_CONFIG['min'], max=self.RANGE_CONFIG['max'], step=self.RANGE_CONFIG['step'], value=selected_value, title=self.RANGE_CONFIG['description'], required=True, style='flex-grow: 1; margin: 0 10px;', _oninput=f"document.getElementById('{step.done}').value = this.value;", data_testid='range-widget-slider-input', aria_label=f'Range slider from {self.RANGE_CONFIG["min"]} to {self.RANGE_CONFIG["max"]}')
-                number_input = Input(type='number', name=step.done, id=step.done, min=self.RANGE_CONFIG['min'], max=self.RANGE_CONFIG['max'], step=self.RANGE_CONFIG['step'], value=selected_value, required=True, style='width: 100px;', _oninput=f"document.getElementById('{step.done}_slider').value = this.value;", _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }", data_testid='range-widget-number-input', aria_label=f'Number input for range value between {self.RANGE_CONFIG["min"]} and {self.RANGE_CONFIG["max"]}')
-                return Div(Card(H3(f'{step.show}'), P(self.RANGE_CONFIG['description'], cls='text-secondary'), Form(Div(Label(self.RANGE_CONFIG['label'], style='min-width: 180px;', data_testid='range-widget-label'), range_input, number_input, style='display: flex; align-items: center; gap: 10px; margin: 1em 0;'), Button('Submit', type='submit', cls='primary', data_testid='range-widget-next-button', aria_label='Submit range selection'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', data_testid='range-widget-form', aria_label='Range selector form')), Div(id=next_step_id), id=step_id)
+                range_input = Input(type='range', name=f'{step.done}_slider', id=f'{step.done}_slider', min=self.RANGE_CONFIG['min'], max=self.RANGE_CONFIG['max'], step=self.RANGE_CONFIG['step'], value=selected_value, title=self.RANGE_CONFIG['description'], required=True, style='flex-grow: 1; margin: 0 10px;', _oninput=f"document.getElementById('{step.done}').value = this.value;")
+                number_input = Input(type='number', name=step.done, id=step.done, min=self.RANGE_CONFIG['min'], max=self.RANGE_CONFIG['max'], step=self.RANGE_CONFIG['step'], value=selected_value, required=True, style='width: 100px;', _oninput=f"document.getElementById('{step.done}_slider').value = this.value;", _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }")
+                return Div(Card(H3(f'{step.show}'), P(self.RANGE_CONFIG['description'], cls='text-secondary'), Form(Div(Label(self.RANGE_CONFIG['label'], style='min-width: 180px;'), range_input, number_input, style='display: flex; align-items: center; gap: 10px; margin: 1em 0;'), Button('Submit', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
             except Exception as e:
                 logger.error(f'Error creating range selector: {str(e)}')
                 logger.exception('Full traceback:')
-                return Div(Card(H3(f'{step.show}'), P(f'Error creating range selector: {str(e)}', cls='text-invalid')), id=step_id)
+                return Div(Card(H3(f'{step.show}'), P(f'Error creating range selector: {str(e)}', style=pip.ERROR_STYLE)), id=step_id)
 
     async def step_01_submit(self, request):
         """Handles POST request for range selection step."""
@@ -194,13 +178,13 @@ class RangeSelectorWorkflow:
         form = await request.form()
         value = form.get(step.done, '').strip()
         if not value:
-            return P('Error: Please select a value', cls='text-invalid')
+            return P('Error: Please select a value', style=pip.ERROR_STYLE)
         try:
             value = int(value)
             if value < self.RANGE_CONFIG['min'] or value > self.RANGE_CONFIG['max']:
-                return P(f"Error: Value must be between {self.RANGE_CONFIG['min']} and {self.RANGE_CONFIG['max']}", cls='text-invalid')
+                return P(f"Error: Value must be between {self.RANGE_CONFIG['min']} and {self.RANGE_CONFIG['max']}", style=pip.ERROR_STYLE)
         except ValueError:
-            return P('Error: Invalid value', cls='text-invalid')
+            return P('Error: Invalid value', style=pip.ERROR_STYLE)
         await pip.set_step_data(pipeline_id, step_id, value, steps)
         await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('complete', f'{step.show} complete: {value}'), verbatim=True)
         return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {value}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
