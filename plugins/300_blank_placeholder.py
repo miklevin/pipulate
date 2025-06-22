@@ -268,13 +268,25 @@ class BlankPlaceholder:
                       id=f"{step_id}-description",
                       role="note"),
                     Form(
-                        # Example: Hidden input to submit something for the placeholder
+                        # Example: Text input with label and placeholder for maximum automation coverage
+                        Label(
+                            "Placeholder Data:",
+                            _for=f"{step_id}-{step.done}",
+                            id=f"{step_id}-label",
+                            data_testid=f"placeholder-label-{step_id}"
+                        ),
                         Input(
-                            type="hidden", 
+                            type="text", 
                             name=step.done, 
                             value="Placeholder Value for Step 1 Placeholder",
+                            placeholder="Enter your placeholder data here...",
                             id=f"{step_id}-{step.done}",
-                            data_testid=f"placeholder-input-{step_id}"
+                            data_testid=f"placeholder-input-{step_id}",
+                            title="Input field for placeholder step data",
+                            aria_label=f"Input for {step.show}",
+                            aria_labelledby=f"{step_id}-label",
+                            aria_describedby=f"{step_id}-description",
+                            required=True
                         ),
                         Button(
                             self.ui['BUTTON_LABELS']['NEXT_STEP'], 
@@ -292,7 +304,10 @@ class BlankPlaceholder:
                         aria_labelledby=f"{step_id}-heading",
                         role="form",
                         data_testid=f"step-form-{step_id}"
-                    )
+                    ),
+                    data_testid=f"step-card-{step_id}",
+                    role="region",
+                    aria_labelledby=f"{step_id}-heading"
                 ),
                 Div(id=next_step_id), # Placeholder for next step, no trigger here
                 id=step_id,
