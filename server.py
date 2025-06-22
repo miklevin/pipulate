@@ -351,6 +351,7 @@ PCONFIG = {
     'UI_CONSTANTS': {
         'BUTTON_LABELS': {
             'ENTER_KEY': '🔑 Enter Key',
+            'NEW_KEY': '🆕',
             'NEXT_STEP': 'Next Step ▸',
             'FINALIZE': '🔒 Finalize',
             'UNLOCK': '🔓 Unlock',
@@ -3323,16 +3324,18 @@ class Pipulate:
         applied_style = content_style or self.FINALIZED_CONTENT_STYLE
         return Card(heading_tag(message), Div(content, style=applied_style), cls='card-container')
 
-    def wrap_with_inline_button(self, input_element: Input, button_label: str='Next ▸', button_class: str='primary') -> Div:
+    def wrap_with_inline_button(self, input_element: Input, button_label: str='Next ▸', button_class: str='primary', show_new_key_button: bool=False, app_name: str=None) -> Div:
         """Wrap an input element with an inline button in a flex container.
         
         Args:
             input_element: The input element to wrap
             button_label: Text to display on the button (default: 'Next ▸')
             button_class: CSS class for the button (default: 'primary')
+            show_new_key_button: Whether to show the 🆕 new key button (default: False)
+            app_name: App name for new key generation (required if show_new_key_button=True)
             
         Returns:
-            Div: A flex container with the input and button
+            Div: A flex container with the input and button(s)
         """
         button_style = 'display: inline-block;cursor: pointer;width: auto !important;white-space: nowrap;'
         container_style = 'display: flex;align-items: center;gap: 0.5rem;'
@@ -3358,12 +3361,31 @@ class Pipulate:
             title=f'Submit form ({button_label})'
         )
         
+        # Prepare elements for container
+        elements = [input_element, enhanced_button]
+        
+        # Add new key button if requested
+        if show_new_key_button and app_name:
+            ui_constants = PCONFIG['UI_CONSTANTS']
+            new_key_button = Button(
+                ui_constants['BUTTON_LABELS']['NEW_KEY'],
+                type='button',  # Not a submit button
+                cls='secondary outline',
+                style=button_style,
+                id=f'new-key-{input_id}',
+                hx_get=f'/generate-new-key/{app_name}',
+                hx_target=f'#{input_id}',
+                hx_swap='outerHTML',
+                aria_label='Generate new pipeline key',
+                title='Generate a new auto-incremented pipeline key'
+            )
+            elements.append(new_key_button)
+        
         return Div(
-            input_element, 
-            enhanced_button, 
+            *elements,
             style=container_style,
             role='group',
-            aria_label='Input with submit button'
+            aria_label='Input with submit button' + (' and new key generator' if show_new_key_button else '')
         )
 
     def create_standard_landing_page(self, plugin_instance):
@@ -3419,7 +3441,9 @@ class Pipulate:
                             aria_describedby='pipeline-help'
                         ),
                         button_label=ui_constants['BUTTON_LABELS']['ENTER_KEY'],
-                        button_class=ui_constants['BUTTON_STYLES']['SECONDARY']
+                        button_class=ui_constants['BUTTON_STYLES']['SECONDARY'],
+                        show_new_key_button=True,
+                        app_name=plugin_instance.APP_NAME
                     ),
                     self.update_datalist('pipeline-ids', options=matching_records, clear=not matching_records),
                     Small('Enter a new ID or select from existing pipelines', id='pipeline-help', cls='text-muted'),
@@ -5948,6 +5972,45 @@ async def search_plugins(request):
             document.getElementById('search-results-dropdown').style.display = 'block';
         </script>
         """)
+
+@rt('/generate-new-key/{app_name}')
+async def generate_new_key(request):
+    """Generate a new auto-incremented pipeline key for the specified app."""
+    app_name = request.path_params['app_name']
+    
+    # Find the plugin instance to generate the key
+    plugin_instance = get_workflow_instance(app_name)
+    if not plugin_instance:
+        return Input(
+            placeholder='Error: Plugin not found',
+            name='pipeline_id',
+            type='search',
+            cls='contrast',
+            style='border-color: var(--pico-color-red-500);',
+            aria_label='Pipeline ID input (error)'
+        )
+    
+    # Generate new key
+    full_key, prefix, _ = pipulate.generate_pipeline_key(plugin_instance)
+    
+    # Return updated input element with new key
+    ui_constants = PCONFIG['UI_CONSTANTS']
+    landing_constants = PCONFIG['UI_CONSTANTS']['LANDING_PAGE']
+    
+    return Input(
+        placeholder=landing_constants['INPUT_PLACEHOLDER'],
+        name='pipeline_id',
+        list='pipeline-ids',
+        type='search',
+        required=False,
+        autofocus=True,
+        value=full_key,
+        _onfocus='this.setSelectionRange(this.value.length, this.value.length)',
+        cls='contrast',
+        aria_label='Pipeline ID input',
+        aria_describedby='pipeline-help',
+        id=request.headers.get('hx-target', '').replace('#', '') or f'input-{hash(str(full_key))}'
+    )
 
 @rt('/refresh-app-menu')
 async def refresh_app_menu_endpoint(request):
