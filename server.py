@@ -88,6 +88,39 @@ BANNER_COLORS = {
     'ascii_box': 'ASCII'
 }
 
+custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
+
+class DebugConsole(Console):
+
+    def print(self, *args, **kwargs):
+        super().print(*args, **kwargs)
+console = DebugConsole(theme=custom_theme)
+
+def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None):
+    """🎨 FIGLET BANNERS: Beautiful FIGlet text in Rich panels"""
+    if color is None:
+        color = BANNER_COLORS['figlet_primary']
+    if box_style is None:
+        box_style = HEAVY  # Default to HEAVY, can be overridden by BANNER_COLORS later
+    
+    figlet = Figlet(font=font, width=80)
+    fig_text = figlet.renderText(str(text))
+    
+    if subtitle:
+        subtitle_color = BANNER_COLORS['figlet_subtitle']
+        content = f"[{color}]{fig_text}[/{color}]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
+    else:
+        content = f"[{color}]{fig_text}[/{color}]"
+    
+    panel = Panel(
+        Align.center(content),
+        box=box_style,
+        style=color,
+        padding=(1, 2)
+    )
+    console.print(panel)
+    logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
+
 # Initialize logging as early as possible in the startup process
 def setup_logging():
     """
@@ -183,6 +216,7 @@ def setup_logging():
         )
     )
     
+    figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color=BANNER_COLORS['server_restart'])
     # === STARTUP MESSAGES ===
     if STATE_TABLES:
         logger.info('🔍 FINDER_TOKEN: STATE_TABLES_ENABLED - Console will show 🍪 and ➡️ table snapshots')
@@ -2460,31 +2494,6 @@ def fig(text, font='slant', color=None, width=200):
     # Log text equivalent for server.log visibility
     logger.info(f"🎨 BANNER: {text} (figlet: {font})")
 
-def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None):
-    """🎨 FIGLET BANNERS: Beautiful FIGlet text in Rich panels"""
-    if color is None:
-        color = BANNER_COLORS['figlet_primary']
-    if box_style is None:
-        box_style = HEAVY  # Default to HEAVY, can be overridden by BANNER_COLORS later
-    
-    figlet = Figlet(font=font, width=80)
-    fig_text = figlet.renderText(str(text))
-    
-    if subtitle:
-        subtitle_color = BANNER_COLORS['figlet_subtitle']
-        content = f"[{color}]{fig_text}[/{color}]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
-    else:
-        content = f"[{color}]{fig_text}[/{color}]"
-    
-    panel = Panel(
-        Align.center(content),
-        box=box_style,
-        style=color,
-        padding=(1, 2)
-    )
-    console.print(panel)
-    logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
-
 def chip_says(message, style=None, prefix="💬 Chip O'Theseus"):
     """🎭 CHIP O'THESEUS NARRATOR: Discrete storytelling moments in the logs"""
     if style is None:
@@ -2561,7 +2570,7 @@ def white_rabbit():
     alice_art = r"""[black].[/black]            /)   ______
        /)\__//    /      \
    ___(/_ 0 0    |        |
- *(    ==(_T_)== |[bold]Pipulate[/bold]|
+ *(    ==(_T_)== |[bold bright_blue]Pipulate[/bold bright_blue]|
    \  )   ""\    |        |
     |__>-\_>_>    \______/
    """
@@ -3072,13 +3081,6 @@ class LogManager:
         """Log debug information that only appears in DEBUG mode."""
         self.logger.debug(self.format_message(category, message, details))
 log = LogManager(logger)
-custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
-
-class DebugConsole(Console):
-
-    def print(self, *args, **kwargs):
-        super().print(*args, **kwargs)
-console = DebugConsole(theme=custom_theme)
 
 class SSEBroadcaster:
     _instance = None
@@ -3405,7 +3407,6 @@ class Pipulate:
         else:
             button_text = f'{symbol}\xa0Step\xa0{visual_step_number}'
         return button_text
-
 
     
     def get_ui_constants(self):
@@ -5733,8 +5734,6 @@ async def startup_event():
     # 📊 BEAUTIFUL STATUS OVERVIEW
     env = get_current_environment()
     status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
-    print()
-    system_diagram()
     
     log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
@@ -7965,8 +7964,9 @@ def run_server_with_watchdog():
     logger.info('🚀 FINDER_TOKEN: SERVER_STARTUP - Starting server with watchdog')
     
     # 🎨 BEAUTIFUL RESTART BANNER
-    figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color=BANNER_COLORS['server_restart'])
     figlet_banner(APP_NAME, "Digital Workshop Framework", font='standard', color=BANNER_COLORS['workshop_ready'])
+    print()
+    system_diagram()
     chip_says("Hello! The server is restarting. I'll be right back online.", BANNER_COLORS['workshop_ready'])
     env = get_current_environment()
     env_db = DB_FILENAME
