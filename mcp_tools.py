@@ -529,12 +529,30 @@ async def _browser_stealth_search(params: dict) -> dict:
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
         options.add_experimental_option('useAutomationExtension', False)
         
-        # User agent spoofing
-        options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
+        # Realistic user agents - recent but not bleeding edge versions
+        user_agents = [
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36", 
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+        ]
+        selected_ua = random.choice(user_agents)
+        options.add_argument(f"--user-agent={selected_ua}")
+        logger.info(f"🎭 FINDER_TOKEN: USER_AGENT_SELECTED - {selected_ua}")
         
-        # Half-screen window for human-like appearance
-        options.add_argument('--window-size=960,1080')
-        options.add_argument('--window-position=0,0')
+        # Randomized window size within common ranges
+        window_widths = [1280, 1366, 1440, 1536, 1920]
+        window_heights = [720, 768, 900, 1024, 1080]
+        window_width = random.choice(window_widths)
+        window_height = random.choice(window_heights)
+        options.add_argument(f'--window-size={window_width},{window_height}')
+        
+        # Randomized window position
+        max_x = max(0, window_width - 100)
+        max_y = max(0, window_height - 100) 
+        pos_x = random.randint(0, min(max_x, 200))
+        pos_y = random.randint(0, min(max_y, 100))
+        options.add_argument(f'--window-position={pos_x},{pos_y}')
         
         # Use Nix-provided Chromium binary
         options.binary_location = chromium_path
@@ -545,7 +563,7 @@ async def _browser_stealth_search(params: dict) -> dict:
         
         logger.info("✅ FINDER_TOKEN: NIX_CHROME_SUCCESS - Single window, version-matched setup")
         
-        # CDP script injection for advanced stealth
+        # Enhanced CDP script injection for advanced stealth
         stealth_script = """
         Object.defineProperty(navigator, 'webdriver', {
             get: () => undefined,
@@ -568,22 +586,60 @@ async def _browser_stealth_search(params: dict) -> dict:
                 query: () => Promise.resolve({ state: 'granted' }),
             }),
         });
+        
+        // Additional fingerprint protection
+        Object.defineProperty(navigator, 'hardwareConcurrency', {
+            get: () => 4,
+        });
+        
+        Object.defineProperty(navigator, 'deviceMemory', {
+            get: () => 8,
+        });
+        
+        Object.defineProperty(navigator, 'connection', {
+            get: () => ({
+                effectiveType: '4g',
+                rtt: 100,
+                downlink: 2
+            }),
+        });
+        
+        // Override canvas fingerprinting
+        const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+        HTMLCanvasElement.prototype.toDataURL = function() {
+            const context = this.getContext('2d');
+            context.fillStyle = 'rgba(255, 255, 255, 0.01)';
+            context.fillRect(0, 0, 1, 1);
+            return originalToDataURL.apply(this, arguments);
+        };
         """
         
         driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
             'source': stealth_script
         })
         
-        # Apply selenium-stealth if available
+        # Apply selenium-stealth with randomized WebGL fingerprint
         if STEALTH_AVAILABLE:
+            # Randomize WebGL fingerprint for different runs
+            webgl_vendors = ["Google Inc.", "Intel Inc.", "NVIDIA Corporation"]
+            webgl_renderers = [
+                "Intel Iris OpenGL Engine", 
+                "ANGLE (Intel, Intel(R) HD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+                "ANGLE (NVIDIA, NVIDIA GeForce GTX 1060 Direct3D11 vs_5_0 ps_5_0, D3D11)"
+            ]
+            
+            selected_vendor = random.choice(webgl_vendors)
+            selected_renderer = random.choice(webgl_renderers)
+            
             stealth(driver,
                     languages=["en-US", "en"],
                     vendor="Google Inc.",
-                    platform="Linux",
-                    webgl_vendor="Intel Inc.",
-                    renderer="Intel Iris OpenGL Engine",
+                    platform="Linux x86_64",
+                    webgl_vendor=selected_vendor,
+                    renderer=selected_renderer,
                     fix_hairline=True,
             )
+            logger.info(f"🎭 FINDER_TOKEN: WEBGL_FINGERPRINT - Vendor: {selected_vendor}, Renderer: {selected_renderer}")
         
         try:
             # Navigate to search engine
@@ -591,21 +647,44 @@ async def _browser_stealth_search(params: dict) -> dict:
             driver.get(search_url)
             
             if human_behavior:
-                # Human-like behavior simulation
+                # Enhanced human-like behavior simulation
                 time.sleep(random.uniform(0.5, 1.5))
                 
-                # Random mouse movements
+                # More natural mouse movements with multiple intermediate points
                 actions = ActionChains(driver)
-                for _ in range(2):
-                    x = random.randint(100, 400)
-                    y = random.randint(100, 300)
-                    actions.move_by_offset(x, y)
-                    actions.perform()
+                for _ in range(random.randint(1, 3)):
+                    # Create curved movement with multiple intermediate points
+                    total_x, total_y = random.randint(100, 300), random.randint(100, 250)
+                    num_steps = random.randint(4, 8)  # More steps for smoother curves
+                    
+                    for step in range(num_steps):
+                        # Calculate position along curve with some randomness
+                        progress = step / num_steps
+                        step_x = int((total_x / num_steps) + random.randint(-20, 20))
+                        step_y = int((total_y / num_steps) + random.randint(-20, 20))
+                        
+                        actions.move_by_offset(step_x, step_y)
+                        actions.perform()
+                        time.sleep(random.uniform(0.05, 0.15))
+                    
                     time.sleep(random.uniform(0.3, 0.8))
                 
-                # Random scrolling
-                driver.execute_script(f"window.scrollTo(0, {random.randint(50, 200)});")
-                time.sleep(random.uniform(0.5, 1.0))
+                # Natural scrolling patterns (sometimes up, mostly down)
+                scroll_direction = random.choice([1, 1, 1, -1])  # 75% down, 25% up
+                scroll_amount = random.randint(50, 300) * scroll_direction
+                driver.execute_script(f"window.scrollTo(0, {scroll_amount});")
+                time.sleep(random.uniform(0.2, 0.6))
+                
+                # Occasionally move mouse to different parts of the page
+                if random.random() < 0.3:  # 30% chance
+                    viewport_width = driver.execute_script("return window.innerWidth")
+                    viewport_height = driver.execute_script("return window.innerHeight")
+                    rand_x = random.randint(int(viewport_width * 0.1), int(viewport_width * 0.9))
+                    rand_y = random.randint(int(viewport_height * 0.1), int(viewport_height * 0.9))
+                    actions = ActionChains(driver)
+                    actions.move_by_offset(rand_x - viewport_width//2, rand_y - viewport_height//2)
+                    actions.perform()
+                    time.sleep(random.uniform(0.1, 0.4))
             
             # Find search box with multiple selector fallbacks
             wait = WebDriverWait(driver, search_box_timeout)
@@ -628,22 +707,60 @@ async def _browser_stealth_search(params: dict) -> dict:
             if not search_box:
                 return {"success": False, "error": "Search box not found"}
             
-            # Clear and type search query with faster human-like delays
+            # Clear and type search query with enhanced human-like behavior
             search_box.clear()
             time.sleep(random.uniform(0.05, 0.125))
             
-            # Type with realistic human delays
-            for char in query:
+            # Enhanced realistic typing with human patterns
+            for i, char in enumerate(query):
+                # Simulate occasional typing mistakes (very rare)
+                if random.random() < 0.02 and i > 0:  # 2% chance of "typo"
+                    wrong_char = random.choice('abcdefghijklmnopqrstuvwxyz')
+                    search_box.send_keys(wrong_char)
+                    time.sleep(random.uniform(0.08, 0.2))
+                    search_box.send_keys(Keys.BACKSPACE)
+                    time.sleep(random.uniform(0.05, 0.15))
+                
                 search_box.send_keys(char)
-                time.sleep(random.uniform(0.05, 0.15))
+                
+                # Variable typing speed - faster for common words, slower for complex ones
+                if char == ' ':
+                    # Slight pause at word boundaries
+                    time.sleep(random.uniform(0.1, 0.25))
+                elif char in 'aeiou':
+                    # Vowels typed slightly faster
+                    time.sleep(random.uniform(0.03, 0.12))
+                else:
+                    # Consonants have normal timing
+                    time.sleep(random.uniform(0.05, 0.18))
+                
+                # Occasional brief pauses (thinking)
+                if random.random() < 0.05:  # 5% chance
+                    time.sleep(random.uniform(0.2, 0.5))
             
             time.sleep(random.uniform(0.5, 1.0))
             
             # Submit search
             search_box.send_keys(Keys.RETURN)
             
-            # Wait for results to load
-            time.sleep(3)
+            # Wait for results to load dynamically instead of fixed sleep
+            try:
+                results_wait = WebDriverWait(driver, 10)
+                # Wait for any of our result selectors to appear
+                for selector in result_selectors:
+                    try:
+                        results_wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
+                        logger.info(f"✅ FINDER_TOKEN: RESULTS_LOADED - Detected results with selector: {selector}")
+                        break
+                    except TimeoutException:
+                        continue
+                else:
+                    logger.warning("⚠️ FINDER_TOKEN: RESULTS_TIMEOUT - No results detected, proceeding anyway")
+            except Exception as e:
+                logger.warning(f"⚠️ FINDER_TOKEN: RESULTS_WAIT_ERROR - {e}, proceeding anyway")
+            
+            # Small additional human-like pause
+            time.sleep(random.uniform(0.5, 1.5))
             
             # Extract search results with multiple selector fallbacks
             results = []
