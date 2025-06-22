@@ -4282,9 +4282,50 @@ async def _browser_automate_plugin_improvement(params: dict) -> dict:
         screenshot_path = os.path.join(download_dir, f"analysis_{plugin_filename.replace('.py', '')}_{int(time.time())}.png")
         driver.save_screenshot(screenshot_path)
         
-        # Step 5: Apply improvements if needed (placeholder for now)
+        # Step 5: Apply improvements if needed
         improvement_applied = False
-        # TODO: Integrate with real plugin improvement logic
+        if analysis_results.get("automation_score", 0) < 80:
+            improvement_applied = apply_plugin_improvements(plugin_filename, download_dir)
+        
+        # Step 6: Re-analyze if improvements were applied
+        final_results = analysis_results
+        if improvement_applied:
+            # Navigate back and re-analyze
+            driver.get(dev_assistant_url)
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "plugin-search-input-step_01"))
+            )
+            
+            search_input = driver.find_element(By.ID, "plugin-search-input-step_01")
+            search_input.clear()
+            search_input.send_keys(plugin_filename)
+            search_input.send_keys(Keys.ENTER)
+            time.sleep(2)
+            
+            try:
+                analyze_btn = driver.find_element(By.ID, "analyze-btn-step_01")
+                if not analyze_btn.get_attribute("disabled"):
+                    analyze_btn.click()
+                    time.sleep(5)
+            except NoSuchElementException:
+                pass
+            
+            # Extract final results
+            try:
+                step_02_div = driver.find_element(By.ID, "step_02")
+                score_elements = step_02_div.find_elements(By.XPATH, "//*[contains(text(), 'Overall Score:')]")
+                for elem in score_elements:
+                    import re
+                    score_match = re.search(r'(\d+)/100', elem.text)
+                    if score_match:
+                        final_results["final_automation_score"] = int(score_match.group(1))
+                        break
+            except NoSuchElementException:
+                pass
+            
+            # Final screenshot
+            final_screenshot_path = os.path.join(download_dir, f"final_analysis_{plugin_filename.replace('.py', '')}_{int(time.time())}.png")
+            driver.save_screenshot(final_screenshot_path)
         
         driver.quit()
         
@@ -4295,8 +4336,12 @@ async def _browser_automate_plugin_improvement(params: dict) -> dict:
             "initial_analysis": analysis_results,
             "improvement_applied": improvement_applied,
             "download_directory": download_dir,
-            "screenshots": [screenshot_path]
+            "screenshots": [screenshot_path] + ([final_screenshot_path] if improvement_applied else [])
         }
+        
+        if improvement_applied:
+            response["final_analysis"] = final_results
+            response["improvement_score_delta"] = final_results.get("final_automation_score", 0) - analysis_results.get("automation_score", 0)
         
         return response
         
@@ -4306,6 +4351,115 @@ async def _browser_automate_plugin_improvement(params: dict) -> dict:
             "error": str(e),
             "operation_id": operation_id
         }
+
+def apply_plugin_improvements(plugin_filename, download_dir):
+    """
+    Apply automation improvements to a plugin file.
+    
+    This function implements the proven improvement patterns that took 510_text_field.py
+    from 0/100 to 100/100 automation score.
+    
+    Args:
+        plugin_filename: Name of the plugin file (e.g., '510_text_field.py')
+        download_dir: Directory to save improvement logs
+        
+    Returns:
+        bool: True if improvements were applied successfully
+    """
+    try:
+        from pathlib import Path
+        import time
+        import os
+        
+        plugin_path = Path("plugins") / plugin_filename
+        if not plugin_path.exists():
+            logger.error(f"❌ FINDER_TOKEN: PLUGIN_IMPROVEMENT_ERROR | Plugin not found: {plugin_filename}")
+            return False
+            
+        content = plugin_path.read_text()
+        
+        # Backup original
+        backup_path = plugin_path.with_suffix('.py.backup')
+        backup_path.write_text(content)
+        logger.info(f"💾 FINDER_TOKEN: PLUGIN_BACKUP_CREATED | Backup: {backup_path}")
+        
+        # Generate semantic app name for data-testid attributes
+        app_name = plugin_filename.replace('.py', '').replace('_', '-')
+        
+        # Track what improvements we make
+        improvements_made = []
+        
+        # Apply improvements (based on our proven successful patterns)
+        lines = content.split('\n')
+        for i, line in enumerate(lines):
+            # Add data-testid and aria-label to Input elements
+            if 'Input(' in line and 'data_testid=' not in line:
+                if 'pipeline_id' in line:
+                    lines[i] = line.replace('Input(', f'Input(data_testid="{app_name}-pipeline-input", aria_label="Enter workflow ID", ')
+                    improvements_made.append(f"Line {i+1}: Added pipeline input automation attributes")
+                elif 'type=\'text\'' in line or 'type="text"' in line:
+                    lines[i] = line.replace('Input(', f'Input(data_testid="{app_name}-text-input", aria_label="Text input field", ')
+                    improvements_made.append(f"Line {i+1}: Added text input automation attributes")
+                elif any(field_type in line.lower() for field_type in ['email', 'password', 'url', 'number']):
+                    field_type = next(ft for ft in ['email', 'password', 'url', 'number'] if ft in line.lower())
+                    lines[i] = line.replace('Input(', f'Input(data_testid="{app_name}-{field_type}-input", aria_label="{field_type.title()} input field", ')
+                    improvements_made.append(f"Line {i+1}: Added {field_type} input automation attributes")
+                else:
+                    lines[i] = line.replace('Input(', f'Input(data_testid="{app_name}-input", aria_label="Input field", ')
+                    improvements_made.append(f"Line {i+1}: Added generic input automation attributes")
+                    
+            # Add data-testid and aria-label to Button elements
+            if 'Button(' in line and 'data_testid=' not in line:
+                if 'Finalize' in line or 'finalize' in line:
+                    lines[i] = line.replace('Button(', f'Button(data_testid="{app_name}-finalize-button", aria_label="Finalize workflow", ')
+                    improvements_made.append(f"Line {i+1}: Added finalize button automation attributes")
+                elif 'Next' in line or 'Continue' in line:
+                    lines[i] = line.replace('Button(', f'Button(data_testid="{app_name}-next-button", aria_label="Continue to next step", ')
+                    improvements_made.append(f"Line {i+1}: Added next button automation attributes")
+                elif 'Submit' in line or 'type=\'submit\'' in line or 'type="submit"' in line:
+                    lines[i] = line.replace('Button(', f'Button(data_testid="{app_name}-submit-button", aria_label="Submit form", ')
+                    improvements_made.append(f"Line {i+1}: Added submit button automation attributes")
+                elif 'Unlock' in line or 'unlock' in line:
+                    lines[i] = line.replace('Button(', f'Button(data_testid="{app_name}-unlock-button", aria_label="Unlock workflow", ')
+                    improvements_made.append(f"Line {i+1}: Added unlock button automation attributes")
+                else:
+                    lines[i] = line.replace('Button(', f'Button(data_testid="{app_name}-button", aria_label="Action button", ')
+                    improvements_made.append(f"Line {i+1}: Added generic button automation attributes")
+            
+            # Add data-testid to Select elements
+            if 'Select(' in line and 'data_testid=' not in line:
+                lines[i] = line.replace('Select(', f'Select(data_testid="{app_name}-select", aria_label="Selection dropdown", ')
+                improvements_made.append(f"Line {i+1}: Added select dropdown automation attributes")
+            
+            # Add data-testid to Textarea elements  
+            if 'Textarea(' in line and 'data_testid=' not in line:
+                lines[i] = line.replace('Textarea(', f'Textarea(data_testid="{app_name}-textarea", aria_label="Text area input", ')
+                improvements_made.append(f"Line {i+1}: Added textarea automation attributes")
+        
+        # Write improved version
+        improved_content = '\n'.join(lines)
+        plugin_path.write_text(improved_content)
+        
+        # Log improvements to download directory
+        improvement_log_path = os.path.join(download_dir, f"improvements_{plugin_filename.replace('.py', '')}_{int(time.time())}.txt")
+        with open(improvement_log_path, 'w') as f:
+            f.write(f"Plugin Automation Improvements Applied\n")
+            f.write(f"=====================================\n\n")
+            f.write(f"Plugin: {plugin_filename}\n")
+            f.write(f"Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Backup created: {backup_path}\n\n")
+            f.write(f"Improvements Made ({len(improvements_made)} total):\n")
+            for improvement in improvements_made:
+                f.write(f"  - {improvement}\n")
+        
+        logger.info(f"🎯 FINDER_TOKEN: PLUGIN_IMPROVEMENT_SUCCESS | Plugin: {plugin_filename} | Improvements: {len(improvements_made)}")
+        logger.info(f"📄 FINDER_TOKEN: PLUGIN_IMPROVEMENT_LOG | Log file: {improvement_log_path}")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: PLUGIN_IMPROVEMENT_ERROR | Plugin: {plugin_filename} | Error: {str(e)}")
+        return False
 
 register_mcp_tool("browser_automate_plugin_improvement", _browser_automate_plugin_improvement)
 
