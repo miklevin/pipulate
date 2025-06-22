@@ -1738,9 +1738,241 @@ async def _browser_analyze_scraped_page(params: dict) -> dict:
         logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_ANALYZE_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
+async def _browser_interact_with_page(params: dict) -> dict:
+    """
+    MCP Tool: Interact with page elements using automation-friendly selectors.
+    
+    This is the ACTION component of the Scrape → Analyze → Interact → Verify cycle.
+    Uses the simplified DOM analysis to perform precise actions.
+    
+    Args:
+        params: {
+            "url": "https://example.com",
+            "actions": [
+                {
+                    "type": "click" | "type" | "select" | "wait",
+                    "selector": "#submit-button" | "[data-testid='login-btn']" | "[aria-label='Save token']",
+                    "value": "text to type" (for type actions),
+                    "wait_after": 2,  # seconds to wait after action
+                    "wait_for_element": True  # wait for element to be clickable
+                }
+            ],
+            "take_screenshot": True,  # Optional: capture screenshots
+            "headless": True  # Optional: run in headless mode (default: True)
+        }
+    
+    Returns:
+        dict: Results of the interaction sequence with success/failure details
+    """
+    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_INTERACT_START - URL: {params.get('url')}")
+    
+    try:
+        url = params.get('url')
+        actions = params.get('actions', [])
+        take_screenshot = params.get('take_screenshot', False)
+        headless = params.get('headless', True)
+        
+        if not url:
+            return {"success": False, "error": "URL parameter is required"}
+            
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait, Select
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.common.exceptions import TimeoutException, ElementNotInteractableException
+        import time
+        import os
+        from datetime import datetime
+        
+        chrome_options = Options()
+        if headless:
+            chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--window-size=1920,1080')  # Consistent viewport
+        
+        driver = webdriver.Chrome(options=chrome_options)
+        
+        try:
+            # Navigate to page
+            driver.get(url)
+            time.sleep(2)  # Initial page load wait
+            
+            action_results = []
+            screenshots = []
+            
+            # Take initial screenshot if requested
+            if take_screenshot:
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                screenshot_dir = f"downloads/browser_screenshots/{timestamp}"
+                os.makedirs(screenshot_dir, exist_ok=True)
+                
+                initial_screenshot = os.path.join(screenshot_dir, "00_initial.png")
+                driver.save_screenshot(initial_screenshot)
+                screenshots.append({"step": "initial", "file": initial_screenshot})
+            
+            for i, action in enumerate(actions):
+                action_type = action.get('type')
+                selector = action.get('selector')
+                value = action.get('value')
+                wait_after = action.get('wait_after', 1)
+                wait_for_element = action.get('wait_for_element', True)
+                
+                step_name = f"step_{i+1:02d}_{action_type}"
+                
+                try:
+                    if wait_for_element:
+                        # Wait for element to be present and interactable
+                        if action_type == 'click':
+                            element = WebDriverWait(driver, 10).until(
+                                EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                            )
+                        else:
+                            element = WebDriverWait(driver, 10).until(
+                                EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                            )
+                    else:
+                        element = driver.find_element(By.CSS_SELECTOR, selector)
+                    
+                    # Perform the action
+                    if action_type == 'click':
+                        # Scroll element into view first
+                        driver.execute_script("arguments[0].scrollIntoView(true);", element)
+                        time.sleep(0.5)
+                        element.click()
+                        result = {
+                            "action": i + 1,
+                            "type": "click", 
+                            "selector": selector,
+                            "success": True,
+                            "element_text": element.text[:50] if element.text else ""
+                        }
+                        
+                    elif action_type == 'type':
+                        # Clear and type text
+                        element.clear()
+                        element.send_keys(value)
+                        result = {
+                            "action": i + 1,
+                            "type": "type",
+                            "selector": selector, 
+                            "value": value,
+                            "success": True
+                        }
+                        
+                    elif action_type == 'select':
+                        # Select from dropdown
+                        select = Select(element)
+                        select.select_by_visible_text(value)
+                        result = {
+                            "action": i + 1,
+                            "type": "select",
+                            "selector": selector,
+                            "value": value, 
+                            "success": True
+                        }
+                        
+                    elif action_type == 'wait':
+                        # Just wait (useful for page loads, animations)
+                        wait_time = action.get('seconds', wait_after)
+                        time.sleep(wait_time)
+                        result = {
+                            "action": i + 1,
+                            "type": "wait",
+                            "seconds": wait_time,
+                            "success": True
+                        }
+                        
+                    else:
+                        result = {
+                            "action": i + 1,
+                            "error": f"Unknown action type: {action_type}",
+                            "success": False
+                        }
+                        
+                    action_results.append(result)
+                    
+                    # Take screenshot after action if requested
+                    if take_screenshot and result['success']:
+                        screenshot_file = os.path.join(screenshot_dir, f"{step_name}.png")
+                        driver.save_screenshot(screenshot_file)
+                        screenshots.append({"step": step_name, "file": screenshot_file})
+                    
+                    # Wait after action
+                    if result['success']:
+                        time.sleep(wait_after)
+                    
+                except TimeoutException:
+                    result = {
+                        "action": i + 1,
+                        "error": f"Timeout waiting for element: {selector}",
+                        "success": False
+                    }
+                    action_results.append(result)
+                    
+                except ElementNotInteractableException:
+                    result = {
+                        "action": i + 1,
+                        "error": f"Element not interactable: {selector}",
+                        "success": False
+                    }
+                    action_results.append(result)
+                    
+                except Exception as action_error:
+                    result = {
+                        "action": i + 1,
+                        "error": str(action_error),
+                        "success": False
+                    }
+                    action_results.append(result)
+                    
+            # Capture final page state
+            final_url = driver.current_url
+            final_title = driver.title
+            
+            # Take final screenshot if requested
+            if take_screenshot:
+                final_screenshot = os.path.join(screenshot_dir, "99_final.png")
+                driver.save_screenshot(final_screenshot)
+                screenshots.append({"step": "final", "file": final_screenshot})
+                
+        finally:
+            driver.quit()
+            
+        # Calculate success metrics
+        successful_actions = [a for a in action_results if a.get('success')]
+        success_rate = len(successful_actions) / len(action_results) if action_results else 0
+        
+        result = {
+            "success": True,
+            "actions_executed": len(action_results),
+            "actions_successful": len(successful_actions),
+            "success_rate": round(success_rate, 2),
+            "action_results": action_results,
+            "final_page": {
+                "url": final_url,
+                "title": final_title
+            }
+        }
+        
+        # Add screenshot info if taken
+        if screenshots:
+            result["screenshots"] = screenshots
+            result["screenshot_count"] = len(screenshots)
+        
+        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_INTERACT_SUCCESS - {len(successful_actions)}/{len(action_results)} actions successful ({success_rate:.0%})")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_INTERACT_ERROR - {e}")
+        return {"success": False, "error": str(e)}
+
 # Register browser automation MCP tools
 register_mcp_tool("browser_scrape_page", _browser_scrape_page)
 register_mcp_tool("browser_analyze_scraped_page", _browser_analyze_scraped_page)
+register_mcp_tool("browser_interact_with_page", _browser_interact_with_page)
 
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
