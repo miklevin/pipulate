@@ -1964,13 +1964,13 @@ input[type="password"]:focus {
     white-space: nowrap !important;
     border: none !important;
     border-radius: var(--pico-border-radius) !important;
-    padding: 0.625rem 1rem !important;
+    padding: 0.625rem .5rem !important;
     margin: 0 !important;
     background-color: var(--pico-secondary-background) !important;
     box-shadow: none !important;
     line-height: 1.25 !important;
     font-size: 1.5rem !important;
-    opacity: 0.5 !important;
+    opacity: 0.33 !important;
     vertical-align: middle !important;
 }
 
