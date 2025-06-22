@@ -817,7 +817,7 @@ class Trifecta:
         
         project_url = project_data.get('url', '')
         project_info = Div(H4(f'Project: {project_name}'), Small(project_url, cls='url-breakable'), cls='project-info-box')
-        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return pip.chain_reverter(step_id, step_index, steps, app_name, project_url)
 
     async def step_analysis(self, request):
         """Handles GET request for Analysis selection between steps 1 and 2."""
