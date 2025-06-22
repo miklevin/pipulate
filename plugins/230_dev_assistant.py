@@ -1555,12 +1555,16 @@ class DevAssistant:
                     if auto_select_single:
                         item_class += " auto-select-single"
                         
+                    # Properly escape JavaScript parameters to handle quotes and special characters
+                    escaped_filename = plugin['filename'].replace("'", "\\'").replace('"', '\\"')
+                    escaped_display_name = plugin['display_name'].replace("'", "\\'").replace('"', '\\"')
+                    
                     result_html += f"""
                     <div class="{item_class}" 
                          data-plugin-filename="{plugin['filename']}"
                          data-plugin-display="{plugin['display_name']}"
                          style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--pico-muted-border-color);"
-                         onclick="selectDevAssistantPlugin('{plugin['filename']}', '{plugin['display_name']}')"
+                         onclick="selectDevAssistantPlugin('{escaped_filename}', '{escaped_display_name}')"
                          onmouseover="this.style.backgroundColor = 'var(--pico-primary-hover-background)';"
                          onmouseout="this.style.backgroundColor = 'transparent';">
                         <strong>{plugin['display_name']}</strong>
