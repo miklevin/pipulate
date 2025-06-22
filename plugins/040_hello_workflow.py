@@ -282,12 +282,26 @@ class HelloFlow:
                     H3(f'{self.ui["EMOJIS"]["LOCKED"]} Workflow is locked.'),
                     P('Each step can do ANYTHING. With this you can change the world — or at least show how to in a workflow.', cls='text-muted'),
                     Form(
-                        Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE']),
+                        Button(
+                            self.ui['BUTTON_LABELS']['UNLOCK'], 
+                            type='submit', 
+                            cls=self.ui['BUTTON_STYLES']['OUTLINE'],
+                            id='hello-unlock-button',
+                            aria_label='Unlock workflow to make changes',
+                            data_testid='hello-unlock-btn',
+                            title='Click to unlock the workflow and allow modifications'
+                        ),
                         hx_post=f'/{app_name}/unfinalize',
                         hx_target=f'#{app_name}-container',
-                        hx_swap='outerHTML'
+                        hx_swap='outerHTML',
+                        id='hello-unlock-form',
+                        aria_label='Unlock workflow form',
+                        data_testid='hello-unlock-form'
                     ),
-                    id=finalize_step.id
+                    id=finalize_step.id,
+                    role='region',
+                    aria_label='Workflow finalization status',
+                    data_testid='hello-finalize-card'
                 )
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
@@ -296,15 +310,32 @@ class HelloFlow:
                         H3(f'{self.ui["EMOJIS"]["SUCCESS"]} All steps complete. Finalize?'),
                         P('At the end they get locked. Or you can go back.', cls='text-muted'),
                         Form(
-                            Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY']),
+                            Button(
+                                self.ui['BUTTON_LABELS']['FINALIZE'], 
+                                type='submit', 
+                                cls=self.ui['BUTTON_STYLES']['PRIMARY'],
+                                id='hello-finalize-button',
+                                aria_label='Finalize workflow and lock all steps',
+                                data_testid='hello-finalize-btn',
+                                title='Click to finalize and lock the workflow'
+                            ),
                             hx_post=f'/{app_name}/finalize',
                             hx_target=f'#{app_name}-container',
-                            hx_swap='outerHTML'
+                            hx_swap='outerHTML',
+                            id='hello-finalize-form',
+                            aria_label='Finalize workflow form',
+                            data_testid='hello-finalize-form'
                         ),
-                        id=finalize_step.id
+                        id=finalize_step.id,
+                        role='region',
+                        aria_label='Workflow completion status',
+                        data_testid='hello-complete-card'
                     )
                 else:
-                    return Div(id=finalize_step.id)
+                    return Div(
+                        id=finalize_step.id,
+                        data_testid='hello-incomplete-placeholder'
+                    )
         else:
             await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, self.step_messages['finalize']['complete'], verbatim=True)
@@ -375,9 +406,20 @@ class HelloFlow:
             locked_msg = f'{self.ui["EMOJIS"]["LOCKED"]} Your name is set to: {user_val}'
             await self.message_queue.add(pip, locked_msg, verbatim=True)
             return Div(
-                Card(H3(f'{self.ui["EMOJIS"]["LOCKED"]} {step.show}: {user_val}')),
-                Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
+                Card(
+                    H3(f'{self.ui["EMOJIS"]["LOCKED"]} {step.show}: {user_val}'),
+                    role='region',
+                    aria_label=f'Locked step 1: {step.show}',
+                    data_testid='hello-step01-locked-card'
+                ),
+                Div(
+                    id=next_step_id, 
+                    hx_get=f'/{self.app_name}/{next_step_id}', 
+                    hx_trigger='load',
+                    data_testid=f'hello-{next_step_id}-trigger'
+                ),
+                id=step_id,
+                data_testid='hello-step01-locked-container'
             )
 
         # Phase 2: Revert Phase - Show completed view with revert option
@@ -391,7 +433,14 @@ class HelloFlow:
                     message=f'{self.ui["EMOJIS"]["USER_INPUT"]} {step.show}: {user_val}',
                     steps=steps
                 ),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
+                Div(
+                    id=next_step_id, 
+                    hx_get=f'/{app_name}/{next_step_id}', 
+                    hx_trigger='load',
+                    data_testid=f'hello-{next_step_id}-trigger'
+                ),
+                id=step_id,
+                data_testid='hello-step01-completed-container'
             )
 
         # Phase 3: Input Phase - Show input form
@@ -406,6 +455,13 @@ class HelloFlow:
                 Card(
                     H3(f'{self.ui["EMOJIS"]["USER_INPUT"]} {pip.fmt(step.id)}: Enter {step.show}'),
                     P(explanation, cls='text-muted'),
+                    Label(
+                        'Your Name:',
+                        _for='hello-step01-name-input',
+                        id='hello-step01-name-label',
+                        aria_label='Name input field label',
+                        data_testid='hello-step01-name-label'
+                    ),
                     Form(
                         pip.wrap_with_inline_button(
                             Input(
@@ -415,16 +471,32 @@ class HelloFlow:
                                 placeholder=f'Enter {step.show}',
                                 required=True,
                                 autofocus=True,
-                                _onfocus='this.setSelectionRange(this.value.length, this.value.length)'
+                                _onfocus='this.setSelectionRange(this.value.length, this.value.length)',
+                                id='hello-step01-name-input',
+                                aria_label=f'Enter {step.show}',
+                                aria_describedby='hello-step01-name-label',
+                                aria_labelledby='hello-step01-name-label',
+                                data_testid='hello-step01-name-input',
+                                title=f'Please enter {step.show}'
                             ),
                             button_label=self.ui['BUTTON_LABELS']['NEXT_STEP']
                         ),
                         hx_post=f'/{app_name}/{step_id}_submit',
-                        hx_target=f'#{step_id}'
-                    )
+                        hx_target=f'#{step_id}',
+                        id='hello-step01-form',
+                        aria_label='Name input form',
+                        data_testid='hello-step01-form'
+                    ),
+                    role='region',
+                    aria_label='Step 1: Name input',
+                    data_testid='hello-step01-input-card'
                 ),
-                Div(id=next_step_id),  # Empty placeholder for next step
-                id=step_id
+                Div(
+                    id=next_step_id,
+                    data_testid=f'hello-{next_step_id}-placeholder'
+                ),  # Empty placeholder for next step
+                id=step_id,
+                data_testid='hello-step01-input-container'
             )
 
     async def step_01_submit(self, request):
@@ -485,9 +557,20 @@ class HelloFlow:
             locked_msg = f'{self.ui["EMOJIS"]["LOCKED"]} Greeting is locked: {user_val}'
             await self.message_queue.add(pip, locked_msg, verbatim=True)
             return Div(
-                Card(H3(f'{self.ui["EMOJIS"]["LOCKED"]} {step.show}: {user_val}')),
-                Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
+                Card(
+                    H3(f'{self.ui["EMOJIS"]["LOCKED"]} {step.show}: {user_val}'),
+                    role='region',
+                    aria_label=f'Locked step 2: {step.show}',
+                    data_testid='hello-step02-locked-card'
+                ),
+                Div(
+                    id=next_step_id, 
+                    hx_get=f'/{self.app_name}/{next_step_id}', 
+                    hx_trigger='load',
+                    data_testid=f'hello-{next_step_id}-trigger'
+                ),
+                id=step_id,
+                data_testid='hello-step02-locked-container'
             )
 
         # Phase 2: Revert Phase - Show completed view with revert option
@@ -501,7 +584,14 @@ class HelloFlow:
                     message=f'{self.ui["EMOJIS"]["GREETING"]} {step.show}: {user_val}',
                     steps=steps
                 ),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
+                Div(
+                    id=next_step_id, 
+                    hx_get=f'/{app_name}/{next_step_id}', 
+                    hx_trigger='load',
+                    data_testid=f'hello-{next_step_id}-trigger'
+                ),
+                id=step_id,
+                data_testid='hello-step02-completed-container'
             )
 
         # Phase 3: Input Phase - Show input form
@@ -514,6 +604,13 @@ class HelloFlow:
                 Card(
                     H3(f'{self.ui["EMOJIS"]["GREETING"]} {pip.fmt(step.id)}: Enter {step.show}'),
                     P(explanation, cls='text-muted'),
+                    Label(
+                        'Hello Message:',
+                        _for='hello-step02-greeting-input',
+                        id='hello-step02-greeting-label',
+                        aria_label='Greeting message input field label',
+                        data_testid='hello-step02-greeting-label'
+                    ),
                     Form(
                         pip.wrap_with_inline_button(
                             Input(
@@ -523,16 +620,32 @@ class HelloFlow:
                                 placeholder=f'{step.show} (generated)',
                                 required=True,
                                 autofocus=True,
-                                _onfocus='this.setSelectionRange(this.value.length, this.value.length)'
+                                _onfocus='this.setSelectionRange(this.value.length, this.value.length)',
+                                id='hello-step02-greeting-input',
+                                aria_label=f'Enter {step.show}',
+                                aria_describedby='hello-step02-greeting-label',
+                                aria_labelledby='hello-step02-greeting-label',
+                                data_testid='hello-step02-greeting-input',
+                                title=f'Please enter {step.show}'
                             ),
                             button_label=self.ui['BUTTON_LABELS']['NEXT_STEP']
                         ),
                         hx_post=f'/{app_name}/{step_id}_submit',
-                        hx_target=f'#{step_id}'
-                    )
+                        hx_target=f'#{step_id}',
+                        id='hello-step02-form',
+                        aria_label='Greeting message input form',
+                        data_testid='hello-step02-form'
+                    ),
+                    role='region',
+                    aria_label='Step 2: Greeting message input',
+                    data_testid='hello-step02-input-card'
                 ),
-                Div(id=next_step_id),
-                id=step_id
+                Div(
+                    id=next_step_id,
+                    data_testid=f'hello-{next_step_id}-placeholder'
+                ),
+                id=step_id,
+                data_testid='hello-step02-input-container'
             )
 
     async def step_02_submit(self, request):
