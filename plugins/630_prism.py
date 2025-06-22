@@ -119,7 +119,7 @@ class PrismWidget:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=pip.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -131,8 +131,35 @@ class PrismWidget:
     def create_prism_widget(self, code, widget_id, language='javascript'):
         """Create a Prism.js syntax highlighting widget with copy functionality."""
         textarea_id = f'{widget_id}_raw_code'
-        container = Div(Div(H5('Syntax Highlighted Code:'), Textarea(code, id=textarea_id, style='display: none;'), Pre(Code(code, cls=f'language-{language}', style='position: relative; white-space: inherit; padding: 0 0 0 0;'), cls='line-numbers'), cls='mt-4'), id=widget_id)
-        init_script = Script(f"\n            (function() {{\n                // Initialize Prism immediately when the script loads\n                if (typeof Prism !== 'undefined') {{\n                    Prism.highlightAllUnder(document.getElementById('{widget_id}'));\n                }}\n                \n                // Also listen for the HX-Trigger event as a backup\n                document.body.addEventListener('initializePrism', function(event) {{\n                    if (event.detail.targetId === '{widget_id}') {{\n                        console.log('Received initializePrism event for {widget_id}');\n                        if (typeof Prism !== 'undefined') {{\n                            Prism.highlightAllUnder(document.getElementById('{widget_id}'));\n                        }} else {{\n                            console.error('Prism library not found for {widget_id}');\n                        }}\n                    }}\n                }});\n            }})();\n            ", type='text/javascript')
+        container = Div(
+            Div(
+                H5('Syntax Highlighted Code:'),
+                Textarea(code, id=textarea_id, style='display: none;'),
+                Pre(Code(code, cls=f'language-{language}'), cls='line-numbers'),
+                cls='mt-4'
+            ),
+            id=widget_id
+        )
+        init_script = Script(f"""
+            (function() {{
+                console.log('Prism widget loaded, ID: {widget_id}');
+                // Check if Prism is loaded
+                if (typeof Prism === 'undefined') {{
+                    console.error('Prism library not found');
+                    return;
+                }}
+                
+                // Attempt to manually trigger highlighting
+                setTimeout(function() {{
+                    try {{
+                        console.log('Manually triggering Prism highlighting for {widget_id}');
+                        Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                    }} catch(e) {{
+                        console.error('Error during manual Prism highlighting:', e);
+                    }}
+                }}, 300);
+            }})();
+        """, type='text/javascript')
         return Div(container, init_script)
 
     async def step_01(self, request):
@@ -182,7 +209,7 @@ class PrismWidget:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             explanation = 'Enter code to be highlighted. You can specify language using ```python (or other language) at the start.'
             await self.message_queue.add(pip, explanation, verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, style=pip.get_style('muted')), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter code for syntax highlighting', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Highlight Code ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, cls='text-secondary'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter code for syntax highlighting', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Highlight Code ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         """Process the submission for Code Input and Highlighting."""
