@@ -1564,7 +1564,7 @@ class DevAssistant:
                          data-plugin-filename="{plugin['filename']}"
                          data-plugin-display="{plugin['display_name']}"
                          style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--pico-muted-border-color);"
-                         onclick="selectDevAssistantPlugin('{escaped_filename}', '{escaped_display_name}')"
+                         onclick="window.selectDevAssistantPlugin('{escaped_filename}', '{escaped_display_name}')"
                          onmouseover="this.style.backgroundColor = 'var(--pico-primary-hover-background)';"
                          onmouseout="this.style.backgroundColor = 'transparent';">
                         <strong>{plugin['display_name']}</strong>
@@ -1858,7 +1858,9 @@ class DevAssistant:
             window.devAssistantSelectedIndex = -1;
             window.devAssistantStepId = '{step_id}';
 
-            function selectDevAssistantPlugin(filename, displayName) {{
+            // CRITICAL: Define selectDevAssistantPlugin globally to survive HTMX content replacement
+            window.selectDevAssistantPlugin = function(filename, displayName) {{
+                console.log('selectDevAssistantPlugin called:', filename, displayName);
                 document.getElementById('selected-plugin-{step_id}').value = filename;
                 document.getElementById('plugin-search-results-{step_id}').style.display = 'none';
                 document.getElementById('plugin-search-input-{step_id}').value = displayName;
@@ -1932,7 +1934,7 @@ class DevAssistant:
                     const item = items[targetIndex];
                     const filename = item.getAttribute('data-plugin-filename');
                     const displayName = item.getAttribute('data-plugin-display');
-                    selectDevAssistantPlugin(filename, displayName);
+                    window.selectDevAssistantPlugin(filename, displayName);
                     return true;
                 }}
                 
