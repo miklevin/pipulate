@@ -1549,7 +1549,7 @@ class DevAssistant:
                 # Check if there's only one result for auto-selection
                 auto_select_single = len(filtered_plugins) == 1
                 
-                for i, plugin in enumerate(sorted(filtered_plugins, key=lambda x: x['filename'])[:10]):  # Limit to 10 results
+                for i, plugin in enumerate(sorted(filtered_plugins, key=lambda x: x['filename'])):  # Show all results - no artificial limit
                     # Add auto-select class for single results
                     item_class = "search-result-item"
                     if auto_select_single:
