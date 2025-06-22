@@ -4502,15 +4502,35 @@ def create_env_menu():
     dev_classes = 'menu-item-base menu-item-hover'
     if is_dev:
         dev_classes += ' menu-item-active'
-    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Development environment'), 'DEV', cls='dropdown-menu-item'), cls=dev_classes, id='dev-env-item')
+    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Development environment', data_testid='env-dev-radio'), 'DEV', cls='dropdown-menu-item'), cls=dev_classes, id='dev-env-item', data_testid='env-dev-item')
     menu_items.append(dev_item)
     is_prod = current_env == 'Production'
     prod_classes = 'menu-item-base menu-item-hover'
     if is_prod:
         prod_classes += ' menu-item-active'
-    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Production environment'), 'Prod', cls='dropdown-menu-item'), cls=prod_classes, id='prod-env-item')
+    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Production environment', data_testid='env-prod-radio'), 'Prod', cls='dropdown-menu-item'), cls=prod_classes, id='prod-env-item', data_testid='env-prod-item')
     menu_items.append(prod_item)
-    return Details(Summary(display_env, cls=env_summary_classes, id='env-id'), Ul(*menu_items, cls='dropdown-menu env-dropdown-menu'), cls='dropdown', id='env-dropdown-menu')
+    return Details(
+        Summary(
+            display_env, 
+            cls=env_summary_classes, 
+            id='env-id',
+            aria_label='Environment selection menu',
+            aria_expanded='false',
+            aria_haspopup='menu'
+        ), 
+        Ul(
+            *menu_items, 
+            cls='dropdown-menu env-dropdown-menu',
+            role='menu',
+            aria_label='Environment options',
+            aria_labelledby='env-id'
+        ), 
+        cls='dropdown', 
+        id='env-dropdown-menu',
+        aria_label='Environment management',
+        data_testid='environment-dropdown-menu'
+    )
 
 def create_nav_menu():
     logger.debug('Creating navigation menu.')
