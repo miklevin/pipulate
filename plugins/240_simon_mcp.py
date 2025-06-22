@@ -651,7 +651,8 @@ Output only the MCP block above. Do not add any other text."""
                         await self.message_queue.add(pip, f"MCP Tool Execution: ui_flash_element → HTTP Error {response.status_code}", verbatim=True, role='assistant')
             
             # Return fresh form for immediate re-testing
-            return Div(id=step_id, hx_get=f'/{app_name}/{step_id}', hx_trigger='load')
+            logger.info(f"🔧 FINDER_TOKEN: SIMON_SUCCESS - MCP tool executed successfully, returning refresh")
+            return Div(id=step_id, hx_get=f'/{self.app_name}/{step_id}', hx_trigger='load')
 
         except Exception as e:
             error_msg = f'Error during MCP tool execution: {str(e)}'
