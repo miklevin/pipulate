@@ -208,7 +208,7 @@ class CheckboxWorkflow:
         except Exception as e:
             logger.error(f'Error getting options: {str(e)}')
             logger.exception('Full traceback:')
-            return Div(Card(H3(f'{step.show}'), P(f'Error loading options: {str(e)}', style=self.pipulate.ERROR_STYLE)), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P(f'Error loading options: {str(e)}', cls='text-invalid')), id=step_id)
 
     async def step_01_submit(self, request):
         """Handles POST request for checkbox selection step."""
@@ -221,7 +221,7 @@ class CheckboxWorkflow:
         form = await request.form()
         values = form.getlist(step.done)
         if not values:
-            return P('Error: Please select at least one option', style=self.pipulate.ERROR_STYLE)
+            return P('Error: Please select at least one option', cls='text-invalid')
         await self.pipulate.set_step_data(pipeline_id, step_id, values, steps)
         await self.message_queue.add(self.pipulate, self.step_messages.get(step_id, {}).get('complete', f"{step.show} complete: {', '.join(values)}"), verbatim=True)
         return Div(self.pipulate.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: {', '.join(values)}", steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
