@@ -1652,6 +1652,40 @@ async def _browser_scrape_page(params: dict) -> dict:
                     f.write(simple_dom_html)
                 looking_at_files['simple_dom'] = simple_dom_file
                 
+                # Create beautiful DOM with automation registry using AI DOM Beautifier
+                try:
+                    from ai_dom_beautifier import AIDOMBeautifier
+                    beautifier = AIDOMBeautifier()
+                    beautiful_dom, automation_registry = beautifier.beautify_dom(simple_dom_html)
+                    
+                    # Save beautified DOM and automation registry
+                    beautiful_dom_file = os.path.join(looking_at_dir, 'beautiful_dom.html')
+                    with open(beautiful_dom_file, 'w', encoding='utf-8') as f:
+                        f.write(beautiful_dom)
+                    looking_at_files['beautiful_dom'] = beautiful_dom_file
+                    
+                    automation_registry_file = os.path.join(looking_at_dir, 'automation_registry.json')
+                    with open(automation_registry_file, 'w', encoding='utf-8') as f:
+                        f.write(beautifier.export_automation_registry('json'))
+                    looking_at_files['automation_registry'] = automation_registry_file
+                    
+                    automation_targets_file = os.path.join(looking_at_dir, 'automation_targets.py')
+                    with open(automation_targets_file, 'w', encoding='utf-8') as f:
+                        f.write(beautifier._export_python_registry())
+                    looking_at_files['automation_targets'] = automation_targets_file
+                    
+                    automation_summary_file = os.path.join(looking_at_dir, 'automation_summary.txt')
+                    with open(automation_summary_file, 'w', encoding='utf-8') as f:
+                        f.write(beautifier._export_summary())
+                    looking_at_files['automation_summary'] = automation_summary_file
+                    
+                    high_priority_count = len([t for t in automation_registry if t.priority_score >= 70])
+                    logger.info(f"🎯 FINDER_TOKEN: AUTOMATION_REGISTRY_CREATED - Found {len(automation_registry)} targets, {high_priority_count} high priority")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_REGISTRY_FAILED - {e}")
+                    # Continue without automation registry if there's an error
+                
                 if screenshot_file:
                     looking_at_files['screenshot'] = screenshot_file
             
