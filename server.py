@@ -53,7 +53,7 @@ TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycl
 BANNER_COLORS = {
     # Main banner colors
     'figlet_primary': 'bright_cyan',
-    'figlet_subtitle': 'white',
+    'figlet_subtitle': 'dim white',
     
     # ASCII banner colors  
     'ascii_title': 'bright_cyan',
@@ -129,16 +129,16 @@ def setup_logging():
             if old_path.exists():
                 try:
                     old_path.rename(new_path)
-                    print(f'📁 Rotated: {old_path.name} → {new_path.name}')
+                    logger.info(f'📁 Rotated: {old_path.name} → {new_path.name}')
                 except Exception as e:
-                    print(f'⚠️ Failed to rotate {old_path}: {e}')
+                    logger.warning(f'⚠️ Failed to rotate {old_path}: {e}')
         
         # Move current server.log to server-1.log
         try:
             server_log_path.rename(logs_dir / 'server-1.log')
-            print(f'📁 Archived current run: server.log → server-1.log')
+            logger.info(f'📁 Archived current run: server.log → server-1.log')
         except Exception as e:
-            print(f'⚠️ Failed to archive current server.log: {e}')
+            logger.warning(f'⚠️ Failed to archive current server.log: {e}')
     
     # === CLEAN UP LEGACY LOG FILES ===
     # Remove the old fragmented log system
@@ -2578,6 +2578,41 @@ def alice_banner():
     )
     console.print(panel)
     logger.info("🐰 ALICE_BANNER: Welcome to Consoleland displayed")
+
+def falling_alice_banner():
+    """🍄 FALLING ALICE: Large ASCII art of Alice falling down the rabbit hole"""
+    lines = 5
+    falling_alice_art = lines * "\n" + r"""[white]
+                    ___
+                   |   |         _____
+                   |_  |        /     \
+                     \ |       |       \
+                     |  \      |       /
+                      \  \____ \_      \
+                       \      \_/      |
+                 ___.   \_            _/
+.-,             /    \    |          |
+|  \          _/      `--_/           \_
+ \  \________/                     /\   \
+ |                                /  \_  \
+ `-----------,                   |     \  \
+             |                  /       \  |
+             |                 |         | \
+             /                 |         \__|
+            /   _              |
+           /   / \_             \
+           |  /    \__      __--`
+          _/ /        \   _/
+      ___/  /          \_/
+     /     /
+     `----`[/white]""" + lines * "\n"
+    
+    style = BANNER_COLORS['alice_banner']
+    # Just print centered content without a panel for invisible border effect
+    console.print()  # Add spacing
+    console.print(Align.center(falling_alice_art), style=style)
+    console.print()  # Add spacing
+    logger.info("🍄 FALLING_ALICE_BANNER: Large Alice art displayed")
 
 def section_header(icon, title, description=None, color=None):
     """📋 SECTION HEADERS: Clean section dividers with icons"""
@@ -7941,17 +7976,8 @@ def run_server_with_watchdog():
     # 🐰 ALICE WELCOME BANNER - Always show on server startup - it's delightful!
     logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner on startup')
     
-    # Also show the full Alice art if available
-    try:
-        with open('static/alice.txt', 'r') as file:
-            alice_content = file.read()
-            logger.debug(f'🐰 FINDER_TOKEN: ALICE_CONTENT - ASCII art loaded from static/alice.txt')
-            # Show the full Alice art with some spacing
-            print("\n" * 3)
-            print(alice_content)
-            print("\n" * 3)
-    except FileNotFoundError:
-        logger.warning('🐰 FINDER_TOKEN: ALICE_MISSING - static/alice.txt not found, using banner only')
+    # Show the falling Alice art banner
+    falling_alice_banner()
     
     # Additionally show debug information if STATE_TABLES is enabled
     if STATE_TABLES:
