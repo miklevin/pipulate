@@ -21,18 +21,23 @@
 
 **✅ Pre-commit Hook**
 - **Location**: `.git/hooks/pre-commit`  
-- **Function**: Runs `python helpers/validate_aria.py` before every commit
+- **Function**: Runs `python helpers/validate_aria_simple.py` before every commit
 - **Blocks commits** that fail accessibility validation
 
-**✅ Validation Script**
-- **Location**: `helpers/validate_aria.py`
+**✅ ARIA Validation System**
+- **Full Analysis**: Integrated into Development Assistant (`plugins/230_dev_assistant.py`)
+- **Pre-commit Validation**: Lightweight script (`helpers/validate_aria_simple.py`)
 - **Function**: Checks for required ARIA attributes in dropdown functions
 - **Detects forbidden patterns** (like `role='group'` in PROFILE dropdown)
 
 **Usage:**
 ```bash
-# Manual validation
-python helpers/validate_aria.py
+# Manual pre-commit validation
+python helpers/validate_aria_simple.py
+
+# Full automation analysis (via Development Assistant)
+# Visit: http://localhost:5001/dev_assistant
+# Select plugin file and get comprehensive automation & accessibility report
 
 # Test pre-commit hook
 git commit -m "test commit"  # Will run validation automatically
@@ -48,7 +53,7 @@ git commit -m "test commit"  # Will run validation automatically
    vim server.py
    
    # Validate before commit
-   python helpers/validate_aria.py
+   python helpers/validate_aria_simple.py
    
    # Commit with validation
    git commit -m "♿ ACCESSIBILITY: Add ARIA to new component"
@@ -76,7 +81,7 @@ git commit -m "test commit"  # Will run validation automatically
 
 2. **When resolving conflicts:**
    - **Prefer the newer version** (with more ARIA attributes)
-   - **Run validation** after resolving: `python helpers/validate_aria.py`
+   - **Run validation** after resolving: `python helpers/validate_aria_simple.py`
    - **Don't guess** - check git history if unsure
 
 3. **Use protective git workflow:**
@@ -90,7 +95,7 @@ git commit -m "test commit"  # Will run validation automatically
    git commit -m "♿ Add ARIA to dropdown 3/3"
    
    # Validate before merge
-   python helpers/validate_aria.py
+   python helpers/validate_aria_simple.py
    
    # Merge back
    git checkout main
@@ -115,14 +120,14 @@ git commit -m "test commit"  # Will run validation automatically
 
 **To add ARIA to new components safely:**
 
-1. **Add to validation script first:**
+1. **Add to validation scripts:**
    ```python
-   # In helpers/validate_aria.py, add new patterns:
-   'new_component_function': {
-       'aria_label': 'Expected label text',
-       'aria_expanded': 'false',
-       # ... other required attributes
-   }
+   # For pre-commit validation (helpers/validate_aria_simple.py):
+   # Add basic patterns for critical regressions
+   
+   # For comprehensive analysis (plugins/230_dev_assistant.py):
+   # The Development Assistant automatically detects automation patterns
+   # No manual configuration needed for standard ARIA attributes
    ```
 
 2. **Implement the ARIA attributes:**
@@ -138,7 +143,12 @@ git commit -m "test commit"  # Will run validation automatically
 
 3. **Validate and commit:**
    ```bash
-   python helpers/validate_aria.py
+   # Pre-commit validation
+   python helpers/validate_aria_simple.py
+   
+   # Full analysis via Development Assistant
+   # Visit: http://localhost:5001/dev_assistant and analyze your plugin
+   
    git commit -m "♿ ACCESSIBILITY: Add ARIA to new component"
    ```
 
@@ -168,10 +178,11 @@ git commit -m "test commit"  # Will run validation automatically
 ## 🚀 **Going Forward**
 
 ### **For New ARIA Attributes:**
-1. **Use the validation script** - it's your safety net
+1. **Use the validation system** - Development Assistant for analysis, pre-commit for safety
 2. **Make small commits** - easier to track and debug
-3. **Test before committing** - `python helpers/validate_aria.py`
+3. **Test before committing** - `python helpers/validate_aria_simple.py`
 4. **Use semantic commit messages** - ♿ for accessibility
+5. **Get comprehensive reports** - Use Development Assistant for full automation analysis
 
 ### **For Development:**
 1. **Pre-commit hook is active** - commits will be blocked if validation fails
