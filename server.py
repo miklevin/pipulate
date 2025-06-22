@@ -7933,6 +7933,8 @@ def restart_server():
             log.startup(f'Restarting server (attempt {attempt + 1}/{max_retries})')
             # Set environment variable to indicate this is a watchdog restart
             os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
+            # Show restart banner once per watchdog restart
+            figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color=BANNER_COLORS['server_restart'])
             os.execv(sys.executable, ['python'] + sys.argv)
         except Exception as e:
             log.error(f'Error restarting server (attempt {attempt + 1}/{max_retries})', e)
