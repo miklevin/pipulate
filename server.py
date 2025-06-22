@@ -2559,13 +2559,13 @@ def system_diagram():
 
 def alice_banner():
     """🐰 ALICE BANNER: Whimsical Alice-themed banner"""
-    alice_art = """
+    alice_art = r"""
 .                       /)  ______
-                  /)\__//  /      \\
+                  /)\__//  /      \
               ___(/_ 0 0  |        |
             *(    ==(_T_)==Pipulate|
-              \\  )   \\"\\  |        |
-               |__>-\\_>_>  \\______/
+              \  )   ""\  |        |
+               |__>-\_>_>  \______/
     """
     
     style = BANNER_COLORS['alice_banner']
@@ -5693,7 +5693,7 @@ async def startup_event():
     await synchronize_roles_to_db()
     
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:')
-            story_moment("Workshop Ready", "All systems initialized and ready for creative exploration", BANNER_COLORS['workshop_ready'])
+    story_moment("Workshop Ready", "All systems initialized and ready for creative exploration", BANNER_COLORS['workshop_ready'])
     
     # 📊 BEAUTIFUL STATUS OVERVIEW
     env = get_current_environment()
@@ -5740,7 +5740,7 @@ if failed_count > 0:
     server_whisper(f"Some plugins need attention: {', '.join(failed_plugins)}", "⚠️")
     logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Failed plugins: {", ".join(failed_plugins)}')
 else:
-            chip_says("All plugins loaded successfully! The workshop is fully equipped.", BANNER_COLORS['plugin_registry_success'])
+    chip_says("All plugins loaded successfully! The workshop is fully equipped.", BANNER_COLORS['plugin_registry_success'])
 
 logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: {", ".join(plugin_instances.keys())}')
 
