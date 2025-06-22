@@ -2631,11 +2631,11 @@ def status_banner(mcp_count, plugin_count, env="Development"):
 [bold {primary_color}]🚀 PIPULATE STATUS[/bold {primary_color}]
 [dim]Digital Workshop Framework[/dim]
 
-🌐 Server: [{server_color}]http://localhost:5001[/{server_color}]
-🔧 MCP Tools: [{mcp_color}]{mcp_count} active[/{mcp_color}]
-📦 Plugins: [{plugin_color}]{plugin_count} registered[/{plugin_color}]
-🏗️ Environment: [{env_color}]{env}[/{env_color}]
-🔍 Transparency: [{transparency_color}]Full visibility enabled[/{transparency_color}]
+[white]🌐 Server:[/white] [{server_color}]http://localhost:5001[/{server_color}]
+[white]🔧 MCP Tools:[/white] [{mcp_color}]{mcp_count} active[/{mcp_color}]
+[white]📦 Plugins:[/white] [{plugin_color}]{plugin_count} registered[/{plugin_color}]
+[white]🏗️ Environment:[/white] [{env_color}]{env}[/{env_color}]
+[white]🔍 Transparency:[/white] [{transparency_color}]Full visibility enabled[/{transparency_color}]
     """
     
     panel = Panel(
