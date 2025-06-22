@@ -370,8 +370,8 @@ PCONFIG = {
             'SECONDARY': 'secondary',
             'OUTLINE': 'secondary outline',
             'STANDARD': 'secondary outline',
-            'FLEX_CONTAINER': 'display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;',
-            'BUTTON_ROW': 'display: flex; gap: 0.5em; align-items: center;',
+                    'FLEX_CONTAINER': 'display: flex; gap: var(--pipulate-gap-sm); flex-wrap: wrap; align-items: center;',
+        'BUTTON_ROW': 'display: flex; gap: var(--pipulate-gap-sm); align-items: center;',
             'SKIP_BUTTON': 'secondary outline',
             'SKIP_BUTTON_STYLE': 'padding: 0.5rem 1rem; width: 10%; min-width: 80px; white-space: nowrap;',
             'BORDER_RADIUS': 'var(--pico-border-radius)'  # Global button roundedness control
@@ -3821,7 +3821,7 @@ class Pipulate:
         """
         border_radius = PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
         button_style = f'display: inline-block;cursor: pointer;width: auto !important;white-space: nowrap;border-radius: {border_radius};'
-        container_style = 'display: flex;align-items: center;gap: 0.5rem;'
+        container_style = 'display: flex;align-items: center;gap: var(--pipulate-gap-sm);'
         
         # Generate unique IDs for input-button association
         input_id = input_element.attrs.get('id') or f'input-{hash(str(input_element))}'

@@ -127,7 +127,14 @@
     --pipulate-spacing-element-offset: 5px;        /* Task/element left spacing (task-*, profile-*) */
     --pipulate-spacing-content-bottom: 0.5rem;     /* Standard content bottom margin */
     --pipulate-spacing-progress-top: 10px;         /* Progress indicator top spacing */
-    --pipulate-spacing-component-gap: 1rem;        /* Standard component separation */
+    /* 🎯 STANDARDIZED PIPULATE GAP SYSTEM */
+    --pipulate-gap-xs: 0.25rem;        /* 4px - Tight spacing (roles badges) */
+    --pipulate-gap-sm: 0.5rem;         /* 8px - Standard UI element spacing (nav, buttons) */
+    --pipulate-gap-md: 1rem;           /* 16px - Component separation */
+    --pipulate-gap-lg: 1.5rem;         /* 24px - Section separation */
+    
+    /* DEPRECATED: Use --pipulate-gap-md instead */
+    --pipulate-spacing-component-gap: var(--pipulate-gap-md);
     --pipulate-spacing-tight: 0.25rem;             /* Tight spacing for badges/small elements */
     --pipulate-spacing-comfortable: 1.5rem;        /* Comfortable spacing for sections */
     
@@ -451,7 +458,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     justify-content: space-between;
     flex-wrap: nowrap;
     min-height: var(--nav-group-actual-height);
-    gap: 1rem;
+    gap: var(--pipulate-gap-md);
     /* margin-left: 2vw; */
 }
 
@@ -470,7 +477,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 .nav-menu-group {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--pipulate-gap-sm);
     flex-wrap: nowrap;
     flex-shrink: 0;
     min-width: 0; /* Allow flex items to shrink */
@@ -1009,7 +1016,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: var(--pipulate-gap-xs);
 }
 
 .profile-delete-icon {
@@ -1595,7 +1602,7 @@ input[type="password"]:focus {
 }
 
 .flex-row {
-    gap: 10px;
+    gap: var(--pipulate-gap-sm);
 }
 
 .flex-center-items {
@@ -1608,7 +1615,7 @@ input[type="password"]:focus {
     display: flex;
     align-items: center;
     width: 100%;
-    gap: 10px;
+    gap: var(--pipulate-gap-sm);
 }
 
 .profile-layout {
@@ -1621,7 +1628,7 @@ input[type="password"]:focus {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1rem;
+    gap: var(--pipulate-gap-md);
 }
 
 .flex-center-gap {

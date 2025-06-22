@@ -501,7 +501,7 @@ Output only the MCP block above. Do not add any other text."""
                         '''
                     }
                 ),
-                style='display: flex; gap: 0.5rem; align-items: flex-start; flex-wrap: wrap;'
+                style='display: flex; gap: var(--pipulate-gap-sm); align-items: flex-start; flex-wrap: wrap;'
             ),
             id='action-content'
         )
@@ -889,7 +889,7 @@ Output only the MCP block above. Do not add any other text."""
                             '''
                         }
                     ),
-                    style='display: flex; gap: 0.5rem; align-items: flex-start; flex-wrap: wrap;'
+                    style='display: flex; gap: var(--pipulate-gap-sm); align-items: flex-start; flex-wrap: wrap;'
                 ),
                 id='action-content'
             )
