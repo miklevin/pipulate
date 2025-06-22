@@ -1,13 +1,37 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # Pipulate Master Guide: AI Assistant Crash Course
 
 **🚀 INSTANT PIPULATE MASTERY FOR AI ASSISTANTS**
 
 This is your **immediate crash course** in Pipulate's radical transparency system. Start here for instant productivity.
+
+---
+
+## 🚨 **CRITICAL AUTOMATION REMINDERS - NEVER FORGET**
+
+### **🔥 SERVER FACTS - BURNED INTO MEMORY**
+- **SERVER IS ALWAYS RUNNING** - Watchdog auto-restarts on file changes
+- **PORT IS ALWAYS 5001** - `http://localhost:5001` - NEVER assume other ports
+- **NEVER RESTART MANUALLY** - Watchdog handles everything automatically
+- **CHECK LOGS FOR EFFECTS** - `grep "FINDER_TOKEN" logs/server.log` shows what happened
+
+### **🎯 BROWSER AUTOMATION MASTERY**
+- **YOU CONTROL THE HORIZONTAL** - You control the vertical - Full DOM access
+- **DATA-TESTID IS KING** - Use automation attributes we add to plugins
+- **ARIA-LABEL FOR CONTEXT** - Screen readers and automation both benefit
+- **SCREENSHOTS FOR PROOF** - Visual evidence of automation success
+- **LOGS SHOW EFFECTS** - Don't read browser, read server.log for workflow effects
+
+### **🔄 RIGHTEOUS POSITIVE FEEDBACK LOOP**
+1. **Browser automation discovers issues** (Dev Assistant analysis)
+2. **Apply material improvements** (data-testid, aria-label, template markers)
+3. **Browser automation verifies success** (re-analyze shows "NO ISSUES")
+4. **USE the improved Component** (walk through actual workflow)
+5. **Repeat for next Component** (continuous improvement cycle)
 
 ---
 
