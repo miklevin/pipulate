@@ -1788,10 +1788,20 @@ async def _browser_interact_with_page(params: dict) -> dict:
         chrome_options = Options()
         if headless:
             chrome_options.add_argument('--headless')
+        else:
+            # 🎯 VISIBLE MAGIC MODE - Make it dramatic!
+            chrome_options.add_argument('--start-maximized')
+            chrome_options.add_argument('--disable-web-security')
+            chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+        
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--window-size=1920,1080')  # Consistent viewport
+        
+        # Add dramatic title for visible mode
+        if not headless:
+            chrome_options.add_argument('--user-agent=🚀 PIPULATE AI BROWSER AUTOMATION MAGIC! 🎯')
         
         driver = webdriver.Chrome(options=chrome_options)
         
@@ -1836,12 +1846,35 @@ async def _browser_interact_with_page(params: dict) -> dict:
                     else:
                         element = driver.find_element(By.CSS_SELECTOR, selector)
                     
-                    # Perform the action
+                    # Perform the action with DRAMATIC FLAIR! 
                     if action_type == 'click':
                         # Scroll element into view first
                         driver.execute_script("arguments[0].scrollIntoView(true);", element)
                         time.sleep(0.5)
+                        
+                        # 🎯 DRAMATIC VISUAL EFFECTS!
+                        if not headless:
+                            # Highlight with pulsing red border
+                            driver.execute_script("""
+                                arguments[0].style.border='5px solid red';
+                                arguments[0].style.boxShadow='0 0 20px red';
+                                arguments[0].style.transition='all 0.3s ease';
+                            """, element)
+                            time.sleep(1)  # Dramatic pause
+                            
+                            # Flash effect
+                            driver.execute_script("arguments[0].style.backgroundColor='yellow';", element)
+                            time.sleep(0.3)
+                            driver.execute_script("arguments[0].style.backgroundColor='';", element)
+                        
                         element.click()
+                        
+                        # Remove dramatic effects
+                        if not headless:
+                            driver.execute_script("""
+                                arguments[0].style.border='';
+                                arguments[0].style.boxShadow='';
+                            """, element)
                         result = {
                             "action": i + 1,
                             "type": "click", 
