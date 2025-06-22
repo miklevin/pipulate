@@ -1988,6 +1988,42 @@ input[type="password"]:focus {
     padding: 0.5vh 0;
 }
 
+/* Tree display styles - replaces inline styles in tree_display method */
+.tree-display-tree {
+    background-color: var(--pico-card-sectionning-background-color);
+    font-family: monospace;
+    margin: 0;
+    padding: 0.5rem;
+    white-space: pre;
+    border-radius: var(--pico-border-radius);
+}
+
+.tree-display-path {
+    background-color: #e3f2fd;
+    border: 1px solid #bbdefb;
+    color: #1976d2;
+    font-family: system-ui;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    white-space: pre-wrap;
+    border-radius: var(--pico-border-radius);
+}
+
+/* Inline button container styles - replaces inline styles in wrap_with_inline_button */
+.inline-button-container {
+    display: flex;
+    align-items: center;
+    gap: var(--pipulate-gap-sm);
+}
+
+.inline-button-submit {
+    display: inline-block;
+    cursor: pointer;
+    width: auto !important;
+    white-space: nowrap;
+    border-radius: var(--pico-border-radius);
+}
+
 /* ================================================================ */
 /* NEW KEY BUTTON STYLING - Externalized from inline styles */
 /* ================================================================ */

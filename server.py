@@ -3770,20 +3770,10 @@ class Pipulate:
             Pre: Styled Pre component
         """
         is_tree = '\n' in content and ('└─' in content or '├─' in content)
-        border_radius = PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
         if is_tree:
-            return Pre(content, style=f'background-color: var(--pico-card-sectionning-background-color); border-radius: {border_radius}; font-family: monospace; margin: 0; padding: 0.5rem; white-space: pre')
+            return Pre(content, cls='tree-display-tree')
         else:
-            return Pre(content, style=(
-        'background-color: #e3f2fd; ',
-        f'border-radius: {border_radius}; ',
-        'border: 1px solid #bbdefb; ',
-        'color: #1976d2; ',
-        'font-family: system-ui; ',
-        'margin: 0; ',
-        'padding: 0.5rem 1rem; ',
-        'white-space: pre-wrap'
-    ))
+            return Pre(content, cls='tree-display-path')
 
     def finalized_content(self, message: str, content=None, heading_tag=H4, content_style=None):
         """Create a finalized step display with optional content.
@@ -3825,9 +3815,7 @@ class Pipulate:
         Returns:
             Div: A flex container with the input and button(s)
         """
-        border_radius = PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
-        button_style = f'display: inline-block;cursor: pointer;width: auto !important;white-space: nowrap;border-radius: {border_radius};'
-        container_style = 'display: flex;align-items: center;gap: var(--pipulate-gap-sm);'
+        # Styles are now externalized to CSS classes for maintainability
         
         # Generate unique IDs for input-button association
         input_id = input_element.attrs.get('id') or f'input-{hash(str(input_element))}'
@@ -3843,8 +3831,7 @@ class Pipulate:
         enhanced_button = Button(
             button_label, 
             type='submit', 
-            cls=button_class, 
-            style=button_style,
+            cls=f'{button_class} inline-button-submit',
             id=button_id,
             aria_label=f'Submit {input_element.attrs.get("placeholder", "input")}',
             title=f'Submit form ({button_label})'
@@ -3872,7 +3859,7 @@ class Pipulate:
         
         return Div(
             *elements,
-            style=container_style,
+            cls='inline-button-container',
             role='group',
             aria_label='Input with submit button' + (' and new key generator' if show_new_key_button else '')
         )
