@@ -35,6 +35,9 @@ import platform
 import urllib.parse
 from starlette.responses import FileResponse
 
+# Import MCP tools module for enhanced AI assistant capabilities
+from mcp_tools import register_all_mcp_tools
+
 # Various debug settings
 DEBUG_MODE = False
 STATE_TABLES = False
@@ -2381,6 +2384,9 @@ register_mcp_tool("browser_scrape_page", _browser_scrape_page)
 register_mcp_tool("browser_analyze_scraped_page", _browser_analyze_scraped_page)
 register_mcp_tool("browser_automate_workflow_walkthrough", _browser_automate_workflow_walkthrough)
 register_mcp_tool("browser_interact_with_current_page", _browser_interact_with_current_page)
+
+# Register extracted MCP tools from mcp_tools.py module
+register_all_mcp_tools()
 
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
