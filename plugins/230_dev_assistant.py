@@ -1560,26 +1560,22 @@ class DevAssistant:
                     escaped_display_name = plugin['display_name'].replace("'", "\\'").replace('"', '\\"')
                     
                     result_html += f"""
-                    <div class="{item_class}" 
-                         data-plugin-filename="{plugin['filename']}"
-                         data-plugin-display="{plugin['display_name']}"
-                         style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--pico-muted-border-color);"
-                         data-click-action="select-plugin"
-                         onmouseover="this.style.backgroundColor = 'var(--pico-primary-hover-background)';"
-                         onmouseout="this.style.backgroundColor = 'transparent';">
+                    <div class="search-result-item" 
+                         onclick="document.getElementById('plugin-search-results-step_01').style.display='none'; window.selectDevAssistantPlugin('{escaped_filename}', '{escaped_display_name}');"
+                         onmouseover="this.classList.remove('selected');">
                         <strong>{plugin['display_name']}</strong>
-                        <div style="font-size: 0.85em; color: var(--pico-muted-color); margin-top: 0.25rem;">{plugin['filename']}</div>
+                        <div class="search-result-module">{plugin['filename']}</div>
                     </div>
                     """
                 
-                # Show dropdown with JavaScript
+                # Show dropdown with JavaScript - same as nav search
                 result_html += """
                 <script>
                     document.getElementById('plugin-search-results-step_01').style.display = 'block';
                 </script>
                 """
             else:
-                # No results or empty search - hide dropdown
+                # No results or empty search - hide dropdown - same as nav search
                 result_html = """
                 <script>
                     document.getElementById('plugin-search-results-step_01').style.display = 'none';
@@ -1594,9 +1590,6 @@ class DevAssistant:
             <div style="padding: 1rem; color: var(--pico-form-element-invalid-active-border-color);">
                 Search error: {str(e)}
             </div>
-            <script>
-                document.getElementById('plugin-search-results-step_01').style.display = 'block';
-            </script>
             """)
 
     def generate_create_workflow_commands(self, analysis_results):
@@ -1814,6 +1807,7 @@ class DevAssistant:
 
         # Create search results dropdown 
         search_results_dropdown = Div(id=f'plugin-search-results-{step_id}', 
+                                    cls='search-dropdown',
                                     style='position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; background: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 8px; max-height: 300px; overflow-y: auto; display: none;')
         
         return Div(
@@ -1825,19 +1819,13 @@ class DevAssistant:
                         Input(
                             type='search',
                             name='plugin_search',
-                            placeholder='Search plugins by name... (↑↓ arrows, Enter to select)',
+                            placeholder='Search plugins by name...',
                             id=f'plugin-search-input-{step_id}',
-                            aria_label='Search for plugin files to analyze',
-                            data_testid=f'dev-assistant-plugin-search-{step_id}',
                             style='width: 100%; border-radius: 8px; margin-bottom: 1rem;',
-
                             hx_post=f'/{app_name}/search_plugins_step01',
                             hx_target=f'#plugin-search-results-{step_id}',
-                            hx_trigger='input changed delay:300ms',
-                            hx_swap='innerHTML',
-                            onkeydown=f'handleDevAssistantKeyNavigation(event, "{step_id}")',
-                            onfocus=f'console.log("🔍 Focus event triggered"); showDevAssistantResults("{step_id}"); if(this.value === "") {{ console.log("🔍 Making HTMX request for empty field"); htmx.ajax("POST", "/{app_name}/search_plugins_step01", {{target: "#plugin-search-results-{step_id}", swap: "innerHTML", values: {{plugin_search: ""}}}}); }}',
-                            onblur=f'setTimeout(() => hideDevAssistantResults("{step_id}"), 150)'
+                            hx_trigger='input changed delay:300ms, focus',
+                            hx_swap='innerHTML'
                         ),
                         search_results_dropdown,
                         style='position: relative; margin-bottom: 1rem;'
@@ -1852,207 +1840,27 @@ class DevAssistant:
                     hx_target=f'#{step_id}'
                 )
             ),
-            # JavaScript for keyboard navigation (Carson Gross style active search)
+            # Simple JavaScript - same pattern as navigation search that works perfectly
             Script(f"""
-            // Global variables for dev assistant search state
-            window.devAssistantSelectedIndex = -1;
-            window.devAssistantStepId = '{step_id}';
-
-            // CRITICAL: Define selectDevAssistantPlugin globally to survive HTMX content replacement
+            // Simple selection function - same as nav search pattern
             window.selectDevAssistantPlugin = function(filename, displayName) {{
-                console.log('🔍 selectDevAssistantPlugin called:', filename, displayName);
+                const selectedInput = document.getElementById('selected-plugin-{step_id}');
+                const searchResults = document.getElementById('plugin-search-results-{step_id}');
+                const searchInput = document.getElementById('plugin-search-input-{step_id}');
+                const analyzeBtn = document.getElementById('analyze-btn-{step_id}');
                 
-                // Add small delay to prevent HTMX race conditions
-                setTimeout(() => {{
-                    const selectedInput = document.getElementById('selected-plugin-{step_id}');
-                    const searchResults = document.getElementById('plugin-search-results-{step_id}');
-                    const searchInput = document.getElementById('plugin-search-input-{step_id}');
-                    const analyzeBtn = document.getElementById('analyze-btn-{step_id}');
-                    
-                    console.log('🔍 Elements found:', {{
-                        selectedInput: !!selectedInput,
-                        searchResults: !!searchResults,
-                        searchInput: !!searchInput,
-                        analyzeBtn: !!analyzeBtn
-                    }});
-                    
-                    if (selectedInput) {{
-                        selectedInput.value = filename;
-                        console.log('🔍 Set selected input to:', filename);
-                    }}
-                    
-                                         if (searchResults) {{
-                         searchResults.style.display = 'none';
-                         console.log('🔍 Hid search results');
-                     }}
-                     
-                     // Remove focus from search input to prevent accidental reopening
-                     if (searchInput) {{
-                         searchInput.blur();
-                     }}
-                    
-                                         if (searchInput) {{
-                         searchInput.value = displayName;
-                         console.log('🔍 Set search input to:', displayName);
-                     }}
-                    
-                    if (analyzeBtn) {{
-                        analyzeBtn.disabled = false;
-                        analyzeBtn.textContent = 'Analyze ' + displayName + ' ▸';
-                        console.log('🔍 Enabled analyze button');
-                    }}
-                }}, 50);
-            }}
-
-            function showDevAssistantResults(stepId) {{
-                const results = document.getElementById('plugin-search-results-' + stepId);
-                if (results && results.innerHTML.trim() !== '') {{
-                    results.style.display = 'block';
+                if (selectedInput) selectedInput.value = filename;
+                if (searchResults) searchResults.style.display = 'none';
+                if (searchInput) {{
+                    searchInput.value = displayName;
+                    searchInput.blur();
+                }}
+                if (analyzeBtn) {{
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.textContent = 'Analyze ' + displayName + ' ▸';
                 }}
             }}
-
-            function hideDevAssistantResults(stepId) {{
-                const results = document.getElementById('plugin-search-results-' + stepId);
-                if (results) {{
-                    results.style.display = 'none';
-                }}
-                window.devAssistantSelectedIndex = -1;
-                clearDevAssistantHighlight(stepId);
-            }}
-
-            function clearDevAssistantHighlight(stepId) {{
-                const results = document.getElementById('plugin-search-results-' + stepId);
-                if (results) {{
-                    const items = results.querySelectorAll('[data-plugin-filename]');
-                    items.forEach(item => {{
-                        item.style.backgroundColor = 'transparent';
-                    }});
-                }}
-            }}
-
-            function highlightDevAssistantItem(stepId, index) {{
-                const results = document.getElementById('plugin-search-results-' + stepId);
-                if (!results) return;
-                
-                const items = results.querySelectorAll('[data-plugin-filename]');
-                if (items.length === 0) return;
-                
-                // Clear previous highlights
-                clearDevAssistantHighlight(stepId);
-                
-                // Wrap index if out of bounds
-                if (index < 0) index = items.length - 1;
-                if (index >= items.length) index = 0;
-                
-                // Highlight current item
-                items[index].style.backgroundColor = 'var(--pico-primary-hover-background)';
-                window.devAssistantSelectedIndex = index;
-                
-                // Scroll into view if needed
-                items[index].scrollIntoView({{ block: 'nearest' }});
-            }}
-
-            function selectCurrentDevAssistantItem(stepId) {{
-                const results = document.getElementById('plugin-search-results-' + stepId);
-                if (!results) return false;
-                
-                const items = results.querySelectorAll('[data-plugin-filename]');
-                if (items.length === 0) return false;
-                
-                let targetIndex = window.devAssistantSelectedIndex;
-                
-                // If no item is selected but there's only one result, select it
-                if (targetIndex === -1 && items.length === 1) {{
-                    targetIndex = 0;
-                }}
-                
-                if (targetIndex >= 0 && targetIndex < items.length) {{
-                    const item = items[targetIndex];
-                    const filename = item.getAttribute('data-plugin-filename');
-                    const displayName = item.getAttribute('data-plugin-display');
-                    window.selectDevAssistantPlugin(filename, displayName);
-                    return true;
-                }}
-                
-                return false;
-            }}
-
-            function handleDevAssistantKeyNavigation(event, stepId) {{
-                const results = document.getElementById('plugin-search-results-' + stepId);
-                if (!results || results.style.display === 'none') return;
-                
-                const items = results.querySelectorAll('[data-plugin-filename]');
-                if (items.length === 0) return;
-                
-                switch(event.key) {{
-                    case 'ArrowDown':
-                        event.preventDefault();
-                        highlightDevAssistantItem(stepId, window.devAssistantSelectedIndex + 1);
-                        break;
-                        
-                    case 'ArrowUp':
-                        event.preventDefault();
-                        highlightDevAssistantItem(stepId, window.devAssistantSelectedIndex - 1);
-                        break;
-                        
-                    case 'Enter':
-                        event.preventDefault();
-                        if (selectCurrentDevAssistantItem(stepId)) {{
-                            // Successfully selected item, now trigger analyze button
-                            setTimeout(() => {{
-                                const analyzeBtn = document.getElementById(`analyze-btn-${{stepId}}`);
-                                if (analyzeBtn && !analyzeBtn.disabled) {{
-                                    analyzeBtn.click();
-                                }}
-                            }}, 100);
-                            return false;
-                        }}
-                        // If no dropdown visible but analyze button is ready, click it
-                        else {{
-                            const analyzeBtn = document.getElementById(`analyze-btn-${{stepId}}`);
-                            if (analyzeBtn && !analyzeBtn.disabled) {{
-                                analyzeBtn.click();
-                            }}
-                        }}
-                        break;
-                        
-                    case 'Escape':
-                        event.preventDefault();
-                        hideDevAssistantResults(stepId);
-                        break;
-                }}
-            }}
-
-            // Auto-highlight first item when results appear
-            document.body.addEventListener('htmx:afterSwap', function(event) {{
-                if (event.target.id === 'plugin-search-results-{step_id}') {{
-                    const items = event.target.querySelectorAll('[data-plugin-filename]');
-                    if (items.length === 1) {{
-                        // Single result - auto highlight for easy Enter selection
-                        window.devAssistantSelectedIndex = 0;
-                        items[0].style.backgroundColor = 'var(--pico-primary-hover-background)';
-                    }} else {{
-                        // Multiple results - no auto-highlight, let user navigate
-                        window.devAssistantSelectedIndex = -1;
-                    }}
-                }}
-            }});
-
-            // Global event delegation for plugin selection - survives HTMX content replacement
-            document.body.addEventListener('click', function(event) {{
-                if (event.target.closest('[data-click-action="select-plugin"]')) {{
-                    const element = event.target.closest('[data-click-action="select-plugin"]');
-                    const filename = element.getAttribute('data-plugin-filename');
-                    const displayName = element.getAttribute('data-plugin-display');
-                    
-                    console.log('🔍 Click detected via delegation on:', filename);
-                    
-                    if (filename && displayName) {{
-                        window.selectDevAssistantPlugin(filename, displayName);
-                    }}
-                }}
-            }});
-            """, type='text/javascript'),
+            """),
             # Next step placeholder for analysis results
             Div(id='step_02'),
             id=step_id
