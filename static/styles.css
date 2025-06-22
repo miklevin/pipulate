@@ -1952,3 +1952,25 @@ input[type="password"]:focus {
     background-color: var(--pico-primary-hover-background);
 }
 
+/* ================================================================ */
+/* NEW KEY BUTTON STYLING - Externalized from inline styles */
+/* ================================================================ */
+
+/* 🆕 New Key button - matches main button height with subtle appearance */
+.new-key-button {
+    display: inline-block !important;
+    cursor: pointer !important;
+    width: auto !important;
+    white-space: nowrap !important;
+    border: none !important;
+    border-radius: var(--pico-border-radius) !important;
+    padding: 0.625rem 1rem !important;
+    margin: 0 !important;
+    background-color: var(--pico-secondary-background) !important;
+    box-shadow: none !important;
+    line-height: 1.25 !important;
+    font-size: 1.5rem !important;
+    opacity: 0.5 !important;
+    vertical-align: middle !important;
+}
+
