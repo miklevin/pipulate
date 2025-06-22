@@ -85,7 +85,7 @@ class RadioButtonWorkflow:
             return response
         context = pip.get_plugin_context(self)
         profile_name = context['profile_name'] or 'default'
-        plugin_name = context['plugin_name'] or app_name
+        plugin_name = app_name  # Use app_name directly to ensure consistency
         profile_part = profile_name.replace(' ', '_')
         plugin_part = plugin_name.replace(' ', '_')
         expected_prefix = f'{profile_part}-{plugin_part}-'
