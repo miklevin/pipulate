@@ -1533,8 +1533,15 @@ class DevAssistant:
                             'module_name': plugin_file.replace('.py', '')
                         })
             else:
-                # Show no results on empty search
+                # Show ALL plugins on empty search (dropdown menu behavior)
                 filtered_plugins = []
+                for plugin_file in plugin_files:
+                    clean_name = re.sub(r'^\d+_', '', plugin_file.replace('.py', '').replace('_', ' ')).title()
+                    filtered_plugins.append({
+                        'filename': plugin_file,
+                        'display_name': clean_name,
+                        'module_name': plugin_file.replace('.py', '')
+                    })
             
             # Generate HTML results
             if filtered_plugins:
@@ -1822,7 +1829,7 @@ class DevAssistant:
                             autofocus=True,
                             hx_post=f'/{app_name}/search_plugins_step01',
                             hx_target=f'#plugin-search-results-{step_id}',
-                            hx_trigger='input changed delay:300ms',
+                            hx_trigger='input changed delay:300ms, focus',
                             hx_swap='innerHTML',
                             onkeydown=f'handleDevAssistantKeyNavigation(event, "{step_id}")',
                             onfocus=f'showDevAssistantResults("{step_id}")',
@@ -1859,6 +1866,13 @@ class DevAssistant:
                 const results = document.getElementById('plugin-search-results-' + stepId);
                 if (results && results.innerHTML.trim() !== '') {{
                     results.style.display = 'block';
+                }} else {{
+                    // Trigger search on focus to show all plugins if dropdown is empty
+                    const searchInput = document.getElementById('plugin-search-input-' + stepId);
+                    if (searchInput && searchInput.value === '') {{
+                        // Trigger the HTMX request to load all plugins
+                        htmx.trigger(searchInput, 'focus');
+                    }}
                 }}
             }}
 
