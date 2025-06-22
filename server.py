@@ -5978,8 +5978,17 @@ async def generate_new_key(request):
     """Generate a new auto-incremented pipeline key for the specified app."""
     app_name = request.path_params['app_name']
     
-    # Find the plugin instance to generate the key
-    plugin_instance = get_workflow_instance(app_name)
+    # Find the plugin instance by APP_NAME attribute (not module name)
+    plugin_instance = None
+    for module_name, instance in plugin_instances.items():
+        if hasattr(instance, 'APP_NAME') and instance.APP_NAME == app_name:
+            plugin_instance = instance
+            break
+    
+    if not plugin_instance:
+        # Fallback: try direct module name lookup
+        plugin_instance = get_workflow_instance(app_name)
+    
     if not plugin_instance:
         return Input(
             placeholder='Error: Plugin not found',
