@@ -328,6 +328,9 @@ class DevAssistant:
     def validate_aria_and_automation(self, content, file_path):
         """Validate ARIA attributes and automation readiness for plugin files."""
         
+        # DEBUG LOGGING
+        logger.info(f"🔍 FINDER_TOKEN: ARIA_VALIDATION_START - File: {file_path}")
+        
         aria_results = {
             'automation_ready': True,
             'aria_issues': [],
@@ -430,7 +433,7 @@ class DevAssistant:
                 'aria_label': r'aria_label=[\'"][^\'"]+[\'"]',
                 'id_attributes': r'id=[\'"][^\'"]+[\'"]',
                 'name_attributes': r'name=[\'"][^\'"]+[\'"]',
-                'data_testid': r'data-testid=[\'"][^\'"]+[\'"]',
+                'data_testid': r'data_testid=[\'"][^\'"]+[\'"]',
                 'placeholder_text': r'placeholder=[\'"][^\'"]+[\'"]'
             }
             
@@ -443,8 +446,10 @@ class DevAssistant:
             for pattern_name, pattern_regex in automation_patterns.items():
                 if re.search(pattern_regex, content):
                     form_validation['automation_attributes'].append(pattern_name)
+                    logger.info(f"🔍 FINDER_TOKEN: PATTERN_MATCH - {pattern_name}: FOUND")
                 else:
                     form_validation['missing_attributes'].append(pattern_name)
+                    logger.info(f"🔍 FINDER_TOKEN: PATTERN_MATCH - {pattern_name}: MISSING")
             
             aria_results['form_validations'] = form_validation
             
@@ -453,22 +458,31 @@ class DevAssistant:
             total_possible = len(automation_patterns)
             coverage_percentage = (automation_score / total_possible) * 100
             
+            # DEBUG LOGGING
+            logger.info(f"🔍 FINDER_TOKEN: AUTOMATION_SCORING - Score: {automation_score}/{total_possible} ({coverage_percentage}%)")
+            logger.info(f"🔍 FINDER_TOKEN: AUTOMATION_ATTRIBUTES - Found: {form_validation['automation_attributes']}")
+            logger.info(f"🔍 FINDER_TOKEN: AUTOMATION_MISSING - Missing: {form_validation['missing_attributes']}")
+            
             if automation_score >= 4:  # 80%+ coverage = perfect score
+                logger.info(f"🔍 FINDER_TOKEN: SCORING_BRANCH - Using >=4 branch (perfect score)")
                 aria_results['aria_recommendations'].append(
                     "✅ Excellent automation attribute coverage detected"
                 )
                 # No deduction for 80%+ coverage
             elif automation_score >= 3:  # 60%+ coverage = minor deduction
+                logger.info(f"🔍 FINDER_TOKEN: SCORING_BRANCH - Using >=3 branch (-5 points)")
                 aria_results['aria_recommendations'].append(
                     "⚠️ Good automation coverage, consider adding remaining attributes"
                 )
                 aria_results['accessibility_score'] -= 5  # Reduced from 10
             elif automation_score >= 2:  # 40%+ coverage = moderate deduction
+                logger.info(f"🔍 FINDER_TOKEN: SCORING_BRANCH - Using >=2 branch (-15 points)")
                 aria_results['aria_recommendations'].append(
                     "⚠️ Moderate automation coverage, add more attributes for better testing"
                 )
                 aria_results['accessibility_score'] -= 15  # Reduced from 20
             else:  # <40% coverage = significant deduction
+                logger.info(f"🔍 FINDER_TOKEN: SCORING_BRANCH - Using <2 branch (-25 points)")
                 aria_results['aria_recommendations'].append(
                     "❌ Add more automation-friendly attributes (id, aria-label, data-testid) to form elements"
                 )
@@ -553,11 +567,14 @@ class DevAssistant:
         if form_validations.get('forms_detected'):
             automation_attrs = form_validations.get('automation_attributes', [])
             missing_attrs = form_validations.get('missing_attributes', [])
+            coverage_percentage = int((len(automation_attrs) / 5) * 100)  # 5 total automation patterns
             
             breakdown_items.append(
                 Div(
                     Strong('📝 Form Elements Analysis:', style='color: #0066cc;'),
                     Br(),
+                    Span(f'📊 Coverage: {coverage_percentage}% ({len(automation_attrs)}/5 patterns)', 
+                         style=f'color: {"#28a745" if coverage_percentage >= 80 else "#fd7e14" if coverage_percentage >= 60 else "#dc3545"}; margin-left: 1rem; display: block; font-weight: bold;'),
                     Span(f'✅ Found: {", ".join(automation_attrs) if automation_attrs else "None"}', 
                          style='color: #28a745; margin-left: 1rem; display: block;'),
                     Span(f'❌ Missing: {", ".join(missing_attrs) if missing_attrs else "None"}', 
@@ -566,21 +583,27 @@ class DevAssistant:
                 )
             )
             
-            # Calculate form score impact
-            if len(automation_attrs) < 2:
+            # Calculate form score impact with improved logic
+            coverage_percentage = int((len(automation_attrs) / 5) * 100)
+            if len(automation_attrs) >= 4:  # 80%+ coverage
                 breakdown_items.append(
-                    Div('📉 Form Score Impact: -20 points (insufficient automation attributes)', 
-                        style='color: #dc3545; margin-left: 1rem; font-style: italic;')
+                    Div(f'📈 Form Score Impact: No deduction (excellent coverage ≥80%)', 
+                        style='color: #28a745; margin-left: 1rem; font-style: italic;')
                 )
-            elif len(automation_attrs) < 4:
+            elif len(automation_attrs) >= 3:  # 60%+ coverage
                 breakdown_items.append(
-                    Div('📉 Form Score Impact: -10 points (good but could be better)', 
+                    Div('📉 Form Score Impact: -5 points (good coverage 60-79%)', 
                         style='color: #fd7e14; margin-left: 1rem; font-style: italic;')
                 )
-            else:
+            elif len(automation_attrs) >= 2:  # 40%+ coverage
                 breakdown_items.append(
-                    Div('📈 Form Score Impact: No deduction (excellent coverage)', 
-                        style='color: #28a745; margin-left: 1rem; font-style: italic;')
+                    Div('📉 Form Score Impact: -15 points (moderate coverage 40-59%)', 
+                        style='color: #fd7e14; margin-left: 1rem; font-style: italic;')
+                )
+            else:  # <40% coverage
+                breakdown_items.append(
+                    Div('📉 Form Score Impact: -25 points (poor coverage <40%)', 
+                        style='color: #dc3545; margin-left: 1rem; font-style: italic;')
                 )
         
         # Button accessibility analysis
@@ -598,8 +621,22 @@ class DevAssistant:
                     style='margin-bottom: 1rem; padding: 0.5rem; background-color: #ffe6e6; border-radius: 4px;'
                 )
             )
+        else:
+            # Check if buttons exist and show positive feedback
+            if 'Button(' in str(automation_readiness):  # Simple check for button presence
+                breakdown_items.append(
+                    Div(
+                        Strong('🔘 Button Accessibility:', style='color: #0066cc;'),
+                        Br(),
+                        Span('✅ Buttons have good accessibility attributes', 
+                             style='color: #28a745; margin-left: 1rem; display: block;'),
+                        Div('📈 Button Score Impact: No deduction (accessible buttons)', 
+                            style='color: #28a745; margin-left: 1rem; font-style: italic; margin-top: 0.5rem;'),
+                        style='margin-bottom: 1rem; padding: 0.5rem; background-color: #e6ffe6; border-radius: 4px;'
+                    )
+                )
         
-        # Dropdown analysis
+        # Dropdown analysis (only show if dropdowns exist)
         dropdown_validations = automation_readiness.get('dropdown_validations', {})
         if dropdown_validations:
             for func_name, result in dropdown_validations.items():
@@ -618,6 +655,19 @@ class DevAssistant:
                             style='margin-bottom: 1rem; padding: 0.5rem; background-color: #f0f0f0; border-radius: 4px;'
                         )
                     )
+        else:
+            # Show positive message for plugins without dropdown dependencies
+            breakdown_items.append(
+                Div(
+                    Strong('📋 Dropdown Dependencies:', style='color: #0066cc;'),
+                    Br(),
+                    Span('✅ No dropdown menu dependencies detected', 
+                         style='color: #28a745; margin-left: 1rem; display: block;'),
+                    Div('📈 Dropdown Score Impact: No deduction (no dropdown complexity)', 
+                        style='color: #28a745; margin-left: 1rem; font-style: italic; margin-top: 0.5rem;'),
+                    style='margin-bottom: 1rem; padding: 0.5rem; background-color: #e6ffe6; border-radius: 4px;'
+                )
+            )
         
         # What's needed for 100/100
         if current_score < 100:
