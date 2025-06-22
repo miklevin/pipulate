@@ -432,9 +432,9 @@ class DevAssistant:
             automation_patterns = {
                 'aria_label': r'aria_label=[\'"][^\'"]+[\'"]',
                 'id_attributes': r'id=[\'"][^\'"]+[\'"]',
-                'name_attributes': r'name=[\'"][^\'"]+[\'"]',
+                'name_attributes': r'name=(?:[\'"][^\'"]+[\'"]|[a-zA-Z_][a-zA-Z0-9_.]*)',
                 'data_testid': r'data_testid=[\'"][^\'"]+[\'"]',
-                'placeholder_text': r'placeholder=[\'"][^\'"]+[\'"]'
+                'placeholder_text': r'placeholder=(?:f?[\'"][^\'"]+[\'"])'
             }
             
             form_validation = {
@@ -444,12 +444,13 @@ class DevAssistant:
             }
             
             for pattern_name, pattern_regex in automation_patterns.items():
-                if re.search(pattern_regex, content):
+                match = re.search(pattern_regex, content)
+                if match:
                     form_validation['automation_attributes'].append(pattern_name)
-                    logger.info(f"🔍 FINDER_TOKEN: PATTERN_MATCH - {pattern_name}: FOUND")
+                    logger.info(f"🔍 FINDER_TOKEN: PATTERN_MATCH - {pattern_name}: FOUND (matched: {match.group()[:50]}...)")
                 else:
                     form_validation['missing_attributes'].append(pattern_name)
-                    logger.info(f"🔍 FINDER_TOKEN: PATTERN_MATCH - {pattern_name}: MISSING")
+                    logger.info(f"🔍 FINDER_TOKEN: PATTERN_MATCH - {pattern_name}: MISSING (pattern: {pattern_regex})")
             
             aria_results['form_validations'] = form_validation
             
