@@ -182,7 +182,10 @@ class DevAssistant:
                 H3('🔒 Analysis Session Finalized'),
                 P('This development analysis session is complete.'),
                 Form(
-                    Button('🔓 Unfinalize', type='submit', cls='secondary'),
+                    Button('🔓 Unfinalize', type='submit', cls='secondary',
+                           id='dev-assistant-unfinalize-button',
+                           aria_label='Unlock development analysis session for editing',
+                           data_testid='dev-assistant-unfinalize-button'),
                     hx_post=f'/{app_name}/unfinalize',
                     hx_target=f'#{app_name}-container'
                 ),
@@ -193,7 +196,10 @@ class DevAssistant:
                 H3('Finalize Development Analysis'),
                 P('Complete this development analysis session.'),
                 Form(
-                    Button('🔒 Finalize', type='submit', cls='primary'),
+                    Button('🔒 Finalize', type='submit', cls='primary',
+                           id='dev-assistant-finalize-button',
+                           aria_label='Finalize development analysis session',
+                           data_testid='dev-assistant-finalize-button'),
                     hx_post=f'/{app_name}/finalize',
                     hx_target=f'#{app_name}-container'
                 ),
@@ -1810,6 +1816,8 @@ class DevAssistant:
                             name='plugin_search',
                             placeholder='Search plugins by name... (↑↓ arrows, Enter to select)',
                             id=f'plugin-search-input-{step_id}',
+                            aria_label='Search for plugin files to analyze',
+                            data_testid=f'dev-assistant-plugin-search-{step_id}',
                             style='width: 100%; border-radius: 8px; margin-bottom: 1rem;',
                             autofocus=True,
                             hx_post=f'/{app_name}/search_plugins_step01',
@@ -1824,8 +1832,11 @@ class DevAssistant:
                         style='position: relative; margin-bottom: 1rem;'
                     ),
                     # Hidden input to store the selected plugin
-                    Input(type='hidden', name='plugin_analysis', id=f'selected-plugin-{step_id}', required=True),
-                    Button('Analyze Selected Plugin ▸', type='submit', id=f'analyze-btn-{step_id}', disabled=True),
+                    Input(type='hidden', name='plugin_analysis', id=f'selected-plugin-{step_id}', 
+                          data_testid=f'dev-assistant-selected-plugin-{step_id}', required=True),
+                    Button('Analyze Selected Plugin ▸', type='submit', id=f'analyze-btn-{step_id}', 
+                           aria_label='Analyze the selected plugin for automation and accessibility issues',
+                           data_testid=f'dev-assistant-analyze-button-{step_id}', disabled=True),
                     hx_post=f'/{app_name}/{step_id}_submit',
                     hx_target=f'#{step_id}'
                 )
@@ -2009,6 +2020,9 @@ class DevAssistant:
                 Button('Analyze Different Plugin', 
                        hx_get=f'/{app_name}/step_01', 
                        hx_target='#step_01',
+                       id='dev-assistant-analyze-different-button',
+                       aria_label='Go back to plugin selection to analyze a different plugin',
+                       data_testid='dev-assistant-analyze-different-button',
                        cls='secondary', style='margin-top: 1rem;')
             ),
             # Trigger step_02 to load with analysis results
@@ -2031,6 +2045,9 @@ class DevAssistant:
                     Button('Go Back to Plugin Selection', 
                            hx_get=f'/{app_name}/step_01', 
                            hx_target='#step_01',
+                           id='dev-assistant-back-to-selection-button',
+                           aria_label='Return to plugin selection screen',
+                           data_testid='dev-assistant-back-to-selection-button',
                            cls='secondary')
                 ),
                 id='step_02'
@@ -2119,6 +2136,8 @@ class DevAssistant:
                                 '📋 Copy AI Prompt',
                                 id=f'copy-automation-prompt-{filename.replace(".", "-")}',
                                 cls='copy-button',
+                                aria_label='Copy comprehensive AI prompt for fixing automation and accessibility issues',
+                                data_testid=f'dev-assistant-copy-ai-prompt-{filename.replace(".", "-")}',
                                 data_copy_text=self.generate_automation_ai_prompt(automation_readiness, filename),
                                 style='margin-bottom: 1rem; padding: 8px 16px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem;'
                             ),
@@ -2260,6 +2279,9 @@ class DevAssistant:
                 Button('🔄 New Analysis', 
                        hx_get=f'/{app_name}/step_01',
                        hx_target='#step_01',
+                       id='dev-assistant-new-analysis-button',
+                       aria_label='Start a new plugin analysis session',
+                       data_testid='dev-assistant-new-analysis-button',
                        cls='secondary',
                        style='margin-top: 1rem;'),
 
