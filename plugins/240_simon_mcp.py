@@ -447,7 +447,7 @@ Output only the MCP block above. Do not add any other text."""
         # Direct action content container (for HTMX swapping)
         action_content = Div(
             P(f"Ready to execute: {current_config['display_name']}", 
-              style="margin-bottom: 1rem; padding: 0.5rem; background: var(--pico-secondary-background); border-radius: 4px;"),
+              cls="text-secondary mb-lg"),
             Div(
                 Button(
                     current_config['button_text'], 
@@ -834,7 +834,7 @@ Output only the MCP block above. Do not add any other text."""
             # Return the updated action content div
             return Div(
                 P(f"Ready to execute: {current_config['display_name']}", 
-                  style="margin-bottom: 1rem; padding: 0.5rem; background: var(--pico-secondary-background); border-radius: 4px;"),
+                  cls="text-secondary mb-lg"),
                 Div(
                     Button(
                         current_config['button_text'], 

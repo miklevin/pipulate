@@ -476,6 +476,9 @@ async def _browser_stealth_search(params: dict) -> dict:
         human_behavior = params.get('human_behavior', True)
         captcha_pause_seconds = params.get('captcha_pause_seconds', 45)  # Time to manually solve CAPTCHA
         
+        # TIMING CONFIGURATION - Easy to adjust for performance tuning
+        search_box_timeout = 1.0  # Seconds to wait for search box to appear
+        
         # Set up directories
         browser_automation_dir = 'browser_automation'
         temp_scripts_dir = os.path.join(browser_automation_dir, 'temp_scripts')
@@ -605,7 +608,7 @@ async def _browser_stealth_search(params: dict) -> dict:
                 time.sleep(random.uniform(0.5, 1.0))
             
             # Find search box with multiple selector fallbacks
-            wait = WebDriverWait(driver, 2.5)
+            wait = WebDriverWait(driver, search_box_timeout)
             search_selectors = [
                 "input[name='q']",
                 "textarea[name='q']",
