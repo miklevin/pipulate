@@ -29,6 +29,8 @@ rich
 selenium
 webdriver-manager
 selenium-wire
+undetected-chromedriver
+selenium-stealth
 watchdog
 
 google-api-python-client
