@@ -88,11 +88,11 @@ class TextFieldWidget:
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
             if finalize_step.done in finalize_data:
-                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline', data_testid='text-field-widget-unlock-button', aria_label='Unlock workflow'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary', data_testid='text-field-widget-finalize-button', aria_label='Finalize workflow'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -162,7 +162,7 @@ class TextFieldWidget:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             explanation = "This is a simple text input widget. Enter any text you'd like to store."
             await self.message_queue.add(pip, explanation, verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(type='text', name=step.done, value=display_value, placeholder=f'Enter {step.show}', required=True, autofocus=True, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='textfield-standard', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction', data_testid='text-field-widget-text-input', aria_label='Text input field'), button_label='Next ▸', button_data_testid='text-field-widget-next-button', button_aria_label='Continue to next step'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
+            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(type='text', name=step.done, value=display_value, placeholder=f'Enter {step.show}', required=True, autofocus=True, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='textfield-standard', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction'), button_label='Next ▸'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
 
     async def step_01_submit(self, request):
         """Process the submission for Step 1."""

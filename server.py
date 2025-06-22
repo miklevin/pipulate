@@ -2002,6 +2002,2010 @@ async def _browser_interact_with_page(params: dict) -> dict:
         logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_INTERACT_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
+import ast
+import asyncio
+import functools
+import importlib
+import inspect
+import json
+import os
+import re
+import sqlite3
+import sys
+import time
+import traceback
+from collections import deque
+from datetime import datetime
+from pathlib import Path
+from typing import AsyncGenerator, Optional
+import aiohttp
+import uvicorn
+from fasthtml.common import *
+from loguru import logger
+from pyfiglet import Figlet
+from rich.console import Console
+from rich.json import JSON
+from rich.style import Style as RichStyle
+from rich.table import Table, Text
+from rich.theme import Theme
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.routing import Route
+from starlette.websockets import WebSocket, WebSocketDisconnect
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+import subprocess
+import platform
+import urllib.parse
+from starlette.responses import FileResponse
+
+# Various debug settings
+DEBUG_MODE = False
+STATE_TABLES = False
+TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
+# 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
+# These control different aspects of logging and debugging
+
+# Initialize logging as early as possible in the startup process
+def setup_logging():
+    """
+    🔧 CLAUDE'S UNIFIED LOGGING SYSTEM
+    
+    Single source of truth logging with rolling server logs.
+    Designed for optimal debugging experience with surgical search capabilities.
+    
+    Features:
+    - server.log (current run, live tail-able)
+    - server-1.log, server-2.log, etc. (previous runs for context across restarts)
+    - Unified log stream with clear categorization and finder tokens
+    - No more fragmented api.log/lifecycle.log confusion
+    """
+    logger.remove()
+    logs_dir = Path('logs')
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    
+    # === ROLLING LOG ROTATION SYSTEM ===
+    # This preserves debugging context across server restarts
+    server_log_path = logs_dir / 'server.log'
+    MAX_ROLLED_LOGS = 10  # Keep last 10 server runs
+    
+    # Clean up old numbered logs beyond our limit
+    for i in range(MAX_ROLLED_LOGS + 1, 100):
+        old_log = logs_dir / f'server-{i}.log'
+        if old_log.exists():
+            try:
+                old_log.unlink()
+                print(f'🧹 Cleaned up old server log: {old_log}')
+            except Exception as e:
+                print(f'⚠️ Failed to delete old server log {old_log}: {e}')
+    
+    # Rotate existing logs: server-1.log → server-2.log, etc.
+    if server_log_path.exists():
+        for i in range(MAX_ROLLED_LOGS - 1, 0, -1):
+            old_path = logs_dir / f'server-{i}.log'
+            new_path = logs_dir / f'server-{i + 1}.log'
+            if old_path.exists():
+                try:
+                    old_path.rename(new_path)
+                    print(f'📁 Rotated: {old_path.name} → {new_path.name}')
+                except Exception as e:
+                    print(f'⚠️ Failed to rotate {old_path}: {e}')
+        
+        # Move current server.log to server-1.log
+        try:
+            server_log_path.rename(logs_dir / 'server-1.log')
+            print(f'📁 Archived current run: server.log → server-1.log')
+        except Exception as e:
+            print(f'⚠️ Failed to archive current server.log: {e}')
+    
+    # === CLEAN UP LEGACY LOG FILES ===
+    # Remove the old fragmented log system
+    legacy_files = ['api.log', 'lifecycle.log', 'table_lifecycle.log'] + [f'api-{i}.log' for i in range(1, 20)]
+    for legacy_file in legacy_files:
+        legacy_path = logs_dir / legacy_file
+        if legacy_path.exists():
+            try:
+                legacy_path.unlink()
+                print(f'🧹 Removed legacy log: {legacy_file}')
+            except Exception as e:
+                print(f'⚠️ Failed to remove legacy log {legacy_file}: {e}')
+    
+    # === UNIFIED LOG FORMAT ===
+    log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
+    time_format = '{time:HH:mm:ss}'
+    
+    # File logging - comprehensive for debugging
+    file_format = f'{time_format} | {{level: <8}} | {{name: <15}} | {{message}}'
+    logger.add(
+        server_log_path, 
+        level=log_level, 
+        format=file_format, 
+        enqueue=True,
+        backtrace=True,
+        diagnose=True
+    )
+    
+    # Console logging - clean for live monitoring
+    console_format = '<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}'
+    logger.add(
+        sys.stderr, 
+        level=log_level, 
+        format=console_format, 
+        colorize=True,
+        filter=lambda record: (
+            record['level'].name != 'DEBUG' or 
+            any(key in record['message'] for key in [
+                'FINDER_TOKEN', 'MCP', 'BOTIFY', 'API', 'Pipeline ID:', 
+                'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'
+            ])
+        )
+    )
+    
+    # === STARTUP MESSAGES ===
+    if STATE_TABLES:
+        logger.info('🔍 FINDER_TOKEN: STATE_TABLES_ENABLED - Console will show 🍪 and ➡️ table snapshots')
+    
+    # Welcome message for the new unified system
+    logger.info('🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized')
+    logger.info(f'📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last {MAX_ROLLED_LOGS} server runs for debugging context')
+    
+    return logger
+
+# Initialize logger immediately after basic configuration
+logger = setup_logging()
+
+# Log early startup phase
+logger.info('🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence')
+
+if __name__ == '__main__':
+    if DEBUG_MODE:
+        logger.info('🔍 Running in DEBUG mode (verbose logging enabled)')
+    else:
+        logger.info('🚀 Running in INFO mode (edit server.py and set DEBUG_MODE=True for verbose logging)')
+
+shared_app_state = {'critical_operation_in_progress': False}
+
+# Global message coordination to prevent race conditions between multiple message-sending systems
+message_coordination = {
+    'endpoint_messages_sent': set(),  # Track sent endpoint messages
+    'last_endpoint_message_time': {},  # Track timing to prevent duplicates
+    'startup_in_progress': False,     # Flag to coordinate startup vs page load
+}
+
+class GracefulRestartException(SystemExit):
+    """Custom exception to signal a restart requested by Watchdog."""
+    pass
+
+def is_critical_operation_in_progress():
+    """Check if a critical operation is in progress via file flag."""
+    return os.path.exists('.critical_operation_lock')
+
+def set_critical_operation_flag():
+    """Set the critical operation flag via file."""
+    with open('.critical_operation_lock', 'w') as f:
+        f.write('critical operation in progress')
+
+def clear_critical_operation_flag():
+    """Clear the critical operation flag."""
+    try:
+        os.remove('.critical_operation_lock')
+    except FileNotFoundError:
+        pass
+
+def get_app_name(force_app_name=None):
+    """Get the name of the app from the app_name.txt file, or the parent directory name."""
+    name = force_app_name
+    if not name:
+        app_name_file = 'app_name.txt'
+        if Path(app_name_file).exists():
+            try:
+                name = Path(app_name_file).read_text().strip()
+            except:
+                pass
+        if not name:
+            name = Path(__file__).parent.name
+            name = name[:-5] if name.endswith('-main') else name
+    return name.capitalize()
+
+def get_db_filename():
+    current_env = get_current_environment()
+    if current_env == 'Development':
+        return f'data/{APP_NAME.lower()}_dev.db'
+    else:
+        return f'data/{APP_NAME.lower()}.db'
+
+def get_current_environment():
+    if ENV_FILE.exists():
+        return ENV_FILE.read_text().strip()
+    else:
+        ENV_FILE.write_text('Development')
+        return 'Development'
+
+def get_nix_version():
+    """Get the Nix flake version by parsing flake.nix file."""
+    import os
+    import re
+    from pathlib import Path
+    
+    # Check if we're in a Nix shell
+    if not (os.environ.get('IN_NIX_SHELL') or 'nix' in os.environ.get('PS1', '')):
+        return "Not in Nix environment"
+    
+    # Try to parse version from flake.nix
+    try:
+        flake_path = Path('flake.nix')
+        if flake_path.exists():
+            flake_content = flake_path.read_text()
+            # Look for: version = "x.x.x (description)";
+            version_match = re.search(r'version\s*=\s*"([^"]+)"', flake_content)
+            if version_match:
+                return version_match.group(1)
+    except Exception as e:
+        logger.debug(f"Could not parse version from flake.nix: {e}")
+    
+    return "Unknown version"
+APP_NAME = get_app_name()
+logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
+
+TONE = 'neutral'
+MODEL = 'gemma3'
+MAX_LLM_RESPONSE_WORDS = 80
+MAX_CONVERSATION_LENGTH = 10000
+HOME_MENU_ITEM = '👥 Roles (Home)'
+DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
+
+logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}')
+
+# ================================================================
+# INSTANCE-SPECIFIC CONFIGURATION - "The Crucible"
+# ================================================================
+# This dictionary holds settings that customize this particular Pipulate instance.
+# Moving configuration here allows for easy white-labeling and configuration management.
+# Over time, more instance-specific "slag" will be skimmed from plugins to here.
+
+PCONFIG = {
+    # UI & Navigation
+    'HOME_MENU_ITEM': HOME_MENU_ITEM,
+    'DEFAULT_ACTIVE_ROLES': DEFAULT_ACTIVE_ROLES,
+    
+    # Role System Configuration
+    'ROLES_CONFIG': {
+        'Botify Employee': {
+            'priority': 0, 
+            'description': 'Connect with Botify to use Parameter Buster and Link Graph Visualizer.',
+            'emoji': '👔'
+        },
+        'Core': {
+            'priority': 1, 
+            'description': 'Essential plugins available to all users.',
+            'emoji': '⚙️'
+        },
+        'Tutorial': {
+            'priority': 2, 
+            'description': 'Guided workflows and introductory examples for learning the system.',
+            'emoji': '📚'
+        },
+        'Developer': {
+            'priority': 3, 
+            'description': 'Tools for creating, debugging, and managing workflows and plugins.',
+            'emoji': '⚡'
+        },
+        'Workshop': {
+            'priority': 4, 
+            'description': 'This is where we put works in progress, proof of concepts and crazy stuff not ready for release. Consider it the sausage factory.',
+            'emoji': '🔬'
+        },
+        'Components': {
+            'priority': 5, 
+            'description': 'UI and data widgets for building rich workflow interfaces.',
+            'emoji': '🧩'
+        }
+    },
+    
+    # Role Color Configuration
+    'ROLE_COLORS': {
+        'menu-role-core': {
+            'border': '#22c55e',            # GREEN
+            'background': 'rgba(34, 197, 94, 0.1)',
+            'background_light': 'rgba(34, 197, 94, 0.05)'
+        },
+        'menu-role-botify-employee': {
+            'border': '#a855f7',            # PURPLE
+            'background': 'rgba(168, 85, 247, 0.1)',
+            'background_light': 'rgba(168, 85, 247, 0.05)'
+        },
+        'menu-role-tutorial': {
+            'border': '#f97316',            # ORANGE
+            'background': 'rgba(249, 115, 22, 0.1)',
+            'background_light': 'rgba(249, 115, 22, 0.05)'
+        },
+        'menu-role-developer': {
+            'border': '#3b82f6',            # BLUE
+            'background': 'rgba(59, 130, 246, 0.1)',
+            'background_light': 'rgba(59, 130, 246, 0.05)'
+        },
+        'menu-role-components': {
+            'border': '#6b7280',            # GRAY
+            'background': 'rgba(107, 114, 128, 0.1)',
+            'background_light': 'rgba(107, 114, 128, 0.05)'
+        },
+        'menu-role-workshop': {
+            'border': '#eab308',            # YELLOW
+            'background': 'rgba(234, 179, 8, 0.1)',
+            'background_light': 'rgba(234, 179, 8, 0.05)'
+        }
+    },
+    
+    # Botify API Configuration
+    'BOTIFY_API': {
+        'MAX_EXPORT_SIZE': 1000000,  # Botify's maximum export size limit (1M rows)
+        'DEFAULT_EXPORT_SIZE': 1000000,  # Conservative default for testing/development
+        'GSC_EXPORT_SIZE': 1000000,  # GSC can handle full export size
+        'WEBLOG_EXPORT_SIZE': 1000000,  # Web logs can handle full export size
+        'CRAWL_EXPORT_SIZE': 1000000,  # Crawl exports can handle full export size
+    },
+    
+    # Chat & Streaming Configuration
+    'CHAT_CONFIG': {
+        'TYPING_DELAY': 0.0125,  # Delay between words in typing simulation (seconds)
+        'MAX_CONVERSATION_LENGTH': 100,  # Maximum number of conversation messages to keep
+    },
+    
+    # UI Constants for Workflows - Centralized button labels, emojis, and styles
+    'UI_CONSTANTS': {
+        'BUTTON_LABELS': {
+            'ENTER_KEY': '🔑 Enter Key',
+            'NEXT_STEP': 'Next Step ▸',
+            'FINALIZE': '🔒 Finalize',
+            'UNLOCK': '🔓 Unlock',
+            'PROCEED': 'Proceed ▸',
+            'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
+            'VIEW_FOLDER': '📂 View Folder',
+            'DOWNLOAD_CSV': '⬇️ Copy to Downloads',
+            'VISUALIZE_GRAPH': '🌐 Visualize Graph',
+            'SKIP_STEP': 'Skip️'
+        },
+        'BUTTON_STYLES': {
+            'PRIMARY': 'primary',
+            'SECONDARY': 'secondary',
+            'OUTLINE': 'secondary outline',
+            'STANDARD': 'secondary outline',
+            'FLEX_CONTAINER': 'display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;',
+            'BUTTON_ROW': 'display: flex; gap: 0.5em; align-items: center;',
+            'SKIP_BUTTON': 'secondary outline',
+            'SKIP_BUTTON_STYLE': 'padding: 0.5rem 1rem; width: 10%; min-width: 80px; white-space: nowrap;'
+        },
+        'EMOJIS': {
+            # Process Status Indicators
+            'KEY': '🔑',
+            'SUCCESS': '🎯',
+            'WARNING': '⚠️',
+            'ERROR': '❌',
+            'COMPLETION': '✅',
+            'LOCKED': '🔒',
+            'UNLOCKED': '🔓',
+            
+            # Data Type Indicators  
+            'USER_INPUT': '👤',
+            'GREETING': '💬',
+            'WORKFLOW': '🔄',
+            'INPUT_FORM': '📝',
+            
+            # Code and Development Indicators
+            'PYTHON_CODE': '🐍',           # Python code snippets and headers
+            'CODE_SNIPPET': '✂️',         # Code snippet indicator
+            'JUPYTER_NOTEBOOK': '📓',     # Jupyter notebook related
+            'API_CALL': '🔌',             # API endpoint calls
+            'DEBUG_CODE': '🐛',           # Debugging code sections
+            
+            # File and Data Operations
+            'DOWNLOAD': '⬇️',             # Download operations
+            'UPLOAD': '⬆️',               # Upload operations
+            'FILE_FOLDER': '📂',          # File/folder operations
+            'CSV_FILE': '📊',             # CSV and data files
+            'JSON_DATA': '📄',            # JSON and structured data
+            
+            # Analysis and Processing
+            'ANALYSIS': '🔍',             # Data analysis and discovery
+            'PROCESSING': '⚙️',          # Background processing
+            'OPTIMIZATION': '🎯',        # Optimization results
+            'GRAPH_NETWORK': '🌐',       # Network/graph visualization
+            'VISUALIZATION': '📈',       # Charts and visualizations
+            
+            # Search Console and SEO
+            'SEARCH_CONSOLE': '🔍',      # Google Search Console
+            'SEO_DATA': '📊',            # SEO metrics and data
+            'CRAWL_DATA': '🕷️',         # Website crawling
+            'WEB_LOGS': '📝',            # Web server logs
+            
+            # Workflow Status
+            'STEP_COMPLETE': '✅',       # Step completion
+            'STEP_PROGRESS': '🔄',      # Step in progress
+            'STEP_ERROR': '❌',          # Step error
+            'STEP_WARNING': '⚠️',       # Step warning
+            'REVERT': '↩️',              # Revert action
+            'FINALIZE': '🔒',           # Finalize workflow
+            'UNFINALIZE': '🔓'          # Unfinalize workflow
+        },
+        'CONSOLE_MESSAGES': {
+            # Server console log messages - centralized for consistency
+            'PYTHON_SNIPPET_INTRO': '# {python_emoji} Python (httpx) Snippet BEGIN {snippet_emoji}:',
+            'PYTHON_SNIPPET_END': '# {python_emoji} Python (httpx) Snippet END {snippet_emoji}',
+            'API_CALL_LOG': 'API Call: {method} {url}',
+            'FILE_GENERATED': 'Generated file: {filename}',
+            'PROCESSING_COMPLETE': 'Processing complete for: {operation}',
+            'ERROR_OCCURRED': 'Error in {context}: {error_message}'
+        },
+        'CODE_FORMATTING': {
+            # Visual dividers and separators for generated code
+            'COMMENT_DIVIDER': '# ============================================================================='
+        },
+        'MESSAGES': {
+            'WORKFLOW_UNLOCKED': 'Workflow unfinalized! You can now revert to any step and make changes.',
+            'ALL_STEPS_COMPLETE': 'All steps complete. Ready to finalize workflow.',
+            'FINALIZE_QUESTION': 'All steps complete. Finalize?',
+            'FINALIZE_HELP': 'You can revert to any step and make changes.',
+            'WORKFLOW_LOCKED': 'Workflow is locked.'
+        },
+        'LANDING_PAGE': {
+            'INPUT_PLACEHOLDER': 'Existing or new 🗝 here (Enter for auto)',
+            'INIT_MESSAGE_WORKFLOW_ID': 'Workflow ID: {pipeline_id}',
+            'INIT_MESSAGE_RETURN_HINT': "Return later by selecting '{pipeline_id}' from the dropdown."
+        }
+    }
+}
+
+# Update references to use the centralized config
+HOME_MENU_ITEM = PCONFIG['HOME_MENU_ITEM']
+DEFAULT_ACTIVE_ROLES = PCONFIG['DEFAULT_ACTIVE_ROLES']
+
+# ================================================================
+# MCP TOOL REGISTRY - Generic Tool Dispatch System
+# ================================================================
+# This registry allows plugins to register MCP tools that can be called
+# via the /mcp-tool-executor endpoint. Tools are simple async functions
+# that take parameters and return structured responses.
+
+# Global registry for MCP tools - populated by plugins during startup
+MCP_TOOL_REGISTRY = {}
+
+def register_mcp_tool(tool_name: str, handler_func):
+    """Register an MCP tool handler function.
+    
+    Args:
+        tool_name: Name of the tool (e.g., 'get_cat_fact', 'botify_query')
+        handler_func: Async function that takes (params: dict) -> dict
+    """
+    logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
+    MCP_TOOL_REGISTRY[tool_name] = handler_func
+
+# Register the built-in cat fact tool to maintain backwards compatibility
+async def _builtin_get_cat_fact(params: dict) -> dict:
+    """Built-in cat fact tool - demonstrates the MCP tool pattern."""
+    async with aiohttp.ClientSession() as session:
+        external_url = "https://catfact.ninja/fact"
+        async with session.get(external_url) as response:
+            if response.status == 200:
+                cat_fact_result = await response.json()
+                return {
+                    "status": "success",
+                    "result": cat_fact_result,
+                    "external_api_url": external_url,
+                    "external_api_method": "GET",
+                    "external_api_status": response.status
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": f"External API returned status {response.status}",
+                    "external_api_url": external_url,
+                    "external_api_method": "GET",
+                    "external_api_status": response.status
+                }
+
+# Register the built-in tool
+register_mcp_tool("get_cat_fact", _builtin_get_cat_fact)
+
+# ================================================================
+# BOTIFY MCP TOOLS - Core API Integration
+# ================================================================
+# 🔧 FINDER_TOKEN: BOTIFY_MCP_TOOLS_CORE
+# These tools provide direct access to Botify API endpoints via MCP.
+# They demonstrate the full pattern: authentication, API calls, error handling.
+
+async def _botify_ping(params: dict) -> dict:
+    """Test Botify API connectivity and authentication."""
+    api_token = params.get("api_token")
+    if not api_token:
+        return {"status": "error", "message": "api_token required in params"}
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Use the user endpoint as a simple ping/auth test
+            external_url = "https://api.botify.com/v1/user"
+            headers = {"Authorization": f"Token {api_token}"}
+            
+            async with session.get(external_url, headers=headers) as response:
+                if response.status == 200:
+                    user_data = await response.json()
+                    return {
+                        "status": "success",
+                        "result": {
+                            "message": "Botify API connection successful",
+                            "user": user_data.get("login", "unknown"),
+                            "organizations": len(user_data.get("organizations", []))
+                        },
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "message": f"Botify API authentication failed: {response.status}",
+                        "error_details": error_text,
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Network error: {str(e)}",
+            "external_api_url": external_url if 'external_url' in locals() else None,
+            "external_api_method": "GET"
+        }
+
+async def _botify_list_projects(params: dict) -> dict:
+    """List all projects for the authenticated user."""
+    # Read API token from standard location (never pass as parameter)
+    api_token = _read_botify_api_token()
+    if not api_token:
+        return {
+            "status": "error", 
+            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
+            "token_location": "helpers/botify/botify_token.txt"
+        }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            external_url = "https://api.botify.com/v1/projects"
+            headers = {"Authorization": f"Token {api_token}"}
+            
+            async with session.get(external_url, headers=headers) as response:
+                if response.status == 200:
+                    projects_data = await response.json()
+                    projects = projects_data.get("results", [])
+                    
+                    # Format for easy consumption
+                    formatted_projects = []
+                    for project in projects:
+                        formatted_projects.append({
+                            "slug": project.get("slug"),
+                            "name": project.get("name"),
+                            "url": project.get("url"),
+                            "organization": project.get("organization", {}).get("name"),
+                            "active": project.get("active", False)
+                        })
+                    
+                    return {
+                        "status": "success",
+                        "result": {
+                            "projects": formatted_projects,
+                            "total_count": len(formatted_projects)
+                        },
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "message": f"Failed to fetch projects: {response.status}",
+                        "error_details": error_text,
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Network error: {str(e)}",
+            "external_api_url": external_url if 'external_url' in locals() else None,
+            "external_api_method": "GET"
+        }
+
+async def _botify_simple_query(params: dict) -> dict:
+    """Execute a simple BQL query against Botify API."""
+    # Read API token from standard location (never pass as parameter)
+    api_token = _read_botify_api_token()
+    if not api_token:
+        return {
+            "status": "error",
+            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
+            "token_location": "helpers/botify/botify_token.txt"
+        }
+    
+    org_slug = params.get("org_slug") 
+    project_slug = params.get("project_slug")
+    analysis_slug = params.get("analysis_slug")
+    query = params.get("query")
+    
+    # Validate required parameters (token no longer required as param)
+    missing_params = []
+    if not org_slug: missing_params.append("org_slug") 
+    if not project_slug: missing_params.append("project_slug")
+    if not analysis_slug: missing_params.append("analysis_slug")
+    if not query: missing_params.append("query")
+    
+    if missing_params:
+        return {
+            "status": "error", 
+            "message": f"Missing required parameters: {', '.join(missing_params)}",
+            "required_params": ["org_slug", "project_slug", "analysis_slug", "query"]
+        }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            external_url = f"https://api.botify.com/v1/projects/{org_slug}/{project_slug}/query"
+            headers = {
+                "Authorization": f"Token {api_token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Build the BQL query payload
+            payload = {
+                "query": query,
+                "analysis": analysis_slug,
+                "size": params.get("size", 100)  # Default to 100 results
+            }
+            
+            async with session.post(external_url, headers=headers, json=payload) as response:
+                if response.status == 200:
+                    query_result = await response.json()
+                    return {
+                        "status": "success",
+                        "result": query_result,
+                        "external_api_url": external_url,
+                        "external_api_method": "POST", 
+                        "external_api_status": response.status,
+                        "external_api_payload": payload
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "message": f"BQL query failed: {response.status}",
+                        "error_details": error_text,
+                        "external_api_url": external_url,
+                        "external_api_method": "POST",
+                        "external_api_status": response.status,
+                        "external_api_payload": payload
+                    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Network error: {str(e)}",
+            "external_api_url": external_url if 'external_url' in locals() else None,
+            "external_api_method": "POST"
+        }
+
+async def _pipeline_state_inspector(params: dict) -> dict:
+    """Fetch complete pipeline state for any workflow instance.
+    
+    This tool enables full transparency into any pipeline's state, allowing AIs to:
+    - Drop into any workflow at any point with complete context
+    - Understand exactly what data has been collected
+    - See which steps are complete and what files exist
+    - Simulate user actions with full knowledge of current state
+    
+    The returned state blob contains everything needed to continue or debug a workflow.
+    """
+    pipeline_id = params.get("pipeline_id")
+    
+    if not pipeline_id:
+        return {
+            "status": "error",
+            "message": "Missing required parameter: pipeline_id"
+        }
+    
+    try:
+        # Use the global pipulate instance to read state
+        state = pipulate.read_state(pipeline_id)
+        
+        if not state:
+            return {
+                "status": "success",
+                "pipeline_id": pipeline_id,
+                "state": {},
+                "message": "Pipeline not found or has no state data",
+                "app_name": None,
+                "current_step": None,
+                "completed_steps": [],
+                "collected_data": {}
+            }
+        
+        # Extract key information for easier AI consumption
+        app_name = state.get('app_name', 'unknown')
+        completed_steps = []
+        collected_data = {}
+        current_step = None
+        
+        # Analyze state to find completed steps and collected data
+        for key, value in state.items():
+            if key.startswith('step_') and isinstance(value, dict):
+                step_id = key
+                step_data = value
+                
+                # Check if this step has completion indicators
+                has_data = bool(step_data)
+                completion_keys = [k for k in step_data.keys() if any(
+                    completion_word in k.lower() 
+                    for completion_word in ['complete', 'done', 'finished', 'selection', 'result']
+                )]
+                
+                if has_data:
+                    completed_steps.append({
+                        "step_id": step_id,
+                        "completion_keys": completion_keys,
+                        "data_keys": list(step_data.keys()),
+                        "has_completion_indicators": len(completion_keys) > 0
+                    })
+                    collected_data[step_id] = step_data
+        
+        # Determine current step (last step with data, or first incomplete step)
+        if completed_steps:
+            current_step = completed_steps[-1]["step_id"]
+        
+        # Parse pipeline_id for workflow context if it follows standard format
+        workflow_context = {}
+        try:
+            # Standard format: app_name_YYYYMMDD_HHMMSS
+            parts = pipeline_id.split('_')
+            if len(parts) >= 4:
+                workflow_context = {
+                    "app_name_from_id": parts[0],
+                    "date": parts[1],
+                    "time": parts[2] + '_' + parts[3] if len(parts) > 3 else parts[2]
+                }
+        except:
+            workflow_context = {"parse_error": "Could not parse pipeline_id format"}
+        
+        return {
+            "status": "success",
+            "pipeline_id": pipeline_id,
+            "app_name": app_name,
+            "current_step": current_step,
+            "completed_steps": completed_steps,
+            "collected_data": collected_data,
+            "workflow_context": workflow_context,
+            "state": state,  # Full raw state for complete transparency
+            "summary": {
+                "total_steps_with_data": len(completed_steps),
+                "last_updated": state.get('updated', 'unknown'),
+                "state_size_kb": round(len(str(state)) / 1024, 2)
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error reading pipeline state: {str(e)}",
+            "pipeline_id": pipeline_id
+        }
+
+def _read_botify_api_token() -> str:
+    """Read Botify API token from the standard token file location.
+    
+    Returns the token string or None if file doesn't exist or can't be read.
+    This follows the same pattern used by all other Botify integrations.
+    """
+    try:
+        token_file = "helpers/botify/botify_token.txt"
+        if not os.path.exists(token_file):
+            return None
+        with open(token_file) as f:
+            content = f.read().strip()
+            token = content.split('\n')[0].strip()
+        return token
+    except Exception:
+        return None
+
+async def _botify_get_full_schema(params: dict) -> dict:
+    """Discover complete Botify API schema using the true_schema_discoverer.py module.
+    
+    This tool fetches the comprehensive schema from Botify's official datamodel endpoints,
+    providing access to all 4,449+ fields for building advanced queries. Implements intelligent
+    caching for instant access to support "radical transparency" AI context bootstrapping.
+    """
+    # Read API token from standard location (never pass as parameter)
+    api_token = _read_botify_api_token()
+    if not api_token:
+        return {
+            "status": "error",
+            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
+            "token_location": "helpers/botify/botify_token.txt"
+        }
+    
+    org = params.get("org")
+    project = params.get("project")
+    analysis = params.get("analysis")
+    force_refresh = params.get("force_refresh", False)
+    
+    # Validate required parameters (token no longer required as param)
+    missing_params = []
+    if not org: missing_params.append("org")
+    if not project: missing_params.append("project")
+    if not analysis: missing_params.append("analysis")
+    
+    if missing_params:
+        return {
+            "status": "error",
+            "message": f"Missing required parameters: {', '.join(missing_params)}",
+            "required_params": ["org", "project", "analysis"]
+        }
+    
+    # Implement intelligent caching for instant schema access
+    try:
+        import json
+        from datetime import datetime, timedelta
+        from pathlib import Path
+        
+        # Define cache file path
+        cache_dir = Path("downloads/botify_schema_cache")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_file = cache_dir / f"{org}_{project}_{analysis}_schema.json"
+        
+        # Check if cached file exists and is recent (within 24 hours)
+        if cache_file.exists() and not force_refresh:
+            try:
+                with open(cache_file, 'r') as f:
+                    cached_data = json.load(f)
+                
+                # Check cache age
+                cache_timestamp = datetime.fromisoformat(cached_data.get("cache_metadata", {}).get("cached_at", "1970-01-01"))
+                cache_age = datetime.now() - cache_timestamp
+                
+                if cache_age < timedelta(hours=24):
+                    # Return fresh cached data
+                    cached_data["cache_metadata"]["cache_hit"] = True
+                    cached_data["cache_metadata"]["cache_age_hours"] = round(cache_age.total_seconds() / 3600, 2)
+                    
+                    return {
+                        "status": "success",
+                        "result": cached_data,
+                        "external_api_method": "GET",
+                        "summary": {
+                            "total_fields_discovered": cached_data.get("total_fields_discovered", 0),
+                            "collections_discovered": len(cached_data.get("collections_discovered", [])),
+                            "discovery_timestamp": cached_data.get("project_info", {}).get("discovery_timestamp"),
+                            "cache_used": True,
+                            "cache_age_hours": round(cache_age.total_seconds() / 3600, 2)
+                        }
+                    }
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # Cache file corrupted, proceed with fresh discovery
+                pass
+        
+        # Perform live schema discovery
+        from helpers.botify.true_schema_discoverer import BotifySchemaDiscoverer
+        
+        # Create discoverer instance
+        discoverer = BotifySchemaDiscoverer(org, project, analysis, api_token)
+        
+        # Execute the discovery
+        schema_results = await discoverer.discover_complete_schema()
+        
+        # Add cache metadata
+        schema_results["cache_metadata"] = {
+            "cached_at": datetime.now().isoformat(),
+            "cache_hit": False,
+            "org": org,
+            "project": project,
+            "analysis": analysis
+        }
+        
+        # Save to cache for future use
+        try:
+            with open(cache_file, 'w') as f:
+                json.dump(schema_results, f, indent=2)
+        except Exception as cache_error:
+            # Don't fail the main operation if caching fails
+            logger.warning(f"Failed to save schema cache: {cache_error}")
+        
+        return {
+            "status": "success",
+            "result": schema_results,
+            "external_api_method": "GET",
+            "summary": {
+                "total_fields_discovered": schema_results.get("total_fields_discovered", 0),
+                "collections_discovered": len(schema_results.get("collections_discovered", [])),
+                "discovery_timestamp": schema_results.get("project_info", {}).get("discovery_timestamp"),
+                "cache_used": False,
+                "cache_saved": cache_file.exists()
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Schema discovery error: {str(e)}",
+            "org": org,
+            "project": project,
+            "analysis": analysis
+        }
+
+async def _botify_list_available_analyses(params: dict) -> dict:
+    """List available analyses from the local analyses.json file.
+    
+    This tool reads the cached analyses data to help LLMs select the correct
+    analysis_slug for queries without requiring live API calls.
+    """
+    username = params.get("username", "michaellevin-org")
+    project_name = params.get("project_name", "mikelev.in")
+    
+    try:
+        # Construct the path to the analyses.json file
+        from pathlib import Path
+        analyses_path = Path(f"downloads/quadfecta/{username}/{project_name}/analyses.json")
+        
+        if not analyses_path.exists():
+            return {
+                "status": "error",
+                "message": f"Analyses file not found at {analyses_path}",
+                "file_path": str(analyses_path)
+            }
+        
+        # Read and parse the analyses file
+        with open(analyses_path, 'r') as f:
+            import json
+            analyses_data = json.load(f)
+        
+        # Extract simplified analysis info for LLM consumption
+        analyses_list = []
+        for analysis in analyses_data.get("results", []):
+            analyses_list.append({
+                "slug": analysis.get("slug"),
+                "name": analysis.get("name"),
+                "date_finished": analysis.get("date_finished"),
+                "urls_done": analysis.get("urls_done", 0),
+                "status": analysis.get("status"),
+                "id": analysis.get("id")
+            })
+        
+        # Sort by date_finished (most recent first)
+        analyses_list.sort(key=lambda x: x.get("date_finished", ""), reverse=True)
+        
+        return {
+            "status": "success",
+            "result": {
+                "analyses": analyses_list,
+                "total_count": len(analyses_list),
+                "file_path": str(analyses_path),
+                "most_recent": analyses_list[0] if analyses_list else None
+            },
+            "summary": {
+                "total_analyses": len(analyses_list),
+                "file_checked": str(analyses_path)
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error", 
+            "message": f"Error reading analyses: {str(e)}",
+            "username": username,
+            "project_name": project_name,
+            "attempted_path": str(analyses_path) if 'analyses_path' in locals() else None
+        }
+
+async def _botify_execute_custom_bql_query(params: dict) -> dict:
+    """Execute a custom BQL query with full parameter control.
+    
+    This is the core 'query wizard' tool that enables LLMs to construct and execute
+    sophisticated BQL queries with custom dimensions, metrics, and filters.
+    """
+    # Read API token from standard location (never pass as parameter)
+    api_token = _read_botify_api_token()
+    if not api_token:
+        return {
+            "status": "error",
+            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
+            "token_location": "helpers/botify/botify_token.txt"
+        }
+    
+    org_slug = params.get("org_slug")
+    project_slug = params.get("project_slug") 
+    analysis_slug = params.get("analysis_slug")
+    query_json = params.get("query_json")
+    
+    # Validate required parameters (token no longer required as param)
+    missing_params = []
+    if not org_slug: missing_params.append("org_slug")
+    if not project_slug: missing_params.append("project_slug")
+    if not analysis_slug: missing_params.append("analysis_slug")
+    if not query_json: missing_params.append("query_json")
+    
+    if missing_params:
+        return {
+            "status": "error",
+            "message": f"Missing required parameters: {', '.join(missing_params)}",
+            "required_params": ["org_slug", "project_slug", "analysis_slug", "query_json"]
+        }
+    
+    # Validate query_json structure
+    if not isinstance(query_json, dict):
+        return {
+            "status": "error", 
+            "message": "query_json must be a dictionary containing the BQL query structure"
+        }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            external_url = f"https://api.botify.com/v1/projects/{org_slug}/{project_slug}/query"
+            headers = {
+                "Authorization": f"Token {api_token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Build the complete payload with analysis
+            payload = dict(query_json)  # Copy the query structure
+            payload["analysis"] = analysis_slug
+            
+            # Set default size if not specified
+            if "size" not in payload:
+                payload["size"] = 100
+            
+            async with session.post(external_url, headers=headers, json=payload) as response:
+                if response.status == 200:
+                    query_result = await response.json()
+                    
+                    # Extract result summary for easier consumption
+                    result_summary = {
+                        "total_results": len(query_result.get("results", [])),
+                        "has_pagination": "next" in query_result,
+                        "query_size_requested": payload.get("size", 100)
+                    }
+                    
+                    return {
+                        "status": "success",
+                        "result": query_result,
+                        "result_summary": result_summary,
+                        "external_api_url": external_url,
+                        "external_api_method": "POST",
+                        "external_api_status": response.status,
+                        "external_api_payload": payload,
+                        "query_info": {
+                            "org": org_slug,
+                            "project": project_slug,
+                            "analysis": analysis_slug,
+                            "query_type": "custom_bql"
+                        }
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "message": f"Custom BQL query failed: {response.status}",
+                        "error_details": error_text,
+                        "external_api_url": external_url,
+                        "external_api_method": "POST",
+                        "external_api_status": response.status,
+                        "external_api_payload": payload,
+                        "query_info": {
+                            "org": org_slug,
+                            "project": project_slug,
+                            "analysis": analysis_slug
+                        }
+                    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Network error: {str(e)}",
+            "external_api_url": external_url if 'external_url' in locals() else None,
+            "external_api_method": "POST",
+            "query_info": {
+                "org": org_slug,
+                "project": project_slug,
+                "analysis": analysis_slug
+            }
+        }
+
+# Register Botify MCP tools
+register_mcp_tool("botify_ping", _botify_ping)
+register_mcp_tool("botify_list_projects", _botify_list_projects) 
+register_mcp_tool("botify_simple_query", _botify_simple_query)
+register_mcp_tool("botify_get_full_schema", _botify_get_full_schema)
+register_mcp_tool("botify_list_available_analyses", _botify_list_available_analyses)
+register_mcp_tool("botify_execute_custom_bql_query", _botify_execute_custom_bql_query)
+
+# Register Pipeline State Inspector
+register_mcp_tool("pipeline_state_inspector", _pipeline_state_inspector)
+
+# Register Local LLM Helper Tools (Limited file access for local LLMs)
+async def _local_llm_read_file(params: dict) -> dict:
+    """Local LLM helper: Read specific file contents (limited to safe files)"""
+    try:
+        file_path = params.get('file_path', '')
+        max_lines = params.get('max_lines', 100)  # Limit for context window
+        
+        # Security: Only allow specific safe directories/files
+        safe_paths = [
+            'training/', 'plugins/', 'helpers/', 'logs/server.log', 
+            'README.md', 'requirements.txt', 'pyproject.toml'
+        ]
+        
+        if not any(file_path.startswith(safe) for safe in safe_paths):
+            return {
+                "success": False,
+                "error": f"File access restricted. Allowed paths: {', '.join(safe_paths)}",
+                "file_path": file_path
+            }
+        
+        file_obj = Path(file_path)
+        if not file_obj.exists():
+            return {
+                "success": False,
+                "error": "File not found",
+                "file_path": file_path
+            }
+        
+        # Read file with line limit
+        lines = file_obj.read_text().splitlines()
+        if len(lines) > max_lines:
+            content = '\n'.join(lines[:max_lines])
+            content += f"\n\n... [File truncated at {max_lines} lines. Total lines: {len(lines)}]"
+        else:
+            content = '\n'.join(lines)
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_FILE_READ - {file_path} ({len(lines)} lines)")
+        
+        return {
+            "success": True,
+            "content": content,
+            "file_path": file_path,
+            "total_lines": len(lines),
+            "displayed_lines": min(len(lines), max_lines)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_FILE_READ_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "file_path": params.get('file_path', 'unknown')
+        }
+
+async def _local_llm_grep_logs(params: dict) -> dict:
+    """Local LLM helper: Search recent server logs for patterns"""
+    try:
+        pattern = params.get('pattern', '')
+        max_results = params.get('max_results', 20)
+        
+        if not pattern:
+            return {
+                "success": False,
+                "error": "Pattern parameter required"
+            }
+        
+        log_file = Path('logs/server.log')
+        if not log_file.exists():
+            return {
+                "success": False,
+                "error": "Server log file not found"
+            }
+        
+        # Read recent log entries and search
+        lines = log_file.read_text().splitlines()
+        matches = []
+        
+        for i, line in enumerate(lines):
+            if pattern.lower() in line.lower():
+                matches.append({
+                    "line_number": i + 1,
+                    "content": line.strip()
+                })
+                
+                if len(matches) >= max_results:
+                    break
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_GREP - Pattern '{pattern}' found {len(matches)} matches")
+        
+        return {
+            "success": True,
+            "pattern": pattern,
+            "matches": matches,
+            "total_matches": len(matches),
+            "log_file": str(log_file)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_GREP_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "pattern": params.get('pattern', 'unknown')
+        }
+
+async def _local_llm_list_files(params: dict) -> dict:
+    """Local LLM helper: List files in safe directories"""
+    try:
+        directory = params.get('directory', '.')
+        
+        # Security: Only allow specific safe directories
+        safe_dirs = ['training', 'plugins', 'helpers', 'logs', '.']
+        
+        if directory not in safe_dirs:
+            return {
+                "success": False,
+                "error": f"Directory access restricted. Allowed directories: {', '.join(safe_dirs)}",
+                "directory": directory
+            }
+        
+        dir_path = Path(directory)
+        if not dir_path.exists():
+            return {
+                "success": False,
+                "error": "Directory not found",
+                "directory": directory
+            }
+        
+        files = []
+        for item in dir_path.iterdir():
+            if item.is_file():
+                files.append({
+                    "name": item.name,
+                    "type": "file",
+                    "size": item.stat().st_size
+                })
+            elif item.is_dir():
+                files.append({
+                    "name": item.name,
+                    "type": "directory"
+                })
+        
+        # Sort files by name
+        files.sort(key=lambda x: x['name'])
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_LIST_FILES - Directory '{directory}' has {len(files)} items")
+        
+        return {
+            "success": True,
+            "directory": directory,
+            "files": files,
+            "count": len(files)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_LIST_FILES_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "directory": params.get('directory', 'unknown')
+        }
+
+async def _ui_flash_element(params: dict) -> dict:
+    """Flash a UI element by ID to draw user attention.
+    
+    Args:
+        params: Dict containing:
+            - element_id: The DOM ID of the element to flash
+            - message: Optional message to display in chat
+            - delay: Optional delay in milliseconds (default: 0)
+    
+    Returns:
+        Dict with success status and details
+    """
+    element_id = params.get('element_id', '').strip()
+    message = params.get('message', '').strip()
+    delay = params.get('delay', 0)
+    
+    if not element_id:
+        return {
+            "success": False,
+            "error": "element_id is required"
+        }
+    
+    try:
+        # Create JavaScript to flash the element 10 times for teaching emphasis
+        flash_script = f"""
+        <script>
+        console.log('🔔 UI Flash script received for element: {element_id} (10x teaching mode)');
+        setTimeout(() => {{
+            const element = document.getElementById('{element_id}');
+            console.log('🔔 Element lookup result:', element);
+            if (element) {{
+                console.log('🔔 Element found, applying 10x flash effect for teaching');
+                
+                let flashCount = 0;
+                const maxFlashes = 10; // Hardcoded for teaching emphasis
+                
+                function doFlash() {{
+                    if (flashCount >= maxFlashes) {{
+                        console.log('🔔 10x Flash sequence completed for: {element_id}');
+                        return;
+                    }}
+                    
+                    // Remove and add class for flash effect
+                    element.classList.remove('menu-flash');
+                    element.offsetHeight; // Force reflow
+                    element.classList.add('menu-flash');
+                    
+                    flashCount++;
+                    console.log(`🔔 Flash ${{flashCount}}/10 for: {element_id}`);
+                    
+                    // Schedule next flash after this one completes
+                    setTimeout(() => {{
+                        element.classList.remove('menu-flash');
+                        // Small gap between flashes for visibility
+                        setTimeout(doFlash, 100);
+                    }}, 600);
+                }}
+                
+                // Start the 10x flash sequence
+                doFlash();
+                
+            }} else {{
+                console.warn('⚠️ Element not found: {element_id}');
+                console.log('🔔 Available elements with IDs:', Array.from(document.querySelectorAll('[id]')).map(el => el.id));
+            }}
+        }}, {delay});
+        </script>
+        """
+        
+        # Send the script via chat - use global chat instance
+        # The chat instance is available globally after server startup
+        global chat
+        if 'chat' in globals() and chat:
+            logger.info(f"🔔 UI FLASH: Broadcasting script via global chat for element: {element_id}")
+            # Send script to execute the flash
+            await chat.broadcast(flash_script)
+            
+            # Send optional message
+            if message:
+                await chat.broadcast(message)
+        else:
+            logger.warning(f"🔔 UI FLASH: Global chat not available, trying fallback for element: {element_id}")
+            # Fallback: try to use pipulate.chat if available
+            if hasattr(pipulate, 'chat') and pipulate.chat:
+                logger.info(f"🔔 UI FLASH: Using pipulate.chat fallback for element: {element_id}")
+                await pipulate.chat.broadcast(flash_script)
+                if message:
+                    await pipulate.chat.broadcast(message)
+            else:
+                logger.error(f"🔔 UI FLASH: No chat instance available for element: {element_id}")
+        
+        return {
+            "success": True,
+            "element_id": element_id,
+            "message": message if message else f"Flashed element: {element_id} (10x teaching mode)",
+            "delay": delay
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to flash element: {str(e)}"
+        }
+
+async def _ui_list_elements(params: dict) -> dict:
+    """List common UI element IDs that can be flashed for user guidance.
+    
+    Returns:
+        Dict with categorized UI element IDs and descriptions
+    """
+    try:
+        ui_elements = {
+            "navigation": {
+                "profile-id": "Profile dropdown menu summary",
+                "app-id": "App dropdown menu summary", 
+                "nav-plugin-search": "Plugin search input field",
+                "search-results-dropdown": "Plugin search results dropdown"
+            },
+            "chat": {
+                "msg-list": "Chat message list container",
+                "msg": "Chat input textarea",
+                "send-btn": "Send message button",
+                "stop-btn": "Stop streaming button"
+            },
+            "common_workflow_elements": {
+                "Note": "These IDs are dynamically generated per workflow:",
+                "Examples": [
+                    "step_01", "step_02", "step_03", "finalize",
+                    "input_data", "process_data", "output_data"
+                ]
+            },
+            "profile_roles": {
+                "profiles-list": "Profile list container",
+                "roles-list": "Roles list container",
+                "default-button": "Reset to default roles button"
+            }
+        }
+        
+        return {
+            "success": True,
+            "ui_elements": ui_elements,
+            "note": "Use ui_flash_element tool with any of these IDs to guide users"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to list UI elements: {str(e)}"
+        }
+
+async def _local_llm_get_context(params: dict) -> dict:
+    """Local LLM helper: Get pre-seeded system context for immediate capability awareness"""
+    try:
+        context_file = Path('data/local_llm_context.json')
+        
+        if not context_file.exists():
+            return {
+                "success": False,
+                "error": "Context file not found - system may still be initializing",
+                "suggestion": "Wait a few seconds and try again"
+            }
+        
+        import json
+        with open(context_file, 'r') as f:
+            context_data = json.load(f)
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_CONTEXT_ACCESS - Context retrieved for local LLM")
+        
+        return {
+            "success": True,
+            "context": context_data,
+            "usage_note": "This context provides system overview and available tools for local LLM assistance"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_CONTEXT_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "suggestion": "Try using other MCP tools or ask user for specific information"
+        }
+
+register_mcp_tool("local_llm_read_file", _local_llm_read_file)
+register_mcp_tool("local_llm_grep_logs", _local_llm_grep_logs)
+register_mcp_tool("local_llm_list_files", _local_llm_list_files)
+register_mcp_tool("local_llm_get_context", _local_llm_get_context)
+
+# Register UI interaction tools
+register_mcp_tool("ui_flash_element", _ui_flash_element)
+register_mcp_tool("ui_list_elements", _ui_list_elements)
+
+# 🌐 FINDER_TOKEN: BROWSER_MCP_TOOLS_CORE
+async def _browser_scrape_page(params: dict) -> dict:
+    """
+    MCP Tool: Scrape a web page and save multiple versions for AI analysis.
+    
+    Saves:
+    - HTTP headers as JSON
+    - Original HTML source  
+    - Post-JavaScript DOM
+    - Simplified semantic HTML (IDs, ARIA, semantic tags only)
+    
+    Args:
+        params: {
+            "url": "https://example.com",
+            "wait_seconds": 3,  # Optional: wait for JS to load
+            "save_location": "downloads/browser_scrapes"  # Optional
+        }
+    
+    Returns:
+        dict: {
+            "success": True,
+            "scrape_id": "domain_com_2025-01-11_14-30-15",
+            "files": {
+                "headers": "path/to/headers.json",
+                "original_html": "path/to/original.html", 
+                "dom_html": "path/to/dom.html",
+                "simplified_html": "path/to/simplified.html"
+            },
+            "page_info": {
+                "title": "Page Title",
+                "url": "https://example.com",
+                "timestamp": "2025-01-11T14:30:15"
+            }
+        }
+    """
+    import os
+    import json
+    from datetime import datetime
+    from urllib.parse import urlparse
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from seleniumwire import webdriver as wire_webdriver
+    import time
+    
+    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_SCRAPE_START - URL: {params.get('url')}")
+    
+    try:
+        url = params.get('url')
+        wait_seconds = params.get('wait_seconds', 3)
+        save_location = params.get('save_location', 'downloads/browser_scrapes')
+        
+        if not url:
+            return {"success": False, "error": "URL parameter is required"}
+            
+        # Create scrape ID from URL and timestamp
+        parsed = urlparse(url)
+        domain_safe = parsed.netloc.replace('.', '_').replace(':', '_')
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        scrape_id = f"{domain_safe}_{timestamp}"
+        
+        # Ensure save directory exists
+        scrape_dir = os.path.join(save_location, scrape_id)
+        os.makedirs(scrape_dir, exist_ok=True)
+        
+        # Set up Selenium Wire for header capture
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+        
+        driver = wire_webdriver.Chrome(options=chrome_options)
+        
+        try:
+            # Navigate and wait
+            driver.get(url)
+            time.sleep(wait_seconds)
+            
+            # Capture page info
+            page_title = driver.title
+            final_url = driver.current_url
+            
+            # 1. Save HTTP headers
+            headers_data = {}
+            for request in driver.requests:
+                if request.url == url:
+                    headers_data = {
+                        'request_headers': dict(request.headers),
+                        'response_headers': dict(request.response.headers) if request.response else {},
+                        'status_code': request.response.status_code if request.response else None
+                    }
+                    break
+            
+            headers_file = os.path.join(scrape_dir, 'headers.json')
+            with open(headers_file, 'w') as f:
+                json.dump(headers_data, f, indent=2)
+                
+            # 2. Save original HTML source
+            original_html = driver.page_source
+            original_file = os.path.join(scrape_dir, 'original.html')
+            with open(original_file, 'w', encoding='utf-8') as f:
+                f.write(original_html)
+                
+            # 3. Save post-JavaScript DOM
+            dom_html = driver.execute_script("return document.documentElement.outerHTML;")
+            dom_file = os.path.join(scrape_dir, 'dom.html')
+            with open(dom_file, 'w', encoding='utf-8') as f:
+                f.write(dom_html)
+                
+            # 4. Create simplified semantic HTML
+            try:
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(dom_html, 'html.parser')
+                
+                # Remove unwanted elements
+                for tag in soup(['script', 'style', 'noscript', 'meta', 'link']):
+                    tag.decompose()
+                    
+                # Strip all attributes except id, aria-*, role, data-testid
+                for element in soup.find_all():
+                    attrs_to_keep = {}
+                    for attr, value in element.attrs.items():
+                        if attr in ['id', 'role', 'data-testid'] or attr.startswith('aria-'):
+                            attrs_to_keep[attr] = value
+                    element.attrs = attrs_to_keep
+                    
+                simplified_html = str(soup)
+            except ImportError:
+                # Fallback if BeautifulSoup not available
+                simplified_html = dom_html
+                
+            simplified_file = os.path.join(scrape_dir, 'simplified.html')
+            with open(simplified_file, 'w', encoding='utf-8') as f:
+                f.write(simplified_html)
+                
+        finally:
+            driver.quit()
+            
+        result = {
+            "success": True,
+            "scrape_id": scrape_id,
+            "files": {
+                "headers": headers_file,
+                "original_html": original_file,
+                "dom_html": dom_file, 
+                "simplified_html": simplified_file
+            },
+            "page_info": {
+                "title": page_title,
+                "url": final_url,
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        
+        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_SCRAPE_SUCCESS - Scrape ID: {scrape_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_SCRAPE_ERROR - {e}")
+        return {"success": False, "error": str(e)}
+
+async def _browser_analyze_scraped_page(params: dict) -> dict:
+    """
+    MCP Tool: Analyze a previously scraped page for automation opportunities.
+    
+    Args:
+        params: {
+            "scrape_id": "domain_com_2025-01-11_14-30-15",
+            "analysis_type": "form_elements" | "navigation" | "automation_targets"
+        }
+    
+    Returns:
+        dict: Analysis results with actionable automation data
+    """
+    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_ANALYZE_START - Scrape ID: {params.get('scrape_id')}")
+    
+    try:
+        scrape_id = params.get('scrape_id')
+        analysis_type = params.get('analysis_type', 'automation_targets')
+        
+        if not scrape_id:
+            return {"success": False, "error": "scrape_id parameter is required"}
+            
+        # Find the simplified HTML file
+        simplified_file = f"downloads/browser_scrapes/{scrape_id}/simplified.html"
+        
+        if not os.path.exists(simplified_file):
+            return {"success": False, "error": f"Simplified HTML not found for scrape_id: {scrape_id}"}
+            
+        with open(simplified_file, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+            
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html_content, 'html.parser')
+        except ImportError:
+            return {"success": False, "error": "BeautifulSoup not available for HTML parsing"}
+        
+        if analysis_type == "form_elements":
+            # Find all forms and their elements
+            forms = []
+            for form in soup.find_all('form'):
+                form_data = {
+                    'id': form.get('id'),
+                    'action': form.get('action'),
+                    'method': form.get('method', 'GET'),
+                    'elements': []
+                }
+                
+                for element in form.find_all(['input', 'button', 'select', 'textarea']):
+                    element_data = {
+                        'tag': element.name,
+                        'type': element.get('type'),
+                        'id': element.get('id'),
+                        'name': element.get('name'),
+                        'aria_label': element.get('aria-label'),
+                        'data_testid': element.get('data-testid'),
+                        'placeholder': element.get('placeholder'),
+                        'text': element.get_text(strip=True)
+                    }
+                    form_data['elements'].append(element_data)
+                    
+                forms.append(form_data)
+                
+            result = {
+                "success": True,
+                "analysis_type": analysis_type,
+                "forms": forms,
+                "form_count": len(forms)
+            }
+            
+        elif analysis_type == "automation_targets":
+            # Find all elements with automation-friendly attributes
+            targets = []
+            for element in soup.find_all():
+                if element.get('id') or element.get('data-testid') or element.get('aria-label'):
+                    target = {
+                        'tag': element.name,
+                        'id': element.get('id'),
+                        'data_testid': element.get('data-testid'),
+                        'aria_label': element.get('aria-label'),
+                        'role': element.get('role'),
+                        'text': element.get_text(strip=True)[:100],  # First 100 chars
+                        'selector_priority': 'high' if element.get('data-testid') else 'medium' if element.get('id') else 'low'
+                    }
+                    targets.append(target)
+                    
+            result = {
+                "success": True,
+                "analysis_type": analysis_type,
+                "automation_targets": targets,
+                "target_count": len(targets),
+                "high_priority_targets": len([t for t in targets if t['selector_priority'] == 'high'])
+            }
+            
+        else:
+            result = {"success": False, "error": f"Unknown analysis_type: {analysis_type}"}
+            
+        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_ANALYZE_SUCCESS - Found {result.get('target_count', 0)} targets")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_ANALYZE_ERROR - {e}")
+        return {"success": False, "error": str(e)}
+
+async def _browser_interact_with_page(params: dict) -> dict:
+    """
+    MCP Tool: Interact with page elements using automation-friendly selectors.
+    
+    This is the ACTION component of the Scrape → Analyze → Interact → Verify cycle.
+    Uses the simplified DOM analysis to perform precise actions.
+    
+    Args:
+        params: {
+            "url": "https://example.com",
+            "actions": [
+                {
+                    "type": "click" | "type" | "select" | "wait",
+                    "selector": "#submit-button" | "[data-testid='login-btn']" | "[aria-label='Save token']",
+                    "value": "text to type" (for type actions),
+                    "wait_after": 2,  # seconds to wait after action
+                    "wait_for_element": True  # wait for element to be clickable
+                }
+            ],
+            "take_screenshot": True,  # Optional: capture screenshots
+            "headless": True  # Optional: run in headless mode (default: True)
+        }
+    
+    Returns:
+        dict: Results of the interaction sequence with success/failure details
+    """
+    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_INTERACT_START - URL: {params.get('url')}")
+    
+    try:
+        url = params.get('url')
+        actions = params.get('actions', [])
+        take_screenshot = params.get('take_screenshot', False)
+        headless = params.get('headless', True)
+        
+        if not url:
+            return {"success": False, "error": "URL parameter is required"}
+            
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait, Select
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.common.exceptions import TimeoutException, ElementNotInteractableException
+        import time
+        import os
+        from datetime import datetime
+        
+        chrome_options = Options()
+        if headless:
+            chrome_options.add_argument('--headless')
+        else:
+            # 🎯 VISIBLE MAGIC MODE - Make it dramatic!
+            chrome_options.add_argument('--start-maximized')
+            chrome_options.add_argument('--disable-web-security')
+            chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+        
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--window-size=1920,1080')  # Consistent viewport
+        
+        # Add dramatic title for visible mode
+        if not headless:
+            chrome_options.add_argument('--user-agent=🚀 PIPULATE AI BROWSER AUTOMATION MAGIC! 🎯')
+        
+        driver = webdriver.Chrome(options=chrome_options)
+        
+        try:
+            # Navigate to page
+            driver.get(url)
+            time.sleep(2)  # Initial page load wait
+            
+            action_results = []
+            screenshots = []
+            
+            # Take initial screenshot if requested
+            if take_screenshot:
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                screenshot_dir = f"downloads/browser_screenshots/{timestamp}"
+                os.makedirs(screenshot_dir, exist_ok=True)
+                
+                initial_screenshot = os.path.join(screenshot_dir, "00_initial.png")
+                driver.save_screenshot(initial_screenshot)
+                screenshots.append({"step": "initial", "file": initial_screenshot})
+            
+            for i, action in enumerate(actions):
+                action_type = action.get('type')
+                selector = action.get('selector')
+                value = action.get('value')
+                wait_after = action.get('wait_after', 1)
+                wait_for_element = action.get('wait_for_element', True)
+                
+                step_name = f"step_{i+1:02d}_{action_type}"
+                
+                try:
+                    if wait_for_element:
+                        # Wait for element to be present and interactable
+                        if action_type == 'click':
+                            element = WebDriverWait(driver, 10).until(
+                                EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                            )
+                        else:
+                            element = WebDriverWait(driver, 10).until(
+                                EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                            )
+                    else:
+                        element = driver.find_element(By.CSS_SELECTOR, selector)
+                    
+                    # Perform the action with DRAMATIC FLAIR! 
+                    if action_type == 'click':
+                        # Scroll element into view first
+                        driver.execute_script("arguments[0].scrollIntoView(true);", element)
+                        time.sleep(0.5)
+                        
+                        # 🎯 DRAMATIC VISUAL EFFECTS!
+                        if not headless:
+                            # Highlight with pulsing red border
+                            driver.execute_script("""
+                                arguments[0].style.border='5px solid red';
+                                arguments[0].style.boxShadow='0 0 20px red';
+                                arguments[0].style.transition='all 0.3s ease';
+                            """, element)
+                            time.sleep(1)  # Dramatic pause
+                            
+                            # Flash effect
+                            driver.execute_script("arguments[0].style.backgroundColor='yellow';", element)
+                            time.sleep(0.3)
+                            driver.execute_script("arguments[0].style.backgroundColor='';", element)
+                        
+                        element.click()
+                        
+                        # Remove dramatic effects
+                        if not headless:
+                            driver.execute_script("""
+                                arguments[0].style.border='';
+                                arguments[0].style.boxShadow='';
+                            """, element)
+                        result = {
+                            "action": i + 1,
+                            "type": "click", 
+                            "selector": selector,
+                            "success": True,
+                            "element_text": element.text[:50] if element.text else ""
+                        }
+                        
+                    elif action_type == 'type':
+                        # Clear and type text
+                        element.clear()
+                        element.send_keys(value)
+                        result = {
+                            "action": i + 1,
+                            "type": "type",
+                            "selector": selector, 
+                            "value": value,
+                            "success": True
+                        }
+                        
+                    elif action_type == 'select':
+                        # Select from dropdown
+                        select = Select(element)
+                        select.select_by_visible_text(value)
+                        result = {
+                            "action": i + 1,
+                            "type": "select",
+                            "selector": selector,
+                            "value": value, 
+                            "success": True
+                        }
+                        
+                    elif action_type == 'wait':
+                        # Just wait (useful for page loads, animations)
+                        wait_time = action.get('seconds', wait_after)
+                        time.sleep(wait_time)
+                        result = {
+                            "action": i + 1,
+                            "type": "wait",
+                            "seconds": wait_time,
+                            "success": True
+                        }
+                        
+                    else:
+                        result = {
+                            "action": i + 1,
+                            "error": f"Unknown action type: {action_type}",
+                            "success": False
+                        }
+                        
+                    action_results.append(result)
+                    
+                    # Take screenshot after action if requested
+                    if take_screenshot and result['success']:
+                        screenshot_file = os.path.join(screenshot_dir, f"{step_name}.png")
+                        driver.save_screenshot(screenshot_file)
+                        screenshots.append({"step": step_name, "file": screenshot_file})
+                    
+                    # Wait after action
+                    if result['success']:
+                        time.sleep(wait_after)
+                    
+                except TimeoutException:
+                    result = {
+                        "action": i + 1,
+                        "error": f"Timeout waiting for element: {selector}",
+                        "success": False
+                    }
+                    action_results.append(result)
+                    
+                except ElementNotInteractableException:
+                    result = {
+                        "action": i + 1,
+                        "error": f"Element not interactable: {selector}",
+                        "success": False
+                    }
+                    action_results.append(result)
+                    
+                except Exception as action_error:
+                    result = {
+                        "action": i + 1,
+                        "error": str(action_error),
+                        "success": False
+                    }
+                    action_results.append(result)
+                    
+            # Capture final page state
+            final_url = driver.current_url
+            final_title = driver.title
+            
+            # Take final screenshot if requested
+            if take_screenshot:
+                final_screenshot = os.path.join(screenshot_dir, "99_final.png")
+                driver.save_screenshot(final_screenshot)
+                screenshots.append({"step": "final", "file": final_screenshot})
+                
+        finally:
+            driver.quit()
+            
+        # Calculate success metrics
+        successful_actions = [a for a in action_results if a.get('success')]
+        success_rate = len(successful_actions) / len(action_results) if action_results else 0
+        
+        result = {
+            "success": True,
+            "actions_executed": len(action_results),
+            "actions_successful": len(successful_actions),
+            "success_rate": round(success_rate, 2),
+            "action_results": action_results,
+            "final_page": {
+                "url": final_url,
+                "title": final_title
+            }
+        }
+        
+        # Add screenshot info if taken
+        if screenshots:
+            result["screenshots"] = screenshots
+            result["screenshot_count"] = len(screenshots)
+        
+        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_INTERACT_SUCCESS - {len(successful_actions)}/{len(action_results)} actions successful ({success_rate:.0%})")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_INTERACT_ERROR - {e}")
+        return {"success": False, "error": str(e)}
+
 async def _dev_assistant_auto_analyze(params: dict) -> dict:
     """
     MCP Tool: Automatically analyze plugins using the Dev Assistant workflow.
@@ -2160,6 +4164,151 @@ async def _dev_assistant_auto_analyze(params: dict) -> dict:
 register_mcp_tool("browser_scrape_page", _browser_scrape_page)
 register_mcp_tool("browser_analyze_scraped_page", _browser_analyze_scraped_page)
 register_mcp_tool("browser_interact_with_page", _browser_interact_with_page)
+
+# Browser Plugin Improvement Tool - Integrated browser automation for plugin enhancement
+async def _browser_automate_plugin_improvement(params: dict) -> dict:
+    """
+    MCP Tool: Browser-Based Plugin Automation Improvement
+    
+    Uses browser automation to analyze and improve Component plugins through the Dev Assistant interface.
+    Incorporates profile persistence and organized downloads from the browser automation plugin.
+    
+    This is the evolution of our automation system - using browser control to improve plugins.
+    """
+    import time
+    from pathlib import Path
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.keys import Keys
+    from selenium.common.exceptions import TimeoutException, NoSuchElementException
+    from urllib.parse import urlparse
+    import os
+    
+    # Extract parameters
+    plugin_filename = params.get('plugin_filename')
+    base_url = params.get('base_url', 'http://localhost:5001')
+    use_persistent_profile = params.get('use_persistent_profile', False)
+    
+    if not plugin_filename:
+        return {
+            "success": False,
+            "error": "plugin_filename parameter is required",
+            "usage": "Provide plugin_filename (e.g., '510_text_field.py')"
+        }
+    
+    # Setup organized download structure (following 440_browser_automation.py patterns)
+    app_name = "plugin_automation"
+    domain = urlparse(base_url).netloc
+    date_slug = time.strftime("%Y-%m-%d")
+    download_dir = os.path.join('downloads', app_name, domain, date_slug)
+    os.makedirs(download_dir, exist_ok=True)
+    
+    operation_id = f"browser_plugin_improvement_{int(time.time())}"
+    
+    try:
+        # Setup browser with profile persistence (following 440_browser_automation.py patterns)
+        options = webdriver.ChromeOptions()
+        options.add_argument("--start-maximized")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+        
+        if use_persistent_profile:
+            # Use persistent profile for login sessions
+            profile_dir = os.path.join('downloads', app_name, 'profiles', 'persistent')
+            os.makedirs(profile_dir, exist_ok=True)
+            options.add_argument(f"--user-data-dir={profile_dir}")
+        
+        driver = webdriver.Chrome(options=options)
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        
+        # Step 1: Navigate to Dev Assistant
+        dev_assistant_url = f"{base_url}/dev_assistant"
+        driver.get(dev_assistant_url)
+        
+        # Wait for page load
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "plugin-search-input-step_01"))
+        )
+        
+        # Step 2: Analyze plugin via browser automation
+        search_input = driver.find_element(By.ID, "plugin-search-input-step_01")
+        search_input.clear()
+        search_input.send_keys(plugin_filename)
+        search_input.send_keys(Keys.ENTER)
+        time.sleep(2)
+        
+        # Click analyze button if available
+        try:
+            analyze_btn = driver.find_element(By.ID, "analyze-btn-step_01")
+            if not analyze_btn.get_attribute("disabled"):
+                analyze_btn.click()
+                time.sleep(5)
+        except NoSuchElementException:
+            pass
+        
+        # Step 3: Extract analysis results from DOM
+        analysis_results = {}
+        try:
+            step_02_div = driver.find_element(By.ID, "step_02")
+            
+            # Extract automation score
+            score_elements = step_02_div.find_elements(By.XPATH, "//*[contains(text(), 'Overall Score:')]")
+            for elem in score_elements:
+                import re
+                score_match = re.search(r'(\d+)/100', elem.text)
+                if score_match:
+                    analysis_results["automation_score"] = int(score_match.group(1))
+                    break
+            
+            # Extract issues
+            issue_elements = step_02_div.find_elements(By.XPATH, "//li[contains(text(), '❌') or contains(text(), '⚠️')]")
+            analysis_results["issues"] = [elem.text.strip() for elem in issue_elements if elem.text.strip()]
+            
+            # Check automation readiness
+            ready_elements = step_02_div.find_elements(By.XPATH, "//*[contains(text(), 'Automation Ready:')]")
+            analysis_results["automation_ready"] = False
+            for elem in ready_elements:
+                if "✅ Yes" in elem.text:
+                    analysis_results["automation_ready"] = True
+                    break
+        
+        except NoSuchElementException:
+            analysis_results = {"error": "Could not extract analysis results from DOM"}
+        
+        # Step 4: Take screenshot for documentation
+        screenshot_path = os.path.join(download_dir, f"analysis_{plugin_filename.replace('.py', '')}_{int(time.time())}.png")
+        driver.save_screenshot(screenshot_path)
+        
+        # Step 5: Apply improvements if needed (placeholder for now)
+        improvement_applied = False
+        # TODO: Integrate with real plugin improvement logic
+        
+        driver.quit()
+        
+        # Prepare response
+        response = {
+            "success": True,
+            "plugin": plugin_filename,
+            "initial_analysis": analysis_results,
+            "improvement_applied": improvement_applied,
+            "download_directory": download_dir,
+            "screenshots": [screenshot_path]
+        }
+        
+        return response
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "operation_id": operation_id
+        }
+
+register_mcp_tool("browser_automate_plugin_improvement", _browser_automate_plugin_improvement)
+
 async def _bulk_plugin_automation_audit(params: dict) -> dict:
     """
     MCP Tool: Perform bulk automation audit across all plugins.
