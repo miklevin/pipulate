@@ -132,12 +132,47 @@ class BlankPlaceholder:
 
         if request.method == 'GET':
             if finalize_step_obj.done in finalize_data:
-                return Card(H3(self.ui['MESSAGES']['WORKFLOW_LOCKED']), Form(Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE']), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step_obj.id)
+                return Card(
+                    H3(self.ui['MESSAGES']['WORKFLOW_LOCKED']), 
+                    Form(
+                        Button(
+                            self.ui['BUTTON_LABELS']['UNLOCK'], 
+                            type='submit', 
+                            cls=self.ui['BUTTON_STYLES']['OUTLINE'],
+                            id="finalize-unlock-button",
+                            aria_label="Unlock workflow to make changes",
+                            data_testid="unlock-workflow-button"
+                        ), 
+                        hx_post=f'/{app_name}/unfinalize', 
+                        hx_target=f'#{app_name}-container',
+                        aria_label="Form to unlock finalized workflow",
+                        role="form"
+                    ), 
+                    id=finalize_step_obj.id
+                )
             else:
                 # Check if all data steps (all steps in self.steps *before* 'finalize') are complete
                 all_data_steps_complete = all(pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in self.steps if step.id != 'finalize')
                 if all_data_steps_complete:
-                    return Card(H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), Form(Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY']), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step_obj.id)
+                    return Card(
+                        H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), 
+                        P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), 
+                        Form(
+                            Button(
+                                self.ui['BUTTON_LABELS']['FINALIZE'], 
+                                type='submit', 
+                                cls=self.ui['BUTTON_STYLES']['PRIMARY'],
+                                id="finalize-submit-button",
+                                aria_label="Finalize workflow and lock data",
+                                data_testid="finalize-workflow-button"
+                            ), 
+                            hx_post=f'/{app_name}/finalize', 
+                            hx_target=f'#{app_name}-container',
+                            aria_label="Form to finalize workflow",
+                            role="form"
+                        ), 
+                        id=finalize_step_obj.id
+                    )
                 else:
                     return Div(id=finalize_step_obj.id)
         elif request.method == 'POST':
@@ -219,13 +254,31 @@ class BlankPlaceholder:
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             return Div(
                 Card(
-                    H3(f"{step.show}"),
-                    P("This is a placeholder step. Customize its input form as needed. Click Proceed to continue."),
+                    H3(f"{step.show}", id=f"{step_id}-heading", aria_level="3"),
+                    P("This is a placeholder step. Customize its input form as needed. Click Proceed to continue.", 
+                      id=f"{step_id}-description"),
                     Form(
                         # Example: Hidden input to submit something for the placeholder
-                        Input(type="hidden", name=step.done, value="Placeholder Value for Step 1 Placeholder"),
-                        Button(self.ui['BUTTON_LABELS']['NEXT_STEP'], type="submit", cls=self.ui['BUTTON_STYLES']['PRIMARY']),
-                        hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
+                        Input(
+                            type="hidden", 
+                            name=step.done, 
+                            value="Placeholder Value for Step 1 Placeholder",
+                            id=f"{step_id}-{step.done}",
+                            data_testid=f"placeholder-input-{step_id}"
+                        ),
+                        Button(
+                            self.ui['BUTTON_LABELS']['NEXT_STEP'], 
+                            type="submit", 
+                            cls=self.ui['BUTTON_STYLES']['PRIMARY'],
+                            id=f"{step_id}-submit-button",
+                            aria_label=f"Submit {step.show} and proceed to next step",
+                            data_testid=f"submit-button-{step_id}"
+                        ),
+                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        hx_target=f"#{step_id}",
+                        aria_label=f"Form for {step.show}",
+                        aria_describedby=f"{step_id}-description",
+                        role="form"
                     )
                 ),
                 Div(id=next_step_id), # Placeholder for next step, no trigger here
