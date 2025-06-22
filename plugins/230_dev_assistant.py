@@ -1564,7 +1564,7 @@ class DevAssistant:
                          data-plugin-filename="{plugin['filename']}"
                          data-plugin-display="{plugin['display_name']}"
                          style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--pico-muted-border-color);"
-                         onclick="window.selectDevAssistantPlugin('{escaped_filename}', '{escaped_display_name}')"
+                         data-click-action="select-plugin"
                          onmouseover="this.style.backgroundColor = 'var(--pico-primary-hover-background)';"
                          onmouseout="this.style.backgroundColor = 'transparent';">
                         <strong>{plugin['display_name']}</strong>
@@ -1833,10 +1833,10 @@ class DevAssistant:
 
                             hx_post=f'/{app_name}/search_plugins_step01',
                             hx_target=f'#plugin-search-results-{step_id}',
-                            hx_trigger='input changed delay:300ms, focus',
+                            hx_trigger='input changed delay:300ms',
                             hx_swap='innerHTML',
                             onkeydown=f'handleDevAssistantKeyNavigation(event, "{step_id}")',
-                            onfocus=f'showDevAssistantResults("{step_id}")',
+                            onfocus=f'console.log("🔍 Focus event triggered"); showDevAssistantResults("{step_id}"); if(this.value === "") {{ console.log("🔍 Making HTMX request for empty field"); htmx.ajax("POST", "/{app_name}/search_plugins_step01", {{target: "#plugin-search-results-{step_id}", swap: "innerHTML", values: {{plugin_search: ""}}}}); }}',
                             onblur=f'setTimeout(() => hideDevAssistantResults("{step_id}"), 150)'
                         ),
                         search_results_dropdown,
@@ -1860,12 +1860,43 @@ class DevAssistant:
 
             // CRITICAL: Define selectDevAssistantPlugin globally to survive HTMX content replacement
             window.selectDevAssistantPlugin = function(filename, displayName) {{
-                console.log('selectDevAssistantPlugin called:', filename, displayName);
-                document.getElementById('selected-plugin-{step_id}').value = filename;
-                document.getElementById('plugin-search-results-{step_id}').style.display = 'none';
-                document.getElementById('plugin-search-input-{step_id}').value = displayName;
-                document.getElementById('analyze-btn-{step_id}').disabled = false;
-                document.getElementById('analyze-btn-{step_id}').textContent = 'Analyze ' + displayName + ' ▸';
+                console.log('🔍 selectDevAssistantPlugin called:', filename, displayName);
+                
+                // Add small delay to prevent HTMX race conditions
+                setTimeout(() => {{
+                    const selectedInput = document.getElementById('selected-plugin-{step_id}');
+                    const searchResults = document.getElementById('plugin-search-results-{step_id}');
+                    const searchInput = document.getElementById('plugin-search-input-{step_id}');
+                    const analyzeBtn = document.getElementById('analyze-btn-{step_id}');
+                    
+                    console.log('🔍 Elements found:', {{
+                        selectedInput: !!selectedInput,
+                        searchResults: !!searchResults,
+                        searchInput: !!searchInput,
+                        analyzeBtn: !!analyzeBtn
+                    }});
+                    
+                    if (selectedInput) {{
+                        selectedInput.value = filename;
+                        console.log('🔍 Set selected input to:', filename);
+                    }}
+                    
+                    if (searchResults) {{
+                        searchResults.style.display = 'none';
+                        console.log('🔍 Hid search results');
+                    }}
+                    
+                    if (searchInput) {{
+                        searchInput.value = displayName;
+                        console.log('🔍 Set search input to:', displayName);
+                    }}
+                    
+                    if (analyzeBtn) {{
+                        analyzeBtn.disabled = false;
+                        analyzeBtn.textContent = 'Analyze ' + displayName + ' ▸';
+                        console.log('🔍 Enabled analyze button');
+                    }}
+                }}, 50);
             }}
 
             function showDevAssistantResults(stepId) {{
@@ -1998,6 +2029,21 @@ class DevAssistant:
                     }} else {{
                         // Multiple results - no auto-highlight, let user navigate
                         window.devAssistantSelectedIndex = -1;
+                    }}
+                }}
+            }});
+
+            // Global event delegation for plugin selection - survives HTMX content replacement
+            document.body.addEventListener('click', function(event) {{
+                if (event.target.closest('[data-click-action="select-plugin"]')) {{
+                    const element = event.target.closest('[data-click-action="select-plugin"]');
+                    const filename = element.getAttribute('data-plugin-filename');
+                    const displayName = element.getAttribute('data-plugin-display');
+                    
+                    console.log('🔍 Click detected via delegation on:', filename);
+                    
+                    if (filename && displayName) {{
+                        window.selectDevAssistantPlugin(filename, displayName);
                     }}
                 }}
             }});
