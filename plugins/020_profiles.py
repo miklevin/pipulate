@@ -59,7 +59,9 @@ class ProfileCrudOperations(BaseCrud):
         self.pipulate_instance = pipulate_instance
         super().__init__(name=main_plugin_instance.name, table=table, toggle_field='active', sort_field='priority', pipulate_instance=self.pipulate_instance)
         self.item_name_field = 'name'
-        logger.debug(f"ProfileCrudOperations initialized for {main_plugin_instance.DISPLAY_NAME} with table: {(table.name if table else 'None')}")
+        # Use static name during init to avoid circular import
+        display_name_for_init = f"{main_plugin_instance.EMOJI} Profiles"
+        logger.debug(f"ProfileCrudOperations initialized for {display_name_for_init} with table: {(table.name if table else 'None')}")
 
     def render_item(self, profile_record):
         logger.debug(f"ProfileCrudOperations.render_item called for: {(profile_record.name if profile_record else 'None')}")
@@ -94,17 +96,23 @@ class ProfilesPlugin(ProfilesPluginIdentity):
         self.db_dictlike = db_key_value_store
         self.table = profiles_table_from_server
         self.name = 'profiles'
+        
+        # Use static display name during init to avoid circular import
+        display_name_for_init = f"{self.EMOJI} Profiles"
+        
         if not self.table or not hasattr(self.table, 'name') or self.table.name != 'profile':
-            logger.error(f"FATAL: {self.DISPLAY_NAME} initialized with invalid 'profiles_table_from_server'. Expected MiniDataAPI for 'profile', got: {type(self.table)} with name {getattr(self.table, 'name', 'UNKNOWN')}")
+            logger.error(f"FATAL: {display_name_for_init} initialized with invalid 'profiles_table_from_server'. Expected MiniDataAPI for 'profile', got: {type(self.table)} with name {getattr(self.table, 'name', 'UNKNOWN')}")
             raise ValueError("ProfilesPlugin requires a valid 'profiles' table object from server.py.")
         else:
-            logger.info(f"{self.DISPLAY_NAME} Plugin SUCCESS: Initialized with 'profiles' table object: {self.table.name}")
+            logger.info(f"{display_name_for_init} Plugin SUCCESS: Initialized with 'profiles' table object: {self.table.name}")
         self.crud_handler = ProfileCrudOperations(main_plugin_instance=self, table=self.table, pipulate_instance=self.pipulate)
-        logger.debug(f'{self.DISPLAY_NAME} ProfileCrudOperations instance created.')
+        logger.debug(f'{display_name_for_init} ProfileCrudOperations instance created.')
 
     def register_routes(self, rt_decorator):
         self.crud_handler.register_routes(rt_decorator)
-        logger.info(f"CRUD routes for {self.DISPLAY_NAME} (prefix '/{self.name}') registered by ProfileCrudOperations.")
+        # Use static name to avoid potential circular import during route registration
+        display_name_for_routes = f"{self.EMOJI} Profiles"
+        logger.info(f"CRUD routes for {display_name_for_routes} (prefix '/{self.name}') registered by ProfileCrudOperations.")
 
     async def landing(self, request=None):
         profiles = list(self.table())

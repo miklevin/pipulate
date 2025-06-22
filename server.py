@@ -5302,25 +5302,38 @@ endpoint_training = {}
 
 def get_display_name(workflow_name):
     instance = plugin_instances.get(workflow_name)
-    if instance and hasattr(instance, 'DISPLAY_NAME'):
-        return instance.DISPLAY_NAME
+    if instance:
+        try:
+            # Try to get DISPLAY_NAME safely, avoiding circular import during startup
+            display_name = getattr(instance, 'DISPLAY_NAME', None)
+            if display_name and isinstance(display_name, str):
+                return display_name
+        except (ImportError, AttributeError):
+            # Circular import or other error - fall back to default
+            pass
     return workflow_name.replace('_', ' ').title()
 
 def get_endpoint_message(workflow_name):
     instance = plugin_instances.get(workflow_name)
-    if instance and hasattr(instance, 'ENDPOINT_MESSAGE'):
-        message = instance.ENDPOINT_MESSAGE
-        if hasattr(pipulate, 'format_links_in_text'):
-            try:
-                if inspect.iscoroutinefunction(pipulate.format_links_in_text):
-                    asyncio.create_task(pipulate.format_links_in_text(message))
-                    return message
-                else:
-                    return pipulate.format_links_in_text(message)
-            except Exception as e:
-                logger.warning(f'Error formatting links in message: {e}')
+    if instance:
+        try:
+            # Try to get ENDPOINT_MESSAGE safely, avoiding circular import during startup
+            message = getattr(instance, 'ENDPOINT_MESSAGE', None)
+            if message and isinstance(message, str):
+                if hasattr(pipulate, 'format_links_in_text'):
+                    try:
+                        if inspect.iscoroutinefunction(pipulate.format_links_in_text):
+                            asyncio.create_task(pipulate.format_links_in_text(message))
+                            return message
+                        else:
+                            return pipulate.format_links_in_text(message)
+                    except Exception as e:
+                        logger.warning(f'Error formatting links in message: {e}')
+                        return message
                 return message
-        return message
+        except (ImportError, AttributeError):
+            # Circular import or other error - fall back to default
+            pass
     return f"{workflow_name.replace('_', ' ').title()} app is where you manage your workflows."
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in plugin_instances:
