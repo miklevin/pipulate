@@ -26,6 +26,7 @@ python_fasthtml
 requests
 rich
 selenium
+termcolor
 webdriver-manager
 selenium-wire
 undetected-chromedriver
