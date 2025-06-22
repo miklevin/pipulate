@@ -625,9 +625,9 @@ async def _browser_stealth_search(params: dict) -> dict:
             if not search_box:
                 return {"success": False, "error": "Search box not found"}
             
-            # Clear and type search query with human-like delays
+            # Clear and type search query with faster human-like delays
             search_box.clear()
-            time.sleep(random.uniform(0.2, 0.5))
+            time.sleep(random.uniform(0.05, 0.125))
             
             # Type with realistic human delays
             for char in query:

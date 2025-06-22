@@ -1797,7 +1797,7 @@ input[type="password"]:focus {
 /* Search dropdown positioning */
 .search-dropdown-container {
     position: relative;
-    margin-right: 1rem;
+    margin-right: 0;
     flex-shrink: 1;
     min-width: 200px; /* Match search input minimum */
 }
