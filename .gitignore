@@ -29,3 +29,10 @@ prompt.md
 # Ignore local notebook copies to prevent git conflicts
 training/botify_api_local.md
 notebook_introduction_local.ipynb
+
+# Browser automation outputs - keep these local only
+browser_automation/looking_at/*.html
+browser_automation/looking_at/*.json
+browser_automation/looking_at/*.png
+browser_automation/looking_at/*.txt
+browser_automation/looking_at/*.py
