@@ -3383,7 +3383,7 @@ class Pipulate:
                 'white-space: nowrap;'
                 'border: none !important;'  # No border to match main button height exactly
                 f'border-radius: {border_radius} !important;'  # Match global border radius
-                'padding: 0.75rem 1rem !important;'  # Match typical button padding for height consistency
+                'padding: 0.625rem 1rem !important;'  # Match typical button padding for height consistency
                 'margin: 0 !important;'
                 'background-color: var(--pico-secondary-background) !important;'
                 'box-shadow: none !important;'
