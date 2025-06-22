@@ -605,7 +605,7 @@ async def _browser_stealth_search(params: dict) -> dict:
                 time.sleep(random.uniform(0.5, 1.0))
             
             # Find search box with multiple selector fallbacks
-            wait = WebDriverWait(driver, 10)
+            wait = WebDriverWait(driver, 2.5)
             search_selectors = [
                 "input[name='q']",
                 "textarea[name='q']",
