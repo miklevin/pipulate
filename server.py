@@ -370,7 +370,8 @@ PCONFIG = {
             'FLEX_CONTAINER': 'display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;',
             'BUTTON_ROW': 'display: flex; gap: 0.5em; align-items: center;',
             'SKIP_BUTTON': 'secondary outline',
-            'SKIP_BUTTON_STYLE': 'padding: 0.5rem 1rem; width: 10%; min-width: 80px; white-space: nowrap;'
+            'SKIP_BUTTON_STYLE': 'padding: 0.5rem 1rem; width: 10%; min-width: 80px; white-space: nowrap;',
+            'BORDER_RADIUS': 'var(--pico-border-radius)'  # Global button roundedness control
         },
         'EMOJIS': {
             # Process Status Indicators
@@ -2581,6 +2582,10 @@ class Pipulate:
     def get_config(self):
         """Access centralized configuration through dependency injection."""
         return PCONFIG
+    
+    def get_button_border_radius(self):
+        """Get the global button border radius setting."""
+        return PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
 
     def register_workflow_routes(self, plugin_instance):
         """
@@ -3290,12 +3295,13 @@ class Pipulate:
             Pre: Styled Pre component
         """
         is_tree = '\n' in content and ('└─' in content or '├─' in content)
+        border_radius = PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
         if is_tree:
-            return Pre(content, style='background-color: var(--pico-card-sectionning-background-color); border-radius: 4px; font-family: monospace; margin: 0; padding: 0.5rem; white-space: pre')
+            return Pre(content, style=f'background-color: var(--pico-card-sectionning-background-color); border-radius: {border_radius}; font-family: monospace; margin: 0; padding: 0.5rem; white-space: pre')
         else:
             return Pre(content, style=(
         'background-color: #e3f2fd; ',
-        'border-radius: 4px; ',
+        f'border-radius: {border_radius}; ',
         'border: 1px solid #bbdefb; ',
         'color: #1976d2; ',
         'font-family: system-ui; ',
@@ -5130,7 +5136,8 @@ def normalize_menu_path(path):
 
 def generate_menu_style():
     """Generate consistent menu styling for dropdown menus."""
-    return 'white-space: nowrap; display: inline-block; min-width: max-content; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 16px; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s;'
+    border_radius = PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
+    return f'white-space: nowrap; display: inline-block; min-width: max-content; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: {border_radius}; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s;'
 
 def create_app_menu(menux):
     """Create the App dropdown menu with hierarchical role-based sorting."""

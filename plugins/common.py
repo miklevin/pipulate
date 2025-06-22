@@ -3,6 +3,10 @@ Common classes and utilities for plugins.
 
 This module contains shared classes that plugins can import without creating
 circular dependencies with server.py.
+
+Global UI constants can be accessed through the pipulate_instance when available:
+- pipulate_instance.get_button_border_radius() - Global button roundedness setting
+- pipulate_instance.get_ui_constants() - All UI constants
 """
 
 import asyncio
@@ -40,6 +44,12 @@ class BaseCrud:
                 logger.error(f'Error in send_message: {e}')
                 return None
         self.send_message = safe_send_message
+
+    def get_global_border_radius(self):
+        """Get the global button border radius setting for consistent styling."""
+        if self.pipulate_instance:
+            return self.pipulate_instance.get_button_border_radius()
+        return 'var(--pico-border-radius)'  # Fallback to PicoCSS default
 
     def register_routes(self, rt):
         rt(f'/{self.name}', methods=['POST'])(self.insert_item)
