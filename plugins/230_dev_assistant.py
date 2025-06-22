@@ -226,6 +226,103 @@ class DevAssistant:
 
         return pip.run_all_cells(app_name, self.steps)
 
+    def generate_automation_ai_prompt(self, automation_readiness, filename):
+        """Generate a comprehensive AI prompt for fixing automation and accessibility issues."""
+        
+        if not automation_readiness:
+            return "No automation analysis available for this plugin."
+        
+        prompt_parts = [
+            f"# 🤖 AI Code Assistant: Fix Automation & Accessibility Issues in {filename}",
+            "",
+            "## 📋 Current Analysis Results",
+            f"- **Overall Score**: {automation_readiness.get('accessibility_score', 0)}/100",
+            f"- **Selenium Readiness**: {automation_readiness.get('selenium_readiness', 'unknown').title()}",
+            f"- **Automation Ready**: {'✅ Yes' if automation_readiness.get('automation_ready', False) else '❌ No'}",
+            ""
+        ]
+        
+        # Add dropdown analysis
+        dropdown_validations = automation_readiness.get('dropdown_validations', {})
+        if dropdown_validations:
+            prompt_parts.extend([
+                "## 🔧 Dropdown Functions Analysis",
+                ""
+            ])
+            for func_name, result in dropdown_validations.items():
+                if result.get('function_found'):
+                    completion = result.get('completion_percentage', 0)
+                    prompt_parts.append(f"- **{func_name}**: {completion}% complete")
+                    if result.get('missing_attributes'):
+                        prompt_parts.append(f"  - Missing: {', '.join(result['missing_attributes'])}")
+            prompt_parts.append("")
+        
+        # Add form validation results
+        form_validations = automation_readiness.get('form_validations', {})
+        if form_validations.get('forms_detected'):
+            prompt_parts.extend([
+                "## 📝 Form Elements Analysis",
+                f"- **Automation attributes found**: {', '.join(form_validations.get('automation_attributes', [])) or 'None'}",
+            ])
+            if form_validations.get('missing_attributes'):
+                prompt_parts.append(f"- **Missing attributes**: {', '.join(form_validations['missing_attributes'])}")
+            prompt_parts.append("")
+        
+        # Add ARIA issues
+        aria_issues = automation_readiness.get('aria_issues', [])
+        if aria_issues:
+            prompt_parts.extend([
+                "## ⚠️ ARIA Issues to Fix",
+                ""
+            ])
+            for issue in aria_issues:
+                prompt_parts.append(f"- {issue}")
+            prompt_parts.append("")
+        
+        # Add recommendations
+        recommendations = automation_readiness.get('aria_recommendations', [])
+        if recommendations:
+            prompt_parts.extend([
+                "## 💡 Recommended Actions",
+                ""
+            ])
+            for rec in recommendations:
+                prompt_parts.append(f"- {rec}")
+            prompt_parts.append("")
+        
+        # Add implementation guidance
+        prompt_parts.extend([
+            "## 🎯 Implementation Tasks",
+            "",
+            "Please help me fix these automation and accessibility issues by:",
+            "",
+            "1. **Adding missing ARIA attributes** to dropdown functions:",
+            "   - `aria-label` for screen reader descriptions",
+            "   - `aria-expanded` for dropdown state",
+            "   - `aria-haspopup` for dropdown indication",
+            "   - `aria-labelledby` for proper labeling",
+            "",
+            "2. **Enhancing form elements** with automation attributes:",
+            "   - `id` attributes for unique identification",
+            "   - `name` attributes for form processing",
+            "   - `data-testid` for test automation",
+            "   - `aria-label` for accessibility",
+            "",
+            "3. **Ensuring Selenium compatibility** by:",
+            "   - Using consistent naming patterns",
+            "   - Avoiding problematic attributes like `role='group'` on profile dropdowns",
+            "   - Adding automation-friendly selectors",
+            "",
+            "4. **Testing the changes** to ensure:",
+            "   - Screen readers can navigate properly",
+            "   - Selenium tests can find elements reliably",
+            "   - No visual regressions occur",
+            "",
+            "Please analyze the current code and provide specific fixes with the exact code changes needed."
+        ])
+        
+        return "\n".join(prompt_parts)
+
     def validate_aria_and_automation(self, content, file_path):
         """Validate ARIA attributes and automation readiness for plugin files."""
         
@@ -1797,6 +1894,19 @@ class DevAssistant:
                         style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                     ),
                     Div(
+                        # Copy button for AI prompt
+                        Div(
+                            Button(
+                                '📋 Copy AI Prompt',
+                                id=f'copy-automation-prompt-{filename.replace(".", "-")}',
+                                cls='copy-button',
+                                data_copy_text=self.generate_automation_ai_prompt(automation_readiness, filename),
+                                style='margin-bottom: 1rem; padding: 8px 16px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem;'
+                            ),
+                            P('Copy this comprehensive prompt to paste into AI Code Assistants like Claude, ChatGPT, or Cursor for automated fixing of accessibility and automation issues.',
+                              style='margin-bottom: 1rem; font-size: 0.9em; color: #666; font-style: italic;'),
+                            style='margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e9ecef;'
+                        ),
                         Div(
                             H5(f'Overall Score: {automation_readiness.get("accessibility_score", 0)}/100', 
                                style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"] if automation_readiness.get("accessibility_score", 0) >= 80 else self.UI_CONSTANTS["COLORS"]["ERROR_RED"] if automation_readiness.get("accessibility_score", 0) < 60 else "#ff8800"}; font-size: 1.2rem; margin-bottom: 1rem;'),
@@ -1916,7 +2026,7 @@ class DevAssistant:
                        cls='secondary',
                        style='margin-top: 1rem;'),
 
-                # Add Prism initialization script
+                # Add Prism initialization and copy functionality script
                 Script(f"""
                 (function() {{
                     // Initialize Prism immediately when the script loads
@@ -1934,6 +2044,87 @@ class DevAssistant:
                                 console.error('Prism library not found for {widget_id}');
                             }}
                         }}
+                    }});
+
+                    // Add copy buttons to code blocks
+                    document.querySelectorAll('pre code.copy-code').forEach(function(block) {{
+                        const button = document.createElement('button');
+                        button.textContent = 'Copy';
+                        button.className = 'copy-button';
+                        button.style.cssText = `
+                            position: absolute !important;
+                            top: 5px !important;
+                            right: 5px !important;
+                            padding: 4px 8px !important;
+                            font-size: 12px !important;
+                            background: #0066cc !important;
+                            color: white !important;
+                            border: none !important;
+                            border-radius: 3px !important;
+                            cursor: pointer !important;
+                            transition: background-color 0.2s ease !important;
+                            z-index: 10 !important;
+                        `;
+
+                        const pre = block.parentElement;
+                        pre.style.position = 'relative';
+                        pre.appendChild(button);
+
+                        button.addEventListener('click', function() {{
+                            navigator.clipboard.writeText(block.textContent).then(function() {{
+                                button.textContent = 'Copied!';
+                                button.style.background = '#28a745 !important';
+                                setTimeout(function() {{
+                                    button.textContent = 'Copy';
+                                    button.style.background = '#0066cc !important';
+                                }}, 2000);
+                            }}).catch(function(err) {{
+                                console.error('Failed to copy text: ', err);
+                                button.textContent = 'Error';
+                                button.style.background = '#dc3545 !important';
+                                setTimeout(function() {{
+                                    button.textContent = 'Copy';
+                                    button.style.background = '#0066cc !important';
+                                }}, 2000);
+                            }});
+                        }});
+
+                        button.addEventListener('mouseenter', function() {{
+                            if (button.textContent === 'Copy') {{
+                                button.style.background = '#0052a3 !important';
+                            }}
+                        }});
+
+                        button.addEventListener('mouseleave', function() {{
+                            if (button.textContent === 'Copy') {{
+                                button.style.background = '#0066cc !important';
+                            }}
+                        }});
+                    }});
+
+                    // Handle copy buttons with data-copy-text attribute (for AI prompts)
+                    document.querySelectorAll('button[data-copy-text]').forEach(function(button) {{
+                        button.addEventListener('click', function() {{
+                            const textToCopy = button.getAttribute('data-copy-text');
+                            const originalText = button.textContent;
+                            
+                            navigator.clipboard.writeText(textToCopy).then(function() {{
+                                button.textContent = '✅ Copied!';
+                                button.style.background = '#28a745';
+                                setTimeout(function() {{
+                                    button.textContent = originalText;
+                                    button.style.background = '#0066cc';
+                                }}, 3000);
+                            }}).catch(function(err) {{
+                                console.error('Failed to copy text: ', err);
+                                button.textContent = '❌ Error';
+                                button.style.background = '#dc3545';
+                                setTimeout(function() {{
+                                    button.textContent = originalText;
+                                    button.style.background = '#0066cc';
+                                }}, 3000);
+                            }});
+                        }});
                     }});
                 }})();
                 """, type='text/javascript')
