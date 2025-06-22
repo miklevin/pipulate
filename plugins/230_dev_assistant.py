@@ -226,6 +226,186 @@ class DevAssistant:
 
         return pip.run_all_cells(app_name, self.steps)
 
+    def validate_aria_and_automation(self, content, file_path):
+        """Validate ARIA attributes and automation readiness for plugin files."""
+        
+        aria_results = {
+            'automation_ready': True,
+            'aria_issues': [],
+            'aria_recommendations': [],
+            'dropdown_validations': {},
+            'form_validations': {},
+            'selenium_readiness': 'good',
+            'accessibility_score': 100
+        }
+        
+        # Define required ARIA patterns for dropdown functions
+        required_dropdown_patterns = {
+            'create_profile_menu': {
+                'aria_label': 'Profile selection menu',
+                'aria_expanded': 'false',
+                'aria_haspopup': 'menu',
+                'aria_labelledby': 'profile-id',
+                'role_menu': "role='menu'",
+                'ul_aria_label': 'Profile options'
+            },
+            'create_menu_container': {
+                'aria_label': 'Application menu',
+                'aria_expanded': 'false', 
+                'aria_haspopup': 'menu',
+                'aria_labelledby': 'app-id',
+                'role_menu': "role='menu'",
+                'ul_aria_label': 'Application options'
+            },
+            'create_env_menu': {
+                'dev_aria_label': 'Switch to Development environment',
+                'prod_aria_label': 'Switch to Production environment'
+            }
+        }
+        
+        # Check dropdown functions if they exist
+        for func_name, required_attrs in required_dropdown_patterns.items():
+            func_pattern = rf'def {func_name}\([^)]*\):(.*?)(?=\ndef|\Z)'
+            func_match = re.search(func_pattern, content, re.DOTALL)
+            
+            if func_match:
+                func_content = func_match.group(1)
+                dropdown_result = {
+                    'function_found': True,
+                    'missing_attributes': [],
+                    'present_attributes': [],
+                    'score': 0
+                }
+                
+                total_attrs = len(required_attrs)
+                for attr_name, expected_value in required_attrs.items():
+                    if expected_value in func_content:
+                        dropdown_result['present_attributes'].append(attr_name)
+                        dropdown_result['score'] += 1
+                    else:
+                        dropdown_result['missing_attributes'].append(attr_name)
+                        aria_results['automation_ready'] = False
+                        aria_results['aria_issues'].append(f"Missing {attr_name} in {func_name}")
+                
+                dropdown_result['completion_percentage'] = int((dropdown_result['score'] / total_attrs) * 100)
+                aria_results['dropdown_validations'][func_name] = dropdown_result
+        
+        # Check for forbidden regression patterns
+        forbidden_patterns = {
+            "role='group' in PROFILE dropdown": {
+                'pattern': r'profile-dropdown-menu.*role=[\'"]group[\'"]',
+                'severity': 'error',
+                'message': 'PROFILE dropdown should NOT have role="group" (causes width issues)',
+                'fix': "Remove role='group' from PROFILE dropdown Details element"
+            },
+            "Missing ARIA in critical dropdowns": {
+                'pattern': r'Details\(Summary\([^)]*\), Ul\([^)]*\), cls=[\'"]dropdown[\'"](?!.*aria)',
+                'severity': 'warning', 
+                'message': 'Dropdown missing ARIA attributes for automation',
+                'fix': "Add aria_label, aria_expanded, aria_haspopup to dropdown Details element"
+            }
+        }
+        
+        for check_name, check_info in forbidden_patterns.items():
+            if re.search(check_info['pattern'], content):
+                aria_results['automation_ready'] = False
+                aria_results['aria_issues'].append(f"{check_info['severity'].upper()}: {check_info['message']}")
+                aria_results['aria_recommendations'].append(f"FIX: {check_info['fix']}")
+                
+                if check_info['severity'] == 'error':
+                    aria_results['selenium_readiness'] = 'poor'
+                    aria_results['accessibility_score'] -= 30
+                elif aria_results['selenium_readiness'] == 'good':
+                    aria_results['selenium_readiness'] = 'fair'
+                    aria_results['accessibility_score'] -= 15
+        
+        # Check for form automation readiness
+        form_elements = ['Input', 'Select', 'Textarea', 'Button']
+        form_found = any(element in content for element in form_elements)
+        
+        if form_found:
+            # Check for common automation-friendly patterns
+            automation_patterns = {
+                'aria_label': r'aria_label=[\'"][^\'"]+[\'"]',
+                'id_attributes': r'id=[\'"][^\'"]+[\'"]',
+                'name_attributes': r'name=[\'"][^\'"]+[\'"]',
+                'data_testid': r'data-testid=[\'"][^\'"]+[\'"]',
+                'placeholder_text': r'placeholder=[\'"][^\'"]+[\'"]'
+            }
+            
+            form_validation = {
+                'forms_detected': True,
+                'automation_attributes': [],
+                'missing_attributes': []
+            }
+            
+            for pattern_name, pattern_regex in automation_patterns.items():
+                if re.search(pattern_regex, content):
+                    form_validation['automation_attributes'].append(pattern_name)
+                else:
+                    form_validation['missing_attributes'].append(pattern_name)
+            
+            aria_results['form_validations'] = form_validation
+            
+            # Score based on automation attributes present
+            automation_score = len(form_validation['automation_attributes'])
+            total_possible = len(automation_patterns)
+            
+            if automation_score < 2:
+                aria_results['aria_recommendations'].append(
+                    "❌ Add more automation-friendly attributes (id, aria-label, data-testid) to form elements"
+                )
+                aria_results['accessibility_score'] -= 20
+            elif automation_score < 4:
+                aria_results['aria_recommendations'].append(
+                    "⚠️ Consider adding more automation attributes for better test coverage"
+                )
+                aria_results['accessibility_score'] -= 10
+            else:
+                aria_results['aria_recommendations'].append(
+                    "✅ Good automation attribute coverage detected"
+                )
+        
+        # Check for button accessibility
+        button_patterns = {
+            'button_aria_labels': r'Button\([^)]*aria_label=[\'"][^\'"]+[\'"]',
+            'button_titles': r'Button\([^)]*title=[\'"][^\'"]+[\'"]',
+            'descriptive_button_text': r'Button\([\'"][A-Za-z\s]{3,}[\'"]'
+        }
+        
+        button_accessibility = {
+            'buttons_found': 'Button(' in content,
+            'accessible_patterns': []
+        }
+        
+        if button_accessibility['buttons_found']:
+            for pattern_name, pattern_regex in button_patterns.items():
+                if re.search(pattern_regex, content):
+                    button_accessibility['accessible_patterns'].append(pattern_name)
+            
+            if len(button_accessibility['accessible_patterns']) == 0:
+                aria_results['aria_issues'].append("Buttons lack accessibility attributes")
+                aria_results['aria_recommendations'].append(
+                    "❌ Add aria-label or descriptive text to Button elements"
+                )
+                aria_results['accessibility_score'] -= 15
+        
+        # Final score calculation
+        aria_results['accessibility_score'] = max(0, min(100, aria_results['accessibility_score']))
+        
+        # Generate automation readiness recommendations
+        if aria_results['aria_issues']:
+            aria_results['aria_recommendations'].insert(0, 
+                f"🔧 Fix {len(aria_results['aria_issues'])} ARIA/automation issues for better testing support"
+            )
+            
+        if aria_results['selenium_readiness'] != 'good':
+            aria_results['aria_recommendations'].append(
+                "🤖 Review UI elements for Selenium/automation compatibility"
+            )
+        
+        return aria_results
+
     def analyze_plugin_file(self, file_path):
         """Analyze a plugin file for common patterns, issues, and template suitability."""
         if not file_path.exists():
@@ -984,6 +1164,28 @@ class DevAssistant:
             if len(found_atomic_markers) == 6:
                 analysis["patterns_found"].append("🧬 SUITABLE FOR ATOMIC TRANSPLANTATION")
 
+        # ARIA and Automation Validation
+        aria_validation = self.validate_aria_and_automation(content, str(file_path))
+        analysis["automation_readiness"] = aria_validation
+        
+        # Integrate ARIA findings into main analysis
+        if not aria_validation['automation_ready']:
+            analysis["issues"].extend([f"🤖 AUTOMATION: {issue}" for issue in aria_validation['aria_issues']])
+            
+        if aria_validation['selenium_readiness'] == 'poor':
+            analysis["issues"].append(f"⚠️ AUTOMATION: Poor Selenium compatibility detected")
+        elif aria_validation['selenium_readiness'] == 'fair':
+            analysis["recommendations"].append(f"🔧 AUTOMATION: Review UI elements for better automation support")
+        
+        # Add ARIA recommendations to main recommendations
+        analysis["recommendations"].extend([f"🎯 {rec}" for rec in aria_validation['aria_recommendations']])
+        
+        # Add automation summary to patterns found
+        if aria_validation['automation_ready']:
+            analysis["patterns_found"].append(f"✅ AUTOMATION READY: Score {aria_validation['accessibility_score']}/100")
+        else:
+            analysis["patterns_found"].append(f"❌ AUTOMATION ISSUES: Score {aria_validation['accessibility_score']}/100")
+
         return analysis
 
     async def search_plugins_step01(self, request):
@@ -1525,6 +1727,7 @@ class DevAssistant:
         template_suitability = analysis_results.get('template_suitability', {})
         coding_prompts = analysis_results.get('coding_assistant_prompts', [])
         transplant_analysis = analysis_results.get('transplantation_analysis', {})
+        automation_readiness = analysis_results.get('automation_readiness', {})
         filename = analysis_results.get('filename', 'unknown')
 
         # Focus on what needs fixing - issues first!
@@ -1579,11 +1782,71 @@ class DevAssistant:
                             Div(f"📋 Template Source: {'✅ Ready' if template_source_ready else '❌ Needs Work'}",
                                 style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if template_source_ready else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if template_source_ready else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
                             Div(f"📤 Step Source: {'✅ ' + str(len(ready_transplants)) + ' ready' if ready_transplants else '❌ None ready'}",
-                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if ready_transplants else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if ready_transplants else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold;"),
+                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if ready_transplants else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if ready_transplants else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
+                            Div(f"🤖 Automation Ready: {'✅ Score ' + str(automation_readiness.get('accessibility_score', 0)) + '/100' if automation_readiness.get('automation_ready', False) else '❌ Score ' + str(automation_readiness.get('accessibility_score', 0)) + '/100'}",
+                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if automation_readiness.get('automation_ready', False) else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if automation_readiness.get('automation_ready', False) else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold;"),
                             style='padding: 1rem;'
                         )
                     )
                 ),
+
+                # AUTOMATION READINESS DETAILS (If ARIA validation was performed)
+                (Details(
+                    Summary(
+                        H4('🤖 Automation & Accessibility Report', style='display: inline; margin: 0; color: black;'),
+                        style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
+                    ),
+                    Div(
+                        Div(
+                            H5(f'Overall Score: {automation_readiness.get("accessibility_score", 0)}/100', 
+                               style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"] if automation_readiness.get("accessibility_score", 0) >= 80 else self.UI_CONSTANTS["COLORS"]["ERROR_RED"] if automation_readiness.get("accessibility_score", 0) < 60 else "#ff8800"}; font-size: 1.2rem; margin-bottom: 1rem;'),
+                            P(f'Selenium Readiness: {automation_readiness.get("selenium_readiness", "unknown").title()}',
+                              style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"] if automation_readiness.get("selenium_readiness") == "good" else self.UI_CONSTANTS["COLORS"]["ERROR_RED"] if automation_readiness.get("selenium_readiness") == "poor" else "#ff8800"}; font-weight: bold; margin-bottom: 1rem;')
+                        ) if automation_readiness else None,
+                        
+                        # Dropdown Validations
+                        (Div(
+                            H5('🔧 Dropdown Analysis:', style='color: #0066cc; margin-bottom: 0.5rem;'),
+                            *[
+                                Div(
+                                    Strong(f'{func_name}: ', style='color: #333;'),
+                                    Span(f'{result.get("completion_percentage", 0)}% complete', 
+                                         style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"] if result.get("completion_percentage", 0) >= 80 else self.UI_CONSTANTS["COLORS"]["ERROR_RED"] if result.get("completion_percentage", 0) < 50 else "#ff8800"}; font-weight: bold;'),
+                                    Br(),
+                                    *([Small(f'Missing: {", ".join(result["missing_attributes"])}', style='color: red; margin-left: 1rem;')] if result.get('missing_attributes') else []),
+                                    style='margin-bottom: 0.5rem;'
+                                )
+                                for func_name, result in automation_readiness.get('dropdown_validations', {}).items()
+                                if result.get('function_found')
+                            ]
+                        ) if automation_readiness.get('dropdown_validations') else None),
+                        
+                        # Form Validations
+                        (Div(
+                            H5('📝 Form Analysis:', style='color: #0066cc; margin-bottom: 0.5rem; margin-top: 1rem;'),
+                            P(f'Automation attributes found: {", ".join(automation_readiness["form_validations"]["automation_attributes"]) if automation_readiness["form_validations"]["automation_attributes"] else "None"}',
+                              style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"] if automation_readiness["form_validations"]["automation_attributes"] else self.UI_CONSTANTS["COLORS"]["ERROR_RED"]}; margin-left: 1rem;'),
+                            *([P(f'Missing attributes: {", ".join(automation_readiness["form_validations"]["missing_attributes"])}', 
+                                 style='color: orange; margin-left: 1rem;')] if automation_readiness["form_validations"].get("missing_attributes") else [])
+                        ) if automation_readiness.get('form_validations', {}).get('forms_detected') else None),
+                        
+                        # ARIA Issues
+                        (Div(
+                            H5('⚠️ ARIA Issues:', style='color: red; margin-bottom: 0.5rem; margin-top: 1rem;'),
+                            Ul(*[Li(issue) for issue in automation_readiness.get('aria_issues', [])],
+                               style='color: red; margin-left: 1rem;')
+                        ) if automation_readiness.get('aria_issues') else None),
+                        
+                        # ARIA Recommendations
+                        (Div(
+                            H5('💡 Recommendations:', style='color: #0066cc; margin-bottom: 0.5rem; margin-top: 1rem;'),
+                            Ul(*[Li(rec) for rec in automation_readiness.get('aria_recommendations', [])],
+                               style='margin-left: 1rem;')
+                        ) if automation_readiness.get('aria_recommendations') else None),
+                        
+                        style='padding: 1rem;'
+                    )
+                ) if automation_readiness else None),
 
                 # CODING FIXES (If issues exist)
                 (Details(
