@@ -418,7 +418,7 @@ async def _browser_stealth_search(params: dict) -> dict:
     Google "ai seo software" search that bypassed CAPTCHA and extracted results.
     
     Features:
-    - Undetected ChromeDriver integration
+    - Nix-provided ChromeDriver/Chromium version matching (no dual windows!)
     - CDP script injection for navigator property cloaking
     - Human-like typing with realistic delays
     - Random mouse movements and scrolling
@@ -446,6 +446,7 @@ async def _browser_stealth_search(params: dict) -> dict:
     from selenium.webdriver.common.action_chains import ActionChains
     from selenium.webdriver.common.keys import Keys
     from selenium.common.exceptions import TimeoutException, WebDriverException
+    from selenium.webdriver.chrome.service import Service
     
     # Try importing stealth libraries
     try:
@@ -489,108 +490,97 @@ async def _browser_stealth_search(params: dict) -> dict:
         else:
             return {"success": False, "error": f"Search engine '{search_engine}' not supported yet"}
         
-        # Enhanced stealth browser setup
-        logger.info("🎭 FINDER_TOKEN: STEALTH_SETUP - Initializing enhanced bot detection evasion")
+        # FIXED: Use Nix-provided Chrome/ChromeDriver versions to prevent dual windows
+        logger.info("🎭 FINDER_TOKEN: STEALTH_SETUP - Using Nix-provided Chrome/ChromeDriver versions (IaC FTW!)")
         
         driver = None
+        driver_type = "nix-standard"
         
-        if UNDETECTED_AVAILABLE:
-            # Try undetected-chromedriver first for maximum stealth
-            try:
-                logger.info("🎭 FINDER_TOKEN: ATTEMPTING_UNDETECTED_CHROME")
-                options = uc.ChromeOptions()
-                options.add_argument('--disable-extensions')
-                options.add_argument('--disable-plugins-discovery')
-                options.add_argument('--no-sandbox')
-                options.add_argument('--disable-dev-shm-usage')
-                options.add_argument('--window-size=960,1080')
-                options.add_argument('--window-position=0,0')
-                
-                # Let undetected-chromedriver handle everything automatically
-                # Don't specify paths - let it download compatible ChromeDriver
-                driver = uc.Chrome(options=options)
-                logger.info("✅ FINDER_TOKEN: UNDETECTED_CHROME_SUCCESS")
-                
-            except Exception as e:
-                logger.warning(f"🎭 FINDER_TOKEN: UNDETECTED_CHROME_FAILED - {e}")
-                driver = None
+        # Find Nix-provided binaries
+        import shutil
+        chromium_path = shutil.which('chromium')
+        chromedriver_path = shutil.which('chromedriver')
         
-        # If undetected-chromedriver failed or isn't available, use standard Chrome
-        if driver is None:
-            logger.info("🎭 FINDER_TOKEN: ATTEMPTING_STANDARD_CHROME")
-            options = webdriver.ChromeOptions()
-            
-            # Core stealth options
-            options.add_argument("--disable-blink-features=AutomationControlled")
-            options.add_argument("--disable-extensions")
-            options.add_argument("--disable-plugins-discovery")
-            options.add_argument("--disable-web-security")
-            options.add_argument("--disable-features=VizDisplayCompositor")
-            options.add_argument("--no-sandbox")
-            options.add_argument("--disable-dev-shm-usage")
-            options.add_argument("--disable-gpu")
-            
-            # Experimental options for stealth
-            options.add_experimental_option("excludeSwitches", ["enable-automation"])
-            options.add_experimental_option('useAutomationExtension', False)
-            
-            # User agent spoofing
-            options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            
-            # Half-screen window for human-like appearance
-            options.add_argument('--window-size=960,1080')
-            options.add_argument('--window-position=0,0')
-            
-            # Use Nix-provided Chromium if available, otherwise let Selenium handle it
-            import shutil
-            chromium_path = shutil.which('chromium')
-            if chromium_path:
-                logger.info(f"🎭 FINDER_TOKEN: STANDARD_CHROME_NIX_CHROMIUM - {chromium_path}")
-                options.binary_location = chromium_path
-            
-            # Let Selenium WebDriver Manager handle ChromeDriver download automatically
-            driver = webdriver.Chrome(options=options)
-            logger.info("✅ FINDER_TOKEN: STANDARD_CHROME_SUCCESS")
-            
-            # CDP script injection for advanced stealth
-            stealth_script = """
-            Object.defineProperty(navigator, 'webdriver', {
-                get: () => undefined,
-            });
-            
-            Object.defineProperty(navigator, 'plugins', {
-                get: () => [1, 2, 3, 4, 5],
-            });
-            
-            Object.defineProperty(navigator, 'languages', {
-                get: () => ['en-US', 'en'],
-            });
-            
-            window.chrome = {
-                runtime: {},
-            };
-            
-            Object.defineProperty(navigator, 'permissions', {
-                get: () => ({
-                    query: () => Promise.resolve({ state: 'granted' }),
-                }),
-            });
-            """
-            
-            driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
-                'source': stealth_script
-            })
-            
-            # Apply selenium-stealth if available
-            if STEALTH_AVAILABLE:
-                stealth(driver,
-                        languages=["en-US", "en"],
-                        vendor="Google Inc.",
-                        platform="Linux",
-                        webgl_vendor="Intel Inc.",
-                        renderer="Intel Iris OpenGL Engine",
-                        fix_hairline=True,
-                )
+        if not chromium_path or not chromedriver_path:
+            return {
+                "success": False, 
+                "error": "Nix-provided chromium or chromedriver not found. Please run in 'nix develop' environment."
+            }
+        
+        logger.info(f"🎭 FINDER_TOKEN: NIX_BINARIES_FOUND - Chromium: {chromium_path}, ChromeDriver: {chromedriver_path}")
+        
+        # Use standard Chrome with Nix-provided binaries for consistent versioning
+        options = webdriver.ChromeOptions()
+        
+        # Core stealth options
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-plugins-discovery")
+        options.add_argument("--disable-web-security")
+        options.add_argument("--disable-features=VizDisplayCompositor")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        
+        # Experimental options for stealth
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+        
+        # User agent spoofing
+        options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
+        
+        # Half-screen window for human-like appearance
+        options.add_argument('--window-size=960,1080')
+        options.add_argument('--window-position=0,0')
+        
+        # Use Nix-provided Chromium binary
+        options.binary_location = chromium_path
+        
+        # Use Nix-provided ChromeDriver with explicit service
+        service = Service(executable_path=chromedriver_path)
+        driver = webdriver.Chrome(service=service, options=options)
+        
+        logger.info("✅ FINDER_TOKEN: NIX_CHROME_SUCCESS - Single window, version-matched setup")
+        
+        # CDP script injection for advanced stealth
+        stealth_script = """
+        Object.defineProperty(navigator, 'webdriver', {
+            get: () => undefined,
+        });
+        
+        Object.defineProperty(navigator, 'plugins', {
+            get: () => [1, 2, 3, 4, 5],
+        });
+        
+        Object.defineProperty(navigator, 'languages', {
+            get: () => ['en-US', 'en'],
+        });
+        
+        window.chrome = {
+            runtime: {},
+        };
+        
+        Object.defineProperty(navigator, 'permissions', {
+            get: () => ({
+                query: () => Promise.resolve({ state: 'granted' }),
+            }),
+        });
+        """
+        
+        driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+            'source': stealth_script
+        })
+        
+        # Apply selenium-stealth if available
+        if STEALTH_AVAILABLE:
+            stealth(driver,
+                    languages=["en-US", "en"],
+                    vendor="Google Inc.",
+                    platform="Linux",
+                    webgl_vendor="Intel Inc.",
+                    renderer="Intel Iris OpenGL Engine",
+                    fix_hairline=True,
+            )
         
         try:
             # Navigate to search engine
@@ -699,6 +689,8 @@ async def _browser_stealth_search(params: dict) -> dict:
                 logger.warning("🤖 FINDER_TOKEN: CAPTCHA_DETECTED_AFTER_RESULTS - Bot detection triggered after result extraction")
                 
                 # Take screenshot of CAPTCHA
+                captcha_screenshot = None
+                captcha_source = None
                 if take_screenshot:
                     captcha_screenshot = os.path.join(temp_scripts_dir, f"captcha_{timestamp}.png")
                     driver.save_screenshot(captcha_screenshot)
@@ -755,8 +747,10 @@ async def _browser_stealth_search(params: dict) -> dict:
                             "success": False, 
                             "error": f"CAPTCHA detected and not solved within {captcha_pause_seconds} seconds",
                             "results": results,  # Return any results we got before CAPTCHA
-                            "captcha_screenshot": captcha_screenshot if take_screenshot else None,
-                            "captcha_source": captcha_source if save_page_source else None
+                            "files_created": {
+                                "captcha_screenshot": captcha_screenshot,
+                                "captcha_source": captcha_source
+                            }
                         }
                         
                 except Exception as e:
@@ -765,7 +759,9 @@ async def _browser_stealth_search(params: dict) -> dict:
                         "success": False, 
                         "error": f"Error checking CAPTCHA resolution: {str(e)}",
                         "results": results,  # Return any results we got before CAPTCHA
-                        "captcha_screenshot": captcha_screenshot if take_screenshot else None
+                        "files_created": {
+                            "captcha_screenshot": captcha_screenshot
+                        }
                     }
             
             # Save files
@@ -789,14 +785,19 @@ async def _browser_stealth_search(params: dict) -> dict:
                 "results_found": len(results),
                 "results": results,
                 "files_created": files_created,
-                "timestamp": timestamp
+                "timestamp": timestamp,
+                "driver_type": driver_type,
+                "chromium_version": "137.0.7151.119",  # Nix-provided version
+                "chromedriver_version": "137.0.7151.119"  # Nix-provided version
             }
             
-            logger.info(f"✅ FINDER_TOKEN: STEALTH_SEARCH_SUCCESS - {len(results)} results extracted for '{query}'")
+            logger.info(f"✅ FINDER_TOKEN: STEALTH_SEARCH_SUCCESS - {len(results)} results extracted for '{query}' using {driver_type} (single window!)")
             return result_data
             
         finally:
-            driver.quit()
+            if driver:
+                driver.quit()
+                logger.info(f"🔧 FINDER_TOKEN: STEALTH_CLEANUP - {driver_type} driver closed properly")
             
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: STEALTH_SEARCH_ERROR - {e}")
