@@ -1826,7 +1826,7 @@ class DevAssistant:
                             aria_label='Search for plugin files to analyze',
                             data_testid=f'dev-assistant-plugin-search-{step_id}',
                             style='width: 100%; border-radius: 8px; margin-bottom: 1rem;',
-                            autofocus=True,
+
                             hx_post=f'/{app_name}/search_plugins_step01',
                             hx_target=f'#plugin-search-results-{step_id}',
                             hx_trigger='input changed delay:300ms, focus',
@@ -1866,13 +1866,6 @@ class DevAssistant:
                 const results = document.getElementById('plugin-search-results-' + stepId);
                 if (results && results.innerHTML.trim() !== '') {{
                     results.style.display = 'block';
-                }} else {{
-                    // Trigger search on focus to show all plugins if dropdown is empty
-                    const searchInput = document.getElementById('plugin-search-input-' + stepId);
-                    if (searchInput && searchInput.value === '') {{
-                        // Trigger the HTMX request to load all plugins
-                        htmx.trigger(searchInput, 'focus');
-                    }}
                 }}
             }}
 
