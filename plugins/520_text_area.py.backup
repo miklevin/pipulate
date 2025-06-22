@@ -17,20 +17,6 @@ class TextAreaWidget:
     A specialized workflow for handling multi-line text input with a textarea widget.
     Provides a clean interface for entering and managing longer text content.
     """
-    # UI Constants for automation testing
-    
-    # Template compatibility markers
-    # STEPS_LIST_INSERTION_POINT
-    # STEP_METHODS_INSERTION_POINT
-
-    UI_CONSTANTS = {
-        'TEXTAREA_INPUT': 'text-area-widget-textarea-input',
-        'FINALIZE_BUTTON': 'text-area-widget-finalize-button', 
-        'UNLOCK_BUTTON': 'text-area-widget-unlock-button',
-        'NEXT_BUTTON': 'text-area-widget-next-button',
-        'REVERT_BUTTON': 'text-area-widget-revert-button'
-    }
-
     APP_NAME = 'text_area_widget'
     DISPLAY_NAME = 'Text Area Widget'
     ENDPOINT_MESSAGE = 'Welcome to the Text Area Widget! This workflow provides a clean interface for entering and managing longer text content. Use the textarea to input multiple lines of text.'
@@ -103,11 +89,11 @@ class TextAreaWidget:
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
             if finalize_step.done in finalize_data:
-                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline', data_testid='text-area-widget-unlock-button', aria_label='Unlock text area for editing'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary', data_testid='text-area-widget-finalize-button', aria_label='Finalize text area workflow'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -183,7 +169,7 @@ class TextAreaWidget:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             explanation = 'This is a text area widget for entering multiple lines of text. Use it to input longer content that may span multiple lines.'
             await self.message_queue.add(pip, explanation, verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, cls='text-secondary'), Form(pip.wrap_with_inline_button(Textarea(display_value, name=step.done, placeholder=f'Enter {step.show}', required=True, autofocus=True, cls='textarea-standard', data_testid='text-area-widget-textarea-input', aria_label='Multi-line text input area', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction'), button_label='Next ▸'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
+            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, cls='text-secondary'), Form(pip.wrap_with_inline_button(Textarea(display_value, name=step.done, placeholder=f'Enter {step.show}', required=True, autofocus=True, cls='textarea-standard', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction'), button_label='Next ▸'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
 
     async def step_01_submit(self, request):
         """Process the submission for Step 1."""
