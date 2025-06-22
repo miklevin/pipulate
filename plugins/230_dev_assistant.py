@@ -2035,20 +2035,26 @@ class DevAssistant:
                 # Initialize Prism highlighting and Pipulate copy functionality
                 Script(f"""
                 (function() {{
-                    // Initialize Prism highlighting for the entire step (includes built-in copy-to-clipboard)
-                    if (typeof Prism !== 'undefined') {{
-                        Prism.highlightAllUnder(document.getElementById('{step_id}'));
-                    }}
+                    // Small delay to ensure DOM is fully rendered
+                    setTimeout(function() {{
+                        // Initialize Prism highlighting for the entire step (includes built-in copy-to-clipboard)
+                        if (typeof Prism !== 'undefined') {{
+                            console.log('🔄 Initializing Prism for DevAssistant step: {step_id}');
+                            Prism.highlightAllUnder(document.getElementById('{step_id}'));
+                        }}
 
-                    // Re-initialize Pipulate copy functionality for new content
-                    if (typeof PipulateCopy !== 'undefined') {{
-                        PipulateCopy.initializeDataCopyButtons();
-                        PipulateCopy.initializeInlineCodeCopy();
-                    }}
+                        // Re-initialize Pipulate copy functionality for new content
+                        if (typeof PipulateCopy !== 'undefined') {{
+                            console.log('🔄 Initializing PipulateCopy for DevAssistant');
+                            PipulateCopy.initializeDataCopyButtons();
+                            PipulateCopy.initializeInlineCodeCopy();
+                        }}
+                    }}, 100);
 
                     // Listen for HX-Trigger event as backup
                     document.body.addEventListener('initializePrism', function(event) {{
                         if (event.detail.targetId === '{step_id}') {{
+                            console.log('🔄 Received initializePrism event for {step_id}');
                             if (typeof Prism !== 'undefined') {{
                                 Prism.highlightAllUnder(document.getElementById('{step_id}'));
                             }}
