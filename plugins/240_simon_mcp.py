@@ -596,9 +596,8 @@ Output only the MCP block above. Do not add any other text."""
                         elif current_mode == 'google_search':
                             # Handle Google search results
                             if result.get('success'):
-                                search_data = result.get('result', {})
-                                results = search_data.get('results', [])
-                                files = search_data.get('files', {})
+                                results = result.get('results', [])
+                                files = result.get('files_created', {})
                                 
                                 # Add to conversation history for LLM training (silent - no user stream)
                                 await self.message_queue.add(pip, f"User selected: Google Search Test", verbatim=True, role='user')
