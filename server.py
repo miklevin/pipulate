@@ -2498,13 +2498,12 @@ def system_diagram():
 def alice_banner():
     """🐰 ALICE BANNER: Whimsical Alice-themed banner"""
     alice_art = """
-
-                    /)  ______
-              /)\__//  /      \\
-          ___(/_ 0 0  |        |
-        *(    ==(_T_)==Pipulate|
-          \\  )   \\"\\  |        |
-           |__>-\\_>_>  \\______/
+                                                  /)  ______
+                  /)\__//  /      \\
+              ___(/_ 0 0  |        |
+            *(    ==(_T_)==Pipulate|
+              \\  )   \\"\\  |        |
+               |__>-\\_>_>  \\______/
     """
     
     panel = Panel(
