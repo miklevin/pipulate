@@ -136,14 +136,16 @@ class BotifyConnect:
             parts = message_text.split("You can find your API token at")
             endpoint_message = P(
                 parts[0] + "You can find your API token at ",
-                A(account_url, href=account_url, target="_blank")
+                A(account_url, href=account_url, target="_blank", 
+                  aria_label="Open Botify account page to find API token",
+                  title="Opens Botify account page in new tab")
             )
         else:
             endpoint_message = P(message_text)
 
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
-                H2(title),
+                H2(title, id="botify-connect-title"),
                 endpoint_message,
                 Form(
                     pip.wrap_with_inline_button(
@@ -154,16 +156,33 @@ class BotifyConnect:
                             type="password",
                             required=True,
                             autofocus=True,
+                            id="botify-token-input",
+                            aria_label="Enter your Botify API token",
+                            aria_describedby="botify-connect-title",
+                            aria_required="true",
+                            data_testid="botify-token-input",
+                            title="Paste your Botify API token to connect"
                         ),
                         button_label="Connect to Botify API 🔑",
                         button_class="secondary"
                     ),
-                    Datalist(*[Option(value=pid) for pid in existing_ids], id="pipeline-ids"),
+                    Datalist(*[Option(value=pid) for pid in existing_ids], 
+                             id="pipeline-ids",
+                             data_testid="botify-pipeline-datalist"),
                     hx_post=f"/{app_name}/init",
-                    hx_target=f"#{app_name}-container"
-                )
+                    hx_target=f"#{app_name}-container",
+                    id="botify-connect-form",
+                    aria_label="Botify API token connection form",
+                    data_testid="botify-connect-form"
+                ),
+                data_testid="botify-connect-card",
+                role="region",
+                aria_labelledby="botify-connect-title"
             ),
-            Div(id=f"{app_name}-container")
+            Div(id=f"{app_name}-container", 
+                aria_live="polite",
+                aria_label="Workflow progress area",
+                data_testid="botify-workflow-container")
         )
 
     async def init(self, request):
@@ -249,32 +268,57 @@ class BotifyConnect:
             if finalize_step.done in finalize_data:
                 logger.debug("Pipeline is already finalized")
                 return Card(
-                    H3("Connection Complete"),
-                    P(f"Botify API token is saved. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."),
+                    H3("Connection Complete", id="botify-connection-complete-title"),
+                    P(f"Botify API token is saved. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.",
+                      id="botify-connection-complete-message"),
                     Form(
                         Button(
                             pip.UNLOCK_BUTTON_LABEL,
                             type="submit",
-                            cls="secondary outline"
+                            cls="secondary outline",
+                            id="botify-unlock-button",
+                            aria_label="Unlock to modify Botify API token connection",
+                            aria_describedby="botify-connection-complete-message",
+                            data_testid="botify-unlock-button",
+                            title=f"Click to {pip.UNLOCK_BUTTON_LABEL.lower()} and modify token"
                         ),
                         hx_post=f"/{app_name}/unfinalize",
                         hx_target=f"#{app_name}-container",
-                        hx_swap="outerHTML"
+                        hx_swap="outerHTML",
+                        id="botify-unlock-form",
+                        aria_label="Unlock connection form",
+                        data_testid="botify-unlock-form"
                     ),
-                    id=finalize_step.id
+                    id=finalize_step.id,
+                    data_testid="botify-connection-complete-card",
+                    role="region",
+                    aria_labelledby="botify-connection-complete-title"
                 )
 
             # No other steps to check since we don't have any
             return Card(
-                H3("Save Token"),
-                P("Save your Botify API token?"),
+                H3("Save Token", id="botify-save-token-title"),
+                P("Save your Botify API token?", id="botify-save-token-message"),
                 Form(
-                    Button("Save Token 💾", type="submit", cls="primary"),
+                    Button("Save Token 💾", 
+                           type="submit", 
+                           cls="primary",
+                           id="botify-save-token-button",
+                           aria_label="Save Botify API token to file",
+                           aria_describedby="botify-save-token-message",
+                           data_testid="botify-save-token-button",
+                           title="Save the validated Botify API token for future use"),
                     hx_post=f"/{app_name}/finalize",
                     hx_target=f"#{app_name}-container",
-                    hx_swap="outerHTML"
+                    hx_swap="outerHTML",
+                    id="botify-save-token-form",
+                    aria_label="Save token form",
+                    data_testid="botify-save-token-form"
                 ),
-                id=finalize_step.id
+                id=finalize_step.id,
+                data_testid="botify-save-token-card",
+                role="region",
+                aria_labelledby="botify-save-token-title"
             )
         else:
             # First validate the token
