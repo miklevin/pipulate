@@ -121,6 +121,10 @@ def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None)
     console.print(panel)
     logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
 
+# Show startup banner only when running as main script, not on watchdog restarts or imports
+if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
+    figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
+
 # Initialize logging as early as possible in the startup process
 def setup_logging():
     """
@@ -215,8 +219,6 @@ def setup_logging():
             ])
         )
     )
-    
-    figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color=BANNER_COLORS['server_restart'])
     # === STARTUP MESSAGES ===
     if STATE_TABLES:
         logger.info('🔍 FINDER_TOKEN: STATE_TABLES_ENABLED - Console will show 🍪 and ➡️ table snapshots')
@@ -7929,6 +7931,8 @@ def restart_server():
     for attempt in range(max_retries):
         try:
             log.startup(f'Restarting server (attempt {attempt + 1}/{max_retries})')
+            # Set environment variable to indicate this is a watchdog restart
+            os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
             os.execv(sys.executable, ['python'] + sys.argv)
         except Exception as e:
             log.error(f'Error restarting server (attempt {attempt + 1}/{max_retries})', e)
