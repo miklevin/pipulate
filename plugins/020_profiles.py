@@ -13,8 +13,20 @@ from fasthtml.common import (H2, H3, H4, A, Button, Card, Container, Details,
 from server import DB_FILENAME
 from .common import BaseCrud
 from server import db as server_db
-from server import (get_current_profile_id, get_profile_name, logger,
-                    plugin_instances, rt, title_name)
+
+# Lazy imports to avoid circular dependencies - imported when needed
+def get_server_functions():
+    """Get server functions when needed to avoid circular imports."""
+    from server import get_current_profile_id, get_profile_name, logger, plugin_instances, rt, title_name
+    return get_current_profile_id, get_profile_name, logger, plugin_instances, rt, title_name
+
+# Get logger immediately since it's used everywhere
+try:
+    from server import logger
+except ImportError:
+    # Fallback if server isn't fully loaded yet
+    import logging
+    logger = logging.getLogger(__name__)
 
 ROLES = ['Core']
 
@@ -29,8 +41,9 @@ class ProfilesPluginIdentity:
     APP_NAME = 'profiles'
 
     @property
-
     def DISPLAY_NAME(self):
+        # Use lazy import to avoid circular dependency
+        _, _, _, _, _, title_name = get_server_functions()
         name = title_name('profiles')
         if self.EMOJI:
             return f"{self.EMOJI} {name}"
