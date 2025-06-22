@@ -36,3 +36,13 @@ browser_automation/looking_at/*.json
 browser_automation/looking_at/*.png
 browser_automation/looking_at/*.txt
 browser_automation/looking_at/*.py
+
+# Browser automation temp scripts - disposable one-offs
+browser_automation/temp_scripts/
+*_beautiful_dom.html
+*_automation_registry.json
+*_automation_targets.py
+*_automation_summary.txt
+*_results.json
+*_screenshot.png
+*_source.html
