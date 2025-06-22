@@ -5522,7 +5522,7 @@ def create_nav_menu():
             id='nav-plugin-search',
             hx_post='/search-plugins',
             hx_target='#search-results-dropdown',
-            hx_trigger='input changed delay:300ms, keyup[key==\'Enter\']',
+            hx_trigger='input changed delay:300ms, keyup[key==\'Enter\'], focus',
             hx_swap='innerHTML',
             role='searchbox',
             aria_label='Search plugins',
@@ -6392,8 +6392,8 @@ async def search_plugins(request):
                     search_term in plugin['module_name'].lower()):
                     filtered_plugins.append(plugin)
         else:
-            # Show no results on empty search (no load trigger anymore)
-            filtered_plugins = []
+            # Show ALL plugins on empty search (dropdown menu behavior)
+            filtered_plugins = searchable_plugins
         
         # Generate HTML results
         if filtered_plugins:
