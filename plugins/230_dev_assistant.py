@@ -1460,7 +1460,8 @@ class DevAssistant:
                 P('Single-step workflow for learning step management and customization.',
                   style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-size: 0.9rem; margin-bottom: 0.5rem;'),
                 Pre(
-                                                    Code(blank_cmd, cls='language-bash'),
+                    Code(blank_cmd, cls='language-bash'),
+                    cls='language-bash',
                     style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]};'
                 ),
                 style='margin-bottom: 1.5rem;'
@@ -1472,7 +1473,8 @@ class DevAssistant:
                 P('Multi-step process demonstrating helper tool sequence and workflow construction.',
                   style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-size: 0.9rem; margin-bottom: 0.5rem;'),
                 Pre(
-                                                    Code(hello_cmd, cls='language-bash'),
+                    Code(hello_cmd, cls='language-bash'),
+                    cls='language-bash',
                     style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'
                 ),
                 style='margin-bottom: 1.5rem;'
@@ -1484,7 +1486,8 @@ class DevAssistant:
                 P('Complex 5-step workflow from Botify template for sophisticated data collection scenarios.',
                   style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-size: 0.9rem; margin-bottom: 0.5rem;'),
                 Pre(
-                                                    Code(trifecta_cmd, cls='language-bash'),
+                    Code(trifecta_cmd, cls='language-bash'),
+                    cls='language-bash',
                     style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["ACCENT_PURPLE"]};'
                 ),
                 style='margin-bottom: 1rem;'
@@ -1975,7 +1978,7 @@ class DevAssistant:
                                     H5(f'Fix #{i+1}:', style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-top: 1.5rem; margin-bottom: 0.5rem;'),
                                     Pre(
                                         Code(prompt, cls='language-markdown'),
-                                        cls='line-numbers',
+                                        cls='line-numbers language-markdown',
                                         style=f'position: relative; background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'
                                     ),
                                     style='margin-bottom: 1rem;'
@@ -2015,6 +2018,7 @@ class DevAssistant:
                                     H6(f"{cmd['step_id']}:", style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-bottom: 0.25rem; margin-top: 1rem;'),
                                     Pre(
                                         Code(cmd['command'], cls='language-bash'),
+                                        cls='language-bash',
                                         style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 0.75rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 3px solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.5rem;'
                                     ),
                                     style='margin-bottom: 1rem;'
