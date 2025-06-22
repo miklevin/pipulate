@@ -1859,6 +1859,15 @@ input[type="password"]:focus {
     border-radius: var(--pico-border-radius);
 }
 
+/* Loading spinner styling - replaces MENU_ITEM_PADDING constant */
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    padding: 1vh 0px 0px .5vw;
+    border-radius: var(--pico-border-radius);
+    min-height: 2.5rem;
+}
+
 /* Active menu item */
 .menu-item-active {
     background-color: var(--pico-primary-focus);
@@ -1960,6 +1969,23 @@ input[type="password"]:focus {
 
 .menu-item-hover:hover {
     background-color: var(--pico-primary-hover-background);
+}
+
+/* ================================================================ */
+/* WORKFLOW CONTENT STYLING - Externalized from Pipulate class constants */
+/* ================================================================ */
+
+/* Widget content container - replaces CONTENT_STYLE constant */
+.widget-content {
+    margin-top: 1vh;
+    border-top: 1px solid var(--pico-muted-border-color);
+    padding-top: 1vh;
+}
+
+/* Finalized content container - replaces FINALIZED_CONTENT_STYLE constant */
+.finalized-content {
+    margin-top: 0.5vh;
+    padding: 0.5vh 0;
 }
 
 /* ================================================================ */

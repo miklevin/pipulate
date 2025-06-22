@@ -2892,9 +2892,6 @@ class Pipulate:
     """
     PRESERVE_REFILL = True
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
-    CONTENT_STYLE = 'margin-top: 1vh; border-top: 1px solid var(--pico-muted-border-color); padding-top: 1vh;'
-    FINALIZED_CONTENT_STYLE = 'margin-top: 0.5vh; padding: 0.5vh 0;'
-    MENU_ITEM_PADDING = 'padding: 1vh 0px 0px .5vw;'
 
     def __init__(self, pipeline_table, chat_instance=None):
         """Initialize Pipulate with required dependencies.
@@ -3746,8 +3743,19 @@ class Pipulate:
         revert_row = self.display_revert_header(step_id=step_id, app_name=app_name, steps=steps, message=message, target_id=target_id, revert_label=revert_label, remove_padding=True)
         if widget is None or revert_row is None:
             return revert_row
-        applied_style = widget_style or self.CONTENT_STYLE
-        return Div(revert_row, Div(widget, style=applied_style, id=f'{step_id}-widget-{hash(str(widget))}', role='region', aria_label=f'Widget content for {step_id}'), id=f'{step_id}-content', cls='card-container', role='article', aria_label=f'Step content: {step_id}')
+        
+        # Use CSS class for widget content styling, allow custom widget_style override
+        widget_container_attrs = {
+            'id': f'{step_id}-widget-{hash(str(widget))}',
+            'role': 'region',
+            'aria_label': f'Widget content for {step_id}'
+        }
+        if widget_style:
+            widget_container_attrs['style'] = widget_style
+        else:
+            widget_container_attrs['cls'] = 'widget-content'
+            
+        return Div(revert_row, Div(widget, **widget_container_attrs), id=f'{step_id}-content', cls='card-container', role='article', aria_label=f'Step content: {step_id}')
 
     def tree_display(self, content):
         """Create a styled display for file paths in tree or box format.
@@ -3794,8 +3802,15 @@ class Pipulate:
         """
         if content is None:
             return Card(message)
-        applied_style = content_style or self.FINALIZED_CONTENT_STYLE
-        return Card(heading_tag(message), Div(content, style=applied_style), cls='card-container')
+        
+        # Use CSS class for finalized content styling, allow custom content_style override
+        content_container_attrs = {}
+        if content_style:
+            content_container_attrs['style'] = content_style
+        else:
+            content_container_attrs['cls'] = 'finalized-content'
+            
+        return Card(heading_tag(message), Div(content, **content_container_attrs), cls='card-container')
 
     def wrap_with_inline_button(self, input_element: Input, button_label: str='Next ▸', button_class: str='primary', show_new_key_button: bool=False, app_name: str=None) -> Div:
         """Wrap an input element with an inline button in a flex container.
@@ -7190,13 +7205,7 @@ async def switch_environment(request):
         return HTMLResponse(f"""
             <div 
                 aria-busy='true'
-                style="
-                    display: flex;
-                    align-items: center;
-                    {pipulate.MENU_ITEM_PADDING}
-                    border-radius: var(--pico-border-radius);
-                    min-height: 2.5rem;
-                "
+                class="loading-spinner"
             >
                 Switching
             </div>
