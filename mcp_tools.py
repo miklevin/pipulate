@@ -707,8 +707,34 @@ async def _browser_stealth_search(params: dict) -> dict:
                 logger.warning(f"⏳ FINDER_TOKEN: CAPTCHA_PAUSE - Keeping browser open for {captcha_pause_seconds} seconds for manual CAPTCHA solving")
                 logger.warning(f"🖱️ FINDER_TOKEN: CAPTCHA_INSTRUCTIONS - Please solve the CAPTCHA in the browser window and wait for results to load")
                 
-                # Wait for manual CAPTCHA solving
-                time.sleep(captcha_pause_seconds)
+                # Wait for manual CAPTCHA solving with periodic checking
+                check_interval = 3  # Check every 3 seconds
+                total_waited = 0
+                captcha_solved_early = False
+                
+                while total_waited < captcha_pause_seconds:
+                    time.sleep(check_interval)
+                    total_waited += check_interval
+                    
+                    # Check if CAPTCHA was solved by looking for results
+                    try:
+                        for selector in result_selectors:
+                            try:
+                                test_results = driver.find_elements(By.CSS_SELECTOR, selector)
+                                if test_results and len(test_results) > 0:
+                                    logger.info(f"✅ FINDER_TOKEN: CAPTCHA_SOLVED_EARLY - Found results after {total_waited} seconds")
+                                    captcha_solved_early = True
+                                    break
+                            except:
+                                continue
+                        if captcha_solved_early:
+                            break
+                    except:
+                        # Continue waiting if we can't check
+                        continue
+                
+                if not captcha_solved_early:
+                    logger.warning(f"⏰ FINDER_TOKEN: CAPTCHA_FULL_WAIT - Waited full {captcha_pause_seconds} seconds")
                 
                 # Check if CAPTCHA was solved by looking for results again
                 try:
