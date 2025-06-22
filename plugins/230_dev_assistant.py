@@ -362,12 +362,14 @@ class DevAssistant:
             }
         }
         
-        # Check dropdown functions if they exist
+        # Check dropdown functions ONLY if they exist (don't penalize plugins without dropdowns)
+        dropdown_functions_found = False
         for func_name, required_attrs in required_dropdown_patterns.items():
             func_pattern = rf'def {func_name}\([^)]*\):(.*?)(?=\ndef|\Z)'
             func_match = re.search(func_pattern, content, re.DOTALL)
             
             if func_match:
+                dropdown_functions_found = True
                 func_content = func_match.group(1)
                 dropdown_result = {
                     'function_found': True,
@@ -446,24 +448,31 @@ class DevAssistant:
             
             aria_results['form_validations'] = form_validation
             
-            # Score based on automation attributes present
+            # IMPROVED SCORING: More generous scoring for good automation coverage
             automation_score = len(form_validation['automation_attributes'])
             total_possible = len(automation_patterns)
+            coverage_percentage = (automation_score / total_possible) * 100
             
-            if automation_score < 2:
+            if automation_score >= 4:  # 80%+ coverage = perfect score
+                aria_results['aria_recommendations'].append(
+                    "✅ Excellent automation attribute coverage detected"
+                )
+                # No deduction for 80%+ coverage
+            elif automation_score >= 3:  # 60%+ coverage = minor deduction
+                aria_results['aria_recommendations'].append(
+                    "⚠️ Good automation coverage, consider adding remaining attributes"
+                )
+                aria_results['accessibility_score'] -= 5  # Reduced from 10
+            elif automation_score >= 2:  # 40%+ coverage = moderate deduction
+                aria_results['aria_recommendations'].append(
+                    "⚠️ Moderate automation coverage, add more attributes for better testing"
+                )
+                aria_results['accessibility_score'] -= 15  # Reduced from 20
+            else:  # <40% coverage = significant deduction
                 aria_results['aria_recommendations'].append(
                     "❌ Add more automation-friendly attributes (id, aria-label, data-testid) to form elements"
                 )
-                aria_results['accessibility_score'] -= 20
-            elif automation_score < 4:
-                aria_results['aria_recommendations'].append(
-                    "⚠️ Consider adding more automation attributes for better test coverage"
-                )
-                aria_results['accessibility_score'] -= 10
-            else:
-                aria_results['aria_recommendations'].append(
-                    "✅ Good automation attribute coverage detected"
-                )
+                aria_results['accessibility_score'] -= 25  # Slightly increased for very poor coverage
         
         # Check for button accessibility
         button_patterns = {
@@ -482,12 +491,17 @@ class DevAssistant:
                 if re.search(pattern_regex, content):
                     button_accessibility['accessible_patterns'].append(pattern_name)
             
+            # IMPROVED SCORING: Don't penalize if buttons have any accessibility pattern
             if len(button_accessibility['accessible_patterns']) == 0:
                 aria_results['aria_issues'].append("Buttons lack accessibility attributes")
                 aria_results['aria_recommendations'].append(
                     "❌ Add aria-label or descriptive text to Button elements"
                 )
                 aria_results['accessibility_score'] -= 15
+            else:
+                aria_results['aria_recommendations'].append(
+                    "✅ Buttons have good accessibility attributes"
+                )
         
         # Final score calculation
         aria_results['accessibility_score'] = max(0, min(100, aria_results['accessibility_score']))
@@ -501,6 +515,14 @@ class DevAssistant:
         if aria_results['selenium_readiness'] != 'good':
             aria_results['aria_recommendations'].append(
                 "🤖 Review UI elements for Selenium/automation compatibility"
+            )
+        
+        # BONUS: Perfect score message for plugins without dropdown dependencies
+        if (aria_results['accessibility_score'] == 100 and 
+            not dropdown_functions_found and 
+            form_found):
+            aria_results['aria_recommendations'].append(
+                "🎉 Perfect automation readiness! This plugin has excellent form accessibility and no dropdown dependencies."
             )
         
         return aria_results
@@ -637,7 +659,7 @@ class DevAssistant:
                 breakdown_items.append(
                     Div('• Fix ARIA compliance issues (remaining points)', 
                         style='color: #0066cc; margin-left: 1rem;')
-                )
+                    )
         else:
             breakdown_items.append(
                 Div('🎉 Perfect Score! All automation & accessibility criteria met.', 
@@ -2081,7 +2103,7 @@ class DevAssistant:
                                     Strong(f'{func_name}: ', style='color: #333;'),
                                     Span(f'{result.get("completion_percentage", 0)}% complete', 
                                          style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"] if result.get("completion_percentage", 0) >= 80 else self.UI_CONSTANTS["COLORS"]["ERROR_RED"] if result.get("completion_percentage", 0) < 50 else "#ff8800"}; font-weight: bold;'),
-                                    Br(),
+                    Br(),
                                     *([Small(f'Missing: {", ".join(result["missing_attributes"])}', style='color: red; margin-left: 1rem;')] if result.get('missing_attributes') else []),
                                     style='margin-bottom: 0.5rem;'
                                 )
