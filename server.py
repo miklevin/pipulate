@@ -76,7 +76,7 @@ BANNER_COLORS = {
     'server_restart': 'yellow',
     
     # Special banners
-    'alice_banner': 'dim white',
+    'white_rabbit': 'white on default',
     'transparency_banner': 'bright_cyan',
     'system_diagram': 'bright_blue',
     'status_banner': 'bright_green',
@@ -2535,7 +2535,7 @@ def ascii_banner(title, subtitle=None, style=None, box_style=None):
 
 def system_diagram():
     """📐 SYSTEM DIAGRAMS: ASCII art system overview"""
-    diagram = """
+    diagram = """[black].[/black][white on default]
                ┌─────────────────────────────┐
                │         Navigation         ◄── Search, Profiles,
                ├───────────────┬─────────────┤    Apps, Settings
@@ -2543,7 +2543,7 @@ def system_diagram():
     Workflow, ──►   Main Area  │    Chat     │
     App UI     │   (Pipeline)  │  Interface ◄── LLM Interaction 
                │               │             │
-               └─────────────────────────────┘
+               └─────────────────────────────┘[/white on default]
     """
     
     style = BANNER_COLORS['system_diagram']
@@ -2555,19 +2555,18 @@ def system_diagram():
         padding=(1, 2)
     )
     console.print(panel)
-    logger.info("📐 SYSTEM_DIAGRAM: Pipulate Architecture displayed")
 
-def alice_banner():
-    """🐰 ALICE BANNER: Whimsical Alice-themed banner"""
+def white_rabbit():
+    """🐰 WHITE RABBIT: Whimsical White Rabbit-themed banner"""
     alice_art = r"""[black].[/black]            /)   ______
-       /)\__//   /      \
-   ___(/_ 0 0   |        |
- *(    ==(_T_)==|[bold]Pipulate[/bold]|
-   \  )   ""\   |        |
-    |__>-\_>_>   \______/
+       /)\__//    /      \
+   ___(/_ 0 0    |        |
+ *(    ==(_T_)== |[bold]Pipulate[/bold]|
+   \  )   ""\    |        |
+    |__>-\_>_>    \______/
    """
     
-    style = BANNER_COLORS['alice_banner']
+    style = BANNER_COLORS['white_rabbit']
     panel = Panel(
         Align.center(alice_art.strip()),
         title=f"[bold {style}]🐰 Welcome to Consoleland[/bold {style}]",
@@ -2577,12 +2576,11 @@ def alice_banner():
         padding=(1, 2)
     )
     console.print(panel)
-    logger.info("🐰 ALICE_BANNER: Welcome to Consoleland displayed")
 
-def falling_alice_banner():
+def falling_alice():
     """🍄 FALLING ALICE: Large ASCII art of Alice falling down the rabbit hole"""
     lines = 5
-    falling_alice_art = lines * "\n" + r"""[white]
+    falling_alice_art = lines * "\n" + r"""[white on default]
                     ___
                    |   |         _____
                    |_  |        /     \
@@ -2605,12 +2603,11 @@ def falling_alice_banner():
           _/ /        \   _/
       ___/  /          \_/
      /     /
-     `----`[/white]""" + lines * "\n"
+     `----`[/white on default]""" + lines * "\n"
     
-    style = BANNER_COLORS['alice_banner']
     # Just print centered content without a panel for invisible border effect
     console.print()  # Add spacing
-    console.print(Align.center(falling_alice_art), style=style)
+    console.print(Align.center(falling_alice_art))  # No conflicting style parameter
     console.print()  # Add spacing
     logger.info("🍄 FALLING_ALICE_BANNER: Large Alice art displayed")
 
@@ -2658,7 +2655,7 @@ def status_banner(mcp_count, plugin_count, env="Development"):
     server_color = BANNER_COLORS['workshop_ready']
     mcp_color = BANNER_COLORS['mcp_arsenal']
     plugin_color = BANNER_COLORS['plugin_registry_success']
-    env_color = BANNER_COLORS['alice_banner']
+    env_color = BANNER_COLORS['white_rabbit']
     transparency_color = BANNER_COLORS['transparency_banner']
     
     status_content = f"""
@@ -2972,7 +2969,9 @@ def log_pipeline_summary(title_prefix: str=''):
             app_summary = ", ".join([f"{app}({count})" for app, count in sorted(app_counts.items())])
             summary_lines.append(f"📱 Apps: {app_summary}")
         
-        alice_banner()
+        print()
+        white_rabbit()
+        print()
 
         # Add recent activity
         if recent_activity:
@@ -5718,7 +5717,7 @@ async def startup_event():
     progressive distillation workflows that define the Pipulate vision.
     """
     # 🎨 BEAUTIFUL STARTUP BANNER
-    ascii_banner("Digital Workshop Awakening", "Pipulate server initializing with radical transparency", "bright_cyan")
+    # ascii_banner("Digital Workshop Awakening", "Pipulate server initializing with radical transparency", "bright_cyan")
     
     # 🎭 STORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
@@ -5734,10 +5733,13 @@ async def startup_event():
     # 📊 BEAUTIFUL STATUS OVERVIEW
     env = get_current_environment()
     status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
+    print()
+    system_diagram()
     
     log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
     log_pipeline_summary(title_prefix='STARTUP FINAL')
+
 
     
     # Clear any stale coordination data on startup
@@ -7977,7 +7979,7 @@ def run_server_with_watchdog():
     logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner on startup')
     
     # Show the falling Alice art banner
-    falling_alice_banner()
+    falling_alice()
     
     # Additionally show debug information if STATE_TABLES is enabled
     if STATE_TABLES:
@@ -7990,7 +7992,7 @@ def run_server_with_watchdog():
     try:
         log.startup('Server starting on http://localhost:5001')
         logger.info('🌐 FINDER_TOKEN: UVICORN_START - Starting uvicorn server on http://localhost:5001')
-        ascii_banner("Digital Workshop Online", "Ready for creative exploration at http://localhost:5001", "bright_green")
+        # ascii_banner("Digital Workshop Online", "Ready for creative exploration at http://localhost:5001", "bright_green")
         log_level = 'debug' if DEBUG_MODE else 'warning'
         logger.info(f'📊 FINDER_TOKEN: UVICORN_CONFIG - Log level: {log_level}, Access log: {DEBUG_MODE}')
         log_config = {'version': 1, 'disable_existing_loggers': False, 'formatters': {'default': {'()': 'uvicorn.logging.DefaultFormatter', 'fmt': '%(levelprefix)s %(asctime)s | %(message)s', 'use_colors': True}}, 'handlers': {'default': {'formatter': 'default', 'class': 'logging.StreamHandler', 'stream': 'ext://sys.stderr'}}, 'loggers': {'uvicorn': {'handlers': ['default'], 'level': log_level.upper()}, 'uvicorn.error': {'level': log_level.upper()}, 'uvicorn.access': {'handlers': ['default'], 'level': log_level.upper(), 'propagate': False}, 'uvicorn.asgi': {'handlers': ['default'], 'level': log_level.upper(), 'propagate': False}}}
