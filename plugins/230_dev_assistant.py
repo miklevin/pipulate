@@ -505,6 +505,147 @@ class DevAssistant:
         
         return aria_results
 
+    def _generate_score_breakdown(self, automation_readiness):
+        """Generate detailed score breakdown showing what contributes to the automation score."""
+        breakdown_items = []
+        
+        # Base score starts at 100, deductions are made
+        base_score = 100
+        current_score = automation_readiness.get('accessibility_score', 0)
+        total_deductions = base_score - current_score
+        
+        # Header showing scoring logic
+        breakdown_items.append(
+            Div(f'🎯 Base Score: {base_score}/100 (Perfect accessibility)', 
+                style='color: #28a745; font-weight: bold; margin-bottom: 0.5rem;')
+        )
+        
+        if total_deductions > 0:
+            breakdown_items.append(
+                Div(f'⚠️ Total Deductions: -{total_deductions} points', 
+                    style='color: #dc3545; font-weight: bold; margin-bottom: 1rem;')
+            )
+        
+        # Analyze specific deduction sources
+        form_validations = automation_readiness.get('form_validations', {})
+        if form_validations.get('forms_detected'):
+            automation_attrs = form_validations.get('automation_attributes', [])
+            missing_attrs = form_validations.get('missing_attributes', [])
+            
+            breakdown_items.append(
+                Div(
+                    Strong('📝 Form Elements Analysis:', style='color: #0066cc;'),
+                    Br(),
+                    Span(f'✅ Found: {", ".join(automation_attrs) if automation_attrs else "None"}', 
+                         style='color: #28a745; margin-left: 1rem; display: block;'),
+                    Span(f'❌ Missing: {", ".join(missing_attrs) if missing_attrs else "None"}', 
+                         style='color: #dc3545; margin-left: 1rem; display: block;'),
+                    style='margin-bottom: 1rem; padding: 0.5rem; background-color: #e7f3ff; border-radius: 4px;'
+                )
+            )
+            
+            # Calculate form score impact
+            if len(automation_attrs) < 2:
+                breakdown_items.append(
+                    Div('📉 Form Score Impact: -20 points (insufficient automation attributes)', 
+                        style='color: #dc3545; margin-left: 1rem; font-style: italic;')
+                )
+            elif len(automation_attrs) < 4:
+                breakdown_items.append(
+                    Div('📉 Form Score Impact: -10 points (good but could be better)', 
+                        style='color: #fd7e14; margin-left: 1rem; font-style: italic;')
+                )
+            else:
+                breakdown_items.append(
+                    Div('📈 Form Score Impact: No deduction (excellent coverage)', 
+                        style='color: #28a745; margin-left: 1rem; font-style: italic;')
+                )
+        
+        # Button accessibility analysis
+        aria_issues = automation_readiness.get('aria_issues', [])
+        button_issues = [issue for issue in aria_issues if 'button' in issue.lower()]
+        if button_issues:
+            breakdown_items.append(
+                Div(
+                    Strong('🔘 Button Accessibility:', style='color: #0066cc;'),
+                    Br(),
+                    *[Span(f'❌ {issue}', style='color: #dc3545; margin-left: 1rem; display: block;') 
+                      for issue in button_issues],
+                    Div('📉 Button Score Impact: -15 points (missing accessibility attributes)', 
+                        style='color: #dc3545; margin-left: 1rem; font-style: italic; margin-top: 0.5rem;'),
+                    style='margin-bottom: 1rem; padding: 0.5rem; background-color: #ffe6e6; border-radius: 4px;'
+                )
+            )
+        
+        # Dropdown analysis
+        dropdown_validations = automation_readiness.get('dropdown_validations', {})
+        if dropdown_validations:
+            for func_name, result in dropdown_validations.items():
+                if result.get('function_found'):
+                    completion = result.get('completion_percentage', 0)
+                    missing = result.get('missing_attributes', [])
+                    
+                    breakdown_items.append(
+                        Div(
+                            Strong(f'📋 {func_name}:', style='color: #0066cc;'),
+                            Br(),
+                            Span(f'✅ Completion: {completion}%', 
+                                 style=f'color: {"#28a745" if completion >= 80 else "#dc3545" if completion < 50 else "#fd7e14"}; margin-left: 1rem; display: block;'),
+                            *([Span(f'❌ Missing: {", ".join(missing)}', 
+                                   style='color: #dc3545; margin-left: 1rem; display: block;')] if missing else []),
+                            style='margin-bottom: 1rem; padding: 0.5rem; background-color: #f0f0f0; border-radius: 4px;'
+                        )
+                    )
+        
+        # What's needed for 100/100
+        if current_score < 100:
+            points_needed = 100 - current_score
+            breakdown_items.append(
+                Div(
+                    Strong(f'🎯 To Reach 100/100 (Need +{points_needed} points):', style='color: #0066cc; font-size: 1.1rem;'),
+                    Br(),
+                    style='margin-top: 1rem; margin-bottom: 0.5rem;'
+                )
+            )
+            
+            # Specific recommendations based on missing elements
+            if form_validations.get('missing_attributes'):
+                missing_attrs = form_validations['missing_attributes']
+                if 'data_testid' in missing_attrs:
+                    breakdown_items.append(
+                        Div('• Add data-testid attributes to form elements (+5-10 points)', 
+                            style='color: #0066cc; margin-left: 1rem;')
+                    )
+                if 'placeholder_text' in missing_attrs:
+                    breakdown_items.append(
+                        Div('• Add placeholder text to input fields (+5 points)', 
+                            style='color: #0066cc; margin-left: 1rem;')
+                    )
+                if 'name_attributes' in missing_attrs:
+                    breakdown_items.append(
+                        Div('• Add name attributes for form processing (+5 points)', 
+                            style='color: #0066cc; margin-left: 1rem;')
+                    )
+            
+            if button_issues:
+                breakdown_items.append(
+                    Div('• Add aria-label to buttons (+15 points)', 
+                        style='color: #0066cc; margin-left: 1rem;')
+                )
+                
+            if not automation_readiness.get('automation_ready', False):
+                breakdown_items.append(
+                    Div('• Fix ARIA compliance issues (remaining points)', 
+                        style='color: #0066cc; margin-left: 1rem;')
+                )
+        else:
+            breakdown_items.append(
+                Div('🎉 Perfect Score! All automation & accessibility criteria met.', 
+                    style='color: #28a745; font-weight: bold; font-size: 1.1rem; margin-top: 1rem;')
+            )
+        
+        return breakdown_items
+
     def analyze_plugin_file(self, file_path):
         """Analyze a plugin file for common patterns, issues, and template suitability."""
         if not file_path.exists():
@@ -1913,10 +2054,23 @@ class DevAssistant:
                             style='margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e9ecef;'
                         ),
                         Div(
-                            H5(f'Overall Score: {automation_readiness.get("accessibility_score", 0)}/100', 
-                               style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"] if automation_readiness.get("accessibility_score", 0) >= 80 else self.UI_CONSTANTS["COLORS"]["ERROR_RED"] if automation_readiness.get("accessibility_score", 0) < 60 else "#ff8800"}; font-size: 1.2rem; margin-bottom: 1rem;'),
-                            P(f'Selenium Readiness: {automation_readiness.get("selenium_readiness", "unknown").title()}',
-                              style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"] if automation_readiness.get("selenium_readiness") == "good" else self.UI_CONSTANTS["COLORS"]["ERROR_RED"] if automation_readiness.get("selenium_readiness") == "poor" else "#ff8800"}; font-weight: bold; margin-bottom: 1rem;')
+                            H5(f'📊 Overall Score: {automation_readiness.get("accessibility_score", 0)}/100', 
+                               style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"] if automation_readiness.get("accessibility_score", 0) >= 95 else self.UI_CONSTANTS["COLORS"]["ERROR_RED"] if automation_readiness.get("accessibility_score", 0) < 70 else "#ff8800"}; font-size: 1.3rem; margin-bottom: 1rem; font-weight: bold;'),
+                            P(f'🤖 Selenium Readiness: {automation_readiness.get("selenium_readiness", "unknown").title()}',
+                              style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"] if automation_readiness.get("selenium_readiness") == "good" else self.UI_CONSTANTS["COLORS"]["ERROR_RED"] if automation_readiness.get("selenium_readiness") == "poor" else "#ff8800"}; font-weight: bold; margin-bottom: 1rem;'),
+                            P(f'🎯 Automation Ready: {"✅ Yes" if automation_readiness.get("automation_ready", False) else "❌ No"}',
+                              style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"] if automation_readiness.get("automation_ready", False) else self.UI_CONSTANTS["COLORS"]["ERROR_RED"]}; font-weight: bold; margin-bottom: 1rem;'),
+                              
+                            # Detailed Score Breakdown
+                            Details(
+                                Summary('📈 Score Breakdown (Click to expand)', 
+                                       style='cursor: pointer; color: #0066cc; font-weight: bold; margin: 1rem 0;'),
+                                Div(
+                                    H6('Score Components:', style='color: #333; margin-bottom: 0.5rem;'),
+                                    *self._generate_score_breakdown(automation_readiness),
+                                    style='padding: 1rem; background-color: #f8f9fa; border-radius: 4px; margin-top: 0.5rem;'
+                                )
+                            )
                         ) if automation_readiness else None,
                         
                         # Dropdown Validations
