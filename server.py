@@ -130,7 +130,7 @@ def setup_logging():
         sys.stderr, 
         level=log_level, 
         format=console_format, 
-        colorize=True,
+        colorize=True, 
         filter=lambda record: (
             record['level'].name != 'DEBUG' or 
             any(key in record['message'] for key in [
@@ -5189,8 +5189,16 @@ def find_plugin_classes(plugin_modules, discovered_modules):
                         elif hasattr(obj, 'name') or hasattr(obj, 'app_name') or hasattr(obj, 'display_name'):
                             logger.debug(f'Found plugin: {module_name}.{name} (property-based)')
                             plugin_classes.append((module_name, name, obj))
+                        else:
+                            logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class {module_name}.{name} has landing method but missing required name attributes (NAME, APP_NAME, DISPLAY_NAME, name, app_name, display_name) - skipping')
+                    else:
+                        # Only log classes that look like they might be plugins (have common plugin attributes)
+                        if any(hasattr(obj, attr) for attr in ['APP_NAME', 'DISPLAY_NAME', 'ROLES', 'steps']):
+                            logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class {module_name}.{name} appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping')
         except Exception as e:
-            logger.error(f'Error processing module {module_or_name}: {str(e)}')
+            logger.error(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Error processing module {module_or_name}: {str(e)}')
+            import traceback
+            logger.error(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Full traceback for {module_or_name}: {traceback.format_exc()}')
             continue
     logger.debug(f'Discovered plugin classes: {plugin_classes}')
     return plugin_classes
@@ -5229,10 +5237,10 @@ for module_name, class_name, workflow_class in discovered_classes:
             module = importlib.import_module(f'plugins.{original_name}')
             workflow_class = getattr(module, class_name)
             if not hasattr(workflow_class, 'landing'):
-                logger.warning(f"Plugin class {module_name}.{class_name} missing required 'landing' method - skipping")
+                logger.warning(f"FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class {module_name}.{class_name} missing required 'landing' method - skipping")
                 continue
             if not any((hasattr(workflow_class, attr) for attr in ['NAME', 'APP_NAME', 'DISPLAY_NAME', 'name', 'app_name', 'display_name'])):
-                logger.warning(f'Plugin class {module_name}.{class_name} missing required name attributes - skipping')
+                logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class {module_name}.{class_name} missing required name attributes - skipping')
                 continue
             try:
                 if module_name == 'profiles':
@@ -5269,9 +5277,11 @@ for module_name, class_name, workflow_class in discovered_classes:
                                 instance.DISPLAY_NAME = module_name.replace('_', ' ').title()
                                 logger.debug(f"Set instance.DISPLAY_NAME for '{module_name}' to default based on module_name: '{instance.DISPLAY_NAME}'")
                     except TypeError as te_regular:
-                        logger.error(f"TypeError for REGULAR plugin '{module_name}' with args {args_to_pass.keys()}: {te_regular}")
-                        logger.error(f'Available args were: app={type(app)}, pipulate_instance/pipulate={type(pipulate)}, pipeline_table/pipeline={type(pipeline)}, db_key_value_store/db_dictlike={type(db)}')
-                        logger.error(f'Plugin __init__ signature: {init_sig}')
+                        logger.error(f"FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - TypeError for REGULAR plugin '{module_name}' with args {args_to_pass.keys()}: {te_regular}")
+                        logger.error(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Available args were: app={type(app)}, pipulate_instance/pipulate={type(pipulate)}, pipeline_table/pipeline={type(pipeline)}, db_key_value_store/db_dictlike={type(db)}')
+                        logger.error(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin __init__ signature: {init_sig}')
+                        import traceback
+                        logger.error(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Full traceback for {module_name}: {traceback.format_exc()}')
                         raise
                 logger.debug(f'Auto-registered workflow: {module_name}')
                 if hasattr(instance, 'ROLES'):
@@ -5279,12 +5289,16 @@ for module_name, class_name, workflow_class in discovered_classes:
                 endpoint_message = get_endpoint_message(module_name)
                 logger.debug(f'Endpoint message for {module_name}: {endpoint_message}')
             except Exception as e:
-                # Log as debug since some plugins may have expected attribute errors during initialization
-                logger.debug(f'Error instantiating workflow {module_name}.{class_name}: {str(e)}')
+                # Log as warning/error since these are actual plugin registration failures
+                logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Error instantiating workflow {module_name}.{class_name}: {str(e)}')
+                import traceback
+                logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Full traceback for {module_name}.{class_name}: {traceback.format_exc()}')
                 continue
         except Exception as e:
-            logger.warning(f'Issue with workflow {module_name}.{class_name} - continuing anyway')
-            logger.debug(f'Error type: {e.__class__.__name__}')
+            logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Issue with workflow {module_name}.{class_name} - continuing anyway')
+            logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Error type: {e.__class__.__name__}: {str(e)}')
+            import traceback
+            logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Full traceback for {module_name}.{class_name}: {traceback.format_exc()}')
             if inspect.iscoroutine(e):
                 asyncio.create_task(e)
     plugin_instances[module_name] = instance
@@ -5353,6 +5367,23 @@ ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in ordered_plugins and module_name in plugin_instances:
         ordered_plugins.append(module_name)
+
+# Log plugin registration summary
+discovered_count = len(discovered_classes)
+registered_count = len(plugin_instances)
+failed_count = discovered_count - registered_count
+
+logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: {discovered_count}, successfully registered: {registered_count}, failed: {failed_count}')
+
+if failed_count > 0:
+    failed_plugins = []
+    for module_name, class_name, workflow_class in discovered_classes:
+        if module_name not in plugin_instances:
+            failed_plugins.append(f'{module_name}.{class_name}')
+    logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Failed plugins: {", ".join(failed_plugins)}')
+
+logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: {", ".join(plugin_instances.keys())}')
+
 MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
 
