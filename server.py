@@ -24,6 +24,9 @@ from rich.json import JSON
 from rich.style import Style as RichStyle
 from rich.table import Table, Text
 from rich.theme import Theme
+from rich.panel import Panel
+from rich.align import Align
+from rich.box import DOUBLE, ROUNDED, HEAVY, ASCII
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Route
@@ -2414,6 +2417,25 @@ def fig(text, font='slant', color='cyan', width=200):
     # Log text equivalent for server.log visibility
     logger.info(f"🎨 BANNER: {text} (figlet: {font})")
 
+def figlet_banner(text, subtitle=None, font='slant', color='bright_cyan', box_style=HEAVY):
+    """🎨 FIGLET BANNERS: Beautiful FIGlet text in Rich panels"""
+    figlet = Figlet(font=font, width=80)
+    fig_text = figlet.renderText(str(text))
+    
+    if subtitle:
+        content = f"[{color}]{fig_text}[/{color}]\n[dim]{subtitle}[/dim]"
+    else:
+        content = f"[{color}]{fig_text}[/{color}]"
+    
+    panel = Panel(
+        Align.center(content),
+        box=box_style,
+        style=color,
+        padding=(1, 2)
+    )
+    console.print(panel)
+    logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
+
 def chip_says(message, style="bold cyan", prefix="💬 Chip O'Theseus"):
     """🎭 CHIP O'THESEUS NARRATOR: Discrete storytelling moments in the logs"""
     console.print(f"{prefix}: {message}", style=style)
@@ -2433,6 +2455,124 @@ def server_whisper(message, emoji="🤫"):
     """🤫 SERVER WHISPERS: Subtle behind-the-scenes commentary"""
     console.print(f"{emoji} {message}", style="dim italic cyan")
     logger.info(f"🤫 WHISPER: {message}")
+
+def ascii_banner(title, subtitle=None, style="bright_cyan", box_style=ROUNDED):
+    """🎨 ASCII BANNERS: Beautiful framed banners for major sections"""
+    if subtitle:
+        content = f"[bold]{title}[/bold]\n[dim]{subtitle}[/dim]"
+    else:
+        content = f"[bold]{title}[/bold]"
+    
+    panel = Panel(
+        Align.center(content),
+        box=box_style,
+        style=style,
+        padding=(1, 2)
+    )
+    console.print(panel)
+    logger.info(f"🎨 ASCII_BANNER: {title}" + (f" - {subtitle}" if subtitle else ""))
+
+def system_diagram():
+    """📐 SYSTEM DIAGRAMS: ASCII art system overview"""
+    diagram = """
+               ┌─────────────────────────────┐
+               │         Navigation         ◄── Search, Profiles,
+               ├───────────────┬─────────────┤    Apps, Settings
+               │               │             │
+    Workflow, ──►   Main Area  │    Chat     │
+    App UI     │   (Pipeline)  │  Interface ◄── LLM Interaction 
+               │               │             │
+               └─────────────────────────────┘
+    """
+    
+    panel = Panel(
+        Align.center(diagram.strip()),
+        title="[bold bright_blue]🏗️  Pipulate Architecture[/bold bright_blue]",
+        box=DOUBLE,
+        style="bright_blue",
+        padding=(1, 2)
+    )
+    console.print(panel)
+    logger.info("📐 SYSTEM_DIAGRAM: Pipulate Architecture displayed")
+
+def alice_banner():
+    """🐰 ALICE BANNER: Whimsical Alice-themed banner"""
+    alice_art = """
+
+                    /)  ______
+              /)\__//  /      \\
+          ___(/_ 0 0  |        |
+        *(    ==(_T_)==Pipulate|
+          \\  )   \\"\\  |        |
+           |__>-\\_>_>  \\______/
+    """
+    
+    panel = Panel(
+        Align.center(alice_art.strip()),
+        title="[bold bright_magenta]🐰 Welcome to Wonderland[/bold bright_magenta]",
+        subtitle="[dim]Down the rabbit hole of radical transparency[/dim]",
+        box=ROUNDED,
+        style="bright_magenta",
+        padding=(1, 2)
+    )
+    console.print(panel)
+    logger.info("🐰 ALICE_BANNER: Welcome to Wonderland displayed")
+
+def section_header(icon, title, description=None, color="bright_yellow"):
+    """📋 SECTION HEADERS: Clean section dividers with icons"""
+    if description:
+        content = f"{icon}  [bold]{title}[/bold]\n[dim]{description}[/dim]"
+    else:
+        content = f"{icon}  [bold]{title}[/bold]"
+    
+    console.print()  # Add some space
+    console.print(content, style=color)
+    console.print("─" * 60, style=f"dim {color}")
+    logger.info(f"📋 SECTION: {icon} {title}" + (f" - {description}" if description else ""))
+
+def radical_transparency_banner():
+    """🔍 RADICAL TRANSPARENCY: Beautiful banner explaining the philosophy"""
+    transparency_text = """
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                    RADICAL TRANSPARENCY                      ║
+    ║                                                              ║
+    ║  Every operation is observable • Every call is logged       ║
+    ║  Every state change is tracked • Every error is explained   ║
+    ║                                                              ║
+    ║  🔍 FINDER_TOKENs guide your debugging journey             ║
+    ║  🔧 MCP Tools provide programmatic access to everything     ║
+    ║  📊 Pipeline State Inspector reveals workflow internals     ║
+    ║  🤖 AI Assistants have complete system visibility          ║
+    ║                                                              ║
+    ║           "Know EVERYTHING that's happening!"               ║
+    ╚══════════════════════════════════════════════════════════════╝
+    """
+    
+    console.print(transparency_text, style="bright_cyan")
+    logger.info("🔍 RADICAL_TRANSPARENCY_BANNER: Philosophy banner displayed")
+
+def status_banner(mcp_count, plugin_count, env="Development"):
+    """📊 STATUS BANNER: Current system status overview"""
+    status_content = f"""
+[bold bright_green]🚀 PIPULATE STATUS[/bold bright_green]
+[dim]Digital Workshop Framework[/dim]
+
+🌐 Server: [bright_green]http://localhost:5001[/bright_green]
+🔧 MCP Tools: [bright_blue]{mcp_count} active[/bright_blue]
+📦 Plugins: [bright_yellow]{plugin_count} registered[/bright_yellow]
+🏗️ Environment: [bright_magenta]{env}[/bright_magenta]
+🔍 Transparency: [bright_cyan]Full visibility enabled[/bright_cyan]
+    """
+    
+    panel = Panel(
+        status_content.strip(),
+        title="[bold bright_white]⚡ System Status[/bold bright_white]",
+        box=DOUBLE,
+        style="bright_white",
+        padding=(1, 2)
+    )
+    console.print(panel)
+    logger.info(f"📊 STATUS_BANNER: MCP:{mcp_count}, Plugins:{plugin_count}, Env:{env}")
 
 def print_and_log_table(table, title_prefix=""):
     """Print rich table to console AND log structured data to server.log for radical transparency.
@@ -5467,11 +5607,12 @@ async def startup_event():
     the full spectrum of content curation, archive surfing, and
     progressive distillation workflows that define the Pipulate vision.
     """
-    story_moment("Server Awakening", "The digital workshop is coming online...", "bright_cyan")
+    # 🎨 BEAUTIFUL STARTUP BANNER
+    ascii_banner("Digital Workshop Awakening", "Pipulate server initializing with radical transparency", "bright_cyan")
     
     # 🎭 STORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
-    story_moment("MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for radical transparency", "bright_blue")
+    section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
     
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.')
     server_whisper("Synchronizing roles and permissions", "🔐")
@@ -5479,6 +5620,10 @@ async def startup_event():
     
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:')
     story_moment("Workshop Ready", "All systems initialized and ready for creative exploration", "bright_green")
+    
+    # 📊 BEAUTIFUL STATUS OVERVIEW
+    env = get_current_environment()
+    status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
     
     log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
@@ -5509,7 +5654,7 @@ discovered_count = len(discovered_classes)
 registered_count = len(plugin_instances)
 failed_count = discovered_count - registered_count
 
-story_moment("Plugin Registry", f"Discovered {discovered_count} plugins, {registered_count} successfully registered", "bright_yellow")
+section_header("📦", "Plugin Registry", f"Discovered {discovered_count} plugins, {registered_count} successfully registered", "bright_yellow")
 
 logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: {discovered_count}, successfully registered: {registered_count}, failed: {failed_count}')
 
@@ -7707,9 +7852,9 @@ class ServerRestartHandler(FileSystemEventHandler):
 def run_server_with_watchdog():
     logger.info('🚀 FINDER_TOKEN: SERVER_STARTUP - Starting server with watchdog')
     
-    # 🎨 STORYTELLING: Server restart moment
-    fig('SERVER RESTART')
-    fig(APP_NAME, font='standard')
+    # 🎨 BEAUTIFUL RESTART BANNER
+    figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color='bright_yellow')
+    figlet_banner(APP_NAME, "Digital Workshop Framework", font='standard', color='bright_green')
     chip_says("Hello! The server is restarting. I'll be right back online.", "bold green")
     env = get_current_environment()
     env_db = DB_FILENAME
@@ -7718,20 +7863,21 @@ def run_server_with_watchdog():
         log.warning('Development mode active', details=f'Using database: {env_db}')
     else:
         log.startup('Production mode active', details=f'Using database: {env_db}')
-    # Always show Alice ASCII art on server startup - it's delightful!
-    logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice ASCII art on startup')
-    alice_buffer = 10
-    # Log Alice art to file but display directly to console for visual impact
+    # 🐰 ALICE WELCOME BANNER - Always show on server startup - it's delightful!
+    logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner on startup')
+    alice_banner()
+    
+    # Also show the full Alice art if available
     try:
         with open('static/alice.txt', 'r') as file:
             alice_content = file.read()
             logger.debug(f'🐰 FINDER_TOKEN: ALICE_CONTENT - ASCII art loaded from static/alice.txt')
-            # Still use print for ASCII art display to preserve visual formatting
-            [print() for _ in range(alice_buffer)]
+            # Show the full Alice art with some spacing
+            print("\n" * 3)
             print(alice_content)
-            [print() for _ in range(alice_buffer)]
+            print("\n" * 3)
     except FileNotFoundError:
-        logger.warning('🐰 FINDER_TOKEN: ALICE_MISSING - static/alice.txt not found, skipping ASCII art display')
+        logger.warning('🐰 FINDER_TOKEN: ALICE_MISSING - static/alice.txt not found, using banner only')
     
     # Additionally show debug information if STATE_TABLES is enabled
     if STATE_TABLES:
@@ -7744,7 +7890,7 @@ def run_server_with_watchdog():
     try:
         log.startup('Server starting on http://localhost:5001')
         logger.info('🌐 FINDER_TOKEN: UVICORN_START - Starting uvicorn server on http://localhost:5001')
-        story_moment("Digital Workshop Online", "Ready for creative exploration at http://localhost:5001", "bright_green")
+        ascii_banner("Digital Workshop Online", "Ready for creative exploration at http://localhost:5001", "bright_green")
         log_level = 'debug' if DEBUG_MODE else 'warning'
         logger.info(f'📊 FINDER_TOKEN: UVICORN_CONFIG - Log level: {log_level}, Access log: {DEBUG_MODE}')
         log_config = {'version': 1, 'disable_existing_loggers': False, 'formatters': {'default': {'()': 'uvicorn.logging.DefaultFormatter', 'fmt': '%(levelprefix)s %(asctime)s | %(message)s', 'use_colors': True}}, 'handlers': {'default': {'formatter': 'default', 'class': 'logging.StreamHandler', 'stream': 'ext://sys.stderr'}}, 'loggers': {'uvicorn': {'handlers': ['default'], 'level': log_level.upper()}, 'uvicorn.error': {'level': log_level.upper()}, 'uvicorn.access': {'handlers': ['default'], 'level': log_level.upper(), 'propagate': False}, 'uvicorn.asgi': {'handlers': ['default'], 'level': log_level.upper(), 'propagate': False}}}
