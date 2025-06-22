@@ -1860,6 +1860,18 @@ class DevAssistant:
                     analyzeBtn.textContent = 'Analyze ' + displayName + ' ▸';
                 }}
             }}
+            
+            // Click-away-to-dismiss - same pattern as navigation search
+            document.addEventListener('click', function(event) {{
+                const searchInput = document.getElementById('plugin-search-input-{step_id}');
+                const dropdown = document.getElementById('plugin-search-results-{step_id}');
+                
+                if (searchInput && dropdown && 
+                    !searchInput.contains(event.target) && 
+                    !dropdown.contains(event.target)) {{
+                    dropdown.style.display = 'none';
+                }}
+            }});
             """),
             # Next step placeholder for analysis results
             Div(id='step_02'),
