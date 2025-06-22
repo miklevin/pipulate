@@ -131,22 +131,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Additional listener for content changes
+    // TEMPORARILY DISABLED - Mutation observer causing excessive scroll events
+    // Will re-enable after confirming fix
+    /*
     const observer = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                const leftPanel = findScrollablePanel();
-                if (leftPanel && leftPanel.contains(mutation.target)) {
-                    console.log('Content changed in left panel, triggering scroll');
-                    debouncedScroll(leftPanel);
-                }
-            }
-        }
+        // Observer temporarily disabled for debugging
     });
-
-    // Start observing the document with the configured parameters
     observer.observe(document.body, { 
         childList: true, 
         subtree: true 
     });
+    */
 });

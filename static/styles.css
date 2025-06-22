@@ -1814,6 +1814,9 @@ input[type="password"]:focus {
     max-height: 300px;
     overflow-y: auto;
     display: none;
+    /* Performance optimizations for dropdown */
+    will-change: auto;
+    contain: layout style;
 }
 
 /* Profile dropdown menu styling */
