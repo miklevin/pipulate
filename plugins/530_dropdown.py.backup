@@ -16,21 +16,6 @@ class DropdownWidget:
 
     A focused environment for implementing and testing dropdown selection widgets.
     """
-    
-    # Template compatibility markers
-    # STEPS_LIST_INSERTION_POINT
-    # STEP_METHODS_INSERTION_POINT
-    
-    # UI Constants for automation testing
-    UI_CONSTANTS = {
-        'DROPDOWN_SELECT': 'dropdown-widget-select-input',
-        'DROPDOWN_OPTION': 'dropdown-widget-option',
-        'FINALIZE_BUTTON': 'dropdown-widget-finalize-button', 
-        'UNLOCK_BUTTON': 'dropdown-widget-unlock-button',
-        'NEXT_BUTTON': 'dropdown-widget-next-button',
-        'REVERT_BUTTON': 'dropdown-widget-revert-button'
-    }
-    
     APP_NAME = 'dropdown_widget'
     DISPLAY_NAME = 'Dropdown Widget'
     ENDPOINT_MESSAGE = 'Welcome to the Dropdown Widget! This is a focused environment for implementing and testing dropdown selection widgets. Use this space to prototype and refine your dropdown designs without distractions.'
@@ -108,11 +93,11 @@ class DropdownWidget:
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
             if finalize_step.done in finalize_data:
-                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline', data_testid='dropdown-widget-unlock-button', aria_label='Unlock dropdown for editing'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary', data_testid='dropdown-widget-finalize-button', aria_label='Finalize dropdown workflow'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -226,8 +211,8 @@ class DropdownWidget:
                     grouped_options[group] = []
                 grouped_options[group].append(option)
             logger.debug(f'Grouped options: {grouped_options}')
-            select = Select(*[Optgroup(*[Option(option['label'], value=option['value'], selected=option['value'] == selected_value, title=option['description'] if option['description'] else None, data_testid='dropdown-widget-option') for option in group_options], label=group) for group, group_options in grouped_options.items()], name=step.done, required=True, autofocus=True, data_testid='dropdown-widget-select-input', aria_label='Dropdown selection widget')
-            return Div(Card(H3(f'{step.show}'), Form(select, Button('Submit', type='submit', cls='primary', data_testid='dropdown-widget-next-button', aria_label='Proceed to next step'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', data_testid='dropdown-widget-form', aria_label='Dropdown selection form')), Div(id=next_step_id), id=step_id)
+            select = Select(*[Optgroup(*[Option(option['label'], value=option['value'], selected=option['value'] == selected_value, title=option['description'] if option['description'] else None) for option in group_options], label=group) for group, group_options in grouped_options.items()], name=step.done, required=True, autofocus=True)
+            return Div(Card(H3(f'{step.show}'), Form(select, Button('Submit', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
         except Exception as e:
             logger.error(f'Error getting options: {str(e)}')
             logger.exception('Full traceback:')
