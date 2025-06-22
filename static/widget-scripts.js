@@ -258,22 +258,47 @@ function debounce(func, wait) {
  */
 function scrollToBottom() {
   console.log("Scrolling to bottom...");
-  window.scrollTo({
-    top: document.body.scrollHeight,
-    behavior: 'smooth'
-  });
+  
+  // Try to find the main content container first (more targeted)
+  const mainContainer = document.querySelector('.main-grid > div:first-child') || 
+                       document.querySelector('#grid-left-content') ||
+                       document.querySelector('main.container');
+  
+  if (mainContainer) {
+    console.log("Scrolling main container to bottom");
+    mainContainer.scrollTo({
+      top: mainContainer.scrollHeight,
+      behavior: 'smooth'
+    });
+  } else {
+    console.log("Fallback: Scrolling page to bottom");
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: 'smooth'
+    });
+  }
 }
 
 // Create debounced version of the scroll function
 const debouncedScrollToBottom = debounce(scrollToBottom, 300);
 
-// Listen for HTMX settle events
+// Listen for HTMX settle events - but only for widget-specific updates
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("Setting up HTMX afterSettle listener for smooth scrolling");
+  console.log("Setting up HTMX afterSettle listener for widget scrolling");
   
   // Listen for the htmx:afterSettle event
   document.body.addEventListener('htmx:afterSettle', function(evt) {
-    console.log('htmx:afterSettle triggered. Requesting debounced scroll.');
-    debouncedScrollToBottom();
+    // Only scroll for widget-related updates, not all HTMX events
+    const target = evt.target;
+    const isWidgetUpdate = target && (
+      target.closest('.widget-container') ||
+      target.id && target.id.includes('widget') ||
+      target.className && target.className.includes('widget')
+    );
+    
+    if (isWidgetUpdate) {
+      console.log('htmx:afterSettle triggered for widget. Requesting debounced scroll.');
+      debouncedScrollToBottom();
+    }
   });
 }); 
