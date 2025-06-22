@@ -3343,7 +3343,8 @@ class Pipulate:
         Returns:
             Div: A flex container with the input and button(s)
         """
-        button_style = 'display: inline-block;cursor: pointer;width: auto !important;white-space: nowrap;'
+        border_radius = PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
+        button_style = f'display: inline-block;cursor: pointer;width: auto !important;white-space: nowrap;border-radius: {border_radius};'
         container_style = 'display: flex;align-items: center;gap: 0.5rem;'
         
         # Generate unique IDs for input-button association
