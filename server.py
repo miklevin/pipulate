@@ -48,6 +48,46 @@ TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycl
 # 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
 # These control different aspects of logging and debugging
 
+# 🎨 BANNER COLOR CONFIGURATION
+# Centralized color control for all storytelling banners and messages
+BANNER_COLORS = {
+    # Main banner colors
+    'figlet_primary': 'bright_cyan',
+    'figlet_subtitle': 'dim cyan',
+    
+    # ASCII banner colors  
+    'ascii_title': 'bright_cyan',
+    'ascii_subtitle': 'dim cyan',
+    
+    # Section headers
+    'section_header': 'bright_yellow',
+    
+    # Story moments and messages
+    'chip_narrator': 'bold cyan',
+    'story_moment': 'bright_magenta', 
+    'server_whisper': 'dim italic',
+    
+    # Startup sequence colors
+    'server_awakening': 'bright_cyan',
+    'mcp_arsenal': 'bright_blue',
+    'plugin_registry_success': 'bright_green',
+    'plugin_registry_warning': 'bright_yellow',
+    'workshop_ready': 'bright_green',
+    'server_restart': 'bright_magenta',
+    
+    # Special banners
+    'alice_banner': 'bright_magenta',
+    'transparency_banner': 'bright_cyan',
+    'system_diagram': 'bright_blue',
+    'status_banner': 'bright_green',
+    
+    # Box styles (Rich box drawing)
+    'heavy_box': 'HEAVY',
+    'rounded_box': 'ROUNDED', 
+    'double_box': 'DOUBLE',
+    'ascii_box': 'ASCII'
+}
+
 # Initialize logging as early as possible in the startup process
 def setup_logging():
     """
@@ -2407,8 +2447,11 @@ logger.info(f'📁 FINDER_TOKEN: DATA_DIR - Data directory ensured: {data_dir}')
 DB_FILENAME = get_db_filename()
 logger.info(f'💾 FINDER_TOKEN: DB_CONFIG - Database file: {DB_FILENAME}')
 
-def fig(text, font='slant', color='cyan', width=200):
+def fig(text, font='slant', color=None, width=200):
     """🎨 CHIP O'THESEUS STORYTELLING: Tasteful FIGlet banners for key server moments"""
+    if color is None:
+        color = BANNER_COLORS['figlet_primary']
+    
     figlet = Figlet(font=font, width=width)
     fig_text = figlet.renderText(str(text))
     colored_text = Text(fig_text, style=f'{color} on default')
@@ -2417,13 +2460,19 @@ def fig(text, font='slant', color='cyan', width=200):
     # Log text equivalent for server.log visibility
     logger.info(f"🎨 BANNER: {text} (figlet: {font})")
 
-def figlet_banner(text, subtitle=None, font='slant', color='bright_cyan', box_style=HEAVY):
+def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None):
     """🎨 FIGLET BANNERS: Beautiful FIGlet text in Rich panels"""
+    if color is None:
+        color = BANNER_COLORS['figlet_primary']
+    if box_style is None:
+        box_style = HEAVY  # Default to HEAVY, can be overridden by BANNER_COLORS later
+    
     figlet = Figlet(font=font, width=80)
     fig_text = figlet.renderText(str(text))
     
     if subtitle:
-        content = f"[{color}]{fig_text}[/{color}]\n[dim]{subtitle}[/dim]"
+        subtitle_color = BANNER_COLORS['figlet_subtitle']
+        content = f"[{color}]{fig_text}[/{color}]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
     else:
         content = f"[{color}]{fig_text}[/{color}]"
     
@@ -2436,13 +2485,18 @@ def figlet_banner(text, subtitle=None, font='slant', color='bright_cyan', box_st
     console.print(panel)
     logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
 
-def chip_says(message, style="bold cyan", prefix="💬 Chip O'Theseus"):
+def chip_says(message, style=None, prefix="💬 Chip O'Theseus"):
     """🎭 CHIP O'THESEUS NARRATOR: Discrete storytelling moments in the logs"""
+    if style is None:
+        style = BANNER_COLORS['chip_narrator']
     console.print(f"{prefix}: {message}", style=style)
     logger.info(f"🎭 NARRATOR: {prefix}: {message}")
 
-def story_moment(title, details=None, color="bright_magenta"):
+def story_moment(title, details=None, color=None):
     """📖 STORY MOMENTS: Mark significant server events with tasteful color"""
+    if color is None:
+        color = BANNER_COLORS['story_moment']
+    
     if details:
         console.print(f"📖 {title}", style=f"bold {color}")
         console.print(f"   {details}", style=f"dim {color}")
@@ -2453,13 +2507,20 @@ def story_moment(title, details=None, color="bright_magenta"):
 
 def server_whisper(message, emoji="🤫"):
     """🤫 SERVER WHISPERS: Subtle behind-the-scenes commentary"""
-    console.print(f"{emoji} {message}", style="dim italic cyan")
+    style = BANNER_COLORS['server_whisper']
+    console.print(f"{emoji} {message}", style=style)
     logger.info(f"🤫 WHISPER: {message}")
 
-def ascii_banner(title, subtitle=None, style="bright_cyan", box_style=ROUNDED):
+def ascii_banner(title, subtitle=None, style=None, box_style=None):
     """🎨 ASCII BANNERS: Beautiful framed banners for major sections"""
+    if style is None:
+        style = BANNER_COLORS['ascii_title']
+    if box_style is None:
+        box_style = ROUNDED  # Default to ROUNDED
+    
     if subtitle:
-        content = f"[bold]{title}[/bold]\n[dim]{subtitle}[/dim]"
+        subtitle_color = BANNER_COLORS['ascii_subtitle']
+        content = f"[bold]{title}[/bold]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
     else:
         content = f"[bold]{title}[/bold]"
     
@@ -2485,11 +2546,12 @@ def system_diagram():
                └─────────────────────────────┘
     """
     
+    style = BANNER_COLORS['system_diagram']
     panel = Panel(
         Align.center(diagram.strip()),
-        title="[bold bright_blue]🏗️  Pipulate Architecture[/bold bright_blue]",
+        title=f"[bold {style}]🏗️  Pipulate Architecture[/bold {style}]",
         box=DOUBLE,
-        style="bright_blue",
+        style=style,
         padding=(1, 2)
     )
     console.print(panel)
@@ -2498,7 +2560,7 @@ def system_diagram():
 def alice_banner():
     """🐰 ALICE BANNER: Whimsical Alice-themed banner"""
     alice_art = """
-                                                  /)  ______
+.                       /)  ______
                   /)\__//  /      \\
               ___(/_ 0 0  |        |
             *(    ==(_T_)==Pipulate|
@@ -2506,19 +2568,23 @@ def alice_banner():
                |__>-\\_>_>  \\______/
     """
     
+    style = BANNER_COLORS['alice_banner']
     panel = Panel(
         Align.center(alice_art.strip()),
-        title="[bold bright_magenta]🐰 Welcome to Wonderland[/bold bright_magenta]",
+        title=f"[bold {style}]🐰 Welcome to Wonderland[/bold {style}]",
         subtitle="[dim]Down the rabbit hole of radical transparency[/dim]",
         box=ROUNDED,
-        style="bright_magenta",
+        style=style,
         padding=(1, 2)
     )
     console.print(panel)
     logger.info("🐰 ALICE_BANNER: Welcome to Wonderland displayed")
 
-def section_header(icon, title, description=None, color="bright_yellow"):
+def section_header(icon, title, description=None, color=None):
     """📋 SECTION HEADERS: Clean section dividers with icons"""
+    if color is None:
+        color = BANNER_COLORS['section_header']
+    
     if description:
         content = f"{icon}  [bold]{title}[/bold]\n[dim]{description}[/dim]"
     else:
@@ -2547,27 +2613,36 @@ def radical_transparency_banner():
     ╚══════════════════════════════════════════════════════════════╝
     """
     
-    console.print(transparency_text, style="bright_cyan")
+    style = BANNER_COLORS['transparency_banner']
+    console.print(transparency_text, style=style)
     logger.info("🔍 RADICAL_TRANSPARENCY_BANNER: Philosophy banner displayed")
 
 def status_banner(mcp_count, plugin_count, env="Development"):
     """📊 STATUS BANNER: Current system status overview"""
+    # Use centralized colors
+    primary_color = BANNER_COLORS['status_banner']
+    server_color = BANNER_COLORS['workshop_ready']
+    mcp_color = BANNER_COLORS['mcp_arsenal']
+    plugin_color = BANNER_COLORS['plugin_registry_success']
+    env_color = BANNER_COLORS['alice_banner']
+    transparency_color = BANNER_COLORS['transparency_banner']
+    
     status_content = f"""
-[bold bright_green]🚀 PIPULATE STATUS[/bold bright_green]
+[bold {primary_color}]🚀 PIPULATE STATUS[/bold {primary_color}]
 [dim]Digital Workshop Framework[/dim]
 
-🌐 Server: [bright_green]http://localhost:5001[/bright_green]
-🔧 MCP Tools: [bright_blue]{mcp_count} active[/bright_blue]
-📦 Plugins: [bright_yellow]{plugin_count} registered[/bright_yellow]
-🏗️ Environment: [bright_magenta]{env}[/bright_magenta]
-🔍 Transparency: [bright_cyan]Full visibility enabled[/bright_cyan]
+🌐 Server: [{server_color}]http://localhost:5001[/{server_color}]
+🔧 MCP Tools: [{mcp_color}]{mcp_count} active[/{mcp_color}]
+📦 Plugins: [{plugin_color}]{plugin_count} registered[/{plugin_color}]
+🏗️ Environment: [{env_color}]{env}[/{env_color}]
+🔍 Transparency: [{transparency_color}]Full visibility enabled[/{transparency_color}]
     """
     
     panel = Panel(
         status_content.strip(),
-        title="[bold bright_white]⚡ System Status[/bold bright_white]",
+        title=f"[bold {primary_color}]⚡ System Status[/bold {primary_color}]",
         box=DOUBLE,
-        style="bright_white",
+        style=primary_color,
         padding=(1, 2)
     )
     console.print(panel)
@@ -5618,7 +5693,7 @@ async def startup_event():
     await synchronize_roles_to_db()
     
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:')
-    story_moment("Workshop Ready", "All systems initialized and ready for creative exploration", "bright_green")
+            story_moment("Workshop Ready", "All systems initialized and ready for creative exploration", BANNER_COLORS['workshop_ready'])
     
     # 📊 BEAUTIFUL STATUS OVERVIEW
     env = get_current_environment()
@@ -5665,7 +5740,7 @@ if failed_count > 0:
     server_whisper(f"Some plugins need attention: {', '.join(failed_plugins)}", "⚠️")
     logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Failed plugins: {", ".join(failed_plugins)}')
 else:
-    chip_says("All plugins loaded successfully! The workshop is fully equipped.", "bold green")
+            chip_says("All plugins loaded successfully! The workshop is fully equipped.", BANNER_COLORS['plugin_registry_success'])
 
 logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: {", ".join(plugin_instances.keys())}')
 
@@ -7852,9 +7927,9 @@ def run_server_with_watchdog():
     logger.info('🚀 FINDER_TOKEN: SERVER_STARTUP - Starting server with watchdog')
     
     # 🎨 BEAUTIFUL RESTART BANNER
-    figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color='bright_yellow')
-    figlet_banner(APP_NAME, "Digital Workshop Framework", font='standard', color='bright_green')
-    chip_says("Hello! The server is restarting. I'll be right back online.", "bold green")
+    figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color=BANNER_COLORS['server_restart'])
+    figlet_banner(APP_NAME, "Digital Workshop Framework", font='standard', color=BANNER_COLORS['workshop_ready'])
+    chip_says("Hello! The server is restarting. I'll be right back online.", BANNER_COLORS['workshop_ready'])
     env = get_current_environment()
     env_db = DB_FILENAME
     logger.info(f'🌍 FINDER_TOKEN: ENVIRONMENT - Current environment: {env}')
