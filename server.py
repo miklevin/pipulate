@@ -3389,7 +3389,7 @@ class Pipulate:
                 'box-shadow: none !important;'
                 'line-height: 1.25;'  # Match button line height
                 'font-size: 1.2rem;'  # Slightly smaller emoji for better proportion
-                'opacity: 0.9;'  # Higher opacity for better integration
+                'opacity: 0.5;'  # Subtle 50% opacity for the entire button
                 'vertical-align: middle;'  # Ensure proper alignment with main button
             )
             new_key_button = Button(
