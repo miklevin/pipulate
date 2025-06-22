@@ -2008,6 +2008,34 @@ async def _dev_assistant_auto_analyze(params: dict) -> dict:
         if not plugin_path:
             return {"success": False, "error": "plugin_path is required"}
         
+        # 🎯 CRITICAL: Only analyze plugins with "Component" in ROLES
+        try:
+            with open(plugin_path, 'r') as f:
+                plugin_content = f.read()
+            
+            # Extract ROLES list from the plugin
+            roles_match = re.search(r'ROLES\s*=\s*\[(.*?)\]', plugin_content, re.DOTALL)
+            if roles_match:
+                roles_content = roles_match.group(1)
+                # Check if "Component" is in the ROLES list
+                if 'Component' not in roles_content:
+                    return {
+                        "success": False, 
+                        "error": f"Plugin {plugin_path} does not have 'Component' in ROLES list. Only Component plugins are analyzed for automation coverage.",
+                        "plugin_roles": roles_content.strip()
+                    }
+            else:
+                return {
+                    "success": False,
+                    "error": f"Plugin {plugin_path} does not have a ROLES list. Only Component plugins with defined ROLES are analyzed."
+                }
+                
+        except Exception as role_check_error:
+            return {
+                "success": False,
+                "error": f"Failed to check ROLES in {plugin_path}: {str(role_check_error)}"
+            }
+        
         # Step 1: Scrape the Dev Assistant interface
         scrape_result = await _browser_scrape_page({
             "url": f"{base_url}/dev_assistant",
@@ -2163,6 +2191,28 @@ async def _bulk_plugin_automation_audit(params: dict) -> dict:
                 
                 # Skip certain system files
                 if plugin_name.startswith('_') or plugin_name == 'common.py':
+                    continue
+                
+                # 🎯 CRITICAL: Only analyze plugins with "Component" in ROLES
+                try:
+                    with open(plugin_path, 'r') as f:
+                        plugin_content = f.read()
+                    
+                    # Extract ROLES list from the plugin
+                    roles_match = re.search(r'ROLES\s*=\s*\[(.*?)\]', plugin_content, re.DOTALL)
+                    if roles_match:
+                        roles_content = roles_match.group(1)
+                        # Check if "Component" is in the ROLES list
+                        if 'Component' not in roles_content:
+                            logger.info(f"🔍 FINDER_TOKEN: BULK_AUDIT_SKIP_NON_COMPONENT | Plugin: {plugin_name} | Reason: Component not in ROLES")
+                            continue
+                    else:
+                        # No ROLES found - skip this plugin
+                        logger.info(f"🔍 FINDER_TOKEN: BULK_AUDIT_SKIP_NO_ROLES | Plugin: {plugin_name} | Reason: No ROLES list found")
+                        continue
+                        
+                except Exception as role_check_error:
+                    logger.error(f"🚨 FINDER_TOKEN: BULK_AUDIT_ROLE_CHECK_ERROR | Plugin: {plugin_name} | Error: {str(role_check_error)}")
                     continue
                 
                 analysis_result = await _dev_assistant_auto_analyze({
