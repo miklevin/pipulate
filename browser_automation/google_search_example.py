@@ -57,17 +57,21 @@ class GoogleSearchAutomator:
         print("🎨 Creating beautiful DOM and automation registry...")
         beautiful_dom, self.automation_registry = self.beautifier.beautify_dom(dom_html)
         
-        # Save files
-        with open(f"{save_prefix}_beautiful_dom.html", 'w', encoding='utf-8') as f:
+        # Save files to proper looking_at directory
+        import os
+        looking_at_dir = 'looking_at'
+        os.makedirs(looking_at_dir, exist_ok=True)
+        
+        with open(f"{looking_at_dir}/{save_prefix}_beautiful_dom.html", 'w', encoding='utf-8') as f:
             f.write(beautiful_dom)
         
-        with open(f"{save_prefix}_automation_registry.json", 'w', encoding='utf-8') as f:
+        with open(f"{looking_at_dir}/{save_prefix}_automation_registry.json", 'w', encoding='utf-8') as f:
             f.write(self.beautifier.export_automation_registry('json'))
         
-        with open(f"{save_prefix}_automation_targets.py", 'w', encoding='utf-8') as f:
+        with open(f"{looking_at_dir}/{save_prefix}_automation_targets.py", 'w', encoding='utf-8') as f:
             f.write(self.beautifier._export_python_registry())
         
-        with open(f"{save_prefix}_automation_summary.txt", 'w', encoding='utf-8') as f:
+        with open(f"{looking_at_dir}/{save_prefix}_automation_summary.txt", 'w', encoding='utf-8') as f:
             f.write(self.beautifier._export_summary())
         
         print(f"📊 Found {len(self.automation_registry)} automation targets")
@@ -275,15 +279,15 @@ def main():
     automator = GoogleSearchAutomator()
     automator.demonstrate_ai_automation(search_query)
     
-    print("\n📁 Generated files:")
-    print("- google_homepage_beautiful_dom.html")
-    print("- google_homepage_automation_registry.json")
-    print("- google_homepage_automation_targets.py")
-    print("- google_homepage_automation_summary.txt")
-    print("- google_results_beautiful_dom.html")
-    print("- google_results_automation_registry.json")
-    print("- google_results_automation_targets.py")
-    print("- google_results_automation_summary.txt")
+    print("\n📁 Generated files in looking_at/ directory:")
+    print("- looking_at/google_homepage_beautiful_dom.html")
+    print("- looking_at/google_homepage_automation_registry.json")
+    print("- looking_at/google_homepage_automation_targets.py")
+    print("- looking_at/google_homepage_automation_summary.txt")
+    print("- looking_at/google_results_beautiful_dom.html")
+    print("- looking_at/google_results_automation_registry.json")
+    print("- looking_at/google_results_automation_targets.py")
+    print("- looking_at/google_results_automation_summary.txt")
 
 
 if __name__ == "__main__":
