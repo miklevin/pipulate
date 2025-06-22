@@ -681,16 +681,26 @@ Output only the MCP block above. Do not add any other text."""
                     id='step_01'
                 )
             else:
-                # Handle other exceptions
-                error_msg = f'Error during MCP tool execution: {str(e)}'
-                logger.error(f"🔧 FINDER_TOKEN: SIMON_EXCEPTION - Error in step_01_submit: {error_msg}")
-                logger.error(f"🔧 FINDER_TOKEN: SIMON_EXCEPTION_TYPE - Exception type: {type(e).__name__}")
-                logger.error(f"🔧 FINDER_TOKEN: SIMON_EXCEPTION_REPR - Exception repr: {repr(e)}")
-                
-                # Add exception to conversation history for LLM learning (silent - no user stream)
-                await self.message_queue.add(pip, f"User attempted MCP execution", verbatim=True, role='user')
-                await self.message_queue.add(pip, f"MCP Tool Execution → Exception: {error_msg}", verbatim=True, role='assistant')
-                return P(error_msg, style='color: red;')
+                                 # Handle other exceptions
+                 error_msg = f'Error during MCP tool execution: {str(e)}'
+                 logger.error(f"🔧 FINDER_TOKEN: SIMON_EXCEPTION - Error in step_01_submit: {error_msg}")
+                 logger.error(f"🔧 FINDER_TOKEN: SIMON_EXCEPTION_TYPE - Exception type: {type(e).__name__}")
+                 logger.error(f"🔧 FINDER_TOKEN: SIMON_EXCEPTION_REPR - Exception repr: {repr(e)}")
+                 
+                 # Add exception to conversation history for LLM learning (silent - no user stream)
+                 await self.message_queue.add(pip, f"User attempted MCP execution", verbatim=True, role='user')
+                 await self.message_queue.add(pip, f"MCP Tool Execution → Exception: {error_msg}", verbatim=True, role='assistant')
+                 
+                 # CRITICAL: Return proper div structure to preserve HTMX functionality
+                 return Div(
+                     Card(
+                         H3('❌ Error'),
+                         P(error_msg, cls='text-invalid'),
+                         Button('Try Again', type='button', cls='primary', 
+                                onclick=f"document.getElementById('step_01').innerHTML = '<div hx-get=\"/{self.app_name}/step_01\" hx-trigger=\"load\"></div>'; htmx.process(document.getElementById('step_01'));")
+                     ),
+                     id='step_01'
+                 )
     # --- END_STEP_BUNDLE: step_01 ---
 
     async def step_01_change_mode(self, request):
