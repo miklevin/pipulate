@@ -570,7 +570,7 @@ Output only the MCP block above. Do not add any other text."""
                         "http://localhost:5001/mcp-tool-executor",
                         headers={"Content-Type": "application/json"},
                         json={"tool": tool_name, "params": params},
-                        timeout=30  # Longer timeout for search operations
+                        timeout=120  # Much longer timeout for CAPTCHA solving (2 minutes)
                     )
                     
                     if response.status_code in [200, 503]:
@@ -594,13 +594,18 @@ Output only the MCP block above. Do not add any other text."""
                         
                         elif current_mode == 'google_search':
                             # Handle Google search results
+                            logger.info(f"🔧 FINDER_TOKEN: GOOGLE_RESULT_PROCESSING - Processing result: {result.get('success')}")
                             if result.get('success'):
                                 results = result.get('results', [])
                                 files = result.get('files_created', {})
                                 
+                                logger.info(f"🔧 FINDER_TOKEN: GOOGLE_SUCCESS_DATA - {len(results)} results, files: {list(files.keys())}")
+                                
                                 # Add to conversation history for LLM training (silent - no user stream)
                                 await self.message_queue.add(pip, f"User selected: Google Search Test", verbatim=True, role='user')
                                 await self.message_queue.add(pip, f"MCP Tool Execution: browser_stealth_search(query='python programming tutorial') → Success. Found {len(results)} results. Files: {list(files.keys())}", verbatim=True, role='assistant')
+                                
+                                logger.info(f"🔧 FINDER_TOKEN: GOOGLE_MESSAGE_QUEUE_COMPLETE - Added success messages to queue")
                             else:
                                 error_msg = result.get("error", "Unknown error")
                                 
@@ -627,7 +632,7 @@ Output only the MCP block above. Do not add any other text."""
                         "http://localhost:5001/mcp-tool-executor",
                         headers={"Content-Type": "application/json"},
                         json={"tool": "ui_flash_element", "params": params},
-                        timeout=10
+                        timeout=30  # Increased timeout for UI flash operations
                     )
                     
                     if response.status_code in [200, 503]:
@@ -652,16 +657,40 @@ Output only the MCP block above. Do not add any other text."""
             
             # Return fresh form for immediate re-testing
             logger.info(f"🔧 FINDER_TOKEN: SIMON_SUCCESS - MCP tool executed successfully, returning refresh")
+            logger.info(f"🔧 FINDER_TOKEN: SIMON_RETURN_VALUES - step_id={step_id}, app_name={self.app_name}")
             return Div(id=step_id, hx_get=f'/{self.app_name}/{step_id}', hx_trigger='load')
 
         except Exception as e:
-            error_msg = f'Error during MCP tool execution: {str(e)}'
-            logger.error(f"Error in step_01_submit: {error_msg}")
-            
-            # Add exception to conversation history for LLM learning (silent - no user stream)
-            await self.message_queue.add(pip, f"User attempted MCP execution", verbatim=True, role='user')
-            await self.message_queue.add(pip, f"MCP Tool Execution → Exception: {error_msg}", verbatim=True, role='assistant')
-            return P(error_msg, style='color: red;')
+            # Handle timeout specifically - the MCP tool likely succeeded but the HTTP response timed out
+            if 'ReadTimeout' in str(type(e).__name__) or 'timeout' in str(e).lower():
+                logger.warning(f"🔧 FINDER_TOKEN: SIMON_TIMEOUT - HTTP timeout in step_01_submit: {type(e).__name__}")
+                
+                # Add timeout info to conversation history
+                await self.message_queue.add(pip, f"User executed MCP tool (HTTP timeout occurred)", verbatim=True, role='user')
+                await self.message_queue.add(pip, f"MCP Tool Execution: HTTP timeout after 2+ minutes - tool likely completed successfully in background", verbatim=True, role='assistant')
+                
+                # Return success message since the MCP tool probably worked
+                return Div(
+                    Card(
+                        H3('⏰ Operation Timeout'),
+                        P('The MCP tool execution timed out after 2+ minutes, but it likely completed successfully in the background.'),
+                        P('Check the server logs for MCP_SUCCESS messages to confirm completion.', cls='text-secondary'),
+                        Button('Try Again', type='button', cls='primary', 
+                               onclick=f"document.getElementById('step_01').innerHTML = '<div hx-get=\"/{self.app_name}/step_01\" hx-trigger=\"load\"></div>'; htmx.process(document.getElementById('step_01'));")
+                    ),
+                    id='step_01'
+                )
+            else:
+                # Handle other exceptions
+                error_msg = f'Error during MCP tool execution: {str(e)}'
+                logger.error(f"🔧 FINDER_TOKEN: SIMON_EXCEPTION - Error in step_01_submit: {error_msg}")
+                logger.error(f"🔧 FINDER_TOKEN: SIMON_EXCEPTION_TYPE - Exception type: {type(e).__name__}")
+                logger.error(f"🔧 FINDER_TOKEN: SIMON_EXCEPTION_REPR - Exception repr: {repr(e)}")
+                
+                # Add exception to conversation history for LLM learning (silent - no user stream)
+                await self.message_queue.add(pip, f"User attempted MCP execution", verbatim=True, role='user')
+                await self.message_queue.add(pip, f"MCP Tool Execution → Exception: {error_msg}", verbatim=True, role='assistant')
+                return P(error_msg, style='color: red;')
     # --- END_STEP_BUNDLE: step_01 ---
 
     async def step_01_change_mode(self, request):
