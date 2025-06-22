@@ -2653,39 +2653,43 @@ def log_pipeline_summary(title_prefix: str=''):
         recent_activity = []
         
         for record in records:
-            # Convert SQLite Row to dict for easier access
-            record_dict = dict(record) if hasattr(record, 'keys') else record
-            
-            app_name = record_dict.get('app_name', 'unknown')
-            app_counts[app_name] = app_counts.get(app_name, 0) + 1
-            
-            # Check if finalized
-            data = record_dict.get('data', {})
-            if isinstance(data, str):
-                # Handle case where data is JSON string
-                try:
-                    import json
-                    data = json.loads(data)
-                except:
-                    data = {}
-            
-            if data.get('finalize', {}).get('finalized'):
-                finalized_count += 1
+            # SQLite Row objects support direct attribute access
+            try:
+                app_name = getattr(record, 'app_name', 'unknown')
+                app_counts[app_name] = app_counts.get(app_name, 0) + 1
                 
-            # Track recent activity (last 24 hours)
-            updated = record_dict.get('updated', '')
-            if updated:
-                try:
-                    from datetime import datetime, timedelta
-                    updated_time = datetime.fromisoformat(updated.replace('Z', '+00:00'))
-                    if datetime.now().replace(tzinfo=updated_time.tzinfo) - updated_time < timedelta(hours=24):
-                        recent_activity.append({
-                            'pkey': record_dict.get('pkey', ''),
-                            'app': app_name,
-                            'updated': updated
-                        })
-                except:
-                    pass
+                # Check if finalized
+                data_str = getattr(record, 'data', '{}')
+                if isinstance(data_str, str):
+                    # Handle case where data is JSON string
+                    try:
+                        import json
+                        data = json.loads(data_str)
+                    except:
+                        data = {}
+                else:
+                    data = data_str
+                
+                if data.get('finalize', {}).get('finalized'):
+                    finalized_count += 1
+                    
+                # Track recent activity (last 24 hours)
+                updated = getattr(record, 'updated', '')
+                if updated:
+                    try:
+                        from datetime import datetime, timedelta
+                        updated_time = datetime.fromisoformat(updated.replace('Z', '+00:00'))
+                        if datetime.now().replace(tzinfo=updated_time.tzinfo) - updated_time < timedelta(hours=24):
+                            recent_activity.append({
+                                'pkey': getattr(record, 'pkey', ''),
+                                'app': app_name,
+                                'updated': updated
+                            })
+                    except:
+                        pass
+            except Exception as e:
+                logger.debug(f"Error processing pipeline record: {e}")
+                continue
         
         # Create friendly summary
         summary_lines = [
@@ -2711,8 +2715,11 @@ def log_pipeline_summary(title_prefix: str=''):
         if records:
             recent_keys = []
             for record in records[-3:]:
-                record_dict = dict(record) if hasattr(record, 'keys') else record
-                recent_keys.append(record_dict.get('pkey', 'unknown'))
+                try:
+                    pkey = getattr(record, 'pkey', 'unknown')
+                    recent_keys.append(pkey)
+                except:
+                    recent_keys.append('unknown')
             logger.info(f"🔍 SEMANTIC_PIPELINE_CONTEXT: {title_prefix} Recent workflow keys: {', '.join(recent_keys)}")
             
     except Exception as e:
