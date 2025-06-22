@@ -23,6 +23,38 @@ class MermaidWidget:
     ENDPOINT_MESSAGE = 'This workflow demonstrates a Mermaid.js diagram rendering widget. Enter Mermaid syntax to see it rendered as a diagram.'
     TRAINING_PROMPT = 'This workflow is for demonstrating and testing the Mermaid diagram widget. The user will input Mermaid diagram syntax, and the system will render it graphically.'
 
+    # UI Constants for automation and accessibility
+    UI_CONSTANTS = {
+        "AUTOMATION_ATTRIBUTES": {
+            "MERMAID_TEXTAREA": "mermaid-widget-textarea",
+            "RENDER_BUTTON": "mermaid-widget-render-button",
+            "RENDERED_OUTPUT": "mermaid-widget-rendered-output", 
+            "WIDGET_CONTAINER": "mermaid-widget-container",
+            "PIPELINE_INPUT": "mermaid-pipeline-input",
+            "ENTER_BUTTON": "mermaid-enter-button",
+            "FINALIZE_BUTTON": "mermaid-finalize-button",
+            "UNLOCK_BUTTON": "mermaid-unlock-button"
+        },
+        "ARIA_LABELS": {
+            "MERMAID_INPUT": "Enter Mermaid diagram syntax for rendering",
+            "RENDER_BUTTON": "Process Mermaid syntax and create diagram",
+            "RENDERED_OUTPUT": "Rendered Mermaid diagram display",
+            "WIDGET_CONTAINER": "Mermaid diagram widget interface",
+            "PIPELINE_INPUT": "Enter pipeline ID or press Enter for auto-generated key",
+            "ENTER_BUTTON": "Initialize workflow with entered or generated pipeline key",
+            "FINALIZE_BUTTON": "Finalize Mermaid diagram workflow",
+            "UNLOCK_BUTTON": "Unlock workflow to make changes"
+        },
+        "COLORS": {
+            "WIDGET_BORDER": "#e9ecef",
+            "DIAGRAM_BACKGROUND": "#f8f9fa"
+        },
+        "SPACING": {
+            "WIDGET_PADDING": "1rem",
+            "BUTTON_MARGIN": "1vh 0"
+        }
+    }
+
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
@@ -48,14 +80,11 @@ class MermaidWidget:
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
     async def landing(self, request):
-        pip, pipeline, steps, app_name = (self.pipulate, self.pipeline, self.steps, self.app_name)
-        title = f'{self.DISPLAY_NAME or app_name.title()}'
-        full_key, prefix, user_part = pip.generate_pipeline_key(self)
-        default_value = full_key
-        pipeline.xtra(app_name=app_name)
-        matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
-        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
-        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
+        """Generate the landing page using the standardized helper while maintaining WET explicitness."""
+        pip = self.pipulate
+
+        # Use centralized landing page helper - maintains WET principle by explicit call
+        return pip.create_standard_landing_page(self)
 
     async def init(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -68,7 +97,7 @@ class MermaidWidget:
             return response
         context = pip.get_plugin_context(self)
         profile_name = context['profile_name'] or 'default'
-        plugin_name = context['plugin_name'] or app_name
+        plugin_name = app_name  # Use app_name directly to ensure consistency
         profile_part = profile_name.replace(' ', '_')
         plugin_part = plugin_name.replace(' ', '_')
         expected_prefix = f'{profile_part}-{plugin_part}-'
@@ -92,11 +121,11 @@ class MermaidWidget:
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
             if finalize_step.done in finalize_data:
-                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
+                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline', data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["UNLOCK_BUTTON"], aria_label=self.UI_CONSTANTS["ARIA_LABELS"]["UNLOCK_BUTTON"]), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
+                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary', data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["FINALIZE_BUTTON"], aria_label=self.UI_CONSTANTS["ARIA_LABELS"]["FINALIZE_BUTTON"]), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -133,7 +162,25 @@ class MermaidWidget:
 
     def create_mermaid_widget(self, diagram_syntax, widget_id):
         """Create a mermaid diagram widget container."""
-        container = Div(Div(H5('Rendered Diagram:'), Div(Div(diagram_syntax, cls='mermaid', style='width: 100%; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); padding: 1rem;'), id=f'{widget_id}_output')), id=widget_id)
+        container = Div(
+            Div(
+                H5('Rendered Diagram:'), 
+                Div(
+                    Div(
+                        diagram_syntax, 
+                        cls='mermaid', 
+                        style='width: 100%; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); padding: 1rem;',
+                        data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["RENDERED_OUTPUT"],
+                        aria_label=self.UI_CONSTANTS["ARIA_LABELS"]["RENDERED_OUTPUT"],
+                        role="img"
+                    ), 
+                    id=f'{widget_id}_output'
+                )
+            ), 
+            id=widget_id,
+            data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["WIDGET_CONTAINER"],
+            aria_label=self.UI_CONSTANTS["ARIA_LABELS"]["WIDGET_CONTAINER"]
+        )
         init_script = Script(f"""\n            (function() {{\n                setTimeout(function() {{\n                    if (typeof mermaid !== 'undefined') {{\n                        try {{\n                            mermaid.initialize({{ \n                                startOnLoad: false, \n                                theme: 'dark', \n                                securityLevel: 'loose',\n                                flowchart: {{ htmlLabels: true }}\n                            }});\n                            const container = document.getElementById('{widget_id}');\n                            if (!container) return;\n                            const mermaidDiv = container.querySelector('.mermaid');\n                            if (mermaidDiv) {{\n                                void container.offsetWidth; \n                                if (typeof mermaid.run === 'function') {{\n                                    mermaid.run({{ nodes: [mermaidDiv] }});\n                                }} else {{\n                                    mermaid.init(undefined, mermaidDiv);\n                                }}\n                                console.log('Mermaid rendering successful for {widget_id}');\n                            }}\n                        }} catch(e) {{\n                            console.error("Mermaid rendering error for {widget_id}:", e);\n                        }}\n                    }} else {{\n                        console.error("Mermaid library not found for {widget_id}.");\n                    }}\n                }}, 300); \n            }})();\n            """)
         return Div(container, init_script)
 
@@ -166,7 +213,7 @@ class MermaidWidget:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             explanation = 'Enter Mermaid diagram syntax for the widget. Example is pre-populated. Supports flowcharts, sequence diagrams, class diagrams, etc.'
             await self.message_queue.add(pip, explanation, verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, cls='text-secondary'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter Mermaid diagram syntax', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Create Diagram ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, cls='text-secondary'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter Mermaid diagram syntax', required=True, rows=15, style='width: 100%; font-family: monospace;', data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["MERMAID_TEXTAREA"], aria_label=self.UI_CONSTANTS["ARIA_LABELS"]["MERMAID_INPUT"], aria_describedby="mermaid-help-text"), Div(Button('Create Diagram ▸', type='submit', cls='primary', data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["RENDER_BUTTON"], aria_label=self.UI_CONSTANTS["ARIA_LABELS"]["RENDER_BUTTON"]), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', role="form", aria_label="Configure Mermaid diagram syntax"), P("Supports flowcharts, sequence diagrams, class diagrams, and more", id="mermaid-help-text", cls='text-secondary')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
