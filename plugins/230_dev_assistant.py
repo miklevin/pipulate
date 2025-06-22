@@ -1972,8 +1972,9 @@ class DevAssistant:
                                 Div(
                                     H5(f'Fix #{i+1}:', style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-top: 1.5rem; margin-bottom: 0.5rem;'),
                                     Pre(
-                                        Code(prompt, cls='language-markdown'),
-                                        cls='line-numbers'
+                                        Code(prompt, cls='language-markdown copy-code'),
+                                        cls='line-numbers',
+                                        style=f'position: relative; background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 1rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'
                                     ),
                                     style='margin-bottom: 1rem;'
                                 )
@@ -2009,9 +2010,12 @@ class DevAssistant:
                             H5('✅ Ready Commands:', style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.75rem;'),
                             *[
                                 Div(
-                                    Strong(f"{cmd['step_id']}: ", style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'),
-                                    Code(cmd['command'], style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9rem;'),
-                                    style='margin-bottom: 0.5rem; display: block;'
+                                    H6(f"{cmd['step_id']}:", style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-bottom: 0.25rem; margin-top: 1rem;'),
+                                    Pre(
+                                        Code(cmd['command'], cls='language-bash copy-code'),
+                                        style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 0.75rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; overflow-x: auto; position: relative; border-left: 3px solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.5rem;'
+                                    ),
+                                    style='margin-bottom: 1rem;'
                                 )
                                 for cmd in ready_transplants
                             ]
@@ -2125,6 +2129,35 @@ class DevAssistant:
                                 }}, 3000);
                             }});
                         }});
+                    }});
+
+                    // Add click-to-copy functionality for inline code elements
+                    document.querySelectorAll('code:not(.copy-code):not([class*="language-"])').forEach(function(code) {{
+                        // Only add to code elements that look like commands (contain spaces or special chars)
+                        if (code.textContent.includes(' ') || code.textContent.includes('python') || code.textContent.includes('--')) {{
+                            code.style.cursor = 'pointer';
+                            code.title = 'Click to copy';
+                            code.addEventListener('click', function() {{
+                                navigator.clipboard.writeText(code.textContent).then(function() {{
+                                    const originalBg = code.style.backgroundColor;
+                                    code.style.backgroundColor = '#28a745';
+                                    code.style.color = 'white';
+                                    setTimeout(function() {{
+                                        code.style.backgroundColor = originalBg;
+                                        code.style.color = '';
+                                    }}, 1000);
+                                }}).catch(function(err) {{
+                                    console.error('Failed to copy text: ', err);
+                                    const originalBg = code.style.backgroundColor;
+                                    code.style.backgroundColor = '#dc3545';
+                                    code.style.color = 'white';
+                                    setTimeout(function() {{
+                                        code.style.backgroundColor = originalBg;
+                                        code.style.color = '';
+                                    }}, 1000);
+                                }});
+                            }});
+                        }}
                     }});
                 }})();
                 """, type='text/javascript')
