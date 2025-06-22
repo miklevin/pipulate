@@ -2891,13 +2891,6 @@ class Pipulate:
     "vibrating edge" of creative freedom that powers genuine innovation.
     """
     PRESERVE_REFILL = True
-    # DEPRECATED: Style constants removed. Use CSS classes instead:
-    # ERROR_STYLE → cls='text-invalid'
-    # MUTED_TEXT_STYLE → cls='text-secondary'
-    # SUCCESS_STYLE → cls='text-success' (if needed)
-    WARNING_BUTTON_STYLE = None
-    PRIMARY_BUTTON_STYLE = None
-    SECONDARY_BUTTON_STYLE = None
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
     CONTENT_STYLE = 'margin-top: 1vh; border-top: 1px solid var(--pico-muted-border-color); padding-top: 1vh;'
     FINALIZED_CONTENT_STYLE = 'margin-top: 0.5vh; padding: 0.5vh 0;'
@@ -3047,9 +3040,7 @@ class Pipulate:
             button_text = f'{symbol}\xa0Step\xa0{visual_step_number}'
         return button_text
 
-    # DEPRECATED: get_style() method removed. Use CSS classes instead:
-    # - 'error' style → cls='text-invalid'  
-    # - 'muted' style → cls='text-secondary'
+
     
     def get_ui_constants(self):
         """Access centralized UI constants through dependency injection."""

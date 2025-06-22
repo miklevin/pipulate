@@ -138,7 +138,7 @@ class DropdownWidget:
         form = await request.form()
         step_id = form.get('step_id', '')
         if step_id not in self.steps_indices:
-            return P('Error: Invalid step', style=pip.ERROR_STYLE)
+            return P('Error: Invalid step', cls='text-invalid')
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
@@ -231,7 +231,7 @@ class DropdownWidget:
         except Exception as e:
             logger.error(f'Error getting options: {str(e)}')
             logger.exception('Full traceback:')
-            return Div(Card(H3(f'{step.show}'), P(f'Error loading options: {str(e)}', style=pip.ERROR_STYLE)), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P(f'Error loading options: {str(e)}', cls='text-invalid')), id=step_id)
 
     async def step_01_submit(self, request):
         """Handles POST request for dropdown selection step."""
@@ -244,7 +244,7 @@ class DropdownWidget:
         form = await request.form()
         value = form.get(step.done, '').strip()
         if not value:
-            return P('Error: Please select an option', style=pip.ERROR_STYLE)
+            return P('Error: Please select an option', cls='text-invalid')
         await pip.set_step_data(pipeline_id, step_id, value, steps)
         await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('complete', f'{step.show} complete: {value}'), verbatim=True)
         return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {value}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
