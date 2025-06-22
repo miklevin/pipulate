@@ -742,6 +742,19 @@ MCP_TOOLS = {}
 
 def register_mcp_tool(tool_name: str, handler_func):
     """Register an MCP tool with the global registry."""
+    # Simple approach: try to import server's register function directly
+    try:
+        # Try to import the server's register function
+        import server
+        if hasattr(server, 'register_mcp_tool'):
+            # Use server's registration function
+            server.register_mcp_tool(tool_name, handler_func)
+            logger.info(f"🔧 FINDER_TOKEN: MCP_TOOL_REGISTERED_SERVER - {tool_name}")
+            return
+    except (ImportError, AttributeError):
+        pass
+    
+    # Fallback to local registry for standalone usage
     MCP_TOOLS[tool_name] = handler_func
     logger.info(f"🔧 FINDER_TOKEN: MCP_TOOL_REGISTERED - {tool_name}")
 
@@ -763,4 +776,13 @@ def register_all_mcp_tools():
     # Enhanced stealth browser automation
     register_mcp_tool("browser_stealth_search", _browser_stealth_search)
     
-    logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTERED - {len(MCP_TOOLS)} tools available") 
+    # Determine which registry was used for logging
+    try:
+        import server
+        if hasattr(server, 'MCP_TOOL_REGISTRY'):
+            registry_size = len(server.MCP_TOOL_REGISTRY)
+            logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTERED_SERVER - {registry_size} total tools available in server registry")
+        else:
+            logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTERED - {len(MCP_TOOLS)} tools available in local registry")
+    except ImportError:
+        logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTERED - {len(MCP_TOOLS)} tools available in local registry") 

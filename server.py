@@ -2385,6 +2385,14 @@ register_mcp_tool("browser_analyze_scraped_page", _browser_analyze_scraped_page)
 register_mcp_tool("browser_automate_workflow_walkthrough", _browser_automate_workflow_walkthrough)
 register_mcp_tool("browser_interact_with_current_page", _browser_interact_with_current_page)
 
+# Import and register the stealth search tool from mcp_tools.py
+try:
+    from mcp_tools import _browser_stealth_search
+    register_mcp_tool("browser_stealth_search", _browser_stealth_search)
+    logger.info("🔧 MCP REGISTRY: Successfully imported and registered browser_stealth_search")
+except ImportError as e:
+    logger.error(f"🔧 MCP REGISTRY: Failed to import browser_stealth_search: {e}")
+
 # Register extracted MCP tools from mcp_tools.py module
 register_all_mcp_tools()
 
