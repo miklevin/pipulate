@@ -452,8 +452,7 @@ Output only the MCP block above. Do not add any other text."""
                 Button(
                     current_config['button_text'], 
                     type='submit', 
-                    cls='primary', 
-                    style=current_config['button_style'] + ' margin-right: 0.5rem;',
+                    cls='primary',
                     **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}
                 ),
                 Button(
@@ -839,8 +838,7 @@ Output only the MCP block above. Do not add any other text."""
                     Button(
                         current_config['button_text'], 
                         type='submit', 
-                        cls='primary', 
-                        style=current_config['button_style'] + ' margin-right: 0.5rem;',
+                        cls='primary',
                         **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}
                     ),
                     Button(
