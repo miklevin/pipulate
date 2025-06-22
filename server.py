@@ -53,7 +53,7 @@ TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycl
 BANNER_COLORS = {
     # Main banner colors
     'figlet_primary': 'bright_cyan',
-    'figlet_subtitle': 'dim cyan',
+    'figlet_subtitle': 'white',
     
     # ASCII banner colors  
     'ascii_title': 'bright_cyan',
@@ -72,11 +72,11 @@ BANNER_COLORS = {
     'mcp_arsenal': 'bright_blue',
     'plugin_registry_success': 'bright_green',
     'plugin_registry_warning': 'bright_yellow',
-    'workshop_ready': 'bright_green',
-    'server_restart': 'bright_magenta',
+    'workshop_ready': 'bright_blue',
+    'server_restart': 'yellow',
     
     # Special banners
-    'alice_banner': 'bright_magenta',
+    'alice_banner': 'dim white',
     'transparency_banner': 'bright_cyan',
     'system_diagram': 'bright_blue',
     'status_banner': 'bright_green',
@@ -2559,26 +2559,25 @@ def system_diagram():
 
 def alice_banner():
     """🐰 ALICE BANNER: Whimsical Alice-themed banner"""
-    alice_art = r"""
-.                       /)  ______
-                  /)\__//  /      \
-              ___(/_ 0 0  |        |
-            *(    ==(_T_)==Pipulate|
-              \  )   ""\  |        |
-               |__>-\_>_>  \______/
-    """
+    alice_art = r"""[black].[/black]            /)   ______
+       /)\__//   /      \
+   ___(/_ 0 0   |        |
+ *(    ==(_T_)==|[bold]Pipulate[/bold]|
+   \  )   ""\   |        |
+    |__>-\_>_>   \______/
+   """
     
     style = BANNER_COLORS['alice_banner']
     panel = Panel(
         Align.center(alice_art.strip()),
-        title=f"[bold {style}]🐰 Welcome to Wonderland[/bold {style}]",
+        title=f"[bold {style}]🐰 Welcome to Consoleland[/bold {style}]",
         subtitle="[dim]Down the rabbit hole of radical transparency[/dim]",
         box=ROUNDED,
         style=style,
         padding=(1, 2)
     )
     console.print(panel)
-    logger.info("🐰 ALICE_BANNER: Welcome to Wonderland displayed")
+    logger.info("🐰 ALICE_BANNER: Welcome to Consoleland displayed")
 
 def section_header(icon, title, description=None, color=None):
     """📋 SECTION HEADERS: Clean section dividers with icons"""
@@ -2601,15 +2600,15 @@ def radical_transparency_banner():
     ╔══════════════════════════════════════════════════════════════╗
     ║                    RADICAL TRANSPARENCY                      ║
     ║                                                              ║
-    ║  Every operation is observable • Every call is logged       ║
-    ║  Every state change is tracked • Every error is explained   ║
+    ║  Every operation is observable • Every call is logged        ║
+    ║  Every state change is tracked • Every error is explained    ║
     ║                                                              ║
-    ║  🔍 FINDER_TOKENs guide your debugging journey             ║
-    ║  🔧 MCP Tools provide programmatic access to everything     ║
-    ║  📊 Pipeline State Inspector reveals workflow internals     ║
-    ║  🤖 AI Assistants have complete system visibility          ║
+    ║  🔍 FINDER_TOKENs guide your debugging journey               ║
+    ║  🔧 MCP Tools provide programmatic access to everything      ║
+    ║  📊 Pipeline State Inspector reveals workflow internals      ║
+    ║  🤖 AI Assistants have complete system visibility            ║
     ║                                                              ║
-    ║           "Know EVERYTHING that's happening!"               ║
+    ║           "Know EVERYTHING that's happening!"                ║
     ╚══════════════════════════════════════════════════════════════╝
     """
     
@@ -2628,13 +2627,13 @@ def status_banner(mcp_count, plugin_count, env="Development"):
     transparency_color = BANNER_COLORS['transparency_banner']
     
     status_content = f"""
-[bold {primary_color}]🚀 PIPULATE STATUS[/bold {primary_color}]
-[dim]Digital Workshop Framework[/dim]
+[bold white]🚀 PIPULATE STATUS[/bold white]
+[dim white]Digital Workshop Framework[/dim white]
 
 [white]🌐 Server:[/white] [{server_color}]http://localhost:5001[/{server_color}]
 [white]🔧 MCP Tools:[/white] [{mcp_color}]{mcp_count} active[/{mcp_color}]
 [white]📦 Plugins:[/white] [{plugin_color}]{plugin_count} registered[/{plugin_color}]
-[white]🏗️ Environment:[/white] [{env_color}]{env}[/{env_color}]
+[white]🏡 Environment:[/white] [{env_color}]{env}[/{env_color}]
 [white]🔍 Transparency:[/white] [{transparency_color}]Full visibility enabled[/{transparency_color}]
     """
     
@@ -2938,6 +2937,8 @@ def log_pipeline_summary(title_prefix: str=''):
             app_summary = ", ".join([f"{app}({count})" for app, count in sorted(app_counts.items())])
             summary_lines.append(f"📱 Apps: {app_summary}")
         
+        alice_banner()
+
         # Add recent activity
         if recent_activity:
             recent_count = len(recent_activity)
@@ -7939,7 +7940,6 @@ def run_server_with_watchdog():
         log.startup('Production mode active', details=f'Using database: {env_db}')
     # 🐰 ALICE WELCOME BANNER - Always show on server startup - it's delightful!
     logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner on startup')
-    alice_banner()
     
     # Also show the full Alice art if available
     try:
