@@ -95,15 +95,15 @@ class MarkdownWidget:
             return response
         context = pip.get_plugin_context(self)
         profile_name = context['profile_name'] or 'default'
-        plugin_name = context['plugin_name'] or app_name
+        plugin_name = app_name  # Use app_name directly to ensure consistency
         profile_part = profile_name.replace(' ', '_')
         plugin_part = plugin_name.replace(' ', '_')
         expected_prefix = f'{profile_part}-{plugin_part}-'
         if user_input.startswith(expected_prefix):
             pipeline_id = user_input
         else:
-            _, temp_prefix, user_provided_id_part = pip.generate_pipeline_key(self, user_input)
-            pipeline_id = f'{expected_prefix}{user_provided_id_part}'
+            _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
+            pipeline_id = f'{prefix}{user_provided_id}'
         db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
         if error:
