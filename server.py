@@ -3380,6 +3380,7 @@ class Pipulate:
                 'box-shadow: none !important;'
                 'line-height: 1;'
                 'font-size: 1.5rem;'
+                'opacity: 0.5;'
             )
             new_key_button = Button(
                 ui_constants['BUTTON_LABELS']['NEW_KEY'],
