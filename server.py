@@ -1475,33 +1475,39 @@ register_mcp_tool("local_llm_get_context", _local_llm_get_context)
 register_mcp_tool("ui_flash_element", _ui_flash_element)
 register_mcp_tool("ui_list_elements", _ui_list_elements)
 
-# 🌐 FINDER_TOKEN: BROWSER_MCP_TOOLS_CORE
+# 🌐 FINDER_TOKEN: BROWSER_MCP_TOOLS_CORE - AI EYES AND HANDS
 async def _browser_scrape_page(params: dict) -> dict:
     """
-    MCP Tool: Scrape a web page and save multiple versions for AI analysis.
+    MCP Tool: AI EYES - Scrape a web page and save to /looking_at/ for AI perception.
     
-    Saves:
-    - HTTP headers as JSON
-    - Original HTML source  
-    - Post-JavaScript DOM
-    - Simplified semantic HTML (IDs, ARIA, semantic tags only)
+    This is the AI's primary sensory interface - captures current browser state
+    into the /browser_automation/looking_at/ directory for AI analysis.
+    
+    Saves to /looking_at/:
+    - headers.json - HTTP headers and metadata
+    - source.html - Raw page source before JavaScript  
+    - dom.html - Full JavaScript-rendered DOM state (HTMX and all)
+    - simple_dom.html - Distilled DOM for context window consumption
+    - screenshot.png - Visual representation (if enabled)
     
     Args:
         params: {
-            "url": "https://example.com",
-            "wait_seconds": 3,  # Optional: wait for JS to load
-            "save_location": "downloads/browser_scrapes"  # Optional
+            "url": "https://example.com",  # Required: URL to scrape
+            "wait_seconds": 3,             # Optional: wait for JS to load
+            "take_screenshot": True,       # Optional: capture visual state
+            "update_looking_at": True      # Optional: update /looking_at/ directory
         }
     
     Returns:
         dict: {
             "success": True,
-            "scrape_id": "domain_com_2025-01-11_14-30-15",
-            "files": {
-                "headers": "path/to/headers.json",
-                "original_html": "path/to/original.html", 
-                "dom_html": "path/to/dom.html",
-                "simplified_html": "path/to/simplified.html"
+            "url": "https://example.com",
+            "looking_at_files": {
+                "headers": "browser_automation/looking_at/headers.json",
+                "source": "browser_automation/looking_at/source.html", 
+                "dom": "browser_automation/looking_at/dom.html",
+                "simple_dom": "browser_automation/looking_at/simple_dom.html",
+                "screenshot": "browser_automation/looking_at/screenshot.png"
             },
             "page_info": {
                 "title": "Page Title",
@@ -1524,27 +1530,33 @@ async def _browser_scrape_page(params: dict) -> dict:
     try:
         url = params.get('url')
         wait_seconds = params.get('wait_seconds', 3)
-        save_location = params.get('save_location', 'downloads/browser_scrapes')
+        take_screenshot = params.get('take_screenshot', True)
+        update_looking_at = params.get('update_looking_at', True)
         
         if not url:
             return {"success": False, "error": "URL parameter is required"}
             
-        # Create scrape ID from URL and timestamp
+        # Set up the /looking_at/ directory - AI's primary perception interface
+        looking_at_dir = 'browser_automation/looking_at'
+        os.makedirs(looking_at_dir, exist_ok=True)
+        
+        # Also create timestamped backup in downloads for history
         parsed = urlparse(url)
         domain_safe = parsed.netloc.replace('.', '_').replace(':', '_')
         timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         scrape_id = f"{domain_safe}_{timestamp}"
-        
-        # Ensure save directory exists
-        scrape_dir = os.path.join(save_location, scrape_id)
-        os.makedirs(scrape_dir, exist_ok=True)
+        backup_dir = os.path.join('downloads/browser_scrapes', scrape_id)
+        os.makedirs(backup_dir, exist_ok=True)
         
         # Set up Selenium Wire for header capture
         chrome_options = Options()
-        chrome_options.add_argument('--headless')
+        # Use headless unless screenshot is requested
+        if not take_screenshot:
+            chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--window-size=1920,1080')
         
         driver = wire_webdriver.Chrome(options=chrome_options)
         
@@ -1557,71 +1569,111 @@ async def _browser_scrape_page(params: dict) -> dict:
             page_title = driver.title
             final_url = driver.current_url
             
-            # 1. Save HTTP headers
-            headers_data = {}
+            # 1. Capture HTTP headers and metadata
+            headers_data = {
+                'url': final_url,
+                'title': page_title,
+                'timestamp': datetime.now().isoformat(),
+                'request_headers': {},
+                'response_headers': {},
+                'status_code': None
+            }
+            
             for request in driver.requests:
                 if request.url == url:
-                    headers_data = {
+                    headers_data.update({
                         'request_headers': dict(request.headers),
                         'response_headers': dict(request.response.headers) if request.response else {},
                         'status_code': request.response.status_code if request.response else None
-                    }
+                    })
                     break
             
-            headers_file = os.path.join(scrape_dir, 'headers.json')
-            with open(headers_file, 'w') as f:
-                json.dump(headers_data, f, indent=2)
+            # 2. Capture page source (before JavaScript execution)
+            source_html = driver.page_source
                 
-            # 2. Save original HTML source
-            original_html = driver.page_source
-            original_file = os.path.join(scrape_dir, 'original.html')
-            with open(original_file, 'w', encoding='utf-8') as f:
-                f.write(original_html)
-                
-            # 3. Save post-JavaScript DOM
+            # 3. Capture post-JavaScript DOM (full HTMX state)
             dom_html = driver.execute_script("return document.documentElement.outerHTML;")
-            dom_file = os.path.join(scrape_dir, 'dom.html')
-            with open(dom_file, 'w', encoding='utf-8') as f:
-                f.write(dom_html)
                 
-            # 4. Create simplified semantic HTML
+            # 4. Create simplified DOM for AI context window consumption
             try:
                 from bs4 import BeautifulSoup
                 soup = BeautifulSoup(dom_html, 'html.parser')
                 
-                # Remove unwanted elements
+                # Remove unwanted elements that clutter AI context
                 for tag in soup(['script', 'style', 'noscript', 'meta', 'link']):
                     tag.decompose()
                     
-                # Strip all attributes except id, aria-*, role, data-testid
+                # Keep only automation-friendly attributes
                 for element in soup.find_all():
                     attrs_to_keep = {}
                     for attr, value in element.attrs.items():
-                        if attr in ['id', 'role', 'data-testid'] or attr.startswith('aria-'):
+                        if attr in ['id', 'role', 'data-testid', 'name', 'type', 'href', 'src'] or attr.startswith('aria-'):
                             attrs_to_keep[attr] = value
                     element.attrs = attrs_to_keep
                     
-                simplified_html = str(soup)
+                simple_dom_html = str(soup)
             except ImportError:
                 # Fallback if BeautifulSoup not available
-                simplified_html = dom_html
+                simple_dom_html = dom_html
+            
+            # 5. Take screenshot if requested
+            screenshot_file = None
+            if take_screenshot:
+                screenshot_file = os.path.join(looking_at_dir, 'screenshot.png')
+                driver.save_screenshot(screenshot_file)
+                # Also save backup
+                driver.save_screenshot(os.path.join(backup_dir, 'screenshot.png'))
+            
+            # Save all files to /looking_at/ directory (AI's primary perception)
+            looking_at_files = {}
+            
+            if update_looking_at:
+                # Headers
+                headers_file = os.path.join(looking_at_dir, 'headers.json')
+                with open(headers_file, 'w') as f:
+                    json.dump(headers_data, f, indent=2)
+                looking_at_files['headers'] = headers_file
                 
-            simplified_file = os.path.join(scrape_dir, 'simplified.html')
-            with open(simplified_file, 'w', encoding='utf-8') as f:
-                f.write(simplified_html)
+                # Source HTML
+                source_file = os.path.join(looking_at_dir, 'source.html')
+                with open(source_file, 'w', encoding='utf-8') as f:
+                    f.write(source_html)
+                looking_at_files['source'] = source_file
+                
+                # DOM HTML
+                dom_file = os.path.join(looking_at_dir, 'dom.html')
+                with open(dom_file, 'w', encoding='utf-8') as f:
+                    f.write(dom_html)
+                looking_at_files['dom'] = dom_file
+                
+                # Simple DOM
+                simple_dom_file = os.path.join(looking_at_dir, 'simple_dom.html')
+                with open(simple_dom_file, 'w', encoding='utf-8') as f:
+                    f.write(simple_dom_html)
+                looking_at_files['simple_dom'] = simple_dom_file
+                
+                if screenshot_file:
+                    looking_at_files['screenshot'] = screenshot_file
+            
+            # Also save backup copies for history
+            with open(os.path.join(backup_dir, 'headers.json'), 'w') as f:
+                json.dump(headers_data, f, indent=2)
+            with open(os.path.join(backup_dir, 'source.html'), 'w', encoding='utf-8') as f:
+                f.write(source_html)
+            with open(os.path.join(backup_dir, 'dom.html'), 'w', encoding='utf-8') as f:
+                f.write(dom_html)
+            with open(os.path.join(backup_dir, 'simple_dom.html'), 'w', encoding='utf-8') as f:
+                f.write(simple_dom_html)
                 
         finally:
             driver.quit()
             
         result = {
             "success": True,
-            "scrape_id": scrape_id,
-            "files": {
-                "headers": headers_file,
-                "original_html": original_file,
-                "dom_html": dom_file, 
-                "simplified_html": simplified_file
-            },
+            "url": final_url,
+            "looking_at_files": looking_at_files,
+            "backup_id": scrape_id,
+            "backup_dir": backup_dir,
             "page_info": {
                 "title": page_title,
                 "url": final_url,
@@ -1629,7 +1681,8 @@ async def _browser_scrape_page(params: dict) -> dict:
             }
         }
         
-        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_SCRAPE_SUCCESS - Scrape ID: {scrape_id}")
+        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_SCRAPE_SUCCESS - AI can now see: {final_url}")
+        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_PERCEPTION_UPDATE - Files in /looking_at/: {list(looking_at_files.keys())}")
         return result
         
     except Exception as e:
@@ -1638,33 +1691,39 @@ async def _browser_scrape_page(params: dict) -> dict:
 
 async def _browser_analyze_scraped_page(params: dict) -> dict:
     """
-    MCP Tool: Analyze a previously scraped page for automation opportunities.
+    MCP Tool: AI BRAIN - Analyze current /looking_at/ page state for automation opportunities.
+    
+    Analyzes the current page state captured in /browser_automation/looking_at/
+    to identify automation targets, form elements, and interaction opportunities.
     
     Args:
         params: {
-            "scrape_id": "domain_com_2025-01-11_14-30-15",
-            "analysis_type": "form_elements" | "navigation" | "automation_targets"
+            "analysis_type": "form_elements" | "navigation" | "automation_targets" | "all",
+            "use_backup_id": "domain_com_2025-01-11_14-30-15"  # Optional: analyze backup instead
         }
     
     Returns:
         dict: Analysis results with actionable automation data
     """
-    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_ANALYZE_START - Scrape ID: {params.get('scrape_id')}")
+    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_ANALYZE_START - Analysis: {params.get('analysis_type', 'automation_targets')}")
     
     try:
-        scrape_id = params.get('scrape_id')
         analysis_type = params.get('analysis_type', 'automation_targets')
+        backup_id = params.get('use_backup_id')
         
-        if not scrape_id:
-            return {"success": False, "error": "scrape_id parameter is required"}
-            
-        # Find the simplified HTML file
-        simplified_file = f"downloads/browser_scrapes/{scrape_id}/simplified.html"
+        # Determine which HTML file to analyze
+        if backup_id:
+            # Analyze backup file
+            html_file = f"downloads/browser_scrapes/{backup_id}/simple_dom.html"
+            if not os.path.exists(html_file):
+                return {"success": False, "error": f"Backup HTML not found for backup_id: {backup_id}"}
+        else:
+            # Analyze current /looking_at/ state
+            html_file = "browser_automation/looking_at/simple_dom.html"
+            if not os.path.exists(html_file):
+                return {"success": False, "error": "No current page state found. Use browser_scrape_page first to capture page state."}
         
-        if not os.path.exists(simplified_file):
-            return {"success": False, "error": f"Simplified HTML not found for scrape_id: {scrape_id}"}
-            
-        with open(simplified_file, 'r', encoding='utf-8') as f:
+        with open(html_file, 'r', encoding='utf-8') as f:
             html_content = f.read()
             
         try:
@@ -1730,23 +1789,82 @@ async def _browser_analyze_scraped_page(params: dict) -> dict:
                 "high_priority_targets": len([t for t in targets if t['selector_priority'] == 'high'])
             }
             
+        elif analysis_type == "all":
+            # Comprehensive analysis - all types
+            all_results = {}
+            
+            # Forms analysis
+            forms = []
+            for form in soup.find_all('form'):
+                form_data = {
+                    'id': form.get('id'),
+                    'action': form.get('action'),
+                    'method': form.get('method', 'GET'),
+                    'elements': []
+                }
+                
+                for element in form.find_all(['input', 'button', 'select', 'textarea']):
+                    element_data = {
+                        'tag': element.name,
+                        'type': element.get('type'),
+                        'id': element.get('id'),
+                        'name': element.get('name'),
+                        'aria_label': element.get('aria-label'),
+                        'data_testid': element.get('data-testid'),
+                        'placeholder': element.get('placeholder'),
+                        'text': element.get_text(strip=True)
+                    }
+                    form_data['elements'].append(element_data)
+                    
+                forms.append(form_data)
+            
+            # Automation targets
+            targets = []
+            for element in soup.find_all():
+                if element.get('id') or element.get('data-testid') or element.get('aria-label'):
+                    target = {
+                        'tag': element.name,
+                        'id': element.get('id'),
+                        'data_testid': element.get('data-testid'),
+                        'aria_label': element.get('aria-label'),
+                        'role': element.get('role'),
+                        'text': element.get_text(strip=True)[:100],
+                        'selector_priority': 'high' if element.get('data-testid') else 'medium' if element.get('id') else 'low'
+                    }
+                    targets.append(target)
+            
+            result = {
+                "success": True,
+                "analysis_type": "comprehensive",
+                "forms": forms,
+                "form_count": len(forms),
+                "automation_targets": targets,
+                "target_count": len(targets),
+                "high_priority_targets": len([t for t in targets if t['selector_priority'] == 'high']),
+                "analyzed_file": html_file
+            }
+            
         else:
             result = {"success": False, "error": f"Unknown analysis_type: {analysis_type}"}
             
-        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_ANALYZE_SUCCESS - Found {result.get('target_count', 0)} targets")
+        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_ANALYZE_SUCCESS - {result.get('target_count', 0)} targets, {result.get('form_count', 0)} forms")
         return result
         
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_ANALYZE_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
-# Complete Workflow Automation Tool - Walk through any plugin workflow
+# 🤖 FINDER_TOKEN: AI_HANDS_AUTOMATION_CORE
 async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
     """
-    MCP Tool: Complete Workflow Automation Walkthrough
+    MCP Tool: AI HANDS - Complete Workflow Automation Walkthrough
     
-    Uses browser automation to walk through an entire plugin workflow from start to finish.
-    This is the ultimate test of automation readiness - actually USING the improved Components.
+    This is the AI's motor interface - uses browser automation to walk through
+    entire plugin workflows from start to finish. Updates /looking_at/ directory
+    at each step for continuous AI perception.
+    
+    The ultimate test of automation readiness - actually USING the improved components
+    and providing real-time feedback on automation success/failure.
     """
     try:
         import time
@@ -1779,6 +1897,63 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
         screenshots = []
         workflow_steps = []
         
+        # Helper function to update /looking_at/ during automation
+        def update_looking_at_state(step_name: str):
+            """Update /looking_at/ directory with current browser state"""
+            try:
+                looking_at_dir = 'browser_automation/looking_at'
+                os.makedirs(looking_at_dir, exist_ok=True)
+                
+                # Capture current state
+                current_url = driver.current_url
+                page_title = driver.title
+                source_html = driver.page_source
+                dom_html = driver.execute_script("return document.documentElement.outerHTML;")
+                
+                # Save state files
+                state_data = {
+                    'step': step_name,
+                    'url': current_url,
+                    'title': page_title,
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+                with open(os.path.join(looking_at_dir, 'headers.json'), 'w') as f:
+                    json.dump(state_data, f, indent=2)
+                    
+                with open(os.path.join(looking_at_dir, 'source.html'), 'w', encoding='utf-8') as f:
+                    f.write(source_html)
+                    
+                with open(os.path.join(looking_at_dir, 'dom.html'), 'w', encoding='utf-8') as f:
+                    f.write(dom_html)
+                
+                # Create simple DOM
+                try:
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(dom_html, 'html.parser')
+                    for tag in soup(['script', 'style', 'noscript', 'meta', 'link']):
+                        tag.decompose()
+                    for element in soup.find_all():
+                        attrs_to_keep = {}
+                        for attr, value in element.attrs.items():
+                            if attr in ['id', 'role', 'data-testid', 'name', 'type', 'href', 'src'] or attr.startswith('aria-'):
+                                attrs_to_keep[attr] = value
+                        element.attrs = attrs_to_keep
+                    simple_dom_html = str(soup)
+                except:
+                    simple_dom_html = dom_html
+                    
+                with open(os.path.join(looking_at_dir, 'simple_dom.html'), 'w', encoding='utf-8') as f:
+                    f.write(simple_dom_html)
+                
+                # Take screenshot
+                driver.save_screenshot(os.path.join(looking_at_dir, 'screenshot.png'))
+                
+                logger.info(f"🎯 FINDER_TOKEN: AUTOMATION_PERCEPTION_UPDATE - Step: {step_name}, URL: {current_url}")
+                
+            except Exception as e:
+                logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_PERCEPTION_ERROR - {e}")
+        
         try:
             # Step 1: Navigate to the plugin
             plugin_name = plugin_filename.replace('.py', '').replace('_', '-')
@@ -1790,6 +1965,9 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
             logger.info(f"🌐 FINDER_TOKEN: WORKFLOW_NAVIGATION | Navigating to {plugin_url}")
             
             driver.get(plugin_url)
+            
+            # Update /looking_at/ with landing page state
+            update_looking_at_state("landing")
             
             if take_screenshots:
                 screenshot_path = f"workflow_step_01_landing.png"
@@ -1830,6 +2008,9 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
                 # Wait for workflow to load
                 time.sleep(3)
                 
+                # Update /looking_at/ with initialized state
+                update_looking_at_state("initialized")
+                
                 if take_screenshots:
                     screenshot_path = f"workflow_step_02_initialized.png"
                     driver.save_screenshot(screenshot_path)
@@ -1866,6 +2047,9 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
                 # Wait for processing
                 time.sleep(5)
                 
+                # Update /looking_at/ with post-upload state
+                update_looking_at_state("file_uploaded")
+                
                 if take_screenshots:
                     screenshot_path = f"workflow_step_03_uploaded.png"
                     driver.save_screenshot(screenshot_path)
@@ -1891,7 +2075,9 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
                     "description": f"File upload failed: {str(e)}"
                 })
             
-            # Final screenshot
+            # Final state update and screenshot
+            update_looking_at_state("workflow_complete")
+            
             if take_screenshots:
                 screenshot_path = f"workflow_final_state.png"
                 driver.save_screenshot(screenshot_path)
@@ -1915,10 +2101,252 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
         logger.error(f"❌ FINDER_TOKEN: WORKFLOW_AUTOMATION_ERROR | {e}")
         return {"success": False, "error": str(e)}
 
+# 🎯 FINDER_TOKEN: AI_CURRENT_PAGE_INTERACTION
+async def _browser_interact_with_current_page(params: dict) -> dict:
+    """
+    MCP Tool: AI INTERACTION - Interact with the current page using /looking_at/ state.
+    
+    This tool allows the AI to interact with the current page that's captured
+    in /browser_automation/looking_at/ directory. It can click elements, fill forms,
+    and perform other interactions based on the current DOM state.
+    
+    Args:
+        params: {
+            "action": "click" | "type" | "submit" | "screenshot" | "navigate",
+            "target": {
+                "selector_type": "id" | "data-testid" | "xpath" | "css",
+                "selector_value": "element-id" | "[data-testid='button']" | "//button[@id='submit']",
+                "text_content": "optional text to verify element"
+            },
+            "input_text": "text to type (for type action)",
+            "url": "URL to navigate to (for navigate action)",
+            "wait_seconds": 3,
+            "update_looking_at": True
+        }
+    
+    Returns:
+        dict: Interaction results with updated page state
+    """
+    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_INTERACT_START - Action: {params.get('action')}")
+    
+    try:
+        import time
+        from selenium import webdriver
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.keys import Keys
+        
+        action = params.get('action')
+        target = params.get('target', {})
+        input_text = params.get('input_text', '')
+        url = params.get('url', '')
+        wait_seconds = params.get('wait_seconds', 3)
+        update_looking_at = params.get('update_looking_at', True)
+        
+        if not action:
+            return {"success": False, "error": "action parameter is required"}
+        
+        # Set up Chrome driver
+        chrome_options = Options()
+        if action != "screenshot":
+            chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--window-size=1920,1080')
+        
+        driver = webdriver.Chrome(options=chrome_options)
+        
+        try:
+            # Get current URL from /looking_at/ state
+            headers_file = 'browser_automation/looking_at/headers.json'
+            current_url = None
+            
+            if os.path.exists(headers_file):
+                with open(headers_file, 'r') as f:
+                    headers_data = json.load(f)
+                    current_url = headers_data.get('url')
+            
+            if action == "navigate":
+                target_url = url or current_url
+                if not target_url:
+                    return {"success": False, "error": "No URL provided and no current URL in /looking_at/"}
+                
+                driver.get(target_url)
+                time.sleep(wait_seconds)
+                
+                result = {
+                    "success": True,
+                    "action": "navigate",
+                    "url": driver.current_url,
+                    "title": driver.title
+                }
+                
+            elif action == "screenshot":
+                if current_url:
+                    driver.get(current_url)
+                    time.sleep(wait_seconds)
+                
+                screenshot_path = 'browser_automation/looking_at/screenshot.png'
+                driver.save_screenshot(screenshot_path)
+                
+                result = {
+                    "success": True,
+                    "action": "screenshot",
+                    "screenshot_path": screenshot_path,
+                    "url": driver.current_url
+                }
+                
+            elif action in ["click", "type", "submit"]:
+                if not current_url:
+                    return {"success": False, "error": "No current URL found in /looking_at/. Use browser_scrape_page first."}
+                
+                driver.get(current_url)
+                time.sleep(wait_seconds)
+                
+                # Find the target element
+                selector_type = target.get('selector_type', 'id')
+                selector_value = target.get('selector_value')
+                
+                if not selector_value:
+                    return {"success": False, "error": "target.selector_value is required for interaction"}
+                
+                # Map selector types to Selenium By types
+                by_mapping = {
+                    'id': By.ID,
+                    'data-testid': By.CSS_SELECTOR,
+                    'css': By.CSS_SELECTOR,
+                    'xpath': By.XPATH,
+                    'name': By.NAME
+                }
+                
+                if selector_type == 'data-testid':
+                    # Convert data-testid to CSS selector
+                    selector_value = f'[data-testid="{selector_value}"]'
+                    by_type = By.CSS_SELECTOR
+                else:
+                    by_type = by_mapping.get(selector_type, By.ID)
+                
+                try:
+                    element = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((by_type, selector_value))
+                    )
+                    
+                    if action == "click":
+                        element.click()
+                        result = {
+                            "success": True,
+                            "action": "click",
+                            "element_found": True,
+                            "element_text": element.text[:100] if element.text else ""
+                        }
+                        
+                    elif action == "type":
+                        element.clear()
+                        element.send_keys(input_text)
+                        result = {
+                            "success": True,
+                            "action": "type",
+                            "element_found": True,
+                            "text_entered": input_text
+                        }
+                        
+                    elif action == "submit":
+                        element.submit()
+                        result = {
+                            "success": True,
+                            "action": "submit",
+                            "element_found": True
+                        }
+                    
+                    # Wait for any page changes
+                    time.sleep(wait_seconds)
+                    
+                except Exception as e:
+                    result = {
+                        "success": False,
+                        "action": action,
+                        "error": f"Element interaction failed: {str(e)}",
+                        "selector_type": selector_type,
+                        "selector_value": selector_value
+                    }
+            
+            else:
+                return {"success": False, "error": f"Unknown action: {action}"}
+            
+            # Update /looking_at/ state if requested
+            if update_looking_at and result.get("success"):
+                try:
+                    looking_at_dir = 'browser_automation/looking_at'
+                    os.makedirs(looking_at_dir, exist_ok=True)
+                    
+                    # Capture current state
+                    page_title = driver.title
+                    current_url = driver.current_url
+                    source_html = driver.page_source
+                    dom_html = driver.execute_script("return document.documentElement.outerHTML;")
+                    
+                    # Save updated state
+                    state_data = {
+                        'action_performed': action,
+                        'url': current_url,
+                        'title': page_title,
+                        'timestamp': datetime.now().isoformat()
+                    }
+                    
+                    with open(os.path.join(looking_at_dir, 'headers.json'), 'w') as f:
+                        json.dump(state_data, f, indent=2)
+                        
+                    with open(os.path.join(looking_at_dir, 'source.html'), 'w', encoding='utf-8') as f:
+                        f.write(source_html)
+                        
+                    with open(os.path.join(looking_at_dir, 'dom.html'), 'w', encoding='utf-8') as f:
+                        f.write(dom_html)
+                    
+                    # Create simple DOM
+                    try:
+                        from bs4 import BeautifulSoup
+                        soup = BeautifulSoup(dom_html, 'html.parser')
+                        for tag in soup(['script', 'style', 'noscript', 'meta', 'link']):
+                            tag.decompose()
+                        for element in soup.find_all():
+                            attrs_to_keep = {}
+                            for attr, value in element.attrs.items():
+                                if attr in ['id', 'role', 'data-testid', 'name', 'type', 'href', 'src'] or attr.startswith('aria-'):
+                                    attrs_to_keep[attr] = value
+                            element.attrs = attrs_to_keep
+                        simple_dom_html = str(soup)
+                    except:
+                        simple_dom_html = dom_html
+                        
+                    with open(os.path.join(looking_at_dir, 'simple_dom.html'), 'w', encoding='utf-8') as f:
+                        f.write(simple_dom_html)
+                    
+                    # Take screenshot
+                    driver.save_screenshot(os.path.join(looking_at_dir, 'screenshot.png'))
+                    
+                    result['looking_at_updated'] = True
+                    logger.info(f"🎯 FINDER_TOKEN: INTERACTION_PERCEPTION_UPDATE - Action: {action}, URL: {current_url}")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ FINDER_TOKEN: INTERACTION_PERCEPTION_ERROR - {e}")
+                    result['looking_at_updated'] = False
+            
+            return result
+            
+        finally:
+            driver.quit()
+            
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_INTERACT_ERROR - {e}")
+        return {"success": False, "error": str(e)}
+
 # Register browser automation MCP tools
 register_mcp_tool("browser_scrape_page", _browser_scrape_page)
 register_mcp_tool("browser_analyze_scraped_page", _browser_analyze_scraped_page)
 register_mcp_tool("browser_automate_workflow_walkthrough", _browser_automate_workflow_walkthrough)
+register_mcp_tool("browser_interact_with_current_page", _browser_interact_with_current_page)
 
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
