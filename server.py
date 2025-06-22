@@ -2016,7 +2016,7 @@ async def _dev_assistant_auto_analyze(params: dict) -> dict:
         params: {
             "plugin_path": "plugins/100_connect_with_botify.py",  # Plugin to analyze
             "action_mode": "analyze_only" | "analyze_and_improve",  # What to do
-            "base_url": "http://localhost:8000",  # Pipulate server URL
+            "base_url": "http://localhost:5001",  # Pipulate server URL
             "auto_fix": False,  # Whether to automatically apply fixes
             "save_analysis": True  # Whether to save results to downloads/
         }
@@ -2177,7 +2177,7 @@ async def _bulk_plugin_automation_audit(params: dict) -> dict:
             "improvement_threshold": 80,  # Minimum score to consider "good enough"
             "auto_apply_fixes": False,  # Whether to automatically fix issues
             "generate_report": True,  # Create comprehensive HTML report
-            "base_url": "http://localhost:8000"
+            "base_url": "http://localhost:5001"
         }
     
     Returns:

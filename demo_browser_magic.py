@@ -45,7 +45,7 @@ async def demonstrate_browser_magic():
     try:
         # Test basic browser interaction with visible browser
         result = await _browser_interact_with_page({
-            "url": "http://localhost:8000",
+            "url": "http://localhost:5001",  # 🎯 CORRECT PORT!
             "headless": False,  # 🎯 VISIBLE MAGIC!
             "take_screenshot": True,
             "actions": [
@@ -67,7 +67,7 @@ async def demonstrate_browser_magic():
         
     except Exception as e:
         print(f"❌ Browser control failed: {str(e)}")
-        print("💡 Make sure Pipulate server is running on localhost:8000")
+        print("💡 Make sure Pipulate server is running on localhost:5001")
         return False
     
     # Step 2: Component plugin analysis
@@ -78,7 +78,7 @@ async def demonstrate_browser_magic():
         # Analyze a simple component plugin
         result = await _dev_assistant_auto_analyze({
             "plugin_path": "plugins/510_text_field.py",
-            "base_url": "http://localhost:8000",
+            "base_url": "http://localhost:5001",  # 🎯 CORRECT PORT!
             "save_analysis": True
         })
         
