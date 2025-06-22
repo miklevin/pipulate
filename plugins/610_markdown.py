@@ -23,6 +23,31 @@ class MarkdownWidget:
     ENDPOINT_MESSAGE = 'This workflow demonstrates a Markdown (MarkedJS) rendering widget. Enter markdown content to see it rendered.'
     TRAINING_PROMPT = 'This workflow is for demonstrating and testing the Markdown MarkedJS widget. The user will input markdown text, and the system will render it as HTML.'
 
+    # UI Constants for automation and accessibility
+    UI_CONSTANTS = {
+        "AUTOMATION_ATTRIBUTES": {
+            "MARKDOWN_TEXTAREA": "markdown-widget-textarea",
+            "RENDER_BUTTON": "markdown-widget-render-button",
+            "RENDERED_OUTPUT": "markdown-widget-rendered-output",
+            "WIDGET_CONTAINER": "markdown-widget-container",
+            "SOURCE_ELEMENT": "markdown-widget-source"
+        },
+        "ARIA_LABELS": {
+            "MARKDOWN_INPUT": "Enter markdown content for rendering",
+            "RENDER_BUTTON": "Render markdown content as HTML",
+            "RENDERED_OUTPUT": "Rendered markdown output display",
+            "WIDGET_CONTAINER": "Markdown widget interface"
+        },
+        "COLORS": {
+            "WIDGET_BORDER": "#e9ecef",
+            "RENDERED_BACKGROUND": "#f8f9fa"
+        },
+        "SPACING": {
+            "WIDGET_PADDING": "1rem",
+            "BUTTON_MARGIN": "1vh 0"
+        }
+    }
+
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
@@ -33,7 +58,10 @@ class MarkdownWidget:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
-        steps = [Step(id='step_01', done='markdown_content', show='Markdown Content', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else '')]
+        steps = [
+            Step(id='step_01', done='markdown_content', show='Markdown Content', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else '')
+            # --- STEPS_LIST_INSERTION_POINT ---
+        ]
         routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST'])]
         self.steps = steps
         for step in steps:
@@ -46,6 +74,8 @@ class MarkdownWidget:
         self.step_messages = {'finalize': {'ready': 'All steps complete. Ready to finalize workflow.', 'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'}, 'step_01': {'input': 'Please enter Markdown content.', 'complete': 'Markdown content processed.'}}
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+    # --- STEP_METHODS_INSERTION_POINT ---
 
     async def landing(self, request):
         """Generate the landing page using the standardized helper while maintaining WET explicitness."""
@@ -89,11 +119,11 @@ class MarkdownWidget:
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
             if finalize_step.done in finalize_data:
-                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
+                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline', data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["RENDER_BUTTON"] + "-unlock", aria_label=self.UI_CONSTANTS["ARIA_LABELS"]["RENDER_BUTTON"]), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
+                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary', data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["RENDER_BUTTON"] + "-finalize", aria_label="Finalize markdown workflow"), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -129,7 +159,174 @@ class MarkdownWidget:
         return pip.run_all_cells(app_name, steps)
 
     def create_marked_widget(self, markdown_content, widget_id):
-        widget = Div(Div(markdown_content, id=f'{widget_id}_source', cls='hidden'), Div(id=f'{widget_id}_rendered', cls='bg-light border markdown-body p-3 rounded-default'), Script(f"\n                document.addEventListener('htmx:afterOnLoad', function() {{\n                    function renderMarkdown() {{\n                        const source = document.getElementById('{widget_id}_source');\n                        const target = document.getElementById('{widget_id}_rendered');\n                        if (source && target) {{\n                            const html = marked.parse(source.textContent);\n                            target.innerHTML = html;\n                            if (typeof Prism !== 'undefined') {{\n                                Prism.highlightAllUnder(target);\n                            }}\n                        }}\n                    }}\n                    if (typeof marked !== 'undefined') {{\n                        renderMarkdown();\n                    }} else {{\n                        console.error('marked.js is not loaded');\n                    }}\n                }});\n                document.addEventListener('initMarked', function(event) {{\n                    if (event.detail.widgetId === '{widget_id}') {{\n                        setTimeout(function() {{\n                            const source = document.getElementById('{widget_id}_source');\n                            const target = document.getElementById('{widget_id}_rendered');\n                            if (source && target && typeof marked !== 'undefined') {{\n                                const html = marked.parse(source.textContent);\n                                target.innerHTML = html;\n                                if (typeof Prism !== 'undefined') {{\n                                    Prism.highlightAllUnder(target);\n                                }}\n                            }}\n                        }}, 100); // Delay to ensure DOM is ready\n                    }}\n                }});\n            "), cls='marked-widget')
+        # Ensure markdown_content is properly handled as text
+        content_text = str(markdown_content) if markdown_content else ""
+        
+        widget = Div(
+            # Use Pre element to preserve exact text content including newlines
+            Pre(
+                content_text, 
+                id=f'{widget_id}_source', 
+                cls='hidden',
+                data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["SOURCE_ELEMENT"],
+                aria_label="Hidden markdown source content",
+                style="white-space: pre-wrap; display: none;"
+            ), 
+            Div(
+                id=f'{widget_id}_rendered', 
+                cls='bg-light border markdown-body p-3 rounded-default',
+                data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["RENDERED_OUTPUT"],
+                aria_label=self.UI_CONSTANTS["ARIA_LABELS"]["RENDERED_OUTPUT"],
+                role="region",
+                aria_live="polite"
+            ), 
+            Script(f"""
+                document.addEventListener('htmx:afterOnLoad', function() {{
+                    function renderMarkdown() {{
+                        const source = document.getElementById('{widget_id}_source');
+                        const target = document.getElementById('{widget_id}_rendered');
+                        if (source && target) {{
+                            // Use textContent to get the actual text, not innerHTML
+                            const markdownText = source.textContent || source.innerText || '';
+                            console.log('Rendering markdown:', markdownText.substring(0, 100) + '...');
+                            
+                            // Configure marked to work better with Prism
+                            if (typeof marked !== 'undefined') {{
+                                // Set up marked renderer to avoid conflicts with Prism
+                                const renderer = new marked.Renderer();
+                                const originalCode = renderer.code;
+                                renderer.code = function(code, lang) {{
+                                    // Robust code content handling - extract text from objects if needed
+                                    let codeText;
+                                    if (typeof code === 'string') {{
+                                        codeText = code;
+                                    }} else if (code && typeof code === 'object') {{
+                                        // If it's an object, try to extract text content
+                                        codeText = code.text || code.content || code.value || JSON.stringify(code);
+                                    }} else {{
+                                        codeText = String(code || '');
+                                    }}
+                                    
+                                    // Escape HTML to prevent XSS and display issues
+                                    codeText = codeText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                    
+                                    if (lang) {{
+                                        return `<pre><code class="language-${{lang}}">${{codeText}}</code></pre>`;
+                                    }} else {{
+                                        return `<pre><code>${{codeText}}</code></pre>`;
+                                    }}
+                                }};
+                                
+                                const html = marked.parse(markdownText, {{ renderer: renderer }});
+                                target.innerHTML = html;
+                                
+                                // Apply Prism highlighting with enhanced debugging and retry logic
+                                setTimeout(function() {{
+                                    if (typeof Prism !== 'undefined') {{
+                                        console.log('Applying Prism highlighting...');
+                                        
+                                        // Find all code blocks and ensure they have proper language classes
+                                        const codeBlocks = target.querySelectorAll('pre code');
+                                        codeBlocks.forEach(function(block, index) {{
+                                            console.log(`Code block ${{index}}: classes = ${{block.className}}`);
+                                            
+                                            // If no language class but content looks like Python, add it
+                                            if (!block.className.includes('language-') && 
+                                                (block.textContent.includes('def ') || 
+                                                 block.textContent.includes('import ') ||
+                                                 block.textContent.includes('print('))) {{
+                                                console.log('Auto-detecting Python code, adding language-python class');
+                                                block.className = 'language-python';
+                                            }}
+                                        }});
+                                        
+                                        // Apply highlighting
+                                        Prism.highlightAllUnder(target);
+                                        console.log('Prism highlighting completed');
+                                    }} else {{
+                                        console.error('Prism is not available for syntax highlighting');
+                                    }}
+                                }}, 100);
+                            }}
+                        }}
+                    }}
+                    if (typeof marked !== 'undefined') {{
+                        renderMarkdown();
+                    }} else {{
+                        console.error('marked.js is not loaded');
+                    }}
+                }});
+                document.addEventListener('initMarked', function(event) {{
+                    if (event.detail.widgetId === '{widget_id}') {{
+                        setTimeout(function() {{
+                            const source = document.getElementById('{widget_id}_source');
+                            const target = document.getElementById('{widget_id}_rendered');
+                            if (source && target && typeof marked !== 'undefined') {{
+                                const markdownText = source.textContent || source.innerText || '';
+                                console.log('Init rendering markdown:', markdownText.substring(0, 100) + '...');
+                                
+                                // Configure marked renderer
+                                const renderer = new marked.Renderer();
+                                renderer.code = function(code, lang) {{
+                                    // Robust code content handling - extract text from objects if needed
+                                    let codeText;
+                                    if (typeof code === 'string') {{
+                                        codeText = code;
+                                    }} else if (code && typeof code === 'object') {{
+                                        // If it's an object, try to extract text content
+                                        codeText = code.text || code.content || code.value || JSON.stringify(code);
+                                    }} else {{
+                                        codeText = String(code || '');
+                                    }}
+                                    
+                                    // Escape HTML to prevent XSS and display issues
+                                    codeText = codeText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                    
+                                    if (lang) {{
+                                        return `<pre><code class="language-${{lang}}">${{codeText}}</code></pre>`;
+                                    }} else {{
+                                        return `<pre><code>${{codeText}}</code></pre>`;
+                                    }}
+                                }};
+                                
+                                const html = marked.parse(markdownText, {{ renderer: renderer }});
+                                target.innerHTML = html;
+                                
+                                setTimeout(function() {{
+                                    if (typeof Prism !== 'undefined') {{
+                                        console.log('Init: Applying Prism highlighting...');
+                                        
+                                        // Find all code blocks and ensure they have proper language classes
+                                        const codeBlocks = target.querySelectorAll('pre code');
+                                        codeBlocks.forEach(function(block, index) {{
+                                            console.log(`Init code block ${{index}}: classes = ${{block.className}}`);
+                                            
+                                            // If no language class but content looks like Python, add it
+                                            if (!block.className.includes('language-') && 
+                                                (block.textContent.includes('def ') || 
+                                                 block.textContent.includes('import ') ||
+                                                 block.textContent.includes('print('))) {{
+                                                console.log('Init: Auto-detecting Python code, adding language-python class');
+                                                block.className = 'language-python';
+                                            }}
+                                        }});
+                                        
+                                        // Apply highlighting
+                                        Prism.highlightAllUnder(target);
+                                        console.log('Init: Prism highlighting completed');
+                                    }} else {{
+                                        console.error('Init: Prism is not available for syntax highlighting');
+                                    }}
+                                }}, 100);
+                            }}
+                        }}, 100); // Delay to ensure DOM is ready
+                    }}
+                }});
+            """), 
+            cls='marked-widget',
+            data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["WIDGET_CONTAINER"],
+            aria_label=self.UI_CONSTANTS["ARIA_LABELS"]["WIDGET_CONTAINER"]
+        )
         return widget
 
     async def step_01(self, request):
@@ -161,7 +358,7 @@ class MarkdownWidget:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             explanation = 'Enter markdown content to be rendered. Example is pre-populated. The markdown will be rendered with support for headings, lists, bold/italic text, and code blocks.'
             await self.message_queue.add(pip, explanation, verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, cls='text-secondary'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter markdown content', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Render Markdown ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, cls='text-secondary'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter markdown content', required=True, rows=15, style='width: 100%; font-family: monospace;', data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["MARKDOWN_TEXTAREA"], aria_label=self.UI_CONSTANTS["ARIA_LABELS"]["MARKDOWN_INPUT"], aria_describedby="markdown-help-text"), Div(Button('Render Markdown ▸', type='submit', cls='primary', data_testid=self.UI_CONSTANTS["AUTOMATION_ATTRIBUTES"]["RENDER_BUTTON"], aria_label=self.UI_CONSTANTS["ARIA_LABELS"]["RENDER_BUTTON"]), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}'), P("Supports headings, lists, bold/italic text, code blocks, and links", id="markdown-help-text", cls='text-secondary')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
