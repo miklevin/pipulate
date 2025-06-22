@@ -1,0 +1,10 @@
+# This directory contains the AI's current browser perception state
+# 
+# Files that will appear here during browser automation:
+# - dom.html (full rendered DOM with HTMX fragments)
+# - source.html (raw page source)  
+# - simple_dom.html (distilled for context window)
+# - headers.json (HTTP response metadata)
+# - screenshot.png (visual state capture)
+#
+# This is where the AI "looks" to understand what it's seeing.
