@@ -409,7 +409,7 @@ class ParameterBuster:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=self.pipulate.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -499,7 +499,7 @@ class ParameterBuster:
         botify_url = form.get('botify_url', '').strip()
         is_valid, message, project_data = self.validate_botify_url(botify_url)
         if not is_valid:
-            return P(f'Error: {message}', style=pip.get_style('error'))
+            return P(f'Error: {message}', cls='text-invalid')
         project_data_str = json.dumps(project_data)
         await pip.set_step_data(pipeline_id, step_id, project_data_str, steps)
         await self.message_queue.add(pip, f"✳️ {step.show} complete: {project_data['project_name']}", verbatim=True)
@@ -525,7 +525,7 @@ class ParameterBuster:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -557,12 +557,12 @@ class ParameterBuster:
         try:
             api_token = self.read_api_token()
             if not api_token:
-                return P('Error: Botify API token not found. Please connect with Botify first.', style=pip.get_style('error'))
+                return P('Error: Botify API token not found. Please connect with Botify first.', cls='text-invalid')
             logging.info(f'Getting analyses for {username}/{project_name}')
             slugs = await self.fetch_analyses(username, project_name, api_token)
             logging.info(f'Got {(len(slugs) if slugs else 0)} analyses')
             if not slugs:
-                return P(f'Error: No analyses found for project {project_name}. Please check your API access.', style=pip.get_style('error'))
+                return P(f'Error: No analyses found for project {project_name}. Please check your API access.', cls='text-invalid')
             selected_value = selected_slug if selected_slug else slugs[0]
             # Get active template details for dynamic UI
             active_crawl_template_key = self.get_configured_template('crawl')
@@ -646,7 +646,7 @@ class ParameterBuster:
             )
         except Exception as e:
             logging.exception(f'Error in {step_id}: {e}')
-            return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error fetching analyses: {str(e)}', cls='text-invalid')
 
     async def step_02_submit(self, request):
         """Process the selected analysis slug for step_02 and download crawl data."""
@@ -660,14 +660,14 @@ class ParameterBuster:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
         form = await request.form()
         analysis_slug = form.get('analysis_slug', '').strip()
         if not analysis_slug:
-            return P('Error: No analysis selected', style=pip.get_style('error'))
+            return P('Error: No analysis selected', cls='text-invalid')
         await self.message_queue.add(pip, f'📊 Selected analysis: {analysis_slug}. Starting crawl data download...', verbatim=True)
         # Get active template details and check for qualifier config
         active_crawl_template_key = self.get_configured_template('crawl')
@@ -686,7 +686,7 @@ class ParameterBuster:
             try:
                 api_token = self.read_api_token()
                 if not api_token:
-                    return P('Error: Botify API token not found. Please connect with Botify first.', style=pip.get_style('error'))
+                    return P('Error: Botify API token not found. Please connect with Botify first.', cls='text-invalid')
                 await self.message_queue.add(pip, qualifier_config['user_message_running'], verbatim=True)
                 qualifier_outcome = await self._execute_qualifier_logic(username, project_name, analysis_slug, api_token, qualifier_config)
                 # Store qualifier results
@@ -741,7 +741,7 @@ class ParameterBuster:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -894,7 +894,7 @@ class ParameterBuster:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -902,7 +902,7 @@ class ParameterBuster:
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
         if not analysis_data_str:
-            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
+            return P('Error: Analysis data not found. Please complete step 2 first.', cls='text-invalid')
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
         await self.message_queue.add(pip, f"📥 Downloading Web Logs for '{project_name}'...", verbatim=True)
@@ -941,7 +941,7 @@ class ParameterBuster:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -1090,7 +1090,7 @@ class ParameterBuster:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -1122,7 +1122,7 @@ class ParameterBuster:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found.', style=pip.get_style('error'))
+            return P('Error: Project data not found.', cls='text-invalid')
         
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
@@ -1132,7 +1132,7 @@ class ParameterBuster:
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
         if not analysis_data_str:
-            return P('Error: Analysis data not found.', style=pip.get_style('error'))
+            return P('Error: Analysis data not found.', cls='text-invalid')
         
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
@@ -1141,7 +1141,7 @@ class ParameterBuster:
             has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
             if error_message:
                 return Div(
-                    P(f'Error: {error_message}', style=pip.get_style('error')),
+                    P(f'Error: {error_message}', cls='text-invalid'),
                     Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                     id=step_id
                 )
@@ -1203,7 +1203,7 @@ class ParameterBuster:
         except Exception as e:
             logging.exception(f'Error in step_04_complete: {e}')
             return Div(
-                P(f'Error: {str(e)}', style=pip.get_style('error')),
+                P(f'Error: {str(e)}', cls='text-invalid'),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
@@ -1232,12 +1232,12 @@ class ParameterBuster:
             project_info = json.loads(project_data)
             analysis_info = json.loads(analysis_data)
         except json.JSONDecodeError:
-            return P('Error: Could not load project or analysis data', style=pip.get_style('error'))
+            return P('Error: Could not load project or analysis data', cls='text-invalid')
         username = project_info.get('username')
         project_name = project_info.get('project_name')
         analysis_slug = analysis_info.get('analysis_slug')
         if not all([username, project_name, analysis_slug]):
-            return P('Error: Missing required project information', style=pip.get_style('error'))
+            return P('Error: Missing required project information', cls='text-invalid')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and optimization_result:
             try:
@@ -1254,7 +1254,7 @@ class ParameterBuster:
                 logging.error(f'Error creating parameter visualization in revert view: {str(e)}')
                 return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Parameter analysis complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-        return Div(Card(H3(f'{step.show}'), P('This will create counters for your querystring parameters for each of the following:', cls='mb-15px'), Ul(Li('Crawl data from Botify analysis'), Li('Search Console performance data'), Li('Web logs data (if available)'), cls='mb-15px'), Form(Div(P("Note: It doesn't matter what you choose here. This slider only controls how many parameters are displayed and can be adjusted at any time. It does not affect the underlying analysis.", style=(pip.get_style('muted') or '') + 'margin-bottom: 10px;'), Label(NotStr('<strong>Number of Parameters to Show:</strong>'), For='param_count', style='min-width: 220px;'), Input(type='range', name='param_count_slider', id='param_count_slider', value=param_count, min='10', max='250', step='5', style='flex-grow: 1; margin: 0 10px;', _oninput="document.getElementById('param_count').value = this.value;"), Input(type='number', name='param_count', id='param_count', value=param_count, min='10', max='250', step='5', style='width: 100px;', _oninput="document.getElementById('param_count_slider').value = this.value;", _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"), style='display: flex; align-items: center; gap: 10px; margin-bottom: 15px;'), Button('Count Parameters ▸', type='submit', cls='primary'), Script("\n                    // Define triggerParameterPreview in the global scope\n                    window.triggerParameterPreview = function() {\n                        // Use HTMX to manually trigger the parameter preview\n                        htmx.trigger('#parameter-preview', 'htmx:beforeRequest');\n                        htmx.ajax('POST', \n                            window.location.pathname.replace('step_06', 'parameter_preview'), \n                            {\n                                target: '#parameter-preview',\n                                values: {\n                                    'gsc_threshold': document.getElementById('gsc_threshold').value,\n                                    'min_frequency': document.getElementById('min_frequency').value\n                                }\n                            }\n                        );\n                    };\n                    "), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', _onsubmit='if(event.submitter !== document.querySelector(\'button[type="submit"]\')) { event.preventDefault(); return false; }', _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"), Script('\n                function triggerParameterPreview() {\n                    // Use HTMX to manually trigger the parameter preview\n                    htmx.trigger(\'#parameter-preview\', \'htmx:beforeRequest\');\n                    htmx.ajax(\'POST\', document.querySelector(\'input[name="gsc_threshold"]\').form.getAttribute(\'hx-post\').replace(\'step_06_submit\', \'parameter_preview\'), {\n                        target: \'#parameter-preview\',\n                        values: {\n                            \'gsc_threshold\': document.getElementById(\'gsc_threshold\').value,\n                            \'min_frequency\': document.getElementById(\'min_frequency\').value\n                        }\n                    });\n                }\n                ')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{step.show}'), P('This will create counters for your querystring parameters for each of the following:', cls='mb-15px'), Ul(Li('Crawl data from Botify analysis'), Li('Search Console performance data'), Li('Web logs data (if available)'), cls='mb-15px'), Form(Div(P("Note: It doesn't matter what you choose here. This slider only controls how many parameters are displayed and can be adjusted at any time. It does not affect the underlying analysis.", cls='text-muted', style='margin-bottom: 10px;'), Label(NotStr('<strong>Number of Parameters to Show:</strong>'), For='param_count', style='min-width: 220px;'), Input(type='range', name='param_count_slider', id='param_count_slider', value=param_count, min='10', max='250', step='5', style='flex-grow: 1; margin: 0 10px;', _oninput="document.getElementById('param_count').value = this.value;"), Input(type='number', name='param_count', id='param_count', value=param_count, min='10', max='250', step='5', style='width: 100px;', _oninput="document.getElementById('param_count_slider').value = this.value;", _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"), style='display: flex; align-items: center; gap: 10px; margin-bottom: 15px;'), Button('Count Parameters ▸', type='submit', cls='primary'), Script("\n                    // Define triggerParameterPreview in the global scope\n                    window.triggerParameterPreview = function() {\n                        // Use HTMX to manually trigger the parameter preview\n                        htmx.trigger('#parameter-preview', 'htmx:beforeRequest');\n                        htmx.ajax('POST', \n                            window.location.pathname.replace('step_06', 'parameter_preview'), \n                            {\n                                target: '#parameter-preview',\n                                values: {\n                                    'gsc_threshold': document.getElementById('gsc_threshold').value,\n                                    'min_frequency': document.getElementById('min_frequency').value\n                                }\n                            }\n                        );\n                    };\n                    "), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', _onsubmit='if(event.submitter !== document.querySelector(\'button[type="submit"]\')) { event.preventDefault(); return false; }', _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"), Script('\n                function triggerParameterPreview() {\n                    // Use HTMX to manually trigger the parameter preview\n                    htmx.trigger(\'#parameter-preview\', \'htmx:beforeRequest\');\n                    htmx.ajax(\'POST\', document.querySelector(\'input[name="gsc_threshold"]\').form.getAttribute(\'hx-post\').replace(\'step_06_submit\', \'parameter_preview\'), {\n                        target: \'#parameter-preview\',\n                        values: {\n                            \'gsc_threshold\': document.getElementById(\'gsc_threshold\').value,\n                            \'min_frequency\': document.getElementById(\'min_frequency\').value\n                        }\n                    });\n                }\n                ')), Div(id=next_step_id), id=step_id)
 
     async def step_05_submit(self, request):
         """Process the parameter optimization generation.
@@ -1290,12 +1290,12 @@ class ParameterBuster:
             project_info = json.loads(project_data)
             analysis_info = json.loads(analysis_data)
         except json.JSONDecodeError:
-            return P('Error: Could not load project or analysis data', style=pip.get_style('error'))
+            return P('Error: Could not load project or analysis data', cls='text-invalid')
         username = project_info.get('username')
         project_name = project_info.get('project_name')
         analysis_slug = analysis_info.get('analysis_slug')
         if not all([username, project_name, analysis_slug]):
-            return P('Error: Missing required project information', style=pip.get_style('error'))
+            return P('Error: Missing required project information', cls='text-invalid')
         try:
             await self.message_queue.add(pip, 'Counting parameters...', verbatim=True)
             data_dir = await self.get_deterministic_filepath(username, project_name, analysis_slug)
@@ -1329,7 +1329,7 @@ class ParameterBuster:
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {len(total_unique_params):,} unique parameters found', widget=visualization_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_05_process: {e}')
-            return P(f'Error generating optimization: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error generating optimization: {str(e)}', cls='text-invalid')
 
     async def step_06(self, request):
         """Handles GET request for the JavaScript Code Display Step."""
@@ -1564,7 +1564,7 @@ class ParameterBuster:
             return response
         except Exception as e:
             logging.exception(f'Error in step_06_submit: {e}')
-            return P(f'Error creating parameter optimization: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error creating parameter optimization: {str(e)}', cls='text-invalid')
 
     async def parameter_preview(self, request):
         """Process real-time parameter preview requests based on threshold settings."""
@@ -2766,7 +2766,7 @@ await main()
         username = form.get('username', '').strip()
         project_name = form.get('project_name', '').strip()
         if not all([analysis_slug, username, project_name]):
-            return P('Error: Missing required parameters', style=pip.get_style('error'))
+            return P('Error: Missing required parameters', cls='text-invalid')
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         analysis_result_str = step_data.get(step.done, '')
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
@@ -3058,7 +3058,7 @@ await main()
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Analysis {status_text}{download_message}', widget=widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_02_process: {e}')
-            return P(f'Error: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error: {str(e)}', cls='text-invalid')
 
     async def step_03_process(self, request):
         """Process the web logs check and download if available."""
@@ -3073,11 +3073,11 @@ await main()
         username = form.get('username', '').strip()
         project_name = form.get('project_name', '').strip()
         if not all([analysis_slug, username, project_name]):
-            return P('Error: Missing required parameters', style=pip.get_style('error'))
+            return P('Error: Missing required parameters', cls='text-invalid')
         try:
             has_logs, error_message = await self.check_if_project_has_collection(username, project_name, 'logs')
             if error_message:
-                return P(f'Error: {error_message}', style=pip.get_style('error'))
+                return P(f'Error: {error_message}', cls='text-invalid')
             check_result = {'has_logs': has_logs, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
             status_text = 'HAS' if has_logs else 'does NOT have'
             await self.message_queue.add(pip, f'{step.show} complete: Project {status_text} web logs', verbatim=True)
@@ -3303,7 +3303,7 @@ await main()
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} web logs{download_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_03_process: {e}')
-            return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(P(f'Error: {str(e)}', cls='text-invalid'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def common_toggle(self, request):
         """Unified toggle method for all step widgets using configuration-driven approach."""
