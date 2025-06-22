@@ -9,7 +9,6 @@ vulture
 aiohttp
 beautifulsoup4
 blinker==1.7.0
-dominate
 extruct
 httpx
 ipynbname

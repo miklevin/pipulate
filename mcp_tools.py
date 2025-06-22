@@ -502,7 +502,18 @@ async def _browser_stealth_search(params: dict) -> dict:
             options.add_argument('--window-size=960,1080')
             options.add_argument('--window-position=0,0')
             
-            driver = uc.Chrome(options=options, version_main=None)
+            # Force undetected-chromedriver to auto-detect and download correct version
+            # Use browser_executable_path to point to Chromium on NixOS
+            try:
+                driver = uc.Chrome(
+                    options=options, 
+                    version_main=131,  # Match detected Chromium version
+                    browser_executable_path='/home/mike/.nix-profile/bin/chromium'  # NixOS Chromium path
+                )
+            except Exception as e:
+                logger.warning(f"🎭 FINDER_TOKEN: UNDETECTED_FALLBACK - {e}")
+                # Fallback: let undetected-chromedriver auto-detect
+                driver = uc.Chrome(options=options)
             
         else:
             # Fallback to standard Chrome with advanced stealth
