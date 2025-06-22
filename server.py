@@ -2633,6 +2633,98 @@ def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str='
     finally:
         db_conn.row_factory = original_row_factory
 
+def log_pipeline_summary(title_prefix: str=''):
+    """
+    🔧 PIPELINE SUMMARY: User-friendly summary of pipeline state for startup logging.
+    Provides just enough information to be super useful without terrifying newbs.
+    """
+    try:
+        records = list(pipeline())
+        
+        if not records:
+            logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} No active workflows")
+            return
+            
+        total_workflows = len(records)
+        
+        # Group by app_name for summary
+        app_counts = {}
+        finalized_count = 0
+        recent_activity = []
+        
+        for record in records:
+            # Convert SQLite Row to dict for easier access
+            record_dict = dict(record) if hasattr(record, 'keys') else record
+            
+            app_name = record_dict.get('app_name', 'unknown')
+            app_counts[app_name] = app_counts.get(app_name, 0) + 1
+            
+            # Check if finalized
+            data = record_dict.get('data', {})
+            if isinstance(data, str):
+                # Handle case where data is JSON string
+                try:
+                    import json
+                    data = json.loads(data)
+                except:
+                    data = {}
+            
+            if data.get('finalize', {}).get('finalized'):
+                finalized_count += 1
+                
+            # Track recent activity (last 24 hours)
+            updated = record_dict.get('updated', '')
+            if updated:
+                try:
+                    from datetime import datetime, timedelta
+                    updated_time = datetime.fromisoformat(updated.replace('Z', '+00:00'))
+                    if datetime.now().replace(tzinfo=updated_time.tzinfo) - updated_time < timedelta(hours=24):
+                        recent_activity.append({
+                            'pkey': record_dict.get('pkey', ''),
+                            'app': app_name,
+                            'updated': updated
+                        })
+                except:
+                    pass
+        
+        # Create friendly summary
+        summary_lines = [
+            f"📊 Total workflows: {total_workflows}",
+            f"🔒 Finalized: {finalized_count}",
+            f"⚡ Active: {total_workflows - finalized_count}"
+        ]
+        
+        # Add app breakdown
+        if app_counts:
+            app_summary = ", ".join([f"{app}({count})" for app, count in sorted(app_counts.items())])
+            summary_lines.append(f"📱 Apps: {app_summary}")
+        
+        # Add recent activity
+        if recent_activity:
+            recent_count = len(recent_activity)
+            summary_lines.append(f"🕒 Recent activity (24h): {recent_count} workflows")
+            
+        summary = "\n    ".join(summary_lines)
+        logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} Workflow Overview:\n    {summary}")
+        
+        # For AI assistants: log a few recent workflow keys for context
+        if records:
+            recent_keys = []
+            for record in records[-3:]:
+                record_dict = dict(record) if hasattr(record, 'keys') else record
+                recent_keys.append(record_dict.get('pkey', 'unknown'))
+            logger.info(f"🔍 SEMANTIC_PIPELINE_CONTEXT: {title_prefix} Recent workflow keys: {', '.join(recent_keys)}")
+            
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: PIPELINE_SUMMARY_ERROR - Failed to create pipeline summary ({title_prefix}): {e}")
+        # Fallback to original detailed logging if summary fails
+        try:
+            records = list(pipeline())
+            content = _format_records_for_lifecycle_log(records)
+            logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_PIPELINE - {title_prefix} Fallback Snapshot:\n{content}")
+        except Exception as fallback_error:
+            logger.error(f"❌ FINDER_TOKEN: PIPELINE_FALLBACK_ERROR - Both summary and fallback failed: {fallback_error}")
+
 class LogManager:
     """Central logging coordinator for artistic control of console and file output.
 
@@ -5339,7 +5431,7 @@ async def startup_event():
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:')
     log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
-    log_dynamic_table_state('pipeline', lambda: pipeline(), title_prefix='STARTUP FINAL')
+    log_pipeline_summary(title_prefix='STARTUP FINAL')
 
     
     # Clear any stale coordination data on startup
@@ -6688,7 +6780,7 @@ async def clear_db(request):
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('CLEAR_DB: Starting database reset...')
         log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB INITIAL')
-        log_dynamic_table_state('pipeline', lambda: pipeline(), title_prefix='CLEAR_DB INITIAL')
+        log_pipeline_summary(title_prefix='CLEAR_DB INITIAL')
         log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB INITIAL')
     
     # Safely preserve certain values before clearing
