@@ -1473,6 +1473,275 @@ register_mcp_tool("local_llm_get_context", _local_llm_get_context)
 register_mcp_tool("ui_flash_element", _ui_flash_element)
 register_mcp_tool("ui_list_elements", _ui_list_elements)
 
+# 🌐 FINDER_TOKEN: BROWSER_MCP_TOOLS_CORE
+async def _browser_scrape_page(params: dict) -> dict:
+    """
+    MCP Tool: Scrape a web page and save multiple versions for AI analysis.
+    
+    Saves:
+    - HTTP headers as JSON
+    - Original HTML source  
+    - Post-JavaScript DOM
+    - Simplified semantic HTML (IDs, ARIA, semantic tags only)
+    
+    Args:
+        params: {
+            "url": "https://example.com",
+            "wait_seconds": 3,  # Optional: wait for JS to load
+            "save_location": "downloads/browser_scrapes"  # Optional
+        }
+    
+    Returns:
+        dict: {
+            "success": True,
+            "scrape_id": "domain_com_2025-01-11_14-30-15",
+            "files": {
+                "headers": "path/to/headers.json",
+                "original_html": "path/to/original.html", 
+                "dom_html": "path/to/dom.html",
+                "simplified_html": "path/to/simplified.html"
+            },
+            "page_info": {
+                "title": "Page Title",
+                "url": "https://example.com",
+                "timestamp": "2025-01-11T14:30:15"
+            }
+        }
+    """
+    import os
+    import json
+    from datetime import datetime
+    from urllib.parse import urlparse
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from seleniumwire import webdriver as wire_webdriver
+    import time
+    
+    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_SCRAPE_START - URL: {params.get('url')}")
+    
+    try:
+        url = params.get('url')
+        wait_seconds = params.get('wait_seconds', 3)
+        save_location = params.get('save_location', 'downloads/browser_scrapes')
+        
+        if not url:
+            return {"success": False, "error": "URL parameter is required"}
+            
+        # Create scrape ID from URL and timestamp
+        parsed = urlparse(url)
+        domain_safe = parsed.netloc.replace('.', '_').replace(':', '_')
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        scrape_id = f"{domain_safe}_{timestamp}"
+        
+        # Ensure save directory exists
+        scrape_dir = os.path.join(save_location, scrape_id)
+        os.makedirs(scrape_dir, exist_ok=True)
+        
+        # Set up Selenium Wire for header capture
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+        
+        driver = wire_webdriver.Chrome(options=chrome_options)
+        
+        try:
+            # Navigate and wait
+            driver.get(url)
+            time.sleep(wait_seconds)
+            
+            # Capture page info
+            page_title = driver.title
+            final_url = driver.current_url
+            
+            # 1. Save HTTP headers
+            headers_data = {}
+            for request in driver.requests:
+                if request.url == url:
+                    headers_data = {
+                        'request_headers': dict(request.headers),
+                        'response_headers': dict(request.response.headers) if request.response else {},
+                        'status_code': request.response.status_code if request.response else None
+                    }
+                    break
+            
+            headers_file = os.path.join(scrape_dir, 'headers.json')
+            with open(headers_file, 'w') as f:
+                json.dump(headers_data, f, indent=2)
+                
+            # 2. Save original HTML source
+            original_html = driver.page_source
+            original_file = os.path.join(scrape_dir, 'original.html')
+            with open(original_file, 'w', encoding='utf-8') as f:
+                f.write(original_html)
+                
+            # 3. Save post-JavaScript DOM
+            dom_html = driver.execute_script("return document.documentElement.outerHTML;")
+            dom_file = os.path.join(scrape_dir, 'dom.html')
+            with open(dom_file, 'w', encoding='utf-8') as f:
+                f.write(dom_html)
+                
+            # 4. Create simplified semantic HTML
+            try:
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(dom_html, 'html.parser')
+                
+                # Remove unwanted elements
+                for tag in soup(['script', 'style', 'noscript', 'meta', 'link']):
+                    tag.decompose()
+                    
+                # Strip all attributes except id, aria-*, role, data-testid
+                for element in soup.find_all():
+                    attrs_to_keep = {}
+                    for attr, value in element.attrs.items():
+                        if attr in ['id', 'role', 'data-testid'] or attr.startswith('aria-'):
+                            attrs_to_keep[attr] = value
+                    element.attrs = attrs_to_keep
+                    
+                simplified_html = str(soup)
+            except ImportError:
+                # Fallback if BeautifulSoup not available
+                simplified_html = dom_html
+                
+            simplified_file = os.path.join(scrape_dir, 'simplified.html')
+            with open(simplified_file, 'w', encoding='utf-8') as f:
+                f.write(simplified_html)
+                
+        finally:
+            driver.quit()
+            
+        result = {
+            "success": True,
+            "scrape_id": scrape_id,
+            "files": {
+                "headers": headers_file,
+                "original_html": original_file,
+                "dom_html": dom_file, 
+                "simplified_html": simplified_file
+            },
+            "page_info": {
+                "title": page_title,
+                "url": final_url,
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        
+        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_SCRAPE_SUCCESS - Scrape ID: {scrape_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_SCRAPE_ERROR - {e}")
+        return {"success": False, "error": str(e)}
+
+async def _browser_analyze_scraped_page(params: dict) -> dict:
+    """
+    MCP Tool: Analyze a previously scraped page for automation opportunities.
+    
+    Args:
+        params: {
+            "scrape_id": "domain_com_2025-01-11_14-30-15",
+            "analysis_type": "form_elements" | "navigation" | "automation_targets"
+        }
+    
+    Returns:
+        dict: Analysis results with actionable automation data
+    """
+    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_ANALYZE_START - Scrape ID: {params.get('scrape_id')}")
+    
+    try:
+        scrape_id = params.get('scrape_id')
+        analysis_type = params.get('analysis_type', 'automation_targets')
+        
+        if not scrape_id:
+            return {"success": False, "error": "scrape_id parameter is required"}
+            
+        # Find the simplified HTML file
+        simplified_file = f"downloads/browser_scrapes/{scrape_id}/simplified.html"
+        
+        if not os.path.exists(simplified_file):
+            return {"success": False, "error": f"Simplified HTML not found for scrape_id: {scrape_id}"}
+            
+        with open(simplified_file, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+            
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html_content, 'html.parser')
+        except ImportError:
+            return {"success": False, "error": "BeautifulSoup not available for HTML parsing"}
+        
+        if analysis_type == "form_elements":
+            # Find all forms and their elements
+            forms = []
+            for form in soup.find_all('form'):
+                form_data = {
+                    'id': form.get('id'),
+                    'action': form.get('action'),
+                    'method': form.get('method', 'GET'),
+                    'elements': []
+                }
+                
+                for element in form.find_all(['input', 'button', 'select', 'textarea']):
+                    element_data = {
+                        'tag': element.name,
+                        'type': element.get('type'),
+                        'id': element.get('id'),
+                        'name': element.get('name'),
+                        'aria_label': element.get('aria-label'),
+                        'data_testid': element.get('data-testid'),
+                        'placeholder': element.get('placeholder'),
+                        'text': element.get_text(strip=True)
+                    }
+                    form_data['elements'].append(element_data)
+                    
+                forms.append(form_data)
+                
+            result = {
+                "success": True,
+                "analysis_type": analysis_type,
+                "forms": forms,
+                "form_count": len(forms)
+            }
+            
+        elif analysis_type == "automation_targets":
+            # Find all elements with automation-friendly attributes
+            targets = []
+            for element in soup.find_all():
+                if element.get('id') or element.get('data-testid') or element.get('aria-label'):
+                    target = {
+                        'tag': element.name,
+                        'id': element.get('id'),
+                        'data_testid': element.get('data-testid'),
+                        'aria_label': element.get('aria-label'),
+                        'role': element.get('role'),
+                        'text': element.get_text(strip=True)[:100],  # First 100 chars
+                        'selector_priority': 'high' if element.get('data-testid') else 'medium' if element.get('id') else 'low'
+                    }
+                    targets.append(target)
+                    
+            result = {
+                "success": True,
+                "analysis_type": analysis_type,
+                "automation_targets": targets,
+                "target_count": len(targets),
+                "high_priority_targets": len([t for t in targets if t['selector_priority'] == 'high'])
+            }
+            
+        else:
+            result = {"success": False, "error": f"Unknown analysis_type: {analysis_type}"}
+            
+        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_ANALYZE_SUCCESS - Found {result.get('target_count', 0)} targets")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_ANALYZE_ERROR - {e}")
+        return {"success": False, "error": str(e)}
+
+# Register browser automation MCP tools
+register_mcp_tool("browser_scrape_page", _browser_scrape_page)
+register_mcp_tool("browser_analyze_scraped_page", _browser_analyze_scraped_page)
+
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
