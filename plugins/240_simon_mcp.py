@@ -274,8 +274,28 @@ class SimonSaysMcpWidget:
         await self.message_queue.add(pip, "🎪 Simon Says Make MCP Call! Select an MCP action from the dropdown and click the button to execute it directly for teaching and testing!", verbatim=True)
         
         # Simplified mode selection - store in a simple class attribute since this is a utility
-        current_mode = getattr(self, 'current_mode', 'flash_chat')
+        current_mode = getattr(self, 'current_mode', 'cat_fact')
         
+        # MCP tool test commands
+        cat_fact_prompt = """Get a random cat fact:
+
+<mcp-request>
+  <tool name="get_cat_fact" />
+</mcp-request>"""
+
+        google_search_prompt = """Perform a Google search:
+
+<mcp-request>
+  <tool name="browser_stealth_search">
+    <params>
+      <query>python programming tutorial</query>
+      <max_results>5</max_results>
+      <take_screenshot>true</take_screenshot>
+      <save_page_source>true</save_page_source>
+    </params>
+  </tool>
+</mcp-request>"""
+
         # Explicit flash commands for each UI element
         flash_chat_prompt = """Flash the chat conversation area:
 
@@ -349,14 +369,20 @@ class SimonSaysMcpWidget:
   </tool>
 </mcp-request>"""
 
-        cat_fact_prompt = """Get a random cat fact:
-
-<mcp-request>
-  <tool name="get_cat_fact" />
-</mcp-request>"""
-
-        # Mode configuration - each element gets its own explicit command
+        # Mode configuration - MCP tools first, then UI flash elements
         mode_config = {
+            'cat_fact': {
+                'prompt': cat_fact_prompt,
+                'button_text': 'Get Cat Fact ▸',
+                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-amber-500);',
+                'display_name': 'Cat Fact Test'
+            },
+            'google_search': {
+                'prompt': google_search_prompt,
+                'button_text': 'Google Search ▸',
+                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-cyan-500);',
+                'display_name': 'Google Search Test'
+            },
             'flash_chat': {
                 'prompt': flash_chat_prompt,
                 'button_text': 'Flash Chat Area ▸',
@@ -392,12 +418,6 @@ class SimonSaysMcpWidget:
                 'button_text': 'Flash Settings Gear ▸',
                 'button_style': 'margin-top: 1rem; background-color: var(--pico-color-red-500);',
                 'display_name': 'Flash Settings Gear'
-            },
-            'cat_fact': {
-                'prompt': cat_fact_prompt,
-                'button_text': 'Get Cat Fact ▸',
-                'button_style': 'margin-top: 1rem; background-color: var(--pico-color-amber-500);',
-                'display_name': 'Cat Fact Test'
             }
         }
         
@@ -518,13 +538,19 @@ Output only the MCP block above. Do not add any other text."""
             
             # Map modes to direct MCP tool calls
             mode_to_element = {
+                'cat_fact': {'tool': 'get_cat_fact', 'params': {}},
+                'google_search': {'tool': 'browser_stealth_search', 'params': {
+                    'query': 'python programming tutorial',
+                    'max_results': 5,
+                    'take_screenshot': True,
+                    'save_page_source': True
+                }},
                 'flash_chat': {'element_id': 'msg-list', 'message': 'This is where your conversation with the AI appears!'},
                 'flash_app_menu': {'element_id': 'app-id', 'message': 'This is the main app selection menu!'},
                 'flash_profile_menu': {'element_id': 'profile-id', 'message': 'This is the profile selection menu!'},
                 'flash_send_button': {'element_id': 'send-btn', 'message': 'This is the send message button!'},
                 'flash_nav_bar': {'element_id': 'nav-group', 'message': 'This is the top navigation bar!'},
-                'flash_settings': {'element_id': 'poke-summary', 'message': 'This is the settings gear icon!'},
-                'cat_fact': {'tool': 'get_cat_fact', 'params': {}}
+                'flash_settings': {'element_id': 'poke-summary', 'message': 'This is the settings gear icon!'}
             }
             
             if current_mode not in mode_to_element:
@@ -532,39 +558,62 @@ Output only the MCP block above. Do not add any other text."""
             
             config = mode_to_element[current_mode]
             
-            # Handle cat fact separately (different tool)
-            if current_mode == 'cat_fact':
+            # Handle MCP tools (cat_fact and google_search)
+            if current_mode in ['cat_fact', 'google_search']:
                 import httpx
                 async with httpx.AsyncClient() as client:
+                    tool_name = config['tool']
+                    params = config['params']
+                    
                     response = await client.post(
                         "http://localhost:5001/mcp-tool-executor",
                         headers={"Content-Type": "application/json"},
-                        json={"tool": "get_cat_fact", "params": {}},
-                        timeout=10
+                        json={"tool": tool_name, "params": params},
+                        timeout=30  # Longer timeout for search operations
                     )
                     
                     if response.status_code in [200, 503]:
                         result = response.json()
-                        # Check for success in the correct format: status="success" with nested result
-                        if result.get('status') == 'success' and result.get('result'):
-                            fact_data = result.get('result', {})
-                            fact = fact_data.get('fact', 'No fact returned')
-                            
-                            # Add to conversation history for LLM training (silent - no user stream)
-                            await self.message_queue.add(pip, f"User selected: Cat Fact Test", verbatim=True, role='user')
-                            await self.message_queue.add(pip, f"MCP Tool Execution: get_cat_fact → Success. Fact: {fact}", verbatim=True, role='assistant')
-                        else:
-                            error_msg = result.get("error", "Unknown error")
-                            
-                            # Add failure to conversation history for LLM learning (silent - no user stream)
-                            await self.message_queue.add(pip, f"User selected: Cat Fact Test", verbatim=True, role='user')
-                            await self.message_queue.add(pip, f"MCP Tool Execution: get_cat_fact → Failed. Error: {error_msg}", verbatim=True, role='assistant')
+                        
+                        if current_mode == 'cat_fact':
+                            # Check for success in the correct format: status="success" with nested result
+                            if result.get('status') == 'success' and result.get('result'):
+                                fact_data = result.get('result', {})
+                                fact = fact_data.get('fact', 'No fact returned')
+                                
+                                # Add to conversation history for LLM training (silent - no user stream)
+                                await self.message_queue.add(pip, f"User selected: Cat Fact Test", verbatim=True, role='user')
+                                await self.message_queue.add(pip, f"MCP Tool Execution: get_cat_fact → Success. Fact: {fact}", verbatim=True, role='assistant')
+                            else:
+                                error_msg = result.get("error", "Unknown error")
+                                
+                                # Add failure to conversation history for LLM learning (silent - no user stream)
+                                await self.message_queue.add(pip, f"User selected: Cat Fact Test", verbatim=True, role='user')
+                                await self.message_queue.add(pip, f"MCP Tool Execution: get_cat_fact → Failed. Error: {error_msg}", verbatim=True, role='assistant')
+                        
+                        elif current_mode == 'google_search':
+                            # Handle Google search results
+                            if result.get('success'):
+                                search_data = result.get('result', {})
+                                results = search_data.get('results', [])
+                                files = search_data.get('files', {})
+                                
+                                # Add to conversation history for LLM training (silent - no user stream)
+                                await self.message_queue.add(pip, f"User selected: Google Search Test", verbatim=True, role='user')
+                                await self.message_queue.add(pip, f"MCP Tool Execution: browser_stealth_search(query='python programming tutorial') → Success. Found {len(results)} results. Files: {list(files.keys())}", verbatim=True, role='assistant')
+                            else:
+                                error_msg = result.get("error", "Unknown error")
+                                
+                                # Add failure to conversation history for LLM learning (silent - no user stream)
+                                await self.message_queue.add(pip, f"User selected: Google Search Test", verbatim=True, role='user')
+                                await self.message_queue.add(pip, f"MCP Tool Execution: browser_stealth_search → Failed. Error: {error_msg}", verbatim=True, role='assistant')
                     else:
                         error_msg = f'HTTP error: {response.status_code}'
                         
                         # Add HTTP failure to conversation history (silent - no user stream)
-                        await self.message_queue.add(pip, f"User selected: Cat Fact Test", verbatim=True, role='user')
-                        await self.message_queue.add(pip, f"MCP Tool Execution: get_cat_fact → HTTP Error {response.status_code}", verbatim=True, role='assistant')
+                        tool_display = "Cat Fact Test" if current_mode == 'cat_fact' else "Google Search Test"
+                        await self.message_queue.add(pip, f"User selected: {tool_display}", verbatim=True, role='user')
+                        await self.message_queue.add(pip, f"MCP Tool Execution: {tool_name} → HTTP Error {response.status_code}", verbatim=True, role='assistant')
             else:
                 # Handle UI flash elements
                 import httpx
@@ -625,6 +674,26 @@ Output only the MCP block above. Do not add any other text."""
             # Store the new mode in simple class attribute since this is a utility
             self.current_mode = selected_mode
             
+            # MCP tool test commands
+            cat_fact_prompt = """Get a random cat fact:
+
+<mcp-request>
+  <tool name="get_cat_fact" />
+</mcp-request>"""
+
+            google_search_prompt = """Perform a Google search:
+
+<mcp-request>
+  <tool name="browser_stealth_search">
+    <params>
+      <query>python programming tutorial</query>
+      <max_results>5</max_results>
+      <take_screenshot>true</take_screenshot>
+      <save_page_source>true</save_page_source>
+    </params>
+  </tool>
+</mcp-request>"""
+
             # Explicit flash commands for each UI element
             flash_chat_prompt = """Flash the chat conversation area:
 
@@ -698,14 +767,20 @@ Output only the MCP block above. Do not add any other text."""
   </tool>
 </mcp-request>"""
 
-            cat_fact_prompt = """Get a random cat fact:
-
-<mcp-request>
-  <tool name="get_cat_fact" />
-</mcp-request>"""
-
-            # Mode configuration - each element gets its own explicit command
+            # Mode configuration - MCP tools first, then UI flash elements
             mode_config = {
+                'cat_fact': {
+                    'prompt': cat_fact_prompt,
+                    'button_text': 'Get Cat Fact ▸',
+                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-amber-500);',
+                    'display_name': 'Cat Fact Test'
+                },
+                'google_search': {
+                    'prompt': google_search_prompt,
+                    'button_text': 'Google Search ▸',
+                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-cyan-500);',
+                    'display_name': 'Google Search Test'
+                },
                 'flash_chat': {
                     'prompt': flash_chat_prompt,
                     'button_text': 'Flash Chat Area ▸',
@@ -741,12 +816,6 @@ Output only the MCP block above. Do not add any other text."""
                     'button_text': 'Flash Settings Gear ▸',
                     'button_style': 'margin-top: 1rem; background-color: var(--pico-color-red-500);',
                     'display_name': 'Flash Settings Gear'
-                },
-                'cat_fact': {
-                    'prompt': cat_fact_prompt,
-                    'button_text': 'Get Cat Fact ▸',
-                    'button_style': 'margin-top: 1rem; background-color: var(--pico-color-amber-500);',
-                    'display_name': 'Cat Fact Test'
                 }
             }
             
