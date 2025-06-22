@@ -221,7 +221,7 @@ class SeleniumUrlOpenerWidget:
         success, message = await self._execute_selenium_open(url_to_open)
         pip.append_to_history(f'[WIDGET ACTION] {step.show}: Attempted to open URL {url_to_open}. Success: {success}. Message: {message}')
         url_widget_display = self._create_selenium_url_display(url_to_open, step_id)
-        status_message_widget = P(message, style='color: green;' if success else pip.get_style('error'))
+        status_message_widget = P(message, cls='text-valid' if success else 'text-invalid')
         combined_widget = Div(url_widget_display, status_message_widget)
         content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: URL processed - {url_to_open}', widget=combined_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)

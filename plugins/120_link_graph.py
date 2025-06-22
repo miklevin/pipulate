@@ -415,7 +415,7 @@ class LinkGraphVisualizer:
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
         if not step_id:
-            return P('Error: No step specified', style=self.pipulate.get_style('error'))
+            return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -507,7 +507,7 @@ class LinkGraphVisualizer:
         botify_url = form.get('botify_url', '').strip()
         is_valid, message, project_data = self.validate_botify_url(botify_url)
         if not is_valid:
-            return P(f'Error: {message}', style=pip.get_style('error'))
+            return P(f'Error: {message}', cls='text-invalid')
         project_data_str = json.dumps(project_data)
         await pip.set_step_data(pipeline_id, step_id, project_data_str, steps)
         await self.message_queue.add(pip, f"✳️ {step.show} complete: {project_data['project_name']}", verbatim=True)
@@ -533,7 +533,7 @@ class LinkGraphVisualizer:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -566,12 +566,12 @@ class LinkGraphVisualizer:
         try:
             api_token = self.read_api_token()
             if not api_token:
-                return P('Error: Botify API token not found. Please connect with Botify first.', style=pip.get_style('error'))
+                return P('Error: Botify API token not found. Please connect with Botify first.', cls='text-invalid')
             logging.info(f'Getting analyses for {username}/{project_name}')
             slugs = await self.fetch_analyses(username, project_name, api_token)
             logging.info(f'Got {(len(slugs) if slugs else 0)} analyses')
             if not slugs:
-                return P(f'Error: No analyses found for project {project_name}. Please check your API access.', style=pip.get_style('error'))
+                return P(f'Error: No analyses found for project {project_name}. Please check your API access.', cls='text-invalid')
             selected_value = selected_slug if selected_slug else slugs[0]
 
             # Get active template details for dynamic UI
@@ -675,7 +675,7 @@ class LinkGraphVisualizer:
             )
         except Exception as e:
             logging.exception(f'Error in {step_id}: {e}')
-            return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error fetching analyses: {str(e)}', cls='text-invalid')
 
     async def step_02_submit(self, request):
         """Process the selected analysis slug for step_02 and download crawl data."""
@@ -689,14 +689,14 @@ class LinkGraphVisualizer:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
         form = await request.form()
         analysis_slug = form.get('analysis_slug', '').strip()
         if not analysis_slug:
-            return P('Error: No analysis selected', style=pip.get_style('error'))
+            return P('Error: No analysis selected', cls='text-invalid')
         await self.message_queue.add(pip, f'📊 Selected analysis: {analysis_slug}. Starting crawl data download...', verbatim=True)
 
         # Get active template details and check for qualifier config
@@ -718,7 +718,7 @@ class LinkGraphVisualizer:
             try:
                 api_token = self.read_api_token()
                 if not api_token:
-                    return P('Error: Botify API token not found. Please connect with Botify first.', style=pip.get_style('error'))
+                    return P('Error: Botify API token not found. Please connect with Botify first.', cls='text-invalid')
 
                 await self.message_queue.add(pip, qualifier_config['user_message_running'], verbatim=True)
                 qualifier_outcome = await self._execute_qualifier_logic(username, project_name, analysis_slug, api_token, qualifier_config)
@@ -780,7 +780,7 @@ class LinkGraphVisualizer:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('analysis_selection', '')
         if not prev_data_str:
-            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
+            return P('Error: Analysis data not found. Please complete step 2 first.', cls='text-invalid')
         
         prev_analysis_data = json.loads(prev_data_str)
         analysis_slug = prev_analysis_data.get('analysis_slug', '')
@@ -912,7 +912,7 @@ class LinkGraphVisualizer:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('analysis_selection', '')
         if not prev_data_str:
-            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
+            return P('Error: Analysis data not found. Please complete step 2 first.', cls='text-invalid')
         
         prev_analysis_data = json.loads(prev_data_str)
         analysis_slug = prev_analysis_data.get('analysis_slug', '')
@@ -920,7 +920,7 @@ class LinkGraphVisualizer:
         username = prev_analysis_data.get('username', '')
         
         if not all([analysis_slug, username, project_name]):
-            return P('Error: Missing required analysis data', style=pip.get_style('error'))
+            return P('Error: Missing required analysis data', cls='text-invalid')
         
         await self.message_queue.add(pip, f'📊 Starting node attributes download for {analysis_slug}...', verbatim=True)
         
@@ -971,7 +971,7 @@ class LinkGraphVisualizer:
         project_name = form.get('project_name', '').strip()
         
         if not all([analysis_slug, username, project_name]):
-            return P('Error: Missing required parameters', style=pip.get_style('error'))
+            return P('Error: Missing required parameters', cls='text-invalid')
         
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         analysis_result_str = step_data.get(step.done, '')
@@ -1260,7 +1260,7 @@ class LinkGraphVisualizer:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -1406,7 +1406,7 @@ class LinkGraphVisualizer:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -1414,7 +1414,7 @@ class LinkGraphVisualizer:
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
         if not analysis_data_str:
-            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
+            return P('Error: Analysis data not found. Please complete step 2 first.', cls='text-invalid')
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
         await self.message_queue.add(pip, f"📥 Downloading Web Logs for '{project_name}'...", verbatim=True)
@@ -1453,7 +1453,7 @@ class LinkGraphVisualizer:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -1594,7 +1594,7 @@ class LinkGraphVisualizer:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found. Please complete step 1 first.', style=pip.get_style('error'))
+            return P('Error: Project data not found. Please complete step 1 first.', cls='text-invalid')
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
@@ -1626,7 +1626,7 @@ class LinkGraphVisualizer:
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
-            return P('Error: Project data not found.', style=pip.get_style('error'))
+            return P('Error: Project data not found.', cls='text-invalid')
         
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
@@ -1636,7 +1636,7 @@ class LinkGraphVisualizer:
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
         if not analysis_data_str:
-            return P('Error: Analysis data not found.', style=pip.get_style('error'))
+            return P('Error: Analysis data not found.', cls='text-invalid')
         
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
@@ -1644,7 +1644,7 @@ class LinkGraphVisualizer:
         try:
             has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
             if error_message:
-                return Div(P(f'Error: {error_message}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+                return Div(P(f'Error: {error_message}', cls='text-invalid'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             
             check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
             
@@ -1681,7 +1681,7 @@ class LinkGraphVisualizer:
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_04_complete: {e}')
-            return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(P(f'Error: {str(e)}', cls='text-invalid'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_05(self, request):
         """Handles GET request for the Visualization Preparation step."""
@@ -1776,7 +1776,7 @@ class LinkGraphVisualizer:
             analysis_info = json.loads(analysis_data)
         except json.JSONDecodeError:
             await self.message_queue.add(pip, '❌ Error: Could not load project or analysis data', verbatim=True)
-            return P('Error: Could not load project or analysis data', style=pip.get_style('error'))
+            return P('Error: Could not load project or analysis data', cls='text-invalid')
         
         username = project_info.get('username')
         project_name = project_info.get('project_name')
@@ -1784,7 +1784,7 @@ class LinkGraphVisualizer:
         
         if not all([username, project_name, analysis_slug]):
             await self.message_queue.add(pip, '❌ Error: Missing required project information', verbatim=True)
-            return P('Error: Missing required project information', style=pip.get_style('error'))
+            return P('Error: Missing required project information', cls='text-invalid')
         
         try:
             await self.message_queue.add(pip, '🔄 Processing data for visualization...', verbatim=True)
@@ -1800,7 +1800,7 @@ class LinkGraphVisualizer:
             
             if not link_graph_file.exists():
                 await self.message_queue.add(pip, '❌ Error: Link graph data not found. Please complete Step 2 first.', verbatim=True)
-                return P('Error: Link graph data not found. Please complete Step 2 first.', style=pip.get_style('error'))
+                return P('Error: Link graph data not found. Please complete Step 2 first.', cls='text-invalid')
             
             await self.message_queue.add(pip, '📊 Loading link graph data...', verbatim=True)
             
@@ -1832,13 +1832,13 @@ class LinkGraphVisualizer:
                     target_col = 'target'
                 else:
                     await self.message_queue.add(pip, f'❌ Error: Could not identify source/target columns in link graph. Found: {columns}', verbatim=True)
-                    return P('Error: Could not identify source/target columns in link graph data', style=pip.get_style('error'))
+                    return P('Error: Could not identify source/target columns in link graph data', cls='text-invalid')
                 
                 await self.message_queue.add(pip, f'✅ Using columns: {source_col} → {target_col}', verbatim=True)
                 
             except Exception as e:
                 await self.message_queue.add(pip, f'❌ Error loading link graph data: {str(e)}', verbatim=True)
-                return P(f'Error loading link graph data: {str(e)}', style=pip.get_style('error'))
+                return P(f'Error loading link graph data: {str(e)}', cls='text-invalid')
             
             await self.message_queue.add(pip, '🔗 Creating edge list for Cosmograph...', verbatim=True)
             
@@ -2018,7 +2018,7 @@ class LinkGraphVisualizer:
         except Exception as e:
             logging.exception(f'Error in step_05_process: {e}')
             await self.message_queue.add(pip, f'❌ Error generating visualization: {str(e)}', verbatim=True)
-            return P(f'Error generating visualization: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error generating visualization: {str(e)}', cls='text-invalid')
 
 
     def validate_botify_url(self, url):
@@ -3177,7 +3177,7 @@ await main()
         username = form.get('username', '').strip()
         project_name = form.get('project_name', '').strip()
         if not all([analysis_slug, username, project_name]):
-            return P('Error: Missing required parameters', style=pip.get_style('error'))
+            return P('Error: Missing required parameters', cls='text-invalid')
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         analysis_result_str = step_data.get(step.done, '')
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
@@ -3486,7 +3486,7 @@ await main()
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Analysis {status_text}{download_message}', widget=widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_02_process: {e}')
-            return P(f'Error: {str(e)}', style=pip.get_style('error'))
+            return P(f'Error: {str(e)}', cls='text-invalid')
 
     async def step_03_process(self, request):
         """Process the web logs check and download if available."""
@@ -3501,11 +3501,11 @@ await main()
         username = form.get('username', '').strip()
         project_name = form.get('project_name', '').strip()
         if not all([analysis_slug, username, project_name]):
-            return P('Error: Missing required parameters', style=pip.get_style('error'))
+            return P('Error: Missing required parameters', cls='text-invalid')
         try:
             has_logs, error_message = await self.check_if_project_has_collection(username, project_name, 'logs')
             if error_message:
-                return P(f'Error: {error_message}', style=pip.get_style('error'))
+                return P(f'Error: {error_message}', cls='text-invalid')
             check_result = {'has_logs': has_logs, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
             status_text = 'HAS' if has_logs else 'does NOT have'
             await self.message_queue.add(pip, f'{step.show} complete: Project {status_text} web logs', verbatim=True)
@@ -3740,7 +3740,7 @@ await main()
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} web logs{download_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_03_process: {e}')
-            return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(P(f'Error: {str(e)}', cls='text-invalid'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
 
 
