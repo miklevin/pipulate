@@ -32,6 +32,25 @@ class FileUploadWidget:
     ENDPOINT_MESSAGE = 'This workflow demonstrates a file upload widget. Select one or more files to upload and save them to the server.'
     TRAINING_PROMPT = 'This workflow is for demonstrating and testing the file upload widget. The user will select files, which are then uploaded and saved to a designated server directory.'
 
+    # UI Constants for consistent styling and automation
+    UI_CONSTANTS = {
+        "COLORS": {
+            "HEADER_TEXT": "#2c3e50",
+            "SUCCESS_BORDER": "#27ae60",
+            "ERROR_BORDER": "#e74c3c"
+        },
+        "SPACING": {
+            "STEP_PADDING": "1vh 0px 0px .5vw",
+            "CONTENT_MARGIN": "1rem 0"
+        },
+        "AUTOMATION": {
+            "FILE_INPUT_TESTID": "file-upload-widget-file-input",
+            "UPLOAD_BUTTON_TESTID": "file-upload-widget-upload-button",
+            "FOLDER_BUTTON_TESTID": "file-upload-widget-folder-button",
+            "DOWNLOAD_BUTTON_TESTID": "file-upload-widget-download-button"
+        }
+    }
+
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """
         Initialize the workflow, define steps, and register routes.
@@ -44,7 +63,10 @@ class FileUploadWidget:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
-        steps = [Step(id='step_01', done='file_summary', show='Upload Files', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else '')]
+        steps = [
+            Step(id='step_01', done='file_summary', show='Upload Files', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else ''),
+            # --- STEPS_LIST_INSERTION_POINT ---
+        ]
         routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST'])]
         self.steps = steps
         for step in steps:
@@ -286,7 +308,7 @@ class FileUploadWidget:
         explanation = 'Select one or more files. They will be saved to the `downloads` directory in a subfolder named after this workflow.'
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
         await self.message_queue.add(pip, explanation, verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(explanation, cls='text-secondary'), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast'), Button('Upload Files ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(explanation, cls='text-secondary'), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast', data_testid=self.UI_CONSTANTS["AUTOMATION"]["FILE_INPUT_TESTID"], aria_label='Select files to upload to the server'), Button('Upload Files ▸', type='submit', cls='primary', data_testid=self.UI_CONSTANTS["AUTOMATION"]["UPLOAD_BUTTON_TESTID"], aria_label='Upload selected files to server'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         """ Process the submission for file upload widget. """
@@ -301,7 +323,7 @@ class FileUploadWidget:
         if not uploaded_files or not uploaded_files[0].filename:
             await self.message_queue.add(pip, 'No files selected. Please try again.', verbatim=True)
             explanation = 'Select one or more files. They will be saved to the `downloads` directory.'
-            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P('No files were selected. Please try again.', cls='text-invalid'), P(explanation, cls='text-secondary'), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast'), Button('Upload Files ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P('No files were selected. Please try again.', cls='text-invalid'), P(explanation, cls='text-secondary'), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast', data_testid=self.UI_CONSTANTS["AUTOMATION"]["FILE_INPUT_TESTID"], aria_label='Select files to upload to the server'), Button('Upload Files ▸', type='submit', cls='primary', data_testid=self.UI_CONSTANTS["AUTOMATION"]["UPLOAD_BUTTON_TESTID"], aria_label='Upload selected files to server'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
 
         # Use the same base directory as the download endpoint
         save_directory = PLUGIN_DOWNLOADS_BASE_DIR / app_name
@@ -389,7 +411,9 @@ class FileUploadWidget:
                     hx_swap="none",
                     title=f"Open folder: {parent_dir_abs_path}",
                     cls="mr-sm outline contrast",
-                    role="button"
+                    role="button",
+                    data_testid=self.UI_CONSTANTS["AUTOMATION"]["FOLDER_BUTTON_TESTID"],
+                    aria_label=f"Open folder containing uploaded files: {parent_dir_abs_path}"
                 )
 
                 download_file_link_ui = A(
@@ -397,7 +421,9 @@ class FileUploadWidget:
                     href=f"/download_file?file={urllib.parse.quote(path_for_url)}",
                     target="_blank",
                     role="button",
-                    cls="outline contrast"
+                    cls="outline contrast",
+                    data_testid=self.UI_CONSTANTS["AUTOMATION"]["DOWNLOAD_BUTTON_TESTID"],
+                    aria_label=f"Download uploaded file: {file_display_name}"
                 )
 
                 widget_elements.append(
@@ -423,3 +449,5 @@ class FileUploadWidget:
             Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
             id=step_id
         )
+
+    # --- STEP_METHODS_INSERTION_POINT ---
