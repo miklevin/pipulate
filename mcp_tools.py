@@ -490,33 +490,32 @@ async def _browser_stealth_search(params: dict) -> dict:
         # Enhanced stealth browser setup
         logger.info("🎭 FINDER_TOKEN: STEALTH_SETUP - Initializing enhanced bot detection evasion")
         
+        driver = None
+        
         if UNDETECTED_AVAILABLE:
-            # Use undetected-chromedriver for maximum stealth
-            options = uc.ChromeOptions()
-            options.add_argument('--disable-extensions')
-            options.add_argument('--disable-plugins-discovery')
-            options.add_argument('--no-sandbox')
-            options.add_argument('--disable-dev-shm-usage')
-            
-            # Half-screen window for human-like appearance
-            options.add_argument('--window-size=960,1080')
-            options.add_argument('--window-position=0,0')
-            
-            # Force undetected-chromedriver to auto-detect and download correct version
-            # Use browser_executable_path to point to Chromium on NixOS
+            # Try undetected-chromedriver first for maximum stealth
             try:
-                driver = uc.Chrome(
-                    options=options, 
-                    version_main=131,  # Match detected Chromium version
-                    browser_executable_path='/home/mike/.nix-profile/bin/chromium'  # NixOS Chromium path
-                )
-            except Exception as e:
-                logger.warning(f"🎭 FINDER_TOKEN: UNDETECTED_FALLBACK - {e}")
-                # Fallback: let undetected-chromedriver auto-detect
+                logger.info("🎭 FINDER_TOKEN: ATTEMPTING_UNDETECTED_CHROME")
+                options = uc.ChromeOptions()
+                options.add_argument('--disable-extensions')
+                options.add_argument('--disable-plugins-discovery')
+                options.add_argument('--no-sandbox')
+                options.add_argument('--disable-dev-shm-usage')
+                options.add_argument('--window-size=960,1080')
+                options.add_argument('--window-position=0,0')
+                
+                # Let undetected-chromedriver handle everything automatically
+                # Don't specify paths - let it download compatible ChromeDriver
                 driver = uc.Chrome(options=options)
-            
-        else:
-            # Fallback to standard Chrome with advanced stealth
+                logger.info("✅ FINDER_TOKEN: UNDETECTED_CHROME_SUCCESS")
+                
+            except Exception as e:
+                logger.warning(f"🎭 FINDER_TOKEN: UNDETECTED_CHROME_FAILED - {e}")
+                driver = None
+        
+        # If undetected-chromedriver failed or isn't available, use standard Chrome
+        if driver is None:
+            logger.info("🎭 FINDER_TOKEN: ATTEMPTING_STANDARD_CHROME")
             options = webdriver.ChromeOptions()
             
             # Core stealth options
@@ -540,7 +539,16 @@ async def _browser_stealth_search(params: dict) -> dict:
             options.add_argument('--window-size=960,1080')
             options.add_argument('--window-position=0,0')
             
+            # Use Nix-provided Chromium if available, otherwise let Selenium handle it
+            import shutil
+            chromium_path = shutil.which('chromium')
+            if chromium_path:
+                logger.info(f"🎭 FINDER_TOKEN: STANDARD_CHROME_NIX_CHROMIUM - {chromium_path}")
+                options.binary_location = chromium_path
+            
+            # Let Selenium WebDriver Manager handle ChromeDriver download automatically
             driver = webdriver.Chrome(options=options)
+            logger.info("✅ FINDER_TOKEN: STANDARD_CHROME_SUCCESS")
             
             # CDP script injection for advanced stealth
             stealth_script = """
