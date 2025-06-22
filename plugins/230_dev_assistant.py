@@ -2133,7 +2133,7 @@ class DevAssistant:
                 # AUTOMATION READINESS DETAILS (If ARIA validation was performed)
                 (Details(
                     Summary(
-                        H4('🤖 Automation & Accessibility Report', style='display: inline; margin: 0; color: black;'),
+                        H4(f'🤖 Automation & Accessibility Report ({automation_readiness.get("accessibility_score", 0)}/100)', style='display: inline; margin: 0; color: black;'),
                         style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                     ),
                     Div(
