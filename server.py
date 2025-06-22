@@ -6002,24 +6002,12 @@ async def generate_new_key(request):
     # Generate new key
     full_key, prefix, _ = pipulate.generate_pipeline_key(plugin_instance)
     
-    # Return updated input element with new key
-    ui_constants = PCONFIG['UI_CONSTANTS']
-    landing_constants = PCONFIG['UI_CONSTANTS']['LANDING_PAGE']
-    
-    return Input(
-        placeholder=landing_constants['INPUT_PLACEHOLDER'],
-        name='pipeline_id',
-        list='pipeline-ids',
-        type='search',
-        required=False,
-        autofocus=True,
-        value=full_key,
-        _onfocus='this.setSelectionRange(this.value.length, this.value.length)',
-        cls='contrast',
-        aria_label='Pipeline ID input',
-        aria_describedby='pipeline-help',
-        id=request.headers.get('hx-target', '').replace('#', '') or f'input-{hash(str(full_key))}'
-    )
+    # Force page reload to initialize the new workflow
+    # This ensures run_all_cells() is triggered and old workflow content is cleared
+    from starlette.responses import Response
+    response = Response('')
+    response.headers['HX-Refresh'] = 'true'
+    return response
 
 @rt('/refresh-app-menu')
 async def refresh_app_menu_endpoint(request):
