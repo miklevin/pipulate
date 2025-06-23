@@ -2927,8 +2927,30 @@ def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix:
     """
     try:
         records = list(data_source_callable())
-        content = _format_records_for_lifecycle_log(records)
-        logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_{table_name.upper()} - {title_prefix} Snapshot:\n{content}")
+        # Convert records to list of dicts for Rich JSON display
+        records_data = []
+        for record in records:
+            if hasattr(record, '_asdict'):
+                # Named tuple
+                records_data.append(record._asdict())
+            elif hasattr(record, '__dict__'):
+                # Object with attributes
+                records_data.append(record.__dict__)
+            elif isinstance(record, dict):
+                # Already a dict
+                records_data.append(record)
+            else:
+                # SQLite Row or other - try to convert to dict
+                try:
+                    records_data.append(dict(record))
+                except:
+                    records_data.append(str(record))
+        
+        # Use Rich JSON display for table data - show in console with beautiful formatting
+        rich_json_display(records_data, title=f"Table State: {table_name}", console_output=True, log_output=False)
+        
+        # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
+        logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_{table_name.upper()} - {title_prefix} Snapshot: [Rich JSON displayed to console]")
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: TABLE_STATE_ERROR - Failed to log '{table_name}' ({title_prefix}): {e}")
 
@@ -2939,8 +2961,8 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
     """
     try:
         items = dict(db_instance.items())
-        # Use Rich JSON display for database items - show in console AND format for logs
-        content = rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=True)
+        # Use Rich JSON display for database items - show in console with beautiful formatting
+        rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=False)
         
         # Add semantic context for AI assistants
         semantic_info = []
@@ -2966,7 +2988,8 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
             elif key == "temp_message":
                 semantic_info.append(f"💬 Temporary UI message: {value}")
         
-        logger.info(f"🔍 FINDER_TOKEN: DB_STATE_{db_name.upper()} - {title_prefix} Key-Value Store:\n{content}")
+        # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
+        logger.info(f"🔍 FINDER_TOKEN: DB_STATE_{db_name.upper()} - {title_prefix} Key-Value Store: [Rich JSON displayed to console]")
         
         if semantic_info:
             semantic_summary = "\n".join(f"    {info}" for info in semantic_info)
