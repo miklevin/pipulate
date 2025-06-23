@@ -11,24 +11,51 @@
  * Benefits: Static caching + Python configuration without templates
  */
 
-// Global initialization function that accepts parameters
+// Add this new function to the file
+function setupGlobalScrollListener() {
+    console.log('Setting up global htmx:afterSwap scroll listener.');
+    const leftPanel = document.getElementById('grid-left-content');
+
+    if (!leftPanel) {
+        console.warn('Left panel #grid-left-content not found for scroll listener.');
+        return;
+    }
+
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        // Check if the swap happened within the left panel
+        if (leftPanel.contains(evt.detail.target)) {
+            console.log('HTMX swap detected in left panel. Triggering scroll to bottom.');
+            
+            // Use a small timeout to allow the browser to render the new content
+            // and calculate the correct scrollHeight before we try to scroll.
+            setTimeout(() => {
+                leftPanel.scrollTo({
+                    top: leftPanel.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+    });
+}
+
+// Modify your existing initializeChatScripts function to call the new function
 window.initializeChatScripts = function(config) {
     console.log('🚀 initializeChatScripts called with config:', config);
     
-    // Prevent multiple initialization
     if (window._pipulateInitialized) {
         console.warn('⚠️ Scripts already initialized, skipping duplicate call');
         return;
     }
     
-    // Note: Sortable functionality is now handled by dedicated sortable-init.js
     setupWebSocketAndSSE();
     setupInteractions();
     setupMenuFlashFeedback();
+    setupGlobalScrollListener(); // <-- ADD THIS LINE
     
-    // Initialize search plugins keyboard navigation
     if (typeof window.initializeSearchPluginsKeyboardNav === 'function') {
-        window.initializeSearchPluginsKeyboardNav();
+        setTimeout(() => {
+            window.initializeSearchPluginsKeyboardNav();
+        }, 100);
     }
     
     window._pipulateInitialized = true;
@@ -146,8 +173,11 @@ window.initializeSearchPluginsKeyboardNav = function() {
     
     if (!searchInput || !dropdown) {
         console.warn('⚠️ Search plugins elements not found, skipping keyboard nav setup');
+        console.log('Debug: searchInput =', searchInput, 'dropdown =', dropdown);
         return;
     }
+    
+    console.log('✅ Search elements found:', { searchInput, dropdown });
     
     let selectedIndex = -1;
     
@@ -253,9 +283,14 @@ window.initializeSearchPluginsKeyboardNav = function() {
     
     // Global click handler for click-away dismissal
     document.addEventListener('click', function(event) {
-        if (!searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+        // Check if click is outside search area
+        const searchContainer = searchInput.closest('.search-dropdown-container');
+        const isClickInsideSearch = searchContainer && searchContainer.contains(event.target);
+        
+        if (!isClickInsideSearch) {
             dropdown.style.display = 'none';
             clearSearchSelection();
+            console.log('🔍 Search dropdown closed via click-away');
         }
     });
     
