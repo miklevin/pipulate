@@ -52,7 +52,11 @@ warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources
 DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
-TESTING_MODE = False  # Set to True to enable light testing on server startup
+
+# 🧪 TESTING MODE: Revolutionary testing philosophy
+TESTING_MODE = False      # Light testing on every server startup
+DEEP_TESTING = False      # Comprehensive testing mode
+BROWSER_TESTING = False   # Browser automation testing
 # 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
 # These control different aspects of logging and debugging
 
