@@ -493,10 +493,6 @@ def status_banner(mcp_count, plugin_count, env="Development"):
     clean_content = strip_rich_formatting(status_content.strip())
     logger.info(f"📊 STATUS_BANNER_ASCII: Status banner displayed | ASCII_DATA:\n```\n{clean_content}\n```")
 
-# Show startup banner only when running as main script, not on watchdog restarts or imports
-if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
-    figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
-
 # Initialize logging as early as possible in the startup process
 def setup_logging():
     """
@@ -610,6 +606,10 @@ def setup_logging():
 # Initialize logger immediately after basic configuration
 logger = setup_logging()
 
+
+# Show startup banner only when running as main script, not on watchdog restarts or imports
+if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
+    figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
 
 
 # Log early startup phase
