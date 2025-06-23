@@ -6618,7 +6618,7 @@ def run_server_with_watchdog():
         figlet_text = f"Version {nix_version_raw}"
         subtitle = "Nix Flake Version"
     
-    figlet_banner(figlet_text, subtitle, font='standard', color='bright_cyan')
+    figlet_banner(figlet_text, subtitle, font='standard', color='white on default')
     print()
     system_diagram()
     chip_says("Hello! The server is restarting. I'll be right back online.", BANNER_COLORS['workshop_ready'])
