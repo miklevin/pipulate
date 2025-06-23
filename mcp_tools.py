@@ -25,17 +25,8 @@ import logging
 # Get logger from server context
 logger = logging.getLogger(__name__)
 
-# Import MCP_TOOL_REGISTRY from server to ensure we use the same registry
-try:
-    import sys
-    server_module = sys.modules.get('server')
-    if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
-        MCP_TOOL_REGISTRY = server_module.MCP_TOOL_REGISTRY
-    else:
-        # Fallback: create local registry that will be replaced when server loads
-        MCP_TOOL_REGISTRY = {}
-except ImportError:
-    MCP_TOOL_REGISTRY = {}
+# MCP_TOOL_REGISTRY will be set by server.py when it imports this module
+MCP_TOOL_REGISTRY = None
 
 # ================================================================
 # HELPER FUNCTIONS
@@ -335,20 +326,20 @@ def register_mcp_tool(tool_name: str, handler_func):
     """Register an MCP tool with the global registry."""
     logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
     
-    # Always use server's registry and register function
-    import sys
-    server_module = sys.modules.get('server')
-    if server_module and hasattr(server_module, 'register_mcp_tool'):
-        logger.info(f"🔧 MCP REGISTRY: Using server.register_mcp_tool for '{tool_name}'")
-        server_module.register_mcp_tool(tool_name, handler_func)
-    else:
-        # Fallback: register in local registry
-        logger.info(f"🔧 MCP REGISTRY: Using fallback registry for '{tool_name}'")
+    # Use the registry that was passed from server.py
+    if MCP_TOOL_REGISTRY is not None:
+        logger.info(f"🔧 MCP REGISTRY: Using server registry for '{tool_name}' (id: {id(MCP_TOOL_REGISTRY)})")
         MCP_TOOL_REGISTRY[tool_name] = handler_func
+        logger.info(f"🔧 MCP REGISTRY: Registry now has {len(MCP_TOOL_REGISTRY)} tools: {list(MCP_TOOL_REGISTRY.keys())}")
+    else:
+        logger.error(f"🔧 MCP REGISTRY: ERROR - Registry not initialized for '{tool_name}'")
 
 def register_all_mcp_tools():
     """Register all MCP tools with the server."""
     logger.info("🔧 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_START")
+    logger.info(f"🎯 FINDER_TOKEN: MCP_REGISTRY_STATE - Registry is {'initialized' if MCP_TOOL_REGISTRY is not None else 'NOT initialized'}")
+    if MCP_TOOL_REGISTRY is not None:
+        logger.info(f"🎯 FINDER_TOKEN: MCP_REGISTRY_ID - Registry id: {id(MCP_TOOL_REGISTRY)}")
     
     # Core tools
     register_mcp_tool("get_cat_fact", _builtin_get_cat_fact)

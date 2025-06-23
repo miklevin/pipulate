@@ -48,6 +48,9 @@ from watchdog.observers import Observer
 MCP_TOOL_REGISTRY = {}
 
 from mcp_tools import register_all_mcp_tools
+# Pass our registry to mcp_tools so they use the same instance
+import mcp_tools
+mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
@@ -4239,6 +4242,12 @@ async def startup_event():
     
     # 🔧 REGISTER ALL MCP TOOLS FIRST
     logger.info("🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools")
+    
+    # Ensure mcp_tools has the correct registry reference
+    import mcp_tools
+    mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
+    logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRY_SYNC - Registry synced (id: {id(MCP_TOOL_REGISTRY)})")
+    
     register_all_mcp_tools()
     logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
     logger.info(f"🔧 FINDER_TOKEN: MCP_REGISTRY_CONTENTS - Tools: {list(MCP_TOOL_REGISTRY.keys())} (id: {id(MCP_TOOL_REGISTRY)})")
