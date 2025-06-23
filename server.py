@@ -1483,29 +1483,29 @@ def log_pipeline_summary(title_prefix: str=''):
         print()
         
         # 📚 LOG LEGEND: Quick crash course in reading Pipulate logs
-        legend_content = """[dim]Reading Pipulate Logs - Quick Reference:[/dim]
+        legend_content = """[dim white]Reading Pipulate Logs - Quick Reference:[/dim white]
 
-[bold cyan]Log Format:[/bold cyan] [dim]TIME | LEVEL | MODULE | MESSAGE[/dim]
-[white]Example:[/white] [dim]14:20:03 | INFO | __main__ | [🌐 NETWORK] GET /simon_mcp | ID: 6aac3fe0[/dim]
+[bold bright_white]Log Format:[/bold bright_white] [dim white]TIME | LEVEL | MODULE | MESSAGE[/dim white]
+[bright_white]Example:[/bright_white] [dim white]14:20:03 | INFO | __main__ | [🌐 NETWORK] GET /simon_mcp | ID: 6aac3fe0[/dim white]
 
-[bold yellow]Common Emojis & Meanings:[/bold yellow]
-🚀 [dim]STARTUP[/dim]     - Server initialization and startup events
-🌐 [dim]NETWORK[/dim]     - HTTP requests, API calls, web traffic
-🔄 [dim]PIPELINE[/dim]    - Workflow execution and step processing
-💾 [dim]DATABASE[/dim]    - Data storage operations and queries
-👤 [dim]PROFILE[/dim]     - User profile and authentication events
-🔌 [dim]PLUGIN[/dim]      - Plugin loading and workflow registration
-💬 [dim]CHAT[/dim]        - LLM interactions and AI conversations
-🎭 [dim]AI_CREATIVE[/dim] - ASCII art and AI-specific logging (logs only)
-🔍 [dim]FINDER_TOKEN[/dim] - Searchable debug markers for AI assistants
-⚠️  [dim]WARNING[/dim]     - Important notices and potential issues
-❌ [dim]ERROR[/dim]       - System errors and failures
+[bold bright_white]Common Emojis & Meanings:[/bold bright_white]
+🚀 [dim white]STARTUP[/dim white]     - Server initialization and startup events
+🌐 [dim white]NETWORK[/dim white]     - HTTP requests, API calls, web traffic
+🔄 [dim white]PIPELINE[/dim white]    - Workflow execution and step processing
+💾 [dim white]DATABASE[/dim white]    - Data storage operations and queries
+👤 [dim white]PROFILE[/dim white]     - User profile and authentication events
+🔌 [dim white]PLUGIN[/dim white]      - Plugin loading and workflow registration
+💬 [dim white]CHAT[/dim white]        - LLM interactions and AI conversations
+🎭 [dim white]AI_CREATIVE[/dim white] - ASCII art and AI-specific logging (logs only)
+🔍 [dim white]FINDER_TOKEN[/dim white] - Searchable debug markers for AI assistants
+⚠️  [dim white]WARNING[/dim white]     - Important notices and potential issues
+❌ [dim white]ERROR[/dim white]       - System errors and failures
 
-[bold green]Pro Tips:[/bold green]
-• [dim]Use grep with emojis:[/dim] [white]grep "🌐" logs/server.log[/white]
-• [dim]Find specific events:[/dim] [white]grep "FINDER_TOKEN" logs/server.log[/white]
-• [dim]Follow live logs:[/dim] [white]tail -f logs/server.log[/white]
-• [dim]AI assistants:[/dim] [white]grep "AI_CREATIVE_VISION" logs/server.log[/white]"""
+[bold bright_white]Pro Tips:[/bold bright_white]
+• [dim white]Use grep with emojis:[/dim white] [bright_white]grep "🌐" logs/server.log[/bright_white]
+• [dim white]Find specific events:[/dim white] [bright_white]grep "FINDER_TOKEN" logs/server.log[/bright_white]
+• [dim white]Follow live logs:[/dim white] [bright_white]tail -f logs/server.log[/bright_white]
+• [dim white]AI assistants:[/dim white] [bright_white]grep "AI_CREATIVE_VISION" logs/server.log[/bright_white]"""
 
         legend_panel = Panel(
             legend_content,
