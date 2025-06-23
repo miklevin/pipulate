@@ -20,6 +20,7 @@ data/
 downloads/*
 flake.lock
 foo.txt
+foo_files.py
 *kungfu_*.py
 logs/
 service_account.txt
