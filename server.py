@@ -6455,6 +6455,16 @@ def check_server_already_running():
             console.print('    No manual restart needed. Server available at http://localhost:5001.')
             console.print('    Use `touch server.py` to trigger restart if testing changes."')
             print()
+            console.print("🎣 [bold cyan]TEACH YOURSELF TO FISH - RADICAL TRANSPARENCY SYSTEM:[/bold cyan]")
+            console.print("   You just discovered Pipulate's Radical Transparency & Agentic AI system!")
+            console.print("   🔥 [bold yellow]Master Guide:[/bold yellow] .cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc")
+            console.print("   🎯 [bold yellow]Key capabilities you now have:[/bold yellow]")
+            console.print("      • MCP Tools for system inspection and automation")
+            console.print("      • FINDER_TOKENs for surgical log analysis")  
+            console.print("      • Pipeline state inspection for workflow debugging")
+            console.print("      • Browser automation with complete DOM transparency")
+            console.print("   💡 [bold green]Next level:[/bold green] Read the guide to unlock your full agentic potential!")
+            print()
             
             return True
     except Exception:
