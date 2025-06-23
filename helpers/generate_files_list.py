@@ -161,18 +161,26 @@ def generate_files_list():
         "# HI GEMINI! HERE'S SOME SUPER OVER-ARCHING CONTEXT OF THIS XML",
         "# THE STUFF IN THIS XML PAYLOAD IS STILL ONLY PART OF THE STORY", 
         "# BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW",
+        "",
+        "# Or in other words...",
+        "",
+        "# Once upon a midnight dreary, I thought I'd let you think more clearly",
+        "# About the quaint and curious volumes of code required for your given chore.",
+        "# So curated them with this here Python script to make it real clear",
+        "# That this XML payload is for you to parse in ways I hope you will adore.",
         ""
     ])
     
     # Core files (in pipulate root) - some uncommented by default
     lines.append("# CORE FILES & DOCS (Setting the stage)")
     core_files = [
-        ("README.md", True),        # commented by default
-        ("flake.nix", False),       # uncommented - useful
-        ("requirements.txt", False), # uncommented - useful
-        ("server.py", False),       # uncommented - useful  
-        ("mcp_tools.py", False),       # uncommented - useful  
-        (".gitignore", True)        # commented by default
+        ("README.md", True),         # Single source of truth
+        (".gitignore", True),        # Lets data stay in the repo
+        ("flake.nix", False),        # IaC
+        ("requirements.txt", False), # Python dependencies
+        ("server.py", False),        # server entrypoint
+        ("common.py", False),        # CRUD base class
+        ("mcp_tools.py", False),     # MCP tools
     ]
     for file, should_comment in core_files:
         full_path = f"{base_paths['pipulate']}/{file}"
@@ -181,7 +189,6 @@ def generate_files_list():
     
     # Common/shared files
     lines.extend(enumerate_specific_files([
-        f"{base_paths['pipulate']}/plugins/common.py",
         f"{base_paths['pipulate_com']}/install.sh"
     ], description="COMMON/SHARED FILES"))
     
