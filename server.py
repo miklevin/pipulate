@@ -44,6 +44,9 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 # Import MCP tools module for enhanced AI assistant capabilities
+# Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
+MCP_TOOL_REGISTRY = {}
+
 from mcp_tools import register_all_mcp_tools
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
@@ -927,8 +930,6 @@ DEFAULT_ACTIVE_ROLES = PCONFIG['DEFAULT_ACTIVE_ROLES']
 # that take parameters and return structured responses.
 
 # Global registry for MCP tools - populated by plugins during startup
-MCP_TOOL_REGISTRY = {}
-
 def register_mcp_tool(tool_name: str, handler_func):
     """Register an MCP tool handler function.
     
@@ -938,6 +939,7 @@ def register_mcp_tool(tool_name: str, handler_func):
     """
     logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
     MCP_TOOL_REGISTRY[tool_name] = handler_func
+    logger.info(f"🔧 MCP REGISTRY: Registry now has {len(MCP_TOOL_REGISTRY)} tools: {list(MCP_TOOL_REGISTRY.keys())} (id: {id(MCP_TOOL_REGISTRY)})")
 
 # MCP tools are now consolidated in mcp_tools.py - see register_all_mcp_tools()
 
@@ -4236,7 +4238,10 @@ async def startup_event():
     # ascii_banner("Digital Workshop Awakening", "Pipulate server initializing with radical transparency", "bright_cyan")
     
     # 🔧 REGISTER ALL MCP TOOLS FIRST
+    logger.info("🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools")
     register_all_mcp_tools()
+    logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
+    logger.info(f"🔧 FINDER_TOKEN: MCP_REGISTRY_CONTENTS - Tools: {list(MCP_TOOL_REGISTRY.keys())} (id: {id(MCP_TOOL_REGISTRY)})")
     
     # 🎭 STORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
