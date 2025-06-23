@@ -5738,6 +5738,7 @@ async def startup_event():
     
     # 🎭 STORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
+    figlet_banner("MCP", font='standard', color='magenta')
     section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
     
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.')
@@ -5781,6 +5782,7 @@ discovered_count = len(discovered_classes)
 registered_count = len(plugin_instances)
 failed_count = discovered_count - registered_count
 
+figlet_banner("plugins", font='standard', color='orange3')
 section_header("📦", "Plugin Registry", f"Discovered {discovered_count} plugins, {registered_count} successfully registered", "bright_yellow")
 
 logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: {discovered_count}, successfully registered: {registered_count}, failed: {failed_count}')
