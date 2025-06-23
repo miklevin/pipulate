@@ -323,7 +323,7 @@ def run_tree_command():
     try:
         import subprocess
         result = subprocess.run(
-            ['tree', '-I', '__pycache__|client|data|*.csv|*.zip|*.pkl'],
+            ['tree', '-I', '__pycache__|client|data|downloads|looking_at|*.csv|*.zip|*.pkl|*.png|*.svg|*.html'],
             capture_output=True,
             text=True,
             cwd=repo_root
@@ -848,11 +848,20 @@ prompt_tokens = pre_prompt_tokens + post_prompt_tokens
 token_counts = calculate_total_tokens(files_tokens_dict, prompt_tokens)
 
 # Update the token summary in the output
-output_xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<context schema="pipulate-context" version="1.0">\n{create_xml_element("manifest", manifest)}\n{create_xml_element("pre_prompt", pre_prompt)}\n{create_xml_element("content", "\n".join(lines))}\n{create_xml_element("post_prompt", post_prompt)}\n{create_xml_element("token_summary", [
+token_summary_content = [
     f"<total_context_size>{format_token_count(token_counts['total'])}</total_context_size>",
     f"<files_tokens>{format_token_count(token_counts['files'])}</files_tokens>",
     f"<prompt_tokens>{format_token_count(prompt_tokens)}</prompt_tokens>"
-])}\n</context>'
+]
+
+output_xml = (f'<?xml version="1.0" encoding="UTF-8"?>\n'
+              f'<context schema="pipulate-context" version="1.0">\n'
+              f'{create_xml_element("manifest", manifest)}\n'
+              f'{create_xml_element("pre_prompt", pre_prompt)}\n'
+              f'{create_xml_element("content", chr(10).join(lines))}\n'
+              f'{create_xml_element("post_prompt", post_prompt)}\n'
+              f'{create_xml_element("token_summary", token_summary_content)}\n'
+              f'</context>')
 
 # Print structured output
 print_structured_output(manifest, pre_prompt, processed_files, post_prompt, token_counts['total'], args.max_tokens)
