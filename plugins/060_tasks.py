@@ -7,7 +7,7 @@ import fastlite
 from fasthtml.common import *
 from loguru import logger
 from server import DB_FILENAME
-from .common import BaseCrud
+from ..common import BaseCrud
 
 ROLES = ['Core']
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
