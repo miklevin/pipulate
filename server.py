@@ -5797,6 +5797,10 @@ else:
 
 logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: {", ".join(plugin_instances.keys())}')
 
+# 🐰 ALICE WELCOME BANNER - Perfect transition point: FINDER_TOKENs end, ROLES begin
+logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point')
+falling_alice()
+
 MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
 
@@ -7995,11 +7999,7 @@ def run_server_with_watchdog():
         log.warning('Development mode active', details=f'Using database: {env_db}')
     else:
         log.startup('Production mode active', details=f'Using database: {env_db}')
-    # 🐰 ALICE WELCOME BANNER - Always show on server startup - it's delightful!
-    logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner on startup')
-    
-    # Show the falling Alice art banner
-    falling_alice()
+    # 🐰 ALICE WELCOME BANNER - Now moved to perfect transition point between FINDER_TOKENs ending and ROLES beginning
     
     # Additionally show debug information if STATE_TABLES is enabled
     if STATE_TABLES:
