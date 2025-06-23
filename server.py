@@ -1,3 +1,4 @@
+import argparse
 import ast
 import asyncio
 import functools
@@ -50,6 +51,7 @@ warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources
 DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
+TESTING_MODE = False  # Set to True to enable light testing on server startup
 # 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
 # These control different aspects of logging and debugging
 
@@ -6513,4 +6515,24 @@ def run_server_with_watchdog():
     finally:
         observer.join()
 if __name__ == '__main__':
+    # 🧪 TESTING PHILOSOPHY: Command line argument parsing for friction-free testing
+    parser = argparse.ArgumentParser(description='Pipulate - Local-First Digital Workshop Framework')
+    parser.add_argument('-t', '--test', '--tests', action='store_true', 
+                       help='Enable light testing mode - runs basic validation on startup')
+    parser.add_argument('--test-deep', action='store_true',
+                       help='Enable comprehensive testing mode')  
+    parser.add_argument('--test-browser', action='store_true',
+                       help='Enable browser automation testing')
+    args = parser.parse_args()
+    
+    # Set global testing mode flags
+    if args.test or args.test_deep or args.test_browser:
+        TESTING_MODE = True
+        logger.info('🧪 FINDER_TOKEN: TESTING_MODE_ENABLED - Light testing enabled for this server run')
+    
+    # Show testing banner if in testing mode
+    if TESTING_MODE:
+        figlet_banner("TESTING", "Light test suite enabled", font='slant', color='cyan')
+        logger.info('🧪 FINDER_TOKEN: TESTING_ARGS - Testing arguments detected: basic validation will run on startup')
+    
     run_server_with_watchdog()
