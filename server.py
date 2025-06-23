@@ -2939,8 +2939,8 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
     """
     try:
         items = dict(db_instance.items())
-        # Use Rich JSON display for database items
-        content = rich_json_display(items, title=f"Database State: {db_name}", console_output=False, log_output=True)
+        # Use Rich JSON display for database items - show in console AND format for logs
+        content = rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=True)
         
         # Add semantic context for AI assistants
         semantic_info = []
