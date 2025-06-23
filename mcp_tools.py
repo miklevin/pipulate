@@ -1779,6 +1779,247 @@ async def _botify_execute_custom_bql_query(params: dict) -> dict:
             }
         }
 
+async def _browser_interact_with_current_page(params: dict) -> dict:
+    """
+    MCP Tool: AI INTERACTION - Interact with the current page using /looking_at/ state.
+    
+    This tool allows the AI to interact with the current page that's captured
+    in /browser_automation/looking_at/ directory. It can click elements, fill forms,
+    and perform other interactions based on the current DOM state.
+    
+    Args:
+        params: {
+            "action": "click" | "type" | "submit" | "screenshot" | "navigate",
+            "target": {
+                "selector_type": "id" | "data-testid" | "xpath" | "css",
+                "selector_value": "element-id" | "[data-testid='button']" | "//button[@id='submit']",
+                "text_content": "optional text to verify element"
+            },
+            "input_text": "text to type (for type action)",
+            "url": "URL to navigate to (for navigate action)",
+            "wait_seconds": 3,
+            "update_looking_at": True
+        }
+    
+    Returns:
+        dict: Interaction results with updated page state
+    """
+    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_INTERACT_START - Action: {params.get('action')}")
+    
+    try:
+        import time
+        import json
+        import os
+        from datetime import datetime
+
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.common.keys import Keys
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import WebDriverWait
+        
+        action = params.get('action')
+        target = params.get('target', {})
+        input_text = params.get('input_text', '')
+        url = params.get('url', '')
+        wait_seconds = params.get('wait_seconds', 3)
+        update_looking_at = params.get('update_looking_at', True)
+        
+        if not action:
+            return {"success": False, "error": "action parameter is required"}
+        
+        # Set up Chrome driver
+        chrome_options = Options()
+        if action != "screenshot":
+            chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--window-size=1920,1080')
+        
+        driver = webdriver.Chrome(options=chrome_options)
+        
+        try:
+            # Get current URL from /looking_at/ state
+            headers_file = 'browser_automation/looking_at/headers.json'
+            current_url = None
+            
+            if os.path.exists(headers_file):
+                with open(headers_file, 'r') as f:
+                    headers_data = json.load(f)
+                    current_url = headers_data.get('url')
+            
+            if action == "navigate":
+                target_url = url or current_url
+                if not target_url:
+                    return {"success": False, "error": "No URL provided and no current URL in /looking_at/"}
+                
+                driver.get(target_url)
+                time.sleep(wait_seconds)
+                
+                result = {
+                    "success": True,
+                    "action": "navigate",
+                    "url": driver.current_url,
+                    "title": driver.title
+                }
+                
+            elif action == "screenshot":
+                if current_url:
+                    driver.get(current_url)
+                    time.sleep(wait_seconds)
+                
+                screenshot_path = 'browser_automation/looking_at/screenshot.png'
+                driver.save_screenshot(screenshot_path)
+                
+                result = {
+                    "success": True,
+                    "action": "screenshot",
+                    "screenshot_path": screenshot_path,
+                    "url": driver.current_url
+                }
+                
+            elif action in ["click", "type", "submit"]:
+                if not current_url:
+                    return {"success": False, "error": "No current URL found in /looking_at/. Use browser_scrape_page first."}
+                
+                driver.get(current_url)
+                time.sleep(wait_seconds)
+                
+                # Find the target element
+                selector_type = target.get('selector_type', 'id')
+                selector_value = target.get('selector_value')
+                
+                if not selector_value:
+                    return {"success": False, "error": "target.selector_value is required for interaction"}
+                
+                # Map selector types to Selenium By types
+                by_mapping = {
+                    'id': By.ID,
+                    'data-testid': By.CSS_SELECTOR,
+                    'css': By.CSS_SELECTOR,
+                    'xpath': By.XPATH,
+                    'name': By.NAME
+                }
+                
+                if selector_type == 'data-testid':
+                    # Convert data-testid to CSS selector
+                    selector_value = f'[data-testid="{selector_value}"]'
+                    by_type = By.CSS_SELECTOR
+                else:
+                    by_type = by_mapping.get(selector_type, By.ID)
+                
+                try:
+                    element = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((by_type, selector_value))
+                    )
+                    
+                    if action == "click":
+                        element.click()
+                        result = {
+                            "success": True,
+                            "action": "click",
+                            "element_found": True,
+                            "element_text": element.text[:100] if element.text else ""
+                        }
+                        
+                    elif action == "type":
+                        element.clear()
+                        element.send_keys(input_text)
+                        result = {
+                            "success": True,
+                            "action": "type",
+                            "element_found": True,
+                            "text_entered": input_text
+                        }
+                        
+                    elif action == "submit":
+                        element.submit()
+                        result = {
+                            "success": True,
+                            "action": "submit",
+                            "element_found": True
+                        }
+                    
+                    # Wait for any page changes
+                    time.sleep(wait_seconds)
+                    
+                except Exception as e:
+                    result = {
+                        "success": False,
+                        "action": action,
+                        "error": f"Element interaction failed: {str(e)}",
+                        "selector_type": selector_type,
+                        "selector_value": selector_value
+                    }
+            
+            else:
+                return {"success": False, "error": f"Unknown action: {action}"}
+            
+            # Update /looking_at/ state if requested
+            if update_looking_at and result.get("success"):
+                try:
+                    looking_at_dir = 'browser_automation/looking_at'
+                    os.makedirs(looking_at_dir, exist_ok=True)
+                    
+                    # Capture current state
+                    page_title = driver.title
+                    current_url = driver.current_url
+                    source_html = driver.page_source
+                    dom_html = driver.execute_script("return document.documentElement.outerHTML;")
+                    
+                    # Save updated state
+                    state_data = {
+                        'action_performed': action,
+                        'url': current_url,
+                        'title': page_title,
+                        'timestamp': datetime.now().isoformat()
+                    }
+                    
+                    with open(os.path.join(looking_at_dir, 'headers.json'), 'w') as f:
+                        json.dump(state_data, f, indent=2)
+                        
+                    with open(os.path.join(looking_at_dir, 'source.html'), 'w', encoding='utf-8') as f:
+                        f.write(source_html)
+                        
+                    with open(os.path.join(looking_at_dir, 'dom.html'), 'w', encoding='utf-8') as f:
+                        f.write(dom_html)
+                    
+                    # Create simple DOM
+                    try:
+                        from bs4 import BeautifulSoup
+                        soup = BeautifulSoup(dom_html, 'html.parser')
+                        for tag in soup(['script', 'style', 'noscript', 'meta', 'link']):
+                            tag.decompose()
+                        for element in soup.find_all():
+                            attrs_to_keep = {}
+                            for attr, value in element.attrs.items():
+                                if attr in ['id', 'role', 'data-testid', 'name', 'type', 'href', 'src'] or attr.startswith('aria-'):
+                                    attrs_to_keep[attr] = value
+                            element.attrs = attrs_to_keep
+                        simple_dom_html = str(soup)
+                    except:
+                        simple_dom_html = dom_html
+                        
+                    with open(os.path.join(looking_at_dir, 'simple_dom.html'), 'w', encoding='utf-8') as f:
+                        f.write(simple_dom_html)
+                    
+                    logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_INTERACTION_UPDATE - Action '{action}' completed, /looking_at/ updated")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ FINDER_TOKEN: MCP_BROWSER_INTERACTION_STATE_UPDATE_ERROR - {e}")
+                    
+            result["current_url"] = driver.current_url
+            result["page_title"] = driver.title
+            return result
+            
+        finally:
+            driver.quit()
+            
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_INTERACT_ERROR - {e}")
+        return {"success": False, "error": str(e)}
+
 # Register remaining Botify tools NOW that functions are defined
 register_mcp_tool("botify_get_full_schema", _botify_get_full_schema)
 register_mcp_tool("botify_list_available_analyses", _botify_list_available_analyses)
@@ -1786,5 +2027,6 @@ register_mcp_tool("botify_execute_custom_bql_query", _botify_execute_custom_bql_
 register_mcp_tool("browser_analyze_scraped_page", _browser_analyze_scraped_page)
 register_mcp_tool("browser_scrape_page", _browser_scrape_page)
 register_mcp_tool("browser_automate_workflow_walkthrough", _browser_automate_workflow_walkthrough)
+register_mcp_tool("browser_interact_with_current_page", _browser_interact_with_current_page)
 
 
