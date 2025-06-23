@@ -539,6 +539,8 @@ def setup_logging():
         filter=lambda record: (
             # Exclude AI JSON data from console (humans see Rich display instead)
             '🤖 AI_JSON' not in record['message'] and
+            # Exclude AI Creative Vision from console (humans see Rich display instead)
+            '🎭 AI_CREATIVE_VISION' not in record['message'] and
             (
                 record['level'].name != 'DEBUG' or 
                 any(key in record['message'] for key in [
