@@ -5,6 +5,7 @@ python-minimizer
 strip-docs
 tiktoken
 vulture
+yapf
 
 aiohttp
 beautifulsoup4
