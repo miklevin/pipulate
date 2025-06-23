@@ -4,8 +4,10 @@ MCP Tools Module - AI Assistant Interface
 This module contains all Model Context Protocol (MCP) tools that provide
 programmatic interfaces for AI assistant interactions with Pipulate.
 
-Extracted from server.py to improve maintainability and enable
-enhanced stealth browser automation capabilities.
+Consolidated from server.py to improve maintainability and provide a
+clean separation of concerns for AI-focused functionality.
+
+# 🔧 FINDER_TOKEN: MCP_TOOLS_CONSOLIDATED - ALL TOOLS IN ONE PLACE
 """
 
 import os
@@ -14,7 +16,8 @@ import time
 import random
 import asyncio
 import subprocess
-from datetime import datetime
+import aiohttp
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 import logging
@@ -22,33 +25,69 @@ import logging
 # Get logger from server context
 logger = logging.getLogger(__name__)
 
-# 🔧 FINDER_TOKEN: MCP_TOOLS_CORE - AI ASSISTANT INTERFACE
+# ================================================================
+# HELPER FUNCTIONS
+# ================================================================
+
+def _read_botify_api_token() -> str:
+    """Read Botify API token from the standard token file location.
+    
+    Returns the token string or None if file doesn't exist or can't be read.
+    This follows the same pattern used by all other Botify integrations.
+    """
+    try:
+        token_file = "helpers/botify/botify_token.txt"
+        if not os.path.exists(token_file):
+            return None
+        with open(token_file) as f:
+            content = f.read().strip()
+            token = content.split('\n')[0].strip()
+        return token
+    except Exception:
+        return None
+
+# ================================================================
+# CORE MCP TOOLS
+# ================================================================
 
 async def _builtin_get_cat_fact(params: dict) -> dict:
-    """
-    MCP Tool: Get a random cat fact for testing MCP functionality.
-    
-    Args:
-        params: {} (no parameters required)
-    
-    Returns:
-        dict: {"fact": "Random cat fact", "success": True}
-    """
-    import random
-    
-    cat_facts = [
-        "Cats have 32 muscles in each ear.",
-        "A group of cats is called a clowder.",
-        "Cats can't taste sweetness.",
-        "A cat's purr vibrates at 25-50 Hz, which can heal bones.",
-        "Cats sleep 12-16 hours per day."
-    ]
-    
-    return {
-        "success": True,
-        "fact": random.choice(cat_facts),
-        "timestamp": datetime.now().isoformat()
-    }
+    """Built-in cat fact tool - demonstrates the MCP tool pattern."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            external_url = "https://catfact.ninja/fact"
+            async with session.get(external_url) as response:
+                if response.status == 200:
+                    cat_fact_result = await response.json()
+                    return {
+                        "status": "success",
+                        "result": cat_fact_result,
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "message": f"External API returned status {response.status}",
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+    except Exception as e:
+        # Fallback to local cat facts if API fails
+        cat_facts = [
+            "Cats have 32 muscles in each ear.",
+            "A group of cats is called a clowder.",
+            "Cats can't taste sweetness.",
+            "A cat's purr vibrates at 25-50 Hz, which can heal bones.",
+            "Cats sleep 12-16 hours per day."
+        ]
+        return {
+            "status": "success",
+            "fact": random.choice(cat_facts),
+            "timestamp": datetime.now().isoformat(),
+            "source": "local_fallback"
+        }
 
 async def _pipeline_state_inspector(params: dict) -> dict:
     """
@@ -56,29 +95,26 @@ async def _pipeline_state_inspector(params: dict) -> dict:
     
     Complete workflow state visibility for AI assistants.
     This is THE tool for understanding what's happening in any workflow.
-    
-    Args:
-        params: {
-            "pipeline_id": "hello_001",     # Optional: specific pipeline
-            "app_name": "hello",            # Optional: filter by app
-            "show_data": True,              # Optional: include step data
-            "format": "detailed"            # Optional: "summary" | "detailed"
-        }
-    
-    Returns:
-        dict: Complete pipeline state with step data and metadata
     """
     logger.info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_START - {params}")
     
     try:
-        # Import from server context - use globals to avoid circular import
+        # Use dynamic import to avoid circular dependency
         import sys
         server_module = sys.modules.get('server')
-        if server_module:
+        if server_module and hasattr(server_module, 'pipeline_table'):
             pipeline_table = server_module.pipeline_table
         else:
-            # Fallback import if server module not in sys.modules yet
-            from server import pipeline_table
+            # Alternative: use the database directly if pipeline_table not available
+            try:
+                from fastlite import database
+                db = database('data/data.db')
+                pipeline_table = db.pipeline
+            except Exception:
+                return {
+                    "success": False,
+                    "error": "Pipeline table not accessible - server may not be fully initialized"
+                }
         
         pipeline_id = params.get('pipeline_id')
         app_name = params.get('app_name')
@@ -163,21 +199,237 @@ async def _pipeline_state_inspector(params: dict) -> dict:
         logger.error(f"❌ FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
-async def _local_llm_read_file(params: dict) -> dict:
-    """
-    MCP Tool: Read file contents for AI analysis.
-    
-    Args:
-        params: {
-            "file_path": "path/to/file.py",     # Required: file to read
-            "start_line": 1,                    # Optional: start line number
-            "end_line": 100,                    # Optional: end line number
-            "max_lines": 500                    # Optional: max lines to read
+# ================================================================
+# BOTIFY API MCP TOOLS
+# ================================================================
+
+async def _botify_ping(params: dict) -> dict:
+    """Test Botify API connectivity and authentication."""
+    api_token = _read_botify_api_token()
+    if not api_token:
+        return {
+            "status": "error", 
+            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
+            "token_location": "helpers/botify/botify_token.txt"
         }
     
-    Returns:
-        dict: File contents and metadata
-    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Use the user endpoint as a simple ping/auth test
+            external_url = "https://api.botify.com/v1/user"
+            headers = {"Authorization": f"Token {api_token}"}
+            
+            async with session.get(external_url, headers=headers) as response:
+                if response.status == 200:
+                    user_data = await response.json()
+                    return {
+                        "status": "success",
+                        "result": {
+                            "message": "Botify API connection successful",
+                            "user": user_data.get("login", "unknown"),
+                            "organizations": len(user_data.get("organizations", []))
+                        },
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "message": f"Botify API authentication failed: {response.status}",
+                        "error_details": error_text,
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Network error: {str(e)}",
+            "external_api_url": external_url if 'external_url' in locals() else None,
+            "external_api_method": "GET"
+        }
+
+async def _botify_list_projects(params: dict) -> dict:
+    """List all projects for the authenticated user."""
+    api_token = _read_botify_api_token()
+    if not api_token:
+        return {
+            "status": "error", 
+            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
+            "token_location": "helpers/botify/botify_token.txt"
+        }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            external_url = "https://api.botify.com/v1/projects"
+            headers = {"Authorization": f"Token {api_token}"}
+            
+            async with session.get(external_url, headers=headers) as response:
+                if response.status == 200:
+                    projects_data = await response.json()
+                    projects = projects_data.get("results", [])
+                    
+                    # Format for easy consumption
+                    formatted_projects = []
+                    for project in projects:
+                        formatted_projects.append({
+                            "slug": project.get("slug"),
+                            "name": project.get("name"),
+                            "url": project.get("url"),
+                            "organization": project.get("organization", {}).get("name"),
+                            "active": project.get("active", False)
+                        })
+                    
+                    return {
+                        "status": "success",
+                        "result": {
+                            "projects": formatted_projects,
+                            "total_count": len(formatted_projects)
+                        },
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "message": f"Failed to fetch projects: {response.status}",
+                        "error_details": error_text,
+                        "external_api_url": external_url,
+                        "external_api_method": "GET",
+                        "external_api_status": response.status
+                    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Network error: {str(e)}",
+            "external_api_url": external_url if 'external_url' in locals() else None,
+            "external_api_method": "GET"
+        }
+
+# Additional Botify tools will be added in subsequent edits...
+
+# ================================================================
+# MCP TOOL REGISTRY AND REGISTRATION
+# ================================================================
+
+# MCP Tool Registry - Will be populated by register_mcp_tool calls
+MCP_TOOL_REGISTRY = {}
+
+def register_mcp_tool(tool_name: str, handler_func):
+    """Register an MCP tool with the global registry."""
+    logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
+    MCP_TOOL_REGISTRY[tool_name] = handler_func
+    
+    # Also register with server if available
+    import sys
+    server_module = sys.modules.get('server')
+    if server_module and hasattr(server_module, 'register_mcp_tool'):
+        server_module.register_mcp_tool(tool_name, handler_func)
+
+def register_all_mcp_tools():
+    """Register all MCP tools with the server."""
+    logger.info("🔧 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_START")
+    
+    # Core tools
+    register_mcp_tool("get_cat_fact", _builtin_get_cat_fact)
+    register_mcp_tool("pipeline_state_inspector", _pipeline_state_inspector)
+    
+    # Botify API tools  
+    register_mcp_tool("botify_ping", _botify_ping)
+    register_mcp_tool("botify_list_projects", _botify_list_projects)
+    register_mcp_tool("botify_simple_query", _botify_simple_query)
+    
+    # Local LLM tools
+    register_mcp_tool("local_llm_read_file", _local_llm_read_file)
+    register_mcp_tool("local_llm_grep_logs", _local_llm_grep_logs)
+    register_mcp_tool("local_llm_list_files", _local_llm_list_files)
+    
+    # More tools will be registered as we add them...
+    
+    logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools registered")
+
+# Additional Botify tools from server.py
+async def _botify_simple_query(params: dict) -> dict:
+    """Execute a simple BQL query against Botify API."""
+    api_token = _read_botify_api_token()
+    if not api_token:
+        return {
+            "status": "error",
+            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
+            "token_location": "helpers/botify/botify_token.txt"
+        }
+    
+    org_slug = params.get("org_slug") 
+    project_slug = params.get("project_slug")
+    analysis_slug = params.get("analysis_slug")
+    query = params.get("query")
+    
+    # Validate required parameters
+    missing_params = []
+    if not org_slug: missing_params.append("org_slug") 
+    if not project_slug: missing_params.append("project_slug")
+    if not analysis_slug: missing_params.append("analysis_slug")
+    if not query: missing_params.append("query")
+    
+    if missing_params:
+        return {
+            "status": "error", 
+            "message": f"Missing required parameters: {', '.join(missing_params)}",
+            "required_params": ["org_slug", "project_slug", "analysis_slug", "query"]
+        }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            external_url = f"https://api.botify.com/v1/projects/{org_slug}/{project_slug}/query"
+            headers = {
+                "Authorization": f"Token {api_token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Build the BQL query payload
+            payload = {
+                "query": query,
+                "analysis": analysis_slug,
+                "size": params.get("size", 100)  # Default to 100 results
+            }
+            
+            async with session.post(external_url, headers=headers, json=payload) as response:
+                if response.status == 200:
+                    query_result = await response.json()
+                    return {
+                        "status": "success",
+                        "result": query_result,
+                        "external_api_url": external_url,
+                        "external_api_method": "POST", 
+                        "external_api_status": response.status,
+                        "external_api_payload": payload
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "message": f"BQL query failed: {response.status}",
+                        "error_details": error_text,
+                        "external_api_url": external_url,
+                        "external_api_method": "POST",
+                        "external_api_status": response.status,
+                        "external_api_payload": payload
+                    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Network error: {str(e)}",
+            "external_api_url": external_url if 'external_url' in locals() else None,
+            "external_api_method": "POST"
+        }
+
+# Local LLM tools for file system operations
+async def _local_llm_read_file(params: dict) -> dict:
+    """Read file contents for AI analysis."""
     logger.info(f"🔧 FINDER_TOKEN: MCP_READ_FILE_START - {params.get('file_path')}")
     
     try:
@@ -237,21 +489,8 @@ async def _local_llm_read_file(params: dict) -> dict:
         return {"success": False, "error": str(e)}
 
 async def _local_llm_grep_logs(params: dict) -> dict:
-    """
-    MCP Tool: Search logs with FINDER_TOKENs for debugging.
-    
-    Args:
-        params: {
-            "pattern": "FINDER_TOKEN: MCP_CALL",  # Required: search pattern
-            "file_path": "logs/server.log",       # Optional: specific log file
-            "max_results": 50,                    # Optional: max results
-            "context_lines": 2                    # Optional: lines before/after
-        }
-    
-    Returns:
-        dict: Search results with matches and context
-    """
-    logger.info(f"🔧 FINDER_TOKEN: MCP_GREP_LOGS_START - Pattern: {params.get('pattern')}")
+    """Search logs with FINDER_TOKENs for debugging."""
+    logger.info(f"🔧 FINDER_TOKEN: MCP_GREP_LOGS_START - {params.get('pattern')}")
     
     try:
         pattern = params.get('pattern')
@@ -265,7 +504,7 @@ async def _local_llm_grep_logs(params: dict) -> dict:
         if not os.path.exists(file_path):
             return {"success": False, "error": f"Log file not found: {file_path}"}
         
-        # Use grep for efficient searching
+        # Use grep command for efficient searching
         try:
             cmd = ['grep', '-n']
             if context_lines > 0:
@@ -283,718 +522,105 @@ async def _local_llm_grep_logs(params: dict) -> dict:
                 else:
                     truncated = False
                 
-                matches = []
-                for line in lines:
-                    if ':' in line:
-                        parts = line.split(':', 2)
-                        if len(parts) >= 2:
-                            line_num = parts[0]
-                            content = ':'.join(parts[1:])
-                            matches.append({
-                                "line_number": line_num,
-                                "content": content.strip()
-                            })
-                
                 return {
                     "success": True,
                     "pattern": pattern,
                     "file_path": file_path,
-                    "total_matches": len(matches),
-                    "matches": matches,
-                    "truncated": truncated
+                    "matches": lines,
+                    "match_count": len(lines),
+                    "truncated": truncated,
+                    "context_lines": context_lines
                 }
             else:
                 return {
                     "success": True,
                     "pattern": pattern,
                     "file_path": file_path,
-                    "total_matches": 0,
                     "matches": [],
+                    "match_count": 0,
                     "message": "No matches found"
                 }
                 
         except subprocess.TimeoutExpired:
-            return {"success": False, "error": "Grep search timed out"}
+            return {"success": False, "error": "Grep operation timed out"}
         except FileNotFoundError:
-            return {"success": False, "error": "grep command not available"}
-        
+            return {"success": False, "error": "grep command not found"}
+            
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_GREP_LOGS_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
 async def _local_llm_list_files(params: dict) -> dict:
-    """
-    MCP Tool: List files and directories for exploration.
-    
-    Args:
-        params: {
-            "directory": "plugins/",        # Optional: directory to list
-            "pattern": "*.py",              # Optional: file pattern
-            "recursive": False,             # Optional: recursive listing
-            "max_files": 100               # Optional: max files to return
-        }
-    
-    Returns:
-        dict: File listing with metadata
-    """
-    logger.info(f"🔧 FINDER_TOKEN: MCP_LIST_FILES_START - Directory: {params.get('directory', '.')}")
+    """List files and directories for AI exploration."""
+    logger.info(f"🔧 FINDER_TOKEN: MCP_LIST_FILES_START - {params.get('directory', '.')}")
     
     try:
         directory = params.get('directory', '.')
         pattern = params.get('pattern', '*')
-        recursive = params.get('recursive', False)
+        include_hidden = params.get('include_hidden', False)
         max_files = params.get('max_files', 100)
+        
+        # Security check
+        abs_path = os.path.abspath(directory)
+        project_root = os.path.abspath('.')
+        if not abs_path.startswith(project_root):
+            return {"success": False, "error": "Directory access outside project not allowed"}
         
         if not os.path.exists(directory):
             return {"success": False, "error": f"Directory not found: {directory}"}
         
         files = []
-        
-        if recursive:
-            for root, dirs, filenames in os.walk(directory):
-                for filename in filenames:
-                    if len(files) >= max_files:
-                        break
-                    file_path = os.path.join(root, filename)
-                    rel_path = os.path.relpath(file_path)
-                    
-                    try:
-                        stat = os.stat(file_path)
-                        files.append({
-                            "path": rel_path,
-                            "name": filename,
-                            "size": stat.st_size,
-                            "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                            "is_directory": False
-                        })
-                    except OSError:
-                        continue
-        else:
-            try:
-                for entry in os.listdir(directory):
-                    if len(files) >= max_files:
-                        break
-                    
-                    entry_path = os.path.join(directory, entry)
-                    
-                    try:
-                        stat = os.stat(entry_path)
-                        files.append({
-                            "path": entry_path,
-                            "name": entry,
-                            "size": stat.st_size if not os.path.isdir(entry_path) else None,
-                            "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                            "is_directory": os.path.isdir(entry_path)
-                        })
-                    except OSError:
-                        continue
-            except PermissionError:
-                return {"success": False, "error": f"Permission denied accessing directory: {directory}"}
-        
-        # Sort by name
-        files.sort(key=lambda x: (not x['is_directory'], x['name'].lower()))
-        
-        result = {
-            "success": True,
-            "directory": directory,
-            "total_files": len(files),
-            "files": files,
-            "truncated": len(files) >= max_files
-        }
-        
-        logger.info(f"🎯 FINDER_TOKEN: MCP_LIST_FILES_SUCCESS - {directory} ({len(files)} files)")
-        return result
-        
-    except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: MCP_LIST_FILES_ERROR - {e}")
-        return {"success": False, "error": str(e)}
-
-# 🎭 FINDER_TOKEN: ENHANCED_STEALTH_BROWSER_AUTOMATION - THE GOOGLE SEARCH BREAKTHROUGH
-async def _browser_stealth_search(params: dict) -> dict:
-    """
-    MCP Tool: STEALTH SEARCH - Perform searches with proven bot detection evasion.
-    
-    This tool incorporates all the proven stealth techniques from the successful
-    Google "ai seo software" search that bypassed CAPTCHA and extracted results.
-    
-    Features:
-    - Nix-provided ChromeDriver/Chromium version matching (no dual windows!)
-    - CDP script injection for navigator property cloaking
-    - Human-like typing with realistic delays
-    - Random mouse movements and scrolling
-    - Half-screen window positioning
-    - Result extraction with multiple selector fallbacks
-    
-    Args:
-        params: {
-            "search_engine": "google",           # Required: "google" (more engines coming)
-            "query": "ai seo software",          # Required: search query
-            "max_results": 10,                   # Optional: max results to extract
-            "take_screenshot": True,             # Optional: capture visual proof
-            "save_page_source": True,            # Optional: save full page HTML
-            "human_behavior": True,              # Optional: simulate human interactions
-            "captcha_pause_seconds": 45          # Optional: time to manually solve CAPTCHA
-        }
-    
-    Returns:
-        dict: Search results with titles, URLs, and file locations
-    """
-    from selenium import webdriver
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.common.action_chains import ActionChains
-    from selenium.webdriver.common.keys import Keys
-    from selenium.common.exceptions import TimeoutException, WebDriverException
-    from selenium.webdriver.chrome.service import Service
-    
-    # Try importing stealth libraries
-    try:
-        import undetected_chromedriver as uc
-        UNDETECTED_AVAILABLE = True
-    except ImportError:
-        UNDETECTED_AVAILABLE = False
-    
-    try:
-        from selenium_stealth import stealth
-        STEALTH_AVAILABLE = True
-    except ImportError:
-        STEALTH_AVAILABLE = False
-    
-    logger.info(f"🎭 FINDER_TOKEN: STEALTH_SEARCH_START - Query: {params.get('query')}")
-    
-    try:
-        # Extract parameters
-        search_engine = params.get('search_engine', 'google').lower()
-        query = params.get('query')
-        if not query:
-            return {"success": False, "error": "Query parameter is required"}
-            
-        max_results = params.get('max_results', 10)
-        take_screenshot = params.get('take_screenshot', True)
-        save_page_source = params.get('save_page_source', True)
-        human_behavior = params.get('human_behavior', True)
-        captcha_pause_seconds = params.get('captcha_pause_seconds', 45)  # Time to manually solve CAPTCHA
-        
-        # TIMING CONFIGURATION - Easy to adjust for performance tuning
-        search_box_timeout = 1.0  # Seconds to wait for search box to appear
-        
-        # Set up directories
-        browser_automation_dir = 'browser_automation'
-        temp_scripts_dir = os.path.join(browser_automation_dir, 'temp_scripts')
-        os.makedirs(temp_scripts_dir, exist_ok=True)
-        
-        # Create timestamp for file naming
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        
-        # Configure search URL
-        if search_engine == 'google':
-            search_url = "https://www.google.com"
-        else:
-            return {"success": False, "error": f"Search engine '{search_engine}' not supported yet"}
-        
-        # FIXED: Use Nix-provided Chrome/ChromeDriver versions to prevent dual windows
-        logger.info("🎭 FINDER_TOKEN: STEALTH_SETUP - Using Nix-provided Chrome/ChromeDriver versions (IaC FTW!)")
-        
-        driver = None
-        driver_type = "nix-standard"
-        
-        # Find Nix-provided binaries
-        import shutil
-        chromium_path = shutil.which('chromium')
-        chromedriver_path = shutil.which('chromedriver')
-        
-        if not chromium_path or not chromedriver_path:
-            return {
-                "success": False, 
-                "error": "Nix-provided chromium or chromedriver not found. Please run in 'nix develop' environment."
-            }
-        
-        logger.info(f"🎭 FINDER_TOKEN: NIX_BINARIES_FOUND - Chromium: {chromium_path}, ChromeDriver: {chromedriver_path}")
-        
-        # Use standard Chrome with Nix-provided binaries for consistent versioning
-        options = webdriver.ChromeOptions()
-        
-        # Core stealth options
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--disable-extensions")
-        options.add_argument("--disable-plugins-discovery")
-        options.add_argument("--disable-web-security")
-        options.add_argument("--disable-features=VizDisplayCompositor")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        
-        # Experimental options for stealth
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option('useAutomationExtension', False)
-        
-        # Realistic user agents - recent but not bleeding edge versions
-        user_agents = [
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36", 
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-        ]
-        selected_ua = random.choice(user_agents)
-        options.add_argument(f"--user-agent={selected_ua}")
-        logger.info(f"🎭 FINDER_TOKEN: USER_AGENT_SELECTED - {selected_ua}")
-        
-        # Randomized window size within common ranges
-        window_widths = [1280, 1366, 1440, 1536, 1920]
-        window_heights = [720, 768, 900, 1024, 1080]
-        window_width = random.choice(window_widths)
-        window_height = random.choice(window_heights)
-        options.add_argument(f'--window-size={window_width},{window_height}')
-        
-        # Randomized window position
-        max_x = max(0, window_width - 100)
-        max_y = max(0, window_height - 100) 
-        pos_x = random.randint(0, min(max_x, 200))
-        pos_y = random.randint(0, min(max_y, 100))
-        options.add_argument(f'--window-position={pos_x},{pos_y}')
-        
-        # Use Nix-provided Chromium binary
-        options.binary_location = chromium_path
-        
-        # Use Nix-provided ChromeDriver with explicit service
-        service = Service(executable_path=chromedriver_path)
-        driver = webdriver.Chrome(service=service, options=options)
-        
-        logger.info("✅ FINDER_TOKEN: NIX_CHROME_SUCCESS - Single window, version-matched setup")
-        
-        # Enhanced CDP script injection for advanced stealth
-        stealth_script = """
-        Object.defineProperty(navigator, 'webdriver', {
-            get: () => undefined,
-        });
-        
-        Object.defineProperty(navigator, 'plugins', {
-            get: () => [1, 2, 3, 4, 5],
-        });
-        
-        Object.defineProperty(navigator, 'languages', {
-            get: () => ['en-US', 'en'],
-        });
-        
-        window.chrome = {
-            runtime: {},
-        };
-        
-        Object.defineProperty(navigator, 'permissions', {
-            get: () => ({
-                query: () => Promise.resolve({ state: 'granted' }),
-            }),
-        });
-        
-        // Additional fingerprint protection
-        Object.defineProperty(navigator, 'hardwareConcurrency', {
-            get: () => 4,
-        });
-        
-        Object.defineProperty(navigator, 'deviceMemory', {
-            get: () => 8,
-        });
-        
-        Object.defineProperty(navigator, 'connection', {
-            get: () => ({
-                effectiveType: '4g',
-                rtt: 100,
-                downlink: 2
-            }),
-        });
-        
-        // Override canvas fingerprinting
-        const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
-        HTMLCanvasElement.prototype.toDataURL = function() {
-            const context = this.getContext('2d');
-            context.fillStyle = 'rgba(255, 255, 255, 0.01)';
-            context.fillRect(0, 0, 1, 1);
-            return originalToDataURL.apply(this, arguments);
-        };
-        """
-        
-        driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
-            'source': stealth_script
-        })
-        
-        # Apply selenium-stealth with randomized WebGL fingerprint
-        if STEALTH_AVAILABLE:
-            # Randomize WebGL fingerprint for different runs
-            webgl_vendors = ["Google Inc.", "Intel Inc.", "NVIDIA Corporation"]
-            webgl_renderers = [
-                "Intel Iris OpenGL Engine", 
-                "ANGLE (Intel, Intel(R) HD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)",
-                "ANGLE (NVIDIA, NVIDIA GeForce GTX 1060 Direct3D11 vs_5_0 ps_5_0, D3D11)"
-            ]
-            
-            selected_vendor = random.choice(webgl_vendors)
-            selected_renderer = random.choice(webgl_renderers)
-            
-            stealth(driver,
-                    languages=["en-US", "en"],
-                    vendor="Google Inc.",
-                    platform="Linux x86_64",
-                    webgl_vendor=selected_vendor,
-                    renderer=selected_renderer,
-                    fix_hairline=True,
-            )
-            logger.info(f"🎭 FINDER_TOKEN: WEBGL_FINGERPRINT - Vendor: {selected_vendor}, Renderer: {selected_renderer}")
+        dirs = []
         
         try:
-            # Navigate to search engine
-            logger.info(f"🌐 FINDER_TOKEN: STEALTH_NAVIGATE - {search_url}")
-            driver.get(search_url)
-            
-            if human_behavior:
-                # Enhanced human-like behavior simulation
-                time.sleep(random.uniform(0.5, 1.5))
-                
-                # More natural mouse movements with multiple intermediate points
-                actions = ActionChains(driver)
-                for _ in range(random.randint(1, 3)):
-                    # Create curved movement with multiple intermediate points
-                    total_x, total_y = random.randint(100, 300), random.randint(100, 250)
-                    num_steps = random.randint(4, 8)  # More steps for smoother curves
-                    
-                    for step in range(num_steps):
-                        # Calculate position along curve with some randomness
-                        progress = step / num_steps
-                        step_x = int((total_x / num_steps) + random.randint(-20, 20))
-                        step_y = int((total_y / num_steps) + random.randint(-20, 20))
-                        
-                        actions.move_by_offset(step_x, step_y)
-                        actions.perform()
-                        time.sleep(random.uniform(0.05, 0.15))
-                    
-                    time.sleep(random.uniform(0.3, 0.8))
-                
-                # Natural scrolling patterns (sometimes up, mostly down)
-                scroll_direction = random.choice([1, 1, 1, -1])  # 75% down, 25% up
-                scroll_amount = random.randint(50, 300) * scroll_direction
-                driver.execute_script(f"window.scrollTo(0, {scroll_amount});")
-                time.sleep(random.uniform(0.2, 0.6))
-                
-                # Occasionally move mouse to different parts of the page
-                if random.random() < 0.3:  # 30% chance
-                    viewport_width = driver.execute_script("return window.innerWidth")
-                    viewport_height = driver.execute_script("return window.innerHeight")
-                    rand_x = random.randint(int(viewport_width * 0.1), int(viewport_width * 0.9))
-                    rand_y = random.randint(int(viewport_height * 0.1), int(viewport_height * 0.9))
-                    actions = ActionChains(driver)
-                    actions.move_by_offset(rand_x - viewport_width//2, rand_y - viewport_height//2)
-                    actions.perform()
-                    time.sleep(random.uniform(0.1, 0.4))
-            
-            # Find search box with multiple selector fallbacks
-            wait = WebDriverWait(driver, search_box_timeout)
-            search_selectors = [
-                "input[name='q']",
-                "textarea[name='q']",
-                "#APjFqb",
-                ".gLFyf"
-            ]
-            
-            search_box = None
-            for selector in search_selectors:
-                try:
-                    search_box = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
-                    logger.info(f"🎯 FINDER_TOKEN: SEARCH_BOX_FOUND - Selector: {selector}")
-                    break
-                except TimeoutException:
+            entries = os.listdir(directory)
+            for entry in entries:
+                if not include_hidden and entry.startswith('.'):
                     continue
-            
-            if not search_box:
-                return {"success": False, "error": "Search box not found"}
-            
-            # Clear and type search query with enhanced human-like behavior
-            search_box.clear()
-            time.sleep(random.uniform(0.05, 0.125))
-            
-            # Enhanced realistic typing with human patterns
-            for i, char in enumerate(query):
-                # Simulate occasional typing mistakes (very rare)
-                if random.random() < 0.02 and i > 0:  # 2% chance of "typo"
-                    wrong_char = random.choice('abcdefghijklmnopqrstuvwxyz')
-                    search_box.send_keys(wrong_char)
-                    time.sleep(random.uniform(0.08, 0.2))
-                    search_box.send_keys(Keys.BACKSPACE)
-                    time.sleep(random.uniform(0.05, 0.15))
-                
-                search_box.send_keys(char)
-                
-                # Variable typing speed - faster for common words, slower for complex ones
-                if char == ' ':
-                    # Slight pause at word boundaries
-                    time.sleep(random.uniform(0.1, 0.25))
-                elif char in 'aeiou':
-                    # Vowels typed slightly faster
-                    time.sleep(random.uniform(0.03, 0.12))
-                else:
-                    # Consonants have normal timing
-                    time.sleep(random.uniform(0.05, 0.18))
-                
-                # Occasional brief pauses (thinking)
-                if random.random() < 0.05:  # 5% chance
-                    time.sleep(random.uniform(0.2, 0.5))
-            
-            time.sleep(random.uniform(0.5, 1.0))
-            
-            # Submit search
-            search_box.send_keys(Keys.RETURN)
-            
-            # Wait for results to load dynamically instead of fixed sleep
-            try:
-                results_wait = WebDriverWait(driver, 10)
-                # Wait for any of our result selectors to appear
-                for selector in result_selectors:
-                    try:
-                        results_wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
-                        logger.info(f"✅ FINDER_TOKEN: RESULTS_LOADED - Detected results with selector: {selector}")
-                        break
-                    except TimeoutException:
-                        continue
-                else:
-                    logger.warning("⚠️ FINDER_TOKEN: RESULTS_TIMEOUT - No results detected, proceeding anyway")
-            except Exception as e:
-                logger.warning(f"⚠️ FINDER_TOKEN: RESULTS_WAIT_ERROR - {e}, proceeding anyway")
-            
-            # Small additional human-like pause
-            time.sleep(random.uniform(0.5, 1.5))
-            
-            # Extract search results with multiple selector fallbacks
-            results = []
-            result_selectors = [
-                "div.g",
-                ".g",
-                "[data-sokoban-container]",
-                ".yuRUbf"
-            ]
-            
-            search_results = []
-            for selector in result_selectors:
-                try:
-                    search_results = driver.find_elements(By.CSS_SELECTOR, selector)
-                    if search_results:
-                        logger.info(f"🎯 FINDER_TOKEN: RESULTS_FOUND - {len(search_results)} results with selector: {selector}")
-                        break
-                except:
-                    continue
-            
-            # Extract result information
-            for i, result in enumerate(search_results[:max_results]):
-                try:
-                    # Try to extract title and URL
-                    title_elem = result.find_element(By.CSS_SELECTOR, "h3")
-                    title = title_elem.text if title_elem else "No title"
                     
-                    link_elem = result.find_element(By.CSS_SELECTOR, "a")
-                    url = link_elem.get_attribute("href") if link_elem else "No URL"
-                    
-                    results.append({
-                        "position": i + 1,
-                        "title": title,
-                        "url": url
+                full_path = os.path.join(directory, entry)
+                relative_path = os.path.relpath(full_path)
+                
+                if os.path.isdir(full_path):
+                    dirs.append({
+                        "name": entry,
+                        "path": relative_path,
+                        "type": "directory"
                     })
-                except Exception as e:
-                    logger.warning(f"⚠️ FINDER_TOKEN: RESULT_EXTRACTION_ERROR - Position {i+1}: {str(e)}")
-                    continue
+                else:
+                    file_size = os.path.getsize(full_path)
+                    files.append({
+                        "name": entry,
+                        "path": relative_path,
+                        "type": "file",
+                        "size": file_size,
+                        "modified": os.path.getmtime(full_path)
+                    })
             
-            # Check for CAPTCHA AFTER extracting results (CAPTCHA often appears after result extraction)
-            page_source = driver.page_source.lower()
-            captcha_indicators = ['captcha', 'unusual traffic', 'blocked', 'verify you are human', 'prove you are not a robot', 'recaptcha']
-            captcha_detected = any(indicator in page_source for indicator in captcha_indicators)
+            # Sort and limit results
+            dirs.sort(key=lambda x: x['name'])
+            files.sort(key=lambda x: x['name'])
             
-            if captcha_detected:
-                logger.warning("🤖 FINDER_TOKEN: CAPTCHA_DETECTED_AFTER_RESULTS - Bot detection triggered after result extraction")
-                
-                # Take screenshot of CAPTCHA
-                captcha_screenshot = None
-                captcha_source = None
-                if take_screenshot:
-                    captcha_screenshot = os.path.join(temp_scripts_dir, f"captcha_{timestamp}.png")
-                    driver.save_screenshot(captcha_screenshot)
-                    logger.info(f"📸 FINDER_TOKEN: CAPTCHA_SCREENSHOT - Saved to {captcha_screenshot}")
-                
-                # Save page source for debugging
-                if save_page_source:
-                    captcha_source = os.path.join(temp_scripts_dir, f"captcha_source_{timestamp}.html")
-                    with open(captcha_source, 'w', encoding='utf-8') as f:
-                        f.write(driver.page_source)
-                    logger.info(f"💾 FINDER_TOKEN: CAPTCHA_SOURCE - Saved to {captcha_source}")
-                
-                # Keep browser open for manual CAPTCHA solving
-                logger.warning(f"⏳ FINDER_TOKEN: CAPTCHA_PAUSE - Keeping browser open for {captcha_pause_seconds} seconds for manual CAPTCHA solving")
-                logger.warning(f"🖱️ FINDER_TOKEN: CAPTCHA_INSTRUCTIONS - Please solve the CAPTCHA in the browser window and wait for results to load")
-                
-                # Wait for manual CAPTCHA solving with periodic checking
-                check_interval = 3  # Check every 3 seconds
-                total_waited = 0
-                captcha_solved_early = False
-                
-                while total_waited < captcha_pause_seconds:
-                    time.sleep(check_interval)
-                    total_waited += check_interval
-                    
-                    # Check if CAPTCHA was solved by looking for results
-                    try:
-                        for selector in result_selectors:
-                            try:
-                                test_results = driver.find_elements(By.CSS_SELECTOR, selector)
-                                if test_results and len(test_results) > 0:
-                                    logger.info(f"✅ FINDER_TOKEN: CAPTCHA_SOLVED_EARLY - Found results after {total_waited} seconds")
-                                    captcha_solved_early = True
-                                    break
-                            except:
-                                continue
-                        if captcha_solved_early:
-                            break
-                    except:
-                        # Continue waiting if we can't check
-                        continue
-                
-                if not captcha_solved_early:
-                    logger.warning(f"⏰ FINDER_TOKEN: CAPTCHA_FULL_WAIT - Waited full {captcha_pause_seconds} seconds")
-                
-                # Check if CAPTCHA was solved by looking for results again
-                try:
-                    new_search_results = []
-                    for selector in result_selectors:
-                        try:
-                            new_search_results = driver.find_elements(By.CSS_SELECTOR, selector)
-                            if new_search_results:
-                                logger.info(f"✅ FINDER_TOKEN: CAPTCHA_SOLVED - Found {len(new_search_results)} results after CAPTCHA pause")
-                                
-                                # Re-extract results after CAPTCHA solving
-                                results = []
-                                for i, result in enumerate(new_search_results[:max_results]):
-                                    try:
-                                        title_elem = result.find_element(By.CSS_SELECTOR, "h3")
-                                        title = title_elem.text if title_elem else "No title"
-                                        
-                                        link_elem = result.find_element(By.CSS_SELECTOR, "a")
-                                        url = link_elem.get_attribute("href") if link_elem else "No URL"
-                                        
-                                        results.append({
-                                            "position": i + 1,
-                                            "title": title,
-                                            "url": url
-                                        })
-                                    except Exception as e:
-                                        logger.warning(f"⚠️ FINDER_TOKEN: RESULT_RE_EXTRACTION_ERROR - Position {i+1}: {str(e)}")
-                                        continue
-                                break
-                        except:
-                            continue
-                    
-                    if not new_search_results:
-                        logger.error("❌ FINDER_TOKEN: CAPTCHA_NOT_SOLVED - No results found after CAPTCHA pause")
-                        return {
-                            "success": False, 
-                            "error": f"CAPTCHA detected and not solved within {captcha_pause_seconds} seconds",
-                            "results": results,  # Return any results we got before CAPTCHA
-                            "files_created": {
-                                "captcha_screenshot": captcha_screenshot,
-                                "captcha_source": captcha_source
-                            }
-                        }
-                        
-                except Exception as e:
-                    logger.error(f"❌ FINDER_TOKEN: CAPTCHA_RECHECK_ERROR - {e}")
-                    return {
-                        "success": False, 
-                        "error": f"Error checking CAPTCHA resolution: {str(e)}",
-                        "results": results,  # Return any results we got before CAPTCHA
-                        "files_created": {
-                            "captcha_screenshot": captcha_screenshot
-                        }
-                    }
+            all_entries = dirs + files
+            if len(all_entries) > max_files:
+                all_entries = all_entries[:max_files]
+                truncated = True
+            else:
+                truncated = False
             
-            # Save files
-            files_created = {}
-            
-            if take_screenshot:
-                screenshot_file = os.path.join(temp_scripts_dir, f"search_results_{timestamp}.png")
-                driver.save_screenshot(screenshot_file)
-                files_created['screenshot'] = screenshot_file
-            
-            if save_page_source:
-                source_file = os.path.join(temp_scripts_dir, f"search_source_{timestamp}.html")
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(driver.page_source)
-                files_created['page_source'] = source_file
-            
-            result_data = {
+            return {
                 "success": True,
-                "search_engine": search_engine,
-                "query": query,
-                "results_found": len(results),
-                "results": results,
-                "files_created": files_created,
-                "timestamp": timestamp,
-                "driver_type": driver_type,
-                "chromium_version": "137.0.7151.119",  # Nix-provided version
-                "chromedriver_version": "137.0.7151.119"  # Nix-provided version
+                "directory": directory,
+                "entries": all_entries,
+                "total_count": len(all_entries),
+                "directories": len(dirs),
+                "files": len(files),
+                "truncated": truncated
             }
             
-            logger.info(f"✅ FINDER_TOKEN: STEALTH_SEARCH_SUCCESS - {len(results)} results extracted for '{query}' using {driver_type} (single window!)")
-            return result_data
-            
-        finally:
-            if driver:
-                driver.quit()
-                logger.info(f"🔧 FINDER_TOKEN: STEALTH_CLEANUP - {driver_type} driver closed properly")
+        except PermissionError:
+            return {"success": False, "error": f"Permission denied accessing: {directory}"}
             
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: STEALTH_SEARCH_ERROR - {e}")
-        return {"success": False, "error": str(e)}
-
-# MCP Tool Registry - Will be populated by register_mcp_tool calls
-MCP_TOOLS = {}
-
-def register_mcp_tool(tool_name: str, handler_func):
-    """Register an MCP tool with the global registry."""
-    # Simple approach: try to import server's register function directly
-    try:
-        # Try to import the server's register function
-        import server
-        if hasattr(server, 'register_mcp_tool'):
-            # Use server's registration function
-            server.register_mcp_tool(tool_name, handler_func)
-            logger.info(f"🔧 FINDER_TOKEN: MCP_TOOL_REGISTERED_SERVER - {tool_name}")
-            return
-    except (ImportError, AttributeError):
-        pass
-    
-    # Fallback to local registry for standalone usage
-    MCP_TOOLS[tool_name] = handler_func
-    logger.info(f"🔧 FINDER_TOKEN: MCP_TOOL_REGISTERED - {tool_name}")
-
-# Register all MCP tools
-def register_all_mcp_tools():
-    """Register all MCP tools in the global registry."""
-    
-    # Core testing and utilities
-    register_mcp_tool("builtin_get_cat_fact", _builtin_get_cat_fact)
-    
-    # Pipeline and state inspection
-    register_mcp_tool("pipeline_state_inspector", _pipeline_state_inspector)
-    
-    # File and log operations
-    register_mcp_tool("local_llm_read_file", _local_llm_read_file)
-    register_mcp_tool("local_llm_grep_logs", _local_llm_grep_logs)
-    register_mcp_tool("local_llm_list_files", _local_llm_list_files)
-    
-    # Enhanced stealth browser automation
-    register_mcp_tool("browser_stealth_search", _browser_stealth_search)
-    
-    # Determine which registry was used for logging
-    try:
-        import server
-        if hasattr(server, 'MCP_TOOL_REGISTRY'):
-            registry_size = len(server.MCP_TOOL_REGISTRY)
-            logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTERED_SERVER - {registry_size} total tools available in server registry")
-        else:
-            logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTERED - {len(MCP_TOOLS)} tools available in local registry")
-    except ImportError:
-        logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTERED - {len(MCP_TOOLS)} tools available in local registry") 
+        logger.error(f"❌ FINDER_TOKEN: MCP_LIST_FILES_ERROR - {e}")
+        return {"success": False, "error": str(e)} 
