@@ -3534,7 +3534,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
     return (Script(src='/static/chat-interactions.js'), Script(python_generated_init_script), Link(rel='stylesheet', href='/static/styles.css'))
 
 # BaseCrud class moved to plugins/common.py to avoid circular imports
-from plugins.common import BaseCrud
+from common import BaseCrud
 
 # Initialize FastApp with database and configuration
 app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
