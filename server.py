@@ -6607,9 +6607,18 @@ def run_server_with_watchdog():
     # 🎨 BEAUTIFUL RESTART BANNER
     figlet_banner(APP_NAME, "Digital Workshop Framework", font='standard', color=BANNER_COLORS['workshop_ready'])
     
-    # 🧊 VERSION BANNER - Display Nix flake version in digital font
-    nix_version = get_nix_version()
-    figlet_banner(nix_version, "Nix Flake Version", font='digital', color='bright_cyan')
+    # 🧊 VERSION BANNER - Display Nix flake version in standard font
+    nix_version_raw = get_nix_version()
+    # Parse version: "1.0.8 (JupyterLab Python Version Fix)" -> "Version 1.0.8" + "JupyterLab Python Version Fix"
+    if '(' in nix_version_raw and ')' in nix_version_raw:
+        version_number = nix_version_raw.split('(')[0].strip()
+        subtitle = nix_version_raw.split('(')[1].rstrip(')')
+        figlet_text = f"Version {version_number}"
+    else:
+        figlet_text = f"Version {nix_version_raw}"
+        subtitle = "Nix Flake Version"
+    
+    figlet_banner(figlet_text, subtitle, font='standard', color='bright_cyan')
     print()
     system_diagram()
     chip_says("Hello! The server is restarting. I'll be right back online.", BANNER_COLORS['workshop_ready'])
