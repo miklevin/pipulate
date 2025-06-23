@@ -1565,42 +1565,9 @@ async def _ui_list_elements(params: dict) -> dict:
             "error": f"Failed to list UI elements: {str(e)}"
         }
 
-async def _local_llm_get_context(params: dict) -> dict:
-    """Local LLM helper: Get pre-seeded system context for immediate capability awareness"""
-    try:
-        context_file = Path('data/local_llm_context.json')
-        
-        if not context_file.exists():
-            return {
-                "success": False,
-                "error": "Context file not found - system may still be initializing",
-                "suggestion": "Wait a few seconds and try again"
-            }
-        
-        import json
-        with open(context_file, 'r') as f:
-            context_data = json.load(f)
-        
-        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_CONTEXT_ACCESS - Context retrieved for local LLM")
-        
-        return {
-            "success": True,
-            "context": context_data,
-            "usage_note": "This context provides system overview and available tools for local LLM assistance"
-        }
-        
-    except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_CONTEXT_ERROR - {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "suggestion": "Try using other MCP tools or ask user for specific information"
-        }
-
-# 🔧 FINDER_TOKEN: LOCAL_LLM_TOOLS_MOVED_TO_MCP_TOOLS_PY  
-# Tools local_llm_read_file, local_llm_grep_logs, local_llm_list_files
+# 🔧 FINDER_TOKEN: LOCAL_LLM_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY  
+# ALL local_llm tools (read_file, grep_logs, list_files, get_context)
 # are now registered via register_all_mcp_tools() in mcp_tools.py
-register_mcp_tool("local_llm_get_context", _local_llm_get_context)
 
 # Register UI interaction tools
 register_mcp_tool("ui_flash_element", _ui_flash_element)
