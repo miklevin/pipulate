@@ -5,44 +5,45 @@ import importlib
 import inspect
 import json
 import os
+import platform
 import re
 import sqlite3
+import subprocess
 import sys
 import time
 import traceback
+import urllib.parse
+# Suppress deprecation warnings from third-party packages
+import warnings
 from collections import deque
 from datetime import datetime
 from pathlib import Path
 from typing import AsyncGenerator, Optional
+
 import aiohttp
 import uvicorn
 from fasthtml.common import *
 from loguru import logger
 from pyfiglet import Figlet
+from rich.align import Align
+from rich.box import ASCII, DOUBLE, HEAVY, ROUNDED
 from rich.console import Console
 from rich.json import JSON
+from rich.panel import Panel
 from rich.style import Style as RichStyle
 from rich.table import Table, Text
 from rich.theme import Theme
-from rich.panel import Panel
-from rich.align import Align
-from rich.box import DOUBLE, ROUNDED, HEAVY, ASCII
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import FileResponse
 from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-import subprocess
-import platform
-import urllib.parse
-from starlette.responses import FileResponse
 
 # Import MCP tools module for enhanced AI assistant capabilities
 from mcp_tools import register_all_mcp_tools
 
-# Suppress deprecation warnings from third-party packages
-import warnings
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
 # Various debug settings
@@ -186,6 +187,7 @@ def rich_dict_display(data, title=None, console_output=True):
 def strip_rich_formatting(text):
     """🎭 STRIP RICH FORMATTING: Remove Rich square-bracket color codes for AI transparency"""
     import re
+
     # Remove Rich color formatting like [bold], [/bold], [white on default], etc.
     clean_text = re.sub(r'\[/?[^\]]*\]', '', text)
     return clean_text
@@ -655,7 +657,7 @@ def get_nix_version():
     import os
     import re
     from pathlib import Path
-    
+
     # Check if we're in a Nix shell
     if not (os.environ.get('IN_NIX_SHELL') or 'nix' in os.environ.get('PS1', '')):
         return "Not in Nix environment"
@@ -1288,7 +1290,7 @@ async def _botify_get_full_schema(params: dict) -> dict:
         import json
         from datetime import datetime, timedelta
         from pathlib import Path
-        
+
         # Define cache file path
         cache_dir = Path("downloads/botify_schema_cache")
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -1326,8 +1328,9 @@ async def _botify_get_full_schema(params: dict) -> dict:
                 pass
         
         # Perform live schema discovery
-        from helpers.botify.true_schema_discoverer import BotifySchemaDiscoverer
-        
+        from helpers.botify.true_schema_discoverer import \
+            BotifySchemaDiscoverer
+
         # Create discoverer instance
         discoverer = BotifySchemaDiscoverer(org, project, analysis, api_token)
         
@@ -1954,14 +1957,15 @@ async def _browser_scrape_page(params: dict) -> dict:
             }
         }
     """
-    import os
     import json
+    import os
+    import time
     from datetime import datetime
     from urllib.parse import urlparse
+
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
     from seleniumwire import webdriver as wire_webdriver
-    import time
     
     logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_SCRAPE_START - URL: {params.get('url')}")
     
@@ -2339,14 +2343,15 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
     and providing real-time feedback on automation success/failure.
     """
     try:
-        import time
         import tempfile
+        import time
         from pathlib import Path
+
         from selenium import webdriver
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
         from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import WebDriverWait
         
         plugin_filename = params.get("plugin_filename", "")
         base_url = params.get("base_url", "http://localhost:5001")
@@ -2603,12 +2608,13 @@ async def _browser_interact_with_current_page(params: dict) -> dict:
     
     try:
         import time
+
         from selenium import webdriver
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
         from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.by import By
         from selenium.webdriver.common.keys import Keys
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import WebDriverWait
         
         action = params.get('action')
         target = params.get('target', {})
@@ -5176,6 +5182,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
 
 # BaseCrud class moved to plugins/common.py to avoid circular imports
 from plugins.common import BaseCrud
+
 # Initialize FastApp with database and configuration
 app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     DB_FILENAME,
@@ -6817,8 +6824,8 @@ async def poke_chatbot():
     asyncio.create_task(pipulate.message_queue.add(pipulate, fetching_message, verbatim=True, role='system', spaces_before=1))
 
     # 2. Create and run the specific tool-use task in the background.
-    import time
     import random
+    import time
     timestamp = int(time.time())
     session_id = random.randint(1000, 9999)
     
@@ -6870,8 +6877,8 @@ async def poke_botify_test():
     asyncio.create_task(pipulate.message_queue.add(pipulate, test_message, verbatim=True, role='system', spaces_before=1))
 
     # 2. Create Botify-specific MCP prompt
-    import time
     import random
+    import time
     timestamp = int(time.time())
     session_id = random.randint(1000, 9999)
     
@@ -7400,9 +7407,9 @@ async def update_pipulate(request):
         # Send immediate feedback to the user
         await pipulate.stream('🔄 Checking for Pipulate updates...', verbatim=True, role='system')
         
-        import subprocess
         import os
-        
+        import subprocess
+
         # Check if we're in a git repository
         if not os.path.exists('.git'):
             await pipulate.stream('❌ Not in a git repository. Cannot update automatically.', verbatim=True, role='system')
@@ -7479,9 +7486,9 @@ async def reset_python_env(request):
         return ""
     
     try:
-        import shutil
         import os
-        
+        import shutil
+
         # Check if another critical operation is in progress
         if is_critical_operation_in_progress():
             await pipulate.stream("⚠️ Another critical operation is in progress. Please wait and try again.", 
