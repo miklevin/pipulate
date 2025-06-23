@@ -232,18 +232,26 @@ class MCPConsolidator:
                 self.log("error", f"Verification failed: {func_name} not registered")
                 return False
         
-        # Test 3: Integration test
-        test_code = f"""
+        # Test 3: Integration test with proper escaping
+        test_script = f"""
 from mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
 register_all_mcp_tools()
-tool_name = "{tool_name}"
+tool_name = '{tool_name}'
 if tool_name not in MCP_TOOL_REGISTRY:
-    print(f"ERROR: {tool_name} not in registry")
+    print('ERROR: ' + tool_name + ' not in registry')
     exit(1)
-print(f"SUCCESS: {tool_name} verified in registry")
+print('SUCCESS: ' + tool_name + ' verified in registry')
 """
         
-        code, stdout, stderr = self.run_command(f'python3 -c "{test_code}"')
+        # Write to temp file to avoid shell escaping issues
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+            f.write(test_script)
+            temp_script = f.name
+        
+        try:
+            code, stdout, stderr = self.run_command(f'python3 {temp_script}')
+        finally:
+            os.unlink(temp_script)
         if code != 0:
             self.log("error", f"Integration test failed for {func_name}", stderr=stderr)
             return False
