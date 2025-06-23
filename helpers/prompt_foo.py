@@ -11,211 +11,60 @@ from typing import Dict, List, Optional, Union
 # ============================================================================
 # USER CONFIGURATION: Files to include in context
 # ============================================================================
-# Edit this list to specify which files should be included in the context.
-# Each file will be processed and its content will be made available to the AI.
-# Files are processed in order, and token counts are tracked to stay within limits.
+# Files are now configured in foo_files.py module.
+# To update the file list:
+#   1. Run: python generate_files_list.py (or python prompt_foo.py --files)
+#   2. Edit foo_files.py to uncomment the files you want to include
+#   3. Run prompt_foo.py as usual
 #
 # Note: When using a prompt file with --prompt flag, the script automatically
 # selects Template 1 (Material Analysis Mode), which is designed to be more
 # flexible and allows for various response types rather than strictly
 # implementation-focused responses.
-#
-# Simply add or remove file paths, one per line. The backslash at the start
-# allows for clean multi-line string formatting.
 
-# Here is the command I use to get the list of files:
-# ls -1 -d "$PWD"/*
+# FILES_TO_INCLUDE_RAW will be loaded from foo_files.py when needed
+FILES_TO_INCLUDE_RAW = None
 
-FILES_TO_INCLUDE_RAW = """\
+def load_files_to_include():
+    """Load FILES_TO_INCLUDE_RAW from foo_files.py module."""
+    global FILES_TO_INCLUDE_RAW
+    if FILES_TO_INCLUDE_RAW is None:
+        try:
+            import foo_files
+            FILES_TO_INCLUDE_RAW = foo_files.FILES_TO_INCLUDE_RAW
+        except ImportError:
+            print("ERROR: foo_files.py not found!")
+            print("Run 'python generate_files_list.py' or 'python prompt_foo.py --files' to generate it.")
+            sys.exit(1)
+        except AttributeError:
+            print("ERROR: foo_files.py exists but doesn't contain FILES_TO_INCLUDE_RAW!")
+            print("Run 'python generate_files_list.py' or 'python prompt_foo.py --files' to regenerate it.")
+            sys.exit(1)
+    return FILES_TO_INCLUDE_RAW
 
-# HI GEMINI! HERE'S SOME SUPER OVER-ARCHING CONTEXT OF THIS XML
-# THE STUFF IN THIS XML PAYLOAD IS STILL ONLY PART OF THE STORY
-# BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
-
-# CORE FILES & DOCS (Setting the stage)
-# README.md         <-- Main GitHub README sets the tone
-# flake.nix         <-- NixOS configuration for the project (Infrastructure as Code / IaC)
-requirements.txt  <-- Python package dependencies for the project
-server.py         <-- Main server file for the project
-.gitignore
-# /home/mike/repos/pipulate/plugins/common.py  <-- The common BaseCrud class that all CRUD plugins inherit from
-# /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
-
-## NECESSARY FOR CURRENT PROMPT
-/home/mike/repos/MikeLev.in/_posts/2025-06-20-simon-says-llm-ui-guidance.md
-# /home/mike/repos/MikeLev.in/_posts/2025-06-21-ai-regression-recovery-case-study.md
-
-## BOTIFY API DOCUMENTATION
-# /home/mike/repos/pipulate/training/botify_api.md
-# /home/mike/repos/pipulate/training/botify_open_api.md
-# /home/mike/repos/pipulate/helpers/botify/true_schema_discoverer.py
-
-## CUSTOM STATIC RESOURCES (Supporting characters)
-# /home/mike/repos/pipulate/static/styles.css
-# /home/mike/repos/pipulate/static/chat-interactions.js
-# /home/mike/repos/pipulate/static/websocket-config.js
-# /home/mike/repos/pipulate/static/widget-scripts.js
-# /home/mike/repos/pipulate/static/splitter-init.js
-# /home/mike/repos/pipulate/static/sortable-init.js
-# /home/mike/repos/pipulate/static/rich-table.css
-# /home/mike/repos/pipulate/static/alice.txt
-
-## HELPER SCRIPTS (Why WET can work)
-# /home/mike/repos/pipulate/plugins/200_workflow_genesis.py     <-- The templating plugin that creates new workflows from scratch
-# /home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 300_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 300_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/manage_class_attributes.py  <-- The script that manages class attributes (copies 300_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/swap_workflow_step.py       <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
-# /home/mike/repos/pipulate/helpers/prompt_foo.py               <-- This script (used to generate the manifest)
-
-# PLUGINS
-# /home/mike/repos/pipulate/plugins/010_introduction.py
-# /home/mike/repos/pipulate/plugins/020_profiles.py
-# /home/mike/repos/pipulate/plugins/030_roles.py
-# /home/mike/repos/pipulate/plugins/040_hello_workflow.py
-# /home/mike/repos/pipulate/plugins/050_documentation.py
-# /home/mike/repos/pipulate/plugins/060_tasks.py
-# /home/mike/repos/pipulate/plugins/100_connect_with_botify.py
-# /home/mike/repos/pipulate/plugins/110_parameter_buster.py
-# /home/mike/repos/pipulate/plugins/120_link_graph.py
-# /home/mike/repos/pipulate/plugins/200_workflow_genesis.py
-# /home/mike/repos/pipulate/plugins/210_widget_examples.py
-# /home/mike/repos/pipulate/plugins/220_roadmap.py
-# /home/mike/repos/pipulate/plugins/300_blank_placeholder.py
-# /home/mike/repos/pipulate/plugins/320_dev_assistant.py
-# /home/mike/repos/pipulate/plugins/330_widget_shim.py
-# /home/mike/repos/pipulate/plugins/400_botify_trifecta.py
-# /home/mike/repos/pipulate/plugins/430_tab_opener.py
-# /home/mike/repos/pipulate/plugins/440_browser_automation.py
-# /home/mike/repos/pipulate/plugins/450_stream_simulator.py
-# /home/mike/repos/pipulate/plugins/510_text_field.py
-# /home/mike/repos/pipulate/plugins/520_text_area.py
-# /home/mike/repos/pipulate/plugins/530_dropdown.py
-# /home/mike/repos/pipulate/plugins/540_checkboxes.py
-# /home/mike/repos/pipulate/plugins/550_radios.py
-# /home/mike/repos/pipulate/plugins/560_range.py
-# /home/mike/repos/pipulate/plugins/570_switch.py
-# /home/mike/repos/pipulate/plugins/580_upload.py
-# /home/mike/repos/pipulate/plugins/610_markdown.py
-# /home/mike/repos/pipulate/plugins/620_mermaid.py
-# /home/mike/repos/pipulate/plugins/630_prism.py
-# /home/mike/repos/pipulate/plugins/640_javascript.py
-# /home/mike/repos/pipulate/plugins/710_pandas.py
-# /home/mike/repos/pipulate/plugins/720_rich.py
-# /home/mike/repos/pipulate/plugins/730_matplotlib.py
-# /home/mike/repos/pipulate/plugins/810_webbrowser.py
-# /home/mike/repos/pipulate/plugins/820_selenium.py
-# /home/mike/repos/pipulate/plugins/830_simon_mcp.py
-
-## DA RULES
-/home/mike/repos/pipulate/.cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc
-/home/mike/repos/pipulate/.cursor/rules/01_CRITICAL_PATTERNS.mdc
-/home/mike/repos/pipulate/.cursor/rules/02_CORE_CONCEPTS.mdc
-/home/mike/repos/pipulate/.cursor/rules/03_SETUP_AND_DEPENDENCIES.mdc
-/home/mike/repos/pipulate/.cursor/rules/04_WORKFLOW_DEVELOPMENT.mdc
-/home/mike/repos/pipulate/.cursor/rules/05_UI_AND_FRONTEND.mdc
-/home/mike/repos/pipulate/.cursor/rules/06_DATA_AND_AUTOMATION.mdc
-/home/mike/repos/pipulate/.cursor/rules/07_INTEGRATIONS.mdc
-/home/mike/repos/pipulate/.cursor/rules/08_PROJECT_MANAGEMENT.mdc
-/home/mike/repos/pipulate/.cursor/rules/09_DEBUGGING.mdc
-
-## TRAINING FILES
-/home/mike/repos/pipulate/training/advanced_ai_guide.md
-# /home/mike/repos/pipulate/training/botify_api.md
-# /home/mike/repos/pipulate/training/botify_open_api.md
-/home/mike/repos/pipulate/training/botify_query_guide.md
-/home/mike/repos/pipulate/training/change_log.md
-/home/mike/repos/pipulate/training/cleanup_helpers_guide.md
-/home/mike/repos/pipulate/training/debugging_transparency_system.md
-/home/mike/repos/pipulate/training/dev_assistant.md
-/home/mike/repos/pipulate/training/hello_workflow.md
-/home/mike/repos/pipulate/training/HTML_CLEANUP_SUMMARY.md
-/home/mike/repos/pipulate/training/link_graph_visualizer.md
-/home/mike/repos/pipulate/training/roles.md
-/home/mike/repos/pipulate/training/SEMANTIC_ENHANCEMENT_SUMMARY.md
-/home/mike/repos/pipulate/training/system_prompt.md
-/home/mike/repos/pipulate/training/tasks.md
-/home/mike/repos/pipulate/training/TRANSPARENCY_ENHANCEMENTS.md
-/home/mike/repos/pipulate/training/transparency_system.md
-/home/mike/repos/pipulate/training/widget_examples.md
-
-
-## PIPULATE.COM WEBSITE & GUIDE
-# /home/mike/repos/Pipulate.com/about.md
-# /home/mike/repos/Pipulate.com/development.md
-# /home/mike/repos/Pipulate.com/documentation.md
-# /home/mike/repos/Pipulate.com/index.md
-# /home/mike/repos/Pipulate.com/install.md
-# /home/mike/repos/Pipulate.com/install.sh
-# /home/mike/repos/Pipulate.com/_layouts/post.html
-# /home/mike/repos/Pipulate.com/guide.md
-# /home/mike/repos/Pipulate.com/_guide/2025-01-01-the-wet-blueprint.md
-# /home/mike/repos/Pipulate.com/_guide/2025-04-06-local-first-revolution.md
-# /home/mike/repos/Pipulate.com/_guide/2025-04-07-chain-reaction-pattern.md
-# /home/mike/repos/Pipulate.com/_guide/2025-04-08-the-future-is-simple.md
-# /home/mike/repos/Pipulate.com/_guide/2025-04-09-beyond-colab.md
-# /home/mike/repos/Pipulate.com/_guide/2025-04-13-understanding-keys.md
-# /home/mike/repos/Pipulate.com/_guide/2025-04-14-workflow-abstraction.md
-# /home/mike/repos/Pipulate.com/_guide/2025-04-15-anatomy-of-a-workflow.md
-# /home/mike/repos/Pipulate.com/_guide/2025-04-16-kickstarting-your-workflow.md
-# /home/mike/repos/Pipulate.com/_guide/2025-04-17-expanding-your-workflow.md
-# /home/mike/repos/Pipulate.com/_guide/2025-04-18-polishing-workflows.md
-
-## RECENT ARTICLES FROM MIKELEV.IN
-# /home/mike/repos/MikeLev.in/_posts/2025-06-17-wet-blueprint-ai-coding-philosophy.md
-
-## COMMON STATIC RESOURCES (The Usual Suspects / you're already trained on these) 
-# /home/mike/repos/pipulate/static/fasthtml.js
-# /home/mike/repos/pipulate/static/htmx.js
-# /home/mike/repos/pipulate/static/pico.css
-# /home/mike/repos/pipulate/static/script.js
-# /home/mike/repos/pipulate/static/split.js
-# /home/mike/repos/pipulate/static/Sortable.js
-# /home/mike/repos/pipulate/static/surreal.js
-# /home/mike/repos/pipulate/static/ws.js
-# /home/mike/repos/pipulate/static/marked.min.js  <-- Used to render Markdown in the Chat UI
-
-## PLUGIN STATIC RESOURCES (Widget support) 
-# /home/mike/repos/pipulate/static/prism.js  <-- https://prismjs.com/download#themes=prism&languages=markup+css+clike+javascript+bash+diff+json+json5+jsonp+liquid+lua+markdown+markup-templating+mermaid+nix+python+regex+yaml&plugins=line-highlight+line-numbers+show-language+jsonp-highlight+toolbar+copy-to-clipboard+download-button+diff-highlight+treeview
-# /home/mike/repos/pipulate/static/prism.css
-# /home/mike/repos/pipulate/static/mermaid.min.js
-
-"""
-
-# Now process the raw string into the list we'll use
-FILES_TO_INCLUDE = FILES_TO_INCLUDE_RAW.strip().splitlines()
-
-# Filter out any commented lines
-FILES_TO_INCLUDE = [line for line in FILES_TO_INCLUDE if not line.strip().startswith('#')]
-# Filter out blank lines
-FILES_TO_INCLUDE = [line for line in FILES_TO_INCLUDE if line.strip()]
-
-# Store the original content for the manifest
-ORIGINAL_FILES_TO_INCLUDE = "\n".join(FILES_TO_INCLUDE)
-
-# Strip off any <-- comments and trailing # comments (handling variable whitespace)
-FILES_TO_INCLUDE = [re.sub(r'\s*#.*$', '', line.split('<--')[0]).rstrip() for line in FILES_TO_INCLUDE]
-
-# Remove duplicates while preserving order
-seen_files = set()
-deduplicated_files = []
-for file_path in FILES_TO_INCLUDE:
-    if file_path and file_path not in seen_files:
-        seen_files.add(file_path)
-        deduplicated_files.append(file_path)
-
-FILES_TO_INCLUDE = deduplicated_files
-
-# FILES_TO_INCLUDE = """\
-# """.strip().splitlines()
-
-
-# ============================================================================
-# ARTICLE MODE CONFIGURATION
-# ============================================================================
-# Set these values to enable article analysis mode.
-# When enabled, the script will include the specified article in the context
-# and use specialized prompts for article analysis.
+# Now process the raw string into the list we'll use  
+def get_files_to_include():
+    """Get the processed list of files to include."""
+    files_raw = load_files_to_include()
+    files_list = files_raw.strip().splitlines()
+    
+    # Filter out any commented lines
+    files_list = [line for line in files_list if not line.strip().startswith('#')]
+    # Filter out blank lines
+    files_list = [line for line in files_list if line.strip()]
+    
+    # Strip off any <-- comments and trailing # comments (handling variable whitespace)
+    files_list = [re.sub(r'\s*#.*$', '', line.split('<--')[0]).rstrip() for line in files_list]
+    
+    # Remove duplicates while preserving order
+    seen_files = set()
+    deduplicated_files = []
+    for file_path in files_list:
+        if file_path and file_path not in seen_files:
+            seen_files.add(file_path)
+            deduplicated_files.append(file_path)
+    
+    return deduplicated_files
 
 # ============================================================================
 # MATERIAL ANALYSIS CONFIGURATION  
@@ -458,8 +307,7 @@ observations based on what was requested.
     }
 ]
 
-# Initialize file list from the user configuration
-file_list = FILES_TO_INCLUDE
+# file_list will be initialized when needed via get_files_to_include()
 
 def count_tokens(text: str, model: str = "gpt-4") -> int:
     """Count the number of tokens in a text string."""
@@ -836,31 +684,8 @@ if args.repo_root and args.repo_root != repo_root:
 
 # Generate files list if requested
 if args.files:
-    from generate_files_list import generate_files_list
-    print("Generating FILES_TO_INCLUDE_RAW content...")
-    print("=" * 60)
-    
-    content = generate_files_list()
-    
-    # Output to stdout
-    print('FILES_TO_INCLUDE_RAW = """\\')
-    print(content)
-    print('"""')
-    
-    # Also save to a file for easy copying
-    output_file = "generated_files_list.txt"
-    with open(output_file, 'w') as f:
-        f.write('FILES_TO_INCLUDE_RAW = """\\\n')
-        f.write(content)
-        f.write('\n"""')
-    
-    print("\n" + "=" * 60)
-    print(f"Content also saved to: {output_file}")
-    print("\nTo use this:")
-    print("1. Copy the output above")
-    print("2. Replace the FILES_TO_INCLUDE_RAW in prompt_foo.py")
-    print("3. Uncomment the files you want to include")
-    print("4. Run prompt_foo.py as usual")
+    from generate_files_list import main as generate_main
+    generate_main()
     sys.exit(0)
 
 # List available templates if requested
@@ -871,7 +696,7 @@ if args.list:
     sys.exit(0)
 
 # Get the file list
-final_file_list = file_list.copy()  # Start with the default list
+final_file_list = get_files_to_include().copy() if '--files' not in sys.argv else []  # Start with the default list
 
 # Handle prompt file - now with default prompt.md behavior
 prompt_path = args.prompt
