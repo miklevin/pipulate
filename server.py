@@ -8,6 +8,7 @@ import json
 import os
 import platform
 import re
+import socket
 import sqlite3
 import subprocess
 import sys
@@ -6426,6 +6427,42 @@ def check_syntax(filename):
         logger.error(f'Error: {e}')
         return False
 
+def check_server_already_running():
+    """Check if server is already running on port 5001 and provide helpful guidance."""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex(('localhost', 5001))
+        sock.close()
+        
+        if result == 0:  # Port is in use
+            print()
+            console.print("🚨 [bold red]SERVER ALREADY RUNNING[/bold red]")
+            print()
+            console.print("✅ [bold green]AI ASSISTANT SUMMARY:[/bold green]")
+            console.print("   The Pipulate server is ALREADY RUNNING with watchdog auto-restart enabled.")
+            console.print("   There is NO NEED to manually start the server.")
+            print()
+            console.print("🎯 [bold yellow]KEY INSIGHTS:[/bold yellow]")
+            console.print("   • Server running at: [bold cyan]http://localhost:5001[/bold cyan]")
+            console.print("   • Watchdog auto-restarts on ANY .py file changes")
+            console.print("   • Force restart if needed: [bold white]touch server.py[/bold white]")
+            console.print("   • Check logs: [bold white]cat logs/server.log[/bold white]")
+            print()
+            console.print("🤖 [bold magenta]EXPECTED AI RESPONSE:[/bold magenta]")
+            console.print('   "I attempted to start the server with `python server.py` but it informed me')
+            console.print('    another instance is already running with watchdog auto-restart enabled.')
+            console.print('    No manual restart needed. Server available at http://localhost:5001.')
+            console.print('    Use `touch server.py` to trigger restart if testing changes."')
+            print()
+            
+            return True
+    except Exception:
+        pass  # Server not running or other error
+    
+    return False
+
+
 def restart_server():
     if shared_app_state['critical_operation_in_progress'] or is_critical_operation_in_progress():
         log.warning('Restart requested but critical operation in progress. Deferring restart.')
@@ -6524,6 +6561,10 @@ if __name__ == '__main__':
     parser.add_argument('--test-browser', action='store_true',
                        help='Enable browser automation testing')
     args = parser.parse_args()
+    
+    # 🚨 CRITICAL: Check if server is already running via watchdog
+    if check_server_already_running():
+        sys.exit(0)
     
     # Set global testing mode flags
     if args.test or args.test_deep or args.test_browser:
