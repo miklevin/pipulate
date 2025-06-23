@@ -347,6 +347,7 @@ def register_all_mcp_tools():
     register_mcp_tool("local_llm_read_file", _local_llm_read_file)
     register_mcp_tool("local_llm_grep_logs", _local_llm_grep_logs)
     register_mcp_tool("local_llm_list_files", _local_llm_list_files)
+    register_mcp_tool("local_llm_get_context", _local_llm_get_context)
     
     # More tools will be registered as we add them...
     
@@ -623,4 +624,38 @@ async def _local_llm_list_files(params: dict) -> dict:
             
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_LIST_FILES_ERROR - {e}")
-        return {"success": False, "error": str(e)} 
+        return {"success": False, "error": str(e)}
+
+async def _local_llm_get_context(params: dict) -> dict:
+    """Local LLM helper: Get pre-seeded system context for immediate capability awareness"""
+    try:
+        from pathlib import Path
+        import json
+        
+        context_file = Path('data/local_llm_context.json')
+        
+        if not context_file.exists():
+            return {
+                "success": False,
+                "error": "Context file not found - system may still be initializing",
+                "suggestion": "Wait a few seconds and try again"
+            }
+        
+        with open(context_file, 'r') as f:
+            context_data = json.load(f)
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_CONTEXT_ACCESS - Context retrieved for local LLM")
+        
+        return {
+            "success": True,
+            "context": context_data,
+            "usage_note": "This context provides system overview and available tools for local LLM assistance"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_CONTEXT_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "suggestion": "Try using other MCP tools or ask user for specific information"
+        } 
