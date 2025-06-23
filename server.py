@@ -6606,6 +6606,10 @@ def run_server_with_watchdog():
     
     # 🎨 BEAUTIFUL RESTART BANNER
     figlet_banner(APP_NAME, "Digital Workshop Framework", font='standard', color=BANNER_COLORS['workshop_ready'])
+    
+    # 🧊 VERSION BANNER - Display Nix flake version in digital font
+    nix_version = get_nix_version()
+    figlet_banner(nix_version, "Nix Flake Version", font='digital', color='bright_cyan')
     print()
     system_diagram()
     chip_says("Hello! The server is restarting. I'll be right back online.", BANNER_COLORS['workshop_ready'])
