@@ -101,14 +101,19 @@ class DebugConsole(Console):
 console = DebugConsole(theme=custom_theme)
 
 
-def rich_json_display(data, title=None, console_output=True, log_output=True, log_prefix=""):
+def rich_json_display(data, title=None, console_output=True, log_output=True, ai_log_output=True, log_prefix=""):
     """🎨 RICH JSON DISPLAY: Beautiful syntax-highlighted JSON for dicts and JSON data
+    
+    DUAL LOGGING SYSTEM:
+    - Humans see Rich JSON syntax highlighting in console  
+    - AI assistants see JSON data in log files for debugging assistance
     
     Args:
         data: Dict, list, or JSON-serializable data to display
         title: Optional title for the JSON display
-        console_output: Whether to display to console (default: True)
-        log_output: Whether to log the JSON (default: True) 
+        console_output: Whether to display Rich JSON to console for humans (default: True)
+        log_output: Whether to log plain JSON for general logging (default: True)
+        ai_log_output: Whether to log JSON for AI assistant visibility (default: True)
         log_prefix: Prefix for log messages (default: "")
     
     Returns:
@@ -131,7 +136,7 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, lo
             rich_json = JSON(json.dumps(data, indent=2, default=str))
             json_str = json.dumps(data, indent=2, default=str)
         
-        # Console output with Rich syntax highlighting
+        # Console output with Rich syntax highlighting (for humans)
         if console_output:
             if title:
                 console.print(f"\n🎨 {title}", style="bold cyan")
@@ -141,7 +146,13 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, lo
             console.print(rich_json)
             console.print()  # Add spacing
         
-        # Log output (still plain text for log files)
+        # AI assistant logging - always log JSON data for AI visibility using WARNING level
+        if ai_log_output:
+            ai_title = f"AI_JSON_DATA: {title}" if title else "AI_JSON_DATA"
+            # Use WARNING level so AI assistants can easily grep for "WARNING.*AI_JSON_DATA"
+            logger.warning(f"🤖 {ai_title}:\n{json_str}")
+        
+        # Standard log output 
         if log_output and json_str:
             return json_str
             
@@ -151,6 +162,8 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, lo
         error_msg = f"[Error formatting JSON for display: {e}] Data: {str(data)}"
         if console_output:
             console.print(f"❌ {error_msg}", style="red")
+        if ai_log_output:
+            logger.warning(f"🤖 AI_JSON_ERROR: {error_msg}")
         return error_msg
 
 
@@ -2946,8 +2959,9 @@ def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix:
                 except:
                     records_data.append(str(record))
         
-        # Use Rich JSON display for table data - show in console with beautiful formatting
-        rich_json_display(records_data, title=f"Table State: {table_name}", console_output=True, log_output=False)
+        # Use Rich JSON display for table data - show in console with beautiful formatting  
+        # Enable AI logging so AI assistants can see the JSON data
+        rich_json_display(records_data, title=f"Table State: {table_name}", console_output=True, log_output=False, ai_log_output=True)
         
         # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
         logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_{table_name.upper()} - {title_prefix} Snapshot: [Rich JSON displayed to console]")
@@ -2962,7 +2976,8 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
     try:
         items = dict(db_instance.items())
         # Use Rich JSON display for database items - show in console with beautiful formatting
-        rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=False)
+        # Enable AI logging so AI assistants can see the JSON data
+        rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=False, ai_log_output=True)
         
         # Add semantic context for AI assistants
         semantic_info = []
