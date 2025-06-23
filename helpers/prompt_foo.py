@@ -79,7 +79,7 @@ PROMPT_FILE = None  # Default prompt file is None
 # END USER CONFIGURATION
 # ============================================================================
 
-def print_structured_output(manifest, pre_prompt, files, post_prompt, total_tokens, max_tokens):
+def print_structured_output(manifest, pre_prompt, files, post_prompt, total_tokens, max_tokens, total_words=None):
     """Print a structured view of the prompt components in markdown format."""
     print("\n=== Prompt Structure ===\n")
     
@@ -163,6 +163,8 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
     
     print("\n--- Token Summary ---")
     print(f"Total tokens: {format_token_count(total_tokens)}")
+    if total_words is not None:
+        print(f"Total words: {format_word_count(total_words)}")
     
     print("\n=== End Prompt Structure ===\n")
 
@@ -314,9 +316,19 @@ def count_tokens(text: str, model: str = "gpt-4") -> int:
     encoding = tiktoken.encoding_for_model(model)
     return len(encoding.encode(text))
 
+def count_words(text: str) -> int:
+    """Count the number of words in a text string."""
+    # Simple word counting: split on whitespace and filter out empty strings
+    words = text.split()
+    return len(words)
+
 def format_token_count(num: int) -> str:
     """Format a token count with commas."""
     return f"{num:,} tokens"
+
+def format_word_count(num: int) -> str:
+    """Format a word count with commas."""
+    return f"{num:,} words"
 
 def run_tree_command():
     """Run the tree command and return its output."""
@@ -827,25 +839,42 @@ def calculate_total_tokens(files_tokens, prompt_tokens):
         "total": total
     }
 
-# Calculate total tokens with proper accounting
+def calculate_total_words(files_words, prompt_words):
+    """Calculate total words and component breakdowns"""
+    file_words = sum(files_words.values())
+    total = file_words + prompt_words
+    return {
+        "files": file_words,
+        "prompt": prompt_words,
+        "total": total
+    }
+
+# Calculate total tokens and words with proper accounting
 files_tokens_dict = {}
+files_words_dict = {}
 for relative_path in processed_files:
     try:
         full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
         with open(full_path, 'r', encoding='utf-8') as f:
             content = f.read()
         files_tokens_dict[relative_path] = count_tokens(content, "gpt-4")
+        files_words_dict[relative_path] = count_words(content)
     except Exception as e:
-        print(f"ERROR: Could not count tokens for {relative_path}: {e}")
+        print(f"ERROR: Could not count tokens/words for {relative_path}: {e}")
         sys.exit(1)  # Exit with error code
 
-# Calculate prompt tokens
+# Calculate prompt tokens and words
 pre_prompt_tokens = count_tokens(pre_prompt, "gpt-4")
 post_prompt_tokens = count_tokens(post_prompt, "gpt-4") 
 prompt_tokens = pre_prompt_tokens + post_prompt_tokens
 
-# Calculate total
+pre_prompt_words = count_words(pre_prompt)
+post_prompt_words = count_words(post_prompt)
+prompt_words = pre_prompt_words + post_prompt_words
+
+# Calculate totals
 token_counts = calculate_total_tokens(files_tokens_dict, prompt_tokens)
+word_counts = calculate_total_words(files_words_dict, prompt_words)
 
 # Update the token summary in the output
 token_summary_content = [
@@ -864,7 +893,7 @@ output_xml = (f'<?xml version="1.0" encoding="UTF-8"?>\n'
               f'</context>')
 
 # Print structured output
-print_structured_output(manifest, pre_prompt, processed_files, post_prompt, token_counts['total'], args.max_tokens)
+print_structured_output(manifest, pre_prompt, processed_files, post_prompt, token_counts['total'], args.max_tokens, word_counts['total'])
 
 # Write the complete XML output to the file
 try:
