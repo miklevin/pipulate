@@ -4,6 +4,7 @@ title: Pipulate AI SEO Software Free
 permalink: /
 ---
 
+
 # Pipulate: The Local-First Revolution in AI-Assisted Development
 
 ![Pipulate Free & Open Source SEO with & for LLMs](/static/pipulate.svg)
