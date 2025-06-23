@@ -120,10 +120,15 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, lo
             # Try to parse and re-format for consistency
             try:
                 parsed_data = json.loads(data)
+                # Use Rich JSON for syntax highlighting
+                rich_json = JSON(json.dumps(parsed_data, indent=2, default=str))
                 json_str = json.dumps(parsed_data, indent=2, default=str)
             except json.JSONDecodeError:
                 json_str = data
+                rich_json = data
         else:
+            # Use Rich JSON for syntax highlighting
+            rich_json = JSON(json.dumps(data, indent=2, default=str))
             json_str = json.dumps(data, indent=2, default=str)
         
         # Console output with Rich syntax highlighting
@@ -3988,10 +3993,14 @@ class Pipulate:
     def write_state(self, pkey: str, state: dict) -> None:
         state['updated'] = datetime.now().isoformat()
         payload = {'pkey': pkey, 'data': json.dumps(state), 'updated': state['updated']}
-        logger.debug(f'Update payload:\n{json.dumps(payload, indent=2)}')
+        # Use Rich JSON display for debug payload
+        formatted_payload = rich_json_display(payload, console_output=False, log_output=True)
+        logger.debug(f'Update payload:\n{formatted_payload}')
         self.pipeline_table.update(payload)
         verification = self.read_state(pkey)
-        logger.debug(f'Verification read:\n{json.dumps(verification, indent=2)}')
+        # Use Rich JSON display for verification
+        formatted_verification = rich_json_display(verification, console_output=False, log_output=True)
+        logger.debug(f'Verification read:\n{formatted_verification}')
 
     def format_links_in_text(self, text):
         """
@@ -4396,7 +4405,9 @@ class Pipulate:
     async def get_state_message(self, pkey: str, steps: list, messages: dict) -> str:
         state = self.read_state(pkey)
         logger.debug(f'\nDEBUG [{pkey}] State Check:')
-        logger.debug(json.dumps(state, indent=2))
+        # Use Rich JSON display for state debug
+        formatted_state = rich_json_display(state, console_output=False, log_output=True)
+        logger.debug(formatted_state)
         for step in reversed(steps):
             if step.id not in state:
                 continue
@@ -4770,7 +4781,8 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
         role = last_message.get('role', 'unknown')
         content = last_message.get('content', '')
         if isinstance(content, dict):
-            content = json.dumps(content, indent=2, ensure_ascii=False)
+            # Use Rich JSON display for LLM content formatting
+            content = rich_json_display(content, console_output=False, log_output=True)
         table.add_row(role, content)
         logger.debug(f"🔍 DEBUG: Last message - role: {role}, content: '{content[:100]}...'")
     print_and_log_table(table, "LLM DEBUG - ")
