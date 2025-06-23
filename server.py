@@ -240,7 +240,7 @@ def falling_alice():
 
 def white_rabbit():
     """🐰 WHITE RABBIT: Whimsical White Rabbit-themed banner"""
-    alice_art = r"""[black].[/black]            /)   ______
+    alice_art = r"""[black].[/black]            /)    ______
        /)\__//    /      \
    ___(/_ 0 0    |        |
  *(    ==(_T_)== |[bold bright_blue]Pipulate[/bold bright_blue]|
@@ -260,7 +260,7 @@ def white_rabbit():
     console.print(panel)
     
     # 🎭 AI CREATIVE TRANSPARENCY: Share the whimsical White Rabbit moment
-    rabbit_ascii_for_ai = """            /)   ______
+    rabbit_ascii_for_ai = """             /)    ______
        /)\\__//    /      \\
    ___(/_ 0 0    |        |
  *(    ==(_T_)== |Pipulate|
