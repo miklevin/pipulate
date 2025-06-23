@@ -101,6 +101,62 @@ class DebugConsole(Console):
 console = DebugConsole(theme=custom_theme)
 
 
+def rich_json_display(data, title=None, console_output=True, log_output=True, log_prefix=""):
+    """🎨 RICH JSON DISPLAY: Beautiful syntax-highlighted JSON for dicts and JSON data
+    
+    Args:
+        data: Dict, list, or JSON-serializable data to display
+        title: Optional title for the JSON display
+        console_output: Whether to display to console (default: True)
+        log_output: Whether to log the JSON (default: True) 
+        log_prefix: Prefix for log messages (default: "")
+    
+    Returns:
+        str: The formatted JSON string for logging
+    """
+    try:
+        # Convert data to JSON string if it's not already
+        if isinstance(data, str):
+            # Try to parse and re-format for consistency
+            try:
+                parsed_data = json.loads(data)
+                json_str = json.dumps(parsed_data, indent=2, default=str)
+            except json.JSONDecodeError:
+                json_str = data
+        else:
+            json_str = json.dumps(data, indent=2, default=str)
+        
+        # Console output with Rich syntax highlighting
+        if console_output:
+            if title:
+                console.print(f"\n🎨 {title}", style="bold cyan")
+            
+            # Use Rich's JSON class for beautiful syntax highlighting
+            rich_json = JSON(json_str)
+            console.print(rich_json)
+            console.print()  # Add spacing
+        
+        # Log output (still plain text for log files)
+        if log_output and json_str:
+            return json_str
+            
+        return json_str
+        
+    except Exception as e:
+        error_msg = f"[Error formatting JSON for display: {e}] Data: {str(data)}"
+        if console_output:
+            console.print(f"❌ {error_msg}", style="red")
+        return error_msg
+
+
+def rich_dict_display(data, title=None, console_output=True):
+    """🎨 RICH DICT DISPLAY: Beautiful syntax-highlighted display for dictionaries
+    
+    Simplified version for when you just want to show dict data beautifully
+    """
+    return rich_json_display(data, title=title, console_output=console_output, log_output=False)
+
+
 def falling_alice():
     """🍄 FALLING ALICE: Large ASCII art of Alice falling down the rabbit hole"""
     lines = 20
@@ -2854,7 +2910,8 @@ def _format_records_for_lifecycle_log(records_iterable):
         processed_records.append(record_dict)
     
     try:
-        return json.dumps(processed_records, indent=2, default=str)
+        # Use Rich JSON display for formatted records
+        return rich_json_display(processed_records, title="Formatted Records", console_output=False, log_output=True)
     except Exception as e:
         return f'[Error formatting records for JSON: {e}] Processed: {str(processed_records)}'
 
@@ -2877,7 +2934,8 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
     """
     try:
         items = dict(db_instance.items())
-        content = json.dumps(items, indent=2, default=str)
+        # Use Rich JSON display for database items
+        content = rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=True)
         
         # Add semantic context for AI assistants
         semantic_info = []
@@ -3075,7 +3133,9 @@ class LogManager:
         msg = self.format_message('database', message)
         if data is not None:
             if isinstance(data, dict) and len(data) > 5:
-                self.logger.debug(f'{msg} | {json.dumps(data, indent=2)}')
+                # Use Rich JSON display for debug data
+                formatted_data = rich_json_display(data, console_output=False, log_output=True)
+                self.logger.debug(f'{msg} | {formatted_data}')
             else:
                 self.logger.debug(f'{msg} | {data}')
         else:
@@ -3262,7 +3322,9 @@ def pipeline_operation(func):
                 step_changes = [k for k in changes if not k.startswith('_')]
                 if step_changes:
                     log.pipeline(f"Operation '{operation}' updated state", details=f"Steps: {', '.join(step_changes)}", pipeline_id=url)
-                log.debug('pipeline', f"Pipeline '{url}' detailed changes", json.dumps(changes, indent=2))
+                # Use Rich JSON display for pipeline changes
+                formatted_changes = rich_json_display(changes, console_output=False, log_output=True)
+                log.debug('pipeline', f"Pipeline '{url}' detailed changes", formatted_changes)
         return result
     return wrapper
 
@@ -3500,10 +3562,13 @@ class Pipulate:
             headers_preview = {k: v for k, v in headers.items() if k.lower() not in ['authorization', 'cookie', 'x-api-key']}
             if len(headers_preview) != len(headers):
                 headers_preview['<REDACTED_AUTH_HEADERS>'] = f'{len(headers) - len(headers_preview)} hidden'
-            log_entry_parts.append(f'  Headers: {json.dumps(headers_preview, indent=2)}')
+            # Use Rich JSON display for headers
+            pretty_headers = rich_json_display(headers_preview, title="API Headers", console_output=True, log_output=True)
+            log_entry_parts.append(f'  Headers: {pretty_headers}')
         if payload:
             try:
-                pretty_payload = json.dumps(payload, indent=2)
+                # Use Rich JSON display for payload
+                pretty_payload = rich_json_display(payload, title="API Payload", console_output=True, log_output=True)
                 log_entry_parts.append(f'  Payload:\n{pretty_payload}')
             except Exception:
                 log_entry_parts.append(f'  Payload: {payload}')
@@ -3536,7 +3601,8 @@ class Pipulate:
         if response_preview:
             try:
                 parsed = json.loads(response_preview)
-                pretty_preview = json.dumps(parsed, indent=2)
+                # Use Rich JSON display for response preview
+                pretty_preview = rich_json_display(parsed, title="API Response Preview", console_output=True, log_output=True)
                 log_entry_parts.append(f'  Response Preview:\n{pretty_preview}')
             except Exception:
                 log_entry_parts.append(f'  Response Preview:\n{response_preview}')
@@ -3545,23 +3611,16 @@ class Pipulate:
         is_discovery_endpoint = self._is_discovery_endpoint(url)
         if response_data and is_discovery_endpoint:
             try:
-                pretty_response = json.dumps(response_data, indent=2)
+                # Use Rich JSON display for discovery response
+                pretty_response = rich_json_display(response_data, title=f"🔍 Discovery Response: {call_description}", console_output=True, log_output=True)
                 log_entry_parts.append(f'  🔍 FULL RESPONSE DATA (Discovery Endpoint):\n{pretty_response}')
-                
-                # Also display in console for immediate visibility
-                discovery_table = Table(title=f'🔍 Discovery Response: {call_description}')
-                discovery_table.add_column('Response Data', style='cyan')
-                discovery_table.add_row(pretty_response)
-                print_and_log_table(discovery_table, "API DISCOVERY - ")
                 
             except Exception as e:
                 log_entry_parts.append(f'  🔍 FULL RESPONSE DATA (Discovery Endpoint): [Error formatting JSON: {e}]\n{response_data}')
                 
                 # Still display in console even if JSON formatting fails
-                discovery_table = Table(title=f'🔍 Discovery Response: {call_description}')
-                discovery_table.add_column('Response Data', style='cyan')
-                discovery_table.add_row(str(response_data))
-                print_and_log_table(discovery_table, "API DISCOVERY - ")
+                console.print(f"❌ Discovery Response Error: {e}", style="red")
+                console.print(f"Raw data: {str(response_data)}", style="dim")
         
         if file_path:
             log_entry_parts.append(f'  Associated File Path: {file_path}')
@@ -3637,7 +3696,8 @@ class Pipulate:
             log_entry_parts.append(f'    URL: http://127.0.0.1:5001/mcp-tool-executor')
             log_entry_parts.append(f'    Method: POST')
             try:
-                pretty_payload = json.dumps(request_payload, indent=4)
+                # Use Rich JSON display for MCP request payload
+                pretty_payload = rich_json_display(request_payload, title="MCP Tool Executor Request", console_output=True, log_output=True)
                 # Indent the JSON for consistency
                 indented_payload = '\n'.join(f'    {line}' for line in pretty_payload.split('\n'))
                 log_entry_parts.append(f'    Payload:\n{indented_payload}')
@@ -3652,7 +3712,8 @@ class Pipulate:
                 log_entry_parts.append(f'    Status: {response_status}')
             if response_data:
                 try:
-                    pretty_response = json.dumps(response_data, indent=4)
+                    # Use Rich JSON display for MCP response data
+                    pretty_response = rich_json_display(response_data, title="MCP Tool Executor Response", console_output=True, log_output=True)
                     # Indent the JSON for consistency
                     indented_response = '\n'.join(f'    {line}' for line in pretty_response.split('\n'))
                     log_entry_parts.append(f'    Response:\n{indented_response}')
@@ -3671,11 +3732,14 @@ class Pipulate:
                 headers_preview = {k: v for k, v in external_api_headers.items() if k.lower() not in ['authorization', 'cookie', 'x-api-key']}
                 if len(headers_preview) != len(external_api_headers):
                     headers_preview['<REDACTED_AUTH_HEADERS>'] = f'{len(external_api_headers) - len(headers_preview)} hidden'
-                log_entry_parts.append(f'    Headers: {json.dumps(headers_preview, indent=4)}')
+                # Use Rich JSON display for external API headers
+                pretty_headers = rich_json_display(headers_preview, title="External API Headers", console_output=True, log_output=True)
+                log_entry_parts.append(f'    Headers: {pretty_headers}')
             
             if external_api_payload:
                 try:
-                    pretty_payload = json.dumps(external_api_payload, indent=4)
+                    # Use Rich JSON display for external API payload
+                    pretty_payload = rich_json_display(external_api_payload, title="External API Payload", console_output=True, log_output=True)
                     indented_payload = '\n'.join(f'    {line}' for line in pretty_payload.split('\n'))
                     log_entry_parts.append(f'    Payload:\n{indented_payload}')
                 except Exception:
@@ -3686,7 +3750,8 @@ class Pipulate:
             
             if external_api_response:
                 try:
-                    pretty_response = json.dumps(external_api_response, indent=4)
+                    # Use Rich JSON display for external API response
+                    pretty_response = rich_json_display(external_api_response, title="External API Response", console_output=True, log_output=True)
                     indented_response = '\n'.join(f'    {line}' for line in pretty_response.split('\n'))
                     log_entry_parts.append(f'    Response:\n{indented_response}')
                 except Exception:
@@ -3910,7 +3975,9 @@ class Pipulate:
                 logger.debug(f'First record dir: {dir(records[0])}')
             if records and hasattr(records[0], 'data'):
                 state = json.loads(records[0].data)
-                logger.debug(f'Found state: {json.dumps(state, indent=2)}')
+                # Use Rich JSON display for found state
+                formatted_state = rich_json_display(state, console_output=False, log_output=True)
+                logger.debug(f'Found state: {formatted_state}')
                 return state
             logger.debug('No valid state found')
             return {}
