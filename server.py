@@ -97,6 +97,14 @@ custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='ma
 class DebugConsole(Console):
 
     def print(self, *args, **kwargs):
+        # Filter out AI Creative Vision messages from console (they're for log files only)
+        # Convert args to string to check for AI markers
+        message_str = ' '.join(str(arg) for arg in args)
+        
+        # Skip console output for AI-specific messages (they go to logs only)
+        if '🎭 AI_CREATIVE_VISION' in message_str:
+            return
+            
         super().print(*args, **kwargs)
 console = DebugConsole(theme=custom_theme)
 
@@ -186,10 +194,12 @@ def strip_rich_formatting(text):
 def share_ascii_with_ai(ascii_art, context_message, emoji="🎭"):
     """🎭 AI ASCII SHARING: Automatically share cleaned ASCII art with AI assistants"""
     clean_ascii = strip_rich_formatting(ascii_art)
-    logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message}\n```\n{clean_ascii}\n```")
+    # Use a single log entry with escaped newlines to ensure proper console filtering
+    escaped_ascii = clean_ascii.replace('\n', '\\n')
+    logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message} | ASCII_DATA: ```{escaped_ascii}```")
 
 
-def falling_alice():
+def falling_alice(console_output=True):
     """🍄 FALLING ALICE: Large ASCII art of Alice falling down the rabbit hole"""
     lines = 20
     falling_alice_art = lines * "\n" + r"""[white on default]
@@ -217,17 +227,18 @@ def falling_alice():
      /     /
      `----`[/white on default]""" + lines * "\n"
     
-    # Just print centered content without a panel for invisible border effect
-    console.print()  # Add spacing
-    console.print(Align.center(falling_alice_art))  # No conflicting style parameter
-    console.print()  # Add spacing
-    logger.info("🍄 FALLING_ALICE_BANNER: Large Alice art displayed")
+    # Console output for humans (Rich display)
+    if console_output:
+        console.print()  # Add spacing
+        console.print(Align.center(falling_alice_art))  # No conflicting style parameter
+        console.print()  # Add spacing
+        logger.info("🍄 FALLING_ALICE_BANNER: Large Alice art displayed")
     
     # 🎭 AI CREATIVE TRANSPARENCY: Let AI assistants experience the whimsical narrative
     share_ascii_with_ai(falling_alice_art, "Falling Alice ASCII Art - 🍄 Narrative moment: Alice tumbles down the rabbit hole of radical transparency!", "🍄")
 
 
-def white_rabbit():
+def white_rabbit(console_output=True):
     """🐰 WHITE RABBIT: Whimsical White Rabbit-themed banner"""
     alice_art = r"""[black].[/black]            /)    ______
        /)\__//    /      \
@@ -237,22 +248,24 @@ def white_rabbit():
     |__>-\_>_>    \______/
    """
     
-    style = BANNER_COLORS['white_rabbit']
-    panel = Panel(
-        Align.center(alice_art.strip()),
-        title=f"[bold {style}]🐰 Welcome to Consoleland[/bold {style}]",
-        subtitle="[dim]Down the rabbit hole of radical transparency[/dim]",
-        box=ROUNDED,
-        style=style,
-        padding=(1, 2)
-    )
-    console.print(panel)
+    # Console output for humans (Rich display)
+    if console_output:
+        style = BANNER_COLORS['white_rabbit']
+        panel = Panel(
+            Align.center(alice_art.strip()),
+            title=f"[bold {style}]🐰 Welcome to Consoleland[/bold {style}]",
+            subtitle="[dim]Down the rabbit hole of radical transparency[/dim]",
+            box=ROUNDED,
+            style=style,
+            padding=(1, 2)
+        )
+        console.print(panel)
     
     # 🎭 AI CREATIVE TRANSPARENCY: Share the whimsical White Rabbit moment
     share_ascii_with_ai(alice_art, "White Rabbit ASCII Art - 🐰 Narrative moment: Welcome to Consoleland - down the rabbit hole of radical transparency!", "🐰")
 
 
-def system_diagram():
+def system_diagram(console_output=True):
     """📐 SYSTEM DIAGRAMS: ASCII art system overview"""
     diagram = """[black].[/black][white on default]
                ┌─────────────────────────────┐
@@ -265,21 +278,23 @@ def system_diagram():
                └─────────────────────────────┘[/white on default]
     """
     
-    style = BANNER_COLORS['system_diagram']
-    panel = Panel(
-        Align.center(diagram.strip()),
-        title=f"[bold {style}]🏗️  Pipulate Architecture[/bold {style}]",
-        box=DOUBLE,
-        style=style,
-        padding=(1, 2)
-    )
-    console.print(panel)
+    # Console output for humans (Rich display)
+    if console_output:
+        style = BANNER_COLORS['system_diagram']
+        panel = Panel(
+            Align.center(diagram.strip()),
+            title=f"[bold {style}]🏗️  Pipulate Architecture[/bold {style}]",
+            box=DOUBLE,
+            style=style,
+            padding=(1, 2)
+        )
+        console.print(panel)
     
     # 🎭 AI CREATIVE TRANSPARENCY: System architecture for AI understanding
     share_ascii_with_ai(diagram, "System Architecture Diagram - 🏗️ Architecture moment: This shows how Pipulate's UI is organized - Navigation, Main Pipeline Area, and Chat Interface!", "🏗️")
 
 
-def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None):
+def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None, console_output=True):
     """🎨 FIGLET BANNERS: Beautiful FIGlet text in Rich panels"""
     if color is None:
         color = BANNER_COLORS['figlet_primary']
@@ -289,20 +304,22 @@ def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None)
     figlet = Figlet(font=font, width=80)
     fig_text = figlet.renderText(str(text))
     
-    if subtitle:
-        subtitle_color = BANNER_COLORS['figlet_subtitle']
-        content = f"[{color}]{fig_text}[/{color}]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
-    else:
-        content = f"[{color}]{fig_text}[/{color}]"
-    
-    panel = Panel(
-        Align.center(content),
-        box=box_style,
-        style=color,
-        padding=(1, 2)
-    )
-    console.print(panel)
-    logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
+    # Console output for humans (Rich display)
+    if console_output:
+        if subtitle:
+            subtitle_color = BANNER_COLORS['figlet_subtitle']
+            content = f"[{color}]{fig_text}[/{color}]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
+        else:
+            content = f"[{color}]{fig_text}[/{color}]"
+        
+        panel = Panel(
+            Align.center(content),
+            box=box_style,
+            style=color,
+            padding=(1, 2)
+        )
+        console.print(panel)
+        logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
     
     # 🎭 AI CREATIVE TRANSPARENCY: Share the figlet art for AI context
     context_msg = f"Figlet Banner ({font} font) - 🎨 Text: '{text}'" + (f" | Subtitle: '{subtitle}'" if subtitle else "")
@@ -390,7 +407,7 @@ def section_header(icon, title, description=None, color=None):
     console.print("─" * 60, style=f"dim {color}")
     logger.info(f"📋 SECTION: {icon} {title}" + (f" - {description}" if description else ""))
 
-def radical_transparency_banner():
+def radical_transparency_banner(console_output=True):
     """🔍 RADICAL TRANSPARENCY: Beautiful banner explaining the philosophy"""
     transparency_text = """
     ╔══════════════════════════════════════════════════════════════╗
@@ -408,9 +425,11 @@ def radical_transparency_banner():
     ╚══════════════════════════════════════════════════════════════╝
     """
     
-    style = BANNER_COLORS['transparency_banner']
-    console.print(transparency_text, style=style)
-    logger.info("🔍 RADICAL_TRANSPARENCY_BANNER: Philosophy banner displayed")
+    # Console output for humans (Rich display)
+    if console_output:
+        style = BANNER_COLORS['transparency_banner']
+        console.print(transparency_text, style=style)
+        logger.info("🔍 RADICAL_TRANSPARENCY_BANNER: Philosophy banner displayed")
     
     # 🎭 AI CREATIVE TRANSPARENCY: The philosophy itself - for AI assistants to experience
     share_ascii_with_ai(transparency_text, "Radical Transparency Banner - 🔍 Philosophy moment: This is the core principle - AI assistants get complete system visibility!", "🔍")
@@ -540,7 +559,7 @@ def setup_logging():
             # Exclude AI JSON data from console (humans see Rich display instead)
             '🤖 AI_JSON' not in record['message'] and
             # Exclude AI Creative Vision from console (humans see Rich display instead)
-            '🎭 AI_CREATIVE_VISION' not in record['message'] and
+            'AI_CREATIVE_VISION' not in record['message'] and
             (
                 record['level'].name != 'DEBUG' or 
                 any(key in record['message'] for key in [
