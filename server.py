@@ -941,9 +941,7 @@ def register_mcp_tool(tool_name: str, handler_func):
 
 # MCP tools are now consolidated in mcp_tools.py - see register_all_mcp_tools()
 
-# 🎨 MCP TOOLS BANNER - Right before first tool registration (only when running as main script)
-if __name__ == '__main__':
-    figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
+# 🎨 MCP TOOLS BANNER - Now displayed in startup_event() after tools are registered
 
 # Tools now registered via register_all_mcp_tools() from mcp_tools.py
 
@@ -4237,8 +4235,13 @@ async def startup_event():
     # 🎨 BEAUTIFUL STARTUP BANNER
     # ascii_banner("Digital Workshop Awakening", "Pipulate server initializing with radical transparency", "bright_cyan")
     
+    # 🔧 REGISTER ALL MCP TOOLS FIRST
+    register_all_mcp_tools()
+    
     # 🎭 STORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
+    if tool_count > 0:
+        figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
     section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
     
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.')
