@@ -804,6 +804,10 @@ async def _builtin_get_cat_fact(params: dict) -> dict:
                     "external_api_status": response.status
                 }
 
+# 🎨 MCP TOOLS BANNER - Right before first tool registration (only when running as main script)
+if __name__ == '__main__':
+    figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
+
 # Register the built-in tool
 register_mcp_tool("get_cat_fact", _builtin_get_cat_fact)
 
@@ -5581,6 +5585,10 @@ def find_plugin_classes(plugin_modules, discovered_modules):
             continue
     logger.debug(f'Discovered plugin classes: {plugin_classes}')
     return plugin_classes
+# 🎨 PLUGINS BANNER - Right before plugin discovery begins (only when running as main script)
+if __name__ == '__main__':
+    figlet_banner("plugins", "Pipulate Workflows and CRUD Apps", font='standard', color='orange3')
+
 plugin_instances = {}
 discovered_modules = discover_plugin_files()
 discovered_classes = find_plugin_classes(discovered_modules, discovered_modules)
@@ -5738,7 +5746,6 @@ async def startup_event():
     
     # 🎭 STORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
-    figlet_banner("MCP", font='standard', color='magenta')
     section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
     
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.')
@@ -5782,7 +5789,6 @@ discovered_count = len(discovered_classes)
 registered_count = len(plugin_instances)
 failed_count = discovered_count - registered_count
 
-figlet_banner("plugins", font='standard', color='orange3')
 section_header("📦", "Plugin Registry", f"Discovered {discovered_count} plugins, {registered_count} successfully registered", "bright_yellow")
 
 logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: {discovered_count}, successfully registered: {registered_count}, failed: {failed_count}')
