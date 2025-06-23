@@ -194,9 +194,8 @@ def strip_rich_formatting(text):
 def share_ascii_with_ai(ascii_art, context_message, emoji="🎭"):
     """🎭 AI ASCII SHARING: Automatically share cleaned ASCII art with AI assistants"""
     clean_ascii = strip_rich_formatting(ascii_art)
-    # Use a single log entry with escaped newlines to ensure proper console filtering
-    escaped_ascii = clean_ascii.replace('\n', '\\n')
-    logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message} | ASCII_DATA: ```{escaped_ascii}```")
+    # Preserve actual newlines for proper ASCII art display in logs
+    logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message} | ASCII_DATA: ```\n{clean_ascii}\n```")
 
 
 def falling_alice(console_output=True):
