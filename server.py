@@ -186,7 +186,7 @@ def strip_rich_formatting(text):
 def share_ascii_with_ai(ascii_art, context_message, emoji="🎭"):
     """🎭 AI ASCII SHARING: Automatically share cleaned ASCII art with AI assistants"""
     clean_ascii = strip_rich_formatting(ascii_art)
-    logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message}\n{clean_ascii}")
+    logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message}\n```\n{clean_ascii}\n```")
 
 
 def falling_alice():
