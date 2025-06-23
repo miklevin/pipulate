@@ -10,6 +10,10 @@ Usage:
 
 import os
 from pathlib import Path
+from collections import namedtuple
+
+# Named tuple for file entries with explicit labels
+FileEntry = namedtuple('FileEntry', ['filename', 'double_comment', 'description'])
 
 def should_exclude_file(file_path):
     """Check if a file should be excluded from the enumeration."""
@@ -174,18 +178,22 @@ def generate_files_list():
     # Core files (in pipulate root) - some uncommented by default
     lines.append("# CORE FILES & DOCS (Setting the stage)")
     core_files = [
-        ("README.md", True),         # Single source of truth
-        (".gitignore", True),        # Lets data stay in the repo
-        ("flake.nix", False),        # IaC
-        ("requirements.txt", False), # Python dependencies
-        ("server.py", False),        # server entrypoint
-        ("common.py", False),        # CRUD base class
-        ("mcp_tools.py", False),     # MCP tools
+        FileEntry("README.md", True, "Single source of truth"),
+        FileEntry(".gitignore", True, "Lets data stay in the repo"),
+        FileEntry("flake.nix", False, "IaC - Infrastructure as Code"),
+        FileEntry("requirements.txt", False, "Python dependencies"),
+        FileEntry("server.py", False, "Server entrypoint"),
+        FileEntry("common.py", False, "CRUD base class"),
+        FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
     ]
-    for file, should_comment in core_files:
-        full_path = f"{base_paths['pipulate']}/{file}"
-        comment = "# " if should_comment else ""
-        lines.append(f"{comment}{full_path}")
+    for entry in core_files:
+        full_path = f"{base_paths['pipulate']}/{entry.filename}"
+        if entry.double_comment:
+            # Double comments for emphasized files
+            lines.append(f"# {full_path}  # <-- {entry.description}")
+        else:
+            # Single comment with description
+            lines.append(f"{full_path}  # {entry.description}")
     
     # Common/shared files
     lines.extend(enumerate_specific_files([
