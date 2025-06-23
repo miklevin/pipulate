@@ -339,9 +339,11 @@ def register_mcp_tool(tool_name: str, handler_func):
     import sys
     server_module = sys.modules.get('server')
     if server_module and hasattr(server_module, 'register_mcp_tool'):
+        logger.info(f"🔧 MCP REGISTRY: Using server.register_mcp_tool for '{tool_name}'")
         server_module.register_mcp_tool(tool_name, handler_func)
     else:
         # Fallback: register in local registry
+        logger.info(f"🔧 MCP REGISTRY: Using fallback registry for '{tool_name}'")
         MCP_TOOL_REGISTRY[tool_name] = handler_func
 
 def register_all_mcp_tools():
