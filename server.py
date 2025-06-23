@@ -3068,7 +3068,6 @@ class Pipulate:
         next_step_trigger_div = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load') if next_step_id else Div()
         content_to_swap = Div(header_component, next_step_trigger_div, id=step_id)
         response = HTMLResponse(to_xml(content_to_swap))
-        response.headers['HX-Trigger-After-Settle'] = json.dumps({'scrollToLeftPanelBottom': True})
         return response
 
     async def handle_finalized_step(self, pipeline_id, step_id, steps, app_name, plugin_instance=None):
