@@ -1245,16 +1245,13 @@ async def _botify_execute_custom_bql_query(params: dict) -> dict:
             }
         }
 
-# Register Botify MCP tools
-register_mcp_tool("botify_ping", _botify_ping)
-register_mcp_tool("botify_list_projects", _botify_list_projects) 
-register_mcp_tool("botify_simple_query", _botify_simple_query)
+# 🔧 FINDER_TOKEN: DUPLICATE_REGISTRATIONS_REMOVED
+# Tools botify_ping, botify_list_projects, botify_simple_query, and pipeline_state_inspector
+# are now registered via register_all_mcp_tools() in mcp_tools.py
+# Remaining tools still need consolidation:
 register_mcp_tool("botify_get_full_schema", _botify_get_full_schema)
 register_mcp_tool("botify_list_available_analyses", _botify_list_available_analyses)
 register_mcp_tool("botify_execute_custom_bql_query", _botify_execute_custom_bql_query)
-
-# Register Pipeline State Inspector
-register_mcp_tool("pipeline_state_inspector", _pipeline_state_inspector)
 
 # Register Local LLM Helper Tools (Limited file access for local LLMs)
 async def _local_llm_read_file(params: dict) -> dict:
@@ -1600,9 +1597,9 @@ async def _local_llm_get_context(params: dict) -> dict:
             "suggestion": "Try using other MCP tools or ask user for specific information"
         }
 
-register_mcp_tool("local_llm_read_file", _local_llm_read_file)
-register_mcp_tool("local_llm_grep_logs", _local_llm_grep_logs)
-register_mcp_tool("local_llm_list_files", _local_llm_list_files)
+# 🔧 FINDER_TOKEN: LOCAL_LLM_TOOLS_MOVED_TO_MCP_TOOLS_PY  
+# Tools local_llm_read_file, local_llm_grep_logs, local_llm_list_files
+# are now registered via register_all_mcp_tools() in mcp_tools.py
 register_mcp_tool("local_llm_get_context", _local_llm_get_context)
 
 # Register UI interaction tools
