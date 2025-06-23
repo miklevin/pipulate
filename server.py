@@ -1481,6 +1481,45 @@ def log_pipeline_summary(title_prefix: str=''):
         print()
         white_rabbit()
         print()
+        
+        # 📚 LOG LEGEND: Quick crash course in reading Pipulate logs
+        legend_content = """[dim]Reading Pipulate Logs - Quick Reference:[/dim]
+
+[bold cyan]Log Format:[/bold cyan] [dim]TIME | LEVEL | MODULE | MESSAGE[/dim]
+[white]Example:[/white] [dim]14:20:03 | INFO | __main__ | [🌐 NETWORK] GET /simon_mcp | ID: 6aac3fe0[/dim]
+
+[bold yellow]Common Emojis & Meanings:[/bold yellow]
+🚀 [dim]STARTUP[/dim]     - Server initialization and startup events
+🌐 [dim]NETWORK[/dim]     - HTTP requests, API calls, web traffic
+🔄 [dim]PIPELINE[/dim]    - Workflow execution and step processing
+💾 [dim]DATABASE[/dim]    - Data storage operations and queries
+👤 [dim]PROFILE[/dim]     - User profile and authentication events
+🔌 [dim]PLUGIN[/dim]      - Plugin loading and workflow registration
+💬 [dim]CHAT[/dim]        - LLM interactions and AI conversations
+🎭 [dim]AI_CREATIVE[/dim] - ASCII art and AI-specific logging (logs only)
+🔍 [dim]FINDER_TOKEN[/dim] - Searchable debug markers for AI assistants
+⚠️  [dim]WARNING[/dim]     - Important notices and potential issues
+❌ [dim]ERROR[/dim]       - System errors and failures
+
+[bold green]Pro Tips:[/bold green]
+• [dim]Use grep with emojis:[/dim] [white]grep "🌐" logs/server.log[/white]
+• [dim]Find specific events:[/dim] [white]grep "FINDER_TOKEN" logs/server.log[/white]
+• [dim]Follow live logs:[/dim] [white]tail -f logs/server.log[/white]
+• [dim]AI assistants:[/dim] [white]grep "AI_CREATIVE_VISION" logs/server.log[/white]"""
+
+        legend_panel = Panel(
+            legend_content,
+            title="📖 [bold bright_blue]Log Reading Guide[/bold bright_blue]",
+            subtitle="[dim]Understanding what you're seeing in the logs[/dim]",
+            box=ROUNDED,
+            style="bright_blue",
+            padding=(1, 2)
+        )
+        console.print(legend_panel)
+        
+        # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
+        share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
+        print()
 
         # Add recent activity
         if recent_activity:
