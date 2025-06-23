@@ -499,7 +499,7 @@ def setup_logging():
         diagnose=True
     )
     
-    # Console logging - clean for live monitoring
+    # Console logging - clean for live monitoring (exclude AI JSON data)
     console_format = '<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}'
     logger.add(
         sys.stderr, 
@@ -507,11 +507,15 @@ def setup_logging():
         format=console_format, 
         colorize=True, 
         filter=lambda record: (
-            record['level'].name != 'DEBUG' or 
-            any(key in record['message'] for key in [
-                'FINDER_TOKEN', 'MCP', 'BOTIFY', 'API', 'Pipeline ID:', 
-                'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'
-            ])
+            # Exclude AI JSON data from console (humans see Rich display instead)
+            '🤖 AI_JSON' not in record['message'] and
+            (
+                record['level'].name != 'DEBUG' or 
+                any(key in record['message'] for key in [
+                    'FINDER_TOKEN', 'MCP', 'BOTIFY', 'API', 'Pipeline ID:', 
+                    'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'
+                ])
+            )
         )
     )
     # === STARTUP MESSAGES ===
@@ -526,6 +530,8 @@ def setup_logging():
 
 # Initialize logger immediately after basic configuration
 logger = setup_logging()
+
+
 
 # Log early startup phase
 logger.info('🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence')
