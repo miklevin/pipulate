@@ -349,6 +349,10 @@ def register_all_mcp_tools():
     register_mcp_tool("local_llm_list_files", _local_llm_list_files)
     register_mcp_tool("local_llm_get_context", _local_llm_get_context)
     
+    # UI interaction tools (commented out until functions are defined below)
+    # register_mcp_tool("ui_flash_element", _ui_flash_element)  
+    # register_mcp_tool("ui_list_elements", _ui_list_elements)
+    
     # More tools will be registered as we add them...
     
     logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools registered")
@@ -659,3 +663,154 @@ async def _local_llm_get_context(params: dict) -> dict:
             "error": str(e),
             "suggestion": "Try using other MCP tools or ask user for specific information"
         } 
+
+async def _ui_flash_element(params: dict) -> dict:
+    """Flash a UI element by ID to draw user attention.
+    
+    Args:
+        params: Dict containing:
+            - element_id: The DOM ID of the element to flash
+            - message: Optional message to display in chat
+            - delay: Optional delay in milliseconds (default: 0)
+    
+    Returns:
+        Dict with success status and details
+    """
+    element_id = params.get('element_id', '').strip()
+    message = params.get('message', '').strip()
+    delay = params.get('delay', 0)
+    
+    if not element_id:
+        return {
+            "success": False,
+            "error": "element_id is required"
+        }
+    
+    try:
+        # Create JavaScript to flash the element 10 times for teaching emphasis
+        flash_script = f"""
+        <script>
+        console.log('🔔 UI Flash script received for element: {element_id} (10x teaching mode)');
+        setTimeout(() => {{
+            const element = document.getElementById('{element_id}');
+            console.log('🔔 Element lookup result:', element);
+            if (element) {{
+                console.log('🔔 Element found, applying 10x flash effect for teaching');
+                
+                let flashCount = 0;
+                const maxFlashes = 10; // Hardcoded for teaching emphasis
+                
+                function doFlash() {{
+                    if (flashCount >= maxFlashes) {{
+                        console.log('🔔 10x Flash sequence completed for: {element_id}');
+                        return;
+                    }}
+                    
+                    // Remove and add class for flash effect
+                    element.classList.remove('menu-flash');
+                    element.offsetHeight; // Force reflow
+                    element.classList.add('menu-flash');
+                    
+                    flashCount++;
+                    console.log(`🔔 Flash ${{flashCount}}/10 for: {element_id}`);
+                    
+                    // Schedule next flash after this one completes
+                    setTimeout(() => {{
+                        element.classList.remove('menu-flash');
+                        // Small gap between flashes for visibility
+                        setTimeout(doFlash, 100);
+                    }}, 600);
+                }}
+                
+                // Start the 10x flash sequence
+                doFlash();
+                
+            }} else {{
+                console.warn('⚠️ Element not found: {element_id}');
+                console.log('🔔 Available elements with IDs:', Array.from(document.querySelectorAll('[id]')).map(el => el.id));
+            }}
+        }}, {delay});
+        </script>
+        """
+        
+        # Send the script via chat - use global chat instance
+        # The chat instance is available globally after server startup
+        import sys
+        server_module = sys.modules.get('server')
+        if server_module and hasattr(server_module, 'chat'):
+            chat = getattr(server_module, 'chat')
+            if chat:
+                logger.info(f"🔔 UI FLASH: Broadcasting script via global chat for element: {element_id}")
+                # Send script to execute the flash
+                await chat.broadcast(flash_script)
+                
+                # Send optional message
+                if message:
+                    await chat.broadcast(message)
+            else:
+                logger.warning(f"🔔 UI FLASH: Global chat not available for element: {element_id}")
+        else:
+            logger.error(f"🔔 UI FLASH: No chat instance available for element: {element_id}")
+        
+        return {
+            "success": True,
+            "element_id": element_id,
+            "message": message if message else f"Flashed element: {element_id} (10x teaching mode)",
+            "delay": delay
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to flash element: {str(e)}"
+        }
+
+async def _ui_list_elements(params: dict) -> dict:
+    """List common UI element IDs that can be flashed for user guidance.
+    
+    Returns:
+        Dict with categorized UI element IDs and descriptions
+    """
+    try:
+        ui_elements = {
+            "navigation": {
+                "profile-id": "Profile dropdown menu summary",
+                "app-id": "App dropdown menu summary", 
+                "nav-plugin-search": "Plugin search input field",
+                "search-results-dropdown": "Plugin search results dropdown"
+            },
+            "chat": {
+                "msg-list": "Chat message list container",
+                "msg": "Chat input textarea",
+                "send-btn": "Send message button",
+                "stop-btn": "Stop streaming button"
+            },
+            "common_workflow_elements": {
+                "Note": "These IDs are dynamically generated per workflow:",
+                "Examples": [
+                    "step_01", "step_02", "step_03", "finalize",
+                    "input_data", "process_data", "output_data"
+                ]
+            },
+            "profile_roles": {
+                "profiles-list": "Profile list container",
+                "roles-list": "Roles list container",
+                "default-button": "Reset to default roles button"
+            }
+        }
+        
+        return {
+            "success": True,
+            "ui_elements": ui_elements,
+            "note": "Use ui_flash_element tool with any of these IDs to guide users"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to list UI elements: {str(e)}"
+        }
+
+# Register UI tools NOW that functions are defined
+register_mcp_tool("ui_flash_element", _ui_flash_element)
+register_mcp_tool("ui_list_elements", _ui_list_elements)

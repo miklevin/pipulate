@@ -1415,163 +1415,17 @@ async def _local_llm_list_files(params: dict) -> dict:
             "directory": params.get('directory', 'unknown')
         }
 
-async def _ui_flash_element(params: dict) -> dict:
-    """Flash a UI element by ID to draw user attention.
-    
-    Args:
-        params: Dict containing:
-            - element_id: The DOM ID of the element to flash
-            - message: Optional message to display in chat
-            - delay: Optional delay in milliseconds (default: 0)
-    
-    Returns:
-        Dict with success status and details
-    """
-    element_id = params.get('element_id', '').strip()
-    message = params.get('message', '').strip()
-    delay = params.get('delay', 0)
-    
-    if not element_id:
-        return {
-            "success": False,
-            "error": "element_id is required"
-        }
-    
-    try:
-        # Create JavaScript to flash the element 10 times for teaching emphasis
-        flash_script = f"""
-        <script>
-        console.log('🔔 UI Flash script received for element: {element_id} (10x teaching mode)');
-        setTimeout(() => {{
-            const element = document.getElementById('{element_id}');
-            console.log('🔔 Element lookup result:', element);
-            if (element) {{
-                console.log('🔔 Element found, applying 10x flash effect for teaching');
-                
-                let flashCount = 0;
-                const maxFlashes = 10; // Hardcoded for teaching emphasis
-                
-                function doFlash() {{
-                    if (flashCount >= maxFlashes) {{
-                        console.log('🔔 10x Flash sequence completed for: {element_id}');
-                        return;
-                    }}
-                    
-                    // Remove and add class for flash effect
-                    element.classList.remove('menu-flash');
-                    element.offsetHeight; // Force reflow
-                    element.classList.add('menu-flash');
-                    
-                    flashCount++;
-                    console.log(`🔔 Flash ${{flashCount}}/10 for: {element_id}`);
-                    
-                    // Schedule next flash after this one completes
-                    setTimeout(() => {{
-                        element.classList.remove('menu-flash');
-                        // Small gap between flashes for visibility
-                        setTimeout(doFlash, 100);
-                    }}, 600);
-                }}
-                
-                // Start the 10x flash sequence
-                doFlash();
-                
-            }} else {{
-                console.warn('⚠️ Element not found: {element_id}');
-                console.log('🔔 Available elements with IDs:', Array.from(document.querySelectorAll('[id]')).map(el => el.id));
-            }}
-        }}, {delay});
-        </script>
-        """
-        
-        # Send the script via chat - use global chat instance
-        # The chat instance is available globally after server startup
-        global chat
-        if 'chat' in globals() and chat:
-            logger.info(f"🔔 UI FLASH: Broadcasting script via global chat for element: {element_id}")
-            # Send script to execute the flash
-            await chat.broadcast(flash_script)
-            
-            # Send optional message
-            if message:
-                await chat.broadcast(message)
-        else:
-            logger.warning(f"🔔 UI FLASH: Global chat not available, trying fallback for element: {element_id}")
-            # Fallback: try to use pipulate.chat if available
-            if hasattr(pipulate, 'chat') and pipulate.chat:
-                logger.info(f"🔔 UI FLASH: Using pipulate.chat fallback for element: {element_id}")
-                await pipulate.chat.broadcast(flash_script)
-                if message:
-                    await pipulate.chat.broadcast(message)
-            else:
-                logger.error(f"🔔 UI FLASH: No chat instance available for element: {element_id}")
-        
-        return {
-            "success": True,
-            "element_id": element_id,
-            "message": message if message else f"Flashed element: {element_id} (10x teaching mode)",
-            "delay": delay
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to flash element: {str(e)}"
-        }
-
-async def _ui_list_elements(params: dict) -> dict:
-    """List common UI element IDs that can be flashed for user guidance.
-    
-    Returns:
-        Dict with categorized UI element IDs and descriptions
-    """
-    try:
-        ui_elements = {
-            "navigation": {
-                "profile-id": "Profile dropdown menu summary",
-                "app-id": "App dropdown menu summary", 
-                "nav-plugin-search": "Plugin search input field",
-                "search-results-dropdown": "Plugin search results dropdown"
-            },
-            "chat": {
-                "msg-list": "Chat message list container",
-                "msg": "Chat input textarea",
-                "send-btn": "Send message button",
-                "stop-btn": "Stop streaming button"
-            },
-            "common_workflow_elements": {
-                "Note": "These IDs are dynamically generated per workflow:",
-                "Examples": [
-                    "step_01", "step_02", "step_03", "finalize",
-                    "input_data", "process_data", "output_data"
-                ]
-            },
-            "profile_roles": {
-                "profiles-list": "Profile list container",
-                "roles-list": "Roles list container",
-                "default-button": "Reset to default roles button"
-            }
-        }
-        
-        return {
-            "success": True,
-            "ui_elements": ui_elements,
-            "note": "Use ui_flash_element tool with any of these IDs to guide users"
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to list UI elements: {str(e)}"
-        }
+# 🔧 FINDER_TOKEN: UI_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY
+# UI interaction tools (_ui_flash_element, _ui_list_elements) moved to mcp_tools.py
+# This removes 115 lines of duplicate code for better maintainability
 
 # 🔧 FINDER_TOKEN: LOCAL_LLM_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY  
 # ALL local_llm tools (read_file, grep_logs, list_files, get_context)
 # are now registered via register_all_mcp_tools() in mcp_tools.py
 
-# Register UI interaction tools
-register_mcp_tool("ui_flash_element", _ui_flash_element)
-register_mcp_tool("ui_list_elements", _ui_list_elements)
+# 🔧 FINDER_TOKEN: UI_TOOLS_MOVED_TO_MCP_TOOLS_PY
+# UI interaction tools (ui_flash_element, ui_list_elements) 
+# are now registered via register_all_mcp_tools() in mcp_tools.py
 
 # 🌐 FINDER_TOKEN: BROWSER_MCP_TOOLS_CORE - AI EYES AND HANDS
 async def _browser_scrape_page(params: dict) -> dict:
