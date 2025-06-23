@@ -189,6 +189,18 @@ def generate_files_list():
     lines.append("\n## NECESSARY FOR CURRENT PROMPT")
     lines.append("# (Edit this section to include files needed for your specific prompt)")
     
+    # External/add-on files frequently used for AI assistance
+    external_files = [
+        "/home/mike/repos/nixos/ai.py",
+        "/home/mike/repos/nixos/autognome.py", 
+        "/home/mike/repos/nixos/configuration.nix",
+        "/home/mike/repos/nixos/init.lua"
+    ]
+    lines.extend(enumerate_specific_files(
+        external_files,
+        description="EXTERNAL/ADD-ON FILES (Frequently used with AI)"
+    ))
+    
     # Botify API documentation
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/training", 
