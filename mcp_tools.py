@@ -25,6 +25,18 @@ import logging
 # Get logger from server context
 logger = logging.getLogger(__name__)
 
+# Import MCP_TOOL_REGISTRY from server to ensure we use the same registry
+try:
+    import sys
+    server_module = sys.modules.get('server')
+    if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
+        MCP_TOOL_REGISTRY = server_module.MCP_TOOL_REGISTRY
+    else:
+        # Fallback: create local registry that will be replaced when server loads
+        MCP_TOOL_REGISTRY = {}
+except ImportError:
+    MCP_TOOL_REGISTRY = {}
+
 # ================================================================
 # HELPER FUNCTIONS
 # ================================================================
@@ -322,13 +334,15 @@ MCP_TOOL_REGISTRY = {}
 def register_mcp_tool(tool_name: str, handler_func):
     """Register an MCP tool with the global registry."""
     logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
-    MCP_TOOL_REGISTRY[tool_name] = handler_func
     
-    # Also register with server if available
+    # Always use server's registry and register function
     import sys
     server_module = sys.modules.get('server')
     if server_module and hasattr(server_module, 'register_mcp_tool'):
         server_module.register_mcp_tool(tool_name, handler_func)
+    else:
+        # Fallback: register in local registry
+        MCP_TOOL_REGISTRY[tool_name] = handler_func
 
 def register_all_mcp_tools():
     """Register all MCP tools with the server."""
@@ -355,7 +369,15 @@ def register_all_mcp_tools():
     
     # More tools will be registered as we add them...
     
-    logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools registered")
+    # Get final count from server's registry
+    import sys
+    server_module = sys.modules.get('server')
+    if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
+        tool_count = len(server_module.MCP_TOOL_REGISTRY)
+    else:
+        tool_count = len(MCP_TOOL_REGISTRY)
+    
+    logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {tool_count} tools registered")
 
 # Additional Botify tools from server.py
 async def _botify_simple_query(params: dict) -> dict:
