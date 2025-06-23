@@ -232,26 +232,27 @@ class MCPConsolidator:
                 self.log("error", f"Verification failed: {func_name} not registered")
                 return False
         
-        # Test 3: Integration test with proper escaping
-        test_script = f"""
-from mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
-register_all_mcp_tools()
-tool_name = '{tool_name}'
-if tool_name not in MCP_TOOL_REGISTRY:
-    print('ERROR: ' + tool_name + ' not in registry')
-    exit(1)
-print('SUCCESS: ' + tool_name + ' verified in registry')
-"""
-        
-        # Write to temp file to avoid shell escaping issues
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-            f.write(test_script)
-            temp_script = f.name
-        
+        # Test 3: Integration test using current Python environment
+        import sys
         try:
-            code, stdout, stderr = self.run_command(f'python3 {temp_script}')
+            # Add current directory to path temporarily
+            sys.path.insert(0, str(Path.cwd()))
+            from mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
+            register_all_mcp_tools()
+            
+            if tool_name not in MCP_TOOL_REGISTRY:
+                self.log("error", f"Integration test failed: {tool_name} not in registry")
+                return False
+                
+            # Reset for clean state
+            MCP_TOOL_REGISTRY.clear()
+            code, stdout, stderr = 0, f"SUCCESS: {tool_name} verified in registry", ""
+        except Exception as e:
+            code, stdout, stderr = 1, "", str(e)
         finally:
-            os.unlink(temp_script)
+            # Remove current directory from path
+            if str(Path.cwd()) in sys.path:
+                sys.path.remove(str(Path.cwd()))
         if code != 0:
             self.log("error", f"Integration test failed for {func_name}", stderr=stderr)
             return False
