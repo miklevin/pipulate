@@ -204,7 +204,7 @@ def share_ascii_with_ai(ascii_art, context_message, emoji="🎭"):
     """🎭 AI ASCII SHARING: Automatically share cleaned ASCII art with AI assistants"""
     clean_ascii = strip_rich_formatting(ascii_art)
     # Preserve actual newlines for proper ASCII art display in logs
-    logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message} | ASCII_DATA: ```\n{clean_ascii}\n```")
+    logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message} | ASCII_DATA:\n```\n{clean_ascii}\n```")
 
 
 def falling_alice(console_output=True):
@@ -344,8 +344,8 @@ def fig(text, font='slant', color=None, width=200):
     colored_text = Text(fig_text, style=f'{color} on default')
     console.print(colored_text, style='on default')
     
-    # Log text equivalent for server.log visibility
-    logger.info(f"🎨 BANNER: {text} (figlet: {font})")
+    # Log ASCII art with backticks for easy grepping
+    logger.info(f"🎨 BANNER: {text} (figlet: {font}) | ASCII_DATA:\n```\n{fig_text}\n```")
 
 
 def chip_says(message, style=None, prefix="💬 Chip O'Theseus"):
@@ -398,6 +398,10 @@ def ascii_banner(title, subtitle=None, style=None, box_style=None):
     )
     console.print(panel)
     logger.info(f"🎨 ASCII_BANNER: {title}" + (f" - {subtitle}" if subtitle else ""))
+    
+    # Log the banner content with backticks for easy grepping
+    clean_content = strip_rich_formatting(content)
+    logger.info(f"🎨 ASCII_BANNER_ASCII: {title} banner displayed | ASCII_DATA:\n```\n{clean_content}\n```")
 
 
 def section_header(icon, title, description=None, color=None):
@@ -412,8 +416,14 @@ def section_header(icon, title, description=None, color=None):
     
     console.print()  # Add some space
     console.print(content, style=color)
-    console.print("─" * 60, style=f"dim {color}")
+    separator_line = "─" * 60
+    console.print(separator_line, style=f"dim {color}")
     logger.info(f"📋 SECTION: {icon} {title}" + (f" - {description}" if description else ""))
+    
+    # Log the section header content with backticks for easy grepping
+    clean_content = strip_rich_formatting(content)
+    full_section = f"{clean_content}\n{separator_line}"
+    logger.info(f"📋 SECTION_ASCII: {title} section header displayed | ASCII_DATA:\n```\n{full_section}\n```")
 
 def radical_transparency_banner(console_output=True):
     """🔍 RADICAL TRANSPARENCY: Beautiful banner explaining the philosophy"""
@@ -472,6 +482,10 @@ def status_banner(mcp_count, plugin_count, env="Development"):
     )
     console.print(panel)
     logger.info(f"📊 STATUS_BANNER: MCP:{mcp_count}, Plugins:{plugin_count}, Env:{env}")
+    
+    # Log the status content with backticks for easy grepping
+    clean_content = strip_rich_formatting(status_content.strip())
+    logger.info(f"📊 STATUS_BANNER_ASCII: Status banner displayed | ASCII_DATA:\n```\n{clean_content}\n```")
 
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
