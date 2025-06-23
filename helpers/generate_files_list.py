@@ -22,7 +22,8 @@ def should_exclude_file(file_path):
         'foo_files.py', 
         'prompt.md',
         'template.md',
-        'favicon.ico'
+        'favicon.ico',
+        'botify_token.txt'
     }
     
     # File extensions to exclude
@@ -34,7 +35,8 @@ def should_exclude_file(file_path):
         '.jpg',
         '.jpeg',
         '.gif',
-        '.webp'
+        '.webp',
+        '.csv'
     }
     
     # Check specific filenames
@@ -55,7 +57,18 @@ def should_exclude_file(file_path):
         
     return False
 
-def enumerate_directory(path, comment_prefix="# ", description="", defaults_uncommented=None):
+def should_skip_directory(dir_name):
+    """Check if a directory should be skipped during recursive walking."""
+    skip_dirs = {
+        '__pycache__',
+        '.ipynb_checkpoints',
+        '.git',
+        'node_modules',
+        '.venv'
+    }
+    return dir_name in skip_dirs
+
+def enumerate_directory(path, comment_prefix="# ", description="", defaults_uncommented=None, recursive=False):
     """Enumerate files in a directory, returning them as commented lines.
     
     Args:
@@ -63,6 +76,7 @@ def enumerate_directory(path, comment_prefix="# ", description="", defaults_unco
         comment_prefix: Prefix for commented lines  
         description: Section description
         defaults_uncommented: List of filenames that should be uncommented by default
+        recursive: Whether to walk directories recursively
     """
     lines = []
     if description:
@@ -73,18 +87,37 @@ def enumerate_directory(path, comment_prefix="# ", description="", defaults_unco
     
     try:
         if os.path.exists(path):
-            files = sorted(os.listdir(path))
-            for file in files:
-                file_path = os.path.join(path, file)
-                if os.path.isfile(file_path):
-                    # Skip files that should be excluded
-                    if should_exclude_file(file_path):
-                        continue
+            if recursive:
+                # Use os.walk for recursive directory traversal
+                for root, dirs, files in os.walk(path):
+                    # Skip unwanted directories in-place (modifies dirs list)
+                    dirs[:] = [d for d in dirs if not should_skip_directory(d)]
+                    
+                    for file in sorted(files):
+                        file_path = os.path.join(root, file)
                         
-                    # Check if this file should be uncommented by default
-                    should_comment = file not in defaults_uncommented
-                    prefix = comment_prefix if should_comment else ""
-                    lines.append(f"{prefix}{file_path}")
+                        # Skip files that should be excluded
+                        if should_exclude_file(file_path):
+                            continue
+                            
+                        # Check if this file should be uncommented by default
+                        should_comment = file not in defaults_uncommented
+                        prefix = comment_prefix if should_comment else ""
+                        lines.append(f"{prefix}{file_path}")
+            else:
+                # Non-recursive: only files in the immediate directory
+                files = sorted(os.listdir(path))
+                for file in files:
+                    file_path = os.path.join(path, file)
+                    if os.path.isfile(file_path):
+                        # Skip files that should be excluded
+                        if should_exclude_file(file_path):
+                            continue
+                            
+                        # Check if this file should be uncommented by default
+                        should_comment = file not in defaults_uncommented
+                        prefix = comment_prefix if should_comment else ""
+                        lines.append(f"{prefix}{file_path}")
         else:
             lines.append(f"{comment_prefix}# Directory not found: {path}")
     except Exception as e:
@@ -168,10 +201,11 @@ def generate_files_list():
         description="STATIC RESOURCES"
     ))
     
-    # Helper scripts
+    # Helper scripts - recursive to include subdirectories
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/helpers",
-        description="HELPER SCRIPTS"
+        description="HELPER SCRIPTS",
+        recursive=True
     ))
     
     # Plugins
