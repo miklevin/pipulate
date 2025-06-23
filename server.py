@@ -546,6 +546,7 @@ def get_nix_version():
 APP_NAME = get_app_name()
 logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
 
+
 TONE = 'neutral'
 MODEL = 'gemma3'
 MAX_LLM_RESPONSE_WORDS = 80
@@ -2696,6 +2697,7 @@ try:
     logger.info("🔧 MCP REGISTRY: Successfully imported and registered browser_stealth_search")
 except ImportError as e:
     logger.error(f"🔧 MCP REGISTRY: Failed to import browser_stealth_search: {e}")
+
 
 # Register extracted MCP tools from mcp_tools.py module
 register_all_mcp_tools()
@@ -5805,9 +5807,14 @@ else:
 
 logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: {", ".join(plugin_instances.keys())}')
 
+# 🔍 RADICAL TRANSPARENCY BANNER - Right after MCP registry completes, before FINDER_TOKEN loop
+if __name__ == '__main__':
+    radical_transparency_banner()
+
 # 🐰 ALICE WELCOME BANNER - Perfect transition point: FINDER_TOKENs end, ROLES begin
-logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point')
-falling_alice()
+if __name__ == '__main__':
+    logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point')
+    falling_alice()
 
 MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
