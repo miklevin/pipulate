@@ -175,6 +175,20 @@ def rich_dict_display(data, title=None, console_output=True):
     return rich_json_display(data, title=title, console_output=console_output, log_output=False)
 
 
+def strip_rich_formatting(text):
+    """🎭 STRIP RICH FORMATTING: Remove Rich square-bracket color codes for AI transparency"""
+    import re
+    # Remove Rich color formatting like [bold], [/bold], [white on default], etc.
+    clean_text = re.sub(r'\[/?[^\]]*\]', '', text)
+    return clean_text
+
+
+def share_ascii_with_ai(ascii_art, context_message, emoji="🎭"):
+    """🎭 AI ASCII SHARING: Automatically share cleaned ASCII art with AI assistants"""
+    clean_ascii = strip_rich_formatting(ascii_art)
+    logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message}\n{clean_ascii}")
+
+
 def falling_alice():
     """🍄 FALLING ALICE: Large ASCII art of Alice falling down the rabbit hole"""
     lines = 20
@@ -210,32 +224,7 @@ def falling_alice():
     logger.info("🍄 FALLING_ALICE_BANNER: Large Alice art displayed")
     
     # 🎭 AI CREATIVE TRANSPARENCY: Let AI assistants experience the whimsical narrative
-    alice_ascii_for_ai = """
-                    ___
-                   |   |         _____
-                   |_  |        /     \\
-                     \\ |       |       \\
-                     |  \\      |       /
-                      \\  \\____ \\_      \\
-                       \\      \\_/      |
-                 ___.   \\_            _/
-.-,             /    \\    |          |
-|  \\          _/      `--_/           \\_
- \\  \\________/                     /\\   \\
- |                                /  \\_  \\
- `-----------,                   |     \\  \\
-             |                  /       \\  |
-             |                 |         | \\
-             /                 |         \\__|
-            /   _              |
-           /   / \\_             \\
-           |  /    \\__      __--`
-          _/ /        \\   _/
-      ___/  /          \\_/
-     /     /
-     `----`
-    """
-    logger.warning(f"🎭 AI_CREATIVE_VISION: Falling Alice ASCII Art:\n{alice_ascii_for_ai}\n🍄 Narrative moment: Alice tumbles down the rabbit hole of radical transparency!")
+    share_ascii_with_ai(falling_alice_art, "Falling Alice ASCII Art - 🍄 Narrative moment: Alice tumbles down the rabbit hole of radical transparency!", "🍄")
 
 
 def white_rabbit():
@@ -260,14 +249,7 @@ def white_rabbit():
     console.print(panel)
     
     # 🎭 AI CREATIVE TRANSPARENCY: Share the whimsical White Rabbit moment
-    rabbit_ascii_for_ai = """             /)    ______
-       /)\\__//    /      \\
-   ___(/_ 0 0    |        |
- *(    ==(_T_)== |Pipulate|
-   \\  )   ""\\    |        |
-    |__>-\\_>_>    \\______/
-   """
-    logger.warning(f"🎭 AI_CREATIVE_VISION: White Rabbit ASCII Art:\n{rabbit_ascii_for_ai}\n🐰 Narrative moment: Welcome to Consoleland - down the rabbit hole of radical transparency!")
+    share_ascii_with_ai(alice_art, "White Rabbit ASCII Art - 🐰 Narrative moment: Welcome to Consoleland - down the rabbit hole of radical transparency!", "🐰")
 
 
 def system_diagram():
@@ -294,17 +276,7 @@ def system_diagram():
     console.print(panel)
     
     # 🎭 AI CREATIVE TRANSPARENCY: System architecture for AI understanding
-    diagram_ascii_for_ai = """
-               ┌─────────────────────────────┐
-               │         Navigation         ◄── Search, Profiles,
-               ├───────────────┬─────────────┤    Apps, Settings
-               │               │             │
-    Workflow, ──►   Main Area  │    Chat     │
-    App UI     │   (Pipeline)  │  Interface ◄── LLM Interaction 
-               │               │             │
-               └─────────────────────────────┘
-    """
-    logger.warning(f"🎭 AI_CREATIVE_VISION: System Architecture Diagram:\n{diagram_ascii_for_ai}\n🏗️ Architecture moment: This shows how Pipulate's UI is organized - Navigation, Main Pipeline Area, and Chat Interface!")
+    share_ascii_with_ai(diagram, "System Architecture Diagram - 🏗️ Architecture moment: This shows how Pipulate's UI is organized - Navigation, Main Pipeline Area, and Chat Interface!", "🏗️")
 
 
 def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None):
@@ -333,7 +305,8 @@ def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None)
     logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
     
     # 🎭 AI CREATIVE TRANSPARENCY: Share the figlet art for AI context
-    logger.warning(f"🎭 AI_CREATIVE_VISION: Figlet Banner ({font} font):\n{fig_text}\n🎨 Text: '{text}'" + (f" | Subtitle: '{subtitle}'" if subtitle else ""))
+    context_msg = f"Figlet Banner ({font} font) - 🎨 Text: '{text}'" + (f" | Subtitle: '{subtitle}'" if subtitle else "")
+    share_ascii_with_ai(fig_text, context_msg, "🎨")
 
 
 def fig(text, font='slant', color=None, width=200):
@@ -440,22 +413,7 @@ def radical_transparency_banner():
     logger.info("🔍 RADICAL_TRANSPARENCY_BANNER: Philosophy banner displayed")
     
     # 🎭 AI CREATIVE TRANSPARENCY: The philosophy itself - for AI assistants to experience
-    transparency_ascii_for_ai = """
-    ╔══════════════════════════════════════════════════════════════╗
-    ║                    RADICAL TRANSPARENCY                      ║
-    ║                                                              ║
-    ║  Every operation is observable • Every call is logged        ║
-    ║  Every state change is tracked • Every error is explained    ║
-    ║                                                              ║
-    ║  🔍 FINDER_TOKENs guide your debugging journey               ║
-    ║  🔧 MCP Tools provide programmatic access to everything      ║
-    ║  📊 Pipeline State Inspector reveals workflow internals      ║
-    ║  🤖 AI Assistants have complete system visibility            ║
-    ║                                                              ║
-    ║           "Know EVERYTHING that's happening!"                ║
-    ╚══════════════════════════════════════════════════════════════╝
-    """
-    logger.warning(f"🎭 AI_CREATIVE_VISION: Radical Transparency Banner:\n{transparency_ascii_for_ai}\n🔍 Philosophy moment: This is the core principle - AI assistants get complete system visibility!")
+    share_ascii_with_ai(transparency_text, "Radical Transparency Banner - 🔍 Philosophy moment: This is the core principle - AI assistants get complete system visibility!", "🔍")
 
 def status_banner(mcp_count, plugin_count, env="Development"):
     """📊 STATUS BANNER: Current system status overview"""
