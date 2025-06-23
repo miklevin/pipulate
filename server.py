@@ -675,8 +675,13 @@ def get_nix_version():
         logger.debug(f"Could not parse version from flake.nix: {e}")
     
     return "Unknown version"
+ENV_FILE = Path('data/current_environment.txt')
+
 APP_NAME = get_app_name()
 logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
+
+DB_FILENAME = get_db_filename()
+logger.info(f'🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: {DB_FILENAME}')
 
 
 TONE = 'neutral'
