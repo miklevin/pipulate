@@ -66,6 +66,50 @@ def get_files_to_include():
     
     return deduplicated_files
 
+def get_files_with_comments():
+    """Get the processed list of files with their comments preserved."""
+    files_raw = load_files_to_include()
+    files_list = files_raw.strip().splitlines()
+    
+    # Filter out any commented lines (starting with #)
+    files_list = [line for line in files_list if not line.strip().startswith('#')]
+    # Filter out blank lines
+    files_list = [line for line in files_list if line.strip()]
+    
+    # Process each line to extract file path and comment
+    seen_files = set()
+    files_with_comments = []
+    
+    for line in files_list:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Extract file path and comment
+        file_path = line
+        comment = ""
+        
+        # Handle <-- style comments first
+        if '<--' in line:
+            parts = line.split('<--', 1)
+            file_path = parts[0].strip()
+            comment = parts[1].strip()
+        # Handle trailing # comments
+        elif '#' in line:
+            parts = line.split('#', 1)
+            file_path = parts[0].strip()
+            comment = parts[1].strip()
+        else:
+            file_path = line.strip()
+            comment = ""
+        
+        # Remove duplicates while preserving order
+        if file_path and file_path not in seen_files:
+            seen_files.add(file_path)
+            files_with_comments.append((file_path, comment))
+    
+    return files_with_comments
+
 # ============================================================================
 # MATERIAL ANALYSIS CONFIGURATION  
 # ============================================================================
@@ -532,7 +576,7 @@ class AIAssistantManifest:
         """Generate the manifest for the AI assistant (legacy format)."""
         return self.generate_xml()  # Default to XML format
 
-def create_pipulate_manifest(file_paths):
+def create_pipulate_manifest(file_paths_with_comments):
     """Create a manifest specific to the Pipulate project."""
     manifest = AIAssistantManifest()
     
@@ -551,12 +595,12 @@ def create_pipulate_manifest(file_paths):
     
     # Check for missing files and collect them
     missing_files = []
-    for relative_path in file_paths:
-        relative_path = relative_path.strip()
-        if not relative_path:
+    for file_path, comment in file_paths_with_comments:
+        file_path = file_path.strip()
+        if not file_path:
             continue
             
-        full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
+        full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
         if not os.path.exists(full_path):
             missing_files.append(full_path)
     
@@ -569,15 +613,15 @@ def create_pipulate_manifest(file_paths):
         print(error_message)
         sys.exit(1)
     
-    # Register key files with their contents
-    for relative_path in file_paths:
-        relative_path = relative_path.strip()
-        if not relative_path or relative_path in processed_files:
+    # Register key files with their contents and comments
+    for file_path, comment in file_paths_with_comments:
+        file_path = file_path.strip()
+        if not file_path or file_path in processed_files:
             continue
             
-        processed_files.add(relative_path)
-        result_files.append(relative_path)
-        full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
+        processed_files.add(file_path)
+        result_files.append((file_path, comment))  # Store both path and comment
+        full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
             
         try:
             with open(full_path, 'r', encoding='utf-8') as f:
@@ -586,18 +630,23 @@ def create_pipulate_manifest(file_paths):
                 
                 # Check if adding this file would exceed token limit
                 if total_tokens + content_tokens > max_tokens:
+                    description = f"{os.path.basename(file_path)} [skipped: would exceed token limit]"
+                    if comment:
+                        description += f" - {comment}"
                     manifest.add_file(
-                        relative_path,
-                        f"{os.path.basename(relative_path)} [skipped: would exceed token limit]"
+                        file_path,
+                        description
                     )
                     continue
                 
                 total_tokens += content_tokens
-                description = f"{os.path.basename(relative_path)} [loaded]"
+                description = f"{os.path.basename(file_path)} [loaded]"
+                if comment:
+                    description += f" - {comment}"
                 
                 # Add file to manifest
                 manifest.add_file(
-                    relative_path,
+                    file_path,
                     description,
                     content=content
                 )
@@ -707,8 +756,8 @@ if args.list:
         print(f"{i}: {template['name']}")
     sys.exit(0)
 
-# Get the file list
-final_file_list = get_files_to_include().copy() if '--files' not in sys.argv else []  # Start with the default list
+# Get the file list with comments
+final_file_list = get_files_with_comments() if '--files' not in sys.argv else []  # Start with the default list
 
 # Handle prompt file - now with default prompt.md behavior
 prompt_path = args.prompt
@@ -751,8 +800,11 @@ else:
 
 if prompt_content:
     # Add prompt file to files list if not already present
-    if prompt_path and os.path.exists(prompt_path) and prompt_path not in final_file_list:
-        final_file_list.append(prompt_path)
+    if prompt_path and os.path.exists(prompt_path):
+        # Check if this file path is already in the list
+        existing_paths = [file_path for file_path, comment in final_file_list]
+        if prompt_path not in existing_paths:
+            final_file_list.append((prompt_path, "User prompt file"))
     
     # Use article analysis template by default for prompt files
     args.template = 1  # Use the material analysis template
@@ -798,12 +850,13 @@ lines.append("=" * 20 + " START CONTEXT " + "=" * 20)
 total_tokens = count_tokens(pre_prompt, "gpt-4")
 
 # Process each file in the manifest file list
-for relative_path in processed_files:
-    full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
+for file_path, comment in processed_files:
+    full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
     
-    # Original detailed mode with markers
-    start_marker = f"# <<< START FILE: {full_path} >>>"
-    end_marker = f"# <<< END FILE: {full_path} >>>"
+    # Original detailed mode with markers, now including comments
+    comment_suffix = f" -- {comment}" if comment else ""
+    start_marker = f"# <<< START FILE: {full_path}{comment_suffix} >>>"
+    end_marker = f"# <<< END FILE: {full_path}{comment_suffix} >>>"
     
     lines.append(start_marker)
     try:
@@ -811,6 +864,8 @@ for relative_path in processed_files:
             file_content = infile.read()
             file_tokens = count_tokens(file_content, "gpt-4")
             token_info = f"\n# File token count: {format_token_count(file_tokens)}"
+            if comment:
+                token_info += f"\n# File purpose: {comment}"
             lines.append(file_content + token_info)
     except Exception as e:
         error_message = f"# --- ERROR: Could not read file {full_path}: {e} ---"
@@ -852,15 +907,15 @@ def calculate_total_words(files_words, prompt_words):
 # Calculate total tokens and words with proper accounting
 files_tokens_dict = {}
 files_words_dict = {}
-for relative_path in processed_files:
+for file_path, comment in processed_files:
     try:
-        full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
+        full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
         with open(full_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        files_tokens_dict[relative_path] = count_tokens(content, "gpt-4")
-        files_words_dict[relative_path] = count_words(content)
+        files_tokens_dict[file_path] = count_tokens(content, "gpt-4")
+        files_words_dict[file_path] = count_words(content)
     except Exception as e:
-        print(f"ERROR: Could not count tokens/words for {relative_path}: {e}")
+        print(f"ERROR: Could not count tokens/words for {file_path}: {e}")
         sys.exit(1)  # Exit with error code
 
 # Calculate prompt tokens and words
@@ -893,7 +948,8 @@ output_xml = (f'<?xml version="1.0" encoding="UTF-8"?>\n'
               f'</context>')
 
 # Print structured output
-print_structured_output(manifest, pre_prompt, processed_files, post_prompt, token_counts['total'], args.max_tokens, word_counts['total'])
+file_paths_only = [file_path for file_path, comment in processed_files]
+print_structured_output(manifest, pre_prompt, file_paths_only, post_prompt, token_counts['total'], args.max_tokens, word_counts['total'])
 
 # Write the complete XML output to the file
 try:
