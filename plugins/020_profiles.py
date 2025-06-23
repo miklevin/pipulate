@@ -11,7 +11,7 @@ from fasthtml.common import (H2, H3, H4, A, Button, Card, Container, Details,
                              Option, P, Script, Select, Span, Summary,
                              Textarea, Title, Ul, to_xml)
 from server import DB_FILENAME
-from .common import BaseCrud
+from ..common import BaseCrud
 from server import db as server_db
 
 # Lazy imports to avoid circular dependencies - imported when needed
