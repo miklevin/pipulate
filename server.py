@@ -6515,6 +6515,12 @@ def restart_server():
     for attempt in range(max_retries):
         try:
             log.startup(f'Restarting server (attempt {attempt + 1}/{max_retries})')
+            # 🤖 AI ASSISTANT EDUCATION: Explain rapid restart behavior
+            logger.warning("🤖 AI_RAPID_RESTART: This is a watchdog-triggered restart - one of potentially multiple rapid restarts")
+            logger.warning("🤖 AI_RAPID_RESTART: Console users see clean UX with banners shown once per session")
+            logger.warning("🤖 AI_RAPID_RESTART: AI assistants see ALL restart events in logs for complete transparency")
+            logger.warning("🤖 AI_RAPID_RESTART: Each restart below will trigger figlet_banner() with ASCII art logging")
+            
             # Set environment variable to indicate this is a watchdog restart
             os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
             # Show restart banner once per watchdog restart
@@ -6552,6 +6558,12 @@ class ServerRestartHandler(FileSystemEventHandler):
 
 def run_server_with_watchdog():
     logger.info('🚀 FINDER_TOKEN: SERVER_STARTUP - Starting server with watchdog')
+    
+    # 🤖 AI ASSISTANT EDUCATION: Explain startup banner behavior
+    logger.warning("🤖 AI_STARTUP_BANNER: About to display main startup banner with ASCII art")
+    logger.warning("🤖 AI_STARTUP_BANNER: This banner appears on every server start (manual or watchdog restart)")
+    logger.warning("🤖 AI_STARTUP_BANNER: Console shows it once per session, logs capture every occurrence")
+    logger.warning("🤖 AI_STARTUP_BANNER: figlet_banner() below will log ASCII art with triple backticks for AI visibility")
     
     # 🎨 BEAUTIFUL RESTART BANNER
     figlet_banner(APP_NAME, "Digital Workshop Framework", font='standard', color=BANNER_COLORS['workshop_ready'])
@@ -6606,6 +6618,27 @@ if __name__ == '__main__':
     # 🚨 CRITICAL: Check if server is already running via watchdog
     if check_server_already_running():
         sys.exit(0)
+    
+    # 🤖 AI ASSISTANT EDUCATION: Explicit logging about restart behavior and console filtering
+    # This is ONLY logged (not shown to console) to educate AI assistants about the sophisticated UX design
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: WATCHDOG RESTART BEHAVIOR EXPLANATION")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: The Pipulate server uses a sophisticated dual-display system:")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: 1. CONSOLE (for humans): Shows each banner ONCE per session for clean UX")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: 2. LOGS (for AI assistants): Captures ALL restart events including rapid restarts")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: When watchdog detects file changes, multiple rapid restarts may occur:")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Each restart triggers figlet_banner() calls")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Console shows banners once (better newb/plebe experience)")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Logs capture every restart event for AI transparency")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - DebugConsole class filters '🎭 AI_CREATIVE_VISION' from console output")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - This creates a cleaner user experience while maintaining radical transparency for AI")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: GREP COMMANDS for AI assistants:")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - grep 'ASCII_DATA:' logs/server.log  # See all ASCII art")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - grep 'AI_RESTART_ARCHITECTURE' logs/server.log  # This explanation")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - grep 'FIGLET_BANNER' logs/server.log  # All banner events")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: This dual-logging approach provides:")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Clean console experience for beginners")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Complete transparency for AI debugging")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Continuous narrative flow despite rapid restarts")
     
     # Set global testing mode flags
     if args.test or args.test_deep or args.test_browser:
