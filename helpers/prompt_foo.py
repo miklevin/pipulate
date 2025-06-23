@@ -824,6 +824,8 @@ parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'
 parser.add_argument('--repo-root', type=str, default=repo_root,
                     help=f'Repository root directory (default: {repo_root})')
 parser.add_argument('--no-clipboard', action='store_true', help='Disable copying output to clipboard')
+parser.add_argument('--files', action='store_true', 
+                    help='Generate FILES_TO_INCLUDE_RAW content by enumerating directories')
 
 args = parser.parse_args()
 
@@ -831,6 +833,35 @@ args = parser.parse_args()
 if args.repo_root and args.repo_root != repo_root:
     repo_root = args.repo_root
     print(f"Repository root directory set to: {repo_root}")
+
+# Generate files list if requested
+if args.files:
+    from generate_files_list import generate_files_list
+    print("Generating FILES_TO_INCLUDE_RAW content...")
+    print("=" * 60)
+    
+    content = generate_files_list()
+    
+    # Output to stdout
+    print('FILES_TO_INCLUDE_RAW = """\\')
+    print(content)
+    print('"""')
+    
+    # Also save to a file for easy copying
+    output_file = "generated_files_list.txt"
+    with open(output_file, 'w') as f:
+        f.write('FILES_TO_INCLUDE_RAW = """\\\n')
+        f.write(content)
+        f.write('\n"""')
+    
+    print("\n" + "=" * 60)
+    print(f"Content also saved to: {output_file}")
+    print("\nTo use this:")
+    print("1. Copy the output above")
+    print("2. Replace the FILES_TO_INCLUDE_RAW in prompt_foo.py")
+    print("3. Uncomment the files you want to include")
+    print("4. Run prompt_foo.py as usual")
+    sys.exit(0)
 
 # List available templates if requested
 if args.list:
