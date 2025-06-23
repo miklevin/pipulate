@@ -328,18 +328,14 @@ def register_mcp_tool(tool_name: str, handler_func):
     
     # Use the registry that was passed from server.py
     if MCP_TOOL_REGISTRY is not None:
-        logger.info(f"🔧 MCP REGISTRY: Using server registry for '{tool_name}' (id: {id(MCP_TOOL_REGISTRY)})")
         MCP_TOOL_REGISTRY[tool_name] = handler_func
-        logger.info(f"🔧 MCP REGISTRY: Registry now has {len(MCP_TOOL_REGISTRY)} tools: {list(MCP_TOOL_REGISTRY.keys())}")
     else:
         logger.error(f"🔧 MCP REGISTRY: ERROR - Registry not initialized for '{tool_name}'")
 
 def register_all_mcp_tools():
     """Register all MCP tools with the server."""
     logger.info("🔧 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_START")
-    logger.info(f"🎯 FINDER_TOKEN: MCP_REGISTRY_STATE - Registry is {'initialized' if MCP_TOOL_REGISTRY is not None else 'NOT initialized'}")
-    if MCP_TOOL_REGISTRY is not None:
-        logger.info(f"🎯 FINDER_TOKEN: MCP_REGISTRY_ID - Registry id: {id(MCP_TOOL_REGISTRY)}")
+    # Debug logging removed - registry working correctly
     
     # Core tools
     register_mcp_tool("get_cat_fact", _builtin_get_cat_fact)

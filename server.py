@@ -942,7 +942,7 @@ def register_mcp_tool(tool_name: str, handler_func):
     """
     logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
     MCP_TOOL_REGISTRY[tool_name] = handler_func
-    logger.info(f"🔧 MCP REGISTRY: Registry now has {len(MCP_TOOL_REGISTRY)} tools: {list(MCP_TOOL_REGISTRY.keys())} (id: {id(MCP_TOOL_REGISTRY)})")
+    # Debug logging removed - registry working correctly
 
 # MCP tools are now consolidated in mcp_tools.py - see register_all_mcp_tools()
 
@@ -4246,11 +4246,8 @@ async def startup_event():
     # Ensure mcp_tools has the correct registry reference
     import mcp_tools
     mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
-    logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRY_SYNC - Registry synced (id: {id(MCP_TOOL_REGISTRY)})")
-    
     register_all_mcp_tools()
     logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
-    logger.info(f"🔧 FINDER_TOKEN: MCP_REGISTRY_CONTENTS - Tools: {list(MCP_TOOL_REGISTRY.keys())} (id: {id(MCP_TOOL_REGISTRY)})")
     
     # 🎭 STORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
