@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://pipulate.com/schemas/context"
+           xmlns:tns="http://pipulate.com/schemas/context"
+           elementFormDefault="qualified">
+
+  <!-- Root element: context -->
+  <xs:element name="context">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="manifest" type="tns:manifestType"/>
+        <xs:element name="pre_prompt" type="tns:promptType"/>
+        <xs:element name="content" type="tns:contentType"/>
+        <xs:element name="post_prompt" type="tns:promptType"/>
+        <xs:element name="token_summary" type="tns:tokenSummaryType"/>
+      </xs:sequence>
+      <xs:attribute name="schema" type="xs:string" use="required"/>
+      <xs:attribute name="version" type="tns:versionType" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Manifest section containing files, environment details, conventions, and patterns -->
+  <xs:complexType name="manifestType">
+    <xs:sequence>
+      <xs:element name="files" type="tns:filesType"/>
+      <xs:element name="detail" type="tns:detailType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="conventions" type="tns:conventionsType" minOccurs="0"/>
+      <xs:element name="critical_patterns" type="tns:criticalPatternsType" minOccurs="0"/>
+      <xs:element name="token_usage" type="tns:tokenUsageType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Files collection -->
+  <xs:complexType name="filesType">
+    <xs:sequence>
+      <xs:element name="file" type="tns:fileType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Individual file definition -->
+  <xs:complexType name="fileType">
+    <xs:sequence>
+      <xs:element name="path" type="tns:filePathType"/>
+      <xs:element name="description" type="tns:fileDescriptionType"/>
+      <xs:element name="file_type" type="tns:fileTypeEnum"/>
+      <xs:element name="tokens" type="tns:tokenCountType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Environment and configuration details -->
+  <xs:complexType name="detailType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="description" type="tns:detailDescriptionEnum" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Conventions section -->
+  <xs:complexType name="conventionsType">
+    <xs:sequence>
+      <xs:element name="convention" type="tns:conventionType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="conventionType">
+    <xs:sequence>
+      <xs:element name="name" type="xs:string"/>
+      <xs:element name="description" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Critical patterns section -->
+  <xs:complexType name="criticalPatternsType">
+    <xs:sequence>
+      <xs:element name="pattern" type="tns:patternType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="patternType">
+    <xs:sequence>
+      <xs:element name="pattern" type="xs:string"/>
+      <xs:element name="explanation" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Token usage tracking -->
+  <xs:complexType name="tokenUsageType">
+    <xs:sequence>
+      <xs:element name="files" type="tns:fileTokenUsageType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="fileTokenUsageType">
+    <xs:sequence>
+      <xs:element name="metadata" type="tns:tokenCountType"/>
+      <xs:element name="content" type="tns:contentTokensType"/>
+      <xs:element name="total" type="tns:tokenCountType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="contentTokensType">
+    <xs:sequence>
+      <xs:element name="file" type="tns:tokenFileType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="tokenFileType">
+    <xs:sequence>
+      <xs:element name="path" type="tns:filePathType"/>
+      <xs:element name="tokens" type="tns:tokenCountType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Prompt types (pre_prompt and post_prompt) -->
+  <xs:complexType name="promptType">
+    <xs:sequence>
+      <xs:element name="context" type="tns:contextPromptType" minOccurs="0"/>
+      <xs:element name="response_request" type="tns:responseRequestType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="contextPromptType">
+    <xs:sequence>
+      <xs:element name="system_info" type="xs:string"/>
+      <xs:element name="key_points" type="tns:keyPointsType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="keyPointsType">
+    <xs:sequence>
+      <xs:element name="point" type="xs:string" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="responseRequestType">
+    <xs:sequence>
+      <xs:element name="introduction" type="xs:string"/>
+      <xs:element name="response_areas" type="tns:responseAreasType"/>
+      <xs:element name="focus_areas" type="tns:focusAreasType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="responseAreasType">
+    <xs:sequence>
+      <xs:element name="area" type="tns:responseAreaType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="responseAreaType">
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="questions" type="tns:questionsType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="questionsType">
+    <xs:sequence>
+      <xs:element name="question" type="xs:string" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="focusAreasType">
+    <xs:sequence>
+      <xs:element name="area" type="xs:string" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Content section containing the actual file contents -->
+  <xs:complexType name="contentType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <!-- Content contains mixed text including file markers and actual file contents -->
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Token summary section -->
+  <xs:complexType name="tokenSummaryType">
+    <xs:sequence>
+      <xs:element name="total_context_size" type="tns:tokenDisplayType"/>
+      <xs:element name="files_tokens" type="tns:tokenDisplayType"/>
+      <xs:element name="prompt_tokens" type="tns:tokenDisplayType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Simple types and restrictions -->
+  <xs:simpleType name="versionType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\d+\.\d+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="filePathType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="/[^/]+(/[^/]+)*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="fileDescriptionType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value=".*\[loaded\].*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="fileTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="python"/>
+      <xs:enumeration value="nix"/>
+      <xs:enumeration value="text"/>
+      <xs:enumeration value="markdown"/>
+      <xs:enumeration value="javascript"/>
+      <xs:enumeration value="html"/>
+      <xs:enumeration value="css"/>
+      <xs:enumeration value="json"/>
+      <xs:enumeration value="bash"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="detailDescriptionEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="tree"/>
+      <xs:enumeration value="environment"/>
+      <xs:enumeration value="story"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="tokenCountType">
+    <xs:restriction base="xs:nonNegativeInteger">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="10000000"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="tokenDisplayType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[\d,]+ tokens"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema> 
