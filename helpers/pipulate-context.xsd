@@ -219,6 +219,7 @@
 
   <xs:simpleType name="detailDescriptionEnum">
     <xs:restriction base="xs:string">
+      <xs:enumeration value="schema"/>
       <xs:enumeration value="tree"/>
       <xs:enumeration value="environment"/>
       <xs:enumeration value="story"/>
