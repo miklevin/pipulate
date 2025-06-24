@@ -123,6 +123,70 @@ PROMPT_FILE = None  # Default prompt file is None
 # END USER CONFIGURATION
 # ============================================================================
 
+# ============================================================================
+# CONTENT SIZE REFERENCE SCALE
+# ============================================================================
+# Real-world comparisons for understanding token and word counts
+CONTENT_SIZE_SCALE = {
+    "words": [
+        (500, "Short blog post"),
+        (1000, "Long blog post or magazine article"),
+        (2500, "Academic paper or white paper"),
+        (5000, "Long-form journalism piece"),
+        (7500, "Short story"),
+        (10000, "College research paper"),
+        (15000, "Novella or master's thesis chapter"),
+        (25000, "Master's thesis"),
+        (40000, "Doctoral dissertation chapter"),
+        (60000, "Short non-fiction book"),
+        (80000, "Standard novel"),
+        (120000, "Long novel"),
+        (200000, "Epic fantasy novel"),
+    ],
+    "tokens": [
+        (1000, "Email or short memo"),
+        (2500, "Blog post"),
+        (5000, "Magazine article"),
+        (10000, "Academic paper"),
+        (25000, "Long-form article"),
+        (50000, "Short story or report"),
+        (75000, "Novella chapter"),
+        (100000, "Technical documentation"),
+        (150000, "Short book"),
+        (250000, "Standard novel"),
+        (400000, "Long novel"),
+        (500000, "Technical manual"),
+        (750000, "Epic novel"),
+    ]
+}
+
+def get_size_comparison(count, count_type="words"):
+    """Get a human-readable comparison for word or token counts."""
+    scale = CONTENT_SIZE_SCALE.get(count_type, CONTENT_SIZE_SCALE["words"])
+    
+    for threshold, description in scale:
+        if count <= threshold:
+            return description
+    
+    # If larger than our biggest reference
+    return f"Larger than {scale[-1][1]}"
+
+def format_size_with_comparison(word_count, token_count):
+    """Format size information with human-readable comparisons."""
+    word_comparison = get_size_comparison(word_count, "words")
+    token_comparison = get_size_comparison(token_count, "tokens")
+    
+    return {
+        "words": f"{word_count:,} words ({word_comparison})",
+        "tokens": f"{token_count:,} tokens ({token_comparison})",
+        "word_comparison": word_comparison,
+        "token_comparison": token_comparison
+    }
+
+# ============================================================================
+# END CONTENT SIZE REFERENCE SCALE
+# ============================================================================
+
 def print_structured_output(manifest, pre_prompt, files, post_prompt, total_tokens, max_tokens, total_words=None):
     """Print a structured view of the prompt components in markdown format."""
     print("\n=== Prompt Structure ===\n")
@@ -209,6 +273,16 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
     print(f"Total tokens: {format_token_count(total_tokens)}")
     if total_words is not None:
         print(f"Total words: {format_word_count(total_words)}")
+        
+        # Add size comparisons
+        size_info = format_size_with_comparison(total_words, total_tokens)
+        print(f"\nSize Perspective:")
+        print(f"📝 Content size: {size_info['word_comparison']}")
+        print(f"🤖 Token size: {size_info['token_comparison']}")
+        
+        # Calculate and show token-to-word ratio
+        ratio = total_tokens / total_words if total_words > 0 else 0
+        print(f"📊 Token-to-word ratio: {ratio:.2f} (higher = more technical/structured content)")
     
     print("\n=== End Prompt Structure ===\n")
 
@@ -993,3 +1067,5 @@ print("\nScript finished.")
 # When creating the final output, use direct_prompt if available
 if direct_prompt:
     post_prompt = direct_prompt  # Use the direct string instead of template XML
+
+
