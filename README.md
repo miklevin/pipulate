@@ -23,7 +23,7 @@ Traditional development follows DRY principles, creating abstract, complex syste
 - **🤖 AI-Friendly**: Clear code that AI assistants can easily understand and maintain
 - **🚀 Future-Proof**: Built on durable web standards that won't become obsolete
 
----
+--------------------------------------------------------------------------------
 
 ## What is Pipulate?
 
@@ -69,7 +69,7 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 
 * **Developers:** Those building these workflows, likely porting them from Jupyter Notebooks into the Pipulate framework. They benefit from the simple architecture, reproducibility, and integrated tooling.
 
----
+--------------------------------------------------------------------------------
 
 ## How to Install Pipulate
 
@@ -137,7 +137,7 @@ nix develop
 
 Wait for ***BOTH TABS*** to auto-open in your browser.
 
----
+--------------------------------------------------------------------------------
 
 ## Developer Setup & Environment Notes
 
@@ -151,7 +151,7 @@ Wait for ***BOTH TABS*** to auto-open in your browser.
 * **Dependencies:** System-level dependencies (Python version, libraries like `gcc`, `zlib`) are managed by `flake.nix`. Python package dependencies are managed by `pip` using `requirements.txt` within the Nix-provided environment.
 * **Source of Truth:** The `flake.nix` file is the definitive source for the development environment setup.
 
----
+--------------------------------------------------------------------------------
 
 ## Architecture & Key Concepts
 
