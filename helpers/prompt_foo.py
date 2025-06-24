@@ -421,6 +421,11 @@ class AIAssistantManifest:
             "manifest_structure": 0,
             "total_content": 0  # Running total of file contents
         }
+                    # Add XSD schema for XML structure understanding (front-load for LLM understanding)
+        xsd_schema = self._load_xsd_schema()
+        if xsd_schema:
+            self.set_environment("XML Schema Definition", f"Below is the XSD schema that defines the structure of this XML context document:\n\n{xsd_schema}", description="schema")
+        
         # Add tree output to environment info
         tree_output = run_tree_command()
         self.set_environment("Codebase Structure", f"Below is the output of 'tree -I \"__pycache__|client|data|*.csv|*.zip|*.pkl\"' showing the current state of the codebase:\n\n{tree_output}", description="tree")
@@ -553,6 +558,25 @@ class AIAssistantManifest:
         # Clean up any remaining double newlines
         result = result.replace('\n\n', '\n')
         return result
+    
+    def _load_xsd_schema(self):
+        """Load the XSD schema file for embedding in the manifest."""
+        try:
+            # Look for the XSD file in the helpers directory
+            xsd_path = os.path.join(os.path.dirname(__file__), 'pipulate-context.xsd')
+            if not os.path.exists(xsd_path):
+                # Fallback: look relative to repo root
+                xsd_path = os.path.join(repo_root, 'helpers', 'pipulate-context.xsd')
+            
+            if os.path.exists(xsd_path):
+                with open(xsd_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            else:
+                print(f"Warning: XSD schema not found at {xsd_path}")
+                return None
+        except Exception as e:
+            print(f"Warning: Could not load XSD schema: {e}")
+            return None
     
     def _get_file_type(self, path):
         """Get file type based on extension for better LLM context"""
