@@ -322,12 +322,28 @@
           
           # Open FastHTML in the browser
           (
-            # Wait a brief moment to ensure browser doesn't get confused with multiple tabs
-            sleep 10
-            if command -v xdg-open >/dev/null 2>&1; then
-              xdg-open http://localhost:5001 >/dev/null 2>&1 &
-            elif command -v open >/dev/null 2>&1; then
-              open http://localhost:5001 >/dev/null 2>&1 &
+            # Wait for server to be ready before opening browser
+            echo "Waiting for $APP_NAME server to start (checking http://localhost:5001)..."
+            SERVER_STARTED=false
+            for i in {1..30}; do
+              if curl -s http://localhost:5001 > /dev/null 2>&1; then
+                echo "✅ $APP_NAME server is ready at http://localhost:5001!"
+                SERVER_STARTED=true
+                break
+              fi
+              sleep 1
+              echo -n "."
+            done
+            
+            if [ "$SERVER_STARTED" = true ]; then
+              if command -v xdg-open >/dev/null 2>&1; then
+                xdg-open http://localhost:5001 >/dev/null 2>&1 &
+              elif command -v open >/dev/null 2>&1; then
+                open http://localhost:5001 >/dev/null 2>&1 &
+              fi
+            else
+              echo
+              echo "⚠️  Server didn't start within 30 seconds, but continuing..."
             fi
           ) &
           
@@ -387,12 +403,28 @@
           
           # Open FastHTML in the browser
           (
-            # Wait a brief moment to ensure browser doesn't get confused with multiple tabs
-            sleep 10
-            if command -v xdg-open >/dev/null 2>&1; then
-              xdg-open http://localhost:5001 >/dev/null 2>&1 &
-            elif command -v open >/dev/null 2>&1; then
-              open http://localhost:5001 >/dev/null 2>&1 &
+            # Wait for server to be ready before opening browser
+            echo "Waiting for $APP_NAME server to start (checking http://localhost:5001)..."
+            SERVER_STARTED=false
+            for i in {1..30}; do
+              if curl -s http://localhost:5001 > /dev/null 2>&1; then
+                echo "✅ $APP_NAME server is ready at http://localhost:5001!"
+                SERVER_STARTED=true
+                break
+              fi
+              sleep 1
+              echo -n "."
+            done
+            
+            if [ "$SERVER_STARTED" = true ]; then
+              if command -v xdg-open >/dev/null 2>&1; then
+                xdg-open http://localhost:5001 >/dev/null 2>&1 &
+              elif command -v open >/dev/null 2>&1; then
+                open http://localhost:5001 >/dev/null 2>&1 &
+              fi
+            else
+              echo
+              echo "⚠️  Server didn't start within 30 seconds, but continuing..."
             fi
           ) &
           
