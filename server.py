@@ -678,7 +678,7 @@ def get_current_environment():
     else:
         # Ensure the data directory exists before writing the file
         ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
-        ENV_FILE.write_text(\'Development\')
+        ENV_FILE.write_text('Development')
         return 'Development'
 
 def get_nix_version():
