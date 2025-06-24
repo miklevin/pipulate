@@ -89,11 +89,14 @@ def get_files_with_comments():
         file_path = line
         comment = ""
         
-        # Handle <-- style comments first
+        # Handle <-- style comments first (takes priority over # comments)
         if '<--' in line:
             parts = line.split('<--', 1)
             file_path = parts[0].strip()
             comment = parts[1].strip()
+            # Remove any trailing # from the file_path if it exists
+            if file_path.endswith('#'):
+                file_path = file_path.rstrip('#').strip()
         # Handle trailing # comments
         elif '#' in line:
             parts = line.split('#', 1)
