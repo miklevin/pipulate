@@ -111,6 +111,8 @@ async def _pipeline_state_inspector(params: dict) -> dict:
             # Alternative: use the database directly if pipeline_table not available
             try:
                 from fastlite import database
+                from pathlib import Path
+                Path('data').mkdir(parents=True, exist_ok=True)
                 db = database('data/data.db')
                 pipeline_table = db.pipeline
             except Exception:
@@ -649,6 +651,9 @@ async def _local_llm_get_context(params: dict) -> dict:
         
         context_file = Path('data/local_llm_context.json')
         
+        # Ensure the data directory exists
+        context_file.parent.mkdir(parents=True, exist_ok=True)
+        
         if not context_file.exists():
             return {
                 "success": False,
@@ -673,7 +678,7 @@ async def _local_llm_get_context(params: dict) -> dict:
             "success": False,
             "error": str(e),
             "suggestion": "Try using other MCP tools or ask user for specific information"
-        } 
+        }
 
 async def _ui_flash_element(params: dict) -> dict:
     """Flash a UI element by ID to draw user attention.
