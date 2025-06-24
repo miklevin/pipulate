@@ -170,8 +170,8 @@ def generate_files_list():
         "",
         "# Once upon a midnight dreary, I thought I'd let you think more clearly",
         "# About the quaint and curious volumes of code required for your given chore.",
-        "# So curated them with this here Python script to make it real clear",
-        "# That this XML payload is for you to parse in ways I hope you will adore.",
+        "# While curating git repo packaging picking context for your ransackaging",
+        "# In this XML payload for you to parse in ways I hope you will adore.",
         ""
     ])
     
@@ -307,7 +307,7 @@ FILES_TO_INCLUDE_RAW = """\\{content}
     print("\n" + "=" * 60)
     print("First few lines of generated foo_files.py:")
     print("=" * 60)
-    lines = module_content.split('\n')[:15]
+    lines = module_content.split('\n')[:19]
     for line in lines:
         print(line)
 
