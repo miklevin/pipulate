@@ -260,11 +260,16 @@ def main():
     
     ascii_block_data = extract_ascii_art_blocks(readme_content)
     
-    # Build complete content blocks (header + art + footer) with proper structure
+    # Build complete content blocks (title + header + art + footer) with proper structure
     ascii_blocks = {}
     for key, data in ascii_block_data.items():
         # Construct the full content section with proper markdown structure
         full_content = []
+        
+        # Add the original title/headline that was detected
+        if data['title']:
+            full_content.append(data['title'])
+            full_content.append('')  # Blank line after title
         
         # Add header if it exists (outside backticks)
         if data['header']:
