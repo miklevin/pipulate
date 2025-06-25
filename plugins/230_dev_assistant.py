@@ -1634,21 +1634,21 @@ class DevAssistant:
         commands = []
         
         # Default: Blank template (generic use)
-        blank_cmd = f"python helpers/workflow/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
+        blank_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
                    f"  {format_bash_command(version_data['display_name'])} \\\n" + \
                    f"  {format_bash_command(version_data['endpoint_message'])} \\\n" + \
                    f"  {format_bash_command(version_data['training_prompt'])} \\\n" + \
                    f"  --template blank --role Core --force"
         
         # Hello template option
-        hello_cmd = f"python helpers/workflow/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
+        hello_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
                    f"  {format_bash_command(version_data['display_name'])} \\\n" + \
                    f"  {format_bash_command(version_data['endpoint_message'])} \\\n" + \
                    f"  {format_bash_command(version_data['training_prompt'])} \\\n" + \
                    f"  --template hello --role Core --force"
         
         # Trifecta template option
-        trifecta_cmd = f"python helpers/workflow/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
+        trifecta_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
                        f"  {format_bash_command(version_data['display_name'])} \\\n" + \
                        f"  {format_bash_command(version_data['endpoint_message'])} \\\n" + \
                        f"  {format_bash_command(version_data['training_prompt'])} \\\n" + \

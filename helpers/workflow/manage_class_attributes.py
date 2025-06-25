@@ -7,10 +7,10 @@ This script intelligently merges/replaces class-level constant dictionaries
 workflow file using marker-based precision.
 
 Usage:
-    python helpers/workflow/manage_class_attributes.py TARGET_FILE SOURCE_FILE --attributes-to-merge ATTR1 ATTR2 [--force]
+    python manage_class_attributes.py TARGET_FILE SOURCE_FILE --attributes-to-merge ATTR1 ATTR2 [--force]
 
 Example:
-    python helpers/workflow/manage_class_attributes.py plugins/035_kungfu_workflow.py plugins/500_hello_workflow.py --attributes-to-merge UI_CONSTANTS
+    python manage_class_attributes.py plugins/035_kungfu_workflow.py plugins/500_hello_workflow.py --attributes-to-merge UI_CONSTANTS
 
 The script:
 1. Extracts class attributes from source file using CLASS_ATTRIBUTES_BUNDLE markers
