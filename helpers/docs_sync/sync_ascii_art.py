@@ -5,7 +5,7 @@ Sync ASCII Art - One Command to Rule Them All
 Updates all ASCII art blocks from pipulate/README.md to Pipulate.com
 Walks through all markdown files and updates any markers it finds.
 
-Usage: python helpers/sync_ascii_art.py
+Usage: python helpers/docs_sync/sync_ascii_art.py
 """
 
 import os
@@ -17,8 +17,8 @@ def main():
     """Main synchronization function"""
     print("🚀 Syncing ASCII art from pipulate/README.md to Pipulate.com...")
     
-    # Get ASCII blocks from README.md (same logic as distribute_ascii_art.py)
-    readme_path = Path(__file__).parent.parent / "README.md"
+    # Get ASCII blocks from README.md (adjusted for docs_sync subfolder)
+    readme_path = Path(__file__).parent.parent.parent / "README.md"
     with open(readme_path, 'r', encoding='utf-8') as f:
         readme_content = f.read()
     
@@ -27,8 +27,8 @@ def main():
     
     print(f"✅ Found {len(ascii_blocks)} ASCII blocks in README.md")
     
-    # Find Pipulate.com path
-    pipulate_com_path = Path(__file__).parent.parent / ".." / "Pipulate.com"
+    # Find Pipulate.com path (adjusted for docs_sync subfolder)
+    pipulate_com_path = Path(__file__).parent.parent.parent / ".." / "Pipulate.com"
     
     # Find all markdown files
     markdown_files = []
