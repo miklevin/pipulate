@@ -51,8 +51,8 @@ def extract_ascii_art_blocks(readme_content):
         
         if code_blocks:
             # Found ASCII art! Extract the components
-            title = re.sub(r'^#+\s*', '', headline)
-            slug = slugify(title)
+            title = headline  # Preserve original markdown headline with ### level
+            slug = slugify(headline)  # Use headline for slug generation (will strip ### internally)
             
             # Split content around the first code block
             pattern = r'```\n.*?\n```'
