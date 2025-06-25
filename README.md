@@ -5,6 +5,23 @@
 > **Your data. Your AI. Your machine. Your control.**  
 > No subscriptions, no vendor lock-in, no cloud costs.
 
+### Welcome to Pipulate  <!-- key: pipulate-welcome-banner -->
+
+<!-- START_ASCII_ART: pipulate-welcome-banner -->
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  🎭 PIPULATE: LOCAL-FIRST DIGITAL WORKSHOP                                   ║  
+║  ─────────────────────────────────────────────────────────────────────────── ║
+║                                                                              ║
+║  💬 Chip O'Theseus: "Welcome to your sovereign computing environment!"       ║
+║                                                                              ║
+║  🌟 Where Python functions become HTML elements...                           ║
+║  🌟 Where workflows preserve your creative process...                        ║  
+║  🌟 Where AI assists without cloud dependencies...                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+<!-- END_ASCII_ART: pipulate-welcome-banner -->
+
 # About Pipulate  <!-- key: about-pipulate -->
 
 > Pipulate is a local-first, AI-assisted development framework that transforms how you run SEO workflows by embracing Notebooks without any code.
@@ -236,7 +253,7 @@ This guide shows you how to install Pipulate using two main commands in your ter
                                                              Step 3 │
                                                                     ▼
                                                              ┌─────────────┐
-   TEST                                                      │ 🌐 Browser  │
+                                                             │ 🌐 Browser  │
                                                              │    Opens    │
                                                              │Automatically│
                                                              └─────────────┘
@@ -302,6 +319,26 @@ nix develop
 ```
 
 Wait for ***BOTH TABS*** to auto-open in your browser.
+
+### Installation Process Deep Dive  <!-- key: installation-process-diagram -->
+
+Here's what happens behind the scenes during the "magic cookie" installation:
+
+```
+User runs install.sh (via curl)           Nix Flake Activation & Transformation
+┌──────────────────────────────┐         ┌────────────────────────────────────────────┐
+│ 1. Download install.sh       │         │ 5. User runs 'nix develop'                 │
+│ 2. Download ZIP from GitHub  │         │ 6. Flake detects non-git directory         │
+│ 3. Extract ZIP to ~/AppName  │         │ 7. Flake clones repo to temp dir           │
+│ 4. Download ROT13 SSH key    │         │ 8. Preserves app_name.txt, .ssh, .venv     │
+│    to .ssh/rot               │         │ 9. Moves git repo into place               │
+└─────────────┬────────────────┘         │10. Sets up SSH key for git                 │
+              │                          │11. Transforms into git repo                │
+              ▼                          │12. Enables auto-update via git pull        │
+      ┌─────────────────────────────────────────────────────────────────────────────┐
+      │ Result: Fully functional, auto-updating, git-based Pipulate installation    │
+      └─────────────────────────────────────────────────────────────────────────────┘
+```
 
 --------------------------------------------------------------------------------
 
@@ -378,6 +415,8 @@ Pipulate manages all state server-side within the local environment (think *loca
 * **Simplicity:** Eliminates complexities associated with multi-tenancy, cloud deployment, and distributed state.
 * **Observability:** State changes (via DictLikeDB/JSON) are transparent and easily logged.
 
+### Local-First Benefits Architecture  <!-- key: local-first-benefits-diagram -->
+
 ```
       ┌───────────────────────────────┐ # Benefits of Local-First Simplicity
       │          Web Browser          │
@@ -389,7 +428,7 @@ Pipulate manages all state server-side within the local environment (think *loca
       │              ▼                │ - Direct, observable state changes
       │    ┌─────────────────────┐    │
       │    │  Server-Side State  │    │ 
-      │    │  DictLikeDB + JSON  │ ◄───── Conceptually like local-server-side cookies
+      │    │  DictLikeDB + JSON  │ ◄─── (Conceptually like server-side cookies)
       │    └─────────────────────┘    │ - Enables the "Know EVERYTHING!" philosophy
       └───────────────────────────────┘
 ```
@@ -703,6 +742,26 @@ These "speedbumps" reinforce Pipulate's core philosophy:
  │ (Handles HTTP, WS, SSE)   │     │ Process  │
  └───────────────────────────┘     └──────────┘
 ```
+
+### Pipeline State Inspector & MCP Tools  <!-- key: pipeline-state-inspector -->
+
+The system provides comprehensive debugging and state inspection capabilities through MCP tools and real-time monitoring:
+
+<!-- START_ASCII_ART: pipeline-state-inspector -->
+```
+📊 PIPELINE STATE INSPECTOR
+├─── 🔍 Discovering active workflows...
+├─── ⚡ Found 3 running processes
+├─── 🎯 Step 2/5: Processing data transformations
+└─── ✨ Ready for next interaction!
+
+🤖 MCP TOOL CALLS
+├─── 📡 Connecting to Botify API...
+├─── 🔐 Authentication successful
+├─── 📊 Fetching schema (4,449 fields discovered!)
+└─── 💾 Caching results for lightning-fast access
+```
+<!-- END_ASCII_ART: pipeline-state-inspector -->
 
 -----
 
