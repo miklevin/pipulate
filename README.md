@@ -180,6 +180,10 @@ This diagram illustrates the high-level components and their interactions:
     └───────────────────────────────────────┘
 ```
 
+This complete, self-contained environment runs identically on any operating system, providing the foundation for all Pipulate workflows and AI interactions.
+
+---
+
 ### Integrated Data Science Environment
 
 Jupyter Notebooks run alongside the FastHTML server, allowing developers to prototype workflows in a familiar environment before porting them to Pipulate's step-based interface for end-users. The same Python virtual environment (`.venv`) is shared, and ad-hoc package installation is supported.
