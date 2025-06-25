@@ -2,6 +2,7 @@
 
 ![Pipulate Free & Open Source SEO with & for LLMs](/static/pipulate.svg)
 
+<!-- Don't forget to sync_ascii_art.py -->
 > **Your data. Your AI. Your machine. Your control.**  
 > No subscriptions, no vendor lock-in, no cloud costs.
 
@@ -20,9 +21,9 @@
 ╚══════════════════════════════════════════════════════════════════════════════╝
 ```
 
-# About Pipulate  <!-- key: about-pipulate -->
+## AI On Rails: The Answer to Agentic Mode  <!-- key: about-pipulate -->
 
-> Pipulate is a local-first, AI-assisted development framework that transforms how you run SEO workflows by embracing Notebooks without any code.
+Agentic Mode is like a box of chocolates — you never know what you're gonna get. Ask an AI to do something in *Agentic Mode* and it's going to go off and do whatever it thinks is right until done. But what if there were a domain expert in the picture who sets everything up ahead of time ensuring proper AI coralling and wrangling? Put AIs on Rails with Pipulate using rigid linear workflows prepared by domain experts. Leverage local AI without training the frontier models and keep your secret recipes secret.
 
 ```
       🤖 AGENTIC MODE (Chaos)           🚂 AI ON RAILS (Pipulate)
@@ -33,14 +34,14 @@
                │                                   │
                ▼                                   ▼
       ╔════════════════════╗            ┌─────────────────────┐
-      ║  🌪️  WILLY NILLY   ║            │  Step 1: Analyze    │
-      ║                    ║     VS     │  Step 2: Process    │
-      ║   Unpredictable    ║            │  Step 3: Report     │
-      ║      Results       ║            │  Step 4: Export     │
+      ║  🌪️ WILLY NILLY 🎲 ║            │  Step 1: Analyze▸   │
+      ║                    ║     VS     │  Step 2: Process▸   │
+      ║   Unpredictable    ║            │  Step 3: Report▸    │
+      ║      Results       ║            │  Step 4: Export▸    │
       ╚════════════════════╝            └─────────────────────┘
                │                                   │
                ▼                                   ▼
-    ☁️ Trains Frontier Models       🏠 Keeps Domain Expertise Local
+    ☁️ Trains Frontier Models        🏠 Keeps Domain Expertise Local
 ```
 
 1. 🖥️ **Runs locally** like a desktop app using modern web technologies
@@ -50,7 +51,7 @@
 5. 🔧 **Reproducible environments** with Nix that work identically across all platforms
 6. 🎯 **Perfect for SEO practitioners** who want to turn technical expertise into guided, reusable workflows
 
-## Target Audience  <!-- key: target-audience -->
+## Chef or Customer?  <!-- key: target-audience -->
 
 Pipulate serves two distinct but complementary audiences, much like a restaurant serves both chefs and customers:
 
@@ -239,13 +240,13 @@ This guide shows you how to install Pipulate using two main commands in your ter
 
 ```
 
-    📦 Your Machine             🔧 Add Foundation          🚀 Complete Environment
+    📦 Your Machine            🔧 Add Foundation       🚀 Complete Environment
          Today                       with Nix                 Ready to Go!
                                                           
     ┌─────────────┐             ┌─────────────┐             ┌─────────────┐
     │ Sad Computer│    Step 1   │   🏗️ Nix    │    Step 2   │ 🎯 Pipulate │
     │   Without   │ ──────────► │ Foundation  │ ──────────► │   + AI +    │
-    │     Nix     │             │  Installed  │             │  Jupyter    │
+    │    Nix😢    │             │  Installed  │             │   Jupyter   │
     └─────────────┘             └─────────────┘             └─────────────┘
                                                                     │
                                                              Step 3 │

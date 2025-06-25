@@ -101,13 +101,8 @@ def find_heuristic_ascii_candidates(content, filename, known_ascii_blocks=None):
     
     # Also exclude ASCII art from our known synchronized blocks
     if known_ascii_blocks:
-        for full_content in known_ascii_blocks.values():
-            # Extract just the ASCII art portion from the full content block
-            art_pattern = r'```\n(.*?)\n```'
-            art_match = re.search(art_pattern, full_content, re.DOTALL)
-            if art_match:
-                ascii_art_only = art_match.group(1).strip()
-                managed_ascii_contents.add(ascii_art_only)
+        for ascii_content in known_ascii_blocks.values():
+            managed_ascii_contents.add(ascii_content.strip())
     
     # Improved regex pattern for naked fenced code blocks (no language identifier)
     # (?m): Multiline mode so ^ and $ match line boundaries
@@ -264,34 +259,7 @@ def main():
         readme_content = f.read()
     
     ascii_block_data = extract_ascii_art_blocks(readme_content)
-    
-    # Build complete content blocks (title + header + art + footer) with proper structure
-    ascii_blocks = {}
-    for key, data in ascii_block_data.items():
-        # Construct the full content section with proper markdown structure
-        full_content = []
-        
-        # Add the original title/headline that was detected
-        if data['title']:
-            full_content.append(data['title'])
-            full_content.append('')  # Blank line after title
-        
-        # Add header if it exists (outside backticks)
-        if data['header']:
-            full_content.append(data['header'])
-            full_content.append('')  # Blank line after header
-        
-        # Add the ASCII art within backticks
-        full_content.append('```')
-        full_content.append(data['art'])
-        full_content.append('```')
-        
-        # Add footer if it exists (outside backticks)
-        if data['footer']:
-            full_content.append('')  # Blank line before footer
-            full_content.append(data['footer'])
-        
-        ascii_blocks[key] = '\n'.join(full_content)
+    ascii_blocks = {key: data['art'] for key, data in ascii_block_data.items()}
     
     # Show extraction details with line numbers (skip in prompt mode)
     if not prompt_mode:
@@ -339,30 +307,13 @@ def main():
         candidates = find_heuristic_ascii_candidates(content, str(relative_path), ascii_blocks)
         heuristic_candidates.extend(candidates)
         
-        # Find all markers (always needed for usage frequency calculation)
-        marker_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->'
-        markers = re.findall(marker_pattern, content)
-        
-        # Track usage frequency for all markers (needed for both modes)
-        for marker in markers:
-            all_found_markers.add(marker)
-            if marker in ascii_blocks:
-                usage_frequency[marker].append(str(relative_path))
-            else:
-                # Extract ASCII content from unknown markers for upstream analysis (needed for both modes)
-                match_details = show_pattern_match_details(content, marker, verbose)
-                ascii_content = match_details.get('ascii_content')
-                if ascii_content:
-                    unknown_marker_content[marker] = {
-                        'content': ascii_content,
-                        'file': str(relative_path),
-                        'line_range': f"{match_details.get('start_line', '?')}-{match_details.get('end_line', '?')}",
-                        'first_found': marker not in unknown_marker_content
-                    }
-        
-        # Skip sync work in prompt mode - only collect usage statistics and candidates
+        # Skip sync work in prompt mode - only collect candidates
         if prompt_mode:
             continue
+        
+        # Find all markers (corrected regex)
+        marker_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->'
+        markers = re.findall(marker_pattern, content)
         
         if not markers:
             continue
@@ -370,11 +321,16 @@ def main():
         file_had_updates = False
         
         for i, marker in enumerate(markers):
+            # Track all found markers (including unknown ones)
+            all_found_markers.add(marker)
+            
             # Use tree-style connectors
             is_last_marker = (i == len(markers) - 1)
             tree_connector = "└──" if is_last_marker else "├──"
             
             if marker in ascii_blocks:
+                # Track usage frequency
+                usage_frequency[marker].append(str(relative_path))
                 
                 # Get detailed pattern matching info
                 match_details = show_pattern_match_details(content, marker, verbose)
@@ -394,10 +350,8 @@ def main():
                         
                         if current_art != new_art:
                             # Update needed!
-                            replacement = f'<!-- START_ASCII_ART: {marker} -->\n{new_art}\n<!-- END_ASCII_ART: {marker} -->'
-                            # Use string replacement instead of regex to avoid escape issues
-                            current_block_text = block_match.group(0)
-                            new_content = content.replace(current_block_text, replacement)
+                            replacement = f'<!-- START_ASCII_ART: {marker} -->\n```\n{new_art}\n```\n<!-- END_ASCII_ART: {marker} -->'
+                            new_content = re.sub(block_pattern, replacement, content, flags=re.DOTALL)
                             
                             # Write the updated file
                             with open(md_file, 'w', encoding='utf-8') as f:
@@ -416,29 +370,21 @@ def main():
                             else:
                                 print(f"    {tree_connector} ⚪ No change: {marker}")
                     else:
-                        # Handle empty markers - populate them with ASCII content
-                        new_art = ascii_blocks[marker]
-                        replacement = f'<!-- START_ASCII_ART: {marker} -->\n{new_art}\n<!-- END_ASCII_ART: {marker} -->'
-                        # Use string replacement instead of regex to avoid escape issues
-                        current_block_text = block_match.group(0)
-                        new_content = content.replace(current_block_text, replacement)
-                        
-                        # Write the updated file
-                        with open(md_file, 'w', encoding='utf-8') as f:
-                            f.write(new_content)
-                        
-                        if verbose and match_details['start_line']:
-                            print(f"    {tree_connector} ✅ Populated empty block: {marker} (lines {match_details['start_line']}-{match_details['end_line']})")
-                        else:
-                            print(f"    {tree_connector} ✅ Populated empty block: {marker}")
-                        total_updates += 1
-                        file_had_updates = True
-                        content = new_content  # Update content for next marker in same file
+                        print(f"    {tree_connector} ⚠️  Malformed block: {marker} (no ASCII content found)")
                 else:
                     print(f"    {tree_connector} ❌ Pattern match failed: {marker}")
             else:
-                # Unknown marker - content already extracted above for both modes
+                # Extract ASCII content from unknown markers for upstream analysis
                 match_details = show_pattern_match_details(content, marker, verbose)
+                
+                ascii_content = match_details.get('ascii_content')
+                if ascii_content:
+                    unknown_marker_content[marker] = {
+                        'content': ascii_content,
+                        'file': str(relative_path),
+                        'line_range': f"{match_details.get('start_line', '?')}-{match_details.get('end_line', '?')}",
+                        'first_found': marker not in unknown_marker_content
+                    }
                     
                 if verbose and match_details.get('start_line'):
                     print(f"    {tree_connector} ❌ Block not found in README.md: {marker} (lines {match_details['start_line']}-{match_details['end_line']})")
@@ -578,16 +524,15 @@ def main():
             
             print(f"\n   💡 TO PROMOTE THESE TO README.md:")
             print(f"\n   1️⃣  Copy the ASCII content from the source file")
-            print(f"   2️⃣  Add CLEAN content to pipulate/README.md:")
-            print(f"       ### Your Section Title  <!-- key: marker-name -->")
-            print(f"       ")
+            print(f"   2️⃣  Add to pipulate/README.md in the ASCII art section:")
+            print(f"       <!-- START_ASCII_ART: marker-name -->")
             print(f"       ```")
             print(f"       [ASCII content here]")
             print(f"       ```")
+            print(f"       <!-- END_ASCII_ART: marker-name -->")
             print(f"\n   3️⃣  Run sync script again to propagate to all files:")
             print(f"       python helpers/docs_sync/sync_ascii_art.py")
             print(f"\n   ✨ This will make the ASCII art available system-wide!")
-            print(f"   ⚠️  Remember: README.md gets clean content, not infrastructure markers!")
             
         else:
             print(f"   💡 No high-quality ASCII art found for promotion")
@@ -671,45 +616,39 @@ def main():
             
             if prompt_mode:
                 print("\n## Your Task:")
-                print("\n⚠️  **CRITICAL ARCHITECTURE UNDERSTANDING:**")
-                print("- **README.md** = Content source (clean ASCII art + invisible key comments)")
-                print("- **Documentation files** = Content destinations (infrastructure markers)")
-                print("- **DO NOT** add infrastructure markers to README.md!")
                 print("\nFor each candidate you choose to promote:")
                 print("\n1. **Choose a meaningful marker name** - Use semantic names like `local-first-benefits-diagram` instead of generic ones")
-                print("2. **Add CLEAN content to pipulate/README.md** - Insert ASCII art with section header and invisible key comment")
-                print("3. **Update source files** - Replace naked fenced code blocks with infrastructure marker references")
+                print("2. **Add to pipulate/README.md** - Insert in the ASCII art section with proper markers")
+                print("3. **Update source files** - Replace naked fenced code blocks with marker references")
                 print("4. **Test the sync** - Run `python helpers/docs_sync/sync_ascii_art.py` to verify")
                 print("\n### Example workflow:")
                 print("```markdown")
-                print("<!-- In pipulate/README.md, add CLEAN content: -->")
-                print("### Your Section Title  <!-- key: your-chosen-marker-name -->")
-                print("")
+                print("<!-- In pipulate/README.md, add: -->")
+                print("<!-- START_ASCII_ART: your-chosen-marker-name -->")
                 print("```")
                 print("[Copy the ASCII content from above]")
                 print("```")
+                print("<!-- END_ASCII_ART: your-chosen-marker-name -->")
                 print()
-                print("<!-- In the source file, replace the naked code block with INFRASTRUCTURE: -->")
+                print("<!-- In the source file, replace the naked code block with: -->")
                 print("<!-- START_ASCII_ART: your-chosen-marker-name -->")
                 print("<!-- END_ASCII_ART: your-chosen-marker-name -->")
                 print("```")
-                print("\n🎯 **REMEMBER**: README.md contains clean content, documentation files contain infrastructure!")
             else:
                 print(f"\n   💡 TO PROMOTE HEURISTIC DISCOVERIES:")
                 print(f"\n   1️⃣  Choose a meaningful marker name for the ASCII art")
-                print(f"   2️⃣  Add CLEAN content to pipulate/README.md:")
-                print(f"       ### Your Section Title  <!-- key: your-marker-name -->")
-                print(f"       ")
+                print(f"   2️⃣  Add to pipulate/README.md in the ASCII art section:")
+                print(f"       <!-- START_ASCII_ART: your-marker-name -->")
                 print(f"       ```")
                 print(f"       [Copy the ASCII content from the plain code block]")
                 print(f"       ```")
-                print(f"\n   3️⃣  Replace the naked fenced code block in the source file with INFRASTRUCTURE:")
+                print(f"       <!-- END_ASCII_ART: your-marker-name -->")
+                print(f"\n   3️⃣  Replace the naked fenced code block in the source file with:")
                 print(f"       <!-- START_ASCII_ART: your-marker-name -->")
                 print(f"       <!-- END_ASCII_ART: your-marker-name -->")
                 print(f"\n   4️⃣  Run sync script to propagate:")
                 print(f"       python helpers/docs_sync/sync_ascii_art.py")
                 print(f"\n   ✨ This converts isolated ASCII art into reusable, managed content!")
-                print(f"   ⚠️  Remember: README.md = clean content, documentation files = infrastructure!")
         else:
             if prompt_mode:
                 print("\n### No high-quality candidates found")
