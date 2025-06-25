@@ -13,6 +13,10 @@ Pipulate is built on a radical philosophy that challenges programming orthodoxy:
 
 Traditional development follows DRY principles, creating abstract, complex systems that are hard to understand and modify. But the world has changed:
 
+1. **🔬 Jupyter Notebooks** promote explicit, literate programming
+2. **🤖 AI assistants** excel at managing repetitive code  
+3. **🏠 Local-first architectures** prioritize clarity over enterprise complexity
+
 ```
                                ________________________________
    - Like Notebooks           /                                \
@@ -33,10 +37,6 @@ Traditional development follows DRY principles, creating abstract, complex syste
        |__________________|      |______________________|
 
 ```
-
-1. **🔬 Jupyter Notebooks** promote explicit, literate programming
-2. **🤖 AI assistants** excel at managing repetitive code  
-3. **🏠 Local-first architectures** prioritize clarity over enterprise complexity
 
 **WET workflows are:**
 - **🔍 Observable**: See exactly what's happening at every step
