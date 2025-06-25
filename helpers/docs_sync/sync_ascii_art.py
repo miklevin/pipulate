@@ -259,7 +259,29 @@ def main():
         readme_content = f.read()
     
     ascii_block_data = extract_ascii_art_blocks(readme_content)
-    ascii_blocks = {key: data['art'] for key, data in ascii_block_data.items()}
+    
+    # Build complete content blocks (header + art + footer) with proper structure
+    ascii_blocks = {}
+    for key, data in ascii_block_data.items():
+        # Construct the full content section with proper markdown structure
+        full_content = []
+        
+        # Add header if it exists (outside backticks)
+        if data['header']:
+            full_content.append(data['header'])
+            full_content.append('')  # Blank line after header
+        
+        # Add the ASCII art within backticks
+        full_content.append('```')
+        full_content.append(data['art'])
+        full_content.append('```')
+        
+        # Add footer if it exists (outside backticks)
+        if data['footer']:
+            full_content.append('')  # Blank line before footer
+            full_content.append(data['footer'])
+        
+        ascii_blocks[key] = '\n'.join(full_content)
     
     # Show extraction details with line numbers (skip in prompt mode)
     if not prompt_mode:
@@ -350,8 +372,10 @@ def main():
                         
                         if current_art != new_art:
                             # Update needed!
-                            replacement = f'<!-- START_ASCII_ART: {marker} -->\n```\n{new_art}\n```\n<!-- END_ASCII_ART: {marker} -->'
-                            new_content = re.sub(block_pattern, replacement, content, flags=re.DOTALL)
+                            replacement = f'<!-- START_ASCII_ART: {marker} -->\n{new_art}\n<!-- END_ASCII_ART: {marker} -->'
+                            # Use string replacement instead of regex to avoid escape issues
+                            current_block_text = block_match.group(0)
+                            new_content = content.replace(current_block_text, replacement)
                             
                             # Write the updated file
                             with open(md_file, 'w', encoding='utf-8') as f:
@@ -372,8 +396,10 @@ def main():
                     else:
                         # Handle empty markers - populate them with ASCII content
                         new_art = ascii_blocks[marker]
-                        replacement = f'<!-- START_ASCII_ART: {marker} -->\n```\n{new_art}\n```\n<!-- END_ASCII_ART: {marker} -->'
-                        new_content = re.sub(block_pattern, replacement, content, flags=re.DOTALL)
+                        replacement = f'<!-- START_ASCII_ART: {marker} -->\n{new_art}\n<!-- END_ASCII_ART: {marker} -->'
+                        # Use string replacement instead of regex to avoid escape issues
+                        current_block_text = block_match.group(0)
+                        new_content = content.replace(current_block_text, replacement)
                         
                         # Write the updated file
                         with open(md_file, 'w', encoding='utf-8') as f:
