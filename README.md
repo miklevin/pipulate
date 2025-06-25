@@ -129,9 +129,9 @@ Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-
 
 Pipulate's WET philosophy extends to its technology choices, favoring simple, durable tools over complex abstractions:
 
-## Key Technologies Used
+## "Not On My Machine" Problem Fixed
 
-Pipulate integrates a carefully selected set of tools aligned with its philosophy:
+> The Cloud's popularity has been driven in part by developers not wanting to maintain multiple codebases or installers per OS. Thanks to Nix, that's all fixed.
 
 * **Nix Flakes:** Manages dependencies and creates reproducible environments, ensuring consistency across developers and operating systems, with optional CUDA support. E.g. Is this a Linux-thing you're reading about here? A Windows thing? A Mac thing? The answer is: YES!!! All of the above — and if you've got cool acceleration hardware, it will even take advantage and utilize that too. Best of all worlds.
 
@@ -144,6 +144,10 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
                                                   `._,._,'  /'\_   _/`\  |     |     |
     Solving the "Not on my machine" problem well.           \___)=(___/  |_____|_____|
 ```
+
+## Key Technologies Used
+
+Pipulate integrates a carefully selected set of tools aligned with its philosophy:
 
 * **FastHTML:** A Python web framework prioritizing simplicity. It generates HTML directly from Python objects (no template language like Jinja2) and minimizes JavaScript by design, working closely with HTMX. It's distinct from API-focused frameworks like FastAPI. The Python function-naming *is the HTML-template languge.*
 
