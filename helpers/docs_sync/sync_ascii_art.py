@@ -41,6 +41,7 @@ def main():
                 markdown_files.append(Path(root) / file)
     
     print(f"🔍 Found {len(markdown_files)} markdown files")
+    print("\n📁 Processing files:")
     
     total_updates = 0
     files_updated = 0
@@ -63,12 +64,16 @@ def main():
             continue
             
         relative_path = md_file.relative_to(pipulate_com_path)
-        print(f"\n�� {relative_path}")
+        print(f"\n├── 📄 {relative_path}")
         file_had_updates = False
         
-        for marker in markers:
+        for i, marker in enumerate(markers):
             # Track all found markers (including unknown ones)
             all_found_markers.add(marker)
+            
+            # Use tree-style connectors
+            is_last_marker = (i == len(markers) - 1)
+            tree_connector = "└──" if is_last_marker else "├──"
             
             if marker in ascii_blocks:
                 # Track usage frequency
@@ -95,14 +100,14 @@ def main():
                             with open(md_file, 'w', encoding='utf-8') as f:
                                 f.write(new_content)
                             
-                            print(f"   ✅ Updated: {marker}")
+                            print(f"    {tree_connector} ✅ Updated: {marker}")
                             total_updates += 1
                             file_had_updates = True
                             content = new_content  # Update content for next marker in same file
                         else:
-                            print(f"   ⚪ No change: {marker}")
+                            print(f"    {tree_connector} ⚪ No change: {marker}")
             else:
-                print(f"   ❌ Block not found in README.md: {marker}")
+                print(f"    {tree_connector} ❌ Block not found in README.md: {marker}")
         
         if file_had_updates:
             files_updated += 1
@@ -140,10 +145,11 @@ def main():
         sorted_usage = sorted(used_blocks.items(), key=lambda x: len(x[1]), reverse=True)
         for i, (marker, files) in enumerate(sorted_usage[:5], 1):
             print(f"   {i}. {marker} ({len(files)} uses)")
-            for file_path in files[:3]:  # Show first 3 files
-                print(f"      📝 {file_path}")
+            for j, file_path in enumerate(files[:3]):  # Show first 3 files
+                tree_connector = "└──" if j == min(2, len(files) - 1) else "├──"
+                print(f"      {tree_connector} 📝 {file_path}")
             if len(files) > 3:
-                print(f"      ⋯ and {len(files) - 3} more...")
+                print(f"      └── ⋯ and {len(files) - 3} more...")
     
     # Detailed usage breakdown
     if used_blocks:
@@ -151,21 +157,24 @@ def main():
         for marker in sorted(used_blocks.keys()):
             files = usage_frequency[marker]
             print(f"\n   🎨 {marker} ({len(files)} {'use' if len(files) == 1 else 'uses'}):")
-            for file_path in files:
-                print(f"      📄 {file_path}")
+            for j, file_path in enumerate(files):
+                tree_connector = "└──" if j == len(files) - 1 else "├──"
+                print(f"      {tree_connector} 📄 {file_path}")
     
     # Unused blocks
     if unused_blocks:
         print(f"\n💤 UNUSED BLOCKS ({len(unused_blocks)}):")
-        for marker in sorted(unused_blocks.keys()):
-            print(f"   ⚪ {marker}")
+        for i, marker in enumerate(sorted(unused_blocks.keys())):
+            tree_connector = "└──" if i == len(unused_blocks) - 1 else "├──"
+            print(f"   {tree_connector} ⚪ {marker}")
         print(f"   💡 Consider removing unused blocks or finding places to use them")
     
     # Unknown markers found in files
     if unknown_markers:
         print(f"\n⚠️  UNKNOWN MARKERS FOUND ({len(unknown_markers)}):")
-        for marker in sorted(unknown_markers):
-            print(f"   ❓ {marker}")
+        for i, marker in enumerate(sorted(unknown_markers)):
+            tree_connector = "└──" if i == len(unknown_markers) - 1 else "├──"
+            print(f"   {tree_connector} ❓ {marker}")
         print(f"   💡 These markers exist in files but not in README.md")
     
     print(f"\n{'='*60}")
