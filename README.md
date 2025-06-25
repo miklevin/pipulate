@@ -413,24 +413,6 @@ Pipulate manages all state server-side within the local environment (think *loca
 * **Simplicity:** Eliminates complexities associated with multi-tenancy, cloud deployment, and distributed state.
 * **Observability:** State changes (via DictLikeDB/JSON) are transparent and easily logged.
 
-### Local-First Benefits Architecture  <!-- key: local-first-benefits-diagram -->
-
-```
-      ┌───────────────────────────────┐ # Benefits of Local-First Simplicity
-      │          Web Browser          │
-      │                               │ - No mysterious client-side state
-      │    ┌────────────────────┐     │ - No full-stack framework churn
-      │    │   Server Console   │     │ - No complex ORM or SQL layers
-      │    │     & Web Logs     │     │ - No external message queues
-      │    └─────────┬──────────┘     │ - No build step required
-      │              ▼                │ - Direct, observable state changes
-      │    ┌─────────────────────┐    │
-      │    │  Server-Side State  │    │ 
-      │    │  DictLikeDB + JSON  │ ◄─── (Conceptually like server-side cookies)
-      │    └─────────────────────┘    │ - Enables the "Know EVERYTHING!" philosophy
-      └───────────────────────────────┘
-```
-
 ### Local-First State Management Benefits  <!-- key: local-first-state-management-benefits -->
 
 This detailed view shows how Pipulate's local-first architecture eliminates common web development complexities:
