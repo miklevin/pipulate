@@ -13,6 +13,27 @@ Pipulate is built on a radical philosophy that challenges programming orthodoxy:
 
 Traditional development follows DRY principles, creating abstract, complex systems that are hard to understand and modify. But the world has changed:
 
+```
+                               ________________________________
+   - Like Notebooks           /                                \
+   - Linear Workflows        |  It runs proprietary private AI  |
+   - Local & Cloud-free      |  Workflows from your Local PC?!  |
+   - Chip O'Theseus included  \________________________________/
+                                                               ()
+        HARDWARE PLATFORM               BROWSER                  O    ,
+     _______________________       __________ _______              o  \\  . 
+    |                       |     / Pipulate \Jupyter\__              |\\/|
+    | Windows, Mac or Linux |    |  __________________  |             / " '\
+    |     _____ ___         |    | | App        Menu  | |    See!    . .   .
+    |   _/ Nix \____\_____  |    | |------------------| |<- - - - - /    ) |
+    |  |                  | |    | | Workflow | Local | |          '  _.'  |
+    |  |     Pipulate    <----------> Step 1  | Chat  | |          '-'/    \
+    |__|  localhost:5001  |_|    | |  Step 2  | Help  | |
+       |  (AI on Rails!)  |      | |__________|_______| |      What, no Docker?
+       |__________________|      |______________________|
+
+```
+
 1. **🔬 Jupyter Notebooks** promote explicit, literate programming
 2. **🤖 AI assistants** excel at managing repetitive code  
 3. **🏠 Local-first architectures** prioritize clarity over enterprise complexity
