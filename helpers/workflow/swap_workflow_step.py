@@ -11,10 +11,10 @@ Enhanced to handle both:
 2. Step definitions (Step namedtuple in self.steps list)
 
 Usage:
-    python swap_workflow_step.py TARGET_FILE TARGET_STEP_ID SOURCE_FILE SOURCE_BUNDLE_ID [--force]
+    python helpers/workflow/swap_workflow_step.py TARGET_FILE TARGET_STEP_ID SOURCE_FILE SOURCE_BUNDLE_ID [--force]
 
 Example:
-    python swap_workflow_step.py plugins/035_kungfu_workflow.py step_01 plugins/500_hello_workflow.py step_01
+    python helpers/workflow/swap_workflow_step.py plugins/035_kungfu_workflow.py step_01 plugins/500_hello_workflow.py step_01
 
 The script:
 1. Extracts the source step bundle using START_STEP_BUNDLE/END_STEP_BUNDLE markers
