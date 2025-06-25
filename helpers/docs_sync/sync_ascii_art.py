@@ -248,8 +248,10 @@ def main():
     """Main synchronization function with usage frequency and coverage analysis"""
     # Check for command-line arguments  
     verbose = "--verbose" in sys.argv
+    prompt_mode = "--prompt" in sys.argv
     
-    print("🚀 Syncing ASCII art from pipulate/README.md to Pipulate.com (with heuristic discovery)...")
+    if not prompt_mode:
+        print("🚀 Syncing ASCII art from pipulate/README.md to Pipulate.com (with heuristic discovery)...")
     
     # Get ASCII blocks from README.md (adjusted for docs_sync subfolder)
     readme_path = Path(__file__).parent.parent.parent / "README.md"
@@ -259,12 +261,13 @@ def main():
     ascii_block_data = extract_ascii_art_blocks(readme_content)
     ascii_blocks = {key: data['art'] for key, data in ascii_block_data.items()}
     
-    # Show extraction details with line numbers
-    for key, data in ascii_block_data.items():
-        title = data['title']
-        print(f"✅ Extracted: {title} -> {key}")
-    
-    print(f"✅ Found {len(ascii_blocks)} ASCII blocks in README.md")
+    # Show extraction details with line numbers (skip in prompt mode)
+    if not prompt_mode:
+        for key, data in ascii_block_data.items():
+            title = data['title']
+            print(f"✅ Extracted: {title} -> {key}")
+        
+        print(f"✅ Found {len(ascii_blocks)} ASCII blocks in README.md")
     
     # Find Pipulate.com path (adjusted for docs_sync subfolder)
     pipulate_com_path = Path(__file__).parent.parent.parent / ".." / "Pipulate.com"
@@ -279,8 +282,9 @@ def main():
             if file.endswith('.md'):
                 markdown_files.append(Path(root) / file)
     
-    print(f"🔍 Found {len(markdown_files)} markdown files")
-    print("\n📁 Processing files:")
+    if not prompt_mode:
+        print(f"🔍 Found {len(markdown_files)} markdown files")
+        print("\n📁 Processing files:")
     
     total_updates = 0
     files_updated = 0
@@ -302,6 +306,10 @@ def main():
         # Scan for heuristic ASCII art candidates (always enabled)
         candidates = find_heuristic_ascii_candidates(content, str(relative_path), ascii_blocks)
         heuristic_candidates.extend(candidates)
+        
+        # Skip sync work in prompt mode - only collect candidates
+        if prompt_mode:
+            continue
         
         # Find all markers (corrected regex)
         marker_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->'
@@ -362,7 +370,22 @@ def main():
                             else:
                                 print(f"    {tree_connector} ⚪ No change: {marker}")
                     else:
-                        print(f"    {tree_connector} ⚠️  Malformed block: {marker} (no ASCII content found)")
+                        # Handle empty markers - populate them with ASCII content
+                        new_art = ascii_blocks[marker]
+                        replacement = f'<!-- START_ASCII_ART: {marker} -->\n```\n{new_art}\n```\n<!-- END_ASCII_ART: {marker} -->'
+                        new_content = re.sub(block_pattern, replacement, content, flags=re.DOTALL)
+                        
+                        # Write the updated file
+                        with open(md_file, 'w', encoding='utf-8') as f:
+                            f.write(new_content)
+                        
+                        if verbose and match_details['start_line']:
+                            print(f"    {tree_connector} ✅ Populated empty block: {marker} (lines {match_details['start_line']}-{match_details['end_line']})")
+                        else:
+                            print(f"    {tree_connector} ✅ Populated empty block: {marker}")
+                        total_updates += 1
+                        file_had_updates = True
+                        content = new_content  # Update content for next marker in same file
                 else:
                     print(f"    {tree_connector} ❌ Pattern match failed: {marker}")
             else:
@@ -386,22 +409,24 @@ def main():
         if file_had_updates:
             files_updated += 1
     
-    print(f"\n🎉 Sync complete!")
-    print(f"   📊 Files updated: {files_updated}")
-    print(f"   🔄 Total blocks updated: {total_updates}")
-    
-    if total_updates == 0:
-        print("   ✨ All ASCII art was already up to date!")
-    
-    # ASCII Art Usage Frequency & Coverage Analysis
-    print(f"\n{'='*60}")
-    print("📈 ASCII ART USAGE FREQUENCY & COVERAGE ANALYSIS")
-    print(f"{'='*60}")
-    
-    # Calculate coverage statistics
+    # Calculate coverage statistics (needed for both modes)
     used_blocks = {marker: files for marker, files in usage_frequency.items() if files}
     unused_blocks = {marker: files for marker, files in usage_frequency.items() if not files}
     unknown_markers = all_found_markers - set(ascii_blocks.keys())
+    
+    # Skip sync results in prompt mode
+    if not prompt_mode:
+        print(f"\n🎉 Sync complete!")
+        print(f"   📊 Files updated: {files_updated}")
+        print(f"   🔄 Total blocks updated: {total_updates}")
+        
+        if total_updates == 0:
+            print("   ✨ All ASCII art was already up to date!")
+        
+        # ASCII Art Usage Frequency & Coverage Analysis
+        print(f"\n{'='*60}")
+        print("📈 ASCII ART USAGE FREQUENCY & COVERAGE ANALYSIS")
+        print(f"{'='*60}")
     
     total_usages = sum(len(files) for files in usage_frequency.values())
     coverage_percentage = (len(used_blocks) / len(ascii_blocks)) * 100 if ascii_blocks else 0
@@ -529,7 +554,20 @@ def main():
     
     # Heuristic ASCII Art Discovery (improved regex-based naked fenced code block detection)
     if heuristic_candidates:
-        print(f"\n🔍 HEURISTIC ASCII ART DISCOVERY (improved regex):")
+        if prompt_mode:
+            # Special AI-friendly prompt format
+            print("# ASCII Art Promotion Task")
+            print("\nYou are an expert content curator for the Pipulate project. Your task is to analyze and promote high-quality ASCII art candidates that have been discovered in the documentation.")
+            print("\nBased on the candidates below, please:")
+            print("1. Select the BEST ASCII art candidates for promotion")
+            print("2. Choose appropriate marker names that reflect their semantic meaning")
+            print("3. Add them to pipulate/README.md in the appropriate ASCII art section")
+            print("4. Replace the naked fenced code blocks in the source files with proper markers")
+            print("5. Run the sync script to propagate the changes")
+            print("\n## Discovered ASCII Art Candidates:")
+        else:
+            print(f"\n🔍 HEURISTIC ASCII ART DISCOVERY (improved regex):")
+        
         print(f"\n   Found {len(heuristic_candidates)} potential ASCII art blocks in naked fenced code blocks:")
         
         # Analyze quality of heuristic candidates
@@ -551,7 +589,10 @@ def main():
                 })
         
         if quality_candidates:
-            print(f"\n   🌟 HIGH-QUALITY CANDIDATES ({len(quality_candidates)}):")
+            if prompt_mode:
+                print(f"\n### HIGH-QUALITY CANDIDATES ({len(quality_candidates)}):")
+            else:
+                print(f"\n   🌟 HIGH-QUALITY CANDIDATES ({len(quality_candidates)}):")
             
             for i, candidate in enumerate(quality_candidates, 1):
                 content = candidate['content']
@@ -563,73 +604,111 @@ def main():
                 is_last = (i == len(quality_candidates))
                 tree_connector = "└──" if is_last else "├──"
                 
-                print(f"\n   {tree_connector} 🎨 Found in: {file_location}")
-                print(f"   {'   ' if is_last else '│  '} ├── ⭐ Quality factors: {', '.join(reasons)}")
-                if verbose and start_line != 'unknown':
-                    print(f"   {'   ' if is_last else '│  '} ├── 📍 Location: line {start_line}")
-                print(f"   {'   ' if is_last else '│  '} ├── 🏷️  Suggested marker: {suggested_marker}")
-                print(f"   {'   ' if is_last else '│  '} └── 📝 Full ASCII art content:")
-                
-                all_lines = content.split('\n')
-                for j, line in enumerate(all_lines):
-                    is_last_line = (j == len(all_lines) - 1)
-                    line_connector = "└──" if is_last_line else "├──"
-                    indent = "      " if is_last else "│     "
-                    print(f"   {indent} {line_connector} {line}")
+                if prompt_mode:
+                    print(f"\n#### Candidate {i}: {file_location}")
+                    print(f"- **Quality factors**: {', '.join(reasons)}")
+                    if start_line != 'unknown':
+                        print(f"- **Location**: line {start_line}")
+                    print(f"- **Suggested marker**: `{suggested_marker}`")
+                    print(f"- **ASCII Art Content**:")
+                    print("```")
+                    print(content)
+                    print("```")
+                else:
+                    print(f"\n   {tree_connector} 🎨 Found in: {file_location}")
+                    print(f"   {'   ' if is_last else '│  '} ├── ⭐ Quality factors: {', '.join(reasons)}")
+                    if verbose and start_line != 'unknown':
+                        print(f"   {'   ' if is_last else '│  '} ├── 📍 Location: line {start_line}")
+                    print(f"   {'   ' if is_last else '│  '} ├── 🏷️  Suggested marker: {suggested_marker}")
+                    print(f"   {'   ' if is_last else '│  '} └── 📝 Full ASCII art content:")
+                    
+                    all_lines = content.split('\n')
+                    for j, line in enumerate(all_lines):
+                        is_last_line = (j == len(all_lines) - 1)
+                        line_connector = "└──" if is_last_line else "├──"
+                        indent = "      " if is_last else "│     "
+                        print(f"   {indent} {line_connector} {line}")
             
-            print(f"\n   💡 TO PROMOTE HEURISTIC DISCOVERIES:")
-            print(f"\n   1️⃣  Choose a meaningful marker name for the ASCII art")
-            print(f"   2️⃣  Add to pipulate/README.md in the ASCII art section:")
-            print(f"       <!-- START_ASCII_ART: your-marker-name -->")
-            print(f"       ```")
-            print(f"       [Copy the ASCII content from the plain code block]")
-            print(f"       ```")
-            print(f"       <!-- END_ASCII_ART: your-marker-name -->")
-            print(f"\n   3️⃣  Replace the naked fenced code block in the source file with:")
-            print(f"       <!-- START_ASCII_ART: your-marker-name -->")
-            print(f"       <!-- END_ASCII_ART: your-marker-name -->")
-            print(f"\n   4️⃣  Run sync script to propagate:")
-            print(f"       python helpers/docs_sync/sync_ascii_art.py")
-            print(f"\n   ✨ This converts isolated ASCII art into reusable, managed content!")
+            if prompt_mode:
+                print("\n## Your Task:")
+                print("\nFor each candidate you choose to promote:")
+                print("\n1. **Choose a meaningful marker name** - Use semantic names like `local-first-benefits-diagram` instead of generic ones")
+                print("2. **Add to pipulate/README.md** - Insert in the ASCII art section with proper markers")
+                print("3. **Update source files** - Replace naked fenced code blocks with marker references")
+                print("4. **Test the sync** - Run `python helpers/docs_sync/sync_ascii_art.py` to verify")
+                print("\n### Example workflow:")
+                print("```markdown")
+                print("<!-- In pipulate/README.md, add: -->")
+                print("<!-- START_ASCII_ART: your-chosen-marker-name -->")
+                print("```")
+                print("[Copy the ASCII content from above]")
+                print("```")
+                print("<!-- END_ASCII_ART: your-chosen-marker-name -->")
+                print()
+                print("<!-- In the source file, replace the naked code block with: -->")
+                print("<!-- START_ASCII_ART: your-chosen-marker-name -->")
+                print("<!-- END_ASCII_ART: your-chosen-marker-name -->")
+                print("```")
+            else:
+                print(f"\n   💡 TO PROMOTE HEURISTIC DISCOVERIES:")
+                print(f"\n   1️⃣  Choose a meaningful marker name for the ASCII art")
+                print(f"   2️⃣  Add to pipulate/README.md in the ASCII art section:")
+                print(f"       <!-- START_ASCII_ART: your-marker-name -->")
+                print(f"       ```")
+                print(f"       [Copy the ASCII content from the plain code block]")
+                print(f"       ```")
+                print(f"       <!-- END_ASCII_ART: your-marker-name -->")
+                print(f"\n   3️⃣  Replace the naked fenced code block in the source file with:")
+                print(f"       <!-- START_ASCII_ART: your-marker-name -->")
+                print(f"       <!-- END_ASCII_ART: your-marker-name -->")
+                print(f"\n   4️⃣  Run sync script to propagate:")
+                print(f"       python helpers/docs_sync/sync_ascii_art.py")
+                print(f"\n   ✨ This converts isolated ASCII art into reusable, managed content!")
         else:
-            print(f"   📝 Found candidates but none met quality thresholds")
-    
-    # How to use ASCII art markers documentation
-    print(f"\n📖 HOW TO USE ASCII ART MARKERS:")
-    print(f"\n   🎯 To insert any ASCII art block in your markdown files:")
-    print(f"\n   1️⃣  Add the opening marker:")
-    print(f"       <!-- START_ASCII_ART: block-name -->")
-    print(f"\n   2️⃣  Add the closing marker:")
-    print(f"       <!-- END_ASCII_ART: block-name -->")
-    print(f"\n   3️⃣  Run the sync script:")
-    print(f"       python helpers/docs_sync/sync_ascii_art.py")
-    
-    if unused_blocks:
-        # Show example with first unused block
-        first_unused = sorted(unused_blocks.keys())[0]
-        print(f"\n   📝 Example usage for unused block '{first_unused}':")
-        print(f"       ")
-        print(f"       Here's how this feature works:")
-        print(f"       ")
-        print(f"       <!-- START_ASCII_ART: {first_unused} -->")
-        print(f"       <!-- END_ASCII_ART: {first_unused} -->")
-        print(f"       ")
-        print(f"       This will provide detailed technical insights...")
-    
-    print(f"\n   ✨ The ASCII art content will be automatically inserted between the markers!")
-    print(f"   🔄 Any changes to the source (README.md) will sync to all files using that marker.")
+            if prompt_mode:
+                print("\n### No high-quality candidates found")
+                print("All discovered ASCII art failed to meet quality thresholds.")
+            else:
+                print(f"   📝 Found candidates but none met quality thresholds")
 
-    if verbose:
-        print(f"\n🔧 PATTERN MATCHING VERIFICATION:")
-        print(f"   📋 Use --verbose flag to see:")
-        print(f"   • Exact line numbers for all markers")
-        print(f"   • Pattern matching success/failure details")
-        print(f"   • ASCII content line counts")
-        print(f"   • File location ranges for unknown markers")
+    # Skip documentation sections in prompt mode
+    if not prompt_mode:
+        # How to use ASCII art markers documentation
+        print(f"\n📖 HOW TO USE ASCII ART MARKERS:")
+        print(f"\n   🎯 To insert any ASCII art block in your markdown files:")
+        print(f"\n   1️⃣  Add the opening marker:")
+        print(f"       <!-- START_ASCII_ART: block-name -->")
+        print(f"\n   2️⃣  Add the closing marker:")
+        print(f"       <!-- END_ASCII_ART: block-name -->")
+        print(f"\n   3️⃣  Run the sync script:")
+        print(f"       python helpers/docs_sync/sync_ascii_art.py")
+        
+        if 'unused_blocks' in locals() and unused_blocks:
+            # Show example with first unused block
+            first_unused = sorted(unused_blocks.keys())[0]
+            print(f"\n   📝 Example usage for unused block '{first_unused}':")
+            print(f"       ")
+            print(f"       Here's how this feature works:")
+            print(f"       ")
+            print(f"       <!-- START_ASCII_ART: {first_unused} -->")
+            print(f"       <!-- END_ASCII_ART: {first_unused} -->")
+            print(f"       ")
+            print(f"       This will provide detailed technical insights...")
+        
+        print(f"\n   ✨ The ASCII art content will be automatically inserted between the markers!")
+        print(f"   🔄 Any changes to the source (README.md) will sync to all files using that marker.")
 
-    print(f"\n{'='*60}")
-    print("✨ Analysis complete! ASCII art ecosystem status reported.")
-    print(f"{'='*60}")
+        if verbose:
+            print(f"\n🔧 PATTERN MATCHING VERIFICATION:")
+            print(f"   📋 Use --verbose flag to see:")
+            print(f"   • Exact line numbers for all markers")
+            print(f"   • Pattern matching success/failure details")
+            print(f"   • ASCII content line counts")
+            print(f"   • File location ranges for unknown markers")
+
+        print(f"\n{'='*60}")
+        print("✨ Analysis complete! ASCII art ecosystem status reported.")
+        print(f"{'='*60}")
 
 if __name__ == "__main__":
     main()
