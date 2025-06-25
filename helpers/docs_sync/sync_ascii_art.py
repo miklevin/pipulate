@@ -114,21 +114,22 @@ def find_heuristic_ascii_candidates(content, filename, known_ascii_blocks=None):
     matches = re.finditer(pattern, content)
     
     for match in matches:
-        ascii_content = match.group(1).strip()
+        ascii_content_raw = match.group(1)  # Don't strip() - preserves leading/trailing whitespace  
+        ascii_content_stripped = ascii_content_raw.strip()  # Use stripped version for comparisons
         
         # Skip if this ASCII art is already managed by markers
-        if ascii_content in managed_ascii_contents:
+        if ascii_content_stripped in managed_ascii_contents:
             continue
         
         # Additional filtering: exclude blocks that contain programming language patterns
-        if contains_programming_code(ascii_content):
+        if contains_programming_code(ascii_content_stripped):
             continue
             
-        if is_likely_ascii_art(ascii_content):
+        if is_likely_ascii_art(ascii_content_stripped):
             # Find line number where this block starts
             start_line = find_line_number(content, match.group(0))
             candidates.append({
-                'content': ascii_content,
+                'content': ascii_content_raw,  # Store original with preserved whitespace
                 'filename': filename,
                 'start_line': start_line,
                 'context': f"Found in naked fenced code block in {filename} (improved regex)"
