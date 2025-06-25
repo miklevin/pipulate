@@ -10,22 +10,22 @@
 > Pipulate is a local-first, AI-assisted development framework that transforms how you run SEO workflows by embracing Notebooks without any code.
 
 ```
-    🤖 AGENTIC MODE (Chaos)           🚂 AI ON RAILS (Pipulate)
-    ═══════════════════════           ══════════════════════════
-    
-        💥 GOES OFF                      📊 LINEAR WORKFLOWS
-        HALF-COCKED!                      BY DOMAIN EXPERTS
-             │                                   │
-             ▼                                   ▼
-    ╔════════════════════╗            ┌─────────────────────┐
-    ║  🌪️  WILLY NILLY   ║            │  Step 1: Analyze    │
-    ║                    ║     VS     │  Step 2: Process    │
-    ║   Unpredictable    ║            │  Step 3: Report     │
-    ║      Results       ║            │  Step 4: Export     │
-    ╚════════════════════╝            └─────────────────────┘
-             │                                   │
-             ▼                                   ▼
-    ☁️ Trains Frontier Models    🏠 Keeps Domain Expertise Local
+      🤖 AGENTIC MODE (Chaos)           🚂 AI ON RAILS (Pipulate)
+      ═══════════════════════           ══════════════════════════
+      
+          💥 GOES OFF                      📊 LINEAR WORKFLOWS
+          HALF-COCKED!                      BY DOMAIN EXPERTS
+               │                                   │
+               ▼                                   ▼
+      ╔════════════════════╗            ┌─────────────────────┐
+      ║  🌪️  WILLY NILLY   ║            │  Step 1: Analyze    │
+      ║                    ║     VS     │  Step 2: Process    │
+      ║   Unpredictable    ║            │  Step 3: Report     │
+      ║      Results       ║            │  Step 4: Export     │
+      ╚════════════════════╝            └─────────────────────┘
+               │                                   │
+               ▼                                   ▼
+    ☁️ Trains Frontier Models     🏠 Keeps Domain Expertise Local
 ```
 
 1. 🖥️ **Runs locally** like a desktop app using modern web technologies
