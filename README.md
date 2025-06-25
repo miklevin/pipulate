@@ -25,7 +25,7 @@
       ╚════════════════════╝            └─────────────────────┘
                │                                   │
                ▼                                   ▼
-    ☁️ Trains Frontier Models     🏠 Keeps Domain Expertise Local
+    ☁️ Trains Frontier Models       🏠 Keeps Domain Expertise Local
 ```
 
 1. 🖥️ **Runs locally** like a desktop app using modern web technologies
