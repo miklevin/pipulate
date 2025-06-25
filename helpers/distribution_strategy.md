@@ -122,11 +122,13 @@ Line 211: Local-first diagram → local-first-single-tenant-details
 ## 🔧 IMPLEMENTATION STRATEGY
 
 ### Marker Placement Strategy
-```markdown
-# --- START_ASCII_ART: {key} ---
+```html
+<!-- START_ASCII_ART: {key} -->
 {ascii_art_content}
-# --- END_ASCII_ART: {key} ---
+<!-- END_ASCII_ART: {key} -->
 ```
+
+**CRITICAL:** HTML comment markers are invisible to Jekyll rendering, preventing ugly header display on websites.
 
 ### Key Mapping Rules
 1. Use exact key from README.md parser

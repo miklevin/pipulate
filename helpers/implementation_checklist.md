@@ -95,6 +95,15 @@
 
 ## 🛠️ IMPLEMENTATION PROCEDURES
 
+### HTML Comment Marker Format
+```html
+<!-- START_ASCII_ART: {key} -->
+{ascii_art_content}  
+<!-- END_ASCII_ART: {key} -->
+```
+
+**CRITICAL:** HTML comment markers are invisible to Jekyll rendering, preventing ugly header display on websites.
+
 ### Pre-Distribution Checks
 - [ ] Verify README.md parser finds all 10 blocks
 - [ ] Test distribution system with known working marker
