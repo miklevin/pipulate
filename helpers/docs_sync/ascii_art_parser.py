@@ -20,6 +20,44 @@ def slugify(text):
     text = re.sub(r'[^a-zA-Z0-9\s-]', '', text).strip().lower()
     return re.sub(r'[\s-]+', '-', text)
 
+def clean_footer_delimiters(footer):
+    """Remove common section delimiters from footer content"""
+    if not footer:
+        return footer
+    
+    # Common delimiters that mark section boundaries
+    delimiters = [
+        r'^-{50,}$',           # 50+ hyphens (like --------------------------------------------------------------------------------)
+        r'^={50,}$',           # 50+ equals signs
+        r'^#{1,6}\s+.+$',      # Next markdown headline (### Title)
+        r'^\*{50,}$',          # 50+ asterisks
+        r'^---+$',             # 3+ hyphens (markdown horizontal rule)
+        r'^===+$',             # 3+ equals (another horizontal rule style)
+    ]
+    
+    lines = footer.split('\n')
+    cleaned_lines = []
+    
+    for line in lines:
+        line_stripped = line.strip()
+        
+        # Check if this line matches any delimiter pattern
+        is_delimiter = False
+        for delimiter_pattern in delimiters:
+            if re.match(delimiter_pattern, line_stripped, re.MULTILINE):
+                is_delimiter = True
+                break
+        
+        # If we hit a delimiter, stop processing (exclude this line and everything after)
+        if is_delimiter:
+            break
+            
+        cleaned_lines.append(line)
+    
+    # Join back and strip any trailing whitespace
+    cleaned_footer = '\n'.join(cleaned_lines).rstrip()
+    return cleaned_footer
+
 def extract_ascii_art_blocks(readme_content):
     """
     Extract ASCII art blocks from README.md content
@@ -66,6 +104,9 @@ def extract_ascii_art_blocks(readme_content):
             
             # Clean up header (remove trailing colons, etc.)
             header = re.sub(r':$', '', header).strip()
+            
+            # Clean up footer - remove common delimiters that mark section boundaries
+            footer = clean_footer_delimiters(footer)
             
             blocks[slug] = {
                 "title": title,
