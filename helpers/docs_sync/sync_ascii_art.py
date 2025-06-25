@@ -101,6 +101,11 @@ def find_heuristic_ascii_candidates(content, filename):
     
     for match in matches:
         ascii_content = match.group(1).strip()
+        
+        # Additional filtering: exclude blocks that contain programming language patterns
+        if contains_programming_code(ascii_content):
+            continue
+            
         if is_likely_ascii_art(ascii_content):
             # Find line number where this block starts
             start_line = find_line_number(content, match.group(0))
@@ -112,6 +117,69 @@ def find_heuristic_ascii_candidates(content, filename):
             })
     
     return candidates
+
+def contains_programming_code(content):
+    """Check if content contains programming language patterns that indicate it's code, not ASCII art"""
+    if not content:
+        return False
+    
+    # Programming language indicators
+    code_patterns = [
+        # Language identifiers in nested code blocks
+        r'```(python|javascript|js|typescript|ts|bash|shell|sh|java|c|cpp|go|rust|ruby|php|sql|html|css|xml|json|yaml|yml)',
+        # Python-specific patterns
+        r'\bdef\s+\w+\s*\(',  # function definitions
+        r'\bclass\s+\w+',     # class definitions  
+        r'\bimport\s+\w+',    # import statements
+        r'\bfrom\s+\w+\s+import',  # from imports
+        r'\breturn\s+',       # return statements
+        r'\bif\s+.*:',        # if statements
+        r'\bfor\s+.*\s+in\s+.*:',  # for loops
+        r'\bwhile\s+.*:',     # while loops
+        r'\btry\s*:',         # try blocks
+        r'\bexcept\s*.*:',    # except blocks
+        # JavaScript/TypeScript patterns
+        r'\bfunction\s+\w+\s*\(',  # function declarations
+        r'\bconst\s+\w+\s*=',      # const declarations
+        r'\blet\s+\w+\s*=',        # let declarations
+        r'\bvar\s+\w+\s*=',        # var declarations
+        r'=>',                     # arrow functions
+        # General programming patterns
+        r'\w+\s*=\s*\w+\(',   # function calls
+        r'\w+\.\w+\(',        # method calls
+        r'#\s*[A-Z][A-Z_]+',  # comments (but allow # in ASCII art)
+        r'//',                # comment lines
+        r'<!--.*-->',         # HTML comments
+        # Common programming constructs
+        r'\{\s*$',            # opening braces at end of line
+        r'^\s*\}',            # closing braces at start of line
+        r';\s*$',             # semicolons at end of line
+    ]
+    
+    # Check for multiple code indicators (reduces false positives)
+    code_indicator_count = 0
+    for pattern in code_patterns:
+        if re.search(pattern, content, re.MULTILINE | re.IGNORECASE):
+            code_indicator_count += 1
+            # If we find multiple strong code indicators, it's definitely code
+            if code_indicator_count >= 2:
+                return True
+    
+    # Single strong indicators that are definitive
+    strong_indicators = [
+        r'```(python|javascript|js|typescript|ts|bash|shell|sh|java|c|cpp|go|rust|ruby|php|sql)',
+        r'\bdef\s+\w+\s*\(',
+        r'\bclass\s+\w+\s*\(',
+        r'\bfunction\s+\w+\s*\(',
+        r'\bimport\s+\w+',
+        r'\bfrom\s+\w+\s+import',
+    ]
+    
+    for pattern in strong_indicators:
+        if re.search(pattern, content, re.MULTILINE | re.IGNORECASE):
+            return True
+    
+    return False
 
 def analyze_ascii_art_quality(ascii_content):
     """Analyze ASCII art to determine if it's worth promoting upstream"""
