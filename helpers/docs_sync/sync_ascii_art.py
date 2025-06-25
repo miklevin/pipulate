@@ -143,13 +143,11 @@ def main():
     if used_blocks:
         print(f"\n🏆 MOST FREQUENTLY USED BLOCKS:")
         sorted_usage = sorted(used_blocks.items(), key=lambda x: len(x[1]), reverse=True)
-        for i, (marker, files) in enumerate(sorted_usage[:5], 1):
+        for i, (marker, files) in enumerate(sorted_usage, 1):
             print(f"   {i}. {marker} ({len(files)} uses)")
-            for j, file_path in enumerate(files[:3]):  # Show first 3 files
-                tree_connector = "└──" if j == min(2, len(files) - 1) else "├──"
+            for j, file_path in enumerate(files):
+                tree_connector = "└──" if j == len(files) - 1 else "├──"
                 print(f"      {tree_connector} 📝 {file_path}")
-            if len(files) > 3:
-                print(f"      └── ⋯ and {len(files) - 3} more...")
     
     # Detailed usage breakdown
     if used_blocks:
