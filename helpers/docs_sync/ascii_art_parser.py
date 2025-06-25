@@ -12,6 +12,16 @@ Extracts ASCII art blocks from README.md according to the parsing strategy:
 import re
 from pathlib import Path
 
+def extract_key_from_headline(headline):
+    """Extract key from headline, preferring comment-key if present"""
+    # Check for comment-key first: <!-- key: some-key-name -->
+    comment_key_match = re.search(r'<!--\s*key:\s*([^>]+)\s*-->', headline)
+    if comment_key_match:
+        return comment_key_match.group(1).strip()
+    
+    # Fallback to slugify if no comment-key found
+    return slugify(headline)
+
 def slugify(text):
     """Convert title to URL-friendly slug"""
     # Remove ### prefix and clean up
@@ -90,7 +100,7 @@ def extract_ascii_art_blocks(readme_content):
         if code_blocks:
             # Found ASCII art! Extract the components
             title = headline  # Preserve original markdown headline with ### level
-            slug = slugify(headline)  # Use headline for slug generation (will strip ### internally)
+            slug = extract_key_from_headline(headline)  # Use comment-key if present, otherwise slugify
             
             # Split content around the first code block
             pattern = r'```\n.*?\n```'
@@ -121,7 +131,7 @@ def extract_ascii_art_blocks(readme_content):
 
 def main():
     """Test the parser with README.md"""
-    readme_path = Path(__file__).parent.parent / "README.md"
+    readme_path = Path(__file__).parent.parent.parent / "README.md"
     
     if not readme_path.exists():
         print(f"❌ README.md not found at {readme_path}")
