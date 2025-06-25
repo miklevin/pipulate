@@ -175,6 +175,31 @@ def main():
             print(f"   {tree_connector} ❓ {marker}")
         print(f"   💡 These markers exist in files but not in README.md")
     
+    # How to use ASCII art markers documentation
+    print(f"\n📖 HOW TO USE ASCII ART MARKERS:")
+    print(f"\n   🎯 To insert any ASCII art block in your markdown files:")
+    print(f"\n   1️⃣  Add the opening marker:")
+    print(f"       <!-- START_ASCII_ART: block-name -->")
+    print(f"\n   2️⃣  Add the closing marker:")
+    print(f"       <!-- END_ASCII_ART: block-name -->")
+    print(f"\n   3️⃣  Run the sync script:")
+    print(f"       python helpers/docs_sync/sync_ascii_art.py")
+    
+    if unused_blocks:
+        # Show example with first unused block
+        first_unused = sorted(unused_blocks.keys())[0]
+        print(f"\n   📝 Example usage for unused block '{first_unused}':")
+        print(f"       ")
+        print(f"       Here's how this feature works:")
+        print(f"       ")
+        print(f"       <!-- START_ASCII_ART: {first_unused} -->")
+        print(f"       <!-- END_ASCII_ART: {first_unused} -->")
+        print(f"       ")
+        print(f"       This will provide detailed technical insights...")
+    
+    print(f"\n   ✨ The ASCII art content will be automatically inserted between the markers!")
+    print(f"   🔄 Any changes to the source (README.md) will sync to all files using that marker.")
+
     print(f"\n{'='*60}")
     print("✨ Analysis complete! ASCII art ecosystem status reported.")
     print(f"{'='*60}")
