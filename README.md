@@ -85,7 +85,7 @@ Traditional development follows DRY principles, creating abstract, complex syste
    - Local & Cloud-free      |  Workflows from your Local PC?!  |
    - Chip O'Theseus included  \________________________________/
                                                                ()
-        HARDWARE PLATFORM               BROWSER                  O    ,
+        HARDWARE PLATFORM                BROWSER                 O    ,
      _______________________       __________ _______              o  \\  . 
     |                       |     / Pipulate \Jupyter\__              |\\/|
     | Windows, Mac or Linux |    |  __________________  |             / " '\
