@@ -170,6 +170,42 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 
 * **FastHTML:** A Python web framework prioritizing simplicity. It generates HTML directly from Python objects (no template language like Jinja2) and minimizes JavaScript by design, working closely with HTMX. It's distinct from API-focused frameworks like FastAPI. The Python function-naming *is the HTML-template languge.*
 
+### The Evolution: Flask → FastAPI → FastHTML
+
+The revolution isn't just another framework - it's eliminating the template layer entirely:
+
+```
+    🍶 FLASK ERA                 🚀 FASTAPI ERA              🌐 FASTHTML ERA
+    ═══════════════              ═══════════════             ══════════════════
+    
+    ┌─────────────┐              ┌─────────────┐             ┌─────────────┐
+    │   Python    │              │   Python    │             │   Python    │
+    │  Functions  │              │  Functions  │             │  Functions  │
+    └──────┬──────┘              └──────┬──────┘             └──────┬──────┘
+           │                            │                           │
+           ▼                            ▼                           ▼
+    ┌─────────────┐              ┌─────────────┐             ┌─────────────┐
+    │   Jinja2    │              │  Pydantic   │             │    HTMX     │◄── Over-the-wire
+    │  Templates  │              │   Models    │             │  Fragments  │   HTML targeting
+    └──────┬──────┘              └──────┬──────┘             └──────┬──────┘   DOM elements
+           │                            │                           │
+           ▼                            ▼                           ▼
+    ┌─────────────┐              ┌─────────────┐             ┌─────────────┐
+    │    HTML     │              │    JSON     │             │    HTML     │
+    │   Response  │              │   Response  │             │  Elements   │
+    └─────────────┘              └─────────────┘             └─────────────┘
+           │                            │                           │
+           ▼                            ▼                           ▼
+    🌐 Full Page Reload          📱 Frontend Framework      🎯 DOM Element Updates
+                                    (React/Vue/Angular)        def Div() = <div>
+                                                              def Button() = <button>
+                                                              
+    Template files needed        JSON ↔ HTML conversion      Python functions ARE
+    Separate languages          Client-side complexity       the template language!
+```
+
+**The FastHTML Breakthrough:** Python function names directly become HTML elements, eliminating templates and making the server the single source of truth for UI state.
+
 * **HTMX:** Enables dynamic, interactive UIs directly in HTML via attributes, minimizing the need for custom JavaScript. Pipulate uses it for server-rendered HTML updates — *over the wire HTML*-fragments targeting elements of the DOM directly instead of fragile, performance-reducing, framework-dependent JSON. *THIS* is where you *jump off the tech-churn hamsterwheel* and future-proof yourself.
 
 * **MiniDataAPI:** A lightweight layer for interacting with SQLite and other databases. Uses Python dictionaries for schema definition, promoting type safety without the complexity of traditional ORMs — effectively future-proofing your SQL. You lose fancy *join* capabilities but in exchange get the *Python dict interface* as your main persistent database API forever-forward, enabiling instant swapability between SQLite and PostgreSQL (for example).
