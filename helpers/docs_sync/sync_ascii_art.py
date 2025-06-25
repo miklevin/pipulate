@@ -59,6 +59,36 @@ def analyze_ascii_art_quality(ascii_content):
     
     return is_quality, reasons
 
+def find_unmarked_ascii_art(content, file_path):
+    """Find ASCII art in plain code blocks (no language specified)"""
+    # Pattern for plain code blocks: ``` without language identifier
+    # Negative lookbehind/lookahead to avoid language-specific blocks
+    pattern = r'```(?!\w)\n(.*?)\n```'
+    
+    unmarked_candidates = []
+    matches = re.finditer(pattern, content, re.DOTALL)
+    
+    for match in matches:
+        ascii_content = match.group(1).strip()
+        start_pos = match.start()
+        
+        # Get line number for reference
+        lines_before = content[:start_pos].count('\n')
+        line_number = lines_before + 1
+        
+        # Analyze quality
+        is_quality, reasons = analyze_ascii_art_quality(ascii_content)
+        
+        if is_quality:
+            unmarked_candidates.append({
+                'content': ascii_content,
+                'file': str(file_path),
+                'line': line_number,
+                'reasons': reasons
+            })
+    
+    return unmarked_candidates
+
 def main():
     """Main synchronization function with usage frequency and coverage analysis"""
     print("🚀 Syncing ASCII art from pipulate/README.md to Pipulate.com...")
@@ -96,6 +126,7 @@ def main():
     usage_frequency = {marker: [] for marker in ascii_blocks.keys()}
     all_found_markers = set()
     unknown_marker_content = {}  # Store actual ASCII content for unknown markers
+    unmarked_ascii_candidates = []  # Store heuristically discovered ASCII art
     
     # Process each file
     for md_file in sorted(markdown_files):
@@ -107,10 +138,14 @@ def main():
         marker_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->'
         markers = re.findall(marker_pattern, content)
         
+        # Heuristic discovery: Find unmarked ASCII art in plain code blocks
+        relative_path = md_file.relative_to(pipulate_com_path)
+        unmarked_candidates = find_unmarked_ascii_art(content, relative_path)
+        unmarked_ascii_candidates.extend(unmarked_candidates)
+        
         if not markers:
             continue
             
-        relative_path = md_file.relative_to(pipulate_com_path)
         print(f"\n├── 📄 {relative_path}")
         file_had_updates = False
         
@@ -204,6 +239,7 @@ def main():
     print(f"   ✅ Used blocks:      {len(used_blocks)} ({coverage_percentage:.1f}%)")
     print(f"   ❌ Unused blocks:    {len(unused_blocks)}")
     print(f"   ⚠️  Unknown markers: {len(unknown_markers)}")
+    print(f"   🔍 Unmarked ASCII art: {len(unmarked_ascii_candidates)}")
     print(f"   🔄 Total usages:     {total_usages}")
     
     # Most frequently used blocks
@@ -309,6 +345,49 @@ def main():
             
         else:
             print(f"   💡 No high-quality ASCII art found for promotion")
+    
+    # Heuristic discovery: Show unmarked ASCII art candidates
+    if unmarked_ascii_candidates:
+        print(f"\n🔍 UNMARKED ASCII ART DISCOVERED ({len(unmarked_ascii_candidates)}):")
+        print(f"\n   Found high-quality ASCII art in plain code blocks (no markers):")
+        
+        for i, candidate in enumerate(unmarked_ascii_candidates, 1):
+            content = candidate['content']
+            file_location = candidate['file']
+            line_number = candidate['line']
+            reasons = candidate['reasons']
+            
+            is_last = (i == len(unmarked_ascii_candidates))
+            tree_connector = "└──" if is_last else "├──"
+            
+            print(f"\n   {tree_connector} 🎨 Candidate #{i}")
+            print(f"   {'   ' if is_last else '│  '} ├── 📍 Found in: {file_location} (line {line_number})")
+            print(f"   {'   ' if is_last else '│  '} ├── ⭐ Quality factors: {', '.join(reasons)}")
+            print(f"   {'   ' if is_last else '│  '} └── 📝 Content preview (first 3 lines):")
+            
+            preview_lines = content.split('\n')[:3]
+            for j, line in enumerate(preview_lines):
+                is_last_line = (j == len(preview_lines) - 1)
+                line_connector = "└──" if is_last_line else "├──"
+                indent = "      " if is_last else "│     "
+                print(f"   {indent} {line_connector} {line}")
+            
+            if len(content.split('\n')) > 3:
+                indent = "      " if is_last else "│     "
+                remaining_lines = len(content.split('\n')) - 3
+                print(f"   {indent}     ... ({remaining_lines} more lines)")
+        
+        print(f"\n   💡 TO PROMOTE UNMARKED ASCII ART:")
+        print(f"\n   1️⃣  Navigate to the file and line number shown above")
+        print(f"   2️⃣  Add markers around the ASCII art:")
+        print(f"       <!-- START_ASCII_ART: your-chosen-name -->")
+        print(f"       ```")
+        print(f"       [existing ASCII content]")
+        print(f"       ```")
+        print(f"       <!-- END_ASCII_ART: your-chosen-name -->")
+        print(f"\n   3️⃣  Run sync script again to detect as unknown marker")
+        print(f"   4️⃣  Follow promotion guidance to add to README.md")
+        print(f"\n   ✨ This enables the ASCII art to be reused across files!")
     
     # How to use ASCII art markers documentation
     print(f"\n📖 HOW TO USE ASCII ART MARKERS:")
