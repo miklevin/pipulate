@@ -5,6 +5,56 @@
 > **Your data. Your AI. Your machine. Your control.**  
 > No subscriptions, no vendor lock-in, no cloud costs.
 
+## Target Audience
+
+Pipulate serves two distinct but complementary audiences, much like a restaurant serves both chefs and customers:
+
+```
+    ┌──────────────────────────────────────────────────────────┐
+    │                      The Restaurant                      │
+    │  ┌──────────────────┐              ┌──────────────────┐  │
+    │  │   Kitchen (Dev)  │              │  Dining Room     │  │
+    │  │                  │              │  (End Users)     │  │
+    │  │                  │              │                  │  │
+    │  │  👨‍🍳 Sous Chef    │───recipes───►│  🍽️ Customers    │  │
+    │  │  👩‍🍳 Head Chef    │              │  🏢 Restaurateur │  │
+    │  │                  │              │                  │  │
+    │  │ "How do we make  │              │ "I want the best │  │
+    │  │  pasta you've    │              │  pasta I've ever │  │
+    │  │  never had?"     │              │  had in my life" │  │
+    │  └──────────────────┘              └──────────────────┘  │
+    └──────────────────────────────────────────────────────────┘
+```
+
+### The Chef (Developer/Technical User)
+* **Workflow Creators:** Build and customize AI-assisted workflows
+* **Jupyter Porters:** Convert notebook experiments into guided applications
+* **Technical SEOs:** Create sophisticated, reusable SEO processes
+* **System Administrators:** Deploy consistent environments across teams
+
+**What Chefs Get:**
+- Complete control over the "recipe" (workflow logic)
+- Reproducible development environment via Nix
+- Simple architecture that's easy to understand and modify
+- Integrated tooling (Jupyter, local LLM, SQLite)
+
+### The Customer (End User/Non-Technical)
+* **SEO Practitioners:** Run powerful workflows without coding
+* **Content Creators:** Use AI-assisted processes for optimization
+* **Marketing Teams:** Execute consistent SEO strategies
+* **Business Owners:** Access enterprise-level SEO capabilities
+
+**What Customers Get:**
+- Guided, step-by-step workflow experiences
+- AI assistance at every step
+- No need to see or understand the underlying code
+- Consistent, repeatable results
+
+### The Restaurant Analogy
+Just as a chef talks about knife techniques while a diner just wants amazing pasta, Pipulate separates the complexity of creation from the simplicity of consumption. Developers craft the workflows, end-users enjoy the results.
+
+--------------------------------------------------------------------------------
+
 ## The WET Revolution: Why Explicit Code Wins in the AI Era
 
 Pipulate is built on a radical philosophy that challenges programming orthodoxy: **WET (Write Everything Twice) is better than DRY (Don't Repeat Yourself)** when you have AI to help manage it.
@@ -83,54 +133,6 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 * **Nix Flakes:** Manages dependencies and creates reproducible environments, ensuring consistency across developers and operating systems, with optional CUDA support. E.g. Is this a Linux-thing you're reading about here? A Windows thing? A Mac thing? The answer is: YES!!! All of the above — and if you've got cool acceleration hardware, it will even take advantage and utilize that too. Best of all worlds.
 
 * **SQLite & Jupyter Notebooks:** Foundational tools for data persistence and the workflow development process (porting from notebooks to Pipulate workflows). SQLite is built into Python and really all things — the *get-out-of-tech-liability free card* you didn't know you had. And a full JupyterLab instance is installed side-by-side with Pipulate sharing the same Python `.venv` virtual environment (on Nix!!!), so... well... uhm, there are no words. If you know you know.
-
-## Target Audience
-
-Pipulate serves two distinct but complementary audiences, much like a restaurant serves both chefs and customers:
-
-```
-    ┌──────────────────────────────────────────────────────────┐
-    │                      The Restaurant                      │
-    │  ┌──────────────────┐              ┌──────────────────┐  │
-    │  │   Kitchen (Dev)  │              │  Dining Room     │  │
-    │  │                  │              │  (End Users)     │  │
-    │  │                  │              │                  │  │
-    │  │  👨‍🍳 Sous Chef    │───recipes───►│  🍽️ Customers    │  │
-    │  │  👩‍🍳 Head Chef    │              │  🏢 Restaurateur │  │
-    │  │                  │              │                  │  │
-    │  │ "How do we make  │              │ "I want the best │  │
-    │  │  pasta you've    │              │  pasta I've ever │  │
-    │  │  never had?"     │              │  had in my life" │  │
-    │  └──────────────────┘              └──────────────────┘  │
-    └──────────────────────────────────────────────────────────┘
-```
-
-### The Chef (Developer/Technical User)
-* **Workflow Creators:** Build and customize AI-assisted workflows
-* **Jupyter Porters:** Convert notebook experiments into guided applications
-* **Technical SEOs:** Create sophisticated, reusable SEO processes
-* **System Administrators:** Deploy consistent environments across teams
-
-**What Chefs Get:**
-- Complete control over the "recipe" (workflow logic)
-- Reproducible development environment via Nix
-- Simple architecture that's easy to understand and modify
-- Integrated tooling (Jupyter, local LLM, SQLite)
-
-### The Customer (End User/Non-Technical)
-* **SEO Practitioners:** Run powerful workflows without coding
-* **Content Creators:** Use AI-assisted processes for optimization
-* **Marketing Teams:** Execute consistent SEO strategies
-* **Business Owners:** Access enterprise-level SEO capabilities
-
-**What Customers Get:**
-- Guided, step-by-step workflow experiences
-- AI assistance at every step
-- No need to see or understand the underlying code
-- Consistent, repeatable results
-
-### The Restaurant Analogy
-Just as a chef talks about knife techniques while a diner just wants amazing pasta, Pipulate separates the complexity of creation from the simplicity of consumption. Developers craft the workflows, end-users enjoy the results.
 
 --------------------------------------------------------------------------------
 
