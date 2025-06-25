@@ -373,6 +373,32 @@ Designed for porting notebook-style processes, workflows are sequences of steps 
   State Saved        State Saved         Finalized?   - Magnitudes simpler than celery
 ```
 
+#### Run All Cells Pattern
+
+The `run_all_cells()` method creates the perfect mental model - workflows execute sequentially like Jupyter notebook cells:
+
+```
+    📓 JUPYTER NOTEBOOK               🌐 PIPULATE WORKFLOW
+    ═══════════════════               ══════════════════════
+    
+    [ ] Cell 1: Import data          ┌─────────────────────┐
+        │                            │  Step 1: Data Input │ 
+        ▼                            └──────────┬──────────┘
+    [▶] Cell 2: Process data                    │ hx_trigger="load"
+        │                                       ▼
+        ▼                            ┌─────────────────────┐
+    [ ] Cell 3: Generate report      │ Step 2: Processing  │
+        │                            └──────────┬──────────┘
+        ▼                                       │ hx_trigger="load"  
+    [ ] Cell 4: Export results                  ▼
+                                     ┌─────────────────────┐
+    🎯 "Run All Cells" Button   ═══► │ Step 3: Export      │
+       Executes top-to-bottom        └─────────────────────┘
+       
+       Same mental model, same execution flow!
+       But with persistent state and web UI.
+```
+
 ### LLM Integration (Ollama)
 
 Integration with a local Ollama instance provides AI capabilities without external API calls:
