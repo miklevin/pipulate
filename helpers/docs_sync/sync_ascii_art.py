@@ -348,6 +348,17 @@ def main():
             all_found_markers.add(marker)
             if marker in ascii_blocks:
                 usage_frequency[marker].append(str(relative_path))
+            else:
+                # Extract ASCII content from unknown markers for upstream analysis (needed for both modes)
+                match_details = show_pattern_match_details(content, marker, verbose)
+                ascii_content = match_details.get('ascii_content')
+                if ascii_content:
+                    unknown_marker_content[marker] = {
+                        'content': ascii_content,
+                        'file': str(relative_path),
+                        'line_range': f"{match_details.get('start_line', '?')}-{match_details.get('end_line', '?')}",
+                        'first_found': marker not in unknown_marker_content
+                    }
         
         # Skip sync work in prompt mode - only collect usage statistics and candidates
         if prompt_mode:
@@ -426,17 +437,8 @@ def main():
                 else:
                     print(f"    {tree_connector} ❌ Pattern match failed: {marker}")
             else:
-                # Extract ASCII content from unknown markers for upstream analysis
+                # Unknown marker - content already extracted above for both modes
                 match_details = show_pattern_match_details(content, marker, verbose)
-                
-                ascii_content = match_details.get('ascii_content')
-                if ascii_content:
-                    unknown_marker_content[marker] = {
-                        'content': ascii_content,
-                        'file': str(relative_path),
-                        'line_range': f"{match_details.get('start_line', '?')}-{match_details.get('end_line', '?')}",
-                        'first_found': marker not in unknown_marker_content
-                    }
                     
                 if verbose and match_details.get('start_line'):
                     print(f"    {tree_connector} ❌ Block not found in README.md: {marker} (lines {match_details['start_line']}-{match_details['end_line']})")
