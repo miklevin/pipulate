@@ -50,21 +50,21 @@ PLUGINS_DIR = PROJECT_ROOT / "plugins"
 # EXAMPLE USAGE (DO NOT DELETE!!!) USER CAN COPY AND PASTE THIS INTO TERMINAL
 """
 # Works from any location - script automatically finds Pipulate project root:
-python create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
-python create_workflow.py 035_kungfu_workflow KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"  # .py extension optional
-python create_workflow.py plugins/035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"  # plugins/ prefix optional
+python helpers/workflow/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
+python helpers/workflow/create_workflow.py 035_kungfu_workflow KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"  # .py extension optional
+python helpers/workflow/create_workflow.py plugins/035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"  # plugins/ prefix optional
 
 # Can be run from project root:
-python helpers/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
+python helpers/workflow/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
 
-# Can be run from helpers directory:
-cd helpers && python create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
+# Can be run from workflow directory:
+cd helpers/workflow && python create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
 
 # Can be run from anywhere with full path:
-python /path/to/pipulate/helpers/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
+python /path/to/pipulate/helpers/workflow/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
 
 # Original complex example:
-python create_workflow.py \
+python helpers/workflow/create_workflow.py \
 035_kungfu_workflow.py \
 KungfuWorkflow \
 kungfu \
@@ -74,7 +74,7 @@ kungfu \
 --force
 
 # Example using a different template:
-python create_workflow.py \
+python helpers/workflow/create_workflow.py \
 036_custom_botify_flow.py \
 MyCustomBotify \
 my_custom_internal \
@@ -166,15 +166,15 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter,
         epilog="""
 Examples:
-  python create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
-  python create_workflow.py 035_kungfu_workflow KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
-  python create_workflow.py plugins/035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
+  python helpers/workflow/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
+  python helpers/workflow/create_workflow.py 035_kungfu_workflow KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
+  python helpers/workflow/create_workflow.py plugins/035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
   
   # Using different templates:
-  python create_workflow.py 036_botify_custom.py MyBotify my_botify "My Botify Flow" "Welcome" "Training" --template trifecta
+  python helpers/workflow/create_workflow.py 036_botify_custom.py MyBotify my_botify "My Botify Flow" "Welcome" "Training" --template trifecta
   
   # Setting role for visibility:
-  python create_workflow.py 037_my_workflow.py MyWorkflow my_app "My Workflow" "Welcome" "Training" --role Core
+  python helpers/workflow/create_workflow.py 037_my_workflow.py MyWorkflow my_app "My Workflow" "Welcome" "Training" --role Core
         """
     )
     parser.add_argument("filename", help="Desired filename (e.g., 035_kungfu_workflow.py)")
