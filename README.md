@@ -129,7 +129,7 @@ Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-
 
 Pipulate's WET philosophy extends to its technology choices, favoring simple, durable tools over complex abstractions:
 
-## "Not On My Machine" Problem Fixed
+## *Not On My Machine* Problem Fixed
 
 > The Cloud's popularity has been driven in part by developers not wanting to maintain multiple codebases or installers per OS. Thanks to Nix, that's all fixed.
 
@@ -145,7 +145,7 @@ Pipulate's WET philosophy extends to its technology choices, favoring simple, du
     Solving the "Not on my machine" problem well.           \___)=(___/  |_____|_____|
 ```
 
-## Key Technologies Used
+## Other Key Technologies Used
 
 Pipulate integrates a carefully selected set of tools aligned with its philosophy:
 
