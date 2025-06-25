@@ -86,9 +86,23 @@ def is_likely_ascii_art(content):
     
     return has_art_chars or has_visual_structure
 
-def find_heuristic_ascii_candidates(content, filename):
+def find_heuristic_ascii_candidates(content, filename, known_ascii_blocks=None):
     """Find potential ASCII art in naked fenced code blocks using improved regex"""
     candidates = []
+    
+    # Create set of ASCII content that should be excluded
+    managed_ascii_contents = set()
+    
+    # Add ASCII art blocks that are already managed in this file
+    ascii_marker_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->\s*\n```\n(.*?)\n```\s*\n<!-- END_ASCII_ART: [^>]+ -->'
+    managed_matches = re.finditer(ascii_marker_pattern, content, re.DOTALL)
+    for managed_match in managed_matches:
+        managed_ascii_contents.add(managed_match.group(2).strip())
+    
+    # Also exclude ASCII art from our known synchronized blocks
+    if known_ascii_blocks:
+        for ascii_content in known_ascii_blocks.values():
+            managed_ascii_contents.add(ascii_content.strip())
     
     # Improved regex pattern for naked fenced code blocks (no language identifier)
     # (?m): Multiline mode so ^ and $ match line boundaries
@@ -101,6 +115,10 @@ def find_heuristic_ascii_candidates(content, filename):
     
     for match in matches:
         ascii_content = match.group(1).strip()
+        
+        # Skip if this ASCII art is already managed by markers
+        if ascii_content in managed_ascii_contents:
+            continue
         
         # Additional filtering: exclude blocks that contain programming language patterns
         if contains_programming_code(ascii_content):
@@ -227,14 +245,10 @@ def analyze_ascii_art_quality(ascii_content):
 
 def main():
     """Main synchronization function with usage frequency and coverage analysis"""
-    # Check for command-line arguments
-    include_candidates = "--candidates" in sys.argv
+    # Check for command-line arguments  
     verbose = "--verbose" in sys.argv
     
-    if include_candidates:
-        print("🚀 Syncing ASCII art from pipulate/README.md to Pipulate.com (with candidate discovery)...")
-    else:
-        print("🚀 Syncing ASCII art from pipulate/README.md to Pipulate.com...")
+    print("🚀 Syncing ASCII art from pipulate/README.md to Pipulate.com (with heuristic discovery)...")
     
     # Get ASCII blocks from README.md (adjusted for docs_sync subfolder)
     readme_path = Path(__file__).parent.parent.parent / "README.md"
@@ -284,10 +298,9 @@ def main():
         with open(md_file, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # Scan for heuristic ASCII art candidates if requested
-        if include_candidates:
-            candidates = find_heuristic_ascii_candidates(content, str(relative_path))
-            heuristic_candidates.extend(candidates)
+        # Scan for heuristic ASCII art candidates (always enabled)
+        candidates = find_heuristic_ascii_candidates(content, str(relative_path), ascii_blocks)
+        heuristic_candidates.extend(candidates)
         
         # Find all markers (corrected regex)
         marker_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->'
@@ -514,7 +527,7 @@ def main():
             print(f"   💡 No high-quality ASCII art found for promotion")
     
     # Heuristic ASCII Art Discovery (improved regex-based naked fenced code block detection)
-    if include_candidates and heuristic_candidates:
+    if heuristic_candidates:
         print(f"\n🔍 HEURISTIC ASCII ART DISCOVERY (improved regex):")
         print(f"\n   Found {len(heuristic_candidates)} potential ASCII art blocks in naked fenced code blocks:")
         
