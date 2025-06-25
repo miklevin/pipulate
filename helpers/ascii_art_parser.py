@@ -70,7 +70,7 @@ def extract_ascii_art_blocks(readme_content):
             blocks[slug] = {
                 "title": title,
                 "header": header,
-                "art": code_blocks[0].strip(),
+                "art": code_blocks[0],  # DON'T strip() - preserves leading/trailing whitespace
                 "footer": footer
             }
             
