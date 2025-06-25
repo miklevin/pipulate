@@ -5,7 +5,7 @@
 > **Your data. Your AI. Your machine. Your control.**  
 > No subscriptions, no vendor lock-in, no cloud costs.
 
-# About Pipulate
+# About Pipulate  <!-- key: about-pipulate -->
 
 > Pipulate is a local-first, AI-assisted development framework that transforms how you run SEO workflows by embracing Notebooks without any code.
 
@@ -35,7 +35,7 @@
 5. 🔧 **Reproducible environments** with Nix that work identically across all platforms
 6. 🎯 **Perfect for SEO practitioners** who want to turn technical expertise into guided, reusable workflows
 
-## Target Audience
+## Target Audience  <!-- key: target-audience -->
 
 Pipulate serves two distinct but complementary audiences, much like a restaurant serves both chefs and customers:
 
@@ -89,7 +89,7 @@ Just as a chef talks about knife techniques while a diner just wants amazing pas
 
 Pipulate is built on a radical philosophy that challenges programming orthodoxy: **WET (Write Everything Twice) is better than DRY (Don't Repeat Yourself)** when you have AI to help manage it.
 
-### Why WET Works Now
+### Why WET Works Now  <!-- key: why-wet-works-now -->
 
 Traditional development follows DRY principles, creating abstract, complex systems that are hard to understand and modify. But the world has changed:
 
@@ -148,7 +148,7 @@ Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-
 
 Pipulate's WET philosophy extends to its technology choices, favoring simple, durable tools over complex abstractions:
 
-## *Not On My Machine* Problem Fixed
+## *Not On My Machine* Problem Fixed  <!-- key: not-on-my-machine-problem-fixed -->
 
 > The Cloud's popularity has been driven in part by developers not wanting to maintain multiple codebases or installers per OS. Thanks to Nix, that's all fixed.
 
@@ -170,7 +170,7 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 
 * **FastHTML:** A Python web framework prioritizing simplicity. It generates HTML directly from Python objects (no template language like Jinja2) and minimizes JavaScript by design, working closely with HTMX. It's distinct from API-focused frameworks like FastAPI. The Python function-naming *is the HTML-template languge.*
 
-### The Evolution: Flask → FastAPI → FastHTML
+### The Evolution: Flask → FastAPI → FastHTML  <!-- key: the-evolution-flask-fastapi-fasthtml -->
 
 The revolution isn't just another framework - it's eliminating the template layer entirely:
 
@@ -218,13 +218,34 @@ The revolution isn't just another framework - it's eliminating the template laye
 
 ## How to Install Pipulate
 
-### Quick Start: Be Running in 5 Minutes
+### Quick Start: Be Running in 5 Minutes  <!-- key: quick-start-be-running-in-5-minutes -->
 
 This guide shows you how to install Pipulate using two main commands in your terminal. This works on macOS or on Windows using WSL (Windows Subsystem for Linux) with an Ubuntu (or similar Linux) terminal.
 
-## Quick Start: Be Running in 5 Minutes
+```
 
-### 1. Install Nix (One-Time Setup)
+    📦 Your Machine             🔧 Add Foundation          🚀 Complete Environment
+         Today                       with Nix                 Ready to Go!
+                                                          
+    ┌─────────────┐             ┌─────────────┐             ┌─────────────┐
+    │ Sad Computer│    Step 1   │   🏗️ Nix    │    Step 2   │ 🎯 Pipulate │
+    │   Without   │ ──────────► │ Foundation  │ ──────────► │   + AI +    │
+    │     Nix     │             │  Installed  │             │  Jupyter    │
+    └─────────────┘             └─────────────┘             └─────────────┘
+                                                                    │
+                                                             Step 3 │
+                                                                    ▼
+                                                             ┌─────────────┐
+   TEST                                                      │ 🌐 Browser  │
+                                                             │    Opens    │
+                                                             │Automatically│
+                                                             └─────────────┘
+    
+    Simple as 1-2-3! No Docker, no build steps, no cloud dependencies.
+    Everything runs locally with complete privacy and control.
+```
+
+**1. Install Nix (One-Time Setup)**
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
@@ -232,7 +253,7 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 
 **Close your terminal and open a new one after installation.**
 
-### 2. Install Pipulate
+**2. Install Pipulate**
 
 With a custom name
 ```bash
@@ -244,7 +265,7 @@ Or default installation
 curl -L https://pipulate.com/install.sh | sh
 ```
 
-### 3. Run It
+**3. Run It**
 
 ```bash
 cd ~/Botifython
@@ -259,7 +280,7 @@ These few commands:
 
 **That's it!** You now have a local-first development environment with AI integration.
 
-### 4. Run It Again!
+**4. Run It Again!**
 
 1. You can just forcibly exit out of that Terminal it's running from.
 2. Open a new Terminal, and once again:
@@ -269,7 +290,7 @@ cd ~/Botifython
 nix develop
 ```
 
-### 5. The Big Reset (If Necessary)
+**5. The Big Reset (If Necessary)**
 
 Things sometimes go wrong. This is how you do a full Pipulate reset. This will also delete anything you downloaded with Pipulate. Adjust custom install name to what you used.
 
@@ -302,7 +323,7 @@ Wait for ***BOTH TABS*** to auto-open in your browser.
 
 Pipulate features a distinct architecture designed for its local-first, simple, and observable nature.
 
-### Architecture Overview Diagram
+### Architecture Overview Diagram  <!-- key: architecture-overview-diagram -->
 
 This diagram illustrates the high-level components and their interactions:
 
@@ -329,7 +350,7 @@ This complete, self-contained environment runs identically on any operating syst
 
 ---
 
-### Integrated Data Science Environment
+### Integrated Data Science Environment  <!-- key: integrated-data-science-environment -->
 
 Jupyter Notebooks run alongside the FastHTML server, allowing developers to prototype workflows in a familiar environment before porting them to Pipulate's step-based interface for end-users. The same Python virtual environment (`.venv`) is shared, and ad-hoc package installation is supported.
 
@@ -349,7 +370,7 @@ Jupyter Notebooks run alongside the FastHTML server, allowing developers to prot
       └──────────────────┘    └──────────────────┘
 ```
 
-### Local-First & Single-Tenant Details
+### Local-First & Single-Tenant Details  <!-- key: local-first-single-tenant-details -->
 
 Pipulate manages all state server-side within the local environment (think *local-server cookies*), avoiding cloud dependencies. This approach offers:
 * **Privacy & Control:** Data never leaves the user's machine.
@@ -373,7 +394,7 @@ Pipulate manages all state server-side within the local environment (think *loca
       └───────────────────────────────┘
 ```
 
-### Server-Rendered UI (HTMX)
+### Server-Rendered UI (HTMX)  <!-- key: server-rendered-ui-htmx -->
 
 The UI is constructed primarily with server-rendered HTML fragments delivered via HTMX. This minimizes client-side JavaScript complexity.
 * FastHTML generates HTML components directly from Python.
@@ -392,7 +413,7 @@ The UI is constructed primarily with server-rendered HTML fragments delivered vi
                              └─────────┴───────────┘  - No virtual DOM, JSX, Redux, etc.
 ```
 
-### Pipeline Workflows
+### Pipeline Workflows  <!-- key: pipeline-workflows -->
 
 Designed for porting notebook-style processes, workflows are sequences of steps where the state is managed explicitly at each stage and stored persistently (typically as a JSON blob in the `pipeline` table).
 * **Resumable & Interrupt-Safe:** Because each step's completion is recorded, workflows can be stopped and resumed.
@@ -409,7 +430,7 @@ Designed for porting notebook-style processes, workflows are sequences of steps 
   State Saved        State Saved         Finalized?   - Magnitudes simpler than celery
 ```
 
-#### Run All Cells Pattern
+#### Run All Cells Pattern  <!-- key: run-all-cells-pattern -->
 
 The `run_all_cells()` method creates the perfect mental model - workflows execute sequentially like Jupyter notebook cells:
 
@@ -435,7 +456,7 @@ The `run_all_cells()` method creates the perfect mental model - workflows execut
        But with persistent state and web UI.
 ```
 
-### LLM Integration (Ollama)
+### LLM Integration (Ollama)  <!-- key: llm-integration-ollama -->
 
 Integration with a local Ollama instance provides AI capabilities without external API calls:
 * **Privacy:** Prompts and responses stay local.
@@ -465,7 +486,7 @@ Integration with a local Ollama instance provides AI capabilities without extern
                    └──────────────────┘
 ```
 
-### Multi-OS & CUDA Support (Nix)
+### Multi-OS & CUDA Support (Nix)  <!-- key: multi-os-cuda-support-nix -->
 
 Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via WSL), optionally leveraging CUDA GPUs if detected.
 
@@ -483,7 +504,7 @@ Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via
                └──────────────────┘   - Falls back to CPU if no CUDA
 ```
 
-### UI Layout
+### UI Layout  <!-- key: ui-layout -->
 
 The application interface is organized into distinct areas:
 
@@ -666,7 +687,7 @@ These "speedbumps" reinforce Pipulate's core philosophy:
   * **WebSocket Pattern:** Use the dedicated `Chat` class for managing LLM interactions. Avoid raw WebSocket handling elsewhere.
   * **Workflow Progression Pattern:** Workflows use an explicit chain reaction pattern with `hx_trigger="load"` to manage step progression. This pattern must be preserved exactly as implemented. See the workflow documentation for details.
 
-## Core Concepts & Internal Components
+## Core Concepts & Internal Components  <!-- key: core-concepts-internal-components -->
 
   * **Monitoring:** A file system watchdog monitors code changes. Valid changes trigger an automatic, monitored server restart via Uvicorn, facilitating live development.
 
