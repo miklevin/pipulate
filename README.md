@@ -5,6 +5,17 @@
 > **Your data. Your AI. Your machine. Your control.**  
 > No subscriptions, no vendor lock-in, no cloud costs.
 
+# About Pipulate
+
+> Pipulate is a local-first, AI-assisted development framework that transforms how you run SEO workflows by embracing Notebooks without any code.
+
+1. 🖥️ **Runs locally** like a desktop app using modern web technologies
+2. 🐍 **Simple linear workflow** approach powered by HTMX for seamless interactivity  
+3. 📓 **Transforms Jupyter Notebooks** into production-ready, step-by-step workflows
+4. 🤖 **Integrated AI assistance** using your own local models with complete privacy
+5. 🔧 **Reproducible environments** with Nix that work identically across all platforms
+6. 🎯 **Perfect for SEO practitioners** who want to turn technical expertise into guided, reusable workflows
+
 ## Target Audience
 
 Pipulate serves two distinct but complementary audiences, much like a restaurant serves both chefs and customers:
@@ -26,31 +37,31 @@ Pipulate serves two distinct but complementary audiences, much like a restaurant
     └──────────────────────────────────────────────────────────┘
 ```
 
-### The Chef (Developer/Technical User)
-* **Workflow Creators:** Build and customize AI-assisted workflows
-* **Jupyter Porters:** Convert notebook experiments into guided applications
-* **Technical SEOs:** Create sophisticated, reusable SEO processes
-* **System Administrators:** Deploy consistent environments across teams
+### 👨‍🍳 The Chef (Developer/Technical User)
+* **🔧 Workflow Creators:** Build and customize AI-assisted workflows
+* **📓 Jupyter Porters:** Convert notebook experiments into guided applications
+* **🔍 Technical SEOs:** Create sophisticated, reusable SEO processes
+* **⚙️ System Administrators:** Deploy consistent environments across teams
 
 **What Chefs Get:**
-- Complete control over the "recipe" (workflow logic)
-- Reproducible development environment via Nix
-- Simple architecture that's easy to understand and modify
-- Integrated tooling (Jupyter, local LLM, SQLite)
+- 🎛️ Complete control over the "recipe" (workflow logic)
+- 🔄 Reproducible development environment via Nix
+- 🏗️ Simple architecture that's easy to understand and modify
+- 🧰 Integrated tooling (Jupyter, local LLM, SQLite)
 
-### The Customer (End User/Non-Technical)
-* **SEO Practitioners:** Run powerful workflows without coding
-* **Content Creators:** Use AI-assisted processes for optimization
-* **Marketing Teams:** Execute consistent SEO strategies
-* **Business Owners:** Access enterprise-level SEO capabilities
+### 🍽️ The Customer (End User/Non-Technical)
+* **📈 SEO Practitioners:** Run powerful workflows without coding
+* **✍️ Content Creators:** Use AI-assisted processes for optimization
+* **📊 Marketing Teams:** Execute consistent SEO strategies
+* **🏢 Business Owners:** Access enterprise-level SEO capabilities
 
 **What Customers Get:**
-- Guided, step-by-step workflow experiences
-- AI assistance at every step
-- No need to see or understand the underlying code
-- Consistent, repeatable results
+- 🚶‍♂️ Guided, step-by-step workflow experiences
+- 🤖 AI assistance at every step
+- 🙈 No need to see or understand the underlying code
+- 🎯 Consistent, repeatable results
 
-### The Restaurant Analogy
+### 🍝 The Restaurant Analogy
 Just as a chef talks about knife techniques while a diner just wants amazing pasta, Pipulate separates the complexity of creation from the simplicity of consumption. Developers craft the workflows, end-users enjoy the results.
 
 --------------------------------------------------------------------------------
