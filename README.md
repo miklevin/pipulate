@@ -7,7 +7,6 @@
 
 ### Welcome to Pipulate  <!-- key: pipulate-welcome-banner -->
 
-<!-- START_ASCII_ART: pipulate-welcome-banner -->
 ```
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║  🎭 PIPULATE: LOCAL-FIRST DIGITAL WORKSHOP                                   ║  
@@ -20,7 +19,6 @@
 ║  🌟 Where AI assists without cloud dependencies...                           ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 ```
-<!-- END_ASCII_ART: pipulate-welcome-banner -->
 
 # About Pipulate  <!-- key: about-pipulate -->
 
@@ -747,7 +745,6 @@ These "speedbumps" reinforce Pipulate's core philosophy:
 
 The system provides comprehensive debugging and state inspection capabilities through MCP tools and real-time monitoring:
 
-<!-- START_ASCII_ART: pipeline-state-inspector -->
 ```
 📊 PIPELINE STATE INSPECTOR
 ├─── 🔍 Discovering active workflows...
@@ -761,7 +758,6 @@ The system provides comprehensive debugging and state inspection capabilities th
 ├─── 📊 Fetching schema (4,449 fields discovered!)
 └─── 💾 Caching results for lightning-fast access
 ```
-<!-- END_ASCII_ART: pipeline-state-inspector -->
 
 -----
 
