@@ -48,8 +48,8 @@ def distribute_ascii_art(source_file: str, destination_file: str, dry_run: bool 
     
     content = dest_path.read_text()
     
-    # Find all markers in destination file
-    marker_pattern = r'# --- START_ASCII_ART: ([^\s]+) ---\n(.*?)\n# --- END_ASCII_ART: \1 ---'
+    # Find all markers in destination file (HTML comments for Jekyll compatibility)
+    marker_pattern = r'<!-- START_ASCII_ART: ([^\s]+) -->\n(.*?)\n<!-- END_ASCII_ART: \1 -->'
     markers = re.findall(marker_pattern, content, re.DOTALL)
     
     print(f"🎯 Found {len(markers)} ASCII art markers in destination")
@@ -58,15 +58,15 @@ def distribute_ascii_art(source_file: str, destination_file: str, dry_run: bool 
     if not markers:
         print("🔍 Debugging marker detection...")
         # Look for START markers
-        start_markers = re.findall(r'# --- START_ASCII_ART: ([^-]+) ---', content)
+        start_markers = re.findall(r'<!-- START_ASCII_ART: ([^-]+) -->', content)
         print(f"   Found {len(start_markers)} START markers: {start_markers}")
         
         # Look for END markers  
-        end_markers = re.findall(r'# --- END_ASCII_ART: ([^-]+) ---', content)
+        end_markers = re.findall(r'<!-- END_ASCII_ART: ([^-]+) -->', content)
         print(f"   Found {len(end_markers)} END markers: {end_markers}")
         
         # Try a simpler pattern
-        simple_pattern = r'# --- START_ASCII_ART: ([^-]+) ---\n(.*?)\n# --- END_ASCII_ART: [^-]+ ---'
+        simple_pattern = r'<!-- START_ASCII_ART: ([^-]+) -->\n(.*?)\n<!-- END_ASCII_ART: [^-]+ -->'
         simple_markers = re.findall(simple_pattern, content, re.DOTALL)
         print(f"   Simple pattern found {len(simple_markers)} markers")
     
@@ -84,8 +84,8 @@ def distribute_ascii_art(source_file: str, destination_file: str, dry_run: bool 
 ```"""
             
             # Replace the marker section
-            old_marker_section = f"# --- START_ASCII_ART: {marker_key} ---\n{current_content}\n# --- END_ASCII_ART: {marker_key} ---"
-            new_marker_section = f"# --- START_ASCII_ART: {marker_key} ---\n{new_ascii_section}\n# --- END_ASCII_ART: {marker_key} ---"
+            old_marker_section = f"<!-- START_ASCII_ART: {marker_key} -->\n{current_content}\n<!-- END_ASCII_ART: {marker_key} -->"
+            new_marker_section = f"<!-- START_ASCII_ART: {marker_key} -->\n{new_ascii_section}\n<!-- END_ASCII_ART: {marker_key} -->"
             
             if current_content.strip() != new_ascii_section.strip():
                 print(f"🔄 Updating marker: {marker_key}")
