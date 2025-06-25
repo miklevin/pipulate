@@ -489,19 +489,14 @@ def main():
                 else:
                     print(f"   {'   ' if is_last else '│  '} ├── 📍 Currently in: {file_location}")
                 print(f"   {'   ' if is_last else '│  '} ├── ⭐ Quality factors: {', '.join(reasons)}")
-                print(f"   {'   ' if is_last else '│  '} └── 📝 Content preview (first 3 lines):")
+                print(f"   {'   ' if is_last else '│  '} └── 📝 Full ASCII art content:")
                 
-                preview_lines = content.split('\n')[:3]
-                for j, line in enumerate(preview_lines):
-                    is_last_line = (j == len(preview_lines) - 1)
+                all_lines = content.split('\n')
+                for j, line in enumerate(all_lines):
+                    is_last_line = (j == len(all_lines) - 1)
                     line_connector = "└──" if is_last_line else "├──"
                     indent = "      " if is_last else "│     "
                     print(f"   {indent} {line_connector} {line}")
-                
-                if len(content.split('\n')) > 3:
-                    indent = "      " if is_last else "│     "
-                    remaining_lines = len(content.split('\n')) - 3
-                    print(f"   {indent}     ... ({remaining_lines} more lines)")
             
             print(f"\n   💡 TO PROMOTE THESE TO README.md:")
             print(f"\n   1️⃣  Copy the ASCII content from the source file")
@@ -559,19 +554,14 @@ def main():
                 if verbose and start_line != 'unknown':
                     print(f"   {'   ' if is_last else '│  '} ├── 📍 Location: line {start_line}")
                 print(f"   {'   ' if is_last else '│  '} ├── 🏷️  Suggested marker: {suggested_marker}")
-                print(f"   {'   ' if is_last else '│  '} └── 📝 Content preview (first 3 lines):")
+                print(f"   {'   ' if is_last else '│  '} └── 📝 Full ASCII art content:")
                 
-                preview_lines = content.split('\n')[:3]
-                for j, line in enumerate(preview_lines):
-                    is_last_line = (j == len(preview_lines) - 1)
+                all_lines = content.split('\n')
+                for j, line in enumerate(all_lines):
+                    is_last_line = (j == len(all_lines) - 1)
                     line_connector = "└──" if is_last_line else "├──"
                     indent = "      " if is_last else "│     "
                     print(f"   {indent} {line_connector} {line}")
-                
-                if len(content.split('\n')) > 3:
-                    indent = "      " if is_last else "│     "
-                    remaining_lines = len(content.split('\n')) - 3
-                    print(f"   {indent}     ... ({remaining_lines} more lines)")
             
             print(f"\n   💡 TO PROMOTE HEURISTIC DISCOVERIES:")
             print(f"\n   1️⃣  Choose a meaningful marker name for the ASCII art")
