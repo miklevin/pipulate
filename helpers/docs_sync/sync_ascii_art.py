@@ -8,6 +8,7 @@ Walks through all markdown files and updates any markers it finds.
 Usage: 
   python helpers/docs_sync/sync_ascii_art.py            # Normal sync
   python helpers/docs_sync/sync_ascii_art.py --candidates  # Include heuristic discovery
+  python helpers/docs_sync/sync_ascii_art.py --verbose   # Include detailed line numbers and pattern matching info
 """
 
 import os
@@ -15,6 +16,55 @@ import re
 import sys
 from pathlib import Path
 from ascii_art_parser import extract_ascii_art_blocks
+
+def find_line_number(content, text):
+    """Find the line number where text appears"""
+    lines = content.split('\n')
+    for i, line in enumerate(lines, 1):
+        if text in line:
+            return i
+    return None
+
+def show_pattern_match_details(content, marker, verbose=False):
+    """Show detailed pattern matching information"""
+    details = {}
+    
+    # Find START marker
+    start_pattern = rf'<!-- START_ASCII_ART: {re.escape(marker)} -->'
+    start_match = re.search(start_pattern, content)
+    if start_match:
+        start_line = find_line_number(content, start_match.group(0))
+        details['start_line'] = start_line
+        details['start_match'] = start_match.group(0)
+    
+    # Find END marker  
+    end_pattern = rf'<!-- END_ASCII_ART: {re.escape(marker)} -->'
+    end_match = re.search(end_pattern, content)
+    if end_match:
+        end_line = find_line_number(content, end_match.group(0))
+        details['end_line'] = end_line
+        details['end_match'] = end_match.group(0)
+    
+    # Find the full block
+    block_pattern = rf'<!-- START_ASCII_ART: {re.escape(marker)} -->.*?<!-- END_ASCII_ART: {re.escape(marker)} -->'
+    block_match = re.search(block_pattern, content, re.DOTALL)
+    if block_match:
+        details['block_found'] = True
+        block_content = block_match.group(0)
+        
+        # Extract ASCII content
+        art_pattern = r'```\n(.*?)\n```'
+        art_match = re.search(art_pattern, block_content, re.DOTALL)
+        if art_match:
+            details['ascii_content'] = art_match.group(1)
+            details['ascii_lines'] = len(art_match.group(1).split('\n'))
+        else:
+            details['ascii_content'] = None
+            details['ascii_lines'] = 0
+    else:
+        details['block_found'] = False
+    
+    return details
 
 def is_likely_ascii_art(content):
     """Check if content looks like ASCII art"""
@@ -47,14 +97,17 @@ def find_heuristic_ascii_candidates(content, filename):
     # ([\s\S]*?): Capture content (lazy match for everything including newlines)
     # ^```\s*$: Closing ``` at line start with optional trailing whitespace
     pattern = r'(?m)^```(?![a-zA-Z0-9\-_])\s*$\n([\s\S]*?)\n^```\s*$'
-    matches = re.findall(pattern, content)
+    matches = re.finditer(pattern, content)
     
     for match in matches:
-        ascii_content = match.strip()
+        ascii_content = match.group(1).strip()
         if is_likely_ascii_art(ascii_content):
+            # Find line number where this block starts
+            start_line = find_line_number(content, match.group(0))
             candidates.append({
                 'content': ascii_content,
                 'filename': filename,
+                'start_line': start_line,
                 'context': f"Found in naked fenced code block in {filename} (improved regex)"
             })
     
@@ -108,6 +161,7 @@ def main():
     """Main synchronization function with usage frequency and coverage analysis"""
     # Check for command-line arguments
     include_candidates = "--candidates" in sys.argv
+    verbose = "--verbose" in sys.argv
     
     if include_candidates:
         print("🚀 Syncing ASCII art from pipulate/README.md to Pipulate.com (with candidate discovery)...")
@@ -121,6 +175,11 @@ def main():
     
     ascii_block_data = extract_ascii_art_blocks(readme_content)
     ascii_blocks = {key: data['art'] for key, data in ascii_block_data.items()}
+    
+    # Show extraction details with line numbers
+    for key, data in ascii_block_data.items():
+        title = data['title']
+        print(f"✅ Extracted: {title} -> {key}")
     
     print(f"✅ Found {len(ascii_blocks)} ASCII blocks in README.md")
     
@@ -182,6 +241,10 @@ def main():
             if marker in ascii_blocks:
                 # Track usage frequency
                 usage_frequency[marker].append(str(relative_path))
+                
+                # Get detailed pattern matching info
+                match_details = show_pattern_match_details(content, marker, verbose)
+                
                 # Check if update is needed
                 block_pattern = rf'<!-- START_ASCII_ART: {re.escape(marker)} -->.*?<!-- END_ASCII_ART: {re.escape(marker)} -->'
                 block_match = re.search(block_pattern, content, re.DOTALL)
@@ -204,34 +267,39 @@ def main():
                             with open(md_file, 'w', encoding='utf-8') as f:
                                 f.write(new_content)
                             
-                            print(f"    {tree_connector} ✅ Updated: {marker}")
+                            if verbose and match_details['start_line']:
+                                print(f"    {tree_connector} ✅ Updated: {marker} (lines {match_details['start_line']}-{match_details['end_line']})")
+                            else:
+                                print(f"    {tree_connector} ✅ Updated: {marker}")
                             total_updates += 1
                             file_had_updates = True
                             content = new_content  # Update content for next marker in same file
                         else:
-                            print(f"    {tree_connector} ⚪ No change: {marker}")
+                            if verbose and match_details['start_line']:
+                                print(f"    {tree_connector} ⚪ No change: {marker} (lines {match_details['start_line']}-{match_details['end_line']}, {match_details['ascii_lines']} art lines)")
+                            else:
+                                print(f"    {tree_connector} ⚪ No change: {marker}")
+                    else:
+                        print(f"    {tree_connector} ⚠️  Malformed block: {marker} (no ASCII content found)")
+                else:
+                    print(f"    {tree_connector} ❌ Pattern match failed: {marker}")
             else:
                 # Extract ASCII content from unknown markers for upstream analysis
-                block_pattern = rf'<!-- START_ASCII_ART: {re.escape(marker)} -->.*?<!-- END_ASCII_ART: {re.escape(marker)} -->'
-                block_match = re.search(block_pattern, content, re.DOTALL)
+                match_details = show_pattern_match_details(content, marker, verbose)
                 
-                ascii_content = None
-                if block_match:
-                    current_block = block_match.group(0)
-                    art_pattern = r'```\n(.*?)\n```'
-                    art_match = re.search(art_pattern, current_block, re.DOTALL)
-                    
-                    if art_match:
-                        ascii_content = art_match.group(1).strip()
-                        
+                ascii_content = match_details.get('ascii_content')
                 if ascii_content:
                     unknown_marker_content[marker] = {
                         'content': ascii_content,
                         'file': str(relative_path),
+                        'line_range': f"{match_details.get('start_line', '?')}-{match_details.get('end_line', '?')}",
                         'first_found': marker not in unknown_marker_content
                     }
                     
-                print(f"    {tree_connector} ❌ Block not found in README.md: {marker}")
+                if verbose and match_details.get('start_line'):
+                    print(f"    {tree_connector} ❌ Block not found in README.md: {marker} (lines {match_details['start_line']}-{match_details['end_line']})")
+                else:
+                    print(f"    {tree_connector} ❌ Block not found in README.md: {marker}")
         
         if file_had_updates:
             files_updated += 1
@@ -302,6 +370,7 @@ def main():
                 content_info = unknown_marker_content[marker]
                 ascii_content = content_info['content']
                 file_location = content_info['file']
+                line_range = content_info['line_range']
                 
                 is_quality, reasons = analyze_ascii_art_quality(ascii_content)
                 
@@ -310,14 +379,24 @@ def main():
                         'marker': marker,
                         'content': ascii_content,
                         'file': file_location,
+                        'line_range': line_range,
                         'reasons': reasons
                     })
-                    print(f"   ├── 🌟 {marker} (PROMOTION CANDIDATE)")
-                    print(f"   │   ├── 📄 Found in: {file_location}")
-                    print(f"   │   └── ✨ Quality: {', '.join(reasons)}")
+                    if verbose:
+                        print(f"   ├── 🌟 {marker} (PROMOTION CANDIDATE)")
+                        print(f"   │   ├── 📄 Found in: {file_location} (lines {line_range})")
+                        print(f"   │   └── ✨ Quality: {', '.join(reasons)}")
+                    else:
+                        print(f"   ├── 🌟 {marker} (PROMOTION CANDIDATE)")
+                        print(f"   │   ├── 📄 Found in: {file_location}")
+                        print(f"   │   └── ✨ Quality: {', '.join(reasons)}")
                 else:
-                    print(f"   ├── ❓ {marker}")
-                    print(f"   │   └── 📄 Found in: {file_location}")
+                    if verbose:
+                        print(f"   ├── ❓ {marker}")
+                        print(f"   │   └── 📄 Found in: {file_location} (lines {line_range})")
+                    else:
+                        print(f"   ├── ❓ {marker}")
+                        print(f"   │   └── 📄 Found in: {file_location}")
             else:
                 print(f"   └── ❓ {marker} (no content extracted)")
         
@@ -330,13 +409,17 @@ def main():
                 marker = candidate['marker']
                 content = candidate['content']
                 file_location = candidate['file']
+                line_range = candidate.get('line_range', 'unknown')
                 reasons = candidate['reasons']
                 
                 is_last = (i == len(promotion_candidates))
                 tree_connector = "└──" if is_last else "├──"
                 
                 print(f"\n   {tree_connector} 🎨 {marker}")
-                print(f"   {'   ' if is_last else '│  '} ├── 📍 Currently in: {file_location}")
+                if verbose:
+                    print(f"   {'   ' if is_last else '│  '} ├── 📍 Currently in: {file_location} (lines {line_range})")
+                else:
+                    print(f"   {'   ' if is_last else '│  '} ├── 📍 Currently in: {file_location}")
                 print(f"   {'   ' if is_last else '│  '} ├── ⭐ Quality factors: {', '.join(reasons)}")
                 print(f"   {'   ' if is_last else '│  '} └── 📝 Content preview (first 3 lines):")
                 
@@ -377,6 +460,7 @@ def main():
         for candidate in heuristic_candidates:
             ascii_content = candidate['content']
             filename = candidate['filename']
+            start_line = candidate.get('start_line', 'unknown')
             
             is_quality, reasons = analyze_ascii_art_quality(ascii_content)
             
@@ -384,6 +468,7 @@ def main():
                 quality_candidates.append({
                     'content': ascii_content,
                     'file': filename,
+                    'start_line': start_line,
                     'reasons': reasons,
                     'suggested_marker': filename.replace('.md', '').replace('_', '-').replace('/', '-')
                 })
@@ -394,6 +479,7 @@ def main():
             for i, candidate in enumerate(quality_candidates, 1):
                 content = candidate['content']
                 file_location = candidate['file']
+                start_line = candidate.get('start_line', 'unknown')
                 reasons = candidate['reasons']
                 suggested_marker = candidate['suggested_marker']
                 
@@ -402,6 +488,8 @@ def main():
                 
                 print(f"\n   {tree_connector} 🎨 Found in: {file_location}")
                 print(f"   {'   ' if is_last else '│  '} ├── ⭐ Quality factors: {', '.join(reasons)}")
+                if verbose and start_line != 'unknown':
+                    print(f"   {'   ' if is_last else '│  '} ├── 📍 Location: line {start_line}")
                 print(f"   {'   ' if is_last else '│  '} ├── 🏷️  Suggested marker: {suggested_marker}")
                 print(f"   {'   ' if is_last else '│  '} └── 📝 Content preview (first 3 lines):")
                 
@@ -458,6 +546,14 @@ def main():
     
     print(f"\n   ✨ The ASCII art content will be automatically inserted between the markers!")
     print(f"   🔄 Any changes to the source (README.md) will sync to all files using that marker.")
+
+    if verbose:
+        print(f"\n🔧 PATTERN MATCHING VERIFICATION:")
+        print(f"   📋 Use --verbose flag to see:")
+        print(f"   • Exact line numbers for all markers")
+        print(f"   • Pattern matching success/failure details")
+        print(f"   • ASCII content line counts")
+        print(f"   • File location ranges for unknown markers")
 
     print(f"\n{'='*60}")
     print("✨ Analysis complete! ASCII art ecosystem status reported.")
