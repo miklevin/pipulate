@@ -124,8 +124,6 @@ def extract_ascii_art_blocks(readme_content):
                 "art": code_blocks[0],  # DON'T strip() - preserves leading/trailing whitespace
                 "footer": footer
             }
-            
-            print(f"✅ Extracted: {title} -> {slug}")
     
     return blocks
 

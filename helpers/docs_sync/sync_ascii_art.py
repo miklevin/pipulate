@@ -339,13 +339,19 @@ def main():
         candidates = find_heuristic_ascii_candidates(content, str(relative_path), ascii_blocks)
         heuristic_candidates.extend(candidates)
         
-        # Skip sync work in prompt mode - only collect candidates
-        if prompt_mode:
-            continue
-        
-        # Find all markers (corrected regex)
+        # Find all markers (always needed for usage frequency calculation)
         marker_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->'
         markers = re.findall(marker_pattern, content)
+        
+        # Track usage frequency for all markers (needed for both modes)
+        for marker in markers:
+            all_found_markers.add(marker)
+            if marker in ascii_blocks:
+                usage_frequency[marker].append(str(relative_path))
+        
+        # Skip sync work in prompt mode - only collect usage statistics and candidates
+        if prompt_mode:
+            continue
         
         if not markers:
             continue
@@ -353,16 +359,11 @@ def main():
         file_had_updates = False
         
         for i, marker in enumerate(markers):
-            # Track all found markers (including unknown ones)
-            all_found_markers.add(marker)
-            
             # Use tree-style connectors
             is_last_marker = (i == len(markers) - 1)
             tree_connector = "└──" if is_last_marker else "├──"
             
             if marker in ascii_blocks:
-                # Track usage frequency
-                usage_frequency[marker].append(str(relative_path))
                 
                 # Get detailed pattern matching info
                 match_details = show_pattern_match_details(content, marker, verbose)
