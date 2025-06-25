@@ -37,12 +37,17 @@ def is_likely_ascii_art(content):
     return has_art_chars or has_visual_structure
 
 def find_heuristic_ascii_candidates(content, filename):
-    """Find potential ASCII art in plain code blocks (no language specifier)"""
+    """Find potential ASCII art in naked fenced code blocks using improved regex"""
     candidates = []
     
-    # Look for plain code blocks (``` with newline immediately after, no language)
-    pattern = r'```\n([^`]+?)```'
-    matches = re.findall(pattern, content, re.DOTALL)
+    # Improved regex pattern for naked fenced code blocks (no language identifier)
+    # (?m): Multiline mode so ^ and $ match line boundaries
+    # ^```(?![a-zA-Z0-9\-_]): Opening ``` at line start, negative lookahead excludes language identifiers
+    # \s*$: Optional whitespace then end of line (no language specifier)
+    # ([\s\S]*?): Capture content (lazy match for everything including newlines)
+    # ^```\s*$: Closing ``` at line start with optional trailing whitespace
+    pattern = r'(?m)^```(?![a-zA-Z0-9\-_])\s*$\n([\s\S]*?)\n^```\s*$'
+    matches = re.findall(pattern, content)
     
     for match in matches:
         ascii_content = match.strip()
@@ -50,7 +55,7 @@ def find_heuristic_ascii_candidates(content, filename):
             candidates.append({
                 'content': ascii_content,
                 'filename': filename,
-                'context': f"Found in plain code block in {filename}"
+                'context': f"Found in naked fenced code block in {filename} (improved regex)"
             })
     
     return candidates
@@ -362,10 +367,10 @@ def main():
         else:
             print(f"   💡 No high-quality ASCII art found for promotion")
     
-    # Heuristic ASCII Art Discovery (plain code blocks only)
+    # Heuristic ASCII Art Discovery (improved regex-based naked fenced code block detection)
     if include_candidates and heuristic_candidates:
-        print(f"\n🔍 HEURISTIC ASCII ART DISCOVERY:")
-        print(f"\n   Found {len(heuristic_candidates)} potential ASCII art blocks in plain code blocks:")
+        print(f"\n🔍 HEURISTIC ASCII ART DISCOVERY (improved regex):")
+        print(f"\n   Found {len(heuristic_candidates)} potential ASCII art blocks in naked fenced code blocks:")
         
         # Analyze quality of heuristic candidates
         quality_candidates = []
@@ -420,7 +425,7 @@ def main():
             print(f"       [Copy the ASCII content from the plain code block]")
             print(f"       ```")
             print(f"       <!-- END_ASCII_ART: your-marker-name -->")
-            print(f"\n   3️⃣  Replace the plain code block in the source file with:")
+            print(f"\n   3️⃣  Replace the naked fenced code block in the source file with:")
             print(f"       <!-- START_ASCII_ART: your-marker-name -->")
             print(f"       <!-- END_ASCII_ART: your-marker-name -->")
             print(f"\n   4️⃣  Run sync script to propagate:")
