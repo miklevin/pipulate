@@ -108,6 +108,14 @@ def main():
                             print(f"    {tree_connector} ⚪ No change: {marker}")
             else:
                 print(f"    {tree_connector} ❌ Block not found in README.md: {marker}")
+                # Extract ASCII content from unknown markers for upstream analysis
+                ascii_content = extract_ascii_from_marker(content, marker)
+                if ascii_content:
+                    unknown_marker_content[marker] = {
+                        'content': ascii_content,
+                        'file': str(relative_path),
+                        'first_found': marker not in unknown_marker_content
+                    }
         
         if file_had_updates:
             files_updated += 1
@@ -167,13 +175,81 @@ def main():
             print(f"   {tree_connector} ⚪ {marker}")
         print(f"   💡 Consider removing unused blocks or finding places to use them")
     
-    # Unknown markers found in files
+    # Enhanced unknown markers analysis with upstream promotion suggestions
     if unknown_markers:
         print(f"\n⚠️  UNKNOWN MARKERS FOUND ({len(unknown_markers)}):")
-        for i, marker in enumerate(sorted(unknown_markers)):
-            tree_connector = "└──" if i == len(unknown_markers) - 1 else "├──"
-            print(f"   {tree_connector} ❓ {marker}")
-        print(f"   💡 These markers exist in files but not in README.md")
+        
+        # Analyze quality of unknown ASCII art
+        promotion_candidates = []
+        for marker in sorted(unknown_markers):
+            if marker in unknown_marker_content:
+                content_info = unknown_marker_content[marker]
+                ascii_content = content_info['content']
+                file_location = content_info['file']
+                
+                is_quality, reasons = analyze_ascii_art_quality(ascii_content)
+                
+                if is_quality:
+                    promotion_candidates.append({
+                        'marker': marker,
+                        'content': ascii_content,
+                        'file': file_location,
+                        'reasons': reasons
+                    })
+                    print(f"   ├── 🌟 {marker} (PROMOTION CANDIDATE)")
+                    print(f"   │   ├── 📄 Found in: {file_location}")
+                    print(f"   │   └── ✨ Quality: {', '.join(reasons)}")
+                else:
+                    print(f"   ├── ❓ {marker}")
+                    print(f"   │   └── 📄 Found in: {file_location}")
+            else:
+                print(f"   └── ❓ {marker} (no content extracted)")
+        
+        # Upstream Promotion Suggestions
+        if promotion_candidates:
+            print(f"\n🚀 UPSTREAM PROMOTION SUGGESTIONS:")
+            print(f"\n   Found {len(promotion_candidates)} high-quality ASCII art blocks that could be added to README.md:")
+            
+            for i, candidate in enumerate(promotion_candidates, 1):
+                marker = candidate['marker']
+                content = candidate['content']
+                file_location = candidate['file']
+                reasons = candidate['reasons']
+                
+                is_last = (i == len(promotion_candidates))
+                tree_connector = "└──" if is_last else "├──"
+                
+                print(f"\n   {tree_connector} 🎨 {marker}")
+                print(f"   {'   ' if is_last else '│  '} ├── 📍 Currently in: {file_location}")
+                print(f"   {'   ' if is_last else '│  '} ├── ⭐ Quality factors: {', '.join(reasons)}")
+                print(f"   {'   ' if is_last else '│  '} └── 📝 Content preview (first 3 lines):")
+                
+                preview_lines = content.split('\n')[:3]
+                for j, line in enumerate(preview_lines):
+                    is_last_line = (j == len(preview_lines) - 1)
+                    line_connector = "└──" if is_last_line else "├──"
+                    indent = "      " if is_last else "│     "
+                    print(f"   {indent} {line_connector} {line}")
+                
+                if len(content.split('\n')) > 3:
+                    remaining_lines = len(content.split('\n')) - 3
+                    print(f"   {indent}     ... ({remaining_lines} more lines)")
+            
+            print(f"\n   💡 TO PROMOTE THESE TO README.md:")
+            print(f"\n   1️⃣  Copy the ASCII content from the source file")
+            print(f"   2️⃣  Add to pipulate/README.md in the ASCII art section:")
+            print(f"       <!-- START_ASCII_ART: marker-name -->")
+            print(f"       ```")
+            print(f"       [ASCII content here]")
+            print(f"       ```")
+            print(f"       <!-- END_ASCII_ART: marker-name -->")
+            print(f"\n   3️⃣  Run sync script again to propagate to all files:")
+            print(f"       python helpers/docs_sync/sync_ascii_art.py")
+            print(f"\n   ✨ This will make the ASCII art available system-wide!")
+            
+        else:
+            print(f"   💡 No high-quality ASCII art found for promotion")
+
     
     # How to use ASCII art markers documentation
     print(f"\n📖 HOW TO USE ASCII ART MARKERS:")
