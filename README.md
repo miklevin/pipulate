@@ -31,10 +31,10 @@ Traditional development follows DRY principles, creating abstract, complex syste
     |     _____ ___         |    | | App        Menu  | |    See!    . .   .
     |   _/ Nix \____\_____  |    | |------------------| |<- - - - - /    ) |
     |  |                  | |    | | Workflow | Local | |          '  _.'  |
-    |  |     Pipulate    <----------> Step 1  | Chat  | |          '-'/    \
-    |__|  localhost:5001  |_|    | |  Step 2  | Help  | |
-       |  (AI on Rails!)  |      | |__________|_______| |      What, no Docker?
-       |__________________|      |______________________|
+    |  |     Pipulate    <----------> -Step 1 | Chat  | |          '-'/    \
+    |__|  localhost:5001  |_|    | |  -Step 2 | Help  | |      What, no Docker?
+       |  (AI on Rails!)  |      | |__________|_______| |      What, no React?
+       |__________________|      |______________________|      What, no Cloud?
 
 ```
 
