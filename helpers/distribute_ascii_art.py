@@ -10,13 +10,14 @@ import re
 from pathlib import Path
 from ascii_art_parser import extract_ascii_art_blocks
 
-def distribute_ascii_art(source_file: str, destination_file: str, dry_run: bool = True):
+def distribute_ascii_art(source_file: str, destination_file: str, ascii_key: str = None, dry_run: bool = True):
     """
     Distribute ASCII art from source to destination file markers.
     
     Args:
         source_file: Path to source file (e.g., README.md)
         destination_file: Path to destination file with markers
+        ascii_key: Specific ASCII block key to distribute (if None, distribute all)
         dry_run: If True, only show what would be changed
     """
     # Parse ASCII art from source
@@ -74,6 +75,10 @@ def distribute_ascii_art(source_file: str, destination_file: str, dry_run: bool 
     new_content = content
     
     for marker_key, current_content in markers:
+        # Skip if we're only distributing a specific key and this isn't it
+        if ascii_key and marker_key != ascii_key:
+            continue
+            
         # Find matching ASCII block
         if marker_key in ascii_blocks:
             block = ascii_blocks[marker_key]
@@ -110,9 +115,17 @@ def main():
     """Test the distribution system"""
     import sys
     
-    # Default paths
-    source = "../README.md"
-    destination = "../../Pipulate.com/about.md"
+    # Handle command line arguments
+    if len(sys.argv) < 3:
+        print("Usage: python distribute_ascii_art.py <ascii_block_key> <destination_file> [--apply]")
+        print("Example: python distribute_ascii_art.py architecture-overview-diagram ../Pipulate.com/about.md --apply")
+        return
+    
+    ascii_key = sys.argv[1]
+    destination = sys.argv[2]
+    
+    # Default paths - README.md should be in current directory when run from pipulate/
+    source = "README.md"
     
     # Check for --apply flag
     apply_changes = "--apply" in sys.argv
@@ -120,7 +133,7 @@ def main():
     print("🚀 ASCII Art Distribution System")
     print("=" * 50)
     
-    distribute_ascii_art(source, destination, dry_run=not apply_changes)
+    distribute_ascii_art(source, destination, ascii_key, dry_run=not apply_changes)
 
 if __name__ == "__main__":
     main() 
