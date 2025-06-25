@@ -14,7 +14,7 @@ from pathlib import Path
 from ascii_art_parser import extract_ascii_art_blocks
 
 def main():
-    """Main synchronization function"""
+    """Main synchronization function with usage frequency and coverage analysis"""
     print("🚀 Syncing ASCII art from pipulate/README.md to Pipulate.com...")
     
     # Get ASCII blocks from README.md (adjusted for docs_sync subfolder)
@@ -45,6 +45,10 @@ def main():
     total_updates = 0
     files_updated = 0
     
+    # Initialize frequency tracking
+    usage_frequency = {marker: [] for marker in ascii_blocks.keys()}
+    all_found_markers = set()
+    
     # Process each file
     for md_file in sorted(markdown_files):
         # Find ASCII markers in the file
@@ -63,7 +67,12 @@ def main():
         file_had_updates = False
         
         for marker in markers:
+            # Track all found markers (including unknown ones)
+            all_found_markers.add(marker)
+            
             if marker in ascii_blocks:
+                # Track usage frequency
+                usage_frequency[marker].append(str(relative_path))
                 # Check if update is needed
                 block_pattern = rf'<!-- START_ASCII_ART: {re.escape(marker)} -->.*?<!-- END_ASCII_ART: {re.escape(marker)} -->'
                 block_match = re.search(block_pattern, content, re.DOTALL)
@@ -104,6 +113,64 @@ def main():
     
     if total_updates == 0:
         print("   ✨ All ASCII art was already up to date!")
+    
+    # ASCII Art Usage Frequency & Coverage Analysis
+    print(f"\n{'='*60}")
+    print("📈 ASCII ART USAGE FREQUENCY & COVERAGE ANALYSIS")
+    print(f"{'='*60}")
+    
+    # Calculate coverage statistics
+    used_blocks = {marker: files for marker, files in usage_frequency.items() if files}
+    unused_blocks = {marker: files for marker, files in usage_frequency.items() if not files}
+    unknown_markers = all_found_markers - set(ascii_blocks.keys())
+    
+    total_usages = sum(len(files) for files in usage_frequency.values())
+    coverage_percentage = (len(used_blocks) / len(ascii_blocks)) * 100 if ascii_blocks else 0
+    
+    print(f"\n📊 COVERAGE SUMMARY:")
+    print(f"   🎯 Available blocks:  {len(ascii_blocks)}")
+    print(f"   ✅ Used blocks:      {len(used_blocks)} ({coverage_percentage:.1f}%)")
+    print(f"   ❌ Unused blocks:    {len(unused_blocks)}")
+    print(f"   ⚠️  Unknown markers: {len(unknown_markers)}")
+    print(f"   🔄 Total usages:     {total_usages}")
+    
+    # Most frequently used blocks
+    if used_blocks:
+        print(f"\n🏆 MOST FREQUENTLY USED BLOCKS:")
+        sorted_usage = sorted(used_blocks.items(), key=lambda x: len(x[1]), reverse=True)
+        for i, (marker, files) in enumerate(sorted_usage[:5], 1):
+            print(f"   {i}. {marker} ({len(files)} uses)")
+            for file_path in files[:3]:  # Show first 3 files
+                print(f"      📝 {file_path}")
+            if len(files) > 3:
+                print(f"      ⋯ and {len(files) - 3} more...")
+    
+    # Detailed usage breakdown
+    if used_blocks:
+        print(f"\n📋 DETAILED USAGE BREAKDOWN:")
+        for marker in sorted(used_blocks.keys()):
+            files = usage_frequency[marker]
+            print(f"\n   🎨 {marker} ({len(files)} {'use' if len(files) == 1 else 'uses'}):")
+            for file_path in files:
+                print(f"      📄 {file_path}")
+    
+    # Unused blocks
+    if unused_blocks:
+        print(f"\n💤 UNUSED BLOCKS ({len(unused_blocks)}):")
+        for marker in sorted(unused_blocks.keys()):
+            print(f"   ⚪ {marker}")
+        print(f"   💡 Consider removing unused blocks or finding places to use them")
+    
+    # Unknown markers found in files
+    if unknown_markers:
+        print(f"\n⚠️  UNKNOWN MARKERS FOUND ({len(unknown_markers)}):")
+        for marker in sorted(unknown_markers):
+            print(f"   ❓ {marker}")
+        print(f"   💡 These markers exist in files but not in README.md")
+    
+    print(f"\n{'='*60}")
+    print("✨ Analysis complete! ASCII art ecosystem status reported.")
+    print(f"{'='*60}")
 
 if __name__ == "__main__":
     main()
