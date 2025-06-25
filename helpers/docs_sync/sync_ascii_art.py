@@ -101,8 +101,13 @@ def find_heuristic_ascii_candidates(content, filename, known_ascii_blocks=None):
     
     # Also exclude ASCII art from our known synchronized blocks
     if known_ascii_blocks:
-        for ascii_content in known_ascii_blocks.values():
-            managed_ascii_contents.add(ascii_content.strip())
+        for full_content in known_ascii_blocks.values():
+            # Extract just the ASCII art portion from the full content block
+            art_pattern = r'```\n(.*?)\n```'
+            art_match = re.search(art_pattern, full_content, re.DOTALL)
+            if art_match:
+                ascii_art_only = art_match.group(1).strip()
+                managed_ascii_contents.add(ascii_art_only)
     
     # Improved regex pattern for naked fenced code blocks (no language identifier)
     # (?m): Multiline mode so ^ and $ match line boundaries
