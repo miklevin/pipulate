@@ -2114,28 +2114,20 @@ This system provides unprecedented debugging power:
             lines = page_content.split('\n')
             page_title = f"Page {page_num}"
 
-            # For the first page, use a more appropriate title based on the document
-            if page_num == 1:
-                if doc_key == 'botify_api':
-                    page_title = "Getting Started with Botify API"
-                elif doc_key == 'botify_open_api':
-                    page_title = "Botify Open API Reference"
-                elif doc_key == 'change_log':
-                    page_title = "Development Changelog Overview"
-                else:
-                    # For other documents, still look for H1 heading
-                    for line in lines:
-                        line = line.strip()
-                        if line.startswith('# ') and not line.startswith('```'):
-                            page_title = line[2:].strip()
-                            break
-            else:
-                # For subsequent pages, look for the first H1 heading in the page
-                for line in lines:
-                    line = line.strip()
-                    if line.startswith('# ') and not line.startswith('```'):
-                        page_title = line[2:].strip()
-                        break
+            # Look for first heading in the page
+            for line in lines:
+                line = line.strip()
+                if not line or line.startswith('```'):
+                    continue
+                    
+                # For page 1, accept H1 or H2 (since main title might be used for document)
+                # For other pages, look for H1 or H2 headers
+                if line.startswith('# '):
+                    page_title = line[2:].strip()
+                    break
+                elif line.startswith('## '):
+                    page_title = line[3:].strip()
+                    break
 
             # Get a brief description from the first paragraph
             description = ""
