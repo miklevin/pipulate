@@ -67,7 +67,7 @@ def show_pattern_match_details(content, marker, verbose=False):
     return details
 
 def is_likely_ascii_art(content):
-    """Check if content looks like ASCII art"""
+    """Check if content looks like ASCII art - now with more discriminating criteria"""
     if not content or len(content.strip()) < 20:
         return False
     
@@ -81,10 +81,21 @@ def is_likely_ascii_art(content):
     
     has_art_chars = any(char in content for char in ascii_art_chars)
     
-    # Look for visual structure
-    has_visual_structure = len(set(len(line) - len(line.lstrip()) for line in lines if line.strip())) > 1
+    # Look for emoji patterns (strong indicator of modern ASCII art)
+    emoji_pattern = r'[🎯🚀✨🔥💡📊🎨🏆⚡📝📄⚪❌✅🔄🌟💬🌐🍶📈🔍💤❓⚠️]'
+    has_emojis = bool(re.search(emoji_pattern, content))
     
-    return has_art_chars or has_visual_structure
+    # Look for visual structure but be more discriminating
+    indent_levels = set(len(line) - len(line.lstrip()) for line in lines if line.strip())
+    has_visual_structure = len(indent_levels) > 2  # Require more than 2 indent levels
+    
+    # Count ASCII art character occurrences (more chars = more likely to be ASCII art)
+    art_char_count = sum(1 for char in content if char in ascii_art_chars)
+    has_many_art_chars = art_char_count >= 10  # Require significant presence
+    
+    # MUCH MORE RESTRICTIVE: Require ASCII art chars AND (emojis OR structure OR many chars)
+    # This eliminates most false positives while keeping real ASCII art
+    return has_art_chars and (has_emojis or has_visual_structure or has_many_art_chars)
 
 def find_heuristic_ascii_candidates(content, filename, known_ascii_blocks=None):
     """Find potential ASCII art in naked fenced code blocks using improved regex"""
