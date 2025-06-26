@@ -51,6 +51,8 @@ Agentic Mode is like a box of chocolates — you never know what you're gonna ge
 5. 🔧 **Reproducible environments** with Nix that work identically across all platforms
 6. 🎯 **Perfect for SEO practitioners** who want to turn technical expertise into guided, reusable workflows
 
+--------------------------------------------------------------------------------
+
 ## Chef or Customer?  <!-- key: target-audience -->
 
 Pipulate serves two distinct but complementary audiences, much like a restaurant serves both chefs and customers:
@@ -606,6 +608,8 @@ home (Root Component)
     ├── requirements.txt          # Python dependencies (managed by Nix)
     └── server.py                 # Main application entry point
 ```
+
+--------------------------------------------------------------------------------
 
 ## Critical Implementation Patterns for LLMs
 
