@@ -195,8 +195,16 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 Pipulate's technology choices form **aligned lenses** that focus ideas from abstraction to actualization. Each lens must be **ground and polished** without misaligning the focus:
 
 ```
-Linux/Nix ──► HTTP ──► HTML ──► HTMX ──► Python ──► Git
-(Hardware)   (Protocol) (Structure) (Interaction) (Logic) (Persistence)
+         Lens#1        Lens#2      Lens#3    Lens#4  Lens#5 Lens#6
+          ,--.        
+   ---> ,'    `.         ,--.
+   --> /        \----->,'    `.       ,--.        ,-.    
+   -> /  Linux   \--->/  http  \--->,'_hx `.--->,'   `.    ,-.
+     (  HARDWARE  )->( PROTOCOL )->( LINGUA )->( UI/UX )->(APP)->(git)
+   -> \   Nix    /--->\  html  /--->`..py ,'--->`.   ,'    `-'  
+   --> \        /----->`.    ,'       `--'        `-'   
+   ---> `.    ,'         `--'    
+          `--'
 ```
 
 **Nix serves as the "Noah's Ark"** - preserving this perfect focus in a reproducible environment that works identically across all platforms. Once you've locked in the focus, it lasts for years or decades, all bottled up in infrastructure-as-code.
