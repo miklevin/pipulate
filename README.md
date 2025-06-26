@@ -327,7 +327,7 @@ Traditional development follows DRY principles, creating abstract, complex syste
     | Windows, Mac or Linux |    |  __________________  |   See!    / " '\ - Radical transparency
     |     _____ ___         |    | | App Name   Menu⚙️| |<- - - - -. .   . - MCP tool-call control
     |   _/ Nix \____\_____  |    | |------------------| |         /    ) | - Browser as bot's body
-    |  |                  | |    | | Workflow | Local | |        '  _.'  | - Upgrades over time
+    |  |                  | |    | | Workflow | Local | |        '-'/    \
     |  |     Pipulate    <---------> -Step #1 | AI🤖  | |        '-'/    \
     |__|  localhost:5001  |_|    | | -Step #2 | Chat  | |      What, no Docker?
        |  (AI on Rails🚂) |      | | -Step #3 | Help▸ | |      What, no React?
@@ -348,11 +348,14 @@ Traditional development follows DRY principles, creating abstract, complex syste
 * **Nix Environment Activation:** Always run `nix develop` from the `~/pipulate` directory *before* running any project commands (`python server.py`, `pip install`, etc.) in a new terminal. This ensures you are using the correct dependencies defined in `flake.nix`.
 
 * **Interactive vs. Quiet Shell:**
-    * `nix develop` (or `nix develop .#default`): Standard interactive shell, runs the startup script (`run-script` defined in `flake.nix`) with welcome messages and service startup. Ideal for general use.
-    * `nix develop .#quiet`: Activates the Nix environment *without* running the full startup script or launching services automatically. It only sets up paths and installs pip requirements. Use this for:
-        * Running specific commands without starting the servers (e.g., `nix develop .#quiet --command python -c "import pandas"`).
-        * Debugging or interacting with AI assistants where verbose startup output is undesirable.
-        * Manually running `run-server` or `run-jupyter` (scripts placed in `.venv/bin` by the `shellHook`).
+
+**Standard Shell:** `nix develop` (or `nix develop .#default`) runs the startup script (`run-script` defined in `flake.nix`) with welcome messages and service startup. Ideal for general use.
+
+**Quiet Shell:** `nix develop .#quiet` activates the Nix environment *without* running the full startup script or launching services automatically. It only sets up paths and installs pip requirements. Use this for:
+- Running specific commands without starting the servers (e.g., `nix develop .#quiet --command python -c "import pandas"`).
+- Debugging or interacting with AI assistants where verbose startup output is undesirable.
+- Manually running `run-server` or `run-jupyter` (scripts placed in `.venv/bin` by the `shellHook`).
+
 * **Dependencies:** System-level dependencies (Python version, libraries like `gcc`, `zlib`) are managed by `flake.nix`. Python package dependencies are managed by `pip` using `requirements.txt` within the Nix-provided environment.
 
 * **Source of Truth:** The `flake.nix` file is the definitive source for the development environment setup.
