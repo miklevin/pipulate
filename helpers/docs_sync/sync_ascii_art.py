@@ -260,6 +260,121 @@ def analyze_ascii_art_quality(ascii_content):
     
     return is_quality, reasons
 
+def suggest_placement_for_unused_blocks(unused_blocks, markdown_files, ascii_block_data):
+    """Analyze content and suggest specific placements for unused ASCII art blocks"""
+    placement_suggestions = {}
+    
+    # Define semantic keywords for each unused block to match against content
+    block_keywords = {
+        'breaking-free-framework-churn': [
+            'framework', 'hamster wheel', 'churn', 'sovereignty', 'philosophy', 'approach', 'revolution',
+            'freedom', 'empire', 'craftsmanship', 'rat race', 'sleep well', 'build tools that last',
+            'choice', 'durable', 'lovable', 'tech stack', 'philosophy', 'why pipulate'
+        ],
+        'desktop-app-architecture-comparison': [
+            'electron', 'desktop', 'application', 'architecture', 'browser', 'native', 'comparison',
+            'vs', 'versus', 'install', 'how it works', 'technical', 'approach', 'nix', 'local',
+            'single tenant', 'runs', 'environment'
+        ],
+        'the-lens-stack': [
+            'lens', 'stack', 'architecture', 'technology', 'choices', 'aligned', 'focus', 'nix',
+            'http', 'html', 'htmx', 'python', 'git', 'technical', 'framework', 'simple',
+            'development', 'tools', 'grinding', 'burrs', 'focused'
+        ],
+        'ui-component-hierarchy': [
+            'ui', 'component', 'hierarchy', 'interface', 'user interface', 'layout', 'design',
+            'development', 'frontend', 'components', 'structure', 'web', 'html', 'workflow',
+            'steps', 'form', 'button'
+        ]
+    }
+    
+    # Score each file for each unused block
+    for block_key in unused_blocks:
+        if block_key not in block_keywords:
+            continue
+            
+        keywords = block_keywords[block_key]
+        file_scores = []
+        
+        for md_file in markdown_files:
+            relative_path = md_file.relative_to(md_file.parent.parent)
+            
+            try:
+                with open(md_file, 'r', encoding='utf-8') as f:
+                    content = f.read().lower()
+                
+                # Score based on keyword matches
+                score = 0
+                matched_keywords = []
+                
+                for keyword in keywords:
+                    if keyword.lower() in content:
+                        score += 1
+                        matched_keywords.append(keyword)
+                
+                # Bonus for specific high-value files
+                if 'about.md' in str(relative_path):
+                    score += 3  # About page is high-value for philosophy content
+                elif 'index.md' in str(relative_path):
+                    score += 2  # Homepage is high-value for key concepts
+                elif 'development.md' in str(relative_path):
+                    score += 2  # Development page for technical content
+                elif 'install.md' in str(relative_path):
+                    score += 1  # Install page for comparison content
+                
+                # Bonus for thematic matches in guide articles
+                if '_guide/' in str(relative_path):
+                    if 'local-first' in str(relative_path) and block_key == 'breaking-free-framework-churn':
+                        score += 3
+                    elif 'future-is-simple' in str(relative_path) and block_key == 'the-lens-stack':
+                        score += 3
+                    elif any(tech in str(relative_path) for tech in ['architecture', 'workflow']) and block_key == 'ui-component-hierarchy':
+                        score += 2
+                
+                if score > 0:
+                    file_scores.append({
+                        'file': str(relative_path),
+                        'score': score,
+                        'matched_keywords': matched_keywords,
+                        'reasons': []
+                    })
+                    
+            except Exception as e:
+                continue
+        
+        # Sort by score and take top suggestions
+        file_scores.sort(key=lambda x: x['score'], reverse=True)
+        top_suggestions = file_scores[:3]  # Top 3 suggestions per block
+        
+        # Add contextual reasons
+        for suggestion in top_suggestions:
+            reasons = []
+            file_path = suggestion['file']
+            
+            if suggestion['score'] >= 5:
+                reasons.append("Excellent thematic match")
+            elif suggestion['score'] >= 3:
+                reasons.append("Good content alignment")
+            else:
+                reasons.append("Moderate keyword match")
+                
+            if 'about.md' in file_path:
+                reasons.append("High-impact about page")
+            elif 'index.md' in file_path:
+                reasons.append("Homepage visibility")
+            elif 'development.md' in file_path:
+                reasons.append("Technical documentation hub")
+                
+            if len(suggestion['matched_keywords']) >= 3:
+                reasons.append(f"Multiple keyword matches ({len(suggestion['matched_keywords'])})")
+                
+            suggestion['reasons'] = reasons
+        
+        if top_suggestions:
+            placement_suggestions[block_key] = top_suggestions
+    
+    return placement_suggestions
+
 def main():
     """Main synchronization function with usage frequency and coverage analysis"""
     # Check for command-line arguments  
@@ -491,13 +606,74 @@ def main():
                 tree_connector = "└──" if j == len(files) - 1 else "├──"
                 print(f"      {tree_connector} 📄 {file_path}")
     
-    # Unused blocks
+    # Unused blocks with strategic placement suggestions
     if unused_blocks:
         print(f"\n💤 UNUSED BLOCKS ({len(unused_blocks)}):")
         for i, marker in enumerate(sorted(unused_blocks.keys())):
             tree_connector = "└──" if i == len(unused_blocks) - 1 else "├──"
             print(f"   {tree_connector} ⚪ {marker}")
-        print(f"   💡 Consider removing unused blocks or finding places to use them")
+        
+        # Generate strategic placement suggestions
+        placement_suggestions = suggest_placement_for_unused_blocks(unused_blocks.keys(), markdown_files, ascii_block_data)
+        
+        if placement_suggestions:
+            print(f"\n🎯 STRATEGIC PLACEMENT SUGGESTIONS:")
+            print(f"\n   Found optimal placements for {len(placement_suggestions)} unused blocks:")
+            
+            for i, (block_key, suggestions) in enumerate(placement_suggestions.items(), 1):
+                is_last_block = (i == len(placement_suggestions))
+                block_connector = "└──" if is_last_block else "├──"
+                
+                print(f"\n   {block_connector} 🎨 {block_key}")
+                
+                # Get ASCII art title for context
+                block_title = "Unknown"
+                if block_key in ascii_block_data:
+                    block_title = ascii_block_data[block_key]['title'].replace('###', '').replace('##', '').replace('#', '').strip()
+                
+                print(f"   {'   ' if is_last_block else '│  '} ├── 📝 Content: {block_title}")
+                print(f"   {'   ' if is_last_block else '│  '} └── 🎯 Recommended placements:")
+                
+                for j, suggestion in enumerate(suggestions):
+                    is_last_suggestion = (j == len(suggestions) - 1)
+                    suggestion_connector = "└──" if is_last_suggestion else "├──"
+                    indent = "      " if is_last_block else "│     "
+                    
+                    file_path = suggestion['file']
+                    score = suggestion['score']
+                    reasons = suggestion['reasons']
+                    keywords = suggestion['matched_keywords']
+                    
+                    print(f"   {indent} {suggestion_connector} 📄 {file_path} (score: {score})")
+                    
+                    # Show reasons
+                    reason_indent = "         " if is_last_block else "│        "
+                    if is_last_suggestion:
+                        reason_indent = "         " if is_last_block else "│        "
+                    
+                    for k, reason in enumerate(reasons):
+                        reason_connector = "└──" if k == len(reasons) - 1 else "├──"
+                        print(f"   {reason_indent} {reason_connector} ✨ {reason}")
+                    
+                    # Show top matched keywords
+                    if keywords:
+                        top_keywords = keywords[:3]  # Show first 3 keywords
+                        keyword_text = ", ".join(top_keywords)
+                        if len(keywords) > 3:
+                            keyword_text += f" (+{len(keywords)-3} more)"
+                        print(f"   {reason_indent} └── 🔤 Keywords: {keyword_text}")
+            
+            print(f"\n   💡 TO IMPLEMENT THESE SUGGESTIONS:")
+            print(f"\n   1️⃣  Choose the highest-scoring placement for each block")
+            print(f"   2️⃣  Add markers to the target file:")
+            print(f"       <!-- START_ASCII_ART: block-name -->")
+            print(f"       <!-- END_ASCII_ART: block-name -->")
+            print(f"\n   3️⃣  Run the sync script to populate content:")
+            print(f"       python helpers/docs_sync/sync_ascii_art.py")
+            print(f"\n   ✨ This will strategically place unused ASCII art where it adds the most value!")
+            
+        else:
+            print(f"   💡 Consider removing unused blocks or finding places to use them")
     
     # Enhanced unknown markers analysis with upstream promotion suggestions
     if unknown_markers:
