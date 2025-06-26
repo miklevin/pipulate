@@ -120,6 +120,37 @@ This isn't just another framework - it's a **deliberate culmination** of decades
 
 - **Local-First & Single-Tenant:** Your data, code, and AI run on your hardware. This guarantees privacy, eliminates cloud costs, and gives you full control.
 - **WET Workflows, DRY Framework:** Workflows are intentionally "WET" (explicit & step-by-step) for maximum clarity and customizability—perfectly mirroring Jupyter Notebooks. The underlying framework is "DRY" for efficiency.
+
+#### WET as Whittling: The Craft of Deliberate Development  <!-- key: wet-workflows-whittling-metaphor -->
+
+<!-- START_ASCII_ART: wet-workflows-whittling-metaphor -->
+```
+🪵 THE WHITTLING METAPHOR: WET Workflows as Craftsmanship
+═══════════════════════════════════════════════════════════
+
+    🏭 FACTORY APPROACH (DRY)          🎨 ARTISAN APPROACH (WET)
+    ─────────────────────────          ───────────────────────────
+    
+    ┌─────────┐ ⚡ FAST             👨‍🎨 ∩ ∩   🔪 DELIBERATE
+    │ [CHUNK] │ ───► RESULT           (o,o)  ∩ ∩ Each cut visible
+    └─────────┘ Black Box             \_)   (o,o) Each step clear  
+                                            \_)  
+    ⚠️  Opaque processes                        
+    ⚠️  Hard to customize               🪵────🪵────🪵────🪵
+    ⚠️  "Magic" abstractions           Raw │Step │Step │Final
+                                       Wood│  1  │  2  │ Art
+                                          
+    VS AI-ASSISTED WHITTLING:
+    ═══════════════════════════
+    
+    🤖 AI Sharp Knife + 👨‍🎨 Human Intent = 🏆 Best of Both
+    
+    ✨ Makes detailed work PRACTICAL
+    ✨ Maintains full visibility  
+    ✨ Each step customizable
+    ✨ Perfect for workflows requiring human oversight
+```
+<!-- END_ASCII_ART: wet-workflows-whittling-metaphor -->
 - **The AI Advantage:** AI makes WET practical. Tedious code maintenance and refactoring, once a weakness of WET, is now an area where AI excels, turning repetition into a strength for rapid, context-aware development.
 - **Simplicity & Observability ("Know EVERYTHING!"):** We reject opaque enterprise patterns. State is managed in transparent SQLite tables and JSON blobs, making the entire system intuitive and debuggable.
 - **Reproducibility with Nix:** Nix Flakes provide a perfect, reproducible Linux environment on macOS, Linux, and Windows (WSL), solving the "works on my machine" problem.
