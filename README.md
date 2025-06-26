@@ -112,45 +112,46 @@ Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-
 
 ### The Magnum Opus: Computing Sovereignty  <!-- key: magnum-opus-computing-sovereignty -->
 
-This isn't just another framework - it's a **deliberate culmination** of decades of tech evolution insights. Pipulate represents the "final act" approach to development (3rd time's the charm): choosing the **most durable and lovable** parts of the modern tech stack while rejecting the exhausting hamster wheel of framework churn.
+This isn't just another framework - it's a **deliberate culmination** of decades of tech evolution insights. Pipulate represents the "third act" approach to development (3rd time's the charm): choosing the **most durable and lovable** parts of the modern tech stack while rejecting the exhausting hamster wheel of framework churn.
 
 **If you are not an Empire builder.** If you appreciate craftsmanship over the rat race and want to sleep well, work on your own schedule, and build tools that last, Pipulate may be for you. Pipulate embodies that philosophy — maximum creative freedom with minimum technical debt recapturing that old Webmaster feeling.
 
 ### Core Philosophy: Local-First, WET, and AI-Augmented
 
+#### Breaking Free: From Framework Churn to Computing Sovereignty  <!-- key: breaking-free-framework-churn -->
+
+<!-- START_ASCII_ART: breaking-free-framework-churn -->
+```
+🎡 THE HAMSTER WHEEL OF FRAMEWORK CHURN        🏰 COMPUTING SOVEREIGNTY
+═══════════════════════════════════════        ═══════════════════════════
+
+    React → Vue → Angular → Svelte              🗽 Your Hardware
+         ↑                    ↓                🗽 Your Data  
+    Webpack ← Next.js ← Vite ← Remix            🗽 Your AI
+         ↑                    ↓                🗽 Your Code
+    Docker → K8s → Cloud → Serverless          🗽 Your Schedule
+                                               
+    😵‍💫 Endless Learning                        ✨ Durable Tools:
+    💸 Cloud Dependencies                       • Python (30+ years)
+    🔒 Platform Lock-in                         • SQLite (built-in)
+    📈 Growing Complexity                       • HTML/HTTP (timeless)
+    ⏰ Always Catching Up                       • Nix (reproducible)
+                                               • Local AI (private)
+         VS.
+                                               🎯 Third Act Philosophy:
+    🏃‍♂️ JUMP OFF THE WHEEL                       "Choose tools that will
+                ↓                               outlast the frameworks"
+         ┌─────────────┐                       
+         │  PIPULATE   │                       💤 Sleep Well
+         │ Local-First │                       🧘 Own Schedule  
+         │  Sovereign  │                       🔧 Full Control
+         └─────────────┘                       ♾️  Built to Last
+```
+<!-- END_ASCII_ART: breaking-free-framework-churn -->
+
 - **Local-First & Single-Tenant:** Your data, code, and AI run on your hardware. This guarantees privacy, eliminates cloud costs, and gives you full control.
 - **WET Workflows, DRY Framework:** Workflows are intentionally "WET" (explicit & step-by-step) for maximum clarity and customizability—perfectly mirroring Jupyter Notebooks. The underlying framework is "DRY" for efficiency.
 
-#### WET as Whittling: The Craft of Deliberate Development  <!-- key: wet-workflows-whittling-metaphor -->
-
-<!-- START_ASCII_ART: wet-workflows-whittling-metaphor -->
-```
-🪵 THE WHITTLING METAPHOR: WET Workflows as Craftsmanship
-═══════════════════════════════════════════════════════════
-
-    🏭 FACTORY APPROACH (DRY)          🎨 ARTISAN APPROACH (WET)
-    ─────────────────────────          ───────────────────────────
-    
-    ┌─────────┐ ⚡ FAST             👨‍🎨 ∩ ∩   🔪 DELIBERATE
-    │ [CHUNK] │ ───► RESULT           (o,o)  ∩ ∩ Each cut visible
-    └─────────┘ Black Box             \_)   (o,o) Each step clear  
-                                            \_)  
-    ⚠️  Opaque processes                        
-    ⚠️  Hard to customize               🪵────🪵────🪵────🪵
-    ⚠️  "Magic" abstractions           Raw │Step │Step │Final
-                                       Wood│  1  │  2  │ Art
-                                          
-    VS AI-ASSISTED WHITTLING:
-    ═══════════════════════════
-    
-    🤖 AI Sharp Knife + 👨‍🎨 Human Intent = 🏆 Best of Both
-    
-    ✨ Makes detailed work PRACTICAL
-    ✨ Maintains full visibility  
-    ✨ Each step customizable
-    ✨ Perfect for workflows requiring human oversight
-```
-<!-- END_ASCII_ART: wet-workflows-whittling-metaphor -->
 - **The AI Advantage:** AI makes WET practical. Tedious code maintenance and refactoring, once a weakness of WET, is now an area where AI excels, turning repetition into a strength for rapid, context-aware development.
 - **Simplicity & Observability ("Know EVERYTHING!"):** We reject opaque enterprise patterns. State is managed in transparent SQLite tables and JSON blobs, making the entire system intuitive and debuggable.
 - **Reproducibility with Nix:** Nix Flakes provide a perfect, reproducible Linux environment on macOS, Linux, and Windows (WSL), solving the "works on my machine" problem.
