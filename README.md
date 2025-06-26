@@ -112,9 +112,9 @@ Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-
 
 ### The Magnum Opus: Computing Sovereignty  <!-- key: magnum-opus-computing-sovereignty -->
 
-This isn't just another framework - it's a **deliberate culmination** of decades of tech evolution insights. Pipulate represents the "third act" approach to development (3rd time's the charm): choosing the **most durable and lovable** parts of the modern tech stack while rejecting the exhausting hamster wheel of framework churn.
+This isn't just another framework — it's a **deliberate culmination** of decades of tech evolution insights. Pipulate represents the "third act" approach to development (3rd time's the charm): choosing the **most durable and lovable** parts of the modern tech stack while rejecting the exhausting hamster wheel of framework churn.
 
-**If you are not an Empire builder.** If you appreciate craftsmanship over the rat race and want to sleep well, work on your own schedule, and build tools that last, Pipulate may be for you. Pipulate embodies that philosophy — maximum creative freedom with minimum technical debt recapturing that old Webmaster feeling.
+If you are not an Empire builder and prefer craftsmanship over the rat race and want to build tools that last, then Pipulate may be for you. Pipulate embodies that philosophy — maximum creative freedom with minimum technical debt, recapturing *that old Webmaster feeling.*
 
 ### Core Philosophy: Local-First, WET, and AI-Augmented
 
