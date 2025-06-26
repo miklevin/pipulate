@@ -460,25 +460,25 @@ This system provides unprecedented debugging power:
 
             # Headers
             elif stripped.startswith('# '):
-                header_text = stripped[2:].strip()
+                header_text = self._remove_html_comments(stripped[2:].strip())
                 header_id = self._slugify(header_text)
                 processed_header = self._process_inline_markdown(header_text)
                 processed_lines.append(f'<h1 id="{header_id}">{processed_header}</h1>')
                 i += 1
             elif stripped.startswith('## '):
-                header_text = stripped[3:].strip()
+                header_text = self._remove_html_comments(stripped[3:].strip())
                 header_id = self._slugify(header_text)
                 processed_header = self._process_inline_markdown(header_text)
                 processed_lines.append(f'<h2 id="{header_id}">{processed_header}</h2>')
                 i += 1
             elif stripped.startswith('### '):
-                header_text = stripped[4:].strip()
+                header_text = self._remove_html_comments(stripped[4:].strip())
                 header_id = self._slugify(header_text)
                 processed_header = self._process_inline_markdown(header_text)
                 processed_lines.append(f'<h3 id="{header_id}">{processed_header}</h3>')
                 i += 1
             elif stripped.startswith('#### '):
-                header_text = stripped[5:].strip()
+                header_text = self._remove_html_comments(stripped[5:].strip())
                 header_id = self._slugify(header_text)
                 processed_header = self._process_inline_markdown(header_text)
                 processed_lines.append(f'<h4 id="{header_id}">{processed_header}</h4>')
@@ -638,9 +638,17 @@ This system provides unprecedented debugging power:
 
         return result
 
+    def _remove_html_comments(self, text):
+        """Remove HTML comments from text"""
+        import re
+        # Remove HTML comments like <!-- key: pipeline-workflows -->
+        return re.sub(r'<!--.*?-->', '', text).strip()
+
     def _slugify(self, text):
         """Convert text to URL-friendly slug for header IDs"""
         import re
+        # Remove HTML comments first
+        text = self._remove_html_comments(text)
         # Remove HTML tags if any
         text = re.sub(r'<[^>]+>', '', text)
         # Convert to lowercase and replace spaces/special chars with hyphens
