@@ -254,14 +254,24 @@ This system provides unprecedented debugging power:
             extracted_title, description = self.extract_metadata_from_content(content, 'Project README')
             # Make it clear this is the README with emoji
             title = f"📄 README - {extracted_title}" if extracted_title else '📄 README - Project Documentation'
+            
+            # Check if README contains pagination separators
+            separator = '-' * 80
+            has_pagination = separator in content
+            
+            if has_pagination:
+                title += ' (Paginated)'
+                
         except Exception as e:
             logger.warning(f"Could not read {file_path}: {e}")
             title = '📄 README - Project Documentation'
             description = "Main project documentation and overview"
+            content = ""
+            has_pagination = False
 
         key = 'readme'
 
-        return key, {
+        info = {
             'title': title,
             'file': str(file_path),
             'description': description,
@@ -269,6 +279,13 @@ This system provides unprecedented debugging power:
             'priority': 0,  # Give it highest priority (lowest number = highest priority)
             'filename': filename
         }
+        
+        # Add pagination metadata if README contains separators
+        if has_pagination:
+            info['paginated'] = True
+            info['separator'] = '-' * 80
+
+        return key, info
 
     def generate_title_from_filename(self, filename):
         """Generate a human-readable title from filename"""
