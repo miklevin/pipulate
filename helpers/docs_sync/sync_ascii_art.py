@@ -587,9 +587,29 @@ def main():
     # Heuristic ASCII Art Discovery (improved regex-based naked fenced code block detection)
     if heuristic_candidates:
         if prompt_mode:
-            # Special AI-friendly prompt format
+            # Special AI-friendly prompt format with debugging instructions
             print("# ASCII Art Promotion Task")
             print("\nYou are an expert content curator for the Pipulate project. Your task is to analyze and promote high-quality ASCII art candidates that have been discovered in the documentation.")
+            
+            # Add debugging instructions for false positive scenarios
+            print(f"\n⚠️  **CRITICAL: CHECK FOR FALSE POSITIVES FIRST!**")
+            print(f"Current coverage shows {len(used_blocks)}/{len(ascii_blocks)} blocks used ({coverage_percentage:.1f}%).")
+            print(f"If coverage is unexpectedly low (< 50%), investigate these potential issues BEFORE promoting new ASCII art:")
+            print(f"")
+            print(f"🔍 **DEBUGGING CHECKLIST:**")
+            print(f"1. **Key disassociation**: ASCII art exists but markers have changed/moved")
+            print(f"2. **Content drift**: ASCII art content changed upstream without sync")
+            print(f"3. **File restructuring**: Markdown files reorganized breaking existing links")
+            print(f"4. **Marker corruption**: START/END markers damaged or malformed")
+            print(f"")
+            print(f"📋 **FIX UPSTREAM FIRST:**")
+            print(f"• Run full sync without --prompt: `python sync_ascii_art.py`")
+            print(f"• Check if existing ASCII art blocks are properly linked")
+            print(f"• Verify README.md ASCII art sections are intact")
+            print(f"• Look for 'Unknown markers' in output")
+            print(f"")
+            print(f"✅ **ONLY AFTER** upstream issues are resolved, proceed with new ASCII art promotion.")
+            print(f"")
             print("\nBased on the candidates below, please:")
             print("1. Select the BEST ASCII art candidates for promotion")
             print("2. Choose appropriate marker names that reflect their semantic meaning")
