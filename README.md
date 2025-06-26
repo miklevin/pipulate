@@ -570,7 +570,7 @@ The application interface is organized into distinct areas:
                └─────────────────────────────┘
 ```
 
-UI Component Hierarchy (Click to Expand)
+### UI Component Hierarchy
 
 ```
 home (Root Component)
