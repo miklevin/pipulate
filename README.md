@@ -678,7 +678,23 @@ home (Root Component)
 
 **These patterns are essential for LLMs working with Pipulate and are frequently missed:**
 
-### 1. The Auto-Key Generation Pattern (MOST CRITICAL)
+### 1. The Auto-Key Generation Pattern (MOST CRITICAL)  <!-- key: auto-key-generation-pattern -->
+
+<!-- START_ASCII_ART: auto-key-generation-pattern -->
+```
+📝 AUTO-KEY GENERATION FLOW
+┌─────────────┐    POST     ┌─────────────┐    HX-Refresh   ┌─────────────┐
+│ Empty Form  │ ──────────► │   Server    │ ──────────────► │ Page Reload │
+│ Submit ⏎    │    /init    │  Response   │     Header      │   Trigger   │
+└─────────────┘             └─────────────┘                 └─────────────┘
+       ▲                                                            │
+       │                                                            ▼
+┌─────────────┐              ┌─────────────┐                ┌─────────────┐
+│ User Hits   │ ◄─────────── │ Auto-Key    │ ◄───────────── │ landing()   │
+│ Enter Again │    Ready!    │ Populated   │    Generates   │   Method    │
+└─────────────┘              └─────────────┘                └─────────────┘
+```
+<!-- END_ASCII_ART: auto-key-generation-pattern -->
 
 When a user hits Enter on an empty key field, this specific sequence occurs:
 
@@ -726,7 +742,28 @@ async def init(self, request):
 
 The `run_all_cells()` method encapsulates the workflow initialization pattern and creates an immediate mental connection to Jupyter notebooks.
 
-### 3. APP_NAME vs. Filename Distinction
+### 3. APP_NAME vs. Filename Distinction  <!-- key: app-name-vs-filename -->
+
+<!-- START_ASCII_ART: app-name-vs-filename -->
+```
+📂 FILENAME vs APP_NAME DISTINCTION
+┌─────────────────────────────────────────────────────────────┐
+│                    CRITICAL SEPARATION                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  📁 FILENAME: 200_workflow_genesis.py                       │
+│      ├── 🌐 Determines public URL: /workflow_genesis        │
+│      └── 📊 Controls menu order: 200                        │
+│                                                             │
+│  🏷️  APP_NAME: "workflow_genesis_internal"                  │ 
+│      ├── 💾 Database table identifier                       │
+│      ├── 🔒 MUST REMAIN STABLE (data integrity)             │
+│      └── 🚫 NEVER change after deployment                   │
+│                                                             │
+│  ⚠️  DANGER: Changing APP_NAME = Orphaned Data              │
+└─────────────────────────────────────────────────────────────┘
+```
+<!-- END_ASCII_ART: app-name-vs-filename -->
 
 **Critical for data integrity:**
 
@@ -739,7 +776,26 @@ The `run_all_cells()` method encapsulates the workflow initialization pattern an
 * Accessed via `pip.get_step_data()` and `pip.set_step_data()`
 * All state changes are transparent and observable
 
-### 5. Plugin Discovery System
+### 5. Plugin Discovery System  <!-- key: plugin-discovery-system -->
+
+<!-- START_ASCII_ART: plugin-discovery-system -->
+```
+📁 PLUGIN DISCOVERY SYSTEM
+plugins/
+├── 010_introduction.py        ✅ Registered as "introduction" (menu order: 1)
+├── 020_profiles.py           ✅ Registered as "profiles" (menu order: 2) 
+├── hello_flow (Copy).py      ❌ SKIPPED - Contains "()"
+├── xx_experimental.py        ❌ SKIPPED - "xx_" prefix
+└── 200_workflow_genesis.py   ✅ Registered as "workflow_genesis" (menu order: 20)
+
+    📊 AUTO-REGISTRATION RULES:
+    ✅ Numeric prefix → Menu ordering + stripped for internal name
+    ❌ Parentheses "()" → Development copies, skipped
+    ❌ "xx_" prefix → Work-in-progress, skipped
+    🔧 Must have: landing() method + name attributes
+    💉 Auto dependency injection via __init__ signature
+```
+<!-- END_ASCII_ART: plugin-discovery-system -->
 
 * Files in `plugins/` directory are auto-discovered
 * Numeric prefixes control menu ordering
@@ -765,12 +821,67 @@ python splice_workflow_step.py workflow.py --position top
 python splice_workflow_step.py workflow.py --position bottom
 ```
 
-### Template System
+### Template System  <!-- key: workflow-template-system -->
+
+<!-- START_ASCII_ART: workflow-template-system -->
+```
+🏗️ WORKFLOW TEMPLATE SYSTEM
+┌─────────────────┐              ┌─────────────────┐
+│  BLANK TEMPLATE │              │TRIFECTA TEMPLATE│
+├─────────────────┤              ├─────────────────┤
+│ ┌─────────────┐ │              │ ┌─────────────┐ │
+│ │   Step 1    │ │              │ │   Step 1    │ │
+│ │  (Minimal)  │ │              │ │  (Input)    │ │
+│ └─────────────┘ │     VS       │ └──────┬──────┘ │
+│                 │              │        │        │
+│ Quick Start     │              │        ▼        │
+│ Single Purpose  │              │ ┌─────────────┐ │
+└─────────────────┘              │ │   Step 2    │ │
+                                 │ │ (Process)   │ │
+create_workflow.py               │ └──────┬──────┘ │
+--template blank                 │        │        │
+                                 │        ▼        │
+                                 │ ┌─────────────┐ │
+                                 │ │   Step 3    │ │
+                                 │ │  (Output)   │ │
+                                 │ └─────────────┘ │
+                                 │                 │
+                                 │ Full Pattern    │
+                                 │ Complete Flow   │
+                                 └─────────────────┘
+                                 
+                                 create_workflow.py
+                                 --template trifecta
+```
+<!-- END_ASCII_ART: workflow-template-system -->
+
 * `blank`: Minimal workflow with one step
 * `trifecta`: Three-step workflow pattern
 * Automatic method generation and insertion
 
-## Common LLM Implementation Mistakes
+## Common LLM Implementation Mistakes  <!-- key: llm-implementation-mistakes -->
+
+<!-- START_ASCII_ART: llm-implementation-mistakes -->
+```
+🚨 LLM IMPLEMENTATION MISTAKE PREVENTION
+┌────────────────────────────────────────────────────────────┐
+│                    COMMON PITFALLS                         │
+├────────────────────────────────────────────────────────────┤
+│ ❌ Missing HX-Refresh      │ ✅ if not user_input:         │
+│    Response                │     response.headers['HX-     │
+│                            │     Refresh'] = 'true'        │
+├────────────────────────────┼───────────────────────────────┤
+│ ❌ Wrong Key Generation    │ ✅ pip.generate_pipeline_     │
+│    Method                  │     key(self)                 │
+├────────────────────────────┼───────────────────────────────┤
+│ ❌ Broken Chain Reaction   │ ✅ hx_trigger="load" →        │
+│    Pattern                 │     Automatic progression     │
+├────────────────────────────┼───────────────────────────────┤
+│ ❌ APP_NAME Changes        │ ✅ NEVER modify after         │
+│    (Data Orphaning)       │     deployment                 │
+└────────────────────────────────────────────────────────────┘
+```
+<!-- END_ASCII_ART: llm-implementation-mistakes -->
 
 **LLMs frequently make these errors:**
 
