@@ -10,7 +10,7 @@
 
 ```
 ╔═════════════════════════════════════════════════════════════════════════╗  Chip O'What?
-║  🎭 PIPULATE: LOCAL-FIRST DIGITAL WORKSHOP                              ║     ,       O  
+║  🎭 PIPULATE: LOCAL-FIRST AI SEO SOFTWARE & DIGITAL WORKSHOP            ║     ,       O  
 ║  ────────────────────────────────────────────────────────────────────── ║     \\  .  O
 ║                                                                         ║     |\\/| o
 ║  💬 Chip O'Theseus: "Welcome to your sovereign computing environment!"  ║     / " '\ 
