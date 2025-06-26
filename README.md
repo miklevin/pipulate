@@ -23,7 +23,7 @@
 
 ## AI On Rails: The Answer to Agentic Mode  <!-- key: about-pipulate -->
 
-**The Problem with Agentic AI:** Unpredictable, cloud-dependent, trains frontier models with your data.
+**The Problem with Agentic AI:** Unpredictable, cloud-dependent, and trains frontier models with your data.
 
 **The Pipulate Solution:** Local AI guided by domain expert workflows, keeping your intelligence sovereign.
 
