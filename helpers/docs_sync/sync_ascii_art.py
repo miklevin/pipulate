@@ -153,6 +153,31 @@ def find_heuristic_ascii_candidates(content, filename, known_ascii_blocks=None):
     
     return candidates
 
+def detect_consecutive_markers(content, filename):
+    """
+    DEFENSIVE MEASURE #1: Detect consecutive ASCII art markers without content between them.
+    
+    This prevents silent failures where AI inserts markers like:
+    <!-- START_ASCII_ART: block-name -->
+    <!-- END_ASCII_ART: block-name -->
+    
+    With no placeholder content, sync_ascii_art.py cannot populate the block.
+    """
+    issues = []
+    
+    # Pattern to find consecutive START/END markers with only whitespace between
+    consecutive_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->\s*\n\s*<!-- END_ASCII_ART: [^>]+ -->'
+    
+    matches = re.finditer(consecutive_pattern, content, re.MULTILINE)
+    for match in matches:
+        marker_name = match.group(1)
+        start_line = find_line_number(content, match.group(0))
+        
+        issue = f"File {filename}, line {start_line}: Marker '{marker_name}' has no placeholder content between START/END markers"
+        issues.append(issue)
+    
+    return issues
+
 def contains_programming_code(content):
     """Check if content contains programming language patterns that indicate it's code, not ASCII art"""
     if not content:
@@ -470,6 +495,18 @@ def main():
         marker_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->'
         markers = re.findall(marker_pattern, content)
         
+        # DEFENSIVE MEASURE #1: Detect consecutive markers without content
+        consecutive_marker_issues = detect_consecutive_markers(content, str(relative_path))
+        if consecutive_marker_issues and not prompt_mode:
+            for issue in consecutive_marker_issues:
+                print(f"🚨 CONSECUTIVE MARKER WARNING: {issue}")
+        
+        # Add to global tracking for prompt mode reporting
+        if consecutive_marker_issues:
+            if not hasattr(detect_consecutive_markers, 'global_issues'):
+                detect_consecutive_markers.global_issues = []
+            detect_consecutive_markers.global_issues.extend(consecutive_marker_issues)
+        
         # Track usage frequency in BOTH modes (needed for coverage statistics)
         for marker in markers:
             all_found_markers.add(marker)
@@ -667,7 +704,11 @@ def main():
             print(f"\n   1️⃣  Choose the highest-scoring placement for each block")
             print(f"   2️⃣  Add markers to the target file:")
             print(f"       <!-- START_ASCII_ART: block-name -->")
+            print(f"       [PLACEHOLDER CONTENT REQUIRED]")
             print(f"       <!-- END_ASCII_ART: block-name -->")
+            print(f"\n   🚨 CRITICAL: Include placeholder content between markers!")
+            print(f"       ❌ WRONG: Consecutive markers (silent failure)")
+            print(f"       ✅ CORRECT: Content or placeholder between markers")
             print(f"\n   3️⃣  Run the sync script to populate content:")
             print(f"       python helpers/docs_sync/sync_ascii_art.py")
             print(f"\n   ✨ This will strategically place unused ASCII art where it adds the most value!")
@@ -938,6 +979,20 @@ def main():
         print(f"\n{'='*60}")
         print("✨ Analysis complete! ASCII art ecosystem status reported.")
         print(f"{'='*60}")
+    
+    # Report consecutive marker issues in BOTH modes
+    if hasattr(detect_consecutive_markers, 'global_issues') and detect_consecutive_markers.global_issues:
+        print(f"\n🚨 CONSECUTIVE MARKER ISSUES DETECTED:")
+        print(f"   Found {len(detect_consecutive_markers.global_issues)} malformed marker pairs:")
+        for issue in detect_consecutive_markers.global_issues:
+            print(f"   ⚠️  {issue}")
+        print(f"\n   💡 FIX: Add placeholder content between START/END markers:")
+        print(f"       ❌ WRONG: <!-- START_ASCII_ART: name -->")
+        print(f"                 <!-- END_ASCII_ART: name -->")
+        print(f"       ✅ CORRECT: <!-- START_ASCII_ART: name -->")
+        print(f"                   [placeholder content here]")
+        print(f"                   <!-- END_ASCII_ART: name -->")
+        print(f"\n   🔧 Without placeholder content, sync_ascii_art.py cannot populate the blocks!")
 
 if __name__ == "__main__":
     main()
