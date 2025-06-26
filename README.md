@@ -328,10 +328,11 @@ Traditional development follows DRY principles, creating abstract, complex syste
     |     _____ ___         |    | | App        Menu  | |<- - - - - -. .   .
     |   _/ Nix \____\_____  |    | |------------------| |           /    ) |
     |  |                  | |    | | Workflow | Local | |          '  _.'  |
-    |  |     Pipulate    <----------> -Step 1 | Chat  | |          '-'/    \
-    |__|  localhost:5001  |_|    | |  -Step 2 | Help  | |        What, no Docker?
-       |  (AI on Rails!)  |      | |__________|_______| |        What, no React?
-       |__________________|      |______________________|        What, no Cloud?
+    |  |     Pipulate    <----------> -Step 1 | AI🤖  | |          '-'/    \
+    |__|  localhost:5001  |_|    | |  -Step 2 | Chat  | |        What, no Docker?
+       |  (AI on Rails!)  |      | |  -Step 3 | Help▸ | |        What, no React?
+       |__________________|      | |__________|_______| |        What, no Cloud?
+                                 |______________________|
 ```
 
 **WET workflows are:**
