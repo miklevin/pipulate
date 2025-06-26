@@ -53,97 +53,6 @@ Agentic Mode is like a box of chocolates — you never know what you're gonna ge
 
 --------------------------------------------------------------------------------
 
-## Chef or Customer?  <!-- key: target-audience -->
-
-Pipulate serves two distinct but complementary audiences, much like a restaurant serves both chefs and customers:
-
-```
-    ┌──────────────────────────────────────────────────────────┐
-    │                      The Restaurant                      │
-    │  ┌──────────────────┐              ┌──────────────────┐  │
-    │  │   Kitchen (Dev)  │              │  Dining Room     │  │
-    │  │                  │              │  (End Users)     │  │
-    │  │                  │              │                  │  │
-    │  │  👨‍🍳 Sous Chef    │───recipes───►│  🍽️ Customers    │  │
-    │  │  👩‍🍳 Head Chef    │              │  🏢 Restaurateur │  │
-    │  │                  │              │                  │  │
-    │  │ "How do we make  │              │ "I want the best │  │
-    │  │  pasta you've    │              │  pasta I've ever │  │
-    │  │  never had?"     │              │  had in my life" │  │
-    │  └──────────────────┘              └──────────────────┘  │
-    └──────────────────────────────────────────────────────────┘
-```
-
-### 👨‍🍳 The Chef (Developer/Technical User)
-* **🔧 Workflow Creators:** Build and customize AI-assisted workflows
-* **📓 Jupyter Porters:** Convert notebook experiments into guided applications
-* **🔍 Technical SEOs:** Create sophisticated, reusable SEO processes
-* **⚙️ System Administrators:** Deploy consistent environments across teams
-
-**What Chefs Get:**
-- 🎛️ Complete control over the "recipe" (workflow logic)
-- 🔄 Reproducible development environment via Nix
-- 🏗️ Simple architecture that's easy to understand and modify
-- 🧰 Integrated tooling (Jupyter, local LLM, SQLite)
-
-### 🍽️ The Customer (End User/Non-Technical)
-* **📈 SEO Practitioners:** Run powerful workflows without coding
-* **✍️ Content Creators:** Use AI-assisted processes for optimization
-* **📊 Marketing Teams:** Execute consistent SEO strategies
-* **🏢 Business Owners:** Access enterprise-level SEO capabilities
-
-**What Customers Get:**
-- 🚶‍♂️ Guided, step-by-step workflow experiences
-- 🤖 AI assistance at every step
-- 🙈 No need to see or understand the underlying code
-- 🎯 Consistent, repeatable results
-
-### 🍝 The Restaurant Analogy
-Just as a chef talks about knife techniques while a diner just wants amazing pasta, Pipulate separates the complexity of creation from the simplicity of consumption. Developers craft the workflows, end-users enjoy the results.
-
---------------------------------------------------------------------------------
-
-## The WET Revolution: Why Explicit Code Wins in the AI Era
-
-Pipulate is built on a radical philosophy that challenges programming orthodoxy: **WET (Write Everything Twice) is better than DRY (Don't Repeat Yourself)** when you have AI to help manage it.
-
-### Why WET Works Now  <!-- key: why-wet-works-now -->
-
-Traditional development follows DRY principles, creating abstract, complex systems that are hard to understand and modify. But the world has changed:
-
-1. **🔬 Jupyter Notebooks** promote explicit, literate programming
-2. **🤖 AI assistants** excel at managing repetitive code  
-3. **🏠 Local-first architectures** prioritize clarity over enterprise complexity
-
-```
-                               ________________________________
-   - Like Notebooks           /                                \
-   - Linear Workflows        |  It runs proprietary private AI  |
-   - Local & Cloud-free      |  Workflows from your Local PC?!  |
-   - Chip O'Theseus included  \________________________________/
-                                                               ()
-        HARDWARE PLATFORM                BROWSER                 O    ,
-     _______________________       __________ _______              o  \\  . 
-    |                       |     / Pipulate \Jupyter\__              |\\/|
-    | Windows, Mac or Linux |    |  __________________  |             / " '\
-    |     _____ ___         |    | | App        Menu  | |    See!    . .   .
-    |   _/ Nix \____\_____  |    | |------------------| |<- - - - - /    ) |
-    |  |                  | |    | | Workflow | Local | |          '  _.'  |
-    |  |     Pipulate    <----------> -Step 1 | Chat  | |          '-'/    \
-    |__|  localhost:5001  |_|    | |  -Step 2 | Help  | |       What, no Docker?
-       |  (AI on Rails!)  |      | |__________|_______| |       What, no React?
-       |__________________|      |______________________|       What, no Cloud?
-
-```
-
-**WET workflows are:**
-- **🔍 Observable**: See exactly what's happening at every step
-- **🔧 Customizable**: Modify workflows without breaking abstractions
-- **🤖 AI-Friendly**: Clear code that AI assistants can easily understand and maintain
-- **🚀 Future-Proof**: Built on durable web standards that won't become obsolete
-
---------------------------------------------------------------------------------
-
 ## What is Pipulate?
 
 Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-assisted, step-by-step workflows. Designed to feel like an Electron app, it uniquely runs a full, reproducible Linux environment within a project folder using Nix, ensuring consistency across macOS, Linux, and Windows (via WSL).
@@ -340,6 +249,97 @@ User runs install.sh (via curl)           Nix Flake Activation & Transformation
       │ Result: Fully functional, auto-updating, git-based Pipulate installation    │
       └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+--------------------------------------------------------------------------------
+
+## Chef or Customer?  <!-- key: target-audience -->
+
+Pipulate serves two distinct but complementary audiences, much like a restaurant serves both chefs and customers:
+
+```
+    ┌──────────────────────────────────────────────────────────┐
+    │                      The Restaurant                      │
+    │  ┌──────────────────┐              ┌──────────────────┐  │
+    │  │   Kitchen (Dev)  │              │  Dining Room     │  │
+    │  │                  │              │  (End Users)     │  │
+    │  │                  │              │                  │  │
+    │  │  👨‍🍳 Sous Chef    │───recipes───►│  🍽️ Customers    │  │
+    │  │  👩‍🍳 Head Chef    │              │  🏢 Restaurateur │  │
+    │  │                  │              │                  │  │
+    │  │ "How do we make  │              │ "I want the best │  │
+    │  │  pasta you've    │              │  pasta I've ever │  │
+    │  │  never had?"     │              │  had in my life" │  │
+    │  └──────────────────┘              └──────────────────┘  │
+    └──────────────────────────────────────────────────────────┘
+```
+
+### 👨‍🍳 The Chef (Developer/Technical User)
+* **🔧 Workflow Creators:** Build and customize AI-assisted workflows
+* **📓 Jupyter Porters:** Convert notebook experiments into guided applications
+* **🔍 Technical SEOs:** Create sophisticated, reusable SEO processes
+* **⚙️ System Administrators:** Deploy consistent environments across teams
+
+**What Chefs Get:**
+- 🎛️ Complete control over the "recipe" (workflow logic)
+- 🔄 Reproducible development environment via Nix
+- 🏗️ Simple architecture that's easy to understand and modify
+- 🧰 Integrated tooling (Jupyter, local LLM, SQLite)
+
+### 🍽️ The Customer (End User/Non-Technical)
+* **📈 SEO Practitioners:** Run powerful workflows without coding
+* **✍️ Content Creators:** Use AI-assisted processes for optimization
+* **📊 Marketing Teams:** Execute consistent SEO strategies
+* **🏢 Business Owners:** Access enterprise-level SEO capabilities
+
+**What Customers Get:**
+- 🚶‍♂️ Guided, step-by-step workflow experiences
+- 🤖 AI assistance at every step
+- 🙈 No need to see or understand the underlying code
+- 🎯 Consistent, repeatable results
+
+### 🍝 The Restaurant Analogy
+Just as a chef talks about knife techniques while a diner just wants amazing pasta, Pipulate separates the complexity of creation from the simplicity of consumption. Developers craft the workflows, end-users enjoy the results.
+
+--------------------------------------------------------------------------------
+
+## The WET Revolution: Why Explicit Code Wins in the AI Era
+
+Pipulate is built on a radical philosophy that challenges programming orthodoxy: **WET (Write Everything Twice) is better than DRY (Don't Repeat Yourself)** when you have AI to help manage it.
+
+### Why WET Works Now  <!-- key: why-wet-works-now -->
+
+Traditional development follows DRY principles, creating abstract, complex systems that are hard to understand and modify. But the world has changed:
+
+1. **🔬 Jupyter Notebooks** promote explicit, literate programming
+2. **🤖 AI assistants** excel at managing repetitive code  
+3. **🏠 Local-first architectures** prioritize clarity over enterprise complexity
+
+```
+                               ________________________________
+   - Like Notebooks           /                                \
+   - Linear Workflows        |  It runs proprietary private AI  |
+   - Local & Cloud-free      |  Workflows from your Local PC?!  |
+   - Chip O'Theseus included  \________________________________/
+                                                               ()
+        HARDWARE PLATFORM                BROWSER                 O    ,
+     _______________________       __________ _______              o  \\  . 
+    |                       |     / Pipulate \Jupyter\__              |\\/|
+    | Windows, Mac or Linux |    |  __________________  |             / " '\
+    |     _____ ___         |    | | App        Menu  | |    See!    . .   .
+    |   _/ Nix \____\_____  |    | |------------------| |<- - - - - /    ) |
+    |  |                  | |    | | Workflow | Local | |          '  _.'  |
+    |  |     Pipulate    <----------> -Step 1 | Chat  | |          '-'/    \
+    |__|  localhost:5001  |_|    | |  -Step 2 | Help  | |       What, no Docker?
+       |  (AI on Rails!)  |      | |__________|_______| |       What, no React?
+       |__________________|      |______________________|       What, no Cloud?
+
+```
+
+**WET workflows are:**
+- **🔍 Observable**: See exactly what's happening at every step
+- **🔧 Customizable**: Modify workflows without breaking abstractions
+- **🤖 AI-Friendly**: Clear code that AI assistants can easily understand and maintain
+- **🚀 Future-Proof**: Built on durable web standards that won't become obsolete
 
 --------------------------------------------------------------------------------
 
