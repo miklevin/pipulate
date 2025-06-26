@@ -460,6 +460,10 @@ The UI is constructed primarily with server-rendered HTML fragments delivered vi
                              └─────────┴───────────┘  - No virtual DOM, JSX, Redux, etc.
 ```
 
+--------------------------------------------------------------------------------
+
+## Workflow Patterns & Development
+
 ### Pipeline Workflows  <!-- key: pipeline-workflows -->
 
 Designed for porting notebook-style processes, workflows are sequences of steps where the state is managed explicitly at each stage and stored persistently (typically as a JSON blob in the `pipeline` table).
