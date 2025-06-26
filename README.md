@@ -1,6 +1,6 @@
 # Pipulate: The Local-First Revolution in AI-Assisted Development
 
-![Pipulate Free & Open Source SEO with & for LLMs](/static/pipulate.svg)
+![Pipulate Free & Open Source SEO with & for LLMs](/static/ai-seo-softare.svg)
 
 <!-- Don't forget to sync_ascii_art.py -->
 > **Your data. Your AI. Your machine. Your control.**  
