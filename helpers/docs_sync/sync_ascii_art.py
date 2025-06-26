@@ -105,10 +105,15 @@ def find_heuristic_ascii_candidates(content, filename, known_ascii_blocks=None):
     managed_ascii_contents = set()
     
     # Add ASCII art blocks that are already managed in this file
-    ascii_marker_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->\s*\n```\n(.*?)\n```\s*\n<!-- END_ASCII_ART: [^>]+ -->'
+    # Updated pattern to handle content between markers (title, description, etc.)
+    ascii_marker_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->(.*?)<!-- END_ASCII_ART: [^>]+ -->'
     managed_matches = re.finditer(ascii_marker_pattern, content, re.DOTALL)
     for managed_match in managed_matches:
-        managed_ascii_contents.add(managed_match.group(2).strip())
+        # Extract all code blocks within the managed section
+        managed_section = managed_match.group(2)
+        code_blocks = re.findall(r'```\n(.*?)\n```', managed_section, re.DOTALL)
+        for code_block in code_blocks:
+            managed_ascii_contents.add(code_block.strip())
     
     # Also exclude ASCII art from our known synchronized blocks
     if known_ascii_blocks:
