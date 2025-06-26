@@ -23,7 +23,13 @@
 
 ## AI On Rails: The Answer to Agentic Mode  <!-- key: about-pipulate -->
 
-Agentic Mode is like a box of chocolates — you never know what you're gonna get. Ask an AI to do something in *Agentic Mode* and it's going to go off and do whatever it thinks is right until done. But what if there were a domain expert in the picture who sets everything up ahead of time ensuring proper AI coralling and wrangling? Put AIs on Rails with Pipulate using rigid linear workflows prepared by domain experts. Leverage local AI without training the frontier models and keep your secret recipes secret.
+**The Problem with Agentic AI:** Unpredictable, cloud-dependent, trains frontier models with your data.
+
+**The Pipulate Solution:** Local AI guided by domain expert workflows, keeping your intelligence sovereign.
+
+Agentic Mode is like a box of chocolates — you never know what you're gonna get. Ask an AI to do something in *Agentic Mode* and it's going to go off and do whatever it thinks is right until done. But what if there were a domain expert in the picture who sets everything up ahead of time ensuring proper AI coralling and wrangling? 
+
+**Put AIs on Rails with Pipulate:** Rigid linear workflows prepared by domain experts, leveraging local AI without training frontier models. Your secret recipes stay secret, your data stays yours, and your AI grows with you on your own hardware.
 
 ```
       🤖 AGENTIC MODE (Chaos)           🚂 AI ON RAILS (Pipulate)
@@ -113,6 +119,18 @@ Linux/Nix ──► HTTP ──► HTML ──► HTMX ──► Python ──�
 ```
 
 **Nix serves as the "Noah's Ark"** - preserving this perfect focus in a reproducible environment that works identically across all platforms. Once you've locked in the focus, it lasts for years or decades, all bottled up in infrastructure-as-code.
+
+### Grinding Off the Burrs and Flashes  <!-- key: grinding-off-burrs-flashes -->
+
+In lens manufacturing, "flashes" are excess material that squeeze out of molds - unwanted projections that must be ground off. Steve Jobs famously did this twice: adopting Gorilla Glass (grinding off plastic flashes) and rejecting Flash Player (grinding off software bloat).
+
+**Pipulate continues this tradition:**
+- **FastHTML**: Grinds off Jinja2 template complexity  
+- **HTMX**: Grinds off virtual DOM overhead
+- **Local AI**: Grinds off cloud dependencies
+- **SQLite**: Grinds off enterprise database complexity
+
+The result: clean, focused tools that do their job without unnecessary cruft.
 
 ### The Evolution: Flask → FastAPI → FastHTML  <!-- key: the-evolution-flask-fastapi-fasthtml -->
 
