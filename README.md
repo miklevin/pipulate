@@ -125,9 +125,9 @@ This isn't just another framework - it's a **deliberate culmination** of decades
 🎡 THE HAMSTER WHEEL OF FRAMEWORK CHURN        🏰 COMPUTING SOVEREIGNTY
 ═══════════════════════════════════════        ═══════════════════════════
 
-    React → Vue → Angular → Svelte              🗽 Your Hardware
+    React → Vue → Angular → Svelte             🗽 Your Hardware
          ↑                    ↓                🗽 Your Data  
-    Webpack ← Next.js ← Vite ← Remix            🗽 Your AI
+    Webpack ← Next.js ← Vite ← Remix           🗽 Your AI
          ↑                    ↓                🗽 Your Code
     Docker → K8s → Cloud → Serverless          🗽 Your Schedule
                                                
@@ -136,7 +136,7 @@ This isn't just another framework - it's a **deliberate culmination** of decades
     🔒 Platform Lock-in                         • SQLite (built-in)
     📈 Growing Complexity                       • HTML/HTTP (timeless)
     ⏰ Always Catching Up                       • Nix (reproducible)
-                                               • Local AI (private)
+                                                • Local AI (private)
          VS.
                                                🎯 Third Act Philosophy:
     🏃‍♂️ JUMP OFF THE WHEEL                       "Choose tools that will
@@ -145,7 +145,7 @@ This isn't just another framework - it's a **deliberate culmination** of decades
          │  PIPULATE   │                       💤 Sleep Well
          │ Local-First │                       🧘 Own Schedule  
          │  Sovereign  │                       🔧 Full Control
-         └─────────────┘                       ♾️  Built to Last
+         └─────────────┘                       ♾️ Built to Last
 ```
 <!-- END_ASCII_ART: breaking-free-framework-churn -->
 
