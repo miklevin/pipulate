@@ -63,6 +63,53 @@ Agentic Mode is like a box of chocolates — you never know what you're gonna ge
 
 Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-assisted, step-by-step workflows. Designed to feel like an Electron app, it uniquely runs a full, reproducible Linux environment within a project folder using Nix, ensuring consistency across macOS, Linux, and Windows (via WSL).
 
+### Desktop App Architecture: Electron vs Pipulate  <!-- key: desktop-app-architecture-comparison -->
+
+<!-- START_ASCII_ART: desktop-app-architecture-comparison -->
+```
+🖥️ ELECTRON PATTERN                    🌐 PIPULATE PATTERN
+═══════════════════════               ═══════════════════════
+
+┌─────────────────────────┐           ┌─────────────────────────┐
+│      ELECTRON APP       │           │     PIPULATE SETUP     │
+├─────────────────────────┤           ├─────────────────────────┤
+│ ┌─────┐ ┌─────┐ ┌─────┐ │           │ ┌─────────────────────┐ │
+│ │.exe │ │.dmg │ │.deb │ │           │ │   install.sh        │ │
+│ └─────┘ └─────┘ └─────┘ │           │ │ (Works on ALL OSes) │ │
+│   Per-OS Installers     │           │ └─────────────────────┘ │
+└────────┬────────────────┘           └────────┬────────────────┘
+         │                                     │
+         ▼                                     ▼
+┌─────────────────────────┐           ┌─────────────────────────┐
+│   📱 Native Window      │           │ 🖥️ Terminal Console     │
+│  ┌─────────────────┐    │           │ ┌─────────────────────┐ │
+│  │  Web Browser    │    │           │ │ nix develop         │ │
+│  │  (Bundled)      │    │           │ │ Starting servers... │ │
+│  │  ┌───────────┐  │    │           │ │ ✓ JupyterLab ready  │ │
+│  │  │           │  │    │           │ │ ✓ Pipulate ready    │ │
+│  │  │   HTML    │  │    │           │ └─────────────────────┘ │
+│  │  │   CSS     │  │    │    +      └─────────────────────────┘
+│  │  │   JS      │  │    │                     │
+│  │  │           │  │    │                     ▼
+│  │  └───────────┘  │    │           ┌─────────────────────────┐
+│  └─────────────────┘    │           │ 🌐 Regular Browser     │
+│         │                │           │ ┌─────────────────────┐ │
+│         ▼                │           │ │ localhost:5001      │ │
+│ ┌─────────────────┐      │           │ │ ┌─────────────────┐ │ │
+│ │   Node.js       │      │           │ │ │  Python/HTMX   │ │ │
+│ │   Runtime       │      │           │ │ │  Workflows      │ │ │
+│ └─────────────────┘      │           │ │ │  Local AI       │ │ │
+└─────────────────────────┘           │ │ └─────────────────┘ │ │
+                                       │ └─────────────────────┘ │
+✅ Feels like native app               └─────────────────────────┘
+❌ Multiple installers needed          
+❌ Platform-specific builds            ✅ Universal installer
+❌ Update distribution complexity      ✅ Auto-updates via git
+                                       ✅ Same experience all OSes
+                                       ✅ Complete reproducibility
+```
+<!-- END_ASCII_ART: desktop-app-architecture-comparison -->
+
 ### The Magnum Opus: Computing Sovereignty  <!-- key: magnum-opus-computing-sovereignty -->
 
 This isn't just another framework - it's a **deliberate culmination** of decades of tech evolution insights. Pipulate represents the "final act" approach to development (3rd time's the charm): choosing the **most durable and lovable** parts of the modern tech stack while rejecting the exhausting hamster wheel of framework churn.
