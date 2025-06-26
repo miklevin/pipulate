@@ -381,7 +381,7 @@ Traditional development follows DRY principles, creating abstract, complex syste
     | Windows, Mac or Linux |    |  __________________  |   See!    / " '\ - Radical transparency
     |     _____ ___         |    | | App Name   Menu⚙️| |<- - - - -. .   . - MCP tool-call control
     |   _/ Nix \____\_____  |    | |------------------| |         /    ) | - Browser as bot's body
-    |  |                  | |    | | Workflow | Local | |        '-'/    \
+    |  |                  | |    | | Workflow | Local | |        '  _.'  |
     |  |     Pipulate    <---------> -Step #1 | AI🤖  | |        '-'/    \
     |__|  localhost:5001  |_|    | | -Step #2 | Chat  | |      What, no Docker?
        |  (AI on Rails🚂) |      | | -Step #3 | Help▸ | |      What, no React?
