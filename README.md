@@ -6,7 +6,7 @@
 > **Your data. Your AI. Your machine. Your control.**  
 > No subscriptions, no vendor lock-in, no cloud costs.
 
-### Welcome to Pipulate  <!-- key: pipulate-welcome-banner -->
+### Meet Chip O'Theseus  <!-- key: pipulate-welcome-banner -->
 
 ```
 ╔═════════════════════════════════════════════════════════════════════════╗  Chip O'What?
@@ -162,6 +162,8 @@ This isn't just another framework - it's a **deliberate culmination** of decades
 1. **Empower End-Users (e.g., SEO Practitioners):** Enable non-programmers to run powerful, AI-guided workflows (often ported from Jupyter Notebooks) without needing to interact with Python code directly.
 2. **Serve Developers:** Provide a simple, reproducible environment for building these workflows, leveraging integrated tooling like Jupyter, local LLMs, and a streamlined web framework.
 
+--------------------------------------------------------------------------------
+
 ## The Technical Stack: Simple Yet Powerful
 
 Pipulate's WET philosophy extends to its technology choices, favoring simple, durable tools over complex abstractions:
@@ -210,6 +212,12 @@ In lens manufacturing, "flashes" are excess material that squeeze out of molds -
 - **SQLite**: Grinds off enterprise database complexity
 
 The result: clean, focused tools that do their job without unnecessary cruft.
+
+--------------------------------------------------------------------------------
+
+## From Flask to FastAPI to FastHTML
+
+This is not your father's Python web framework. HTMX changes everything — a marriage made in heaven between Python and the Web, finally turning Python into a first-class citizen for web development. In many use cases such as this one, Python is even preferable to JavaScript in the way it blends Python's formidable ecosystem of packages with workflows.
 
 ### The Evolution: Flask → FastAPI → FastHTML  <!-- key: the-evolution-flask-fastapi-fasthtml -->
 
@@ -368,7 +376,7 @@ User runs install.sh (via curl)           Nix Flake Activation & Transformation
 
 ## Chef or Customer?  <!-- key: target-audience -->
 
-Pipulate serves two distinct but complementary audiences, much like a restaurant serves both chefs and customers:
+Are you a Developer or an End User? Chef or Customer? Understanding your audience is crucial for effective development. Pipulate serves two distinct but complementary audiences, much like a restaurant serves both chefs and customers
 
 ```
     ┌──────────────────────────────────────────────────────────┐
@@ -984,7 +992,7 @@ These "speedbumps" reinforce Pipulate's core philosophy:
   * **WebSocket Pattern:** Use the dedicated `Chat` class for managing LLM interactions. Avoid raw WebSocket handling elsewhere.
   * **Workflow Progression Pattern:** Workflows use an explicit chain reaction pattern with `hx_trigger="load"` to manage step progression. This pattern must be preserved exactly as implemented. See the workflow documentation for details.
 
-## Core Concepts & Internal Components  <!-- key: core-concepts-internal-components -->
+## Internal Components  <!-- key: core-concepts-internal-components -->
 
   * **Monitoring:** A file system watchdog monitors code changes. Valid changes trigger an automatic, monitored server restart via Uvicorn, facilitating live development.
 
