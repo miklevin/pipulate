@@ -1,4 +1,4 @@
-# Pipulate: The Local-First Revolution in AI-Assisted Development
+# Pipulate: Local First AI SEO Software
 
 ![Pipulate Free & Open Source SEO with & for LLMs](/static/ai-seo-software.svg)
 
