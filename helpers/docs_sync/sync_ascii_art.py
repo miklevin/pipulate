@@ -259,7 +259,35 @@ def main():
         readme_content = f.read()
     
     ascii_block_data = extract_ascii_art_blocks(readme_content)
-    ascii_blocks = {key: data['art'] for key, data in ascii_block_data.items()}
+    
+    # Build complete content blocks (title + header + art + footer)
+    ascii_blocks = {}
+    for key, data in ascii_block_data.items():
+        # Reconstruct complete content block
+        complete_content = []
+        
+        # Add title (preserve original markdown headline)
+        if data['title']:
+            complete_content.append(data['title'])
+        
+        # Add header content if present
+        if data['header']:
+            complete_content.append('')  # Empty line after title
+            complete_content.append(data['header'])
+        
+        # Add ASCII art in code fences
+        complete_content.append('')  # Empty line before code block
+        complete_content.append('```')
+        complete_content.append(data['art'])
+        complete_content.append('```')
+        
+        # Add footer content if present
+        if data['footer']:
+            complete_content.append('')  # Empty line after code block
+            complete_content.append(data['footer'])
+        
+        # Join with newlines and store
+        ascii_blocks[key] = '\n'.join(complete_content)
     
     # Show extraction details with line numbers (skip in prompt mode)
     if not prompt_mode:
@@ -341,16 +369,18 @@ def main():
                 
                 if block_match:
                     current_block = block_match.group(0)
-                    art_pattern = r'```\n(.*?)\n```'
-                    art_match = re.search(art_pattern, current_block, re.DOTALL)
                     
-                    if art_match:
-                        current_art = art_match.group(1)
-                        new_art = ascii_blocks[marker]
+                    # Extract current content between markers (excluding the markers themselves)
+                    content_pattern = rf'<!-- START_ASCII_ART: {re.escape(marker)} -->\n(.*?)\n<!-- END_ASCII_ART: {re.escape(marker)} -->'
+                    content_match = re.search(content_pattern, current_block, re.DOTALL)
+                    
+                    if content_match:
+                        current_content = content_match.group(1).strip()
+                        new_content_block = ascii_blocks[marker]
                         
-                        if current_art != new_art:
+                        if current_content != new_content_block:
                             # Update needed!
-                            replacement = f'<!-- START_ASCII_ART: {marker} -->\n```\n{new_art}\n```\n<!-- END_ASCII_ART: {marker} -->'
+                            replacement = f'<!-- START_ASCII_ART: {marker} -->\n{new_content_block}\n<!-- END_ASCII_ART: {marker} -->'
                             new_content = re.sub(block_pattern, replacement, content, flags=re.DOTALL)
                             
                             # Write the updated file

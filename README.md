@@ -470,9 +470,9 @@ Designed for porting notebook-style processes, workflows are sequences of steps 
   State Saved        State Saved         Finalized?   - Magnitudes simpler than celery
 ```
 
-#### Run All Cells Pattern  <!-- key: run-all-cells-pattern -->
+### Run All Cells Pattern  <!-- key: run-all-cells-pattern -->
 
-The `run_all_cells()` method creates the perfect mental model - workflows execute sequentially like Jupyter notebook cells:
+**The key insight**: Pipulate workflows use a `run_all_cells()` pattern that directly mirrors Jupyter's "Run All Cells" command. This creates an immediate mental model - each workflow step is like a notebook cell, and the system automatically progresses through them top-to-bottom, just like running all cells in a notebook.
 
 ```
     📓 JUPYTER NOTEBOOK               🌐 PIPULATE WORKFLOW
