@@ -345,9 +345,9 @@ Traditional development follows DRY principles, creating abstract, complex syste
 
 ## Developer Setup & Environment Notes
 
-* **Nix Environment Activation:** Always run `nix develop` from the `~/pipulate` directory *before* running any project commands (`python server.py`, `pip install`, etc.) in a new terminal. This ensures you are using the correct dependencies defined in `flake.nix`.
+**Nix Environment Activation:** Always run `nix develop` from the `~/pipulate` directory *before* running any project commands (`python server.py`, `pip install`, etc.) in a new terminal. This ensures you are using the correct dependencies defined in `flake.nix`.
 
-* **Interactive vs. Quiet Shell:**
+**Interactive vs. Quiet Shell:**
 
 **Standard Shell:** `nix develop` (or `nix develop .#default`) runs the startup script (`run-script` defined in `flake.nix`) with welcome messages and service startup. Ideal for general use.
 
@@ -356,9 +356,9 @@ Traditional development follows DRY principles, creating abstract, complex syste
 - Debugging or interacting with AI assistants where verbose startup output is undesirable.
 - Manually running `run-server` or `run-jupyter` (scripts placed in `.venv/bin` by the `shellHook`).
 
-* **Dependencies:** System-level dependencies (Python version, libraries like `gcc`, `zlib`) are managed by `flake.nix`. Python package dependencies are managed by `pip` using `requirements.txt` within the Nix-provided environment.
+**Dependencies:** System-level dependencies (Python version, libraries like `gcc`, `zlib`) are managed by `flake.nix`. Python package dependencies are managed by `pip` using `requirements.txt` within the Nix-provided environment.
 
-* **Source of Truth:** The `flake.nix` file is the definitive source for the development environment setup.
+**Source of Truth:** The `flake.nix` file is the definitive source for the development environment setup.
 
 --------------------------------------------------------------------------------
 
