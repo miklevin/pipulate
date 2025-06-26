@@ -644,6 +644,28 @@ This system provides unprecedented debugging power:
         # Remove HTML comments like <!-- key: pipeline-workflows -->
         return re.sub(r'<!--.*?-->', '', text).strip()
 
+    def _clean_description_text(self, text):
+        """Clean markdown syntax from description text for TOC display"""
+        import re
+        
+        # Remove images ![alt](src) - Replace with just the alt text or remove entirely
+        text = re.sub(r'!\[([^\]]*)\]\([^)]*\)', lambda m: m.group(1) if m.group(1).strip() else '', text)
+        
+        # Remove bold **text** -> text
+        text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)
+        
+        # Remove italic *text* -> text  
+        text = re.sub(r'\*(.*?)\*', r'\1', text)
+        
+        # Remove inline code `text` -> text
+        text = re.sub(r'`([^`]*)`', r'\1', text)
+        
+        # Remove links [text](url) -> text
+        text = re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', text)
+        
+        # Clean up multiple spaces and return
+        return ' '.join(text.split()).strip()
+
     def _slugify(self, text):
         """Convert text to URL-friendly slug for header IDs"""
         import re
@@ -2131,10 +2153,10 @@ This system provides unprecedented debugging power:
                 # For page 1, accept H1 or H2 (since main title might be used for document)
                 # For other pages, look for H1 or H2 headers
                 if line.startswith('# '):
-                    page_title = line[2:].strip()
+                    page_title = self._remove_html_comments(line[2:].strip())
                     break
                 elif line.startswith('## '):
-                    page_title = line[3:].strip()
+                    page_title = self._remove_html_comments(line[3:].strip())
                     break
 
             # Get a brief description from the first paragraph
@@ -2142,7 +2164,9 @@ This system provides unprecedented debugging power:
             for line in lines:
                 line = line.strip()
                 if line and not line.startswith('#') and not line.startswith('```') and len(line) > 20:
-                    description = line[:100] + ('...' if len(line) > 100 else '')
+                    # Clean up markdown in description
+                    clean_line = self._clean_description_text(line)
+                    description = clean_line[:100] + ('...' if len(clean_line) > 100 else '')
                     break
 
             toc.append({
