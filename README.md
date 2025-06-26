@@ -321,18 +321,17 @@ Traditional development follows DRY principles, creating abstract, complex syste
    - Local & Cloud-free      |  Workflows from your Local PC?!  |
    - Chip O'Theseus included  \________________________________/
                                                                ()
-        HARDWARE PLATFORM                BROWSER                 O    ,
+        HARDWARE PLATFORM                BROWSER                 O    , Chip O'Theseus
      _______________________       __________ _______              o  \\  . 
     |                       |     / Pipulate \Jupyter\__              |\\/|
-    | Windows, Mac or Linux |    |  __________________  |             / " '\
-    |     _____ ___         |    | | App        Menu  | |    See!    . .   .
-    |   _/ Nix \____\_____  |    | |------------------| |<- - - - - /    ) |
+    | Windows, Mac or Linux |    |  __________________  |    See!     / " '\
+    |     _____ ___         |    | | App        Menu  | |<- - - - - -. .   .
+    |   _/ Nix \____\_____  |    | |------------------| |           /    ) |
     |  |                  | |    | | Workflow | Local | |          '  _.'  |
     |  |     Pipulate    <----------> -Step 1 | Chat  | |          '-'/    \
-    |__|  localhost:5001  |_|    | |  -Step 2 | Help  | |       What, no Docker?
-       |  (AI on Rails!)  |      | |__________|_______| |       What, no React?
-       |__________________|      |______________________|       What, no Cloud?
-
+    |__|  localhost:5001  |_|    | |  -Step 2 | Help  | |        What, no Docker?
+       |  (AI on Rails!)  |      | |__________|_______| |        What, no React?
+       |__________________|      |______________________|        What, no Cloud?
 ```
 
 **WET workflows are:**
