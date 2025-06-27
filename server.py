@@ -682,28 +682,35 @@ def get_current_environment():
         return 'Development'
 
 def get_nix_version():
-    """Get the Nix flake version by parsing flake.nix file."""
+    """Get the version from the single source of truth: pipulate.__version__"""
     import os
-    import re
-    from pathlib import Path
-
-    # Check if we're in a Nix shell
+    
+    # Check if we're in a Nix shell for environment context
     if not (os.environ.get('IN_NIX_SHELL') or 'nix' in os.environ.get('PS1', '')):
-        return "Not in Nix environment"
+        env_context = " (Not in Nix environment)"
+    else:
+        env_context = " (Nix Environment)"
     
-    # Try to parse version from flake.nix
+    # Get version from single source of truth
     try:
-        flake_path = Path('flake.nix')
-        if flake_path.exists():
-            flake_content = flake_path.read_text()
-            # Look for: version = "x.x.x (description)";
-            version_match = re.search(r'version\s*=\s*"([^"]+)"', flake_content)
-            if version_match:
-                return version_match.group(1)
-    except Exception as e:
-        logger.debug(f"Could not parse version from flake.nix: {e}")
+        # Import the version from our package
+        from pipulate import __version__
+        return f"{__version__}{env_context}"
+    except ImportError:
+        # Fallback to parsing __init__.py directly
+        try:
+            import re
+            from pathlib import Path
+            init_file = Path(__file__).parent / '__init__.py'
+            if init_file.exists():
+                content = init_file.read_text()
+                version_match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
+                if version_match:
+                    return f"{version_match.group(1)}{env_context}"
+        except Exception as e:
+            logger.debug(f"Could not parse version from __init__.py: {e}")
     
-    return "Unknown version"
+    return f"Unknown version{env_context}"
 ENV_FILE = Path('data/current_environment.txt')
 
 APP_NAME = get_app_name()

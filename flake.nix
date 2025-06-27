@@ -73,10 +73,13 @@
 
   # Outputs define what our Flake produces
   # In this case, it's a development shell that works across different systems
-  outputs = { self, nixpkgs, flake-utils }:
-    let
-      version = "1.0.8 (JupyterLab Python Version Fix)";  # Fixed Python 3.12/3.13 conflict causing JupyterLab failures
-    in
+      outputs = { self, nixpkgs, flake-utils }:
+      let
+        # VERSION NOTE: This version is synced from pipulate/__init__.py.__version__
+        # To update: Edit __version__ in __init__.py, then run: python version_sync.py
+        # This ensures consistent versioning across install.sh, pyproject.toml, and server startup
+        version = "1.1.3 (Single Source Version Fix)";  # Fixed version consistency across all components
+      in
     flake-utils.lib.eachDefaultSystem (system:
       let
         # We're creating a custom instance of nixpkgs
