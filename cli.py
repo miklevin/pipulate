@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pipulate CLI - Simple installation and execution interface
+Pipulate CLI - Beautiful installation and execution interface
 
 Usage:
     pipulate install [app_name]   # Install with optional custom name
@@ -9,196 +9,133 @@ Usage:
     pipulate --help               # Show this help
 """
 
-import argparse
 import os
 import shutil
 import subprocess
 import sys
+import argparse
 from pathlib import Path
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.syntax import Syntax
 
+console = Console()
+
+INSTALL_URL = "https://pipulate.com/install.sh"
 
 def check_nix_installed():
-    """Check if Nix is already installed on the system."""
-    try:
-        result = subprocess.run(['nix', '--version'], 
-                              capture_output=True, text=True, timeout=10)
-        if result.returncode == 0:
-            version = result.stdout.strip()
-            print(f"✅ Nix detected: {version}")
+    """Check if Nix is installed."""
+    with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), transient=True) as progress:
+        task = progress.add_task(description="Checking for Nix...", total=None)
+        try:
+            result = subprocess.run(['nix', '--version'], capture_output=True, text=True, check=True, timeout=5)
+            progress.stop()
+            console.print(f"✅ Nix detected: [bold green]{result.stdout.strip()}[/bold green]")
             return True
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        pass
-    
-    print("❌ Nix not found on system")
-    return False
-
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+            progress.stop()
+            console.print("❌ Nix not found on your system.", style="yellow")
+            return False
 
 def install_nix():
-    """Install Nix using the Determinate Systems installer."""
-    print("🔧 Installing Nix (required for Pipulate environment)...")
-    print("⚠️  This will install Nix package manager on your system.")
-    
-    response = input("Continue? [y/N]: ").lower().strip()
-    if response != 'y':
-        print("❌ Installation cancelled by user")
-        sys.exit(1)
-    
-    try:
-        cmd = [
-            'curl', '--proto', '=https', '--tlsv1.2', '-sSf', '-L',
-            'https://install.determinate.systems/nix',
-            '|', 'sh', '-s', '--', 'install'
-        ]
-        
-        # Use shell=True for pipe command
-        cmd_str = ' '.join(cmd)
-        result = subprocess.run(cmd_str, shell=True, check=True)
-        
-        print("✅ Nix installation complete!")
-        print("⚠️  Please close this terminal and open a new one before continuing.")
-        print("   Then run: pipulate install")
-        sys.exit(0)
-        
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Nix installation failed: {e}")
-        sys.exit(1)
+    """Guides the user to install Nix."""
+    console.print(Panel(
+        "[bold yellow]Nix Package Manager is required.[/bold yellow]\n\nPipulate uses Nix to create a perfect, reproducible environment. This prevents the 'it works on my machine' problem.\n\nPlease run this command to install Nix, then run `pipulate install` again:",
+        title="Nix Installation Required",
+        border_style="yellow",
+        expand=False
+    ))
+    nix_install_command = "curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install"
+    console.print(Syntax(nix_install_command, "bash", theme="monokai", line_numbers=False))
+    console.print("\n[bold]After installation, you MUST close and reopen your terminal before running `pipulate install` again.[/bold]")
+    sys.exit(1)
 
-
-def get_install_directory(app_name):
-    """Get the installation directory for the app."""
-    return Path.home() / app_name
-
-
-def download_and_extract(app_name):
-    """Download and extract Pipulate to the target directory."""
-    target_dir = get_install_directory(app_name)
-    
-    # Remove existing installation if present
+def run_install_script(app_name):
+    """Downloads and runs the main install.sh script."""
+    target_dir = Path.home() / app_name
     if target_dir.exists():
-        print(f"🗑️  Removing existing installation: {target_dir}")
+        console.print(f"🗑️  Removing existing installation at [bold yellow]{target_dir}[/bold yellow] to ensure a clean install.")
         shutil.rmtree(target_dir)
-    
-    print(f"📦 Installing Pipulate to: {target_dir}")
-    
-    # Use the same installer script approach, but call it directly
-    try:
-        # Download and run the installer
-        cmd = f'curl -L https://pipulate.com/install.sh | sh -s {app_name}'
-        result = subprocess.run(cmd, shell=True, check=True)
-        
-        print(f"✅ Installation complete: {target_dir}")
-        return target_dir
-        
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Installation failed: {e}")
+
+    console.print(f"📦 Installing Pipulate into [cyan]~/{app_name}[/cyan]...")
+    command = f"curl -L {INSTALL_URL} | sh -s {app_name}"
+
+    with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), transient=True) as progress:
+        progress.add_task(description="Running installer...", total=None)
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        _, stderr = process.communicate()
+
+    if process.returncode != 0:
+        console.print(f"❌ Installation failed.", style="bold red")
+        console.print(Panel(stderr, title="Error Details", border_style="red"))
         sys.exit(1)
 
+    console.print(f"✅ Installation complete!")
+    return target_dir
 
 def run_pipulate(app_name):
-    """Run the installed Pipulate instance."""
-    target_dir = get_install_directory(app_name)
-    
-    if not target_dir.exists():
-        print(f"❌ No installation found at: {target_dir}")
-        print(f"   Run: pipulate install {app_name}")
-        sys.exit(1)
-    
-    print(f"🚀 Starting Pipulate from: {target_dir}")
-    print("📋 Manual steps:")
-    print(f"   cd {target_dir}")
-    print("   nix develop")
-    print()
-    print("⚠️  Make sure your dev version is stopped first to avoid port conflicts!")
-    
-    # Change to the directory and run nix develop
-    os.chdir(target_dir)
-    try:
-        # Use exec to replace the current process
-        os.execvp('nix', ['nix', 'develop'])
-    except FileNotFoundError:
-        print("❌ Nix not found. Please install Nix first:")
-        print("   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install")
+    """Runs an existing Pipulate installation."""
+    target_dir = Path.home() / app_name
+    if not (target_dir.exists() and (target_dir / "flake.nix").is_file()):
+        console.print(f"❌ No Pipulate installation found at [cyan]~/{app_name}[/cyan].")
+        console.print(f"To install, run: [bold]pipulate install {app_name}[/bold]")
         sys.exit(1)
 
+    console.print(f"🚀 Launching Pipulate from [cyan]{target_dir}[/cyan]...")
+    try:
+        os.chdir(target_dir)
+        os.execvp("nix", ["nix", "develop"])
+    except FileNotFoundError:
+        console.print("❌ [bold red]Error: `nix` command not found.[/bold red]")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"❌ An unexpected error occurred while launching: {e}", style="bold red")
+        sys.exit(1)
 
 def uninstall_pipulate(app_name):
-    """Clean uninstall of Pipulate (keeps Nix)."""
-    target_dir = get_install_directory(app_name)
-    
+    """Uninstall a Pipulate installation."""
+    target_dir = Path.home() / app_name
     if not target_dir.exists():
-        print(f"ℹ️  No installation found at: {target_dir}")
+        console.print(f"ℹ️  No installation found at [cyan]~/{app_name}[/cyan]. Nothing to do.")
         return
-    
-    print(f"🗑️  Uninstalling Pipulate from: {target_dir}")
-    print("⚠️  This will remove the entire directory and all data!")
-    
-    response = input("Continue? [y/N]: ").lower().strip()
-    if response != 'y':
-        print("❌ Uninstall cancelled")
-        return
-    
-    try:
-        shutil.rmtree(target_dir)
-        print("✅ Uninstall complete!")
-        print("ℹ️  Nix remains installed for future use")
-        print(f"   Ready for: pipulate install {app_name}")
-        
-    except Exception as e:
-        print(f"❌ Uninstall failed: {e}")
-        sys.exit(1)
 
+    if console.input(f"⚠️ This will permanently delete [bold red]{target_dir}[/bold red] and all its data. Continue? (y/N) ").lower() != 'y':
+        console.print("❌ Uninstall cancelled.")
+        return
+
+    shutil.rmtree(target_dir)
+    console.print(f"✅ Successfully uninstalled from [green]{target_dir}[/green].")
 
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Pipulate - Local-First AI SEO Software",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-    pipulate install              # Install as 'pipulate'
-    pipulate install mybotify     # Install as 'mybotify' 
-    pipulate run mybotify         # Run existing installation
-    pipulate uninstall mybotify   # Clean uninstall
-
-Notes:
-    - Nix is installed once and reused for all instances
-    - Stop your dev version before running to avoid port conflicts
-    - Uninstall removes the app directory but keeps Nix
-        """
+        description="Pipulate CLI - Installation and execution helper.",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
-    
-    parser.add_argument('command', 
-                       choices=['install', 'run', 'uninstall'],
-                       help='Command to execute')
-    
-    parser.add_argument('app_name', 
-                       nargs='?', 
-                       default='pipulate',
-                       help='Application name (default: pipulate)')
-    
+    # This setup makes 'install' the default if no command is given
+    parser.add_argument("command", nargs="?", default="install", choices=['install', 'run', 'uninstall'],
+                        help="The command to execute (defaults to 'install').")
+    parser.add_argument("app_name", nargs="?", default="pipulate",
+                        help="A custom name for the installation directory (e.g., 'mybotify'). Defaults to 'pipulate'.")
+
     args = parser.parse_args()
-    
-    print("🎯 Pipulate CLI - Local-First AI SEO Software")
-    print()
-    
+
+    console.print(Panel("🚀 [bold cyan]Pipulate :: The Local-First AI SEO & Automation Workshop[/bold cyan] 🚀", border_style="cyan"))
+
     if args.command == 'install':
-        # Check Nix first
         if not check_nix_installed():
             install_nix()
-            # Will exit after Nix installation
-        
-        # Proceed with Pipulate installation
-        download_and_extract(args.app_name)
-        print()
-        print("🎯 Installation complete! To run:")
-        print(f"   pipulate run {args.app_name}")
-        
+        run_install_script(args.app_name)
+        console.print("\n✨ [bold]Setup is complete![/bold] Launching Pipulate for the first time...")
+        console.print("[italic](This may take a few minutes as it builds the environment.)[/italic]")
+        run_pipulate(args.app_name)
+
     elif args.command == 'run':
         run_pipulate(args.app_name)
-        
+
     elif args.command == 'uninstall':
         uninstall_pipulate(args.app_name)
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main() 
