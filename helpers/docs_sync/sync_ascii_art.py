@@ -551,7 +551,8 @@ def main():
                             # Update needed!
                             replacement = f'<!-- START_ASCII_ART: {marker} -->\n{new_content_block}\n<!-- END_ASCII_ART: {marker} -->'
                             # Use lambda to avoid regex interpretation of backslashes in replacement
-                            new_content = re.sub(block_pattern, lambda m: replacement, content, flags=re.DOTALL)
+                            # CRITICAL FIX: count=1 prevents duplication multiplication when there are existing duplicates
+                            new_content = re.sub(block_pattern, lambda m: replacement, content, count=1, flags=re.DOTALL)
                             
                             # Write the updated file
                             with open(md_file, 'w', encoding='utf-8') as f:
