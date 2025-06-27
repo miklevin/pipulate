@@ -1,6 +1,6 @@
 # Pipulate: Local First AI SEO Software
 
-![Pipulate Free & Open Source SEO with & for LLMs](/static/ai-seo-software.svg)
+![Pipulate Free & Open Source SEO with & for LLMs](https://github.com/miklevin/pipulate/raw/main/static/ai-seo-software.svg)
 
 <!-- Don't forget to sync_ascii_art.py -->
 > **Your data. Your AI. Your machine. Your control.**  
@@ -137,15 +137,15 @@ If you are not an Empire builder and prefer craftsmanship over the rat race and 
     📈 Growing Complexity                       • HTML/HTTP (timeless)
     ⏰ Always Catching Up                       • Nix (reproducible)
                                                 • Local AI (private)
-         VS.
+              VS.
                                                🎯 Third Act Philosophy:
     🏃‍♂️ JUMP OFF THE WHEEL                       "Choose tools that will
-                ↓                               outlast the frameworks"
-         ┌─────────────┐                       
-         │  PIPULATE   │                       💤 Sleep Well
-         │ Local-First │                       🧘 Own Schedule  
-         │  Sovereign  │                       🔧 Full Control
-         └─────────────┘                       ♾️ Built to Last
+               ↓                                 outlast the frameworks"
+        ┌─────────────┐                         
+        │  PIPULATE   │                         💤 Sleep Well
+        │ Local-First │                         🧘 Own Schedule  
+        │  Sovereign  │                         🔧 Full Control
+        └─────────────┘                         ♾️ Built to Last
 ```
 <!-- END_ASCII_ART: breaking-free-framework-churn -->
 
