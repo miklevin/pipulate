@@ -22,7 +22,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
 keywords = ["seo", "ai", "llm", "automation", "local-first", "nix", "fasthtml", "htmx", "agentic"]
-dependencies = []
+dependencies = [
+    "rich>=13.0"
+]
 
 [project.urls]
 "Homepage" = "https://github.com/miklevin/pipulate"
