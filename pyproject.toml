@@ -1,3 +1,57 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pipulate"
+version = "0.3.0"
+description = "Local-First AI SEO Software & Digital Workshop"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "Mike Levin", email = "mike@levin.nyc"}
+]
+keywords = ["seo", "ai", "local-first", "workflow", "automation", "htmx", "fasthtml"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows :: Windows 11",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Text Processing :: Markup :: HTML",
+]
+requires-python = ">=3.12"
+dependencies = [
+    "requests>=2.31.0",
+    "click>=8.1.7",
+]
+
+[project.urls]
+"Homepage" = "https://pipulate.com"
+"Documentation" = "https://pipulate.com/guide"
+"Repository" = "https://github.com/miklevin/pipulate"
+"Bug Tracker" = "https://github.com/miklevin/pipulate/issues"
+
+[project.scripts]
+pipulate = "pipulate.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pipulate*"]
+exclude = ["plugins*", "static*", "logs*", "data*", "downloads*", "training*", "helpers*", ".venv*"]
+
+[tool.setuptools.package-data]
+pipulate = ["install.sh", "flake.nix"]
+
 [tool.vulture]
 ignore_decorators = ["@rt", "@app.post"]
 ignore_names = [
