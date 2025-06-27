@@ -8,8 +8,11 @@ Walks through all markdown files and updates any markers it finds.
 🚨 FEYNMAN SAFEGUARD: Built-in pollution detection prevents sync operations
 when corrupted markers are detected, preventing exponential multiplication.
 
+📋 README.md AUTO-COPY: Source documentation automatically synced to website
+preserving original content exactly (no YAML headers, no transformations).
+
 Usage: 
-  python helpers/docs_sync/sync_ascii_art.py                    # Normal sync with pollution protection
+  python helpers/docs_sync/sync_ascii_art.py                    # Normal sync + README copy with pollution protection
   python helpers/docs_sync/sync_ascii_art.py --dry-run          # Preview changes without modifying files
   python helpers/docs_sync/sync_ascii_art.py --prompt           # Analysis mode for AI assistants
   python helpers/docs_sync/sync_ascii_art.py --verbose          # Include detailed pattern matching info
@@ -856,21 +859,35 @@ def main():
         readme_target_path = pipulate_com_path / "README.md"
         
         try:
+            # Prepare cleaned content for comparison (strip ASCII art markers)
+            cleaned_content = re.sub(
+                r'<!-- START_ASCII_ART:.*?-->\n',
+                '', 
+                readme_content, 
+                flags=re.MULTILINE
+            )
+            cleaned_content = re.sub(
+                r'<!-- END_ASCII_ART:.*?-->\n',
+                '', 
+                cleaned_content, 
+                flags=re.MULTILINE
+            )
+            
             # Check if update is needed
             readme_needs_update = True
             if readme_target_path.exists():
                 with open(readme_target_path, 'r', encoding='utf-8') as f:
                     existing_content = f.read()
-                readme_needs_update = (existing_content != readme_content)
+                readme_needs_update = (existing_content != cleaned_content)
             
             if readme_needs_update:
                 if not dry_run:
-                    # Copy README.md as-is (no transformations, no YAML headers)
+                    # Copy README.md with ASCII art markers stripped to prevent duplication
                     with open(readme_target_path, 'w', encoding='utf-8') as f:
-                        f.write(readme_content)
-                    print(f"   📋 Updated: README.md copied to Pipulate.com root")
+                        f.write(cleaned_content)
+                    print(f"   📋 Updated: README.md copied to Pipulate.com root (markers stripped)")
                 else:
-                    print(f"   📋 Would update: README.md copy to Pipulate.com root")
+                    print(f"   📋 Would update: README.md copy to Pipulate.com root (markers stripped)")
             else:
                 print(f"   📋 No change: README.md already up to date in Pipulate.com root")
                 
