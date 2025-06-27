@@ -195,6 +195,27 @@ def generate_files_list():
             # Single comment with description
             lines.append(f"{full_path}  # {entry.description}")
     
+    # PyPI release system files - all uncommented by default for version management
+    lines.append("\n## PYPI RELEASE SYSTEM FILES")
+    pypi_files = [
+        FileEntry("__init__.py", False, "Package init with version"),
+        FileEntry("cli.py", False, "CLI interface for PyPI package"),
+        FileEntry("pyproject.toml", False, "Package configuration"),
+        FileEntry("version_sync.py", False, "Version synchronization system"),
+        FileEntry("VERSION_MANAGEMENT.md", False, "Version system docs"),
+        FileEntry("TESTING_PYPI.md", False, "PyPI testing guide"),
+        FileEntry("LICENSE", False, "MIT License for PyPI package"),
+        FileEntry("PUBLISHING.md", False, "PyPI publishing documentation"),
+    ]
+    for entry in pypi_files:
+        full_path = f"{base_paths['pipulate']}/{entry.filename}"
+        if entry.double_comment:
+            # Double comments for emphasized files
+            lines.append(f"# {full_path}  # <-- {entry.description}")
+        else:
+            # Single comment with description (uncommented since these are active)
+            lines.append(f"{full_path}  # {entry.description}")
+    
     # Common/shared files
     lines.extend(enumerate_specific_files([
         f"{base_paths['pipulate_com']}/install.sh"
