@@ -12,7 +12,7 @@ Usage:
     pipulate
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __author__ = "Mike Levin"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local-First AI SEO Software & Digital Workshop" 
