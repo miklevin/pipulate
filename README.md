@@ -258,7 +258,7 @@ Pipulate's technology choices form **aligned lenses** that focus ideas from abst
  / \ -> \   Nix    /--->\  html  /--->`..py ,'--->`.   ,'    `-'  
      --> \        /----->`.    ,'       `--'        `-'   
      ---> `.    ,'         `--'  
-            `--'                            using fewest possible lesnses.
+            `--'                          through fewest possible lesnses.
 
   Idea --> Lens#1   -->   Lens#2  -->  Lens#3  -> Lens#4 > Lens#5 > Lens#6
 ```
