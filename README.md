@@ -331,9 +331,45 @@ The revolution isn't just another framework - it's eliminating the template laye
 
 ## How to Install Pipulate
 
-### Quick Start: Be Running in 5 Minutes  <!-- key: quick-start-be-running-in-5-minutes -->
+### Installation Strategy: Universal First, PyPI Alternative  <!-- key: installation-strategy-overview -->
 
-This guide shows you how to install Pipulate using two main commands in your terminal. This works on macOS or on Windows using WSL (Windows Subsystem for Linux) with an Ubuntu (or similar Linux) terminal.
+We offer two installation paths that lead to the exact same robust, Nix-managed environment. Choose the path that best fits your experience level and preferences.
+
+```
+                            ┌────────────────────────────┐
+                            │      New User on macOS     │
+                            └─────────────┬──────────────┘
+                                          │
+                  ┌───────────────────────┴───────────────────────┐
+                  │                                               │
+                  ▼                                               ▼
+  ┌──────────────────────────────────┐   ┌───────────────────────────────────────────┐
+  │ PATH 1: Recommended for Everyone │   │ PATH 2: Alternative for Python Developers │
+  └──────────────────────────────────┘   └───────────────────────────────────────────┘
+                  │                                               │
+  "I want the simplest, most               "I prefer managing my command-line
+   direct way to get this running."        tools with standard Python utilities."
+                  │                                               │
+                  ▼                                               ▼
+  1. `curl ... [nix]`                      1. `brew install pipx` (If needed)
+  2. `curl ... [pipulate]`                 2. `pipx install pipulate`
+                                           3. `pipulate install`
+                  │                                               │
+                  └───────────────┐               ┌───────────────┘
+                                  │               │
+                                  ▼               ▼
+                            ┌────────────────────────────┐
+                            │    Nix-Managed Pipulate    │
+                            │        Environment         │
+                            └────────────────────────────┘
+                                         ||
+                                    (Identical
+                                      Result)
+```
+
+### PATH 1: Quick Start - Universal Installation (Recommended)  <!-- key: quick-start-universal-installation -->
+
+This is the fastest and most universal way to install Pipulate. It has the fewest dependencies and works on any modern Mac, Linux system, or Windows with WSL.
 
 ```
 
@@ -358,42 +394,43 @@ This guide shows you how to install Pipulate using two main commands in your ter
     Everything runs locally with complete privacy and control.
 ```
 
-**1. Install Nix (One-Time Setup)**
+**Step 1: Install Nix (One-Time Setup)**
+
+If you don't have it already, install the Nix package manager. It's the system that makes Pipulate's reproducible environment possible.
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 ```
 
-**Close your terminal and open a new one after installation.**
+> **Important:** After the Nix installation finishes, you **must close and reopen** your Terminal window.
 
-**2. Install Pipulate**
+**Step 2: Run the Pipulate Installer**
 
-With a custom name
+Now, run the universal install script. You can give your project a custom name, too.
+
 ```bash
+# To install with a custom name like "Botifython"
 curl -L https://pipulate.com/install.sh | sh -s Botifython
-```
 
-Or default installation
-```bash
+# Or, to install with the default name "pipulate"
 curl -L https://pipulate.com/install.sh | sh
 ```
 
-**3. Run It**
+**Step 3: Launch Pipulate**
+
+Navigate into your new project directory and launch the environment with `nix develop`.
 
 ```bash
+# cd into the directory you just created
 cd ~/Botifython
+
+# Launch Pipulate
 nix develop
 ```
 
-These few commands:
-- ✅ Updates to the latest version automatically
-- ✅ Starts JupyterLab and the Pipulate server
-- ✅ Opens web interfaces in your browser
-- ✅ Provides a complete, reproducible development environment
+That's it! The server and JupyterLab will start, and the application will open in your browser.
 
-**That's it!** You now have a local-first development environment with AI integration.
-
-**4. Run It Again!**
+**Running It Again:**
 
 1. You can just forcibly exit out of that Terminal it's running from.
 2. Open a new Terminal, and once again:
@@ -403,7 +440,7 @@ cd ~/Botifython
 nix develop
 ```
 
-**5. The Big Reset (If Necessary)**
+**The Big Reset (If Necessary):**
 
 Things sometimes go wrong. This is how you do a full Pipulate reset. This will also delete anything you downloaded with Pipulate. Adjust custom install name to what you used.
 
@@ -415,6 +452,46 @@ nix develop
 ```
 
 Wait for ***BOTH TABS*** to auto-open in your browser.
+
+---
+
+### PATH 2: Alternative Installation via PyPI (For Python Developers)  <!-- key: alternative-installation-pypi -->
+
+If you are a developer comfortable with tools like Homebrew and `pipx`, you can use our PyPI package as a gateway to the same robust installation.
+
+**Step 1: Install `pipx`**
+
+`pipx` is a tool for safely installing Python command-line applications. If you don't have it, you can install it with Homebrew.
+
+```bash
+brew install pipx
+```
+
+**Step 2: Install the Pipulate CLI**
+
+Use `pipx` to install the `pipulate` command-line tool. This will not cause conflicts with your system Python.
+
+```bash
+pipx install pipulate
+```
+
+**Step 3: Run the Installer**
+
+Use the command you just installed to set up the full Pipulate application.
+
+```bash
+pipulate install
+```
+
+This will trigger the same universal installation process, resulting in the exact same robust, Nix-managed environment. To run it in the future, just type `pipulate run`.
+
+These few commands:
+- ✅ Updates to the latest version automatically
+- ✅ Starts JupyterLab and the Pipulate server
+- ✅ Opens web interfaces in your browser
+- ✅ Provides a complete, reproducible development environment
+
+**That's it!** You now have a local-first development environment with AI integration, installed via your preferred Python toolchain.
 
 ### Installation Process Deep Dive  <!-- key: installation-process-diagram -->
 
