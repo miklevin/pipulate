@@ -1010,7 +1010,7 @@ The `run_all_cells()` method encapsulates the workflow initialization pattern an
 ```
 📁 PLUGIN DISCOVERY SYSTEM
 plugins/
-├── 010_introduction.py        ✅ Registered as "introduction" (menu order: 1)
+├── 010_introduction.py       ✅ Registered as "introduction" (menu order: 1)
 ├── 020_profiles.py           ✅ Registered as "profiles" (menu order: 2)
 ├── hello_flow (Copy).py      ❌ SKIPPED - Contains "()"
 ├── xx_experimental.py        ❌ SKIPPED - "xx_" prefix
