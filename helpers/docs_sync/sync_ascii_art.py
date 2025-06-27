@@ -532,9 +532,30 @@ def main():
                 # Get detailed pattern matching info
                 match_details = show_pattern_match_details(content, marker, verbose)
                 
-                # Check if update is needed
+                # CRITICAL FIX: Clean up any existing duplicates FIRST
                 block_pattern = rf'<!-- START_ASCII_ART: {re.escape(marker)} -->.*?<!-- END_ASCII_ART: {re.escape(marker)} -->'
-                block_match = re.search(block_pattern, content, re.DOTALL)
+                
+                # Find all instances of this block
+                all_matches = list(re.finditer(block_pattern, content, re.DOTALL))
+                
+                if len(all_matches) > 1:
+                    # DEDUPLICATION: Remove all but the first instance
+                    print(f"    {tree_connector} 🧹 Deduplicating: {marker} (found {len(all_matches)} instances, keeping first)")
+                    
+                    # Sort matches by position (reverse order to avoid position shifts during removal)
+                    sorted_matches = sorted(all_matches, key=lambda m: m.start(), reverse=True)
+                    
+                    # Remove all instances except the first (last in reverse-sorted list)
+                    for match_to_remove in sorted_matches[:-1]:
+                        content = content[:match_to_remove.start()] + content[match_to_remove.end():]
+                    
+                    # Re-find the remaining single block
+                    block_match = re.search(block_pattern, content, re.DOTALL)
+                    file_had_updates = True  # Mark file as needing update due to deduplication
+                elif len(all_matches) == 1:
+                    block_match = all_matches[0]
+                else:
+                    block_match = None
                 
                 if block_match:
                     current_block = block_match.group(0)
