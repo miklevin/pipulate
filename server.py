@@ -470,7 +470,7 @@ def status_banner(mcp_count, plugin_count, env="Development"):
     
     status_content = f"""
 [bold white]🚀 PIPULATE STATUS[/bold white]
-[dim white]Digital Workshop Framework[/dim white]
+[dim white]Local First AI SEO Software[/dim white]
 
 [white]🌐 Server:[/white] [{server_color}]http://localhost:5001[/{server_color}]
 [white]🔧 MCP Tools:[/white] [{mcp_color}]{mcp_count} active[/{mcp_color}]
@@ -682,20 +682,14 @@ def get_current_environment():
         return 'Development'
 
 def get_nix_version():
-    """Get the version from the single source of truth: pipulate.__version__"""
+    """Get the version and description from the single source of truth: pipulate.__version__ and __version_description__"""
     import os
     
-    # Check if we're in a Nix shell for environment context
-    if not (os.environ.get('IN_NIX_SHELL') or 'nix' in os.environ.get('PS1', '')):
-        env_context = " (Not in Nix environment)"
-    else:
-        env_context = " (Nix Environment)"
-    
-    # Get version from single source of truth
+    # Get version and description from single source of truth
     try:
-        # Import the version from our package
-        from pipulate import __version__
-        return f"{__version__}{env_context}"
+        # Import the version and description from our package
+        from pipulate import __version__, __version_description__
+        return f"{__version__} ({__version_description__})"
     except ImportError:
         # Fallback to parsing __init__.py directly
         try:
@@ -705,12 +699,21 @@ def get_nix_version():
             if init_file.exists():
                 content = init_file.read_text()
                 version_match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
-                if version_match:
+                description_match = re.search(r'__version_description__\s*=\s*["\']([^"\']+)["\']', content)
+                
+                if version_match and description_match:
+                    return f"{version_match.group(1)} ({description_match.group(1)})"
+                elif version_match:
+                    # Fallback to Nix environment context for backwards compatibility
+                    if not (os.environ.get('IN_NIX_SHELL') or 'nix' in os.environ.get('PS1', '')):
+                        env_context = " (Not in Nix environment)"
+                    else:
+                        env_context = " (Nix Environment)"
                     return f"{version_match.group(1)}{env_context}"
         except Exception as e:
             logger.debug(f"Could not parse version from __init__.py: {e}")
     
-    return f"Unknown version{env_context}"
+    return "Unknown version"
 ENV_FILE = Path('data/current_environment.txt')
 
 APP_NAME = get_app_name()
@@ -6614,7 +6617,7 @@ def run_server_with_watchdog():
     logger.warning("🤖 AI_STARTUP_BANNER: figlet_banner() below will log ASCII art with triple backticks for AI visibility")
     
     # 🎨 BEAUTIFUL RESTART BANNER
-    figlet_banner(APP_NAME, "Digital Workshop Framework", font='standard', color=BANNER_COLORS['workshop_ready'])
+    figlet_banner(APP_NAME, "Local First AI SEO Software", font='standard', color=BANNER_COLORS['workshop_ready'])
     
     # 🧊 VERSION BANNER - Display Nix flake version in standard font
     nix_version_raw = get_nix_version()
