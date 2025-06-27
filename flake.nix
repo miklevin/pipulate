@@ -75,10 +75,20 @@
   # In this case, it's a development shell that works across different systems
       outputs = { self, nixpkgs, flake-utils }:
       let
-        # VERSION NOTE: This version is synced from pipulate/__init__.py.__version__
-        # To update: Edit __version__ in __init__.py, then run: python version_sync.py
-        # This ensures consistent versioning across install.sh, pyproject.toml, and server startup
-        version = "1.0.2 (Single Source Version Fix)";  # Fixed version consistency across all components
+        # TRUE SINGLE SOURCE OF TRUTH: Read version and description directly from __init__.py
+        # No manual editing of this file needed - everything comes from __init__.py
+        initPyContent = builtins.readFile ./__init__.py;
+        
+        # Extract __version__ from __init__.py
+        versionMatch = builtins.match ".*__version__[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*" initPyContent;
+        versionNumber = if versionMatch != null then builtins.head versionMatch else "unknown";
+        
+        # Extract __version_description__ from __init__.py  
+        descMatch = builtins.match ".*__version_description__[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*" initPyContent;
+        versionDesc = if descMatch != null then builtins.head descMatch else null;
+        
+        # Combine version and description
+        version = if versionDesc != null then "${versionNumber} (${versionDesc})" else versionNumber;
       in
     flake-utils.lib.eachDefaultSystem (system:
       let

@@ -25,14 +25,15 @@ Usage:
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
 
-# SINGLE SOURCE OF TRUTH FOR VERSION
-# This version number is used across all components:
-# - pyproject.toml
-# - flake.nix 
-# - install.sh
-# - server.py startup banners
-# Update this version and run: python -c "from pipulate.version_sync import sync_all_versions; sync_all_versions()"
+# SINGLE SOURCE OF TRUTH FOR VERSION AND DESCRIPTION
+# This version number and description are used across all components:
+# - pyproject.toml (synced via version_sync.py)
+# - flake.nix (reads this file directly at build time)
+# - install.sh (synced via version_sync.py)
+# - server.py startup banners (reads this file directly)
+# Update these values and run: python version_sync.py
 __version__ = "1.0.2"
+__version_description__ = "True Single Source of Truth Implementation"
 __author__ = "Mike Levin"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local First AI SEO Software" 
