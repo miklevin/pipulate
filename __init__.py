@@ -13,7 +13,7 @@ Usage:
 """
 
 # Pipulate - Local-First AI SEO Software
-# Copyright (C) 2024 Mike Levin
+# Copyright (C) 2025 Mike Levin
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ Usage:
 # - install.sh
 # - server.py startup banners
 # Update this version and run: python -c "from pipulate.version_sync import sync_all_versions; sync_all_versions()"
-__version__ = "1.1.3.1"
+__version__ = "1.0.0"
 __author__ = "Mike Levin"
 __email__ = "pipulate@gmail.com"
-__description__ = "Local-First AI SEO Software & Digital Workshop" 
+__description__ = "Local First AI SEO Software" 
