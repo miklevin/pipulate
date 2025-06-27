@@ -9,7 +9,7 @@ description = "Local-First AI SEO Software & Digital Workshop"
 readme = "README.md"
 license = "MIT"
 authors = [
-    {name = "Mike Levin", email = "mike@levin.nyc"}
+    {name = "Mike Levin", email = "pipulate@gmail.com"}
 ]
 keywords = ["seo", "ai", "local-first", "workflow", "automation", "htmx", "fasthtml"]
 classifiers = [

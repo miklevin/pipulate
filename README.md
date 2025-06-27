@@ -1165,7 +1165,6 @@ This README serves as the **upstream source of truth** for all Pipulate document
 
 ### The ASCII Art Synchronization System
 
-<!-- START_ASCII_ART: upstream-truth-cascade -->
 ```
 🌊 THE UPSTREAM TRUTH CASCADE
 ═══════════════════════════════════════════════════════════════
@@ -1187,7 +1186,6 @@ This README serves as the **upstream source of truth** for all Pipulate document
    📊 Screenshots     🎬 Demos           🧪 Tests
      (Future)         (Future)           (Future)
 ```
-<!-- END_ASCII_ART: upstream-truth-cascade -->
 
 **How it works:**
 - **ASCII Art Blocks**: Visual diagrams are automatically extracted and distributed to other documentation files
