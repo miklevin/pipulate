@@ -246,10 +246,11 @@ This isn't just simpler - it's more powerful, giving you complete environment re
 Pipulate's technology choices form **aligned lenses** that focus ideas from abstraction to actualization. Each lens must be **ground and polished** without misaligning the focus:
 
 ```
-      Universal translator of       ,=\.-----""""^==--
-      spoken language to code      ;;'( ,_AI, ,/~\;
+        Universal Translator of                        AI translates
+        Spoken Language to Code     ,=\.-----""""^==--
+                                   ;;'( ,___, ,/~\;
                                    '  )/>/   \|-,   
-  Prompting ,--.  from more abstract  | `\ to | " concrete implementation
+    prompts ,--.  from more abstract  | `\ to | " concrete implementation
      ---> ,'    `.         ,--.       "   "   "                             
      --> /        \----->,'    `.       ,--.        ,-.    
   o  -> /  Linux   \--->/  http  \--->,'_hx `.--->,'   `.    ,-.
@@ -257,11 +258,12 @@ Pipulate's technology choices form **aligned lenses** that focus ideas from abst
  / \ -> \   Nix    /--->\  html  /--->`..py ,'--->`.   ,'    `-'  
      --> \        /----->`.    ,'       `--'        `-'   
      ---> `.    ,'         `--'  
-            `--'                 
+            `--'                            using fewest possible lesnses.
+
   Idea --> Lens#1   -->   Lens#2  -->  Lens#3  -> Lens#4 > Lens#5 > Lens#6
 ```
 
-We keep each lens minimal, its material either thoroughly pre-trained into the model (Python 3.x, HTMX, etc.) or able to be included in the prompt and easily held in the context window. We've trimmed the cruft — the lens flashes and burrs, and all unnecessary extra lenses (Angular, React, Vue, etc.)
+We keep lenses minimal, their material either thoroughly pre-trained into the model (Python 3.x, HTMX, etc.) or able to be included in the prompt and easily held in the context window. We've trimmed the cruft — the lens flashes and burrs, and all unnecessary extra lenses (Angular, React, Vue, etc.)
 
 ### Grinding Off the Burrs and Flashes  <!-- key: grinding-off-burrs-flashes -->
 
