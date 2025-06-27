@@ -3,8 +3,8 @@
 ![Pipulate Free & Open Source SEO with & for LLMs](https://github.com/miklevin/pipulate/raw/main/static/ai-seo-software.png)
 
 <!-- Don't forget to sync_ascii_art.py -->
-> **Your data. Your AI. Your machine. Your control.**
-> No subscriptions, no vendor lock-in, no cloud costs.
+> **Your data. Your AI. Your machine. Your control.**  
+> No subscriptions, no vendor lock-in, no cloud costs.  
 
 ### Meet Chip O'Theseus  <!-- key: pipulate-welcome-banner -->
 
@@ -1261,5 +1261,7 @@ Contributions are welcome\! Please adhere to the project's core philosophy:
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](https://github.com/miklevin/pipulate/blob/main/LICENSE) file for details.
+
+Copyright 2025 <a href="https://mikelev.in/">Mike Levin, AI SEO in NYC</a>
 
