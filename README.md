@@ -184,6 +184,8 @@ Pipulate's WET philosophy extends to its technology choices, favoring simple, du
     Solving the "Not on my machine" problem well.           \___)=(___/  |_____|_____|
 ```
 
+**Nix serves as the "Noah's Ark"** - preserving this perfect focus in a reproducible environment that works identically across all platforms. Once you've locked in the focus, it lasts for years or decades, all bottled up in infrastructure-as-code.
+
 ## Other Key Technologies Used
 
 Pipulate integrates a carefully selected set of tools aligned with its philosophy:
@@ -209,10 +211,6 @@ Pipulate's technology choices form **aligned lenses** that focus ideas from abst
                                     | `\    | "
                                     "   "   "
 ```
-
-That means a great deal of what normally goes into web development has been ground off and polished away so that all that's remaining for the AI code assistants to look at is radical transparency allowing focused clarity and superior AI collaboration.
-
-**Nix serves as the "Noah's Ark"** - preserving this perfect focus in a reproducible environment that works identically across all platforms. Once you've locked in the focus, it lasts for years or decades, all bottled up in infrastructure-as-code.
 
 ### Grinding Off the Burrs and Flashes  <!-- key: grinding-off-burrs-flashes -->
 
