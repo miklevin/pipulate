@@ -192,6 +192,55 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 
 * **FastHTML:** A Python web framework prioritizing simplicity. It generates HTML directly from Python objects (no template language like Jinja2) and minimizes JavaScript by design, working closely with HTMX. It's distinct from API-focused frameworks like FastAPI. The Python function-naming *is the HTML-template language.*
 
+### The New LAMP Stack: Evolution in Simplicity  <!-- key: new-lamp-stack-comparison -->
+
+<!-- START_ASCII_ART: new-lamp-stack-comparison -->
+```
+🏛️ ORIGINAL LAMP STACK (2000s)              🚀 NEW LAMP STACK (2025)
+═══════════════════════════════              ═══════════════════════════
+
+┌─────────────────────────────┐              ┌─────────────────────────────┐
+│  🐧 L: Linux                │              │  🐧 L: Linux + Nix          │
+│     Single OS, manual setup │              │     Reproducible everywhere │
+├─────────────────────────────┤              ├─────────────────────────────┤
+│  🌐 A: Apache               │              │  ⚡ A: ASGI                  │
+│     Static config, restarts │              │     Async, hot reload       │
+├─────────────────────────────┤              ├─────────────────────────────┤
+│  🗄️ M: MySQL                │              │  📊 M: MiniDataAPI          │
+│     Complex queries, joins  │              │     Python-native simplicity│
+├─────────────────────────────┤              ├─────────────────────────────┤
+│  🔧 P: PHP                  │              │  🐍 P: Python + FastHTML    │
+│     Mix of HTML/logic       │              │     + HTMX                  │
+└─────────────────────────────┘              └─────────────────────────────┘
+              │                                            │
+              ▼                                            ▼
+    ┌─────────────────────┐                    ┌─────────────────────────┐
+    │   🏢 Enterprise     │                    │  🏠 Local-First         │
+    │   Complexity        │                    │  Sovereignty            │
+    │                     │                    │                         │
+    │ • Multi-server      │                    │ • Single machine        │
+    │ • Load balancers    │                    │ • Integrated AI         │
+    │ • Database clusters │         VS         │ • SQLite simplicity     │
+    │ • DevOps overhead   │                    │ • Nix reproducibility   │
+    │ • Cloud dependencies│                    │ • Complete ownership    │
+    └─────────────────────┘                    └─────────────────────────┘
+    
+    🎯 One person understands                  🎯 One person controls
+       part of the system                         the entire system
+```
+<!-- END_ASCII_ART: new-lamp-stack-comparison -->
+
+The original LAMP stack was beautiful in its simplicity - one person could understand and manage the whole stack. But it got bloated with enterprise patterns, microservices, and distributed complexity.
+
+Pipulate brings back that **"one person, full stack"** philosophy with modern tools:
+
+- **L**inux + **N**ix: Reproducible environments across all platforms
+- **A**SGI: Modern async server interface, future-proofed for performance  
+- **M**iniDataAPI: Universal SQL simplifier close to Python's core data structures
+- **P**ython + FastHTML + HTMX: The new web development paradigm
+
+This isn't just simpler - it's more powerful, giving you complete environment reproducibility, local AI integration, server-side state management, and future-proofed skills.
+
 ### The Lens Stack: Focused Architecture  <!-- key: the-lens-stack -->
 
 Pipulate's technology choices form **aligned lenses** that focus ideas from abstraction to actualization. Each lens must be **ground and polished** without misaligning the focus:
