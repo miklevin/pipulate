@@ -47,3 +47,17 @@ browser_automation/temp_scripts/
 *_results.json
 *_screenshot.png
 *_source.html
+
+# Python packaging and build artifacts
+dist/
+build/
+*.egg-info/
+*.egg-info
+*.whl
+*.tar.gz
+
+# PyPI publishing artifacts  
+.tox/
+.coverage
+htmlcov/
+.pytest_cache/
