@@ -78,7 +78,7 @@
         # VERSION NOTE: This version is synced from pipulate/__init__.py.__version__
         # To update: Edit __version__ in __init__.py, then run: python version_sync.py
         # This ensures consistent versioning across install.sh, pyproject.toml, and server startup
-        version = "1.1.3 (Single Source Version Fix)";  # Fixed version consistency across all components
+        version = "1.1.4 (Single Source Version Fix)";  # Fixed version consistency across all components
       in
     flake-utils.lib.eachDefaultSystem (system:
       let

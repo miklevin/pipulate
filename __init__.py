@@ -32,7 +32,7 @@ Usage:
 # - install.sh
 # - server.py startup banners
 # Update this version and run: python -c "from pipulate.version_sync import sync_all_versions; sync_all_versions()"
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 __author__ = "Mike Levin"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local-First AI SEO Software & Digital Workshop" 
