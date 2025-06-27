@@ -852,6 +852,31 @@ def main():
         if total_updates == 0:
             print("   ✨ All ASCII art was already up to date!")
         
+        # 📋 COPY SOURCE README.md TO PIPULATE.COM ROOT
+        readme_target_path = pipulate_com_path / "README.md"
+        
+        try:
+            # Check if update is needed
+            readme_needs_update = True
+            if readme_target_path.exists():
+                with open(readme_target_path, 'r', encoding='utf-8') as f:
+                    existing_content = f.read()
+                readme_needs_update = (existing_content != readme_content)
+            
+            if readme_needs_update:
+                if not dry_run:
+                    # Copy README.md as-is (no transformations, no YAML headers)
+                    with open(readme_target_path, 'w', encoding='utf-8') as f:
+                        f.write(readme_content)
+                    print(f"   📋 Updated: README.md copied to Pipulate.com root")
+                else:
+                    print(f"   📋 Would update: README.md copy to Pipulate.com root")
+            else:
+                print(f"   📋 No change: README.md already up to date in Pipulate.com root")
+                
+        except Exception as e:
+            print(f"   ⚠️  Warning: Could not copy README.md - {e}")
+        
         # ASCII Art Usage Frequency & Coverage Analysis
         print(f"\n{'='*60}")
         print("📈 ASCII ART USAGE FREQUENCY & COVERAGE ANALYSIS")
