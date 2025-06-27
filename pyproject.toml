@@ -4,7 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pipulate"
-version = "0.4.0"
+# VERSION NOTE: Synced from pipulate/__init__.py.__version__ via python version_sync.py
+version = "1.1.3"
 authors = [
   { name="Mike Levin", email="pipulate@gmail.com" },
 ]
@@ -21,11 +22,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
 keywords = ["seo", "ai", "llm", "automation", "local-first", "nix", "fasthtml", "htmx", "agentic"]
-dependencies = [
-    "click>=8.0",
-    "requests>=2.25",
-    "rich>=13.0"
-]
+dependencies = []
 
 [project.urls]
 "Homepage" = "https://github.com/miklevin/pipulate"
@@ -34,15 +31,18 @@ dependencies = [
 
 # This is the magic that creates the `pipulate` command
 [project.scripts]
-pipulate = "pipulate.cli:main"
+pipulate = "cli:main"
+
+[tool.setuptools]
+py-modules = ["cli"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["pipulate*"]
+include = ["*"]
 exclude = ["plugins*", "static*", "logs*", "data*", "downloads*", "training*", "helpers*", ".venv*"]
 
 [tool.setuptools.package-data]
-pipulate = ["install.sh", "flake.nix"]
+pipulate = ["*.py", "install.sh", "flake.nix"]
 
 [tool.vulture]
 ignore_decorators = ["@rt", "@app.post"]
