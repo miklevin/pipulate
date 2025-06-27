@@ -5,10 +5,22 @@ Sync ASCII Art - One Command to Rule Them All
 Updates all ASCII art blocks from pipulate/README.md to Pipulate.com
 Walks through all markdown files and updates any markers it finds.
 
+🚨 FEYNMAN SAFEGUARD: Built-in pollution detection prevents sync operations
+when corrupted markers are detected, preventing exponential multiplication.
+
 Usage: 
-  python helpers/docs_sync/sync_ascii_art.py            # Normal sync
-  python helpers/docs_sync/sync_ascii_art.py --candidates  # Include heuristic discovery
-  python helpers/docs_sync/sync_ascii_art.py --verbose   # Include detailed line numbers and pattern matching info
+  python helpers/docs_sync/sync_ascii_art.py                    # Normal sync with pollution protection
+  python helpers/docs_sync/sync_ascii_art.py --dry-run          # Preview changes without modifying files
+  python helpers/docs_sync/sync_ascii_art.py --prompt           # Analysis mode for AI assistants
+  python helpers/docs_sync/sync_ascii_art.py --verbose          # Include detailed pattern matching info
+  python helpers/docs_sync/sync_ascii_art.py --force-pollution-override  # 🚨 Emergency bypass (dangerous!)
+
+Safety Features:
+  • Global pollution scan before any operations
+  • Detects multiple START/END markers for same block
+  • Detects orphaned, consecutive, or nested markers
+  • Hard stop with detailed recovery instructions
+  • Emergency override for advanced users only
 """
 
 import os
@@ -177,6 +189,147 @@ def detect_consecutive_markers(content, filename):
         issues.append(issue)
     
     return issues
+
+def detect_marker_pollution(content, filename):
+    """
+    🚨 FEYNMAN SAFEGUARD: "What if this valve fails?"
+    
+    COMPREHENSIVE MARKER POLLUTION DETECTION - The Choke-Point Defense
+    
+    This function detects ALL types of marker pollution that cause multiplication:
+    1. Multiple START markers for the same block
+    2. Multiple END markers for the same block  
+    3. Consecutive markers without content
+    4. Nested or overlapping markers
+    5. Orphaned markers (START without END or vice versa)
+    
+    Returns: (is_polluted: bool, pollution_details: list)
+    """
+    pollution_issues = []
+    
+    # 1. DETECT MULTIPLE START MARKERS FOR SAME BLOCK
+    start_pattern = r'<!-- START_ASCII_ART: ([^>]+) -->'
+    start_matches = re.findall(start_pattern, content)
+    start_counts = {}
+    for marker in start_matches:
+        start_counts[marker] = start_counts.get(marker, 0) + 1
+    
+    for marker, count in start_counts.items():
+        if count > 1:
+            pollution_issues.append(f"POLLUTION: Multiple START markers for '{marker}' ({count} instances) in {filename}")
+    
+    # 2. DETECT MULTIPLE END MARKERS FOR SAME BLOCK
+    end_pattern = r'<!-- END_ASCII_ART: ([^>]+) -->'
+    end_matches = re.findall(end_pattern, content)
+    end_counts = {}
+    for marker in end_matches:
+        end_counts[marker] = end_counts.get(marker, 0) + 1
+    
+    for marker, count in end_counts.items():
+        if count > 1:
+            pollution_issues.append(f"POLLUTION: Multiple END markers for '{marker}' ({count} instances) in {filename}")
+    
+    # 3. DETECT ORPHANED MARKERS (START without matching END or vice versa)
+    all_start_markers = set(start_matches)
+    all_end_markers = set(end_matches)
+    
+    orphaned_starts = all_start_markers - all_end_markers
+    orphaned_ends = all_end_markers - all_start_markers
+    
+    for marker in orphaned_starts:
+        pollution_issues.append(f"POLLUTION: Orphaned START marker for '{marker}' (no matching END) in {filename}")
+    
+    for marker in orphaned_ends:
+        pollution_issues.append(f"POLLUTION: Orphaned END marker for '{marker}' (no matching START) in {filename}")
+    
+    # 4. DETECT CONSECUTIVE MARKERS (using existing function)
+    consecutive_issues = detect_consecutive_markers(content, filename)
+    for issue in consecutive_issues:
+        pollution_issues.append(f"POLLUTION: {issue}")
+    
+    # 5. DETECT NESTED/OVERLAPPING MARKERS
+    # Find all marker positions to check for overlaps
+    all_markers = []
+    
+    for match in re.finditer(start_pattern, content):
+        all_markers.append({
+            'type': 'START',
+            'marker': match.group(1),
+            'position': match.start(),
+            'text': match.group(0)
+        })
+    
+    for match in re.finditer(end_pattern, content):
+        all_markers.append({
+            'type': 'END',
+            'marker': match.group(1),
+            'position': match.start(),
+            'text': match.group(0)
+        })
+    
+    # Sort by position to check for proper nesting
+    all_markers.sort(key=lambda x: x['position'])
+    
+    # Stack-based validation for proper nesting
+    marker_stack = []
+    for marker_info in all_markers:
+        if marker_info['type'] == 'START':
+            marker_stack.append(marker_info['marker'])
+        elif marker_info['type'] == 'END':
+            if not marker_stack:
+                pollution_issues.append(f"POLLUTION: Unexpected END marker for '{marker_info['marker']}' (no open START) in {filename}")
+            elif marker_stack[-1] != marker_info['marker']:
+                pollution_issues.append(f"POLLUTION: Mismatched markers - expected END for '{marker_stack[-1]}' but found '{marker_info['marker']}' in {filename}")
+            else:
+                marker_stack.pop()
+    
+    # Check for unclosed START markers
+    for unclosed_marker in marker_stack:
+        pollution_issues.append(f"POLLUTION: Unclosed START marker for '{unclosed_marker}' in {filename}")
+    
+    # Return pollution status
+    is_polluted = len(pollution_issues) > 0
+    return is_polluted, pollution_issues
+
+def run_global_pollution_scan(markdown_files):
+    """
+    🚨 GLOBAL POLLUTION SCAN - The System-Wide Safety Check
+    
+    Scans ALL markdown files for marker pollution before allowing sync to proceed.
+    This is the master choke-point that prevents sync when corruption is detected.
+    
+    Returns: (is_system_polluted: bool, all_pollution_issues: list, polluted_files: list)
+    """
+    all_pollution_issues = []
+    polluted_files = []
+    
+    print("🔍 RUNNING GLOBAL POLLUTION SCAN (Feynman Safety Check)...")
+    
+    for md_file in markdown_files:
+        try:
+            with open(md_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            relative_path = md_file.relative_to(md_file.parent.parent)
+            is_polluted, pollution_issues = detect_marker_pollution(content, str(relative_path))
+            
+            if is_polluted:
+                polluted_files.append(str(relative_path))
+                all_pollution_issues.extend(pollution_issues)
+                
+        except Exception as e:
+            pollution_issues = [f"ERROR: Could not scan {md_file}: {e}"]
+            all_pollution_issues.extend(pollution_issues)
+            polluted_files.append(str(md_file))
+    
+    is_system_polluted = len(all_pollution_issues) > 0
+    
+    if is_system_polluted:
+        print(f"🚨 POLLUTION DETECTED: {len(polluted_files)} files have marker corruption")
+    else:
+        print("✅ POLLUTION SCAN CLEAN: No marker corruption detected")
+    
+    return is_system_polluted, all_pollution_issues, polluted_files
 
 def contains_programming_code(content):
     """Check if content contains programming language patterns that indicate it's code, not ASCII art"""
@@ -405,6 +558,8 @@ def main():
     # Check for command-line arguments  
     verbose = "--verbose" in sys.argv
     prompt_mode = "--prompt" in sys.argv
+    dry_run = "--dry-run" in sys.argv
+    force_override = "--force-pollution-override" in sys.argv  # Emergency bypass
     
     if not prompt_mode:
         print("🚀 Syncing ASCII art from pipulate/README.md to Pipulate.com (with heuristic discovery)...")
@@ -468,6 +623,73 @@ def main():
     
     if not prompt_mode:
         print(f"🔍 Found {len(markdown_files)} markdown files")
+    
+    # 🚨 FEYNMAN SAFEGUARD: Run global pollution scan BEFORE any sync operations
+    is_system_polluted, all_pollution_issues, polluted_files = run_global_pollution_scan(markdown_files)
+    
+    if is_system_polluted and not prompt_mode and not force_override:
+        print(f"\n{'='*80}")
+        print("🚨 SYNC OPERATION ABORTED - MARKER POLLUTION DETECTED")
+        print(f"{'='*80}")
+        print()
+        print("🛑 CRITICAL SAFETY STOP: The sync process has been halted to prevent")
+        print("   exponential content multiplication caused by corrupted ASCII art markers.")
+        print()
+        print(f"📊 POLLUTION SUMMARY:")
+        print(f"   • Corrupted files: {len(polluted_files)}")
+        print(f"   • Total issues: {len(all_pollution_issues)}")
+        print()
+        print(f"🔍 DETAILED POLLUTION REPORT:")
+        for issue in all_pollution_issues:
+            print(f"   ❌ {issue}")
+        print()
+        print(f"💡 RECOMMENDED RECOVERY ACTIONS:")
+        print(f"   1. 🔄 ROLLBACK STRATEGY:")
+        print(f"      cd /home/mike/repos/Pipulate.com")
+        print(f"      git log --oneline -10  # Find clean commit before corruption")
+        print(f"      git reset --hard <clean-commit-hash>")
+        print(f"      git push --force-with-lease")
+        print()
+        print(f"   2. 🧹 MANUAL CLEANUP (Advanced):")
+        print(f"      • Edit corrupted files to remove duplicate markers")
+        print(f"      • Ensure each marker has exactly one START and one END")
+        print(f"      • Add placeholder content between consecutive markers")
+        print()
+        print(f"   3. ✅ VERIFICATION:")
+        print(f"      python helpers/docs_sync/sync_ascii_art.py --dry-run")
+        print()
+        print(f"   4. 🚨 EMERGENCY OVERRIDE (Use with extreme caution):")
+        print(f"      python helpers/docs_sync/sync_ascii_art.py --force-pollution-override")
+        print()
+        print(f"🚀 Once pollution is cleared, normal sync operations will resume.")
+        print(f"{'='*80}")
+        
+        # Exit with error code to prevent any further processing
+        sys.exit(1)
+    
+    # Show override warning if pollution detected but overridden
+    if is_system_polluted and force_override and not prompt_mode:
+        print(f"\n⚠️  POLLUTION OVERRIDE ACTIVE - PROCEEDING WITH CAUTION")
+        print(f"   🚨 {len(all_pollution_issues)} pollution issues detected but bypassed")
+        print(f"   🎯 This may cause exponential content multiplication!")
+        print(f"   📋 Use --dry-run first to assess potential damage")
+        print()
+    
+    # Handle pollution reporting in prompt mode (don't exit, just report)
+    if is_system_polluted and prompt_mode:
+        print(f"\n🚨 MARKER POLLUTION DETECTED IN SYSTEM:")
+        print(f"   • Corrupted files: {len(polluted_files)}")
+        print(f"   • Total issues: {len(all_pollution_issues)}")
+        for issue in all_pollution_issues[:5]:  # Show first 5 issues
+            print(f"   ❌ {issue}")
+        if len(all_pollution_issues) > 5:
+            print(f"   ... and {len(all_pollution_issues) - 5} more issues")
+        print(f"")
+        print(f"⚠️  WARNING: Sync operations would be blocked due to pollution.")
+        print(f"   Use rollback strategy or manual cleanup before attempting sync.")
+        print(f"")
+    
+    if not prompt_mode:
         print("\n📁 Processing files:")
     
     total_updates = 0
