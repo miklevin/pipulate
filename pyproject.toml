@@ -10,12 +10,11 @@ authors = [
 ]
 description = "Pipulate: The Local-First Web Framework for AI-Assisted SEO and Automation"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
