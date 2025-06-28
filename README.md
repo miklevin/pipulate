@@ -152,7 +152,7 @@ If you are not an Empire builder and prefer craftsmanship over the rat race and 
 - **Local-First & Single-Tenant:** Your data, code, and AI run on your hardware. This guarantees privacy, eliminates cloud costs, and gives you full control.
 - **WET Workflows, DRY Framework:** Workflows are intentionally "WET" (explicit & step-by-step) for maximum clarity and customizability—perfectly mirroring Jupyter Notebooks. The underlying framework is "DRY" for efficiency.
 
-- **The AI Advantage:** AI makes WET practical. Tedious code maintenance and refactoring, once a weakness of WET, is now an area where AI excels, turning repetition into a strength for rapid, context-aware development.
+- **The AI Advantage:** AI makes WET practical. Tedious code maintenance and refactoring, once a weakness of WET, is now an area where AI excels, turning repetition into a strength for rapid, context-aware development. Our breakthrough **Workflow Reconstruction System** exemplifies this: intelligent AST-based transplantation of workflow components eliminates traditional OOP inheritance complexity while maintaining perfect code precision.
 - **Simplicity & Observability ("Know EVERYTHING!"):** We reject opaque enterprise patterns. State is managed in transparent SQLite tables and JSON blobs, making the entire system intuitive and debuggable.
 - **Reproducibility with Nix:** Nix Flakes provide a perfect, reproducible Linux environment on macOS, Linux, and Windows (WSL), solving the "works on my machine" problem.
 - **Future-Proof Stack:** We rely on durable standards: Python, SQLite, HTML, and HTMX. This is a framework built to last.
@@ -1106,6 +1106,61 @@ create_workflow.py               │ └──────┬──────�
 * `blank`: Minimal workflow with one step
 * `trifecta`: Three-step workflow pattern
 * Automatic method generation and insertion
+
+### Workflow Reconstruction System  <!-- key: workflow-reconstruction-system -->
+
+**The Revolutionary Alternative to OOP Inheritance:** Atomic transplantation of workflow components using intelligent pattern matching and AST precision.
+
+<!-- START_ASCII_ART: workflow-reconstruction-system -->
+```
+🧬 WORKFLOW RECONSTRUCTION: ATOMIC TRANSPLANTATION
+═════════════════════════════════════════════════════════════════════════
+
+    OLD WORKFLOW               WORKFLOW                UPDATED WORKFLOW
+   (Atomic Source)           RECONSTRUCTOR            (Incremental Gen)
+  ┌─────────────────┐       ┌─────────────────┐      ┌─────────────────┐
+  │ 🧬 Components:  │  AST  │ 🎯 Pattern      │ AST  │ ✨ Generated:   │
+  │                 │ ───►  │   Matching      │ ───► │                 │
+  │ ┌─────────────┐ │       │                 │      │ ┌─────────────┐ │
+  │ │step_params* │ │       │ Bundle Type 1:  │      │ │step_params* │ │ ✅
+  │ │step_optim*  │ │       │ Auto-Registered │      │ │step_optim*  │ │ ✅  
+  │ │parameter*   │ │       │ Methods         │      │ │parameter*   │ │ ✅
+  │ └─────────────┘ │       │                 │      │ └─────────────┘ │
+  │                 │       │ Bundle Type 2:  │      │                 │
+  │ ┌─────────────┐ │       │ Custom Routes   │      │ ┌─────────────┐ │
+  │ │_process     │ │       │ (_process,      │      │ │_process     │ │ ✅
+  │ │preview      │ │       │  preview)       │      │ │preview      │ │ ✅
+  │ └─────────────┘ │       │                 │      │ └─────────────┘ │
+  └─────────────────┘       └─────────────────┘      └─────────────────┘
+
+🔄 COMPLETE LIFECYCLE: Test → Validate → Production → Cleanup
+  
+  --suffix 5        --target new_name       --target same_name      git status
+  ──────────        ────────────────        ──────────────────      ──────────
+  param_buster5     advanced_params         param_buster (in-place) (shows cruft)
+  (safe testing)    (new workflow)          (git history preserved) (clean up!)
+
+🎯 WHY IT WORKS: Lightning in a Bottle
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ✨ Pattern Matching: No manual markers needed                           │
+│ 🔧 AST Precision: Syntactically perfect code generation                 │  
+│ 🎭 Inheritance Alternative: Compose without complex super() chains      │
+│ 🧪 Safe Testing: Incremental validation without production risk         │
+│ 📚 Git Continuity: In-place updates preserve development history        │
+│ 🧹 Systematic Cleanup: Prevents file cruft accumulation                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+         workflow_reconstructor_ast.py --template botify_trifecta 
+                                       --source parameter_buster
+                                       --suffix 5
+```
+<!-- END_ASCII_ART: workflow-reconstruction-system -->
+
+**The System That Eliminates Bootstrap Paradox:**
+* **Atomic Sources:** Battle-tested workflows become component libraries
+* **Pattern Matching:** Intelligent detection via `_process`, `preview` patterns
+* **AST Transplantation:** Surgical precision without syntax errors
+* **Complete Lifecycle:** Development → Testing → Production → Cleanup
 
 ## Common LLM Implementation Mistakes  <!-- key: llm-implementation-mistakes -->
 
