@@ -711,7 +711,31 @@ class WorkflowReconstructor:
         for method_info in chunk2_methods:
             method_block.append('')  # Empty line before each method
             method_content = method_info['method_content']
-            method_block.extend(method_content.split('\n'))
+            
+            # Ensure proper indentation for class-level methods
+            method_lines = method_content.split('\n')
+            properly_indented_lines = []
+            
+            for line in method_lines:
+                if line.strip() == '':
+                    properly_indented_lines.append('')
+                elif line.strip().startswith('async def ') or line.strip().startswith('def '):
+                    # Method definition should be at class level (4 spaces)
+                    properly_indented_lines.append('    ' + line.strip())
+                else:
+                    # For method body content, preserve existing indentation
+                    # Only fix lines that are clearly not indented at all
+                    if line.startswith(' ') or line.strip() == '':
+                        # Line already has some indentation or is empty, keep as is
+                        properly_indented_lines.append(line)
+                    elif line.strip():
+                        # Line has no indentation at all - add minimum method body indentation
+                        properly_indented_lines.append('        ' + line.strip())
+                    else:
+                        # Empty line
+                        properly_indented_lines.append('')
+            
+            method_block.extend(properly_indented_lines)
             print(f"  ➕ Inserted method: {method_info['method_name']}")
         
         method_block.append('')  # Empty line after methods
