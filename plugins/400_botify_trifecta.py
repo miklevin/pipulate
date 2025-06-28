@@ -41,14 +41,18 @@ class Trifecta:
     - File caching and management for large datasets
     - Background processing with progress indicators
 
-    CRITICAL INSIGHT: Botify API Evolution Complexity
-    ================================================
+    CRITICAL INSIGHT: Botify API Evolution & Business Logic
+    =======================================================
 
     This workflow handles a PAINFUL reality: Botify's API has evolved from BQLv1 to BQLv2, but
-    BOTH versions coexist and are required for different data types:
+    BOTH versions coexist and are required for different data types based on BUSINESS LOGIC:
 
-    - Web Logs: Uses BQLv1 with special endpoint (app.botify.com/api/v1/logs/...)
-    - Crawl/GSC: Uses BQLv2 with standard endpoint (api.botify.com/v1/projects/.../query)
+    - Web Logs: Uses BQLv1 with collections/periods structure (OUTER JOIN - all Googlebot visits)
+    - Crawl/GSC: Uses BQLv2 with standard endpoint (INNER JOIN - crawled/indexed URLs only)
+
+    CRITICAL BUSINESS LOGIC: Web logs require the complete universe of URLs that Googlebot
+    discovered, including those never crawled. BQLv2 crawl collection only provides crawled
+    URLs, fundamentally breaking web logs analysis value proposition (finding crawl gaps).
 
     The workflow generates Python code for BOTH patterns to enable Jupyter debugging, which is
     essential because the /jobs endpoint is for CSV exports while /query is for quick debugging.
