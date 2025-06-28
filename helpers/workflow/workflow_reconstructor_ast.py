@@ -378,63 +378,84 @@ class ASTWorkflowReconstructor:
                            new_class_name: Optional[str] = None) -> bool:
         """Main reconstruction method using AST."""
         try:
-            # Parse source and template files
-            source_path = self.plugins_dir / source_name
-            template_path = self.plugins_dir / template_name
-            target_path = self.plugins_dir / target_name
+            # Build file paths
+            template_path = self.plugins_dir / f"{template_name}.py"
+            source_path = self.plugins_dir / f"{source_name}.py" 
+            target_path = self.plugins_dir / f"{target_name}.py"
             
-            print(f"🔍 Parsing source: {source_path}")
+            print(f"🔧 AST Workflow Reconstruction")
+            print(f"  📁 Template: {template_path}")
+            print(f"  📁 Source: {source_path}")
+            print(f"  📁 Target: {target_path}")
+            
+            # Parse files
+            print("📖 Parsing files...")
+            template_tree = self.parse_file(template_path)
             source_tree = self.parse_file(source_path)
             
-            print(f"🔍 Parsing template: {template_path}")
-            template_tree = self.parse_file(template_path)
-            
-            # Extract Chunk 2 steps and methods from source
-            print(f"📦 Extracting Chunk 2 steps and methods from {source_name}...")
+            # Extract Chunk 2 from source
+            print("🔍 Extracting Chunk 2 components from source...")
             chunk2_step_definitions, chunk2_methods = self.extract_chunk2_steps_and_methods(source_tree)
-            print(f"✅ Found {len(chunk2_step_definitions)} Chunk 2 step definitions and {len(chunk2_methods)} methods")
             
-            # Insert steps and methods into template
-            print(f"🔧 Inserting steps and methods into template...")
-            modified_tree = self.insert_chunk2_steps_and_methods(template_tree, chunk2_step_definitions, chunk2_methods)
+            print(f"  📋 Found {len(chunk2_step_definitions)} step definitions")
+            print(f"  📦 Found {len(chunk2_methods)} methods")
             
-            # Apply transformations if provided
+            if not chunk2_methods:
+                print("⚠️  No Chunk 2 methods found - nothing to transplant")
+                return False
+            
+            # Extract route registrations for transplanted methods
+            print("🔗 Extracting route registrations for transplanted methods...")
+            route_registrations = self.extract_route_registrations(source_tree, chunk2_methods)
+            print(f"  📝 Found {len(route_registrations)} route registrations")
+            
+            # Apply transformations to template
             if transformations:
-                print(f"🔄 Applying transformations...")
-                modified_tree = self.update_class_attributes(modified_tree, transformations)
+                print("✏️  Applying transformations...")
+                template_tree = self.update_class_attributes(template_tree, transformations)
+                for attr, value in transformations.items():
+                    print(f"  🔄 {attr} = '{value}'")
             
             # Update class name if provided
             if new_class_name:
-                print(f"🏷️ Updating class name to: {new_class_name}")
-                modified_tree = self.update_class_name(modified_tree, new_class_name)
+                print(f"🏷️  Updating class name to: {new_class_name}")
+                template_tree = self.update_class_name(template_tree, new_class_name)
             
-            # Generate final Python code
-            print(f"📝 Generating Python code...")
-            final_code = self.generate_python_code(modified_tree)
+            # Insert Chunk 2 components
+            print("📦 Inserting Chunk 2 components...")
+            target_tree = self.insert_chunk2_steps_and_methods(template_tree, chunk2_step_definitions, chunk2_methods)
             
-            # Write to target file
-            print(f"💾 Writing to {target_path}")
+            # Insert route registrations
+            print("🔗 Inserting route registrations...")
+            target_tree = self.insert_route_registrations(target_tree, route_registrations)
+            
+            # Generate and write result
+            print("💾 Generating Python code...")
+            result_code = self.generate_python_code(target_tree)
+            
             with open(target_path, 'w', encoding='utf-8') as f:
-                f.write(final_code)
+                f.write(result_code)
             
-            print(f"✅ Successfully created {target_name}")
+            print(f"✅ Successfully created: {target_path}")
             return True
             
         except Exception as e:
-            print(f"❌ Reconstruction failed: {e}")
+            print(f"❌ AST reconstruction failed: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def create_variant_from_existing(self, template_name: str, existing_name: str, 
                                    suffix: str) -> bool:
         """Create a variant workflow with suffix applied to names."""
         # Extract base names from existing file
-        existing_path = self.plugins_dir / existing_name
+        existing_path = self.plugins_dir / f"{existing_name}.py"
         source_tree = self.parse_file(existing_path)
         source_attrs = self.extract_class_attributes(source_tree)
         
         # Generate new names with suffix
         base_name = existing_name.replace('.py', '')
-        new_filename = f"{base_name}{suffix}.py"
+        new_filename = f"{base_name}{suffix}"
         
         transformations = {}
         if 'APP_NAME' in source_attrs:
@@ -461,6 +482,88 @@ class ASTWorkflowReconstructor:
             transformations=transformations,
             new_class_name=new_class_name
         )
+
+    def extract_route_registrations(self, source_tree: ast.AST, transplanted_methods: List[ast.FunctionDef]) -> List[ast.Expr]:
+        """Extract route registrations for transplanted methods from source __init__ method."""
+        class_node = self.find_class_node(source_tree)
+        if not class_node:
+            return []
+        
+        # Get method names that were transplanted
+        transplanted_method_names = {method.name for method in transplanted_methods}
+        
+        # Find __init__ method
+        init_method = None
+        for node in class_node.body:
+            if isinstance(node, ast.FunctionDef) and node.name == '__init__':
+                init_method = node
+                break
+        
+        if not init_method:
+            return []
+        
+        # Extract route registrations for transplanted methods
+        route_registrations = []
+        for stmt in init_method.body:
+            # Look for app.route(...)(self.method_name) pattern
+            if (isinstance(stmt, ast.Expr) and
+                isinstance(stmt.value, ast.Call) and
+                isinstance(stmt.value.func, ast.Call) and
+                isinstance(stmt.value.func.func, ast.Attribute) and
+                stmt.value.func.func.attr == 'route'):
+                
+                # Check if this is registering a transplanted method
+                if (isinstance(stmt.value.args[0], ast.Attribute) and
+                    isinstance(stmt.value.args[0].value, ast.Name) and
+                    stmt.value.args[0].value.id == 'self' and
+                    stmt.value.args[0].attr in transplanted_method_names):
+                    
+                    route_registrations.append(stmt)
+                    method_name = stmt.value.args[0].attr
+                    route_path = ast.unparse(stmt.value.func.args[0]) if stmt.value.func.args else "unknown"
+                    print(f"  🔗 Found route registration for {method_name}: {route_path}")
+        
+        return route_registrations
+
+    def insert_route_registrations(self, target_tree: ast.AST, route_registrations: List[ast.Expr]) -> ast.AST:
+        """Insert route registrations into target __init__ method."""
+        if not route_registrations:
+            return target_tree
+            
+        class_node = self.find_class_node(target_tree)
+        if not class_node:
+            return target_tree
+        
+        # Find __init__ method
+        init_method = None
+        for node in class_node.body:
+            if isinstance(node, ast.FunctionDef) and node.name == '__init__':
+                init_method = node
+                break
+        
+        if not init_method:
+            return target_tree
+        
+        # Find insertion point - after existing route registrations
+        insertion_point = len(init_method.body)
+        for i, stmt in enumerate(init_method.body):
+            # Look for the end of route registrations (usually followed by self.step_messages)
+            if (isinstance(stmt, ast.Assign) and
+                isinstance(stmt.targets[0], ast.Attribute) and
+                stmt.targets[0].attr == 'step_messages'):
+                insertion_point = i
+                break
+        
+        print(f"📝 Inserting {len(route_registrations)} route registrations at position {insertion_point}")
+        
+        # Insert route registrations
+        init_method.body = (
+            init_method.body[:insertion_point] + 
+            route_registrations + 
+            init_method.body[insertion_point:]
+        )
+        
+        return target_tree
 
 
 def main():
