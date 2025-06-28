@@ -727,38 +727,27 @@ class WorkflowReconstructor:
         
         lines = content.split('\n')
         
-        # Look for common utility method patterns that should come after workflow steps
-        utility_method_patterns = [
-            'def validate_',
-            'def read_api_',
-            'def create_',
-            'def _generate_',
-            'def convert_',
-            'def generate_'
-        ]
-        
-        # Find the first utility method
+        # Look for the designated insertion point marker
         for i, line in enumerate(lines):
-            for pattern in utility_method_patterns:
-                if pattern in line and line.strip().startswith('async def ') or line.strip().startswith('def '):
-                    return i
+            if '# --- STEP_METHODS_INSERTION_POINT ---' in line:
+                return i
         
-        # Fallback: find the last async def method
+        # Fallback: look for the end of the class
+        # Find the last line that starts with 'def ' or 'async def '
         last_method_line = -1
         for i, line in enumerate(lines):
-            if line.strip().startswith('async def '):
+            if line.strip().startswith('def ') or line.strip().startswith('async def '):
                 last_method_line = i
         
         if last_method_line != -1:
-            # Find the end of that method
+            # Find the end of the last method by looking for the next non-indented line
             for i in range(last_method_line + 1, len(lines)):
                 line = lines[i]
-                if (line.strip().startswith('async def ') or 
-                    line.strip().startswith('def ') or 
-                    line.strip().startswith('class ')):
+                if line.strip() and not line.startswith('    ') and not line.startswith('\t'):
                     return i
         
-        return -1
+        # Ultimate fallback: insert near the end
+        return len(lines) - 5 if len(lines) > 5 else max(0, len(lines) - 1)
 
     def dry_run_preview(self, target_file: Path, content: str) -> bool:
         """Show what would change in dry-run mode."""
