@@ -270,6 +270,7 @@ class ParameterBuster:
         pipulate.register_workflow_routes(self)
         
         # Register custom routes specific to this workflow
+        # === CUSTOM_ROUTE_START ===
         app.route(f'/{app_name}/step_analysis_process', methods=['POST'])(self.step_analysis_process)
         app.route(f'/{app_name}/step_webogs_process', methods=['POST'])(self.step_webogs_process)
         app.route(f'/{app_name}/step_gsc_complete', methods=['POST'])(self.step_gsc_complete)
@@ -277,6 +278,7 @@ class ParameterBuster:
         app.route(f'/{app_name}/parameter_preview', methods=['POST'])(self.parameter_preview)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
+        # === CUSTOM_ROUTE_END ===
         
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_analysis': {'input': f"❔{pip.fmt('step_analysis')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
