@@ -205,6 +205,7 @@ class ParameterBuster3:
         pipulate.register_workflow_routes(self)
         app.route(f'/{app_name}/step_analysis_process', methods=['POST'])(self.step_analysis_process)
         app.route(f'/{app_name}/step_webogs_process', methods=['POST'])(self.step_webogs_process)
+        app.route(f'/{app_name}/step_parameters_process', methods=['POST'])(self.step_parameters_process)
         app.route(f'/{app_name}/step_webogs_complete', methods=['POST'])(self.step_webogs_complete)
         app.route(f'/{app_name}/step_crawler_complete', methods=['POST'])(self.step_crawler_complete)
         app.route(f'/{app_name}/step_gsc_complete', methods=['POST'])(self.step_gsc_complete)
