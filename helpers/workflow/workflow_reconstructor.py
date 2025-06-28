@@ -48,13 +48,15 @@ class WorkflowReconstructor:
                 "class_name": "ParameterAnalyzer",
                 "endpoint_message": "Deep dive into URL parameter analysis. Downloads Botify data and analyzes parameter patterns, wasteful tracking codes, and crawl budget optimization opportunities with detailed reports and robots.txt recommendations.",
                 "steps": [
-                    "Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True)",
-                    "Step(id='step_02', done='analysis_selection', show='Download Non-Compliant Analysis', refill=False)",
-                    "Step(id='step_03', done='weblogs_check', show='Download Web Logs for Parameter Frequency', refill=False)",
-                    "Step(id='step_04', done='search_console_check', show='Download Search Console for Parameter Performance', refill=False)",
-                    "Step(id='step_05', done='parameter_counting', show='Count Parameters by Source & Impact', refill=False)",
-                    "Step(id='step_06', done='parameter_analysis', show='Analyze Parameter Value & Generate Report', refill=False)",
-                    "Step(id='step_07', done='optimization_plan', show='Generate Optimization Instructions', refill=False)"
+                    # === CHUNK 1: Common Trifecta Steps (standardized semantic naming) ===
+                    "Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True)",
+                    "Step(id='step_analysis', done='analysis_selection', show='Download Non-Compliant Analysis', refill=False)",
+                    "Step(id='step_webogs', done='weblogs_check', show='Download Web Logs', refill=False)",
+                    "Step(id='step_gsc', done='search_console_check', show='Download Search Console', refill=False)",
+                    # === CHUNK 2: Parameter-Specific Steps (target workflow functionality) ===
+                    "Step(id='step_parameters', done='parameter_counting', show='Count Parameters by Source & Impact', refill=False)",
+                    "Step(id='step_analysis_report', done='parameter_analysis', show='Analyze Parameter Value & Generate Report', refill=False)",
+                    "Step(id='step_optimization', done='optimization_plan', show='Generate Optimization Instructions', refill=False)"
                 ],
                 "template_config": {
                     "analysis": "Not Compliant",
@@ -69,12 +71,14 @@ class WorkflowReconstructor:
                 "class_name": "LinkVisualizer", 
                 "endpoint_message": "Create interactive link graph visualizations from Botify data. Downloads link graph edges, node metadata, web logs for coloring, and Search Console data for sizing, then generates Cosmograph visualization URLs for immediate network analysis.",
                 "steps": [
-                    "Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True)",
-                    "Step(id='step_02', done='link_graph_edges', show='Download Link Graph Edges', refill=False)",
-                    "Step(id='step_03', done='node_metadata', show='Download Node Metadata for Visualization', refill=False)",
-                    "Step(id='step_04', done='web_logs_coloring', show='Download Web Logs for Node Coloring', refill=False)",
-                    "Step(id='step_05', done='gsc_node_sizing', show='Download Search Console for Node Sizing', refill=False)",
-                    "Step(id='step_06', done='visualization_generation', show='Generate Interactive Visualization', refill=False)"
+                    # === CHUNK 1: Common Trifecta Steps (standardized semantic naming) ===
+                    "Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True)",
+                    "Step(id='step_analysis', done='analysis_selection', show='Download Link Graph Edges', refill=False)",
+                    "Step(id='step_crawler', done='crawler_data', show='Download Node Metadata for Visualization', refill=False)",
+                    "Step(id='step_webogs', done='weblogs_check', show='Download Web Logs for Node Coloring', refill=False)",
+                    "Step(id='step_gsc', done='search_console_check', show='Download Search Console for Node Sizing', refill=False)",
+                    # === CHUNK 2: Visualization-Specific Steps (target workflow functionality) ===
+                    "Step(id='step_visualization', done='visualization_generation', show='Generate Interactive Visualization', refill=False)"
                 ],
                 "template_config": {
                     "analysis": "Link Graph Edges",
