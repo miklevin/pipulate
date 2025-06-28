@@ -248,7 +248,7 @@ class ParameterBuster:
         crawl_template = self.get_configured_template('crawl')
         gsc_template = self.get_configured_template('gsc')
 
-        # steps = [Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_02', done='analysis_selection', show='Download Crawl Analysis', refill=False), Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False), Step(id='step_04', done='search_console_check', show='Download Search Console', refill=False), Step(id='step_05', done='placeholder', show='Count Parameters Per Source', refill=True), Step(id='step_06', done='parameter_optimization', show='Parameter Optimization', refill=True), Step(id='step_07', done='robots_txt', show='Instructions & robots.txt', refill=False)]
+        # steps = [Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_02', done='analysis_selection', show='Download Crawl Analysis', refill=False), Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False), Step(id='step_04', done='search_console_check', show='Download Search Console', refill=False), Step(id='step_05', done='placeholder', show='Count Parameters Per Source', refill=True), Step(id='step_optimization', done='parameter_optimization', show='Parameter Optimization', refill=True), Step(id='step_robots', done='robots_txt', show='Instructions & robots.txt', refill=False)]
         # === CHUNK 1: Common Trifecta Steps (standardized semantic naming) ===
         steps = [
             Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True),
@@ -714,7 +714,7 @@ class ParameterBuster:
             Progress(style='margin-top: 10px;'),
             Script(f"""
                 setTimeout(function() {{
-                    htmx.ajax('POST', '/{app_name}/step_02_process', {{
+                    htmx.ajax('POST', '/{app_name}/step_analysis_process', {{
                         target: '#{step_id}',
                         values: {{
                             'analysis_slug': '{analysis_slug}',
@@ -739,7 +739,7 @@ class ParameterBuster:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         check_result_str = step_data.get(step.done, '')
         check_result = json.loads(check_result_str) if check_result_str else {}
-        prev_step_id = 'step_01'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -795,11 +795,11 @@ class ParameterBuster:
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             # Check if web logs are cached for the CURRENT analysis
-            # Use the same logic as step_02 to get the current analysis
+            # Use the same logic as step_analysis to get the current analysis
             is_cached = False
             try:
-                # Get the current analysis from step_02 data - try multiple possible keys
-                analysis_step_id = 'step_02'
+                # Get the current analysis from step_analysis data - try multiple possible keys
+                analysis_step_id = 'step_analysis'
                 analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
                 current_analysis_slug = ''
                 # Try to get analysis_slug from the stored data
@@ -892,7 +892,7 @@ class ParameterBuster:
                 id=step_id
             )
         # Handle normal download action
-        prev_step_id = 'step_01'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -900,7 +900,7 @@ class ParameterBuster:
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
-        analysis_step_id = 'step_02'
+        analysis_step_id = 'step_analysis'
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
         if not analysis_data_str:
@@ -914,7 +914,7 @@ class ParameterBuster:
             Progress(style='margin-top: 10px;'),
             Script(f"""
                 setTimeout(function() {{
-                    htmx.ajax('POST', '/{app_name}/step_03_process', {{
+                    htmx.ajax('POST', '/{app_name}/step_webogs_process', {{
                         target: '#{step_id}',
                         values: {{
                             'analysis_slug': '{analysis_slug}',
@@ -939,7 +939,7 @@ class ParameterBuster:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         check_result_str = step_data.get(step.done, '')
         check_result = json.loads(check_result_str) if check_result_str else {}
-        prev_step_id = 'step_01'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -996,11 +996,11 @@ class ParameterBuster:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             gsc_template = self.get_configured_template('gsc')
             # Check if GSC data is cached for the CURRENT analysis
-            # Use the same logic as step_02 to get the current analysis
+            # Use the same logic as step_analysis to get the current analysis
             is_cached = False
             try:
-                # Get the current analysis from step_02 data - try multiple possible keys
-                analysis_step_id = 'step_02'
+                # Get the current analysis from step_analysis data - try multiple possible keys
+                analysis_step_id = 'step_analysis'
                 analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
                 current_analysis_slug = ''
                 # Try to get analysis_slug from the stored data
@@ -1052,7 +1052,7 @@ class ParameterBuster:
     async def step_gsc_submit(self, request):
         """Process the check for Botify Search Console data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_04'
+        step_id = 'step_gsc'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1088,7 +1088,7 @@ class ParameterBuster:
                 id=step_id
             )
         # Handle normal download action
-        prev_step_id = 'step_01'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -1114,13 +1114,13 @@ class ParameterBuster:
     async def step_gsc_complete(self, request):
         """Handles completion after the progress indicator has been shown."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_04'
+        step_id = 'step_gsc'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
         
-        prev_step_id = 'step_01'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -1130,7 +1130,7 @@ class ParameterBuster:
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
         
-        analysis_step_id = 'step_02'
+        analysis_step_id = 'step_analysis'
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get('analysis_selection', '')
         if not analysis_data_str:
@@ -1228,8 +1228,8 @@ class ParameterBuster:
                 param_count = str(result_data.get('param_count', 40))
             except json.JSONDecodeError:
                 pass
-        project_data = pip.get_step_data(pipeline_id, 'step_01', {}).get('botify_project', '{}')
-        analysis_data = pip.get_step_data(pipeline_id, 'step_02', {}).get('analysis_selection', '{}')
+        project_data = pip.get_step_data(pipeline_id, 'step_project', {}).get('botify_project', '{}')
+        analysis_data = pip.get_step_data(pipeline_id, 'step_analysis', {}).get('analysis_selection', '{}')
         try:
             project_info = json.loads(project_data)
             analysis_info = json.loads(analysis_data)
@@ -1256,7 +1256,7 @@ class ParameterBuster:
                 logging.error(f'Error creating parameter visualization in revert view: {str(e)}')
                 return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Parameter analysis complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-        return Div(Card(H3(f'{step.show}'), P('This will create counters for your querystring parameters for each of the following:', cls='mb-15px'), Ul(Li('Crawl data from Botify analysis'), Li('Search Console performance data'), Li('Web logs data (if available)'), cls='mb-15px'), Form(Div(P("Note: It doesn't matter what you choose here. This slider only controls how many parameters are displayed and can be adjusted at any time. It does not affect the underlying analysis.", cls='text-muted', style='margin-bottom: 10px;'), Label(NotStr('<strong>Number of Parameters to Show:</strong>'), For='param_count', style='min-width: 220px;'), Input(type='range', name='param_count_slider', id='param_count_slider', value=param_count, min='10', max='250', step='5', style='flex-grow: 1; margin: 0 10px;', _oninput="document.getElementById('param_count').value = this.value;"), Input(type='number', name='param_count', id='param_count', value=param_count, min='10', max='250', step='5', style='width: 100px;', _oninput="document.getElementById('param_count_slider').value = this.value;", _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"), style='display: flex; align-items: center; gap: 10px; margin-bottom: 15px;'), Button('Count Parameters ▸', type='submit', cls='primary'), Script("\n                    // Define triggerParameterPreview in the global scope\n                    window.triggerParameterPreview = function() {\n                        // Use HTMX to manually trigger the parameter preview\n                        htmx.trigger('#parameter-preview', 'htmx:beforeRequest');\n                        htmx.ajax('POST', \n                            window.location.pathname.replace('step_06', 'parameter_preview'), \n                            {\n                                target: '#parameter-preview',\n                                values: {\n                                    'gsc_threshold': document.getElementById('gsc_threshold').value,\n                                    'min_frequency': document.getElementById('min_frequency').value\n                                }\n                            }\n                        );\n                    };\n                    "), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', _onsubmit='if(event.submitter !== document.querySelector(\'button[type="submit"]\')) { event.preventDefault(); return false; }', _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"), Script('\n                function triggerParameterPreview() {\n                    // Use HTMX to manually trigger the parameter preview\n                    htmx.trigger(\'#parameter-preview\', \'htmx:beforeRequest\');\n                    htmx.ajax(\'POST\', document.querySelector(\'input[name="gsc_threshold"]\').form.getAttribute(\'hx-post\').replace(\'step_06_submit\', \'parameter_preview\'), {\n                        target: \'#parameter-preview\',\n                        values: {\n                            \'gsc_threshold\': document.getElementById(\'gsc_threshold\').value,\n                            \'min_frequency\': document.getElementById(\'min_frequency\').value\n                        }\n                    });\n                }\n                ')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{step.show}'), P('This will create counters for your querystring parameters for each of the following:', cls='mb-15px'), Ul(Li('Crawl data from Botify analysis'), Li('Search Console performance data'), Li('Web logs data (if available)'), cls='mb-15px'), Form(Div(P("Note: It doesn't matter what you choose here. This slider only controls how many parameters are displayed and can be adjusted at any time. It does not affect the underlying analysis.", cls='text-muted', style='margin-bottom: 10px;'), Label(NotStr('<strong>Number of Parameters to Show:</strong>'), For='param_count', style='min-width: 220px;'), Input(type='range', name='param_count_slider', id='param_count_slider', value=param_count, min='10', max='250', step='5', style='flex-grow: 1; margin: 0 10px;', _oninput="document.getElementById('param_count').value = this.value;"), Input(type='number', name='param_count', id='param_count', value=param_count, min='10', max='250', step='5', style='width: 100px;', _oninput="document.getElementById('param_count_slider').value = this.value;", _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"), style='display: flex; align-items: center; gap: 10px; margin-bottom: 15px;'), Button('Count Parameters ▸', type='submit', cls='primary'), Script("\n                    // Define triggerParameterPreview in the global scope\n                    window.triggerParameterPreview = function() {\n                        // Use HTMX to manually trigger the parameter preview\n                        htmx.trigger('#parameter-preview', 'htmx:beforeRequest');\n                        htmx.ajax('POST', \n                            window.location.pathname.replace('step_optimization', 'parameter_preview'), \n                            {\n                                target: '#parameter-preview',\n                                values: {\n                                    'gsc_threshold': document.getElementById('gsc_threshold').value,\n                                    'min_frequency': document.getElementById('min_frequency').value\n                                }\n                            }\n                        );\n                    };\n                    "), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', _onsubmit='if(event.submitter !== document.querySelector(\'button[type="submit"]\')) { event.preventDefault(); return false; }', _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"), Script('\n                function triggerParameterPreview() {\n                    // Use HTMX to manually trigger the parameter preview\n                    htmx.trigger(\'#parameter-preview\', \'htmx:beforeRequest\');\n                    htmx.ajax(\'POST\', document.querySelector(\'input[name="gsc_threshold"]\').form.getAttribute(\'hx-post\').replace(\'step_optimization_submit\', \'parameter_preview\'), {\n                        target: \'#parameter-preview\',\n                        values: {\n                            \'gsc_threshold\': document.getElementById(\'gsc_threshold\').value,\n                            \'min_frequency\': document.getElementById(\'min_frequency\').value\n                        }\n                    });\n                }\n                ')), Div(id=next_step_id), id=step_id)
 
     async def step_parameters_submit(self, request):
         """Process the parameter optimization generation.
@@ -1396,7 +1396,7 @@ class ParameterBuster:
                 logging.error(f'Error creating Prism widget: {str(e)}')
                 state['_revert_target'] = step_id
                 pip.write_state(pipeline_id, state)
-        prev_step_data = pip.get_step_data(pipeline_id, 'step_05', {})
+        prev_step_data = pip.get_step_data(pipeline_id, 'step_parameters', {})
         prev_data_str = prev_step_data.get('placeholder', '')
         gsc_threshold = '0'
         min_frequency = '100000'
@@ -1446,8 +1446,9 @@ class ParameterBuster:
             pass
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
         breakpoints_html = ''
+        breakpoints = []  # Initialize breakpoints to ensure it's always defined
         try:
-            prev_step_data = pip.get_step_data(pipeline_id, 'step_05', {})
+            prev_step_data = pip.get_step_data(pipeline_id, 'step_parameters', {})
             prev_data_str = prev_step_data.get('placeholder', '')
             if prev_data_str:
                 summary_data = json.loads(prev_data_str)
@@ -1501,6 +1502,7 @@ class ParameterBuster:
         except Exception as e:
             logging.error(f'Error calculating breakpoints: {e}')
             breakpoints_html = ''
+            breakpoints = []  # Initialize breakpoints in case of error
         max_frequency = breakpoints[0][0] if breakpoints else 250000
         breakpoints_info = ''
         if breakpoints and gsc_threshold == 0:
@@ -1518,7 +1520,7 @@ class ParameterBuster:
         form = await request.form()
         gsc_threshold = form.get('gsc_threshold', '0')
         min_frequency = form.get('min_frequency', '100000')
-        prev_step_data = pip.get_step_data(pipeline_id, 'step_05', {})
+        prev_step_data = pip.get_step_data(pipeline_id, 'step_parameters', {})
         prev_data_str = prev_step_data.get('placeholder', '')
         selected_params = []
         try:
@@ -1565,7 +1567,7 @@ class ParameterBuster:
             response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
             return response
         except Exception as e:
-            logging.exception(f'Error in step_06_submit: {e}')
+            logging.exception(f'Error in step_optimization_submit: {e}')
             return P(f'Error creating parameter optimization: {str(e)}', cls='text-invalid')
 
     async def parameter_preview(self, request):
@@ -1576,7 +1578,7 @@ class ParameterBuster:
         gsc_threshold = int(form.get('gsc_threshold', '0'))
         min_frequency = int(form.get('min_frequency', '100000'))
         pip.append_to_history(f'[PARAMETER PREVIEW] Previewing parameters with GSC threshold={gsc_threshold} and min_frequency={min_frequency}')
-        prev_step_data = pip.get_step_data(pipeline_id, 'step_05', {})
+        prev_step_data = pip.get_step_data(pipeline_id, 'step_parameters', {})
         prev_data_str = prev_step_data.get('placeholder', '')
         matching_params = []
         param_count = 0
@@ -1660,11 +1662,11 @@ class ParameterBuster:
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        step_06_data = pip.get_step_data(pipeline_id, 'step_06', {})
+        step_optimization_data = pip.get_step_data(pipeline_id, 'step_optimization', {})
         parameters_info = {}
         try:
-            if step_06_data.get('parameter_optimization'):
-                param_data = json.loads(step_06_data.get('parameter_optimization'))
+            if step_optimization_data.get('parameter_optimization'):
+                param_data = json.loads(step_optimization_data.get('parameter_optimization'))
                 parameters_info = {'selected_params': param_data.get('selected_params', []), 'gsc_threshold': param_data.get('gsc_threshold', '0'), 'min_frequency': param_data.get('min_frequency', '100000')}
         except (json.JSONDecodeError, TypeError):
             parameters_info = {'selected_params': [], 'gsc_threshold': '0', 'min_frequency': '100000'}
@@ -1684,7 +1686,7 @@ class ParameterBuster:
                 min_frequency_formatted = min_frequency
             robots_txt_rules = '\n'.join([f'Disallow: /*?*{param}=*' for param in params_list])
             param_list_str = '\n'.join([f'- {param}' for param in params_list])
-            markdown_content = f'# PageWorkers Optimization Ready to Copy/Paste\n\n## Instructions\n1. Copy/Paste the JavaScript (found above) into a new PageWorkers custom Optimization.\n2. Update the `REPLACE_ME!!!` with the ID found in the URL of the Optimization.\n\n**Parameter Optimization Settings**\n- GSC Threshold: {gsc_threshold}\n- Minimum Frequency: {min_frequency_formatted}\n- Total Parameters Optimized: {len(params_list)}\n\n[[DETAILS_START]]\n[[SUMMARY_START]]View all {len(params_list)} parameters[[SUMMARY_END]]\n\n{param_list_str}\n[[DETAILS_END]]\n\n[[DETAILS_START]]\n[[SUMMARY_START]]View robots.txt rules[[SUMMARY_END]]\n\n```robots.txt\nUser-agent: *\n{robots_txt_rules}\n```\n[[DETAILS_END]]\n\n**Important Notes:** robots.txt is advisory, not enforcement; prevents crawling but not indexing; for testing only\n'
+            markdown_content = f'# PageWorkers Optimization Ready to Copy/Paste\n\n## Instructions\n1. Copy/Paste the JavaScript (found above) into a new PageWorkers custom Optimization.\n2. Update the `REPLACE_ME!!!` with the ID found in the URL of the Optimization.\n\n**Parameter Optimization Settings**\n- GSC Threshold: {gsc_threshold}\n- Minimum Frequency: {min_frequency_formatted}\n- Total Parameters Optimized: {len(params_list)}\n\n[[DETAILS_START]]\n[[SUMMARY_START]]View all {len(params_list)} parameters[[SUMMARY_END]]\n\n{param_list_str}\n[[DETAILS_END]]\n\n[[DETAILS_START]]\n[[SUMMARY_START]]View robots.txt rules[[SUMMARY_END]]\n\n```robots.txt\nUser-agent: Googlebot\nAllow: /\n\nUser-agent: Googlebot-image\nAllow: /\n\nUser-agent: *\n{robots_txt_rules}\n```\n[[DETAILS_END]]\n\n**Important Notes:** robots.txt is advisory, not enforcement; prevents crawling but not indexing; for testing only\n'
             if step_data.get(step.done, '') == '':
                 markdown_data = {'markdown': markdown_content, 'parameters_info': parameters_info}
                 # Update state directly
@@ -1732,10 +1734,10 @@ class ParameterBuster:
             pass
         parameters_info = existing_data.get('parameters_info', {})
         if not parameters_info:
-            step_06_data = pip.get_step_data(pipeline_id, 'step_06', {})
+            step_optimization_data = pip.get_step_data(pipeline_id, 'step_optimization', {})
             try:
-                if step_06_data.get('parameter_optimization'):
-                    param_data = json.loads(step_06_data.get('parameter_optimization'))
+                if step_optimization_data.get('parameter_optimization'):
+                    param_data = json.loads(step_optimization_data.get('parameter_optimization'))
                     parameters_info = {'selected_params': param_data.get('selected_params', []), 'gsc_threshold': param_data.get('gsc_threshold', '0'), 'min_frequency': param_data.get('min_frequency', '100000')}
             except (json.JSONDecodeError, TypeError):
                 parameters_info = {'selected_params': [], 'gsc_threshold': '0', 'min_frequency': '100000'}
@@ -3059,7 +3061,7 @@ await main()
             )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Analysis {status_text}{download_message}', widget=widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
-            logging.exception(f'Error in step_02_process: {e}')
+            logging.exception(f'Error in step_analysis_process: {e}')
             return P(f'Error: {str(e)}', cls='text-invalid')
 
     async def step_webogs_process(self, request):
@@ -3718,7 +3720,7 @@ await main()
         download_complete = step_data.get('download_complete', False)
         # Determine the expected filename based on step and export type
         expected_filename = None
-        if step_id == 'step_02':
+        if step_id == 'step_analysis':
             # For crawl data, determine filename based on active template's export type
             active_crawl_template_key = self.get_configured_template('crawl')
             active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
@@ -3729,9 +3731,9 @@ await main()
                 'link_graph_edges': 'link_graph.csv'
             }
             expected_filename = filename_mapping.get(export_type, 'crawl.csv')
-        elif step_id == 'step_03':
+        elif step_id == 'step_webogs':
             expected_filename = 'weblog.csv'
-        elif step_id == 'step_04':
+        elif step_id == 'step_gsc':
             expected_filename = 'gsc.csv'
         # Check if download was successful and try to find the file
         if download_complete and expected_filename and username and project_name and analysis_slug:
