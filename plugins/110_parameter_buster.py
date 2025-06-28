@@ -249,11 +249,13 @@ class ParameterBuster:
         gsc_template = self.get_configured_template('gsc')
 
         # steps = [Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_02', done='analysis_selection', show='Download Crawl Analysis', refill=False), Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False), Step(id='step_04', done='search_console_check', show='Download Search Console', refill=False), Step(id='step_05', done='placeholder', show='Count Parameters Per Source', refill=True), Step(id='step_06', done='parameter_optimization', show='Parameter Optimization', refill=True), Step(id='step_07', done='robots_txt', show='Instructions & robots.txt', refill=False)]
+        # === CHUNK 1: Common Trifecta Steps (standardized semantic naming) ===
         steps = [
-            Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True),
-            Step(id='step_02', done='analysis_selection', show=f'Download Crawl Analysis: {crawl_template}', refill=False),
-            Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False),
-            Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False),
+            Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True),
+            Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl Analysis: {crawl_template}', refill=False),
+            Step(id='step_webogs', done='weblogs_check', show='Download Web Logs', refill=False),
+            Step(id='step_gsc', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False),
+            # === CHUNK 2: Parameter-Specific Steps (target workflow functionality) ===
             Step(id='step_05', done='placeholder', show='Count Parameters Per Source', refill=True),
             Step(id='step_06', done='parameter_optimization', show='Parameter Optimization', refill=True),
             Step(id='step_07', done='robots_txt', show='Instructions & robots.txt', refill=False),
@@ -268,20 +270,20 @@ class ParameterBuster:
         pipulate.register_workflow_routes(self)
         
         # Register custom routes specific to this workflow
-        app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
-        app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
-        app.route(f'/{app_name}/step_04_complete', methods=['POST'])(self.step_04_complete)
+        app.route(f'/{app_name}/step_analysis_process', methods=['POST'])(self.step_analysis_process)
+        app.route(f'/{app_name}/step_webogs_process', methods=['POST'])(self.step_webogs_process)
+        app.route(f'/{app_name}/step_gsc_complete', methods=['POST'])(self.step_gsc_complete)
         app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
         app.route(f'/{app_name}/parameter_preview', methods=['POST'])(self.parameter_preview)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
         
-        self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
+        self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_analysis': {'input': f"❔{pip.fmt('step_analysis')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
             if step.id not in self.step_messages:
                 self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
-        self.step_messages['step_04'] = {'input': f"❔{pip.fmt('step_04')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
-        self.step_messages['step_03'] = {'input': f"❔{pip.fmt('step_03')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
+        self.step_messages['step_gsc'] = {'input': f"❔{pip.fmt('step_gsc')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
+        self.step_messages['step_webogs'] = {'input': f"❔{pip.fmt('step_webogs')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
         self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: Ready to count parameters from downloaded data.", 'complete': 'Parameter counting is complete.'}
         self.step_messages['step_06'] = {'input': f"❔{pip.fmt('step_06')}: Ready to configure parameter optimization.", 'complete': 'Parameter optimization configured.'}
         self.step_messages['step_07'] = {'input': f"❔{pip.fmt('step_07')}: Ready to generate instructions and robots.txt.", 'complete': 'Instructions generated.'}
@@ -419,7 +421,7 @@ class ParameterBuster:
         await self.message_queue.add(pip, f'↩️ Reverted to {step_id}. All subsequent data has been cleared.', verbatim=True)
         return pip.run_all_cells(app_name, steps)
 
-    async def step_01(self, request):
+    async def step_project(self, request):
         """Handles GET request for Botify URL input widget.
         # STEP PATTERN: GET handler returns current step UI + empty placeholder for next step
         # Important: The next step div should NOT have hx_trigger here, only in the submit handler
@@ -483,7 +485,7 @@ class ParameterBuster:
                 id=step_id
             )
 
-    async def step_01_submit(self, request):
+    async def step_project_submit(self, request):
         """Process the submission for Botify URL input widget.
         # STEP PATTERN: Submit handler stores state and returns:
         # 1. Revert control for the completed step
@@ -508,7 +510,7 @@ class ParameterBuster:
         project_info = Div(H4(f'Project: {project_name}'), Small(project_url, style='word-break: break-all;'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
         return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
-    async def step_02(self, request):
+    async def step_analysis(self, request):
         """Handles GET request for Analysis selection between steps 1 and 2."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_02'
@@ -648,7 +650,7 @@ class ParameterBuster:
             logging.exception(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', cls='text-invalid')
 
-    async def step_02_submit(self, request):
+    async def step_analysis_submit(self, request):
         """Process the selected analysis slug for step_02 and download crawl data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_02'
@@ -725,7 +727,7 @@ class ParameterBuster:
             id=step_id
         )
 
-    async def step_03(self, request):
+    async def step_webogs(self, request):
         """Handles GET request for checking if a Botify project has web logs."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_03'
@@ -851,7 +853,7 @@ class ParameterBuster:
                 )
             return Div(Card(H3(f'{step.show}'), P(f"Download Web Logs for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
-    async def step_03_submit(self, request):
+    async def step_webogs_submit(self, request):
         """Process the check for Botify web logs and download if available."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_03'
@@ -925,7 +927,7 @@ class ParameterBuster:
             id=step_id
         )
 
-    async def step_04(self, request):
+    async def step_gsc(self, request):
         """Handles GET request for checking if a Botify project has Search Console data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_04'
@@ -1047,7 +1049,7 @@ class ParameterBuster:
                 )
             return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
-    async def step_04_submit(self, request):
+    async def step_gsc_submit(self, request):
         """Process the check for Botify Search Console data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_04'
@@ -1109,7 +1111,7 @@ class ParameterBuster:
             id=step_id
         )
 
-    async def step_04_complete(self, request):
+    async def step_gsc_complete(self, request):
         """Handles completion after the progress indicator has been shown."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_04'
