@@ -33,7 +33,7 @@ except FileNotFoundError:
     print("Error: Could not resolve script path. Ensure you are running from within the pipulate repo.")
     sys.exit(1)
 
-INIT_PY_PATH = PIPULATE_ROOT / "pipulate" / "__init__.py"
+INIT_PY_PATH = PIPULATE_ROOT / "__init__.py"
 
 # --- Helper Functions ---
 
@@ -91,7 +91,7 @@ def bump_version(level='patch'):
     content = INIT_PY_PATH.read_text()
     new_content = re.sub(
         r"(__version__\s*=\s*[\"'])[^\"']*(['\"])",
-        f"\\1{new_version}\\2",
+        f"\\g<1>{new_version}\\g<2>",
         content
     )
     INIT_PY_PATH.write_text(new_content)
