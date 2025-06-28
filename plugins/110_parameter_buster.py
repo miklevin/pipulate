@@ -492,7 +492,7 @@ class ParameterBuster:
         # 2. Next step div with explicit hx_trigger="load" to chain reaction to next step
         """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_01'
+        step_id = 'step_project'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -513,7 +513,7 @@ class ParameterBuster:
     async def step_analysis(self, request):
         """Handles GET request for Analysis selection between steps 1 and 2."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_02'
+        step_id = 'step_analysis'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -523,7 +523,7 @@ class ParameterBuster:
         analysis_result_str = step_data.get(step.done, '')
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
         selected_slug = analysis_result.get('analysis_slug', '')
-        prev_step_id = 'step_01'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -653,12 +653,12 @@ class ParameterBuster:
     async def step_analysis_submit(self, request):
         """Process the selected analysis slug for step_02 and download crawl data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_02'
+        step_id = 'step_analysis'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
-        prev_step_id = 'step_01'
+        prev_step_id = 'step_project'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
         if not prev_data_str:
@@ -730,7 +730,7 @@ class ParameterBuster:
     async def step_webogs(self, request):
         """Handles GET request for checking if a Botify project has web logs."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_03'
+        step_id = 'step_webogs'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -856,7 +856,7 @@ class ParameterBuster:
     async def step_webogs_submit(self, request):
         """Process the check for Botify web logs and download if available."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_03'
+        step_id = 'step_webogs'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -930,7 +930,7 @@ class ParameterBuster:
     async def step_gsc(self, request):
         """Handles GET request for checking if a Botify project has Search Console data."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_04'
+        step_id = 'step_gsc'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1333,10 +1333,10 @@ class ParameterBuster:
             logging.exception(f'Error in step_parameters_process: {e}')
             return P(f'Error generating optimization: {str(e)}', cls='text-invalid')
 
-    async def step_06(self, request):
+    async def step_optimization(self, request):
         """Handles GET request for the JavaScript Code Display Step."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_06'
+        step_id = 'step_optimization'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1507,10 +1507,10 @@ class ParameterBuster:
             breakpoints_info = Div(H5('Meaningful Min Frequency Values (with GSC=0):', style='margin-bottom: 5px; color: #ccc;'), Table(*[Tr(Td(f'Show {count} parameters:', style='color: #bbb; padding-right: 10px;'), Td(f"{('~' if freq > 100 else '')}{freq:,}", style='color: #ff8c00; font-weight: bold; text-align: right;')) for freq, count in breakpoints], style='margin-bottom: 10px; font-size: 0.9em;'), style='background: #222; padding: 10px; border-radius: 5px; margin-bottom: 15px;')
         return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P('Set thresholds for parameter optimization:'), Form(Div(Div(Small('Lower GSC Threshold to lower risk (generally keep set to 0)', style='color: #888; font-style: italic;'), Div(Label(NotStr('GSC Threshold:'), For='gsc_threshold', style='min-width: 180px; color: #888;'), Input(type='range', name='gsc_threshold_slider', id='gsc_threshold_slider', value=gsc_threshold, min='0', max='100', step='1', style='width: 60%; margin: 0 10px;', _oninput="document.getElementById('gsc_threshold').value = this.value; triggerParameterPreview();", hx_post=f'/{app_name}/parameter_preview', hx_trigger='input changed delay:300ms, load', hx_target='#parameter-preview', hx_include='#gsc_threshold, #min_frequency'), Input(type='number', name='gsc_threshold', id='gsc_threshold', value=gsc_threshold, min='0', max='100', style='width: 150px;', _oninput="document.getElementById('gsc_threshold_slider').value = this.value; triggerParameterPreview();", _onchange="document.getElementById('gsc_threshold_slider').value = this.value; triggerParameterPreview();", hx_post=f'/{app_name}/parameter_preview', hx_trigger='none', hx_target='#parameter-preview', hx_include='#gsc_threshold, #min_frequency'), style='display: flex; align-items: center; gap: 5px;')), Div(Small('Higher Minimum Frequency to reduce to only the biggest offenders', style='color: #888; font-style: italic;'), Div(Label(NotStr('<strong>Minimum Frequency:</strong>'), For='min_frequency', style='min-width: 180px;'), Input(type='range', name='min_frequency_slider', id='min_frequency_slider', value=min_frequency, min='0', max=str(max_frequency), step='1', style='flex-grow: 1; margin: 0 10px;', _oninput="document.getElementById('min_frequency').value = this.value; triggerParameterPreview();", hx_post=f'/{app_name}/parameter_preview', hx_trigger='input changed delay:300ms', hx_target='#parameter-preview', hx_include='#gsc_threshold, #min_frequency'), Input(type='number', name='min_frequency', id='min_frequency', value=min_frequency, min='0', max=str(max_frequency), step='1', style='width: 150px;', _oninput="document.getElementById('min_frequency_slider').value = this.value; triggerParameterPreview();", _onchange="document.getElementById('min_frequency_slider').value = this.value; triggerParameterPreview();", hx_post=f'/{app_name}/parameter_preview', hx_trigger='none', hx_target='#parameter-preview', hx_include='#gsc_threshold, #min_frequency'), style='display: flex; align-items: center; gap: 5px;'), style='margin-bottom: 15px;'), NotStr(breakpoints_html) if breakpoints_html else None, Div(H4('Parameters That Would Be Optimized:'), Div(P('Adjust thresholds above to see which parameters would be optimized.', style='color: #888; font-style: italic;'), id='parameter-preview', style='max-height: 300px; overflow-y: auto; background: #111; border-radius: 5px; padding: 10px; margin-bottom: 15px;'), style='margin-bottom: 20px;'), Div(Button('Create Optimization ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
-    async def step_06_submit(self, request):
+    async def step_optimization_submit(self, request):
         """Process the submission for the parameter threshold settings."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_06'
+        step_id = 'step_optimization'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         pipeline_id = db.get('pipeline_id', 'unknown')
@@ -1650,10 +1650,10 @@ class ParameterBuster:
             return P('No parameters match these criteria. Try adjusting the thresholds.', style='color: #ff5555; font-style: italic;')
     Script('\n    function setFrequencyAndPreview(value) {\n        // Update both the slider and the number input\n        const slider = document.getElementById("min_frequency_slider");\n        const input = document.getElementById("min_frequency");\n        \n        // Set values\n        slider.value = value;\n        input.value = value;\n        \n        // Trigger the parameter preview\n        triggerParameterPreview();\n        \n        // Optional: Add visual feedback\n        input.style.backgroundColor = "#224433";\n        setTimeout(function() {\n            input.style.backgroundColor = "";\n        }, 500);\n    }\n    ')
 
-    async def step_07(self, request):
+    async def step_robots(self, request):
         """Handles GET request for Step 7 Markdown widget."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_07'
+        step_id = 'step_robots'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1713,10 +1713,10 @@ class ParameterBuster:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             return Div(Card(H3(f'{step.show}'), P('Edit the Markdown documentation for the Parameter Buster workflow:'), Form(Textarea(markdown_content, name='markdown_content', rows='15', cls='font-code w-full'), Div(Button('Update Documentation ▸', type='submit', cls='primary'), style='margin-top: 10px; text-align: right;'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
-    async def step_07_submit(self, request):
+    async def step_robots_submit(self, request):
         """Process the markdown content submission for Step 7."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_07'
+        step_id = 'step_robots'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
