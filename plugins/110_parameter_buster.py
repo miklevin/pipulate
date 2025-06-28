@@ -256,9 +256,9 @@ class ParameterBuster:
             Step(id='step_webogs', done='weblogs_check', show='Download Web Logs', refill=False),
             Step(id='step_gsc', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False),
             # === CHUNK 2: Parameter-Specific Steps (target workflow functionality) ===
-            Step(id='step_05', done='placeholder', show='Count Parameters Per Source', refill=True),
-            Step(id='step_06', done='parameter_optimization', show='Parameter Optimization', refill=True),
-            Step(id='step_07', done='robots_txt', show='Instructions & robots.txt', refill=False),
+            Step(id='step_parameters', done='placeholder', show='Count Parameters Per Source', refill=True),
+            Step(id='step_optimization', done='parameter_optimization', show='Parameter Optimization', refill=True),
+            Step(id='step_robots', done='robots_txt', show='Instructions & robots.txt', refill=False),
         ]
         
         # --- STEPS_LIST_INSERTION_POINT ---
@@ -273,7 +273,7 @@ class ParameterBuster:
         app.route(f'/{app_name}/step_analysis_process', methods=['POST'])(self.step_analysis_process)
         app.route(f'/{app_name}/step_webogs_process', methods=['POST'])(self.step_webogs_process)
         app.route(f'/{app_name}/step_gsc_complete', methods=['POST'])(self.step_gsc_complete)
-        app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
+        app.route(f'/{app_name}/step_parameters_process', methods=['POST'])(self.step_parameters_process)
         app.route(f'/{app_name}/parameter_preview', methods=['POST'])(self.parameter_preview)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
@@ -284,9 +284,9 @@ class ParameterBuster:
                 self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
         self.step_messages['step_gsc'] = {'input': f"❔{pip.fmt('step_gsc')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
         self.step_messages['step_webogs'] = {'input': f"❔{pip.fmt('step_webogs')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
-        self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: Ready to count parameters from downloaded data.", 'complete': 'Parameter counting is complete.'}
-        self.step_messages['step_06'] = {'input': f"❔{pip.fmt('step_06')}: Ready to configure parameter optimization.", 'complete': 'Parameter optimization configured.'}
-        self.step_messages['step_07'] = {'input': f"❔{pip.fmt('step_07')}: Ready to generate instructions and robots.txt.", 'complete': 'Instructions generated.'}
+        self.step_messages['step_parameters'] = {'input': f"❔{pip.fmt('step_parameters')}: Ready to count parameters from downloaded data.", 'complete': 'Parameter counting is complete.'}
+        self.step_messages['step_optimization'] = {'input': f"❔{pip.fmt('step_optimization')}: Ready to configure parameter optimization.", 'complete': 'Parameter optimization configured.'}
+        self.step_messages['step_robots'] = {'input': f"❔{pip.fmt('step_robots')}: Ready to generate instructions and robots.txt.", 'complete': 'Instructions generated.'}
 
     def get_available_templates_for_data_type(self, data_type):
         """Get available query templates for a specific data type."""
@@ -427,7 +427,7 @@ class ParameterBuster:
         # Important: The next step div should NOT have hx_trigger here, only in the submit handler
         """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_01'
+        step_id = 'step_project'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1210,10 +1210,10 @@ class ParameterBuster:
                 id=step_id
             )
 
-    async def step_05(self, request):
+    async def step_parameters(self, request):
         """Handles GET request for Parameter Optimization Generation."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_05'
+        step_id = 'step_parameters'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -2755,10 +2755,10 @@ await main()
         await self.message_queue.add(self.pipulate, f'⚠️ {max_attempts_msg}', verbatim=True)
         return (False, 'Maximum polling attempts reached. The export job may still complete in the background.')
 
-    async def step_02_process(self, request):
+    async def step_analysis_process(self, request):
         """Process the actual download after showing the progress indicator."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_02'
+        step_id = 'step_analysis'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -3062,10 +3062,10 @@ await main()
             logging.exception(f'Error in step_02_process: {e}')
             return P(f'Error: {str(e)}', cls='text-invalid')
 
-    async def step_03_process(self, request):
+    async def step_webogs_process(self, request):
         """Process the web logs check and download if available."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_03'
+        step_id = 'step_webogs'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
