@@ -354,6 +354,7 @@ class WorkflowReconstructor:
             'class_name': new_class_name,
             'endpoint_message': f"Variant workflow generated from {existing_filename} with template-compatible 2-chunk architecture.",
             'original_filename': existing_filename,
+            'original_file_path': str(existing_file),  # CRITICAL: Enable 2-chunk architecture
             'suffix': suffix
         }
         
@@ -477,9 +478,11 @@ class WorkflowReconstructor:
         return content
     
     def apply_generic_transformations(self, content: str, template_name: str, target_def: Dict) -> str:
-        """Apply generic transformations to template content using a dynamic target definition."""
+        """Apply generic transformations and implement 2-chunk architecture atomic transplant."""
         
-        # Apply basic string replacements
+        print(f"🔄 Starting 2-chunk architecture reconstruction...")
+        
+        # Apply basic string replacements first
         transformations = {
             'APP_NAME': target_def['APP_NAME'],
             'DISPLAY_NAME': target_def['DISPLAY_NAME'],
@@ -490,14 +493,11 @@ class WorkflowReconstructor:
         for key, value in transformations.items():
             if key == 'class_name':
                 # CRITICAL FIX: Only replace the MAIN class definition (first one), not inner classes
-                # This prevents MockRequest from being incorrectly renamed to the target class name
                 lines = content.split('\n')
                 main_class_replaced = False
                 
                 for i, line in enumerate(lines):
-                    # Only replace the first class definition we encounter (the main workflow class)
                     if line.strip().startswith('class ') and ':' in line and not main_class_replaced:
-                        # Extract the class name and replace it
                         class_match = re.match(r'^(\s*class\s+)\w+(\s*:.*)$', line)
                         if class_match:
                             lines[i] = f'{class_match.group(1)}{value}{class_match.group(2)}'
@@ -511,11 +511,254 @@ class WorkflowReconstructor:
                 replacement = f'{key.upper()} = "{value}"'
                 content = re.sub(pattern, replacement, content)
         
-        # For variant workflows, we preserve the template's existing TEMPLATE_CONFIG and steps
-        # since the goal is to make existing workflows template-compatible while keeping their functionality
-        print(f"✅ Generic transformations applied - preserving template's step structure and inner classes")
+        # NOW IMPLEMENT THE 2-CHUNK ARCHITECTURE ATOMIC TRANSPLANT
+        if 'original_file_path' in target_def:
+            content = self.implement_2_chunk_architecture(content, target_def)
+        else:
+            print(f"⚠️  No original file path provided - using template-only approach")
         
+        print(f"✅ 2-chunk architecture reconstruction completed")
         return content
+
+    def implement_2_chunk_architecture(self, template_content: str, target_def: Dict) -> str:
+        """Implement the complete 2-chunk architecture by transplanting Chunk 2 from original workflow."""
+        
+        original_file_path = Path(target_def['original_file_path'])
+        if not original_file_path.exists():
+            print(f"❌ Original file not found: {original_file_path}")
+            return template_content
+            
+        original_content = original_file_path.read_text()
+        print(f"📖 Reading original workflow: {original_file_path}")
+        
+        # Extract Chunk 2 steps and methods from original workflow
+        chunk2_steps, chunk2_methods = self.extract_chunk2_from_original(original_content)
+        
+        if not chunk2_steps and not chunk2_methods:
+            print(f"ℹ️  No Chunk 2 found in original workflow - using template as-is")
+            return template_content
+            
+        print(f"🧩 Found Chunk 2: {len(chunk2_steps)} steps, {len(chunk2_methods)} methods")
+        
+        # Insert Chunk 2 steps into template's step list 
+        enhanced_content = self.insert_chunk2_steps(template_content, chunk2_steps)
+        
+        # Insert Chunk 2 methods into template's class
+        enhanced_content = self.insert_chunk2_methods(enhanced_content, chunk2_methods)
+        
+        print(f"✅ 2-chunk architecture successfully implemented")
+        return enhanced_content
+
+    def extract_chunk2_from_original(self, original_content: str) -> tuple[list, list]:
+        """Extract Chunk 2 steps and methods from original workflow."""
+        
+        # STEP 1: Find workflow-specific steps (exclude common trifecta steps)
+        # Define patterns for common Chunk 1 steps (template steps that should be excluded)
+        common_step_ids = {
+            'step_project', 'step_analysis', 'step_crawler', 'step_webogs', 'step_gsc', 'finalize',
+            # Also exclude numbered legacy steps
+            'step_01', 'step_02', 'step_03', 'step_04', 'step_05'
+        }
+        
+        chunk2_steps = []
+        seen_steps = set()  # Prevent duplicates
+        
+        # Find all Step() definitions
+        step_pattern = r"Step\(id='([^']+)'[^)]*\)"
+        for match in re.finditer(step_pattern, original_content):
+            step_line = match.group(0)
+            step_id = match.group(1)
+            
+            # Skip if this is a common step or already seen
+            if step_id not in common_step_ids and step_id not in seen_steps:
+                chunk2_steps.append({
+                    'step_id': step_id,
+                    'step_definition': step_line,
+                    'full_line': step_line
+                })
+                seen_steps.add(step_id)
+                print(f"  📋 Found Chunk 2 step: {step_id}")
+        
+        # STEP 2: Find corresponding step methods  
+        chunk2_methods = []
+        seen_methods = set()  # Prevent duplicates
+        
+        for step_info in chunk2_steps:
+            step_id = step_info['step_id']
+            
+            # Find all method variants for this step
+            method_patterns = [
+                f"async def {step_id}\\(",
+                f"async def {step_id}_submit\\(",
+                f"async def {step_id}_process\\(",
+                f"async def {step_id}_complete\\("
+            ]
+            
+            for pattern in method_patterns:
+                method_match = re.search(pattern, original_content)
+                if method_match:
+                    method_name = method_match.group(0).split('(')[0].replace('async def ', '')
+                    
+                    # Skip if already seen
+                    if method_name not in seen_methods:
+                        # Extract the full method
+                        method_content = self.extract_method_content(original_content, method_match.start())
+                        if method_content:
+                            chunk2_methods.append({
+                                'method_name': method_name,
+                                'method_content': method_content
+                            })
+                            seen_methods.add(method_name)
+                            print(f"  🔧 Found Chunk 2 method: {method_name}")
+        
+        return chunk2_steps, chunk2_methods
+
+    def extract_method_content(self, content: str, start_pos: int) -> str:
+        """Extract complete method content including docstring and body."""
+        
+        lines = content[start_pos:].split('\n')
+        method_lines = []
+        indent_level = None
+        in_method = False
+        
+        for line in lines:
+            # First line is the method definition
+            if not in_method:
+                method_lines.append(line)
+                in_method = True
+                # Determine base indentation level
+                stripped = line.lstrip()
+                if stripped:
+                    indent_level = len(line) - len(stripped)
+                continue
+            
+            # Empty lines are always included
+            if not line.strip():
+                method_lines.append(line)
+                continue
+                
+            # Check if we've hit the next method/class definition
+            current_indent = len(line) - len(line.lstrip())
+            
+            # Method ends when we find a line at the same or lesser indentation that starts a new definition
+            if (current_indent <= indent_level and 
+                (line.strip().startswith('async def ') or 
+                 line.strip().startswith('def ') or
+                 line.strip().startswith('class '))):
+                break
+                
+            method_lines.append(line)
+        
+        return '\n'.join(method_lines)
+
+    def insert_chunk2_steps(self, template_content: str, chunk2_steps: list) -> str:
+        """Insert Chunk 2 steps into template's step list."""
+        
+        if not chunk2_steps:
+            return template_content
+            
+        print(f"🔗 Inserting {len(chunk2_steps)} Chunk 2 steps into template...")
+        
+        # Find the finalize step in template and insert Chunk 2 steps before it
+        lines = template_content.split('\n')
+        modified_lines = []
+        inserted = False
+        
+        for line in lines:
+            # Look for the finalize step insertion point
+            if "Step(id='finalize'" in line and not inserted:
+                # Insert Chunk 2 steps before finalize
+                for step_info in chunk2_steps:
+                    # Match the indentation of the current line
+                    indent = len(line) - len(line.lstrip())
+                    step_line = ' ' * indent + step_info['step_definition'] + ','
+                    modified_lines.append(step_line)
+                    print(f"  ➕ Inserted: {step_info['step_id']}")
+                inserted = True
+            
+            modified_lines.append(line)
+        
+        return '\n'.join(modified_lines)
+
+    def insert_chunk2_methods(self, template_content: str, chunk2_methods: list) -> str:
+        """Insert Chunk 2 methods into template's class."""
+        
+        if not chunk2_methods:
+            return template_content
+            
+        print(f"🔧 Inserting {len(chunk2_methods)} Chunk 2 methods into template...")
+        
+        # Find a good insertion point - typically before the last few utility methods
+        insertion_point = self.find_method_insertion_point(template_content)
+        
+        if insertion_point == -1:
+            print(f"⚠️  Could not find method insertion point - appending to end of class")
+            # Fallback: append before the last closing brace/bracket
+            lines = template_content.split('\n')
+            for i in range(len(lines) - 1, -1, -1):
+                if lines[i].strip() and not lines[i].strip().startswith('#'):
+                    insertion_point = i
+                    break
+        
+        # Insert the methods
+        lines = template_content.split('\n')
+        
+        # Build method insertion block
+        method_block = []
+        method_block.append('')  # Empty line before methods
+        method_block.append('    # --- CHUNK 2: WORKFLOW-SPECIFIC METHODS (TRANSPLANTED FROM ORIGINAL) ---')
+        
+        for method_info in chunk2_methods:
+            method_block.append('')  # Empty line before each method
+            method_content = method_info['method_content']
+            method_block.extend(method_content.split('\n'))
+            print(f"  ➕ Inserted method: {method_info['method_name']}")
+        
+        method_block.append('')  # Empty line after methods
+        method_block.append('    # --- END CHUNK 2 ---')
+        
+        # Insert at the calculated point
+        result_lines = lines[:insertion_point] + method_block + lines[insertion_point:]
+        
+        return '\n'.join(result_lines)
+
+    def find_method_insertion_point(self, content: str) -> int:
+        """Find the best place to insert Chunk 2 methods."""
+        
+        lines = content.split('\n')
+        
+        # Look for common utility method patterns that should come after workflow steps
+        utility_method_patterns = [
+            'def validate_',
+            'def read_api_',
+            'def create_',
+            'def _generate_',
+            'def convert_',
+            'def generate_'
+        ]
+        
+        # Find the first utility method
+        for i, line in enumerate(lines):
+            for pattern in utility_method_patterns:
+                if pattern in line and line.strip().startswith('async def ') or line.strip().startswith('def '):
+                    return i
+        
+        # Fallback: find the last async def method
+        last_method_line = -1
+        for i, line in enumerate(lines):
+            if line.strip().startswith('async def '):
+                last_method_line = i
+        
+        if last_method_line != -1:
+            # Find the end of that method
+            for i in range(last_method_line + 1, len(lines)):
+                line = lines[i]
+                if (line.strip().startswith('async def ') or 
+                    line.strip().startswith('def ') or 
+                    line.strip().startswith('class ')):
+                    return i
+        
+        return -1
 
     def dry_run_preview(self, target_file: Path, content: str) -> bool:
         """Show what would change in dry-run mode."""
