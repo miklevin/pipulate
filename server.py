@@ -2535,6 +2535,242 @@ await main()
             cls="button-link"
         )
 
+    # ========================================
+    # ADVANCED BOTIFY CODE GENERATION UTILITIES
+    # ========================================
+    
+    def generate_botify_bqlv2_python_code(self, query_payload, username, project_name, page_size, jobs_payload, display_name, get_step_name_from_payload_func, get_configured_template_func=None, query_templates=None):
+        """
+        🚀 REUSABLE UTILITY: Generate complete Python code for BQLv2 queries (crawl, GSC)
+        
+        This eliminates ~100+ lines of duplicated f-string blocks across Botify plugins.
+        Used by Trifecta, Parameter Buster, Link Graph for consistent code generation.
+        """
+        import json
+        
+        # Build the query URL with pagination parameter
+        query_url = f"https://api.botify.com/v1/projects/{username}/{project_name}/query?size={page_size}"
+        
+        # Convert Python objects to proper JSON representation
+        payload_json = json.dumps(query_payload, indent=4)
+        payload_json = payload_json.replace(': false', ': False').replace(': true', ': True').replace(': null', ': None')
+        
+        # Extract template information if functions provided
+        template_info = None
+        qualifier_config = None
+        if get_configured_template_func and query_templates:
+            try:
+                # Try different template config keys that plugins use
+                for template_key in ['analysis', 'crawl']:
+                    try:
+                        configured_template = get_configured_template_func(template_key)
+                        template_info = query_templates.get(configured_template, {})
+                        if template_info:
+                            qualifier_config = template_info.get('qualifier_config', {})
+                            break
+                    except (AttributeError, KeyError):
+                        continue
+            except Exception:
+                pass
+        
+        # Generate header using reusable utility
+        step_name = get_step_name_from_payload_func(jobs_payload)
+        header_lines = self.generate_botify_code_header(
+            display_name=f"{display_name} Workflow",
+            step_name=f"{step_name} (BQLv2 - for debugging the export query)",
+            username=username,
+            project_name=project_name,
+            template_info=template_info,
+            qualifier_config=qualifier_config
+        )
+        header_comment = "\n".join(header_lines)
+        
+        # Generate Python code using reusable utilities
+        token_loader = self.generate_botify_token_loader()
+        http_client = self.generate_botify_http_client(
+            client_name="make_query_call",
+            description="Make a BQLv2 query API call to debug the export query structure."
+        )
+        main_executor = self.generate_botify_main_executor(
+            client_function_name="make_query_call",
+            api_description="BQLv2 query debugging"
+        )
+        
+        python_code = f'''{header_comment}
+
+import httpx
+import json
+import os
+from typing import Dict, Any
+
+# Configuration
+TOKEN_FILE = 'botify_token.txt'
+
+{token_loader}
+
+# Configuration  
+API_TOKEN = load_api_token()
+URL = "{query_url}"
+
+# Headers setup
+def get_headers() -> Dict[str, str]:
+    """Generate headers for the API request."""
+    return {{
+        'Authorization': f'Token {{API_TOKEN}}',
+        'Content-Type': 'application/json'
+    }}
+
+# Query payload (converted from export job)
+PAYLOAD = {payload_json}
+
+{http_client}
+
+{main_executor}
+'''
+        
+        return query_url, query_payload, python_code
+
+    def generate_botify_bqlv1_python_code(self, query_payload, username, project_name, jobs_payload, display_name, get_step_name_from_payload_func):
+        """
+        🚀 REUSABLE UTILITY: Generate complete Python code for BQLv1 queries (web logs)
+        
+        This eliminates ~150+ lines of duplicated f-string blocks across Botify plugins.
+        Used by Trifecta, Parameter Buster, Link Graph for web logs API calls.
+        """
+        import json
+        
+        # Extract the web logs specific data
+        start_date = query_payload.get("start_date", "")
+        end_date = query_payload.get("end_date", "")
+        query_body = query_payload.get("query_body", {})
+        
+        # Convert to proper JSON representation
+        query_body_json = json.dumps(query_body, indent=4)
+        query_body_json = query_body_json.replace(': false', ': False').replace(': true', ': True').replace(': null', ': None')
+        
+        # CRITICAL: Web logs API uses app.botify.com/api NOT api.botify.com like other endpoints!
+        logs_url = f"https://app.botify.com/api/v1/logs/{username}/{project_name}/urls/{start_date}/{end_date}"
+        
+        # Generate header with web logs-specific template info
+        weblog_template_info = {
+            'name': 'Web Logs (Hardcoded - KISS Principle)',
+            'description': 'Simple web logs query with consistent fields and filters',
+            'export_type': 'weblog'
+        }
+        
+        step_name = get_step_name_from_payload_func(jobs_payload)
+        header_lines = self.generate_botify_code_header(
+            display_name=f"{display_name} Workflow",
+            step_name=f"{step_name} (BQLv1 - /logs endpoint) | Date Range: {start_date} to {end_date}",
+            username=username,
+            project_name=project_name,
+            template_info=weblog_template_info,
+            qualifier_config=None
+        )
+        
+        # Insert web logs-specific notes
+        insert_index = -4
+        weblog_notes = [
+            "#",
+            "# 📝 NOTE: Web logs are intentionally NOT templated for simplicity:",
+            "# - Always same fields: ['url', 'crawls.google.count']",
+            "# - Always same filter: crawls.google.count > 0", 
+            "# - Uses legacy BQLv1 structure (different from crawl/GSC)",
+            "# - Different API endpoint (app.botify.com vs api.botify.com)"
+        ]
+        
+        for i, note in enumerate(weblog_notes):
+            header_lines.insert(insert_index + i, note)
+            
+        header_comment = "\n".join(header_lines)
+        token_loader = self.generate_botify_token_loader()
+        
+        python_code = f'''{header_comment}
+
+import httpx
+import json
+import os
+from typing import Dict, Any
+
+# Configuration
+TOKEN_FILE = 'botify_token.txt'
+
+{token_loader}
+
+# Configuration
+API_TOKEN = load_api_token()
+BASE_URL = "{logs_url}"
+
+# Headers setup
+def get_headers() -> Dict[str, str]:
+    """Generate headers for the API request."""
+    return {{
+        'Authorization': f'Token {{API_TOKEN}}',
+        'Content-Type': 'application/json'
+    }}
+
+# Web Logs Query Payload (BQLv1 format)
+QUERY_PAYLOAD = {query_body_json}
+
+async def make_web_logs_call(
+    base_url: str,
+    headers: Dict[str, str],
+    payload: Dict[str, Any],
+    page: int = 1,
+    size: int = 50,
+    sampling: int = 100,
+    timeout: float = 60.0
+) -> Dict[str, Any]:
+    """Make a BQLv1 web logs API call to debug the export query structure."""
+    async with httpx.AsyncClient() as client:
+        try:
+            url_with_params = f"{{base_url}}?page={{page}}&size={{size}}&sampling={{sampling}}"
+            response = await client.post(url=url_with_params, headers=headers, json=payload, timeout=timeout)
+            print(f"Status Code: {{response.status_code}}")
+            response.raise_for_status()
+            result = response.json()
+            print(f"\\nResults returned: {{len(result.get('data', []))}}")
+            print(f"Total count: {{result.get('count', 'N/A')}}")
+            data = result.get('data', [])
+            if data:
+                print("\\nFirst result structure:")
+                print(json.dumps(data[0], indent=2))
+            return result
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP error {{e.response.status_code}}: {{e.response.text}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error: {{str(e)}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
+
+async def main():
+    """Main execution function for BQLv1 web logs debugging"""
+    try:
+        result = await make_web_logs_call(base_url=BASE_URL, headers=get_headers(), payload=QUERY_PAYLOAD)
+        return result
+    except Exception as e:
+        print(f"\\n❌ Web logs query failed: {{str(e)}}")
+        raise
+
+# Execute in Jupyter Notebook:
+await main()
+'''
+        
+        return logs_url, query_payload, python_code
+
+    def get_botify_analysis_path(self, app_name, username, project_name, analysis_slug, filename=None):
+        """
+        🚀 REUSABLE UTILITY: Construct standardized Botify analysis file paths
+        
+        This eliminates path construction duplication across Botify plugins.
+        """
+        from pathlib import Path
+        
+        base_path = Path.cwd() / 'downloads' / app_name / username / project_name / analysis_slug
+        return base_path / filename if filename else base_path
+
     def fmt(self, endpoint: str) -> str:
         """Format an endpoint string into a human-readable form."""
         if endpoint in friendly_names:
