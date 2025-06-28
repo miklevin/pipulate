@@ -10,7 +10,7 @@ This guide documents the **Workflow Reconstruction System** - a sophisticated al
 
 ### **System Components**
 
-#### **Workflow Reconstructor** (`workflow_reconstructor_ast.py`)
+#### **Workflow Reconstructor** (`workflow_reconstructor.py`)
 The central orchestrator that performs atomic component extraction and transplantation using Python's AST (Abstract Syntax Tree) for syntactically perfect code generation.
 
 #### **Old Workflows** (Atomic Sources)
@@ -70,7 +70,7 @@ Routes that already exist in the template (like `update_button_text`) are inheri
 ### **Phase 1: Development & Testing**
 ```bash
 # Generate incremental test versions
-python workflow_reconstructor_ast.py --template 400_botify_trifecta --source 110_parameter_buster --suffix 5
+python workflow_reconstructor.py --template 400_botify_trifecta --source 110_parameter_buster --suffix 5
 # Result: 110_parameter_buster5.py (safe testing copy)
 ```
 
@@ -84,7 +84,7 @@ curl http://localhost:5001/param_buster5  # Verify it loads
 ### **Phase 3: Production Integration**
 ```bash
 # When bulletproof, update in-location for git history continuity
-python workflow_reconstructor_ast.py --template 400_botify_trifecta --source 110_parameter_buster --target 110_parameter_buster --mode in-place
+python workflow_reconstructor.py --template 400_botify_trifecta --source 110_parameter_buster --target 110_parameter_buster --mode in-place
 ```
 
 ### **Phase 4: Cleanup**
@@ -100,32 +100,32 @@ git add -A && git commit -m "Clean: Remove test workflow versions"
 
 ### **Command Syntax**
 ```bash
-python helpers/workflow/workflow_reconstructor_ast.py [OPTIONS]
+python helpers/workflow/workflow_reconstructor.py [OPTIONS]
 ```
 
 ### **Common Usage Patterns**
 
 #### **Create Test Version with Suffix**
 ```bash
-python workflow_reconstructor_ast.py --template 400_botify_trifecta --source 110_parameter_buster --suffix 5
+python workflow_reconstructor.py --template 400_botify_trifecta --source 110_parameter_buster --suffix 5
 # Creates: 110_parameter_buster5.py with APP_NAME='param_buster5'
 ```
 
 #### **Create Named Variant**
 ```bash
-python workflow_reconstructor_ast.py --template 400_botify_trifecta --source 110_parameter_buster --target 120_advanced_parameters
+python workflow_reconstructor.py --template 400_botify_trifecta --source 110_parameter_buster --target 120_advanced_parameters
 # Creates: 120_advanced_parameters.py with new class name and APP_NAME
 ```
 
 #### **In-Place Update (Production)**
 ```bash
-python workflow_reconstructor_ast.py --template 400_botify_trifecta --source 110_parameter_buster --target 110_parameter_buster --mode execute
+python workflow_reconstructor.py --template 400_botify_trifecta --source 110_parameter_buster --target 110_parameter_buster --mode execute
 # Updates: 110_parameter_buster.py in place (preserves git history)
 ```
 
 ### **Help Documentation**
 ```bash
-python workflow_reconstructor_ast.py --help
+python workflow_reconstructor.py --help
 ```
 
 ---
@@ -264,7 +264,7 @@ grep -n "app.route" generated_file.py
 python -m py_compile generated_file.py
 
 # Check AST reconstructor debug output for extraction issues
-python workflow_reconstructor_ast.py --template X --source Y --suffix test --debug
+python workflow_reconstructor.py --template X --source Y --suffix test --debug
 ```
 
 ---
