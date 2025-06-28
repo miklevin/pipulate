@@ -32,7 +32,7 @@ Usage:
 # - install.sh (synced via version_sync.py)
 # - server.py startup banners (reads this file directly)
 # Update these values and run: python version_sync.py
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 __version_description__ = "True Single Source of Truth Implementation"
 __author__ = "Mike Levin"
 __email__ = "pipulate@gmail.com"

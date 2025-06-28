@@ -267,21 +267,21 @@ We keep lenses minimal, their material either thoroughly pre-trained into the mo
 
 ```yaml
 HARDWARE:
-  install.sh: Currently on Pipulate.com, needs to be moved, creates flake.nix
+  install.sh: Published on Pipulate.com to initiate magic cookie install 
   flake.nix: Nix IaC creating a normalized Linux subsystem on any host OS
 PROTOCOL:
   http: Uvicorn fast Asynchronous Server Gateway Interface (ASGI) web server
   html: Uvicorn talks to Python Starlette using anyio & httpx libraries
   websocket: static/ws.js provides client bi-directional asynchronous communication
 LINGUA:
-  htmx: static/htmx.js JavaScript library to eliminate need for JavaScript
+  htmx: static/htmx.js JavaScript library to eliminate most need for JavaScript
   Python: .venv/bin/python3.12 latest version AIs are well trained on
 UI/UX:
-  browser: Obviously, but I guess it needs to be said.
+  browser: Obviously, but I guess it needs to be said. Like a looser Electron.
   fasthtml: static/fasthtml.js for FT Components, Python functions as templating
 APP:
   app: Flask-style Uvicorn factory instance instantiated by FastHTML fast_app
-  db: DictLikeDB providing transparent server-side state (server cookies)
+  db: Dict-like DB providing transparent server-side state (server cookies)
   pipulate: Pipeline state management, like db but with JSON blob for workflows
 ```
 
