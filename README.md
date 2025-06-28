@@ -265,6 +265,26 @@ Pipulate's technology choices form **aligned lenses** that focus ideas from abst
 
 We keep lenses minimal, their material either thoroughly pre-trained into the model (Python 3.x, HTMX, etc.) or able to be included in the prompt and easily held in the context window. We've trimmed the cruft — the lens flashes and burrs, and all unnecessary extra lenses (Angular, React, Vue, etc.)
 
+```yaml
+HARDWARE:
+  install.sh: Currently on Pipulate.com, needs to be moved, creates flake.nix
+  flake.nix: Nix IaC creating a normalized Linux subsystem on any host OS
+PROTOCOL:
+  http: Uvicorn fast Asynchronous Server Gateway Interface (ASGI) web server
+  html: Uvicorn talks to Python Starlette using anyio & httpx libraries
+  websocket: static/ws.js provides client bi-directional asynchronous communication
+LINGUA:
+  htmx: static/htmx.js JavaScript library to eliminate need for JavaScript
+  Python: .venv/bin/python3.12 latest version AIs are well trained on
+UI/UX:
+  browser: Obviously, but I guess it needs to be said.
+  fasthtml: static/fasthtml.js for FT Components, Python functions as templating
+APP:
+  app: Flask-style Uvicorn factory instance instantiated by FastHTML fast_app
+  db: DictLikeDB providing transparent server-side state (server cookies)
+  pipulate: Pipeline state management, like db but with JSON blob for workflows
+```
+
 ### Grinding Off the Burrs and Flashes  <!-- key: grinding-off-burrs-flashes -->
 
 In lens manufacturing, "flashes" are excess material that squeeze out of molds - unwanted projections that must be ground off. Steve Jobs famously did this twice: adopting Gorilla Glass (grinding off plastic flashes) and rejecting Flash Player (grinding off software bloat).
@@ -1293,7 +1313,7 @@ This creates **"ASCII art peer pressure"** - when visual diagrams change, they c
 
   * MCP Server for automated web browsing and similar tasks
 
------
+---
 
 ## Included PrismJS Highlighting
 
@@ -1345,4 +1365,6 @@ This project is licensed under the MIT License. See the [LICENSE](https://github
 **Background Articles:** <a href="https://mikelev.in/">Mike Levin, AI SEO in NYC</a>
 
 **Enhanced Documentation:** <a href="https://pipulate.com/">Pipulate AI SEO Software</a>
+
+**On GitHub:** <a href="https://github.com/miklevin/pipulate">Main Repository on GitHub</a>
 
