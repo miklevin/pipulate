@@ -1340,5 +1340,9 @@ Contributions are welcome\! Please adhere to the project's core philosophy:
 
 This project is licensed under the MIT License. See the [LICENSE](https://github.com/miklevin/pipulate/blob/main/LICENSE) file for details.
 
-Copyright 2025 <a href="https://mikelev.in/">Mike Levin, AI SEO in NYC</a>
+## Resources
+
+**Background Articles:** <a href="https://mikelev.in/">Mike Levin, AI SEO in NYC</a>
+
+**Enhanced Documentation:** <a href="https://pipulate.in/">Pipulate AI SEO Software</a>
 
