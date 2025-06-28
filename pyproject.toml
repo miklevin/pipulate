@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/miklevin/pipulate"
+"Homepage" = "https://github.com/miklevin/pipulate/"
 "Bug Tracker" = "https://github.com/miklevin/pipulate/issues"
 "Documentation" = "https://pipulate.com/guide/"
 
