@@ -1344,5 +1344,5 @@ This project is licensed under the MIT License. See the [LICENSE](https://github
 
 **Background Articles:** <a href="https://mikelev.in/">Mike Levin, AI SEO in NYC</a>
 
-**Enhanced Documentation:** <a href="https://pipulate.in/">Pipulate AI SEO Software</a>
+**Enhanced Documentation:** <a href="https://pipulate.com/">Pipulate AI SEO Software</a>
 
