@@ -489,12 +489,22 @@ class WorkflowReconstructor:
         
         for key, value in transformations.items():
             if key == 'class_name':
-                # Replace class definition
-                content = re.sub(
-                    r'class \w+:',
-                    f'class {value}:',
-                    content
-                )
+                # CRITICAL FIX: Only replace the MAIN class definition (first one), not inner classes
+                # This prevents MockRequest from being incorrectly renamed to the target class name
+                lines = content.split('\n')
+                main_class_replaced = False
+                
+                for i, line in enumerate(lines):
+                    # Only replace the first class definition we encounter (the main workflow class)
+                    if line.strip().startswith('class ') and ':' in line and not main_class_replaced:
+                        # Extract the class name and replace it
+                        class_match = re.match(r'^(\s*class\s+)\w+(\s*:.*)$', line)
+                        if class_match:
+                            lines[i] = f'{class_match.group(1)}{value}{class_match.group(2)}'
+                            main_class_replaced = True
+                            break
+                
+                content = '\n'.join(lines)
             else:
                 # Replace constant definitions - use double quotes to handle apostrophes
                 pattern = f"{key.upper()} = ['\"][^'\"]*['\"]"
@@ -503,7 +513,7 @@ class WorkflowReconstructor:
         
         # For variant workflows, we preserve the template's existing TEMPLATE_CONFIG and steps
         # since the goal is to make existing workflows template-compatible while keeping their functionality
-        print(f"✅ Generic transformations applied - preserving template's step structure")
+        print(f"✅ Generic transformations applied - preserving template's step structure and inner classes")
         
         return content
 
