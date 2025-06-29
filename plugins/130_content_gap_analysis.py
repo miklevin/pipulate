@@ -357,18 +357,38 @@ class ContentGapAnalysis:
         # Step 2: Look for raw domains anywhere in the input (TOP = new additions)
         for line in user_val.splitlines():
             line = line.strip()
-            # Simple domain detection: has dot, no YAML syntax, reasonable length
+            # STRICT domain detection: avoid YAML structure completely
             if (line and '.' in line and 
                 not line.endswith(':') and 
                 not line.startswith('-') and
                 not line.startswith('analysis_') and
                 not line.startswith('domains:') and
+                not ':' in line and  # Kill any YAML key:value pairs
                 not '|' in line and
-                len(line) < 100 and
-                len(line) > 3):
+                not "'" in line and  # Kill YAML quoted values
+                not '"' in line and  # Kill JSON quoted values  
+                not 'timestamp' in line and
+                not 'created' in line and
+                not 'original_' in line and
+                not 'final_' in line and
+                not 'server:' in line and
+                not 'status:' in line and
+                not 'redirect_' in line and
+                not 'response_' in line and
+                not 'content_' in line and
+                len(line) < 50 and   # Shorter length limit
+                len(line) > 3 and
+                not line.replace('.', '').isdigit()):  # Kill pure timestamps
                 # Clean up common artifacts  
                 clean_domain = line.replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
-                if clean_domain and clean_domain not in existing_yaml_domains:
+                # Final validation: must look like a domain (letters + dots only)
+                if (clean_domain and 
+                    clean_domain not in existing_yaml_domains and
+                    clean_domain.count('.') >= 1 and
+                    clean_domain.count('.') <= 3 and
+                    not clean_domain.startswith('.') and
+                    not clean_domain.endswith('.') and
+                    clean_domain.replace('.', '').replace('-', '').isalnum()):
                     new_raw_domains.append(clean_domain)
         
         # Step 3: Combine existing + new domains
