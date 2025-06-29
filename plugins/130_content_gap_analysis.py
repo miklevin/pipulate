@@ -272,34 +272,198 @@ class ContentGapAnalysis:
             return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, cls='text-secondary'), Form(pip.wrap_with_inline_button(Textarea(display_value, name=step.done, placeholder=f'Enter {step.show}', required=True, autofocus=True, cls='textarea-standard', data_testid='text-area-widget-textarea-input', aria_label='Multi-line text input area', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction'), button_label='Next ▸'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
 
     async def step_01_submit(self, request):
-        """Process the submission for Step 1."""
+        """Process competitor domains and convert to YAML with homepage analysis."""
+        import httpx
+        import yaml
+        from urllib.parse import urlparse, urljoin
+        import time
+        
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
+        
         if step.done == 'finalized':
             return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
+        
         form = await request.form()
         user_val = form.get(step.done, '').strip()
-        submit_msg = f'User submitted text: {user_val}'
-        await self.message_queue.add(pip, submit_msg, verbatim=True)
-        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
-        if not is_valid:
-            error_msg = f'Text validation failed: {error_msg}'
+        
+        await self.message_queue.add(pip, f'Processing {len(user_val.splitlines())} domains...', verbatim=True)
+        
+        # Parse domains from input (each line is a domain)
+        domains = [line.strip() for line in user_val.splitlines() if line.strip()]
+        
+        if not domains:
+            error_msg = 'Please enter at least one domain'
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            return error_component
-        processed_val = user_val
-        await pip.set_step_data(pipeline_id, step_id, processed_val, steps)
-        confirm_msg = f'{step.show}: {processed_val}'
-        await self.message_queue.add(pip, confirm_msg, verbatim=True)
+            return pip.create_error_form(error_msg, step_id, app_name)
+        
+        # Check if we already have processed data (for idempotency)
+        existing_data = pip.get_step_data(pipeline_id, step_id, {})
+        existing_yaml = existing_data.get(step.done, '')
+        
+        # Parse existing YAML to get already processed domains
+        processed_domains = {}
+        if existing_yaml:
+            try:
+                existing_structure = yaml.safe_load(existing_yaml)
+                if isinstance(existing_structure, dict) and 'domains' in existing_structure:
+                    for domain_info in existing_structure['domains']:
+                        processed_domains[domain_info['original_domain']] = domain_info
+                await self.message_queue.add(pip, f'Found {len(processed_domains)} previously analyzed domains', verbatim=True)
+            except Exception as e:
+                await self.message_queue.add(pip, f'Could not parse existing data, starting fresh: {str(e)}', verbatim=True)
+        
+        # Analyze each domain
+        analysis_results = []
+        new_domains_processed = 0
+        
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(10.0),
+            follow_redirects=True,
+            headers={'User-Agent': 'Mozilla/5.0 (compatible; ContentGapAnalyzer/1.0)'}
+        ) as client:
+            
+            for domain in domains:
+                # Skip if already processed (idempotency)
+                if domain in processed_domains:
+                    analysis_results.append(processed_domains[domain])
+                    continue
+                
+                # Check for recent failures (efficiency - don't retry immediately)
+                failure_key = f'_failure_{domain}'
+                if failure_key in processed_domains:
+                    failure_info = processed_domains[failure_key]
+                    # Skip if failed within last hour
+                    if time.time() - failure_info.get('timestamp', 0) < 3600:
+                        analysis_results.append(failure_info)
+                        continue
+                
+                await self.message_queue.add(pip, f'🔍 Analyzing {domain}...', verbatim=True)
+                
+                domain_info = {
+                    'original_domain': domain,
+                    'timestamp': time.time(),
+                    'analysis_date': datetime.now().isoformat()
+                }
+                
+                try:
+                    # Try both http and https
+                    urls_to_try = [f'https://{domain}', f'http://{domain}']
+                    
+                    for url in urls_to_try:
+                        try:
+                            response = await client.get(url)
+                            
+                            # Success! Extract useful information
+                            final_url = str(response.url)
+                            parsed_final = urlparse(final_url)
+                            
+                            domain_info.update({
+                                'status': 'success',
+                                'original_url': url,
+                                'final_url': final_url,
+                                'final_domain': parsed_final.netloc,
+                                'response_code': response.status_code,
+                                'redirect_hops': len(response.history),
+                                'content_type': response.headers.get('content-type', '').split(';')[0],
+                                'server': response.headers.get('server', 'unknown')[:50],  # Truncate long server strings
+                                'title': None  # Will extract if HTML
+                            })
+                            
+                            # Extract page title if it's HTML
+                            if 'text/html' in response.headers.get('content-type', ''):
+                                try:
+                                    content = response.text[:2048]  # Only check first 2K chars for title
+                                    import re
+                                    title_match = re.search(r'<title[^>]*>([^<]+)</title>', content, re.IGNORECASE)
+                                    if title_match:
+                                        domain_info['title'] = title_match.group(1).strip()[:100]  # Truncate long titles
+                                except:
+                                    pass
+                            
+                            # Show redirect summary if there were redirects
+                            if domain_info['redirect_hops'] > 0:
+                                redirect_summary = f"✓ {domain} → {parsed_final.netloc} ({domain_info['redirect_hops']} hops)"
+                            else:
+                                redirect_summary = f"✓ {domain} (direct)"
+                                
+                            await self.message_queue.add(pip, redirect_summary, verbatim=True)
+                            break  # Success, don't try other protocol
+                            
+                        except httpx.RequestError:
+                            continue  # Try next URL
+                    
+                    else:
+                        # Both HTTP and HTTPS failed
+                        domain_info.update({
+                            'status': 'failed',
+                            'error': 'Connection failed for both HTTP and HTTPS',
+                            'final_url': None,
+                            'final_domain': domain
+                        })
+                        await self.message_queue.add(pip, f"❌ {domain} - Connection failed", verbatim=True)
+                        
+                except Exception as e:
+                    domain_info.update({
+                        'status': 'error',
+                        'error': str(e)[:200],  # Truncate long error messages
+                        'final_url': None,
+                        'final_domain': domain
+                    })
+                    await self.message_queue.add(pip, f"❌ {domain} - {str(e)[:100]}", verbatim=True)
+                
+                analysis_results.append(domain_info)
+                new_domains_processed += 1
+                
+                # Small delay to be respectful
+                await asyncio.sleep(0.5)
+        
+        # Create YAML structure
+        yaml_structure = {
+            'analysis_metadata': {
+                'created': datetime.now().isoformat(),
+                'total_domains': len(domains),
+                'successful_checks': len([d for d in analysis_results if d.get('status') == 'success']),
+                'failed_checks': len([d for d in analysis_results if d.get('status') in ['failed', 'error']]),
+                'new_domains_processed': new_domains_processed
+            },
+            'domains': analysis_results
+        }
+        
+        # Convert to clean YAML
+        yaml_output = yaml.dump(yaml_structure, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        
+        # Save the YAML as the step data
+        await pip.set_step_data(pipeline_id, step_id, yaml_output, steps)
+        
+        success_count = yaml_structure['analysis_metadata']['successful_checks']
+        total_count = yaml_structure['analysis_metadata']['total_domains']
+        
+        await self.message_queue.add(pip, f'✅ Analysis complete: {success_count}/{total_count} domains processed successfully', verbatim=True)
+        
         if pip.check_finalize_needed(step_index, steps):
             finalize_msg = self.step_messages['finalize']['ready']
             await self.message_queue.add(pip, finalize_msg, verbatim=True)
-        text_widget = Pre(processed_val, cls='code-block-container')
-        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=text_widget, steps=steps)
-        return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        
+        # Display YAML in a code block
+        yaml_widget = Pre(yaml_output, cls='code-block-container')
+        content_container = pip.display_revert_widget(
+            step_id=step_id, 
+            app_name=app_name, 
+            message=f'Domain Analysis Complete ({success_count}/{total_count} successful)', 
+            widget=yaml_widget, 
+            steps=steps
+        )
+        
+        return Div(
+            content_container, 
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), 
+            id=step_id
+        )
     # --- END_STEP_BUNDLE: step_01 ---
 
 
