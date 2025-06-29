@@ -391,13 +391,37 @@ class ContentGapAnalysis:
                     clean_domain.replace('.', '').replace('-', '').isalnum()):
                     new_raw_domains.append(clean_domain)
         
-        # Step 3: Combine existing + new domains
-        domains = existing_yaml_domains + new_raw_domains
+        # Parse existing YAML to get already processed domains (CRITICAL FOR DATA PRESERVATION)
+        existing_data = pip.get_step_data(pipeline_id, step_id, {})
+        existing_yaml = existing_data.get(step.done, '')
+        processed_domains = {}
+        if existing_yaml:
+            try:
+                existing_structure = yaml.safe_load(existing_yaml)
+                if isinstance(existing_structure, dict) and 'domains' in existing_structure:
+                    for domain_info in existing_structure['domains']:
+                        processed_domains[domain_info['original_domain']] = domain_info
+                await self.message_queue.add(pip, f'Found {len(processed_domains)} previously analyzed domains', verbatim=True)
+            except Exception as e:
+                await self.message_queue.add(pip, f'Could not parse existing data, starting fresh: {str(e)}', verbatim=True)
+        
+        # Step 3: Combine ALL domains (existing from DB + YAML + new raw)
+        all_existing_domains = list(processed_domains.keys())  # From database - CRITICAL!
+        domains = all_existing_domains + existing_yaml_domains + new_raw_domains
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_domains = []
+        for domain in domains:
+            if domain not in seen:
+                seen.add(domain)
+                unique_domains.append(domain)
+        domains = unique_domains
         
         if new_raw_domains:
             await self.message_queue.add(pip, f'➕ Found {len(new_raw_domains)} new domains to analyze: {", ".join(new_raw_domains)}', verbatim=True)
-        if existing_yaml_domains and new_raw_domains:
-            await self.message_queue.add(pip, f'📋 Total: {len(existing_yaml_domains)} existing + {len(new_raw_domains)} new = {len(domains)} domains', verbatim=True)
+        if all_existing_domains and new_raw_domains:
+            await self.message_queue.add(pip, f'📋 Total: {len(all_existing_domains)} existing + {len(new_raw_domains)} new = {len(domains)} domains', verbatim=True)
         elif not domains:
             # Fallback: treat entire input as raw domain list
             domains = [line.strip() for line in user_val.splitlines() if line.strip()]
@@ -412,21 +436,7 @@ class ContentGapAnalysis:
             await self.message_queue.add(pip, error_msg, verbatim=True)
             return pip.create_error_form(error_msg, step_id, app_name)
         
-        # Check if we already have processed data (for idempotency)
-        existing_data = pip.get_step_data(pipeline_id, step_id, {})
-        existing_yaml = existing_data.get(step.done, '')
-        
-        # Parse existing YAML to get already processed domains
-        processed_domains = {}
-        if existing_yaml:
-            try:
-                existing_structure = yaml.safe_load(existing_yaml)
-                if isinstance(existing_structure, dict) and 'domains' in existing_structure:
-                    for domain_info in existing_structure['domains']:
-                        processed_domains[domain_info['original_domain']] = domain_info
-                await self.message_queue.add(pip, f'Found {len(processed_domains)} previously analyzed domains', verbatim=True)
-            except Exception as e:
-                await self.message_queue.add(pip, f'Could not parse existing data, starting fresh: {str(e)}', verbatim=True)
+        # Database domains already loaded above - no need to duplicate
         
         # Analyze each domain
         analysis_results = []
@@ -571,8 +581,14 @@ class ContentGapAnalysis:
         
         success_count = yaml_structure['analysis_metadata']['successful_checks']
         total_count = yaml_structure['analysis_metadata']['total_domains']
+        preserved_count = len(all_existing_domains)
         
-        await self.message_queue.add(pip, f'✅ Analysis complete: {success_count}/{total_count} domains processed successfully', verbatim=True)
+        if preserved_count > 0 and new_domains_processed > 0:
+            await self.message_queue.add(pip, f'✅ Analysis complete: {preserved_count} existing domains preserved + {new_domains_processed} new domains analyzed = {total_count} total ({success_count} successful)', verbatim=True)
+        elif preserved_count > 0:
+            await self.message_queue.add(pip, f'✅ Analysis complete: {preserved_count} existing domains preserved (no new domains added)', verbatim=True)
+        else:
+            await self.message_queue.add(pip, f'✅ Analysis complete: {success_count}/{total_count} domains processed successfully', verbatim=True)
         
         if pip.check_finalize_needed(step_index, steps):
             finalize_msg = self.step_messages['finalize']['ready']
