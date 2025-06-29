@@ -5267,23 +5267,21 @@ async def create_outer_container(current_profile_id, menux, request):
     dynamic_css = get_dynamic_role_css()
     nav_group = create_nav_group()
     
-    # Get saved sizes from DB, with a default of [65, 35]
-    saved_sizes_str = db.get('split-sizes', '[65, 35]')
-    
-    # Initialize splitter script with server-provided sizes
-    init_splitter_script = Script(f"""
-        document.addEventListener('DOMContentLoaded', function() {{
-            if (window.initializePipulateSplitter) {{
+    # Initialize splitter script with localStorage persistence
+    init_splitter_script = Script("""
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.initializePipulateSplitter) {
                 const elements = ['#grid-left-content', '#chat-interface'];
-                const options = {{
-                    sizes: {saved_sizes_str},
+                const options = {
+                    sizes: [65, 35],  // Default sizes - localStorage will override if available
                     minSize: [400, 300],
                     gutterSize: 10,
-                    cursor: 'col-resize'
-                }};
+                    cursor: 'col-resize',
+                    context: 'main'
+                };
                 initializePipulateSplitter(elements, options);
-            }}
-        }});
+            }
+        });
     """)
 
     return Container(
@@ -5926,28 +5924,8 @@ async def refresh_app_menu_endpoint(request):
     app_menu_details_component = create_app_menu(menux)
     return HTMLResponse(to_xml(app_menu_details_component))
 
-@rt('/save-split-sizes', methods=['POST'])
-async def save_split_sizes(request):
-    """Save Split.js sizes to the persistent DictLikeDB."""
-    try:
-        form = await request.form()
-        sizes = form.get('sizes')
-        context = form.get('context', 'main')  # Default to 'main' for backward compatibility
-        
-        if sizes:
-            # Basic validation
-            parsed_sizes = json.loads(sizes)
-            if isinstance(parsed_sizes, list) and all(isinstance(x, (int, float)) for x in parsed_sizes):
-                # Use different keys based on context
-                if context == 'docs':
-                    db['docs-split-sizes'] = sizes
-                else:
-                    db['split-sizes'] = sizes  # Default/main app context
-                return HTMLResponse('')
-        return HTMLResponse('Invalid format or sizes not provided', status_code=400)
-    except Exception as e:
-        logger.error(f"Error saving split sizes: {e}")
-        return HTMLResponse(f'Error: {e}', status_code=500)
+# Split sizes are now handled by localStorage in splitter-init.js
+# No server-side endpoint needed since each context uses separate localStorage keys
 
 
 @rt('/mcp-tool-executor', methods=['POST'])
