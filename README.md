@@ -854,7 +854,7 @@ Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via
                ┌──────────────────┐
                │  Linux / macOS   │ - Write code once, run anywhere
                │  Windows (WSL)   │ - Consistent dev environment via Nix
-               └────────┬─────────┘ - Like cross-OS Homebrew brew install
+               └────────┬─────────┘ - As if Homebrew but across all OSes
                         │
                         │ Nix manages dependencies
                         ▼
@@ -879,24 +879,64 @@ The application interface is organized into distinct areas:
                └─────────────────────────────┘
 ```
 
-### UI Component Hierarchy
+### UI Component Hierarchy: Complete DOM Structure with IDs & ARIA Labels
+
+**Critical for AI assistants:** All UI components use semantic IDs and comprehensive ARIA labeling for accessibility and automation.
 
 ```
-home (Root Component)
-    |
-    +-- create_outer_container
-        |
-        +-- create_nav_group
-        |   |
-        |   +-- create_nav_menu
-        |       |
-        |       +-- create_profile_menu
-        |       +-- create_app_menu
-        |
-        +-- create_grid_left
-            |
-        +-- create_notebook_interface (Displays steps/cells)
+🏠 home (Root Component)
+├── 📦 create_outer_container()
+│   ├── 🧭 create_nav_group() [id='nav-group', role='navigation', aria-label='Main navigation']
+│   │   ├── 🔍 nav_search_container [role='search', aria-label='Plugin search']
+│   │   │   ├── Input [id='nav-plugin-search', role='searchbox', aria-label='Search plugins']
+│   │   │   └── Div [id='search-results-dropdown', role='listbox', aria-label='Search results']
+│   │   ├── 👤 create_profile_menu() [id='profile-dropdown-menu', aria-label='Profile management']
+│   │   │   ├── Summary [id='profile-id', aria-label='Profile selection menu']
+│   │   │   └── Ul [role='menu', aria-label='Profile options', aria-labelledby='profile-id']
+│   │   ├── ⚡ create_app_menu() [id='app-dropdown-menu', aria-label='Application selection']
+│   │   │   ├── Summary [id='app-id', aria-label='Application menu']
+│   │   │   └── Ul [role='menu', aria-label='Application options', aria-labelledby='app-id']
+│   │   ├── 🌍 create_env_menu() [id='env-dropdown-menu', data-testid='environment-dropdown-menu']
+│   │   │   ├── Summary [id='env-id', aria-label='Environment selection menu']
+│   │   │   └── Ul [role='menu', aria-label='Environment options', aria-labelledby='env-id']
+│   │   └── ⚙️ poke_section [id='poke-dropdown-menu']
+│   │       ├── Summary [id='poke-summary']
+│   │       └── Div [id='nav-flyout-panel']
+│   ├── 📱 main-grid
+│   │   ├── 📋 create_grid_left() [id='grid-left-content'] → Workflow Steps/Cells Display
+│   │   │   ├── content_to_render (Dynamic workflow content)
+│   │   │   └── scroll_to_top [id='scroll-to-top-link']
+│   │   └── 🤖 create_chat_interface() [id='chat-interface', role='complementary', aria-label='AI Assistant Chat']
+│   │       ├── H2 [APP_NAME + ' Chatbot']
+│   │       ├── Div [id='msg-list', role='log', aria-label='Chat conversation', aria-live='polite']
+│   │       └── Form [role='form', aria-label='Chat input form']
+│   │           ├── Textarea [id='msg', role='textbox', aria-label='Chat message input', aria-multiline='true']
+│   │           ├── Button [id='send-btn', aria-label='Send message to AI assistant']
+│   │           └── Button [id='stop-btn', aria-label='Stop AI response streaming']
+│   └── 🔧 HTMX Refresh Listeners
+│       ├── Div [id='profile-menu-refresh-listener', hx_target='#profile-dropdown-menu']
+│       └── Div [id='app-menu-refresh-listener', hx_target='#app-dropdown-menu']
 ```
+
+### 🎯 Key HTMX Targets for AI Browser Automation
+
+**Navigation Updates:**
+- `#profile-dropdown-menu` - Profile menu refresh target
+- `#app-dropdown-menu` - App menu refresh target  
+- `#search-results-dropdown` - Live search results
+- `#nav-flyout-panel` - Settings flyout panel
+
+**Content Areas:**
+- `#grid-left-content` - Main workflow display area
+- `#msg-list` - Chat conversation history
+- `body` - Full page navigation refreshes
+
+**Interactive Elements:**
+- `#nav-plugin-search` - Real-time plugin search (300ms delay)
+- `#send-btn` / `#stop-btn` - Chat control buttons
+- `#scroll-to-top-link` - Scroll navigation aid
+
+This structure enables AI assistants to programmatically interact with all UI components using semantic selectors and ARIA landmarks.
 
 ### File Structure
 
