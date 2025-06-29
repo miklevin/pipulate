@@ -137,11 +137,11 @@ This system provides unprecedented debugging power:
                 if key and info:
                     docs[key] = info
 
-        # Scan blog drafts directory
-        blog_drafts_dir = pipulate_root / 'helpers/docs_sync/blog_drafts'
-        if blog_drafts_dir.exists():
-            for file_path in blog_drafts_dir.glob('*.md'):
-                key, info = self.process_blog_draft_file(file_path)
+        # Scan considerations directory
+        considerations_dir = pipulate_root / 'helpers/docs_sync/considerations'
+        if considerations_dir.exists():
+            for file_path in considerations_dir.glob('*.md'):
+                key, info = self.process_consideration_file(file_path)
                 if key and info:
                     docs[key] = info
 
@@ -295,8 +295,8 @@ This system provides unprecedented debugging power:
 
         return key, info
 
-    def process_blog_draft_file(self, file_path):
-        """Process a blog draft file and extract metadata from YAML frontmatter"""
+    def process_consideration_file(self, file_path):
+        """Process a consideration file and extract metadata from YAML frontmatter"""
         filename = file_path.stem
 
         # Extract date from filename (YYYY-MM-DD-title format)
@@ -333,15 +333,15 @@ This system provides unprecedented debugging power:
             # Use frontmatter title or generate from filename
             title = frontmatter.get('title', self.generate_title_from_filename(title_slug))
             
-            # Add blog post indicator and date to title
-            title = f"📝 {title} ({date_str})"
+            # Add consideration indicator and date to title
+            title = f"💭 {title} ({date_str})"
             
             # Generate description from content (skip frontmatter)
             content_without_frontmatter = content
             if yaml_match:
                 content_without_frontmatter = content[yaml_match.end():]
             
-            description = self.extract_blog_description(content_without_frontmatter)
+            description = self.extract_consideration_description(content_without_frontmatter)
             
             # Add category and tags info to description
             if 'category' in frontmatter:
@@ -357,25 +357,25 @@ This system provides unprecedented debugging power:
                 priority = 999999  # Fallback for invalid dates
 
         except Exception as e:
-            logger.warning(f"Could not process blog draft {file_path}: {e}")
-            title = f"📝 {self.generate_title_from_filename(title_slug)} ({date_str})"
-            description = f"Blog draft: {title_slug}"
+            logger.warning(f"Could not process consideration file {file_path}: {e}")
+            title = f"💭 {self.generate_title_from_filename(title_slug)} ({date_str})"
+            description = f"Development consideration: {title_slug}"
             priority = 999999
 
-        key = f"blog_{filename.replace('-', '_')}"
+        key = f"consideration_{filename.replace('-', '_')}"
 
         return key, {
             'title': title,
             'file': str(file_path),
             'description': description,
-            'category': 'blog_drafts',
+            'category': 'considerations',
             'priority': priority,
             'filename': filename,
             'date': date_str
         }
 
-    def extract_blog_description(self, content):
-        """Extract a meaningful description from blog content"""
+    def extract_consideration_description(self, content):
+        """Extract a meaningful description from consideration content"""
         lines = content.split('\n')
         
         # Look for the first substantial paragraph after any headers
@@ -392,7 +392,7 @@ This system provides unprecedented debugging power:
                 clean_line = self._clean_description_text(line)
                 return clean_line[:200] + ('...' if len(clean_line) > 200 else '')
         
-        return "Blog draft exploring Pipulate development and AI collaboration"
+        return "Development consideration exploring Pipulate architecture and design"
 
     def generate_title_from_filename(self, filename):
         """Generate a human-readable title from filename"""
@@ -536,17 +536,17 @@ This system provides unprecedented debugging power:
         
         return prev_doc, next_doc
 
-    def get_blog_drafts_navigation(self, current_doc_key):
-        """Get previous/next navigation for blog draft documents"""
-        # Get all blog draft documents sorted by priority (newest first)
-        _, _, _, _, blog_draft_docs = self.get_categorized_docs()
+    def get_considerations_navigation(self, current_doc_key):
+        """Get previous/next navigation for consideration documents"""
+        # Get all consideration documents sorted by priority (newest first)
+        _, _, _, _, consideration_docs = self.get_categorized_docs()
         
-        if not blog_draft_docs:
+        if not consideration_docs:
             return None, None
         
         # Find current document index
         current_index = None
-        for i, (key, info) in enumerate(blog_draft_docs):
+        for i, (key, info) in enumerate(consideration_docs):
             if key == current_doc_key:
                 current_index = i
                 break
@@ -555,8 +555,8 @@ This system provides unprecedented debugging power:
             return None, None
         
         # Get previous and next documents
-        prev_doc = blog_draft_docs[current_index - 1] if current_index > 0 else None
-        next_doc = blog_draft_docs[current_index + 1] if current_index < len(blog_draft_docs) - 1 else None
+        prev_doc = consideration_docs[current_index - 1] if current_index > 0 else None
+        next_doc = consideration_docs[current_index + 1] if current_index < len(consideration_docs) - 1 else None
         
         return prev_doc, next_doc
 
@@ -921,7 +921,7 @@ This system provides unprecedented debugging power:
         training_docs = []
         rules_docs = []
         paginated_docs = []
-        blog_draft_docs = []
+        consideration_docs = []
 
         for key, info in self.DOCS.items():
             # Check if document is paginated first
@@ -935,18 +935,18 @@ This system provides unprecedented debugging power:
                     training_docs.append((key, info))
                 elif category == 'rules':
                     rules_docs.append((key, info))
-                elif category == 'blog_drafts':
-                    blog_draft_docs.append((key, info))
+                elif category == 'considerations':
+                    consideration_docs.append((key, info))
 
         # Sort by priority, then by title
         featured_docs.sort(key=lambda x: (x[1].get('priority', 999), x[1]['title']))
         training_docs.sort(key=lambda x: x[1]['title'])
         rules_docs.sort(key=lambda x: (x[1].get('priority', 999), x[1]['title']))
         paginated_docs.sort(key=lambda x: (x[1].get('priority', 999), x[1]['title']))
-        # Blog drafts sorted by priority (which is negative timestamp, so newer first)
-        blog_draft_docs.sort(key=lambda x: (x[1].get('priority', 999), x[1]['title']))
+        # Considerations sorted by priority (which is negative timestamp, so newer first)
+        consideration_docs.sort(key=lambda x: (x[1].get('priority', 999), x[1]['title']))
 
-        return featured_docs, training_docs, rules_docs, paginated_docs, blog_draft_docs
+        return featured_docs, training_docs, rules_docs, paginated_docs, consideration_docs
 
     async def serve_browser(self, request):
         """Serve the documentation browser with tree view"""
@@ -954,7 +954,7 @@ This system provides unprecedented debugging power:
         # Default docs split sizes - localStorage will override if available
 
         # Get categorized documents
-        featured_docs, training_docs, rules_docs, paginated_docs, blog_draft_docs = self.get_categorized_docs()
+        featured_docs, training_docs, rules_docs, paginated_docs, consideration_docs = self.get_categorized_docs()
 
         # Check for category filter
         category = request.query_params.get('category', 'all')
@@ -966,7 +966,7 @@ This system provides unprecedented debugging power:
             filtered_training = []
             filtered_rules = []
             filtered_paginated = []
-            filtered_blog_drafts = []
+            filtered_considerations = []
             welcome_text = "Comprehensive guides and tutorials for getting started with Pipulate."
         elif category == 'training':
             title = "📖 Training Files"
@@ -974,7 +974,7 @@ This system provides unprecedented debugging power:
             filtered_training = training_docs
             filtered_rules = []
             filtered_paginated = []
-            filtered_blog_drafts = []
+            filtered_considerations = []
             welcome_text = "Training materials and learning resources for mastering Pipulate workflows."
         elif category == 'rules':
             title = "⚙️ Framework Rules"
@@ -982,7 +982,7 @@ This system provides unprecedented debugging power:
             filtered_training = []
             filtered_rules = rules_docs
             filtered_paginated = []
-            filtered_blog_drafts = []
+            filtered_considerations = []
             welcome_text = "Framework rules and coding standards for Pipulate development."
         elif category == 'paginated':
             title = "📚 Paginated Documents"
@@ -990,27 +990,27 @@ This system provides unprecedented debugging power:
             filtered_training = []
             filtered_rules = []
             filtered_paginated = paginated_docs
-            filtered_blog_drafts = []
+            filtered_considerations = []
             welcome_text = "Paginated documents for quick reference and learning."
-        elif category == 'blog_drafts':
-            title = "📝 Blog Drafts"
+        elif category == 'considerations':
+            title = "💭 Development Considerations"
             filtered_featured = []
             filtered_training = []
             filtered_rules = []
             filtered_paginated = []
-            filtered_blog_drafts = blog_draft_docs
-            welcome_text = "Latest blog drafts exploring Pipulate development, AI collaboration, and breakthrough insights."
+            filtered_considerations = consideration_docs
+            welcome_text = "Development considerations exploring Pipulate architecture, design decisions, and work-in-progress thoughts."
         else:
             title = "📚 All Documentation"
             filtered_featured = featured_docs
             filtered_training = training_docs
             filtered_rules = rules_docs
             filtered_paginated = paginated_docs
-            filtered_blog_drafts = blog_draft_docs
+            filtered_considerations = consideration_docs
             welcome_text = "Complete documentation library for Pipulate. Start with Featured Guides for comprehensive learning."
 
         # Create tree view HTML with filtered content
-        tree_html = self.create_tree_view(filtered_featured, filtered_training, filtered_rules, filtered_paginated, filtered_blog_drafts)
+        tree_html = self.create_tree_view(filtered_featured, filtered_training, filtered_rules, filtered_paginated, filtered_considerations)
 
         # Create breadcrumb navigation for filtered views
         breadcrumb = ""
@@ -1022,7 +1022,7 @@ This system provides unprecedented debugging power:
             stats_content = f"""
                 <a href="/docs" cls="nav-link-block">📊 {len(self.DOCS)} documents discovered</a>
                 <a href="/docs?category=featured" cls="nav-link-block">🌟 {len(featured_docs)} featured guides</a>
-                <a href="/docs?category=blog_drafts" cls="nav-link-block">📝 {len(blog_draft_docs)} blog drafts</a>
+                <a href="/docs?category=considerations" cls="nav-link-block">💭 {len(consideration_docs)} considerations</a>
                 <a href="/docs?category=training" cls="nav-link-block">📖 {len(training_docs)} training files</a>
                 <a href="/docs?category=rules" cls="nav-link-block">⚙️ {len(rules_docs)} framework rules</a>
                 <a href="/docs?category=paginated" cls="nav-link-block">📚 {len(paginated_docs)} paginated documents</a>
@@ -1045,8 +1045,8 @@ This system provides unprecedented debugging power:
                 count_text = f"⚙️ {len(rules_docs)} framework rules"
             elif category == 'paginated':
                 count_text = f"📚 {len(paginated_docs)} paginated documents"
-            elif category == 'blog_drafts':
-                count_text = f"📝 {len(blog_draft_docs)} blog drafts"
+            elif category == 'considerations':
+                count_text = f"💭 {len(consideration_docs)} considerations"
 
             stats_content = f'<div style="font-weight: bold; font-size: 1.1em;">{count_text}</div>'
 
@@ -1163,13 +1163,13 @@ This system provides unprecedented debugging power:
             background-color: #bbdefb;
         }}
 
-        .tree-link.blog-draft {{
+        .tree-link.consideration {{
             background-color: #f3e5f5;
             border-left: 4px solid #9c27b0;
             font-weight: 500;
         }}
 
-        .tree-link.blog-draft:hover {{
+        .tree-link.consideration:hover {{
             background-color: #e1bee7;
         }}
 
@@ -1442,7 +1442,7 @@ This system provides unprecedented debugging power:
         
         return description.strip()
 
-    def create_tree_view(self, featured_docs, training_docs, rules_docs, paginated_docs, blog_draft_docs):
+    def create_tree_view(self, featured_docs, training_docs, rules_docs, paginated_docs, consideration_docs):
         """Create the tree view HTML structure"""
         html_parts = []
 
@@ -1514,15 +1514,15 @@ This system provides unprecedented debugging power:
             html_parts.append('</ul>')
             html_parts.append('</div>')
 
-        # Blog drafts section (positioned at bottom for sequential reading)
-        if blog_draft_docs:
-            html_parts.append('<div class="tree-category" id="blog-drafts">')
-            html_parts.append('<span class="tree-label">📝 BLOG DRAFTS</span>')
+        # Considerations section (positioned at bottom for sequential reading)
+        if consideration_docs:
+            html_parts.append('<div class="tree-category" id="considerations">')
+            html_parts.append('<span class="tree-label">💭 DEVELOPMENT CONSIDERATIONS</span>')
             html_parts.append('<ul class="tree">')
-            for key, info in blog_draft_docs:
+            for key, info in consideration_docs:
                 html_parts.append(f'''
                     <li class="tree-item">
-                        <a href="/docs/{key}" class="tree-link blog-draft">
+                        <a href="/docs/{key}" class="tree-link consideration">
                             {info["title"]}
                         </a>
                         <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
@@ -1609,7 +1609,7 @@ This system provides unprecedented debugging power:
                 'training': '📖 Training Guides',
                 'rules': '⚙️ Framework Rules',
                 'paginated': '📚 Paginated Documents',
-                'blog_drafts': '📝 Blog Drafts'
+                'considerations': '💭 Development Considerations'
             }.get(category, 'Documentation')
 
             # Get featured docs for quick navigation
@@ -1649,10 +1649,10 @@ This system provides unprecedented debugging power:
         {next_button}
     </div>'''
 
-            # Generate navigation for blog draft documents
-            blog_drafts_navigation = ""
-            if category == 'blog_drafts':
-                prev_doc, next_doc = self.get_blog_drafts_navigation(doc_key)
+            # Generate navigation for consideration documents
+            considerations_navigation = ""
+            if category == 'considerations':
+                prev_doc, next_doc = self.get_considerations_navigation(doc_key)
                 if prev_doc or next_doc:
                     # Create prev button
                     if prev_doc:
@@ -1669,10 +1669,10 @@ This system provides unprecedented debugging power:
                         next_button = '<span class="nav-button disabled">Next →</span>'
                     
                     # Create navigation with center info
-                    blog_drafts_navigation = f'''<div class="navigation">
+                    considerations_navigation = f'''<div class="navigation">
         {prev_button}
         <div class="nav-info">
-            <a href="/docs?category=blog_drafts" style="color: #9c27b0; text-decoration: none;">📝 Blog Drafts</a>
+            <a href="/docs?category=considerations" style="color: #9c27b0; text-decoration: none;">💭 Development Considerations</a>
         </div>
         {next_button}
     </div>'''
@@ -2098,9 +2098,9 @@ This system provides unprecedented debugging power:
 
     <div class="content">
         {rules_navigation}
-        {blog_drafts_navigation}
+        {considerations_navigation}
         {html_content}
-        {blog_drafts_navigation}
+        {considerations_navigation}
         {rules_navigation}
     </div>
 
