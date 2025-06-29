@@ -332,7 +332,7 @@ In lens manufacturing, "flashes" are excess material that squeeze out of molds �
 **Pipulate continues this tradition:**
 - **FastHTML**: Grinds off Jinja2 template complexity
 - **HTMX**: Grinds off virtual DOM overhead
-- **Local AI**: Enables privacy when needed, cloud power when desired
+- **Local AI**: Enables privacy by default, cloud power when desired
 - **SQLite**: Grinds off enterprise database complexity
 
 The result: clean, focused tools that do their job without unnecessary cruft.
@@ -732,24 +732,24 @@ Traditional development follows DRY principles, creating abstract, complex syste
 4. **🎯 Right Granularity**: WET provides the perfect abstraction level for human AND AI comprehension
 
 ```
-                               ________________________________
-   - Like Notebooks           /                                \
-   - Linear Workflows        |  It runs proprietary private AI  |
-   - Local & Cloud-free      |  Workflows from your Local PC?!  |
-   - Chip O'Theseus included  \________________________________/
-                                                              ()
-        HARDWARE PLATFORM             LOCAL BROWSER             O   , Chip O'Theseus
-     _______________________       __________ _______             o \\  .
-    |                       |     / Pipulate \Jupyter\__            |\\/|
-    | Windows, Mac or Linux |    |  __________________  |   See!    / " '\ - Radical transparency
-    |     _____ ___         |    | | App Name   Menu⚙️| |<- - - - -. .   . - MCP tool-call control
-    |   _/ Nix \____\_____  |    | |------------------| |         /    ) | - Browser as bot's body
-    |  |                  | |    | | Workflow | Local | |        '  _.'  |
-    |  |     Pipulate    <---------> -Step #1 | AI🤖  | |        '-'/    \
-    |__|  localhost:5001  |_|    | | -Step #2 | Chat  | |      What, no Docker?
-       |  (AI on Rails🚂) |      | | -Step #3 | Help▸ | |      What, no React?
-       |__________________|      | |__________|_______| |      What, no Cloud?
-                                 |______________________|
+                             ________________________________
+ - Like Notebooks           /                                \
+ - Linear Workflows        |  It runs proprietary private AI  |
+ - Local & Cloud-free      |  Workflows from your Local PC?!  |
+ - Chip O'Theseus included  \________________________________/
+                                                            ()
+      HARDWARE PLATFORM             LOCAL BROWSER             O   , Chip O'Theseus
+   _______________________       __________ _______             o \\  .
+  |                       |     / Pipulate \Jupyter\__            |\\/|
+  | Windows, Mac or Linux |    |  __________________  |   See!    / " '\ - Radical transparency
+  |     _____ ___         |    | | App Name   Menu⚙️| |<- - - - -. .   . - MCP tool-call control
+  |   _/ Nix \____\_____  |    | |------------------| |         /    ) | - Browser as bot's body
+  |  |                  | |    | | Workflow | Local | |        '  _.'  |
+  |  |     Pipulate    <---------> -Step #1 | AI🤖  | |        '-'/    \
+  |__|  localhost:5001  |_|    | | -Step #2 | Chat  | |      What, no Docker?
+     |  (AI on Rails🚂) |      | | -Step #3 | Help▸ | |      What, no React?
+     |__________________|      | |__________|_______| |      What, no Cloud?
+                               |______________________|
 ```
 
 **WET workflows are:**
@@ -853,9 +853,9 @@ This detailed view shows how Pipulate's local-first architecture eliminates comm
       │              ▼                │ - Direct, observable state changes
       │    ┌─────────────────────┐    │
       │    │  Server-Side State  │    │ - Conceptually like local-server-side cookies
-      │    │  DictLikeDB + JSON  │ ◄───── Enables the "Know EVERYTHING!" philosophy
+      │    │  DictLikeDB + JSON ◄──────── Enables the "Know EVERYTHING!" philosophy
       │    └─────────────────────┘    │ - AI greps logs/server.log to see app state!
-      └───────────────────────────────┘ - No unreachable client-state by AI in browser
+      └───────────────────────────────┘
 ```
 
 ### Server-Rendered UI (HTMX)  <!-- key: server-rendered-ui-htmx -->
