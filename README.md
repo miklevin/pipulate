@@ -942,8 +942,8 @@ This structure enables AI assistants to programmatically interact with all UI co
 
 ```plaintext
     .
-    ├── .cursor                   # Guidelines for AI code editing (if using Cursor)
-    ├── .venv/                    # Virtual environment (shared by server & Jupyter)
+    ├── .cursor                   # Boostraps Radical Transparency (teaches AI to fish)
+    ├── .venv/                    # Common Python enviornment for FastHTML, Jupyter & Cursor
     ├── data/
     │   └── data.db               # SQLite database
     ├── downloads/                # Default location for workflow outputs (e.g., CSVs)
@@ -954,12 +954,12 @@ This structure enables AI assistants to programmatically interact with all UI co
     │   │   └── organize_css.py   # Example of what might be found there
     │   └── create_workflow.py    # Useful workflow production helpers
     ├── logs/
-    │   ├── api.log               # Specific API-calls, rotating last-N server runs
-    │   └── Botifython.log        # Server logs (useful for debugging / AI context)
+    │   ├── server-1.log          # N-rotations of server log per run per config
+    │   └── server.log            # The server log of most recent run, contains app state
     ├── static/                   # JS, CSS, images
     ├── plugins/                  # Workflow plugins
     ├── training/                 # Markdown files for AI context/prompts
-    ├── flake.nix                 # Nix flake definition for reproducibility
+    ├── flake.nix                 # Infrastructure as Code & all system-versions for AI
     ├── LICENSE
     ├── notebook_introduction_local.ipynb  # Editable (non-auto-updating) copy of botify_api.ipynb
     ├── README.md                 # This file
