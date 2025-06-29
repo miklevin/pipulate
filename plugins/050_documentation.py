@@ -1282,23 +1282,6 @@ This system provides unprecedented debugging power:
                 </div>
             </div>
 
-            <!-- Quick Tools Section -->
-            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
-                <h4 cls="section-heading">🚀 <strong>Quick Transparency Tools</strong></h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0.5rem 0;">
-                    <a href="/trifecta/discover-fields/uhnd-com/uhnd.com-demo-account/20250616" target="_blank" 
-                       style="display: block; padding: 0.75rem; background: #e3f2fd; border-radius: 4px; text-decoration: none; color: #1976d2; font-size: 0.85em;">
-                        🔍 <strong>Demo Field Discovery</strong><br>
-                        <span style="font-size: 0.8em; color: #666;">See available Botify fields</span>
-                    </a>
-                    <a href="/trifecta" target="_blank" 
-                       style="display: block; padding: 0.75rem; background: #f3e5f5; border-radius: 4px; text-decoration: none; color: #7b1fa2; font-size: 0.85em;">
-                        🏇 <strong>Start Trifecta Workflow</strong><br>
-                        <span style="font-size: 0.8em; color: #666;">Begin a new workflow instance</span>
-                    </a>
-                </div>
-            </div>
-
             <!-- Key Capabilities -->
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
                 <h4 cls="section-heading">🔥 <strong>What This Unlocks</strong></h4>
