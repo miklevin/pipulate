@@ -56,19 +56,19 @@ cd ~/pipulate && nix develop
 ║                                                                         ║    . .   .
 ║  🌟 Where Python functions become HTML elements...                      ║   /    ) |
 ║  🌟 Where workflows preserve your creative process...                   ║  '  _.'  |
-║  🌟 Where AI assists without cloud dependencies...                      ║  '-'/    \
+║  🌟 Where AI integrates locally and globally...                         ║  '-'/    \
 ╚═════════════════════════════════════════════════════════════════════════╝
 ```
 
-## AI On Rails: The Answer to Agentic Mode  <!-- key: about-pipulate -->
+## AI On Rails: Structured Workflows for Any AI  <!-- key: about-pipulate -->
 
-**The Problem with Agentic AI:** Unpredictable, cloud-dependent, and trains frontier models with your data.
+**The Challenge with Agentic AI:** Powerful but unpredictable—you never know what you're gonna get.
 
-**The Pipulate Solution:** Local AI guided by domain expert workflows, keeping your intelligence sovereign.
+**The Pipulate Approach:** Structured workflows that can leverage **any AI**—local, cloud, or hybrid—while maintaining complete visibility and control.
 
-Agentic Mode is like a box of chocolates — you never know what you're gonna get. Ask an AI to do something in *Agentic Mode* and it's going to go off and do whatever it thinks is right until done. But what if there were a domain expert in the picture who sets everything up ahead of time ensuring proper AI coralling and wrangling?
+Think of it as putting guardrails on AI assistance. Instead of asking an AI to "figure it out," domain experts create step-by-step workflows that guide AI through proven processes. The AI gets structure, you get predictable results.
 
-**Put AIs on Rails with Pipulate:** Rigid linear workflows prepared by domain experts, leveraging local AI without training frontier models. Your secret recipes stay secret, your data stays yours, and your AI grows with you on your own hardware.
+**Pipulate: Your AI Swiss Army Knife:** Whether you prefer local privacy, cloud power, or hybrid approaches, Pipulate provides the framework. Use local models for sensitive work, cloud APIs for heavy lifting, or both in the same workflow—your choice, your control.
 
 ```
       🤖 AGENTIC MODE (Chaos)           🚂 AI ON RAILS (Pipulate)
@@ -157,34 +157,34 @@ If you are not an Empire builder and prefer craftsmanship over the rat race and 
 
 ### Core Philosophy: Local-First, WET, and AI-Augmented
 
-#### Breaking Free: From Framework Churn to Computing Sovereignty  <!-- key: breaking-free-framework-churn -->
+#### Foundation First: Durable Tools for Any Workflow  <!-- key: breaking-free-framework-churn -->
 
 <!-- START_ASCII_ART: breaking-free-framework-churn -->
 ```
-🎡 THE HAMSTER WHEEL OF FRAMEWORK CHURN        🏰 COMPUTING SOVEREIGNTY
-═══════════════════════════════════════        ═══════════════════════════
+🌊 THE CONSTANT CHANGE CYCLE                   🏗️ DURABLE FOUNDATIONS
+═══════════════════════════════               ═══════════════════════════
 
     React → Vue → Angular → Svelte             🗽 Your Hardware
          ↑                    ↓                🗽 Your Data
-    Webpack ← Next.js ← Vite ← Remix           🗽 Your AI
+    Webpack ← Next.js ← Vite ← Remix           🗽 Your AI Choice
          ↑                    ↓                🗽 Your Code
     Docker → K8s → Cloud → Serverless          🗽 Your Schedule
 
-    😵‍💫 Endless Learning                        ✨ Durable Tools:
-    💸 Cloud Dependencies                       • Python (30+ years)
-    🔒 Platform Lock-in                         • SQLite (built-in)
-    📈 Growing Complexity                       • HTML/HTTP (timeless)
-    ⏰ Always Catching Up                       • Nix (reproducible)
-                                                • Local AI (private)
-              VS.
-                                               🎯 Third Act Philosophy:
-    🏃‍♂️ JUMP OFF THE WHEEL                       "Choose tools that will
-               ↓                                 outlast the frameworks"
-        ┌─────────────┐
-        │  PIPULATE   │                         💤 Sleep Well
-        │ Local-First │                         🧘 Own Schedule
-        │  Sovereign  │                         🔧 Full Control
-        └─────────────┘                         ♾️ Built to Last
+    📚 Constant Learning                       ✨ Stable Foundation:
+    🔄 Migration Cycles                        • Python (30+ years)
+    📈 Feature Complexity                      • SQLite (built-in)
+    ⚡ Rapid Evolution                         • HTML/HTTP (timeless)
+                                               • Nix (reproducible)
+              WITH                             • Any AI (flexible)
+
+    🤝 COMPLEMENTARY APPROACH                  🎯 Third Act Philosophy:
+               ↓                                "Build on foundations that
+        ┌─────────────┐                         complement any approach"
+        │  PIPULATE   │                         
+        │Foundation + │                         💤 Peace of Mind
+        │Any AI Above │                         🧘 Your Timeline
+        └─────────────┘                         🔧 Full Flexibility
+                                               ♾️ Built to Integrate
 ```
 <!-- END_ASCII_ART: breaking-free-framework-churn -->
 
@@ -261,7 +261,7 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
     │ • Load balancers    │                    │ • Integrated AI         │
     │ • Database clusters │         VS         │ • SQLite simplicity     │
     │ • DevOps overhead   │                    │ • Nix reproducibility   │
-    │ • Cloud dependencies│                    │ • Complete ownership    │
+    │ • Cloud lock-in      │                    │ • Flexible deployment  │
     └─────────────────────┘                    └─────────────────────────┘
 
     🎯 One person understands                  🎯 One person controls
@@ -331,7 +331,7 @@ In lens manufacturing, "flashes" are excess material that squeeze out of molds �
 **Pipulate continues this tradition:**
 - **FastHTML**: Grinds off Jinja2 template complexity
 - **HTMX**: Grinds off virtual DOM overhead
-- **Local AI**: Grinds off cloud dependencies
+- **Local AI**: Enables privacy when needed, cloud power when desired
 - **SQLite**: Grinds off enterprise database complexity
 
 The result: clean, focused tools that do their job without unnecessary cruft.
@@ -383,6 +383,17 @@ The revolution isn't just another framework — it's eliminating the template la
 * **MiniDataAPI:** A lightweight layer for interacting with SQLite and other databases. Uses Python dictionaries for schema definition, promoting type safety without the complexity of traditional ORMs — effectively future-proofing your SQL. You lose fancy *join* capabilities but in exchange get the *Python dict interface* as your main persistent database API forever-forward, enabiling instant swapability between SQLite and PostgreSQL (for example).
 
 * **Ollama:** Facilitates running LLMs locally, enabling in-app chat, workflow guidance, and future automation capabilities while ensuring privacy and avoiding API costs. Your local AI (Chip O'Theseus) learns & grows with you, hopping from hardware to hardware as you upgrade — like a genie in a hermitcrab shell. And if that weren't kooky enough — it knows how to make MCP-calls!!! That's right, your friendly localhost AI Chip O'Theseus is also an *MCP client!* Your linear workflows ain't so linear anymore when a single-step can be: "Go out and do whatever."
+
+### The Hybrid Advantage: Best of Both Worlds
+
+**Pipulate isn't anti-cloud—it's pro-choice.** Each workflow step can choose the best tool for the job:
+
+- **Step 1**: Use local AI for sensitive data analysis (privacy-first)
+- **Step 2**: Call OpenAI's API for advanced reasoning (cloud power)  
+- **Step 3**: Process results locally and save to SQLite (data sovereignty)
+- **Step 4**: Use Anthropic's API for final review (frontier capabilities)
+
+**This is the Swiss Army knife approach:** Local by default, cloud by choice, with complete visibility into what's happening at each step. Whether you're processing confidential client data (local) or need cutting-edge AI capabilities (cloud), Pipulate gives you the framework to do both seamlessly.
 
 * **SQLite & Jupyter Notebooks:** Foundational tools for data persistence and the workflow development process (porting from notebooks to Pipulate workflows). SQLite is built into Python and really all things — the *get-out-of-tech-liability free card* you didn't know you had. And a full JupyterLab instance is installed side-by-side with Pipulate sharing the same Python `.venv` virtual environment (on Nix!!!), so... well... uhm, there are no words. If you know you know.
 
@@ -449,8 +460,8 @@ This is the fastest and most universal way to install Pipulate. It has the fewes
                                                              │Automatically│
                                                              └─────────────┘
 
-    Simple as 1-2-3! No Docker, no build steps, no cloud dependencies.
-    Everything runs locally with complete privacy and control.
+    Simple as 1-2-3! No Docker, no build steps, works with or without cloud services.
+Everything runs locally with complete flexibility and control.
 ```
 
 **Step 1: Install Nix (One-Time Setup)**
@@ -820,10 +831,10 @@ Jupyter Notebooks run alongside the FastHTML server, allowing developers to prot
 
 ### Local-First & Single-Tenant Details  <!-- key: local-first-single-tenant-details -->
 
-Pipulate manages all state server-side within the local environment (think *local-server cookies*), avoiding cloud dependencies. This approach offers:
-* **Privacy & Control:** Data never leaves the user's machine.
-* **Full Resource Access:** Utilize local CPU/GPU freely for intensive tasks (scraping, 24/7 AI processing) at minimal cost.
-* **Simplicity:** Eliminates complexities associated with multi-tenancy, cloud deployment, and distributed state.
+Pipulate manages all state server-side within the local environment (think *local-server cookies*), with optional cloud integration as needed. This approach offers:
+* **Privacy & Control:** Data stays local by default, cloud integration when you choose.
+* **Full Resource Access:** Utilize local CPU/GPU freely for intensive tasks, plus cloud APIs for heavy lifting.
+* **Simplicity:** Eliminates complexities of multi-tenancy while supporting both local and cloud workflows.
 * **Observability:** State changes (via DictLikeDB/JSON) are transparent and easily logged (AI greps it there).
 
 ### Local-First State Management Benefits  <!-- key: local-first-state-management-benefits -->
@@ -1483,15 +1494,17 @@ This documentation serves multiple audiences: humans seeking immediate productiv
 
 ## Final Thoughts
 
-Pipulate offers a unique approach to building local, AI-assisted applications, prioritizing simplicity, user control, and reproducibility over conventional scaling patterns. By understanding its core concepts and embracing its philosophy, developers can create powerful workflows, and end-users can benefit from AI guidance without cloud dependencies.
+Pipulate offers a unique approach to building local, AI-assisted applications, prioritizing simplicity, user control, and reproducibility over conventional scaling patterns. By understanding its core concepts and embracing its philosophy, developers can create powerful workflows, and end-users can benefit from AI guidance with complete flexibility in deployment options.
 
 Remember the guiding principles:
 
 1.  **Keep it simple.**
-2.  **Stay local and single-user.**
-3.  **Embrace the unconventional.**
-4.  **Choose durable foundations over ephemeral frameworks.**
-5.  **Build for both human creativity and AI collaboration.**
+2.  **Support local-first with cloud integration options.**
+3.  **Embrace the unconventional while remaining practical.**
+4.  **Choose durable foundations that work with any approach.**
+5.  **Build for both human creativity and AI collaboration—local or cloud.**
+
+**The Bottom Line:** Pipulate doesn't reject the modern AI ecosystem—it provides a structured foundation that works with any AI service. Whether you're using Claude via API, ChatGPT for reasoning, or local models for privacy, Pipulate gives you the workflow framework to orchestrate them all effectively. It's not about choosing sides in the AI wars—it's about having the right tool for any job.
 
 -----
 
