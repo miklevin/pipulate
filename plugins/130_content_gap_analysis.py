@@ -43,7 +43,7 @@ class ContentGapAnalysis:
         # self.steps includes all data steps AND the system 'finalize' step at the end.
         # splice_workflow_step.py inserts new data steps BEFORE STEPS_LIST_INSERTION_POINT.
         self.steps = [
-            Step(id='step_01', done='placeholder_data_01', show='Step 1 Placeholder', refill=False),
+            Step(id='step_01', done='text_area', show='Text Area', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else ''),
             Step(
                 id='step_02',
                 done='placeholder_02',
@@ -238,113 +238,68 @@ class ContentGapAnalysis:
 
     # --- START_STEP_BUNDLE: step_01 ---
     async def step_01(self, request):
-        """Handles GET request for Step 1 Placeholder."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.APP_NAME
+        """ Handles GET request for Step 1: Displays textarea form or completed value. """
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        # Determine next_step_id dynamically based on runtime position in steps list
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step.done, "") # 'step.done' will be like 'placeholder_data_01'
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-
-        if "finalized" in finalize_data and current_value:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\\n{current_value}")
-            return Div(
-                Card(H3(f"🔒 {step.show}: Completed")),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        elif current_value and state.get("_revert_target") != step_id:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\\n{current_value}")
-            return Div(
-                pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
+        user_val = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and user_val:
+            locked_msg = f'🔒 Text area content is set to: {user_val}'
+            await self.message_queue.add(pip, locked_msg, verbatim=True)
+            return Div(Card(H3(f'🔒 {step.show}'), Pre(user_val, cls='code-block-container')), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        elif user_val and state.get('_revert_target') != step_id:
+            completed_msg = f'Step 1 is complete. You entered: {user_val}'
+            await self.message_queue.add(pip, completed_msg, verbatim=True)
+            text_widget = Pre(user_val, cls='code-block-container')
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=text_widget, steps=steps)
+            return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         else:
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            return Div(
-                Card(
-                    H3(f"{step.show}", id=f"{step_id}-heading", aria_level="3"),
-                    P("This is a placeholder step. Customize its input form as needed. Click Proceed to continue.", 
-                      id=f"{step_id}-description",
-                      role="note"),
-                    Form(
-                        # Example: Text input with label and placeholder for maximum automation coverage
-                        Label(
-                            "Placeholder Data:",
-                            _for=f"{step_id}-{step.done}",
-                            id=f"{step_id}-label",
-                            data_testid=f"placeholder-label-{step_id}"
-                        ),
-                        Input(
-                            type="text", 
-                            name=step.done, 
-                            value="Placeholder Value for Step 1 Placeholder",
-                            placeholder="Enter your placeholder data here...",
-                            id=f"{step_id}-{step.done}",
-                            data_testid=f"placeholder-input-{step_id}",
-                            title="Input field for placeholder step data",
-                            aria_label=f"Input for {step.show}",
-                            aria_labelledby=f"{step_id}-label",
-                            aria_describedby=f"{step_id}-description",
-                            required=True
-                        ),
-                        Button(
-                            self.ui['BUTTON_LABELS']['NEXT_STEP'], 
-                            type="submit",
-                            name=f"{step_id}_submit_action", 
-                            cls=self.ui['BUTTON_STYLES']['PRIMARY'],
-                            id=f"{step_id}-submit-button",
-                            aria_label=f"Submit {step.show} and proceed to next step",
-                            data_testid=f"submit-button-{step_id}"
-                        ),
-                        hx_post=f"/{app_name}/{step_id}_submit", 
-                        hx_target=f"#{step_id}",
-                        aria_label=f"Form for {step.show}",
-                        aria_describedby=f"{step_id}-description",
-                        aria_labelledby=f"{step_id}-heading",
-                        role="form",
-                        data_testid=f"step-form-{step_id}"
-                    ),
-                    data_testid=f"step-card-{step_id}",
-                    role="region",
-                    aria_labelledby=f"{step_id}-heading"
-                ),
-                Div(id=next_step_id), # Placeholder for next step, no trigger here
-                id=step_id,
-                data_testid=f"step-container-{step_id}"
-            )
+            if step.refill and user_val:
+                display_value = user_val
+            else:
+                display_value = await self.get_suggestion(step_id, state)
+            form_msg = 'Showing text area form. No text has been entered yet.'
+            await self.message_queue.add(pip, form_msg, verbatim=True)
+            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            explanation = 'This is a text area widget for entering multiple lines of text. Use it to input longer content that may span multiple lines.'
+            await self.message_queue.add(pip, explanation, verbatim=True)
+            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, cls='text-secondary'), Form(pip.wrap_with_inline_button(Textarea(display_value, name=step.done, placeholder=f'Enter {step.show}', required=True, autofocus=True, cls='textarea-standard', data_testid='text-area-widget-textarea-input', aria_label='Multi-line text input area', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction'), button_label='Next ▸'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
 
     async def step_01_submit(self, request):
-        """Process the submission for Step 1 Placeholder."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.APP_NAME
+        """Process the submission for Step 1."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
-
-        form_data = await request.form()
-        # For a placeholder, get value from the hidden input or use a default
-        value_to_save = form_data.get(step.done, f"Default value for {step.show}")
-        await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
-
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\\n{value_to_save}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-
-        return Div(
-            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
+        if step.done == 'finalized':
+            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
+        form = await request.form()
+        user_val = form.get(step.done, '').strip()
+        submit_msg = f'User submitted text: {user_val}'
+        await self.message_queue.add(pip, submit_msg, verbatim=True)
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            error_msg = f'Text validation failed: {error_msg}'
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            return error_component
+        processed_val = user_val
+        await pip.set_step_data(pipeline_id, step_id, processed_val, steps)
+        confirm_msg = f'{step.show}: {processed_val}'
+        await self.message_queue.add(pip, confirm_msg, verbatim=True)
+        if pip.check_finalize_needed(step_index, steps):
+            finalize_msg = self.step_messages['finalize']['ready']
+            await self.message_queue.add(pip, finalize_msg, verbatim=True)
+        text_widget = Pre(processed_val, cls='code-block-container')
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=text_widget, steps=steps)
+        return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
     # --- END_STEP_BUNDLE: step_01 ---
 
 
