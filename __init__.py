@@ -32,8 +32,8 @@ Usage:
 # - install.sh (synced via version_sync.py)
 # - server.py startup banners (reads this file directly)
 # Update these values and run: python version_sync.py
-__version__ = "1.0.4"
-__version_description__ = "True Single Source of Truth Implementation"
+__version__ = "1.0.5"
+__version_description__ = "Updated documentation"
 __author__ = "Mike Levin"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local First AI SEO Software" 
