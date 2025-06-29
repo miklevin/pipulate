@@ -819,7 +819,11 @@ Integration with a local Ollama instance provides AI capabilities without extern
 * **Cost-Effective:** No per-token charges; run continuously using local resources.
 * **Streaming Support:** Real-time interaction via WebSockets.
 * **Bounded Context:** Manages conversation history effectively.
-* **Tool Calling:** Can interpret structured JSON from the LLM to execute functions.
+* **App State Awareness:** Grepping your server log reveals full application state.
+* **Tool Calling:** Local LLM is an MCP client with a growing list of abilities
+  - Workflow assistance
+  - Browser automation
+  - Debugging
 
 ```
                    ┌──────────────────┐
