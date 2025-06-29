@@ -315,7 +315,7 @@ class ContentGapAnalysis:
             form_msg = 'Showing text area form. No text has been entered yet.'
             await self.message_queue.add(pip, form_msg, verbatim=True)
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            explanation = 'Enter competitor domains, one per line. Each domain will be analyzed for homepage strategy, redirects, and landing page content.'
+            explanation = 'Enter competitor domains, one per line. To ADD domains to existing analysis: put new domains at the TOP. To REMOVE: delete the entire domain block from YAML. If YAML gets corrupted, paste your clean domain list and re-run.'
             await self.message_queue.add(pip, explanation, verbatim=True)
             return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, cls='text-secondary'), Form(Div(Textarea(display_value, name=step.done, placeholder=f'Enter competitor domains, one per line...', required=True, autofocus=True, cls='textarea-standard', data_testid='text-area-widget-textarea-input', aria_label='Multi-line text input area for competitor domains', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction'), Div(Button('Analyze Domains ▸', type='submit', cls='primary', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Analyzing domains..."'}), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
 
@@ -339,32 +339,56 @@ class ContentGapAnalysis:
         form = await request.form()
         user_val = form.get(step.done, '').strip()
         
-        # Check if input is already processed YAML (idempotency check)
+        # 80/20 Domain Management: Extract domains from ANY format (raw text + YAML)
         domains = []
+        existing_yaml_domains = []
+        new_raw_domains = []
+        
+        # Step 1: Try to extract existing domains from YAML structure
         if user_val.strip().startswith('analysis_metadata:') or 'domains:' in user_val:
             try:
-                # Parse existing YAML to extract original domain list
                 yaml_data = yaml.safe_load(user_val)
                 if isinstance(yaml_data, dict) and 'domains' in yaml_data:
-                    domains = [domain_info['original_domain'] for domain_info in yaml_data['domains']]
-                    await self.message_queue.add(pip, f'Found existing YAML analysis with {len(domains)} domains. Re-analyzing...', verbatim=True)
-                else:
-                    raise ValueError("Invalid YAML structure")
+                    existing_yaml_domains = [domain_info['original_domain'] for domain_info in yaml_data['domains']]
+                    await self.message_queue.add(pip, f'Found existing YAML with {len(existing_yaml_domains)} domains', verbatim=True)
             except Exception as e:
-                await self.message_queue.add(pip, f'Warning: Could not parse YAML ({str(e)}), treating as raw domain list', verbatim=True)
-                # Fallback to line-by-line parsing, but filter out YAML structure lines
-                for line in user_val.splitlines():
-                    line = line.strip()
-                    if line and not line.endswith(':') and not line.startswith('-') and '.' in line:
-                        domains.append(line)
-        else:
-            # Parse domains from input (each line is a domain)
+                await self.message_queue.add(pip, f'⚠️ YAML parsing failed: {str(e)}. Looking for raw domains...', verbatim=True)
+        
+        # Step 2: Look for raw domains anywhere in the input (TOP = new additions)
+        for line in user_val.splitlines():
+            line = line.strip()
+            # Simple domain detection: has dot, no YAML syntax, reasonable length
+            if (line and '.' in line and 
+                not line.endswith(':') and 
+                not line.startswith('-') and
+                not line.startswith('analysis_') and
+                not line.startswith('domains:') and
+                not '|' in line and
+                len(line) < 100 and
+                len(line) > 3):
+                # Clean up common artifacts  
+                clean_domain = line.replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
+                if clean_domain and clean_domain not in existing_yaml_domains:
+                    new_raw_domains.append(clean_domain)
+        
+        # Step 3: Combine existing + new domains
+        domains = existing_yaml_domains + new_raw_domains
+        
+        if new_raw_domains:
+            await self.message_queue.add(pip, f'➕ Found {len(new_raw_domains)} new domains to analyze: {", ".join(new_raw_domains)}', verbatim=True)
+        if existing_yaml_domains and new_raw_domains:
+            await self.message_queue.add(pip, f'📋 Total: {len(existing_yaml_domains)} existing + {len(new_raw_domains)} new = {len(domains)} domains', verbatim=True)
+        elif not domains:
+            # Fallback: treat entire input as raw domain list
             domains = [line.strip() for line in user_val.splitlines() if line.strip()]
         
         await self.message_queue.add(pip, f'Processing {len(domains)} domains...', verbatim=True)
         
         if not domains:
-            error_msg = 'Please enter at least one domain'
+            if 'analysis_metadata:' in user_val or 'domains:' in user_val:
+                error_msg = '🔧 No domains found. YAML may be corrupted. Paste your clean competitor domain list (one per line) and try again.'
+            else:
+                error_msg = 'Please enter at least one domain'
             await self.message_queue.add(pip, error_msg, verbatim=True)
             return pip.create_error_form(error_msg, step_id, app_name)
         
