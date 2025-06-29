@@ -942,29 +942,31 @@ This structure enables AI assistants to programmatically interact with all UI co
 
 ```plaintext
     .
-    ├── .cursor                   # Boostraps Radical Transparency (teaches AI to fish)
-    ├── .venv/                    # Common Python enviornment for FastHTML, Jupyter & Cursor
+    ├── .cursor                    # Boostraps Radical Transparency (teaches AI to fish)
+    ├── .venv/                     # Common Python enviornment for FastHTML, Jupyter & Cursor
+    ├── common.py                  # Base Class for DRY CRUD plugin app inheritance (todo)
     ├── data/
-    │   └── data.db               # SQLite database
-    ├── downloads/                # Default location for workflow outputs (e.g., CSVs)
+    │   └── data.db                # AI-accessible SQLite for applicaton state (server cookes)
+    ├── downloads/                 # Default location for workflow outputs (e.g., CSVs)
     ├── helpers/
     │   ├── botify
-    │   │   └── botify_api.ipynb  # Git managed massive example notebook, produces docs
-    │   ├── cleanup               # Temporary scripts to help clean up the system
-    │   │   └── organize_css.py   # Example of what might be found there
-    │   └── create_workflow.py    # Useful workflow production helpers
+    │   │   └── botify_api.ipynb   # Git managed massive example notebook, produces docs
+    │   ├── workflow               # Workflow workshop, lots of tools that make WET DRY
+    │   │   └── create_workflow.py # Example of what might be found there
+    │   └── prompt_foo.py          # Bundles XML code payloads for massive 1-shot AI prompts
     ├── logs/
-    │   ├── server-1.log          # N-rotations of server log per run per config
-    │   └── server.log            # The server log of most recent run, contains app state
-    ├── static/                   # JS, CSS, images
-    ├── plugins/                  # Workflow plugins
-    ├── training/                 # Markdown files for AI context/prompts
-    ├── flake.nix                 # Infrastructure as Code & all system-versions for AI
-    ├── LICENSE
+    │   ├── server-1.log           # N-rotations of server log per run per config
+    │   └── server.log             # The server log of most recent run, contains app state
+    ├── static/                    # JS, CSS, images
+    ├── plugins/                   # Workflow plugins
+    ├── training/                  # Markdown files for AI context/prompts
+    ├── flake.nix                  # Infrastructure as Code & all system-versions for AI
+    ├── LICENSE                    # It's MIT
+    ├── mcp_tools.py               # Giving a mouse a cookie
     ├── notebook_introduction_local.ipynb  # Editable (non-auto-updating) copy of botify_api.ipynb
-    ├── README.md                 # This file
-    ├── requirements.txt          # Python dependencies (managed by Nix)
-    └── server.py                 # Main application entry point
+    ├── README.md                  # This file
+    ├── requirements.txt           # Python dependencies (managed by Nix)
+    └── server.py                  # Main application entry point
 ```
 
 --------------------------------------------------------------------------------
