@@ -5932,11 +5932,17 @@ async def save_split_sizes(request):
     try:
         form = await request.form()
         sizes = form.get('sizes')
+        context = form.get('context', 'main')  # Default to 'main' for backward compatibility
+        
         if sizes:
             # Basic validation
             parsed_sizes = json.loads(sizes)
             if isinstance(parsed_sizes, list) and all(isinstance(x, (int, float)) for x in parsed_sizes):
-                db['split-sizes'] = sizes
+                # Use different keys based on context
+                if context == 'docs':
+                    db['docs-split-sizes'] = sizes
+                else:
+                    db['split-sizes'] = sizes  # Default/main app context
                 return HTMLResponse('')
         return HTMLResponse('Invalid format or sizes not provided', status_code=400)
     except Exception as e:
