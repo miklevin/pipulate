@@ -536,6 +536,30 @@ This system provides unprecedented debugging power:
         
         return prev_doc, next_doc
 
+    def get_blog_drafts_navigation(self, current_doc_key):
+        """Get previous/next navigation for blog draft documents"""
+        # Get all blog draft documents sorted by priority (newest first)
+        _, _, _, _, blog_draft_docs = self.get_categorized_docs()
+        
+        if not blog_draft_docs:
+            return None, None
+        
+        # Find current document index
+        current_index = None
+        for i, (key, info) in enumerate(blog_draft_docs):
+            if key == current_doc_key:
+                current_index = i
+                break
+        
+        if current_index is None:
+            return None, None
+        
+        # Get previous and next documents
+        prev_doc = blog_draft_docs[current_index - 1] if current_index > 0 else None
+        next_doc = blog_draft_docs[current_index + 1] if current_index < len(blog_draft_docs) - 1 else None
+        
+        return prev_doc, next_doc
+
     def markdown_to_html(self, markdown_content):
         """Convert markdown to HTML with proper Markdown semantics"""
         import html
@@ -1426,24 +1450,7 @@ This system provides unprecedented debugging power:
             html_parts.append('</ul>')
             html_parts.append('</div>')
 
-        # Blog drafts section (new - positioned for timely content)
-        if blog_draft_docs:
-            html_parts.append('<div class="tree-category" id="blog-drafts">')
-            html_parts.append('<span class="tree-label">📝 BLOG DRAFTS</span>')
-            html_parts.append('<ul class="tree">')
-            for key, info in blog_draft_docs:
-                html_parts.append(f'''
-                    <li class="tree-item">
-                        <a href="/docs/{key}" class="tree-link blog-draft">
-                            {info["title"]}
-                        </a>
-                        <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
-                    </li>
-                ''')
-            html_parts.append('</ul>')
-            html_parts.append('</div>')
-
-        # Paginated section (moved to third position)
+        # Paginated section
         if paginated_docs:
             html_parts.append('<div class="tree-category" id="paginated">')
             html_parts.append('<span class="tree-label">📚 PAGINATED DOCUMENTS</span>')
@@ -1486,6 +1493,23 @@ This system provides unprecedented debugging power:
                 html_parts.append(f'''
                     <li class="tree-item">
                         <a href="/docs/{key}" class="tree-link">
+                            {info["title"]}
+                        </a>
+                        <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
+                    </li>
+                ''')
+            html_parts.append('</ul>')
+            html_parts.append('</div>')
+
+        # Blog drafts section (positioned at bottom for sequential reading)
+        if blog_draft_docs:
+            html_parts.append('<div class="tree-category" id="blog-drafts">')
+            html_parts.append('<span class="tree-label">📝 BLOG DRAFTS</span>')
+            html_parts.append('<ul class="tree">')
+            for key, info in blog_draft_docs:
+                html_parts.append(f'''
+                    <li class="tree-item">
+                        <a href="/docs/{key}" class="tree-link blog-draft">
                             {info["title"]}
                         </a>
                         <div class="tree-description">{self.clean_description_for_nav(info["description"])}</div>
@@ -1571,7 +1595,8 @@ This system provides unprecedented debugging power:
                 'featured': '🌟 Featured Guides',
                 'training': '📖 Training Guides',
                 'rules': '⚙️ Framework Rules',
-                'paginated': '📚 Paginated Documents'
+                'paginated': '📚 Paginated Documents',
+                'blog_drafts': '📝 Blog Drafts'
             }.get(category, 'Documentation')
 
             # Get featured docs for quick navigation
@@ -1607,6 +1632,34 @@ This system provides unprecedented debugging power:
         {prev_button}
         <div class="nav-info">
             <a href="/docs?category=rules" style="color: #0066cc; text-decoration: none;">⚙️ Framework Rules</a>
+        </div>
+        {next_button}
+    </div>'''
+
+            # Generate navigation for blog draft documents
+            blog_drafts_navigation = ""
+            if category == 'blog_drafts':
+                prev_doc, next_doc = self.get_blog_drafts_navigation(doc_key)
+                if prev_doc or next_doc:
+                    # Create prev button
+                    if prev_doc:
+                        prev_key, prev_info = prev_doc
+                        prev_button = f'<a href="/docs/{prev_key}" class="nav-button">← {prev_info["title"]}</a>'
+                    else:
+                        prev_button = '<span class="nav-button disabled">← Previous</span>'
+                    
+                    # Create next button  
+                    if next_doc:
+                        next_key, next_info = next_doc
+                        next_button = f'<a href="/docs/{next_key}" class="nav-button">{next_info["title"]} →</a>'
+                    else:
+                        next_button = '<span class="nav-button disabled">Next →</span>'
+                    
+                    # Create navigation with center info
+                    blog_drafts_navigation = f'''<div class="navigation">
+        {prev_button}
+        <div class="nav-info">
+            <a href="/docs?category=blog_drafts" style="color: #9c27b0; text-decoration: none;">📝 Blog Drafts</a>
         </div>
         {next_button}
     </div>'''
@@ -2032,7 +2085,9 @@ This system provides unprecedented debugging power:
 
     <div class="content">
         {rules_navigation}
+        {blog_drafts_navigation}
         {html_content}
+        {blog_drafts_navigation}
         {rules_navigation}
     </div>
 
