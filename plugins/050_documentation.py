@@ -1026,9 +1026,11 @@ This system provides unprecedented debugging power:
                 <a href="/docs?category=paginated" cls="nav-link-block">📚 {len(paginated_docs)} paginated documents</a>
                 <hr style="margin: 15px 0; border: none; border-top: 1px solid #e9ecef;">
                 <div style="font-weight: bold; margin-bottom: 8px; color: #495057; font-size: 0.9em;">🌐 PUBLIC DOCS</div>
+                <a href="https://pipulate.com/" target="_blank" cls="nav-link-block">🏠 Pipulate.com</a>
                 <a href="https://pipulate.com/documentation/" target="_blank" cls="nav-link-block">📚 Official Documentation</a>
                 <a href="https://pipulate.com/development/" target="_blank" cls="nav-link-block">👨‍💻 1-Pager Development Guide</a>
                 <a href="https://pipulate.com/guide/" target="_blank" cls="nav-link-block">📖 Paginated Guide</a>
+                <a href="https://pypi.org/project/pipulate/" target="_blank" cls="nav-link-block">📦 PyPI Package</a>
                 <a href="https://github.com/miklevin/pipulate" target="_blank" cls="nav-link-block">🐙 GitHub Repository</a>
             """
         else:
@@ -2253,6 +2255,12 @@ This system provides unprecedented debugging power:
                   cls="my-xs"),
                 Hr(style="border: none; height: 1px; background: #e9ecef; margin: 8px 0;"),
                 P(Strong("🌐 Public Docs"), style="margin: 0.5rem 0 0.25rem 0; font-size: 0.9em; color: var(--pico-muted-color);"),
+                P(A(Span("🏠", cls="emoji icon-spaced"), "Pipulate.com",
+                    href="https://pipulate.com/", target="_blank",
+                    cls="link-primary",
+                    onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
+                    onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
+                  cls="my-xs"),
                 P(A(Span("📚", cls="emoji icon-spaced"), "Official Documentation",
                     href="https://pipulate.com/documentation/", target="_blank",
                     cls="link-primary",
@@ -2267,6 +2275,12 @@ This system provides unprecedented debugging power:
                   cls="my-xs"),
                 P(A(Span("📖", cls="emoji icon-spaced"), "Paginated Guide",
                     href="https://pipulate.com/guide/", target="_blank",
+                    cls="link-primary",
+                    onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
+                    onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
+                  cls="my-xs"),
+                P(A(Span("📦", cls="emoji icon-spaced"), "PyPI Package",
+                    href="https://pypi.org/project/pipulate/", target="_blank",
                     cls="link-primary",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"),
