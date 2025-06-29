@@ -23,24 +23,23 @@ import sys
 from pathlib import Path
 
 def get_version():
-    """Get the version from pipulate.__init__.__version__"""
-    try:
-        # Add current directory to Python path to import pipulate
-        current_dir = Path(__file__).parent
-        sys.path.insert(0, str(current_dir.parent))
-        
-        from pipulate import __version__
-        return __version__
-    except ImportError:
-        # Fallback: read directly from __init__.py
-        init_file = Path(__file__).parent / "__init__.py"
-        if init_file.exists():
-            content = init_file.read_text()
-            match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
-            if match:
-                return match.group(1)
+    """Get the version from __init__.py at project root"""
+    # Script is at: pipulate/helpers/release/version_sync.py
+    # __init__.py is at: pipulate/__init__.py
+    # So we need to go up 2 levels from script location
+    script_dir = Path(__file__).parent  # pipulate/helpers/release/
+    project_root = script_dir.parent.parent  # pipulate/
+    init_file = project_root / "__init__.py"
     
-    raise RuntimeError("Could not determine version from pipulate.__init__")
+    if not init_file.exists():
+        raise RuntimeError(f"Could not find __init__.py at {init_file}")
+    
+    content = init_file.read_text()
+    match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
+    if not match:
+        raise RuntimeError(f"Could not find __version__ in {init_file}")
+    
+    return match.group(1)
 
 def update_pyproject_toml(version):
     """Update version in pyproject.toml"""
