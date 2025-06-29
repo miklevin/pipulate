@@ -61,3 +61,7 @@ build/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Botify helper outputs - keep schema discovery and data files local only
+helpers/botify/*.json
+helpers/botify/*.csv
