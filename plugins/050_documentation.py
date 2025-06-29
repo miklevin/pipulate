@@ -515,7 +515,7 @@ This system provides unprecedented debugging power:
     def get_rules_navigation(self, current_doc_key):
         """Get previous/next navigation for rules documents"""
         # Get all rules documents sorted by priority
-        _, _, rules_docs, _ = self.get_categorized_docs()
+        _, _, rules_docs, _, _ = self.get_categorized_docs()
         
         if not rules_docs:
             return None, None
@@ -1575,7 +1575,7 @@ This system provides unprecedented debugging power:
             }.get(category, 'Documentation')
 
             # Get featured docs for quick navigation
-            featured_docs, _, _, _ = self.get_categorized_docs()
+            featured_docs, _, _, _, _ = self.get_categorized_docs()
             quick_nav_links = []
             for key, info in featured_docs[:4]:  # Show first 4 featured
                 if key == doc_key:
@@ -2145,7 +2145,7 @@ This system provides unprecedented debugging power:
                 )
 
                 # Then append the documentation info to history without displaying
-                featured_docs, training_docs, rules_docs, paginated_docs = self.get_categorized_docs()
+                featured_docs, training_docs, rules_docs, paginated_docs, _ = self.get_categorized_docs()
 
                 docs_message = f"Available Documentation ({len(self.DOCS)} files discovered):\n"
 
@@ -2167,7 +2167,7 @@ This system provides unprecedented debugging power:
                 logger.error(f"Error in documentation plugin: {str(e)}")
 
         # Create featured documentation links
-        featured_docs, training_docs, rules_docs, paginated_docs = self.get_categorized_docs()
+        featured_docs, training_docs, rules_docs, paginated_docs, _ = self.get_categorized_docs()
 
         featured_links = []
         for key, info in featured_docs:
