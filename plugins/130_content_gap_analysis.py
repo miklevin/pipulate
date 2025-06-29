@@ -291,10 +291,29 @@ class ContentGapAnalysis:
         form = await request.form()
         user_val = form.get(step.done, '').strip()
         
-        await self.message_queue.add(pip, f'Processing {len(user_val.splitlines())} domains...', verbatim=True)
+        # Check if input is already processed YAML (idempotency check)
+        domains = []
+        if user_val.strip().startswith('analysis_metadata:') or 'domains:' in user_val:
+            try:
+                # Parse existing YAML to extract original domain list
+                yaml_data = yaml.safe_load(user_val)
+                if isinstance(yaml_data, dict) and 'domains' in yaml_data:
+                    domains = [domain_info['original_domain'] for domain_info in yaml_data['domains']]
+                    await self.message_queue.add(pip, f'Found existing YAML analysis with {len(domains)} domains. Re-analyzing...', verbatim=True)
+                else:
+                    raise ValueError("Invalid YAML structure")
+            except Exception as e:
+                await self.message_queue.add(pip, f'Warning: Could not parse YAML ({str(e)}), treating as raw domain list', verbatim=True)
+                # Fallback to line-by-line parsing, but filter out YAML structure lines
+                for line in user_val.splitlines():
+                    line = line.strip()
+                    if line and not line.endswith(':') and not line.startswith('-') and '.' in line:
+                        domains.append(line)
+        else:
+            # Parse domains from input (each line is a domain)
+            domains = [line.strip() for line in user_val.splitlines() if line.strip()]
         
-        # Parse domains from input (each line is a domain)
-        domains = [line.strip() for line in user_val.splitlines() if line.strip()]
+        await self.message_queue.add(pip, f'Processing {len(domains)} domains...', verbatim=True)
         
         if not domains:
             error_msg = 'Please enter at least one domain'
