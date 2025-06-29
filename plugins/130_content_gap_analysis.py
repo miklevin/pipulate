@@ -212,7 +212,7 @@ class ContentGapAnalysis:
             Div(
                 H5('Structured YAML Analysis:'),
                 Textarea(code, id=textarea_id, style='display: none;'),
-                Pre(Code(code, cls=f'language-{language}'), cls='line-numbers'),
+                Pre(Code(code, cls=f'language-{language}')),
                 cls='mt-4'
             ),
             id=widget_id
@@ -314,7 +314,7 @@ class ContentGapAnalysis:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             explanation = 'Enter competitor domains, one per line. Each domain will be analyzed for homepage strategy, redirects, and landing page content.'
             await self.message_queue.add(pip, explanation, verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, cls='text-secondary'), Form(pip.wrap_with_inline_button(Textarea(display_value, name=step.done, placeholder=f'Enter competitor domains, one per line...', required=True, autofocus=True, cls='textarea-standard', data_testid='text-area-widget-textarea-input', aria_label='Multi-line text input area for competitor domains', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction'), button_label='Analyze Domains ▸'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
+            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, cls='text-secondary'), Form(Div(Textarea(display_value, name=step.done, placeholder=f'Enter competitor domains, one per line...', required=True, autofocus=True, cls='textarea-standard', data_testid='text-area-widget-textarea-input', aria_label='Multi-line text input area for competitor domains', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction'), Div(Button('Analyze Domains ▸', type='submit', cls='primary', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Analyzing domains..."'}), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
 
     async def step_01_submit(self, request):
         """Process competitor domains and convert to YAML with homepage analysis."""
