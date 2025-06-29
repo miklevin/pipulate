@@ -1069,8 +1069,6 @@ This structure enables AI assistants to programmatically interact with all UI co
     ├── plugins/                   # Workflow plugins (010_introduction.py, 400_trifecta.py, etc.)
     ├── pyproject.toml             # Python packaging configuration and metadata
     ├── training/                  # Markdown files for AI context/prompts
-    ├── version_sync.py            # Version management across pyproject.toml and flake.nix
-    ├── VERSION_MANAGEMENT.md      # Documentation for version synchronization system
     ├── vulture_whitelist.py       # Code analysis whitelist for unused code detection
     ├── flake.nix                  # Infrastructure as Code & all system-versions for AI
     ├── LICENSE                    # It's MIT
