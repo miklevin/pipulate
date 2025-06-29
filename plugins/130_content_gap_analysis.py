@@ -426,6 +426,15 @@ class ContentGapAnalysis:
                             final_url = str(response.url)
                             parsed_final = urlparse(final_url)
                             
+                            # Capture detailed redirect chain for transparency
+                            redirect_chain = []
+                            for hist_resp in response.history:
+                                redirect_chain.append({
+                                    'from_url': str(hist_resp.url),
+                                    'to_url': hist_resp.headers.get('location', 'unknown'),
+                                    'status_code': hist_resp.status_code
+                                })
+                            
                             domain_info.update({
                                 'status': 'success',
                                 'original_url': url,
@@ -433,6 +442,7 @@ class ContentGapAnalysis:
                                 'final_domain': parsed_final.netloc,
                                 'response_code': response.status_code,
                                 'redirect_hops': len(response.history),
+                                'redirect_chain': redirect_chain if redirect_chain else None,
                                 'content_type': response.headers.get('content-type', '').split(';')[0],
                                 'server': response.headers.get('server', 'unknown')[:50],  # Truncate long server strings
                                 'title': None  # Will extract if HTML
@@ -449,11 +459,19 @@ class ContentGapAnalysis:
                                 except:
                                     pass
                             
-                            # Show redirect summary if there were redirects
+                            # Show detailed redirect summary
                             if domain_info['redirect_hops'] > 0:
-                                redirect_summary = f"✓ {domain} → {parsed_final.netloc} ({domain_info['redirect_hops']} hops)"
+                                trailing_slash_note = " (with trailing /)" if final_url.endswith('/') and not final_url.endswith('//') else ""
+                                redirect_summary = f"✓ {domain} → {final_url}{trailing_slash_note} ({domain_info['redirect_hops']} hops)"
+                                
+                                # Show the redirect chain for transparency
+                                if redirect_chain:
+                                    chain_details = " → ".join([f"{hop['from_url']} ({hop['status_code']})" for hop in redirect_chain])
+                                    chain_details += f" → {final_url} (200)"
+                                    await self.message_queue.add(pip, f"  Chain: {chain_details}", verbatim=True)
                             else:
-                                redirect_summary = f"✓ {domain} (direct)"
+                                trailing_slash_note = " (with trailing /)" if final_url.endswith('/') and not final_url.endswith('//') else ""
+                                redirect_summary = f"✓ {domain} (direct) → {final_url}{trailing_slash_note}"
                                 
                             await self.message_queue.add(pip, redirect_summary, verbatim=True)
                             break  # Success, don't try other protocol
