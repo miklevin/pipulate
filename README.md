@@ -6,6 +6,45 @@
 > **Your data. Your AI. Your machine. Your control.**  
 > No subscriptions, no vendor lock-in, no cloud costs.  
 
+## 🚀 Quick Start for Impatient People
+
+**Want to skip the philosophy and just see what this does?**
+
+```bash
+# 1. Install Nix (one-time setup)
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+
+# 2. Close and reopen your terminal, then:
+curl -L https://pipulate.com/install.sh | sh
+
+# 3. Launch it
+cd ~/pipulate && nix develop
+```
+
+**What you get:** A local web app at `http://localhost:5001` with step-by-step workflows, integrated AI chat, and a JupyterLab instance at `http://localhost:8888`. No cloud required.
+
+**Success looks like:** Two browser tabs auto-open showing the Pipulate interface and JupyterLab.
+
+## 💡 What Can You Actually Build?
+
+**Real examples of what people create with Pipulate:**
+
+### 🔍 SEO Workflows
+- **Keyword Research Pipeline**: Input seed keywords → AI expansion → competition analysis → export spreadsheet
+- **Content Gap Analysis**: Compare your site vs competitors → identify missing topics → prioritized content calendar
+- **Technical SEO Audits**: Crawl site → check Core Web Vitals → generate action items → track fixes
+
+### 📊 Data Processing Workflows  
+- **CSV Data Cleaning**: Upload messy data → standardize formats → remove duplicates → validate results
+- **API Data Collection**: Connect to APIs → fetch data in batches → transform to consistent format → store locally
+- **Report Generation**: Combine multiple data sources → apply business rules → create branded reports
+
+### 🤖 AI-Assisted Workflows
+- **Content Creation Pipeline**: Research topics → generate outlines → write drafts → optimize for SEO
+- **Data Analysis Helper**: Upload spreadsheet → AI suggests insights → create visualizations → export findings
+
+**Key advantage:** Each workflow is a guided, step-by-step process that non-technical users can run repeatedly, while developers can customize the Python code behind each step.
+
 ### Meet Chip O'Theseus  <!-- key: pipulate-welcome-banner -->
 
 ```
@@ -473,6 +512,26 @@ nix develop
 
 Wait for ***BOTH TABS*** to auto-open in your browser.
 
+### 🚨 Installation Troubleshooting
+
+**Common Issues & Solutions:**
+
+| Problem | Solution |
+|---------|----------|
+| `nix: command not found` | You didn't restart your terminal after Nix installation |
+| Browser doesn't open automatically | Manually visit `http://localhost:5001` and `http://localhost:8888` |
+| `Permission denied` errors | Make sure you can write to `~/pipulate` directory |
+| Port conflicts | Kill processes on ports 5001/8888: `lsof -ti:5001 \| xargs kill -9` |
+| Nix build fails | Clear Nix cache: `nix-collect-garbage` then retry |
+
+**System Requirements:**
+- **macOS**: 10.15+ (Intel/Apple Silicon)
+- **Linux**: Any modern distribution with curl 
+- **Windows**: WSL2 with Ubuntu 20.04+
+- **RAM**: 4GB minimum, 8GB recommended
+- **Disk**: 2GB for installation + data storage
+- **Network**: Internet connection for initial setup only
+
 ---
 
 ### PATH 2: Alternative Installation via PyPI (For Python Developers)  <!-- key: alternative-installation-pypi -->
@@ -582,6 +641,50 @@ Are you a Developer or an End User? Chef or Customer? Understanding your audienc
 
 ### 🍝 The Restaurant Analogy
 Just as a chef talks about knife techniques while a diner just wants amazing pasta, Pipulate separates the complexity of creation from the simplicity of consumption. Developers craft the workflows, end-users enjoy the results.
+
+## 🎯 Your First 10 Minutes with Pipulate
+
+**After installation succeeds, here's what to expect:**
+
+### What You'll See
+1. **Two browser tabs open automatically:**
+   - `localhost:5001` - Pipulate web interface with navigation menu
+   - `localhost:8888` - JupyterLab for development/experimentation
+
+2. **In the Pipulate interface:**
+   - Left sidebar with workflow plugins (Introduction, Profiles, etc.)
+   - Main area showing step-by-step workflow interface  
+   - Right panel with integrated AI chat (Chip O'Theseus)
+
+3. **Terminal shows:**
+   ```
+   🚀 Starting Pipulate servers...
+   ✓ FastHTML server ready at http://localhost:5001  
+   ✓ JupyterLab ready at http://localhost:8888
+   ✓ Local AI ready for chat assistance
+   ```
+
+### Your Next Steps Depend on Who You Are
+
+**🔍 If you're an SEO practitioner:**
+- Click "Introduction" in the left menu for a guided tour
+- Try the built-in workflows to see the step-by-step pattern
+- Use the AI chat to ask "How do I create a keyword research workflow?"
+
+**👨‍💻 If you're a developer:**
+- Open JupyterLab tab and run the introduction notebook
+- Check out `plugins/010_introduction.py` to see workflow code structure
+- Try creating a simple workflow: `python helpers/workflow/create_workflow.py`
+
+**🤖 If you're an AI assistant:**
+- Focus on the Quick Reference Card above
+- Study the Critical Implementation Patterns section
+- Review `mcp_tools.py` for MCP protocol capabilities
+
+**🆕 If you're just exploring:**
+- Click through the left menu items to see different workflow types
+- Ask the AI chat: "What can I build with Pipulate?"
+- Try the Introduction workflow to see the step-by-step experience
 
 --------------------------------------------------------------------------------
 
@@ -1220,6 +1323,62 @@ create_workflow.py               │ └──────┬──────�
 * **Pattern Matching:** Intelligent detection via `_process`, `preview` patterns
 * **AST Transplantation:** Surgical precision without syntax errors
 * **Complete Lifecycle:** Development → Testing → Production → Cleanup
+
+## 📋 Quick Reference Card
+
+### Essential Commands
+```bash
+# Development workflow
+cd ~/pipulate && nix develop          # Start Pipulate
+nix develop .#quiet                   # Start without auto-services
+python server.py                     # Manual server start
+git pull && nix develop              # Update to latest
+
+# Create new workflows  
+python helpers/workflow/create_workflow.py my_workflow.py MyClass my_internal_name
+python helpers/workflow/splice_workflow_step.py my_workflow.py --position top
+
+# Plugin naming conventions
+010_my_plugin.py                     # Active plugin (menu order 1)
+xx_my_plugin.py                      # Disabled during development  
+my_plugin (Copy).py                  # Ignored development copy
+```
+
+### Key URLs & Ports
+- **Pipulate App**: `http://localhost:5001`
+- **JupyterLab**: `http://localhost:8888` 
+- **Local AI Chat**: Built into the Pipulate interface
+- **Logs**: `tail -f logs/server.log` for debugging
+
+### Critical Patterns for AI Assistants
+```python
+# Auto-key generation flow
+if not user_input:
+    response = Response('')
+    response.headers['HX-Refresh'] = 'true'
+    return response
+
+# Workflow initialization
+return pip.run_all_cells(app_name, steps)
+
+# State management
+data = pip.get_step_data(step_id)
+pip.set_step_data(step_id, updated_data)
+```
+
+### File Structure Quick Reference
+```
+plugins/                    # Your workflows (auto-discovered)
+├── 010_introduction.py     # Menu order 1
+├── xx_draft.py            # Disabled (xx_ prefix)
+└── draft (Copy).py        # Ignored (parentheses)
+
+mcp_tools.py               # AI assistant interface  
+common.py                  # Base classes for workflows
+browser_automation/        # Selenium automation tools
+logs/server.log            # Debug everything here
+data/data.db              # SQLite application state
+```
 
 ## Common LLM Implementation Mistakes  <!-- key: llm-implementation-mistakes -->
 
