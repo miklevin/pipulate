@@ -82,9 +82,9 @@ def main():
         print("🧹 Cleaning old build artifacts...")
         run_command("rm -rf dist/ build/ *.egg-info", shell=True)
         print("🛠️ Building package...")
-        run_command([sys.executable, '-m', 'build'])
+        run_command([".venv/bin/python", '-m', 'build'])
         print("📦 Publishing to PyPI...")
-        run_command([sys.executable, '-m', 'twine', 'upload', 'dist/*'])
+        run_command([".venv/bin/python", '-m', 'twine', 'upload', 'dist/*'])
         print(f"\n🎉 Successfully published version {current_version} to PyPI! 🎉")
     
     print("\n✨ Workflow complete! ✨")
