@@ -157,11 +157,11 @@ If you are not an Empire builder and prefer craftsmanship over the rat race and 
 
 ### Core Philosophy: Local-First, WET, and AI-Augmented
 
-#### Foundation First: Durable Tools for Any Workflow  <!-- key: breaking-free-framework-churn -->
+#### Breaking Free: Durable Foundations for Any Approach  <!-- key: breaking-free-framework-churn -->
 
 <!-- START_ASCII_ART: breaking-free-framework-churn -->
 ```
-🌊 THE CONSTANT CHANGE CYCLE                   🏗️ DURABLE FOUNDATIONS
+🎡 THE FRAMEWORK CHURN CYCLE                   🏰 COMPUTING SOVEREIGNTY  
 ═══════════════════════════════               ═══════════════════════════
 
     React → Vue → Angular → Svelte             🗽 Your Hardware
@@ -170,29 +170,30 @@ If you are not an Empire builder and prefer craftsmanship over the rat race and 
          ↑                    ↓                🗽 Your Code
     Docker → K8s → Cloud → Serverless          🗽 Your Schedule
 
-    📚 Constant Learning                       ✨ Stable Foundation:
-    🔄 Migration Cycles                        • Python (30+ years)
-    📈 Feature Complexity                      • SQLite (built-in)
-    ⚡ Rapid Evolution                         • HTML/HTTP (timeless)
-                                               • Nix (reproducible)
-              WITH                             • Any AI (flexible)
-
-    🤝 COMPLEMENTARY APPROACH                  🎯 Third Act Philosophy:
-               ↓                                "Build on foundations that
-        ┌─────────────┐                         complement any approach"
-        │  PIPULATE   │                         
-        │Foundation + │                         💤 Peace of Mind
-        │Any AI Above │                         🧘 Your Timeline
-        └─────────────┘                         🔧 Full Flexibility
-                                               ♾️ Built to Integrate
+    😵‍💫 Endless Learning                        🗽 Your Hardware
+    💸 Migration Fatigue                       🗽 Your Data  
+    🔒 Platform Lock-in                        🗽 Your AI Choice
+    📈 Growing Complexity                      🗽 Your Code
+                                               🗽 Your Schedule
+              WITH
+                                               ✨ Durable Tools:
+    🏃‍♂️ JUMP OFF THE WHEEL                        • Python (30+ years)
+               ↓                                • SQLite (built-in)
+        ┌─────────────┐                         • HTML/HTTP (timeless)
+        │  PIPULATE   │                         • Nix (reproducible)
+        │ Local-First │                         • Cloud APIs (by choice)
+        │+ Any Cloud  │                         
+        └─────────────┘                         🎯 Third Act Philosophy:
+                                                "Choose tools that will
+                                                outlast any framework"
 ```
 <!-- END_ASCII_ART: breaking-free-framework-churn -->
 
-- **Local-First & Single-Tenant:** Your data, code, and AI run on your hardware. This guarantees privacy, eliminates cloud costs, and gives you full control.
+- **Local-First Sovereignty:** Your data, code, and AI run on your hardware by default—extending to cloud services when you choose. This guarantees privacy, eliminates surprise costs, and gives you complete control over when and how to scale.
 - **WET Workflows, DRY Framework:** Workflows are intentionally "WET" (explicit & step-by-step) for maximum clarity and customizability—perfectly mirroring Jupyter Notebooks. The underlying framework is "DRY" for efficiency.
 
 - **The AI Advantage:** AI makes WET practical. Tedious code maintenance and refactoring, once a weakness of WET, is now an area where AI excels, turning repetition into a strength for rapid, context-aware development. Our breakthrough **Workflow Reconstruction System** exemplifies this: intelligent AST-based transplantation of workflow components eliminates traditional OOP inheritance complexity while maintaining perfect code precision.
-- **Simplicity & Observability ("Know EVERYTHING!"):** We reject opaque enterprise patterns. State is managed in transparent SQLite tables and JSON blobs, making the entire system intuitive and debuggable.
+- **Radical Transparency ("Know EVERYTHING!"):** We reject opaque enterprise patterns in favor of complete observability. State is managed in transparent SQLite tables and JSON blobs, making the entire system intuitive and debuggable. No black boxes, ever.
 - **Reproducibility with Nix:** Nix Flakes provide a perfect, reproducible Linux environment on macOS, Linux, and Windows (WSL), solving the "works on my machine" problem.
 - **Future-Proof Stack:** We rely on durable standards: Python, SQLite, HTML, and HTMX. This is a framework built to last.
 
