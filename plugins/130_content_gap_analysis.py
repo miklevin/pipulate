@@ -213,6 +213,9 @@ class ContentGapAnalysis:
                 H5('Structured YAML Analysis:'),
                 Textarea(code, id=textarea_id, style='display: none;'),
                 Pre(Code(code, cls=f'language-{language}')),
+                P('✨ Lightning-in-a-bottle competitive intelligence with complete redirect transparency', 
+                  cls='text-secondary', 
+                  style='font-size: 0.875rem; margin-top: 1rem; font-style: italic;'),
                 cls='mt-4'
             ),
             id=widget_id
