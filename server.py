@@ -3972,7 +3972,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/Sortable.js'),
         Script(src='/static/sortable-init.js'),
         Script(src='/static/split.js'),
-        Script(src='/static/splitter-init.js'),
+        Script(src=f'/static/splitter-init.js?v={int(time.time())}'),
         Script(src='/static/mermaid.min.js'),
         Script(src='/static/marked.min.js'),
         Script(src='/static/marked-init.js'),
@@ -5268,9 +5268,11 @@ async def create_outer_container(current_profile_id, menux, request):
     nav_group = create_nav_group()
     
     # Initialize splitter script with localStorage persistence
+    # Wait for external splitter-init.js to load before initializing
     init_splitter_script = Script("""
-        document.addEventListener('DOMContentLoaded', function() {
+        function initMainSplitter() {
             if (window.initializePipulateSplitter) {
+                console.log('🔥 Initializing main interface splitter with localStorage persistence');
                 const elements = ['#grid-left-content', '#chat-interface'];
                 const options = {
                     sizes: [65, 35],  // Default sizes - localStorage will override if available
@@ -5280,7 +5282,14 @@ async def create_outer_container(current_profile_id, menux, request):
                     context: 'main'
                 };
                 initializePipulateSplitter(elements, options);
+            } else {
+                // Retry if splitter-init.js hasn't loaded yet
+                setTimeout(initMainSplitter, 50);
             }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initMainSplitter();
         });
     """)
 
