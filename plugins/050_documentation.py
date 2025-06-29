@@ -1239,22 +1239,27 @@ This system provides unprecedented debugging power:
         </div>
     </div>
 
-    <!-- Split.js -->
+    <!-- Split.js and Splitter Init -->
     <script src="/static/split.js"></script>
+    <script src="/static/splitter-init.js"></script>
     
     <!-- Prism JS -->
     <script src="/static/prism.js"></script>
     
-    <!-- Initialize Split.js -->
+    <!-- Initialize Documentation Browser Splitter -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {{
-            // Initialize the split panes
-            Split(['.sidebar', '.content'], {{
-                sizes: [25, 75],
-                minSize: [200, 400],
-                gutterSize: 10,
-                cursor: 'col-resize'
-            }});
+            // Use the proper Pipulate splitter initialization
+            if (typeof window.initializePipulateSplitter === 'function') {{
+                window.initializePipulateSplitter(['.sidebar', '.content'], {{
+                    sizes: [25, 75],
+                    minSize: [200, 400], 
+                    gutterSize: 10,
+                    cursor: 'col-resize'
+                }});
+            }} else {{
+                console.error('initializePipulateSplitter not available');
+            }}
         }});
     </script>
 </body>
