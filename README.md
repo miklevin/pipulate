@@ -942,11 +942,16 @@ This structure enables AI assistants to programmatically interact with all UI co
 
 ```plaintext
     .
-    ├── .cursor                    # Boostraps Radical Transparency (teaches AI to fish)
-    ├── .venv/                     # Common Python enviornment for FastHTML, Jupyter & Cursor
+    ├── .cursor/                   # Bootstraps Radical Transparency (teaches AI to fish)
+    │   └── rules/                 # Framework rules (01_CRITICAL_PATTERNS.mdc, etc.)
+    ├── .venv/                     # Common Python environment for FastHTML, Jupyter & Cursor
+    ├── browser_automation/        # Selenium browser control & DOM capture
+    │   ├── looking_at/            # Current browser DOM state for AI visibility
+    │   └── *.py                   # Google search automation examples
+    ├── cli.py                     # Command line interface for Pipulate operations
     ├── common.py                  # Base Class for DRY CRUD plugin app inheritance (todo)
     ├── data/
-    │   └── data.db                # AI-accessible SQLite for applicaton state (server cookes)
+    │   └── data.db                # AI-accessible SQLite for application state (server cookies)
     ├── downloads/                 # Default location for workflow outputs (e.g., CSVs)
     ├── helpers/
     │   ├── botify
@@ -957,12 +962,17 @@ This structure enables AI assistants to programmatically interact with all UI co
     ├── logs/
     │   ├── server-1.log           # N-rotations of server log per run per config
     │   └── server.log             # The server log of most recent run, contains app state
-    ├── static/                    # JS, CSS, images
-    ├── plugins/                   # Workflow plugins
+    ├── static/                    # JS, CSS, images, icons
+    ├── plugins/                   # Workflow plugins (010_introduction.py, 400_trifecta.py, etc.)
+    ├── pyproject.toml             # Python packaging configuration and metadata
     ├── training/                  # Markdown files for AI context/prompts
+    ├── version_sync.py            # Version management across pyproject.toml and flake.nix
+    ├── VERSION_MANAGEMENT.md      # Documentation for version synchronization system
+    ├── vulture_whitelist.py       # Code analysis whitelist for unused code detection
     ├── flake.nix                  # Infrastructure as Code & all system-versions for AI
     ├── LICENSE                    # It's MIT
-    ├── mcp_tools.py               # Giving a mouse a cookie
+    ├── install.sh                 # "Magic cookie" installation script (curl | sh)
+    ├── mcp_tools.py               # MCP protocol tools - the AI assistant interface
     ├── notebook_introduction_local.ipynb  # Editable (non-auto-updating) copy of botify_api.ipynb
     ├── README.md                  # This file
     ├── requirements.txt           # Python dependencies (managed by Nix)
