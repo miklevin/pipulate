@@ -1066,12 +1066,13 @@ This system provides unprecedented debugging power:
             margin: 0;
             padding: 0;
             background: #f8f9fa;
+            height: 100vh;
+            overflow: hidden;
         }}
 
         .container {{
-            display: grid;
-            grid-template-columns: 300px 1fr;
             height: 100vh;
+            display: flex;
         }}
 
         .sidebar {{
@@ -1079,12 +1080,27 @@ This system provides unprecedented debugging power:
             border-right: 1px solid #e9ecef;
             overflow-y: auto;
             padding: 20px;
+            flex: 0 0 300px;
         }}
 
         .content {{
             background: #fff;
             overflow-y: auto;
             padding: 30px;
+            flex: 1;
+        }}
+
+        /* Split.js styles */
+        .gutter {{
+            background-color: #eee;
+            background-repeat: no-repeat;
+            background-position: 50%;
+        }}
+
+        .gutter.gutter-horizontal {{
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+YMw+46L/5/FQMdQCvkZZqkIBdqQiOr6QoAmKYa/elSXJQAAAAASUVORK5CYII=');
+            cursor: col-resize;
+            width: 10px;
         }}
 
         .tree {{
@@ -1182,14 +1198,23 @@ This system provides unprecedented debugging power:
         /* Responsive */
         @media (max-width: 768px) {{
             .container {{
-                grid-template-columns: 1fr;
-                grid-template-rows: auto 1fr;
+                flex-direction: column;
             }}
 
             .sidebar {{
                 border-right: none;
                 border-bottom: 1px solid #e9ecef;
                 max-height: 200px;
+                flex: 0 0 auto;
+            }}
+            
+            .content {{
+                flex: 1;
+            }}
+            
+            /* Hide split gutters on mobile */
+            .gutter {{
+                display: none !important;
             }}
         }}
     </style>
@@ -1214,8 +1239,24 @@ This system provides unprecedented debugging power:
         </div>
     </div>
 
+    <!-- Split.js -->
+    <script src="/static/split.js"></script>
+    
     <!-- Prism JS -->
     <script src="/static/prism.js"></script>
+    
+    <!-- Initialize Split.js -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {{
+            // Initialize the split panes
+            Split(['.sidebar', '.content'], {{
+                sizes: [25, 75],
+                minSize: [200, 400],
+                gutterSize: 10,
+                cursor: 'col-resize'
+            }});
+        }});
+    </script>
 </body>
 </html>"""
 
