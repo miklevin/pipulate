@@ -184,7 +184,7 @@ Pipulate's WET philosophy extends to its technology choices, favoring simple, du
     Solving the "Not on my machine" problem well.           \___)=(___/  |_____|_____|
 ```
 
-**Nix serves as the "Noah's Ark"** - preserving this perfect focus in a reproducible environment that works identically across all platforms. Once you've locked in the focus, it lasts for years or decades, all bottled up in infrastructure-as-code.
+**Nix serves as the "Noah's Ark"** — preserving this perfect focus in a reproducible environment that works identically across all platforms. Once you've locked in the focus, it lasts for years or decades, all bottled up in infrastructure-as-code.
 
 ## Other Key Technologies Used
 
@@ -230,7 +230,7 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 ```
 <!-- END_ASCII_ART: new-lamp-stack-comparison -->
 
-The original LAMP stack was beautiful in its simplicity - one person could understand and manage the whole stack. But it got bloated with enterprise patterns, microservices, and distributed complexity.
+The original LAMP stack was beautiful in its simplicity — one person could understand and manage the whole stack. But it got bloated with enterprise patterns, microservices, and distributed complexity.
 
 Pipulate brings back that **"one person, full stack"** philosophy with modern tools:
 
@@ -239,7 +239,7 @@ Pipulate brings back that **"one person, full stack"** philosophy with modern to
 - **M**iniDataAPI: Universal SQL simplifier close to Python's core data structures
 - **P**ython + FastHTML + HTMX: The new web development paradigm
 
-This isn't just simpler - it's more powerful, giving you complete environment reproducibility, local AI integration, server-side state management, and future-proofed skills.
+This isn't just simpler — it's more powerful, giving you complete environment reproducibility, local AI integration, server-side state management, and future-proofed skills.
 
 ### The Lens Stack: Focused Architecture  <!-- key: the-lens-stack -->
 
@@ -287,7 +287,7 @@ APP:
 
 ### Grinding Off the Burrs and Flashes  <!-- key: grinding-off-burrs-flashes -->
 
-In lens manufacturing, "flashes" are excess material that squeeze out of molds - unwanted projections that must be ground off. Steve Jobs famously did this twice: adopting Gorilla Glass (grinding off plastic flashes) and rejecting Flash Player (grinding off software bloat).
+In lens manufacturing, "flashes" are excess material that squeeze out of molds — unwanted projections that must be ground off. Steve Jobs famously did this twice: adopting Gorilla Glass (grinding off plastic flashes) and rejecting Flash Player (grinding off software bloat).
 
 **Pipulate continues this tradition:**
 - **FastHTML**: Grinds off Jinja2 template complexity
@@ -305,7 +305,7 @@ This is not your father's Python web framework. HTMX changes everything — a ma
 
 ### The Evolution: Flask → FastAPI → FastHTML  <!-- key: the-evolution-flask-fastapi-fasthtml -->
 
-The revolution isn't just another framework - it's eliminating the template layer entirely:
+The revolution isn't just another framework — it's eliminating the template layer entirely:
 
 ```
     🍶 FLASK ERA              🚀 FASTAPI ERA            🌐 FASTHTML ERA
@@ -387,7 +387,7 @@ We offer two installation paths that lead to the exact same robust, Nix-managed 
                                       Result)
 ```
 
-### PATH 1: Quick Start - Universal Installation (Recommended)  <!-- key: quick-start-universal-installation -->
+### PATH 1: Quick Start — Universal Installation (Recommended)  <!-- key: quick-start-universal-installation -->
 
 This is the fastest and most universal way to install Pipulate. It has the fewest dependencies and works on any modern Mac, Linux system, or Windows with WSL.
 
@@ -591,13 +591,13 @@ Pipulate is built on a radical philosophy that challenges programming orthodoxy:
 
 ### The Universal API Pattern: From Quarks to Code  <!-- key: universal-api-pattern -->
 
-At every scale of reality, we see the same pattern: **"lumps of stuff" with APIs** that enable interaction. Quarks combine into atoms, atoms into molecules, cells into organisms, individuals into societies. Each level requires the right **granularity** of interface - not so abstract that you lose control, not so granular that you drown in complexity.
+At every scale of reality, we see the same pattern: **"lumps of stuff" with APIs** that enable interaction. Quarks combine into atoms, atoms into molecules, cells into organisms, individuals into societies. Each level requires the right **granularity** of interface — not so abstract that you lose control, not so granular that you drown in complexity.
 
 **This is the 80/20 rule of existence:** Handle 80% of interactions gracefully with 20% of the API surface, then handle edge cases as needed. Pipulate applies this principle to code architecture.
 
 ### Durable vs. Ephemeral: Building on Bedrock  <!-- key: durable-vs-ephemeral -->
 
-The tech industry suffers from "hamster wheel syndrome" - constantly breaking APIs that force migration cycles. React (20+ versions), Node (frequent breaking changes), Angular (complete rewrites). This isn't progress; it's planned obsolescence.
+The tech industry suffers from "hamster wheel syndrome" — constantly breaking APIs that force migration cycles. React (20+ versions), Node (frequent breaking changes), Angular (complete rewrites). This isn't progress; it's planned obsolescence.
 
 **Pipulate chooses durable foundations:**
 - **Linux Kernel**: Version 6 in 30 years
@@ -605,7 +605,7 @@ The tech industry suffers from "hamster wheel syndrome" - constantly breaking AP
 - **HTML**: Version 5 and stable
 - **HTTP**: Version 3 and backward compatible
 
-These are the "laws of physics" for software - stable APIs that enable compound growth rather than constant rebuilding.
+These are the "laws of physics" for software — stable APIs that enable compound growth rather than constant rebuilding.
 
 ### Why WET Works Now  <!-- key: why-wet-works-now -->
 
@@ -785,7 +785,7 @@ Designed for porting notebook-style processes, workflows are sequences of steps 
 
 ### Run All Cells Pattern  <!-- key: run-all-cells-pattern -->
 
-**The key insight**: Pipulate workflows use a `run_all_cells()` pattern that directly mirrors Jupyter's "Run All Cells" command. This creates an immediate mental model - each workflow step is like a notebook cell, and the system automatically progresses through them top-to-bottom, just like running all cells in a notebook.
+**The key insight**: Pipulate workflows use a `run_all_cells()` pattern that directly mirrors Jupyter's "Run All Cells" command. This creates an immediate mental model — each workflow step is like a notebook cell, and the system automatically progresses through them top-to-bottom, just like running all cells in a notebook.
 
 ```
     📓 JUPYTER NOTEBOOK               🌐 PIPULATE WORKFLOW
@@ -847,14 +847,14 @@ Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via
                ┌──────────────────┐
                │  Linux / macOS   │ - Write code once, run anywhere
                │  Windows (WSL)   │ - Consistent dev environment via Nix
-               └────────┬─────────┘   - Like cross-OS Homebrew brew install
+               └────────┬─────────┘ - Like cross-OS Homebrew brew install
                         │
                         │ Nix manages dependencies
                         ▼
                ┌──────────────────┐
                │   CUDA Support   │ - Auto-detects NVIDIA GPU w/ CUDA
                │   (if present)   │ - Uses GPU for LLM acceleration
-               └──────────────────┘   - Falls back to CPU if no CUDA
+               └──────────────────┘ - Falls back to CPU if no CUDA
 ```
 
 ### UI Layout  <!-- key: ui-layout -->
@@ -964,7 +964,7 @@ When a user hits Enter on an empty key field, this specific sequence occurs:
 Pipulate uses HTMX-driven step progression powered by the brilliantly named `run_all_cells()` method:
 
 1. **Initial Trigger**: After `init`, the `run_all_cells()` method initializes the workflow just like Jupyter's "Run All Cells"
-2. **Perfect Mental Model**: The method name creates immediate understanding - workflows execute top-to-bottom like notebook cells
+2. **Perfect Mental Model**: The method name creates immediate understanding — workflows execute top-to-bottom like notebook cells
 3. **Step Handlers**: Each step has GET (display) and POST (submit) handlers
 4. **Automatic Progression**: Completed steps trigger next step with `hx_trigger="load"`
 5. **State Persistence**: Each step stores data in pipeline state
@@ -980,7 +980,7 @@ async def init(self, request):
 
 # ❌ ANTI-PATTERN: Manual placeholder creation
 async def init(self, request):
-    """Manual approach - harder to understand and maintain"""
+    """Manual approach — harder to understand and maintain"""
     first_step_id = steps[0].id
     return Div(
         Div(id=first_step_id, hx_get=f'/{app_name}/{first_step_id}', hx_trigger='load'),
@@ -1247,17 +1247,17 @@ The system provides comprehensive debugging and state inspection capabilities th
 
 ## The Deeper Philosophy: Why This Matters  <!-- key: deeper-philosophy -->
 
-Pipulate represents more than technology choices - it's a statement about **computing sovereignty** and the future of human-AI collaboration.
+Pipulate represents more than technology choices — it's a statement about **computing sovereignty** and the future of human-AI collaboration.
 
 ### The Bootstrap Paradox Solved  <!-- key: bootstrap-paradox-solved -->
 
 How do you "lift yourself up by your bootstraps"? The answer: **you're not a closed system**. Humans interact with reality through interfaces, just like software components. We are "human apps with reality APIs."
 
-This pattern repeats at every scale - from quantum fields to societies. The art lies in choosing the **right granularity** for these interfaces. Too abstract, and you lose control. Too granular, and you drown in complexity.
+This pattern repeats at every scale — from quantum fields to societies. The art lies in choosing the **right granularity** for these interfaces. Too abstract, and you lose control. Too granular, and you drown in complexity.
 
 ### Every API is a Compromise  <!-- key: every-api-is-compromise -->
 
-The most successful APIs are **durable** - they become the "laws of physics" for their domain. In reality: the laws of physics, chemistry, biology. In tech: logic gates, operating systems, protocols like HTTP and HTML.
+The most successful APIs are **durable** — they become the "laws of physics" for their domain. In reality: the laws of physics, chemistry, biology. In tech: logic gates, operating systems, protocols like HTTP and HTML.
 
 Pipulate chooses these durable APIs deliberately, creating a **future-proof foundation** for AI-assisted development that will outlast the current framework churn.
 
@@ -1345,7 +1345,7 @@ This README serves as the **upstream source of truth** for all Pipulate document
 - **80-Hyphen Pagination**: Section dividers enable automatic document structuring
 - **Automatic Synchronization**: Running `python helpers/docs_sync/sync_ascii_art.py` updates all documentation
 
-This creates **"ASCII art peer pressure"** - when visual diagrams change, they compel surrounding text to be updated for consistency, ensuring documentation accuracy across the entire ecosystem.
+This creates **"ASCII art peer pressure"** — when visual diagrams change, they compel surrounding text to be updated for consistency, ensuring documentation accuracy across the entire ecosystem.
 
 ### Roadmap
 
