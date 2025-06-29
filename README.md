@@ -1651,5 +1651,5 @@ This project is licensed under the MIT License. See the [LICENSE](https://github
 
 **Enhanced Documentation:** <a href="https://pipulate.com/">Pipulate AI SEO Software</a>
 
-**On GitHub:** <a href="https://github.com/miklevin/pipulate">Main Repository on GitHub</a>
+**On GitHub:** <a href="https://github.com/miklevin/pipulate">Pipulate on GitHub</a>
 
