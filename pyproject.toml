@@ -3,13 +3,13 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pipulate"
+name = "Pipulate AI SEO"
 # VERSION NOTE: Synced from pipulate/__init__.py.__version__ via python version_sync.py
 version = "1.0.4"
 authors = [
   { name="Mike Levin", email="pipulate@gmail.com" },
 ]
-description = "Pipulate: The Local-First Web Framework for AI-Assisted SEO and Automation"
+description = "Pipulate: Local First AI SEO Software"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.8"

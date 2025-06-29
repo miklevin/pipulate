@@ -721,7 +721,7 @@ Pipulate manages all state server-side within the local environment (think *loca
 * **Privacy & Control:** Data never leaves the user's machine.
 * **Full Resource Access:** Utilize local CPU/GPU freely for intensive tasks (scraping, 24/7 AI processing) at minimal cost.
 * **Simplicity:** Eliminates complexities associated with multi-tenancy, cloud deployment, and distributed state.
-* **Observability:** State changes (via DictLikeDB/JSON) are transparent and easily logged.
+* **Observability:** State changes (via DictLikeDB/JSON) are transparent and easily logged (AI greps it there).
 
 ### Local-First State Management Benefits  <!-- key: local-first-state-management-benefits -->
 
@@ -737,10 +737,10 @@ This detailed view shows how Pipulate's local-first architecture eliminates comm
       │    └─────────┬──────────┘     │ - No build step required
       │              ▼                │ - Direct, observable state changes
       │    ┌─────────────────────┐    │
-      │    │  Server-Side State  │    │
-      │    │  DictLikeDB + JSON  │ ◄───── Conceptually like local-server-side cookies
-      │    └─────────────────────┘    │ - Enables the "Know EVERYTHING!" philosophy
-      └───────────────────────────────┘
+      │    │  Server-Side State  │    │ - Conceptually like local-server-side cookies
+      │    │  DictLikeDB + JSON  │ ◄───── Enables the "Know EVERYTHING!" philosophy
+      │    └─────────────────────┘    │ - AI greps logs/server.log to see app state!
+      └───────────────────────────────┘ - No unreachable client-state by AI in browser
 ```
 
 ### Server-Rendered UI (HTMX)  <!-- key: server-rendered-ui-htmx -->
@@ -761,6 +761,8 @@ The UI is constructed primarily with server-rendered HTML fragments delivered vi
   the DOM on demand ───────► │         │           │  - No "build" process like Svelte
                              └─────────┴───────────┘  - No virtual DOM, JSX, Redux, etc.
 ```
+
+With such *minimal surface area* the AI code assistant *knows everything.* LLMs are either pre-trained on the stable, infrequently revved libraries used (Python 3.12, HTMX, or it's all small enough to fit in a 1-shot prompt — yes, the whole core code-base fits in one Gemini Web UI form submit.
 
 --------------------------------------------------------------------------------
 
