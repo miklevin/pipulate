@@ -43,7 +43,7 @@ class ContentGapAnalysis:
         # self.steps includes all data steps AND the system 'finalize' step at the end.
         # splice_workflow_step.py inserts new data steps BEFORE STEPS_LIST_INSERTION_POINT.
         self.steps = [
-            Step(id='step_01', done='text_area', show='Text Area', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else ''),
+            Step(id='step_01', done='text_area', show='Competitor Domains', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else ''),
             Step(
                 id='step_02',
                 done='placeholder_02',
@@ -267,9 +267,9 @@ class ContentGapAnalysis:
             form_msg = 'Showing text area form. No text has been entered yet.'
             await self.message_queue.add(pip, form_msg, verbatim=True)
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            explanation = 'This is a text area widget for entering multiple lines of text. Use it to input longer content that may span multiple lines.'
+            explanation = 'Enter competitor domains, one per line. Each domain will be analyzed for homepage strategy, redirects, and landing page content.'
             await self.message_queue.add(pip, explanation, verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, cls='text-secondary'), Form(pip.wrap_with_inline_button(Textarea(display_value, name=step.done, placeholder=f'Enter {step.show}', required=True, autofocus=True, cls='textarea-standard', data_testid='text-area-widget-textarea-input', aria_label='Multi-line text input area', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction'), button_label='Next ▸'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
+            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P(explanation, cls='text-secondary'), Form(pip.wrap_with_inline_button(Textarea(display_value, name=step.done, placeholder=f'Enter competitor domains, one per line...', required=True, autofocus=True, cls='textarea-standard', data_testid='text-area-widget-textarea-input', aria_label='Multi-line text input area for competitor domains', aria_required='true', aria_labelledby=f'{step_id}-form-title', aria_describedby=f'{step_id}-form-instruction'), button_label='Analyze Domains ▸'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
 
     async def step_01_submit(self, request):
         """Process competitor domains and convert to YAML with homepage analysis."""
