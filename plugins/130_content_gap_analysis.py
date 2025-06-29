@@ -7,6 +7,8 @@ from loguru import logger
 import inspect
 from pathlib import Path
 import re
+import json
+from starlette.responses import HTMLResponse
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
 
@@ -203,6 +205,40 @@ class ContentGapAnalysis:
         await self.message_queue.add(pip, self.ui['MESSAGES']['WORKFLOW_UNLOCKED'], verbatim=True)
         return pip.run_all_cells(app_name, self.steps)
 
+    def create_prism_widget(self, code, widget_id, language='yaml'):
+        """Create a Prism.js syntax highlighting widget with copy functionality."""
+        textarea_id = f'{widget_id}_raw_code'
+        container = Div(
+            Div(
+                H5('Structured YAML Analysis:'),
+                Textarea(code, id=textarea_id, style='display: none;'),
+                Pre(Code(code, cls=f'language-{language}'), cls='line-numbers'),
+                cls='mt-4'
+            ),
+            id=widget_id
+        )
+        init_script = Script(f"""
+            (function() {{
+                console.log('Prism widget loaded for Content Gap Analysis, ID: {widget_id}');
+                // Check if Prism is loaded
+                if (typeof Prism === 'undefined') {{
+                    console.error('Prism library not found');
+                    return;
+                }}
+                
+                // Attempt to manually trigger highlighting
+                setTimeout(function() {{
+                    try {{
+                        console.log('Manually triggering Prism highlighting for {widget_id}');
+                        Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                    }} catch(e) {{
+                        console.error('Error during manual Prism highlighting:', e);
+                    }}
+                }}, 300);
+            }})();
+        """, type='text/javascript')
+        return Div(container, init_script)
+
     async def get_suggestion(self, step_id, state):
         pip, db, current_steps = self.pipulate, self.db, self.steps
         step_obj = next((s for s in current_steps if s.id == step_id), None)
@@ -250,15 +286,24 @@ class ContentGapAnalysis:
         user_val = step_data.get(step.done, '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and user_val:
-            locked_msg = f'🔒 Text area content is set to: {user_val}'
+            locked_msg = f'🔒 Domain analysis is finalized with structured YAML data'
             await self.message_queue.add(pip, locked_msg, verbatim=True)
-            return Div(Card(H3(f'🔒 {step.show}'), Pre(user_val, cls='code-block-container')), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            widget_id = f"content-gap-yaml-{pipeline_id.replace('-', '_')}-{step_id}-finalized"
+            yaml_widget = self.create_prism_widget(user_val, widget_id, 'yaml')
+            response_content = Div(Card(H3(f'🔒 {step.show}'), yaml_widget), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            response = HTMLResponse(to_xml(response_content))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
         elif user_val and state.get('_revert_target') != step_id:
-            completed_msg = f'Step 1 is complete. You entered: {user_val}'
+            completed_msg = f'Step 1 complete: Domain analysis generated structured YAML data'
             await self.message_queue.add(pip, completed_msg, verbatim=True)
-            text_widget = Pre(user_val, cls='code-block-container')
-            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=text_widget, steps=steps)
-            return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+            widget_id = f"content-gap-yaml-{pipeline_id.replace('-', '_')}-{step_id}-completed"
+            yaml_widget = self.create_prism_widget(user_val, widget_id, 'yaml')
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=yaml_widget, steps=steps)
+            response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+            response = HTMLResponse(to_xml(response_content))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
         else:
             if step.refill and user_val:
                 display_value = user_val
@@ -468,8 +513,9 @@ class ContentGapAnalysis:
             finalize_msg = self.step_messages['finalize']['ready']
             await self.message_queue.add(pip, finalize_msg, verbatim=True)
         
-        # Display YAML in a code block
-        yaml_widget = Pre(yaml_output, cls='code-block-container')
+        # Display YAML with PrismJS syntax highlighting
+        widget_id = f"content-gap-yaml-{pipeline_id.replace('-', '_')}-{step_id}"
+        yaml_widget = self.create_prism_widget(yaml_output, widget_id, 'yaml')
         content_container = pip.display_revert_widget(
             step_id=step_id, 
             app_name=app_name, 
@@ -478,11 +524,16 @@ class ContentGapAnalysis:
             steps=steps
         )
         
-        return Div(
+        response_content = Div(
             content_container, 
             Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), 
             id=step_id
         )
+        
+        # Return HTMLResponse with HX-Trigger to initialize Prism
+        response = HTMLResponse(to_xml(response_content))
+        response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+        return response
     # --- END_STEP_BUNDLE: step_01 ---
 
 
