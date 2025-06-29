@@ -808,7 +808,8 @@ Designed for porting notebook-style processes, workflows are sequences of steps 
        Executes top-to-bottom        └─────────────────────┘
 
        Same mental model, same execution flow!
-       But with persistent state and web UI.
+       But with persistent state, a web UI and
+       not having to look at the Python code 🚫🐍.
 ```
 
 ### LLM Integration (Ollama)  <!-- key: llm-integration-ollama -->
