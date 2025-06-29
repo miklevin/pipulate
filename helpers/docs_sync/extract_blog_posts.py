@@ -80,7 +80,7 @@ def main():
     parser = argparse.ArgumentParser(description='Extract blog posts from README')
     parser.add_argument('--key', help='Extract specific key section')
     parser.add_argument('--all', action='store_true', help='Extract all keyed sections')
-    parser.add_argument('--output', default='blog_drafts', help='Output directory')
+    parser.add_argument('--output', default='considerations', help='Output directory')
     
     args = parser.parse_args()
     
