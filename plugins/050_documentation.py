@@ -1080,14 +1080,14 @@ This system provides unprecedented debugging power:
             border-right: 1px solid #e9ecef;
             overflow-y: auto;
             padding: 20px;
-            flex: 0 0 300px;
+            /* Let Split.js control the width */
         }}
 
         .content {{
             background: #fff;
             overflow-y: auto;
             padding: 30px;
-            flex: 1;
+            /* Let Split.js control the width */
         }}
 
         /* Split.js styles */
@@ -1239,6 +1239,9 @@ This system provides unprecedented debugging power:
         </div>
     </div>
 
+    <!-- HTMX for splitter state persistence -->
+    <script src="/static/htmx.js"></script>
+    
     <!-- Split.js and Splitter Init -->
     <script src="/static/split.js"></script>
     <script src="/static/splitter-init.js"></script>
