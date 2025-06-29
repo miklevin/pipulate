@@ -213,7 +213,7 @@ class ContentGapAnalysis:
                 H5('Structured YAML Analysis:'),
                 Textarea(code, id=textarea_id, style='display: none;'),
                 Pre(Code(code, cls=f'language-{language}')),
-                P('✨ Lightning-in-a-bottle competitive intelligence with complete redirect transparency', 
+                P('Trailing slash behavior varies: traditional sites (Google, Microsoft) follow old Apache conventions while modern sites (GitHub) skip them for cleaner URLs. The redirect chains and final URLs shown are exactly what httpx reports - servers genuinely differ in their canonicalization strategies.', 
                   cls='text-secondary', 
                   style='font-size: 0.875rem; margin-top: 1rem; font-style: italic;'),
                 cls='mt-4'
