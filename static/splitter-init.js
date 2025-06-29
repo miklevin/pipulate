@@ -2,10 +2,10 @@ console.log('🔥 splitter-init.js script loaded and executing!');
 
 /**
  * Initializes a draggable splitter between two elements.
- * It uses sizes provided by the server and saves changes back to the server.
+ * It uses sizes from localStorage with context-specific keys for persistence.
  *
  * @param {Array<string>} elements - An array of selectors for the elements to split.
- * @param {object} defaultOptions - Default options for Split.js, including initial sizes from the server.
+ * @param {object} defaultOptions - Default options for Split.js, including context for localStorage key.
  */
 window.initializePipulateSplitter = function(elements, defaultOptions) {
   if (typeof Split === 'undefined') {
@@ -13,28 +13,37 @@ window.initializePipulateSplitter = function(elements, defaultOptions) {
     return;
   }
 
-  // The initial sizes are now passed directly in defaultOptions.sizes.
-  // We modify onDragEnd to save back to the server instead of localStorage.
+  // Determine the localStorage key based on context
+  const context = defaultOptions.context || 'main';
+  const localStorageKey = `pipulate-split-sizes-${context}`;
+  
+  // Try to load sizes from localStorage first, fallback to defaultOptions.sizes
+  let savedSizes = defaultOptions.sizes || [65, 35];
+  try {
+    const storedSizes = localStorage.getItem(localStorageKey);
+    if (storedSizes) {
+      const parsedSizes = JSON.parse(storedSizes);
+      if (Array.isArray(parsedSizes) && parsedSizes.length === elements.length) {
+        savedSizes = parsedSizes;
+        console.log(`✅ Loaded ${context} split sizes from localStorage:`, savedSizes);
+      }
+    }
+  } catch (error) {
+    console.warn(`Warning: Could not load split sizes from localStorage for ${context}:`, error);
+  }
+  
   const options = {
-    sizes: defaultOptions.sizes || [65, 35],
+    sizes: savedSizes,
     minSize: defaultOptions.minSize || [400, 300],
     gutterSize: defaultOptions.gutterSize || 10,
     cursor: defaultOptions.cursor || 'col-resize',
     onDragEnd: function(sizes) {
-      // Check if HTMX is available
-      if (typeof htmx === 'undefined') {
-        console.error('❌ HTMX is not available! Cannot save split sizes.');
-        return;
-      }
-      
       try {
-        // Use HTMX to post the new sizes to the server endpoint.
-        htmx.ajax('POST', '/save-split-sizes', {
-          values: { sizes: JSON.stringify(sizes) },
-          swap: 'none' // We don't need to swap any content from the response.
-        });
+        // Save to localStorage with context-specific key
+        localStorage.setItem(localStorageKey, JSON.stringify(sizes));
+        console.log(`💾 Saved ${context} split sizes to localStorage:`, sizes);
       } catch (error) {
-        console.error('Error saving split sizes:', error);
+        console.error(`Error saving ${context} split sizes to localStorage:`, error);
       }
 
       // Call original onDragEnd if it was provided (for future flexibility)
@@ -45,6 +54,7 @@ window.initializePipulateSplitter = function(elements, defaultOptions) {
   };
 
   const splitInstance = Split(elements, options);
+  console.log(`🔧 Initialized ${context} splitter with sizes:`, savedSizes);
   return splitInstance;
 }
 

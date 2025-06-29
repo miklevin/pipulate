@@ -951,8 +951,7 @@ This system provides unprecedented debugging power:
     async def serve_browser(self, request):
         """Serve the documentation browser with tree view"""
 
-        # Get saved docs split sizes from DB, with a default of [25, 75]
-        saved_docs_sizes_str = self.db.get('docs-split-sizes', '[25, 75]')
+        # Default docs split sizes - localStorage will override if available
 
         # Get categorized documents
         featured_docs, training_docs, rules_docs, paginated_docs, blog_draft_docs = self.get_categorized_docs()
@@ -1242,9 +1241,6 @@ This system provides unprecedented debugging power:
         </div>
     </div>
 
-    <!-- HTMX for splitter state persistence -->
-    <script src="/static/htmx.js"></script>
-    
     <!-- Split.js and Splitter Init -->
     <script src="/static/split.js"></script>
     <script src="/static/splitter-init.js"></script>
@@ -1255,33 +1251,14 @@ This system provides unprecedented debugging power:
     <!-- Initialize Documentation Browser Splitter -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {{
-            // Use the proper Pipulate splitter initialization with server-saved sizes
+            // Use localStorage-based splitter with docs context
             if (typeof window.initializePipulateSplitter === 'function') {{
                 window.initializePipulateSplitter(['.sidebar', '.content'], {{
-                    sizes: {saved_docs_sizes_str},
+                    sizes: [25, 75],  // Default sizes - localStorage will override if available
                     minSize: [200, 400], 
                     gutterSize: 10,
                     cursor: 'col-resize',
-                    onDragEnd: function(sizes) {{
-                        // Check if HTMX is available
-                        if (typeof htmx === 'undefined') {{
-                            console.error('❌ HTMX is not available! Cannot save docs split sizes.');
-                            return;
-                        }}
-                        
-                        try {{
-                            // Use HTMX to post the new sizes with docs context
-                            htmx.ajax('POST', '/save-split-sizes', {{
-                                values: {{ 
-                                    sizes: JSON.stringify(sizes),
-                                    context: 'docs'
-                                }},
-                                swap: 'none'
-                            }});
-                        }} catch (error) {{
-                            console.error('Error saving docs split sizes:', error);
-                        }}
-                    }}
+                    context: 'docs'
                 }});
             }} else {{
                 console.error('initializePipulateSplitter not available');
