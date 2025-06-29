@@ -1249,28 +1249,7 @@ This system provides unprecedented debugging power:
                 </div>
             </div>
 
-            <div cls="mb-lg">
-                <h4 cls="section-heading">📁 <strong>File/Data Investigation</strong></h4>
-                <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
-                    "I have data at downloads/trifecta/[USERNAME]/[PROJECT]/[ANALYSIS]/.<br>
-                    Please analyze what files exist and help me understand the data structure."
-                </div>
-                <div style="margin-top: 0.5rem; padding: 0.75rem; background: #fff3cd; border-radius: 4px; font-size: 0.85em; color: #856404;">
-                    💡 <strong>Example:</strong> "I have data at downloads/trifecta/uhnd-com/uhnd.com-demo-account/20250616/. Please analyze what files exist."
-                </div>
-            </div>
 
-            <div cls="mb-lg">
-                <h4 cls="section-heading">🌐 <strong>API/Template Issues</strong></h4>
-                <div style="background: #fff; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #dee2e6;">
-                    "My Botify API call failed for [USERNAME]/[PROJECT]/[ANALYSIS].<br>
-                    Please use the discover-fields endpoint to check available fields<br>
-                    and validate my template configuration."
-                </div>
-                <div style="margin-top: 0.5rem; padding: 0.75rem; background: #d4edda; border-radius: 4px; font-size: 0.85em; color: #155724;">
-                    💡 <strong>Example:</strong> "My Botify API call failed for uhnd-com/uhnd.com-demo-account/20250616. Please discover available fields."
-                </div>
-            </div>
 
             <!-- Power User Section -->
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
