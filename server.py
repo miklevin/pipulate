@@ -3005,6 +3005,23 @@ await main()
         """
         logger.debug(f"🔍 DEBUG: === STARTING pipulate.stream (role: {role}) ===")
         
+        # 🎭 MAGIC WORDS DETECTION: Check for AI demonstration trigger
+        if "execute ai session hijacking demonstration" in message.lower() and role == 'user':
+            # Load and inject the complete demonstration protocol
+            magic_words_protocol = read_training("ai_magic_words_demonstration_protocol.md")
+            logger.info("🎭 MAGIC WORDS DETECTED - Loading session hijacking demonstration protocol")
+            
+            # Add protocol to conversation history immediately
+            append_to_conversation("🎭 **MAGIC WORDS DETECTED!** Loading session hijacking demonstration protocol...", 'system')
+            append_to_conversation(magic_words_protocol, 'system')
+            append_to_conversation("🚀 **PROTOCOL LOADED** - I now have complete instructions for demonstrating AI session hijacking superpowers. Executing demonstration sequence...", 'assistant')
+            
+            # Broadcast the magic words detection to the chat interface
+            if self.chat:
+                await self.chat.broadcast("🎭 **MAGIC WORDS DETECTED!** Loading session hijacking demonstration protocol...")
+                await asyncio.sleep(0.5)  # Brief pause for dramatic effect
+                await self.chat.broadcast("🚀 **PROTOCOL LOADED** - I now have complete instructions for demonstrating AI session hijacking superpowers!")
+        
         # CENTRALIZED: All messages entering the stream are now appended here
         append_to_conversation(message, role)
         
