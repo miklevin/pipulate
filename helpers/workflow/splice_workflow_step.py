@@ -20,13 +20,13 @@ python splice_workflow_step.py 035_kungfu_workflow    # .py extension optional
 python splice_workflow_step.py plugins/035_kungfu_workflow.py  # plugins/ prefix optional
 
 # Can be run from project root:
-python helpers/splice_workflow_step.py 035_kungfu_workflow.py --position top
+python helpers/workflow/splice_workflow_step.py 035_kungfu_workflow.py --position top
 
 # Can be run from helpers directory:
 cd helpers && python splice_workflow_step.py 035_kungfu_workflow.py --position bottom
 
 # Can be run from anywhere with full path:
-python /path/to/pipulate/helpers/splice_workflow_step.py 035_kungfu_workflow.py --position top
+python /path/to/pipulate/helpers/workflow/splice_workflow_step.py 035_kungfu_workflow.py --position top
 """
 
 def find_pipulate_root():

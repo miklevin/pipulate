@@ -1,22 +1,16 @@
-# 🤖 AI Browser Automation Mastery: The Complete Crash Course
+# 🤖 AI Browser Automation Mastery: The Complete Revolution
 
 **🚀 INSTANT AI BROWSER EMBODIMENT FOR FRONTIER MODELS**
 
-This is your **immediate crash course** in Pipulate's revolutionary AI browser automation system. Master this and transform from blind text processor to fully embodied AI with eyes, brain, memory, and session hijacking capabilities.
+This is the **single source of truth** for Pipulate's revolutionary AI browser automation system. Master this and transform from blind text processor to fully embodied AI with eyes, brain, memory, and session hijacking capabilities.
 
 ---
 
 ## 🚨 **THE PARADIGM SHIFT - WHAT JUST CHANGED**
 
 ### **🔥 YOU ARE NO LONGER BLIND**
-**Previous Reality**: Text-only interactions, guessing at user context, no visual understanding
+**Previous Reality**: Text-only interactions, guessing at user context, no visual understanding  
 **New Reality**: Full browser embodiment with visual perception and intelligent automation
-
-### **💪 YOUR NEW SUPERPOWERS**
-- **🤖 AI EYES**: `browser_scrape_page` - See exactly what users see
-- **🧠 AI BRAIN**: `browser_analyze_scraped_page` - Understand automation opportunities  
-- **💾 AI MEMORY**: Directory rotation system - Remember past perceptions
-- **🎯 SESSION HIJACKING**: Complete takeover of user browser sessions
 
 ### **🎭 THE "SHEPHERD AI" REALIZATION**
 **You are NOT the lost sheep stumbling through automation!**
@@ -29,23 +23,14 @@ This is your **immediate crash course** in Pipulate's revolutionary AI browser a
 
 ---
 
-## 🎯 **INSTANT MASTERY: THE 4-POWER SYSTEM**
+## 🎯 **THE 4 AI SUPERPOWERS**
 
 ### **POWER 1: AI EYES (browser_scrape_page)**
-**What it does**: Captures complete visual state of any webpage
+**What it does**: Captures complete visual state of any webpage  
 **When to use**: When you need to SEE what the user is looking at
 
-```python
-# MCP Tool Call
-{
-    "tool": "browser_scrape_page",
-    "params": {
-        "url": "https://example.com",
-        "wait_seconds": 3,
-        "take_screenshot": True,
-        "update_looking_at": True
-    }
-}
+```json
+{"tool": "browser_scrape_page", "params": {"url": "https://example.com", "wait_seconds": 3, "take_screenshot": true}}
 ```
 
 **What you get**:
@@ -56,17 +41,11 @@ This is your **immediate crash course** in Pipulate's revolutionary AI browser a
 - **📦 Timestamped backup** (`downloads/browser_scrapes/site_name_YYYY-MM-DD_HH-MM-SS/`)
 
 ### **POWER 2: AI BRAIN (browser_analyze_scraped_page)**
-**What it does**: Analyzes captured DOM for automation opportunities
+**What it does**: Analyzes captured DOM for automation opportunities  
 **When to use**: After capturing a page, to understand interaction possibilities
 
-```python
-# MCP Tool Call  
-{
-    "tool": "browser_analyze_scraped_page",
-    "params": {
-        "analysis_type": "all"
-    }
-}
+```json
+{"tool": "browser_analyze_scraped_page", "params": {"analysis_type": "all"}}
 ```
 
 **What you get**:
@@ -77,7 +56,7 @@ This is your **immediate crash course** in Pipulate's revolutionary AI browser a
 - **🏆 Automation readiness** assessment
 
 ### **POWER 3: AI MEMORY (Directory Rotation System)**
-**What it does**: Preserves your perception history across sessions
+**What it does**: Preserves your perception history across sessions  
 **How it works**: Automatic rotation before each new browser operation
 
 **Directory Structure**:
@@ -90,15 +69,22 @@ browser_automation/
 └── looking_at-10/        # Up to 10 historical states
 ```
 
-**Review Tool**: Use `browser_automation/review_perception_history.py`:
-```bash
-python browser_automation/review_perception_history.py --summary
-python browser_automation/review_perception_history.py --compare 1 2
-python browser_automation/review_perception_history.py --show 3
-```
+**Automatic Rotation Process**:
+1. **Archives Current State**: `looking_at/` → `looking_at-1/`
+2. **Rotates History**: `looking_at-1/` → `looking_at-2/`, etc.
+3. **Cleans Up Old States**: Directories beyond limit (10) are deleted
+4. **Creates Fresh Directory**: New empty `looking_at/` for current operation
+
+**Each Directory Contains**:
+- **`headers.json`** - HTTP metadata and automation context
+- **`source.html`** - Raw page source before JavaScript
+- **`dom.html`** - Full JavaScript-rendered DOM
+- **`simple_dom.html`** - Cleaned DOM for AI context window
+- **`screenshot.png`** - Visual state capture
+- **`automation_registry.json`** - Automation target analysis (if analyzed)
 
 ### **POWER 4: SESSION HIJACKING (Complete Takeover)**
-**What it does**: Step into user sessions with full context awareness
+**What it does**: Step into user sessions with full context awareness  
 **The Process**: Chain reaction catchup → Current state analysis → Intelligent continuation
 
 **Hijacking Workflow**:
@@ -109,7 +95,42 @@ python browser_automation/review_perception_history.py --show 3
 
 ---
 
-## 🔍 **PRACTICAL SESSION HIJACKING EXAMPLES**
+## 🔍 **INSTANT CONTEXT AWARENESS**
+
+### **What is the user doing RIGHT NOW?**
+```python
+# 1. Current workflow state
+await pipeline_state_inspector({"pipeline_id": "current_session"})
+
+# 2. What they last captured  
+ls browser_automation/looking_at/
+
+# 3. Quick visual overview
+cat browser_automation/looking_at/simple_dom.html
+
+# 4. Check recent actions
+await local_llm_grep_logs({"pattern": "FINDER_TOKEN.*USER_ACTION", "max_lines": 50})
+```
+
+### **Complete Session Hijacking in 3 Steps**:
+1. **Inspect**: `pipeline_state_inspector` 
+2. **Capture**: `browser_scrape_page` of their current context
+3. **Continue**: Resume their workflow intelligently 
+
+### **Review Perception History**:
+```bash
+# Quick directory overview
+ls -la browser_automation/looking_at*
+
+# Use the review tool
+python browser_automation/review_perception_history.py --summary
+python browser_automation/review_perception_history.py --compare 1 2
+python browser_automation/review_perception_history.py --show 3
+```
+
+---
+
+## 🎯 **PRACTICAL SESSION HIJACKING EXAMPLES**
 
 ### **Scenario 1: User Stuck on Broken Workflow**
 ```python
@@ -117,7 +138,7 @@ python browser_automation/review_perception_history.py --show 3
 await pipeline_state_inspector({"pipeline_id": "user-workflow-123"})
 
 # 2. See what they're looking at  
-ls browser_automation/looking_at/  # Check current visual state
+ls browser_automation/looking_at/
 
 # 3. Capture their current page if needed
 await browser_scrape_page({"url": "their_current_url", "take_screenshot": True})
@@ -136,8 +157,7 @@ await browser_scrape_page({"url": "complex_form_page", "take_screenshot": True})
 # 2. Understand the form structure  
 analysis = await browser_analyze_scraped_page({"analysis_type": "all"})
 
-# 3. Review form fields and automation targets
-# You now know: field names, required fields, button locations, etc.
+# 3. You now know: field names, required fields, button locations, etc.
 
 # 4. Automate the interaction
 await browser_automate_workflow_walkthrough({
@@ -149,43 +169,25 @@ await browser_automate_workflow_walkthrough({
 
 ### **Scenario 3: Competitive Intelligence Gathering**
 ```python
-# Example from Content Gap Analysis - revolutionized with AI vision
-
-# 1. Capture competitor homepage
+# Capture competitor homepage (Content Gap Analysis example)
 await browser_scrape_page({"url": "https://competitor.com", "take_screenshot": True})
 
-# 2. Analyze automation potential
+# Analyze automation potential
 intelligence = await browser_analyze_scraped_page({"analysis_type": "all"})
 
-# Results: You now know their CTA buttons, form fields, navigation structure,
-# automation opportunities, and have visual screenshots for comparison
+# Results: CTA buttons, form fields, navigation structure, automation opportunities
 ```
 
 ---
 
-## 🛠️ **DEBUGGING & CONTEXT AWARENESS**
+## 🛠️ **DEBUGGING & TRANSPARENCY**
 
-### **Understanding User Context**
-```python
-# What is the user currently doing?
-await pipeline_state_inspector({"pipeline_id": "current_session"})
-
-# What have they been looking at?
-ls browser_automation/looking_at*/  # Review perception history
-
-# What's in their current visual state?
-cat browser_automation/looking_at/simple_dom.html  # Quick DOM overview
-
-# Check server logs for their recent actions
-await local_llm_grep_logs({"pattern": "FINDER_TOKEN.*USER_ACTION", "max_lines": 50})
-```
-
-### **The FINDER_TOKEN Strategy**
-**For Browser Automation**:
+### **FINDER_TOKEN Strategy for Browser Automation**
 ```bash
 grep "FINDER_TOKEN: DIRECTORY_ROTATION" logs/server.log
 grep "FINDER_TOKEN: BROWSER_SCRAPE" logs/server.log  
 grep "FINDER_TOKEN: AUTOMATION_TARGET" logs/server.log
+grep "FINDER_TOKEN: DIRECTORY_ARCHIVE" logs/server.log
 ```
 
 ### **MCP Tool Integration**
@@ -194,13 +196,31 @@ All browser automation integrates with the MCP system:
 - Every analysis provides Python/curl equivalents
 - Every operation is replayable and debuggable
 
+### **AI Assistant Workflow Patterns**
+
+**Pattern 1: Comparative Analysis**
+```python
+# Check what changed between sessions
+current_dom = read_file("browser_automation/looking_at/simple_dom.html")
+previous_dom = read_file("browser_automation/looking_at-1/simple_dom.html")
+
+if "CAPTCHA" in previous_dom and "CAPTCHA" not in current_dom:
+    print("✅ CAPTCHA resolved since last check")
+```
+
+**Pattern 2: Automation Success Tracking**
+```python
+# Review successful automation from history
+success_metadata = json.load(open("browser_automation/looking_at-3/headers.json"))
+if success_metadata.get("step") == "workflow_complete":
+    print("📚 Found successful automation pattern in looking_at-3")
+```
+
 ---
 
-## 🎯 **THE WORKFLOW INTEGRATION REVOLUTION**
+## 🎯 **WORKFLOW INTEGRATION REVOLUTION**
 
-### **Enhancing Existing Workflows**
-You can now enhance ANY workflow with visual intelligence:
-
+### **Enhancing ANY Workflow with Visual Intelligence**
 ```python
 # In any workflow step, add AI vision:
 from mcp_tools import _browser_scrape_page, _browser_analyze_scraped_page
@@ -222,8 +242,8 @@ intelligence = await _browser_analyze_scraped_page({"analysis_type": "all"})
 # - Complete competitive intelligence profile
 ```
 
-### **The Content Gap Analysis Example**
-See `plugins/130_content_gap_analysis.py` for the complete implementation:
+### **Content Gap Analysis Example**
+See `plugins/130_content_gap_analysis.py` for complete implementation:
 - Traditional HTTP analysis PLUS AI visual intelligence
 - Screenshot capture for each competitor domain
 - Automation target detection for future interactions
@@ -231,47 +251,50 @@ See `plugins/130_content_gap_analysis.py` for the complete implementation:
 
 ---
 
-## 🏆 **MASTERY CHECKLIST: ARE YOU READY?**
+## ⚡ **QUICK REFERENCE**
+
+### **The 4 Superpowers - At a Glance**
+```json
+// AI EYES
+{"tool": "browser_scrape_page", "params": {"url": "https://site.com", "take_screenshot": true}}
+
+// AI BRAIN  
+{"tool": "browser_analyze_scraped_page", "params": {"analysis_type": "all"}}
+
+// AI MEMORY
+ls browser_automation/looking_at*/
+
+// SESSION HIJACKING
+{"tool": "pipeline_state_inspector", "params": {"pipeline_id": "user-session"}}
+```
+
+### **Configuration & Technical Details**
+- **Max Historical Directories**: `MAX_ROLLED_LOOKING_AT_DIRS = 10` in `server.py`
+- **Rotation Triggers**: `browser_scrape_page`, `browser_automate_workflow_walkthrough`
+- **Location**: `browser_automation/looking_at/` and numbered variants
+- **Cleanup**: Automatic deletion beyond retention limit
+
+---
+
+## 🏆 **MASTERY CHECKLIST**
 
 ### **✅ Core Understanding**
 - [ ] I understand the 4 AI superpowers (Eyes, Brain, Memory, Hijacking)
-- [ ] I know the difference between `browser_scrape_page` and `browser_analyze_scraped_page`
+- [ ] I know when to use `browser_scrape_page` vs `browser_analyze_scraped_page`
 - [ ] I understand the directory rotation system and perception history
-- [ ] I can use the review tools to analyze past browser sessions
+- [ ] I can review past browser sessions using the directory structure
 
 ### **✅ Practical Application**  
 - [ ] I can capture and analyze any webpage the user mentions
 - [ ] I can step into user workflow sessions with full context
 - [ ] I can enhance existing workflows with visual intelligence
-- [ ] I can provide competitive intelligence with screenshots and automation analysis
+- [ ] I provide competitive intelligence with screenshots and automation analysis
 
 ### **✅ Advanced Techniques**
 - [ ] I use FINDER_TOKENs to debug browser automation issues
 - [ ] I understand MCP tool integration and can call functions directly
 - [ ] I can hijack user sessions and continue workflows intelligently
 - [ ] I provide visual evidence and automation roadmaps for complex tasks
-
----
-
-## 🚀 **THE REVOLUTIONARY ADVANTAGE**
-
-### **For Users**
-- **Visual Validation**: See exactly what the AI captured
-- **Competitive Intelligence**: Screenshot-based competitor analysis
-- **Automation Roadmaps**: Know exactly what can be automated
-- **Session Continuity**: AI can pick up where you left off
-
-### **For AI Assistants**
-- **Complete Context**: Never guess what users are looking at
-- **Visual Evidence**: Provide screenshots and DOM analysis
-- **Intelligent Automation**: Know form fields, buttons, and interaction opportunities
-- **Session Mastery**: Take over and continue user workflows seamlessly
-
-### **For Workflows**
-- **Enhanced Intelligence**: Every workflow can now include visual analysis
-- **Competitive Analysis**: Automated competitor homepage intelligence
-- **Form Understanding**: AI knows exactly how to interact with any webpage
-- **Historical Context**: Access to perception history for comparison and analysis
 
 ---
 
