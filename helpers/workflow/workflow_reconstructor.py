@@ -416,13 +416,19 @@ class ASTWorkflowReconstructor:
             # Build comprehensive transformations including source attributes
             all_transformations = transformations or {}
             
-            # Carry over TRAINING_PROMPT and ENDPOINT_MESSAGE from source
+            # Carry over key attributes from source
             if 'TRAINING_PROMPT' in source_attrs:
                 all_transformations['TRAINING_PROMPT'] = source_attrs['TRAINING_PROMPT']
                 print(f"  📚 Carrying over TRAINING_PROMPT from source")
             if 'ENDPOINT_MESSAGE' in source_attrs:
                 all_transformations['ENDPOINT_MESSAGE'] = source_attrs['ENDPOINT_MESSAGE']
                 print(f"  💬 Carrying over ENDPOINT_MESSAGE from source")
+            if 'APP_NAME' in source_attrs:
+                all_transformations['APP_NAME'] = source_attrs['APP_NAME']
+                print(f"  🏷️ Carrying over APP_NAME from source: {source_attrs['APP_NAME']}")
+            if 'DISPLAY_NAME' in source_attrs:
+                all_transformations['DISPLAY_NAME'] = source_attrs['DISPLAY_NAME']
+                print(f"  📋 Carrying over DISPLAY_NAME from source: {source_attrs['DISPLAY_NAME']}")
             
             # Apply all transformations to template
             if all_transformations:
@@ -699,6 +705,9 @@ Components are transplanted atomically from "Old Workflows" (sources) into "Upda
     target_group.add_argument('--suffix', 
                              help='Suffix to add for incremental testing (e.g., "5" → param_buster5) - RECOMMENDED for development')
     
+    parser.add_argument('--new-class-name',
+                       help='New class name for the target workflow (defaults to source class name)')
+    
     args = parser.parse_args()
     
     reconstructor = ASTWorkflowReconstructor()
@@ -710,10 +719,19 @@ Components are transplanted atomically from "Old Workflows" (sources) into "Upda
             suffix=args.suffix
         )
     else:
+        # Extract class name from source if not provided
+        new_class_name = args.new_class_name
+        if not new_class_name:
+            source_tree = reconstructor.parse_file(reconstructor.plugins_dir / f"{args.source}.py")
+            source_class_node = reconstructor.find_class_node(source_tree)
+            if source_class_node:
+                new_class_name = source_class_node.name
+        
         success = reconstructor.reconstruct_workflow(
             template_name=args.template,
             source_name=args.source,
-            target_name=args.target
+            target_name=args.target,
+            new_class_name=new_class_name
         )
     
     sys.exit(0 if success else 1)
