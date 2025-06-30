@@ -66,20 +66,31 @@ class LinkGraphVisualizer:
         self.message_queue = pip.message_queue
         self.ui = pip.get_ui_constants()
         self.config = pip.get_config()
-        crawl_template = self.get_configured_template('crawl')
-        gsc_template = self.get_configured_template('gsc')
-        steps = [Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_02', done='analysis_selection', show=f'Download: {crawl_template}', refill=False), Step(id='step_02b', done='node_attributes', show='Download: Node Attributes', refill=False), Step(id='step_03', done='weblogs_check', show='Download Web Logs (Optional)', refill=False), Step(id='step_04', done='search_console_check', show=f'Download: {gsc_template}', refill=False), Step(id='step_05', done='visualization_ready', show='Prepare & Visualize Graph', refill=True)]
+        # Build dynamic steps based on Trifecta template structure
+        # Start with Trifecta steps, then add Link Graph specific steps
+        steps = []
+        
+        # Trifecta steps (with enhanced dropdown)
+        steps.append(Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True))
+        steps.append(Step(id='step_analysis', done='analysis_selection', show='Download: Analysis Data', refill=False))
+        steps.append(Step(id='step_crawler', done='crawler_complete', show='Download: Node Attributes', refill=False))
+        steps.append(Step(id='step_webogs', done='weblogs_check', show='Download Web Logs (Optional)', refill=False))
+        steps.append(Step(id='step_gsc', done='search_console_check', show='Download: GSC Performance', refill=False))
+        
+        # Link Graph specific steps
+        steps.append(Step(id='step_02b', done='node_attributes', show='Download: Node Attributes', refill=False))
+        steps.append(Step(id='step_05', done='visualization_ready', show='Prepare & Visualize Graph', refill=True))
+        steps.append(Step(id='step_06', done='visualization_complete', show='Visualization Complete', refill=False))
+        
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps = steps
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
         pipulate.register_workflow_routes(self)
         
         # --- CUSTOM_ROUTE_START: Link Graph Workflow-Specific Routes ---
-        app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
         app.route(f'/{app_name}/step_02b_process', methods=['POST'])(self.step_02b_process)
-        app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
-        app.route(f'/{app_name}/step_04_complete', methods=['POST'])(self.step_04_complete)
         app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
+        app.route(f'/{app_name}/step_06_submit', methods=['POST'])(self.step_06_submit)
         app.route(f'/{app_name}/step_parameters_process', methods=['POST'])(self.step_parameters_process)
         app.route(f'/{app_name}/parameter_preview', methods=['POST'])(self.parameter_preview)
         # --- CUSTOM_ROUTE_END: Link Graph Workflow-Specific Routes ---
@@ -88,14 +99,54 @@ class LinkGraphVisualizer:
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         app.route(f'/{app_name}/download_file', methods=['GET'])(self.download_file)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
-        self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f"Workflow finalized. Use {self.ui['BUTTON_LABELS']['UNLOCK']} to make changes."}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
+        
+        # Step messages for Trifecta steps
+        self.step_messages = {
+            'finalize': {
+                'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 
+                'complete': f"Workflow finalized. Use {self.ui['BUTTON_LABELS']['UNLOCK']} to make changes."
+            },
+            'step_project': {
+                'input': f"❔{pip.fmt('step_project')}: Please enter a Botify project URL.",
+                'complete': '📊 Project URL validated. Continue to next step.'
+            },
+            'step_analysis': {
+                'input': f"❔{pip.fmt('step_analysis')}: Please select an analysis for this project.",
+                'complete': '📊 Analysis selection complete. Continue to next step.'
+            },
+            'step_crawler': {
+                'input': f"❔{pip.fmt('step_crawler')}: Download node attributes (page type, compliance, etc.)",
+                'complete': 'Node attributes download complete. Continue to next step.'
+            },
+            'step_webogs': {
+                'input': f"❔{pip.fmt('step_webogs')}: Please check if the project has web logs available.",
+                'complete': '📋 Web logs check complete. Continue to next step.'
+            },
+            'step_gsc': {
+                'input': f"❔{pip.fmt('step_gsc')}: Please check if the project has Search Console data.",
+                'complete': 'Search Console check complete. Continue to next step.'
+            },
+            'step_02b': {
+                'input': f"❔{pip.fmt('step_02b')}: Download node attributes (page type, compliance, etc.)",
+                'complete': 'Node attributes download complete. Continue to next step.'
+            },
+            'step_05': {
+                'input': f"❔{pip.fmt('step_05')}: All data downloaded. Ready to prepare visualization.",
+                'complete': 'Visualization ready. Graph link generated.'
+            },
+            'step_06': {
+                'input': f"❔{pip.fmt('step_06')}: Visualization complete.",
+                'complete': 'Visualization complete.'
+            }
+        }
+        
+        # Add default messages for any missing steps
         for step in steps:
             if step.id not in self.step_messages:
-                self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
-        self.step_messages['step_04'] = {'input': f"❔{pip.fmt('step_04')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
-        self.step_messages['step_03'] = {'input': f"❔{pip.fmt('step_03')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
-        self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: All data downloaded. Ready to prepare visualization.", 'complete': 'Visualization ready. Graph link generated.'}
-        self.step_messages['step_02b'] = {'input': f"❔{pip.fmt('step_02b')}: Download node attributes (page type, compliance, etc.)", 'complete': 'Node attributes download complete. Continue to next step.'}
+                self.step_messages[step.id] = {
+                    'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.',
+                    'complete': f'✳️ {step.show} complete. Continue to next step.'
+                }
 
     def get_available_templates_for_data_type(self, data_type):
         """Get available query templates for a specific data type."""
