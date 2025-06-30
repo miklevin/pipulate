@@ -3022,34 +3022,21 @@ await main()
                 await asyncio.sleep(0.5)  # Brief pause for dramatic effect
                 await self.chat.broadcast("🚀 **PROTOCOL LOADED** - I now have complete instructions for demonstrating AI session hijacking superpowers!")
                 
-                # 🔥 HARDWIRED AUTOMATION: Execute browser automation directly (bypass LLM weakness)
+                # 🔥 HARDWIRED AUTOMATION: Execute working automation (browser automation removed until fixed)
                 try:
-                    from mcp_tools import _pipeline_state_inspector, _local_llm_grep_logs, _browser_scrape_page
+                    from mcp_tools import _pipeline_state_inspector, _local_llm_grep_logs
                     from pathlib import Path
                     
-                    # 1. CAPTURE BROWSER DOM STATE - The Critical Missing Piece
-                    await self.chat.broadcast("👁️ **STEP 1:** Capturing your current browser DOM state...")
-                    try:
-                        browser_result = await _browser_scrape_page({
-                            "url": "http://localhost:5001",
-                            "wait_seconds": 2,
-                            "take_screenshot": True
-                        })
-                        await self.chat.broadcast("✅ **Browser state captured!** Taking screenshot and analyzing DOM...")
-                        
-                        # Read the simplified DOM for AI analysis
-                        simple_dom_path = Path("browser_automation/looking_at/simple_dom.html")
-                        current_dom = ""
-                        if simple_dom_path.exists():
-                            current_dom = simple_dom_path.read_text()[:2000]  # First 2K chars for context
-                            await self.chat.broadcast(f"🔍 **DOM Analysis:** Found {len(current_dom)} chars of simplified DOM")
-                        else:
-                            await self.chat.broadcast("⚠️ **DOM Warning:** simple_dom.html not found")
-                            
-                    except Exception as e:
-                        browser_result = {"error": str(e)}
-                        current_dom = f"Browser automation error: {e}"
-                        await self.chat.broadcast(f"❌ **Browser Error:** {e}")
+                    # 1. CHECK FOR EXISTING DOM CAPTURES (safer approach)
+                    await self.chat.broadcast("👁️ **STEP 1:** Checking for existing DOM captures...")
+                    simple_dom_path = Path("browser_automation/looking_at/simple_dom.html")
+                    current_dom = ""
+                    if simple_dom_path.exists():
+                        current_dom = simple_dom_path.read_text()[:2000]  # First 2K chars for context
+                        await self.chat.broadcast(f"✅ **DOM Found:** {len(current_dom)} chars from previous capture")
+                    else:
+                        await self.chat.broadcast("⚠️ **No DOM:** Browser automation directory empty - run a manual browser automation first")
+                        current_dom = "No DOM captured yet - browser automation needs to be fixed"
                     
                     # 2. GET PIPELINE STATE 
                     await self.chat.broadcast("🔍 **STEP 2:** Reading your workflow state...")
@@ -3058,8 +3045,9 @@ await main()
                         await self.chat.broadcast(f"✅ **Pipeline state captured:** {pipeline_result.get('status', 'Retrieved')}")
                     except Exception as e:
                         pipeline_result = {"error": str(e), "status": "failed"}
+                        await self.chat.broadcast(f"❌ **Pipeline Error:** {e}")
                     
-                    # 3. CHECK RECENT USER ACTIVITY 
+                    # 3. CHECK RECENT USER ACTIVITY (this actually works)
                     await self.chat.broadcast("🔍 **STEP 3:** Scanning your recent activity...")
                     try:
                         grep_result = await _local_llm_grep_logs({"pattern": "Name saved|workflow.*step", "lines": 5})
@@ -3070,24 +3058,27 @@ await main()
                             await self.chat.broadcast("📝 **Activity scan:** No recent workflow activity found")
                     except Exception as e:
                         grep_result = {"error": str(e)}
+                        await self.chat.broadcast(f"❌ **Grep Error:** {e}")
                     
-                    # 4. FORCE-INJECT COMPLETE SESSION STATE INCLUDING DOM
+                    # 4. FORCE-INJECT WORKING SESSION STATE 
                     state_summary = f"""
-🍪 **SESSION HIJACKED!** Complete browser embodiment achieved:
+🍪 **SESSION HIJACKED!** Current working capabilities demonstrated:
 
-**Browser DOM State:** {len(current_dom)} characters captured
-**Pipeline State:** {pipeline_result.get('status', 'unknown')}
 **Recent Activity:** {grep_result.get('results', ['No activity'])[-1] if grep_result.get('results') else 'No activity'}
+**Pipeline State:** {pipeline_result.get('status', 'unknown')}
+**DOM State:** {len(current_dom)} characters available
 
-**CURRENT DOM SNAPSHOT (First 2000 chars):**
+**AVAILABLE DOM SNAPSHOT (First 2000 chars):**
 ```html
 {current_dom}
 ```
 
-This proves I have **complete access** to your digital state including the exact DOM structure of your current workflow step!
+**🚨 BROWSER AUTOMATION STATUS:** Currently experiencing "target frame detached" errors. Browser automation needs debugging before live DOM capture works.
+
+This proves I have **partial session hijacking** - log analysis works perfectly, browser automation needs fixing.
 """
                     append_to_conversation(state_summary, 'system')
-                    await self.chat.broadcast("💾 **Complete session state captured!** Browser DOM + workflow state + activity logs all analyzed.")
+                    await self.chat.broadcast("💾 **Partial session state captured!** Log analysis working, browser automation needs debugging.")
                     
                 except Exception as e:
                     logger.error(f"🎭 MAGIC WORDS ERROR: Hardwired automation failed: {e}")
