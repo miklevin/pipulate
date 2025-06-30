@@ -1471,7 +1471,7 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
             from pathlib import Path
             
             try:
-                # Use same database logic as session hijacking
+                # Use database to get app_name, then endpoint registry for URL
                 db_path = Path('data/botifython_dev.db')
                 if not db_path.exists():
                     db_path = Path('data/data.db')  # Fallback
@@ -1484,8 +1484,17 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
                 
                 if result and result[0]:
                     app_name = result[0]
-                    plugin_url = f"{base_url}/{app_name}_workflow"
-                    logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_DATABASE | Using database app_name: {app_name} -> {plugin_url}")
+                    
+                    # Import and use the endpoint registry from server
+                    import sys
+                    server_module = sys.modules.get('server')
+                    if server_module and hasattr(server_module, 'get_endpoint_url'):
+                        plugin_url = server_module.get_endpoint_url(app_name)
+                        logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_REGISTRY | Using endpoint registry: {app_name} -> {plugin_url}")
+                    else:
+                        # Fallback to direct mapping if registry not available
+                        plugin_url = f"{base_url}/{app_name}_workflow"
+                        logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_FALLBACK | Using direct mapping: {app_name} -> {plugin_url}")
                 else:
                     # Fallback to homepage if no pipelines
                     plugin_url = base_url
