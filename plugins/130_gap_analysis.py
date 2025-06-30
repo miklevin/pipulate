@@ -10,7 +10,7 @@ import re
 import json
 from starlette.responses import HTMLResponse
 
-ROLES = ['Developer'] # Defines which user roles can see this plugin
+ROLES = ['Botify Employee'] # Defines which user roles can see this plugin
 
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None, None, None, False, None))
 
