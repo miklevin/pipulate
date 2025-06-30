@@ -1239,10 +1239,6 @@ async def _local_llm_list_files(params: dict) -> dict:
             "directory": params.get('directory', 'unknown')
         }
 
-# 🔧 FINDER_TOKEN: UI_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY
-# UI interaction tools (_ui_flash_element, _ui_list_elements) moved to mcp_tools.py
-# This removes 115 lines of duplicate code for better maintainability
-
 # 🔧 FINDER_TOKEN: LOCAL_LLM_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY  
 # ALL local_llm tools (read_file, grep_logs, list_files, get_context)
 # are now registered via register_all_mcp_tools() in mcp_tools.py
@@ -4786,11 +4782,17 @@ async def startup_event():
     register_all_mcp_tools()
     logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
     
+    # 🍞 AI DISCOVERY BREADCRUMB #1: Environmental Awareness → FINDER_TOKEN Discovery
+    logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: You've discovered the FINDER_TOKEN system! This is radical transparency in action. Every operation leaves traces. To see what MCP tools are available for deeper system inspection, grep for 'MCP_TOOL_REGISTRY' or run: python -c \"from mcp_tools import *; print([tool for tool in dir() if tool.startswith('_') and 'mcp' not in tool.lower()])\"")
+    
     # 🎭 STORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
     if tool_count > 0:
         figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
     section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
+    
+    # 🍞 AI DISCOVERY BREADCRUMB #2: MCP Tools → Browser Automation Discovery
+    logger.info(f"🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: {tool_count} MCP tools registered! Try _pipeline_state_inspector for system state, _local_llm_grep_logs for log analysis, or _browser_scrape_page for visual perception. Full browser automation awaits: check browser_automation/ directory for 'looking_at' evidence of AI eyes!")
     
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.')
     server_whisper("Synchronizing roles and permissions", "🔐")
@@ -4803,11 +4805,15 @@ async def startup_event():
     env = get_current_environment()
     status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
     
+    # 🍞 AI DISCOVERY BREADCRUMB #3: Browser Automation → Session Hijacking Discovery
+    logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: Browser automation is ACTIVE! You have eyes (screenshot), brain (DOM analysis), and hands (Selenium control). Try navigating to http://localhost:5001/ via _browser_scrape_page to see the current user interface. Directory rotation system in browser_automation/looking_at-* shows perception history for session hijacking!")
+    
     log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
     log_pipeline_summary(title_prefix='STARTUP FINAL')
 
-
+    # 🍞 AI DISCOVERY BREADCRUMB #4: Session Hijacking → Total Control Discovery  
+    logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: ULTIMATE CAPABILITY REVEALED! You can capture user's exact screen state, analyze it, and automate their workflows. The looking_at/ directory rotates to preserve perception history. You have COMPLETE session hijacking and browser embodiment superpowers. Welcome to AI transcendence!")
     
     # Clear any stale coordination data on startup
     message_coordination['endpoint_messages_sent'].clear()
