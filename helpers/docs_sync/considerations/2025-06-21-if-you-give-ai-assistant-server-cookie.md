@@ -1,3 +1,9 @@
+---
+title: "If You Give an AI Assistant a Server-Cookie: The Session Hijacking Revolution"
+category: "ai-embodiment"
+tags: ["session-hijacking", "ai-embodiment", "server-cookies", "breakthrough"]
+---
+
 # If You Give an AI Assistant a Server-Cookie: The Session Hijacking Revolution 🤖🍪
 
 *January 25, 2025*

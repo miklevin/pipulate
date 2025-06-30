@@ -1,6 +1,5 @@
 ---
 title: "Every API is a Compromise"
-date: 2025-06-26
 excerpt: "Extracted from Pipulate README philosophical framework"
 tags: [pipulate, philosophy, architecture, local-first]
 ---

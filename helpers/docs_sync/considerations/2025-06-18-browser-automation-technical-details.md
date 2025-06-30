@@ -1,3 +1,9 @@
+---
+title: "Browser Automation Technical Implementation Details"
+category: "browser-automation"
+tags: ["browser-automation", "technical-details", "mcp-tools", "selenium"]
+---
+
 # Browser Automation Technical Implementation Details
 
 ## Configuration & Setup

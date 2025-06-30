@@ -1,6 +1,5 @@
 ---
 title: "Durable vs. Ephemeral: Building on Bedrock"
-date: 2025-06-26
 excerpt: "Extracted from Pipulate README philosophical framework"
 tags: [pipulate, philosophy, architecture, local-first]
 ---

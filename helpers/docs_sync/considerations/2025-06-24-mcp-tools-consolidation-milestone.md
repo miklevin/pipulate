@@ -1,8 +1,5 @@
 ---
 title: "MCP Tools Consolidation Milestone: 40% Complete"
-date: 2025-06-27
-excerpt: "Technical milestone documenting the consolidation of MCP tools from server.py into mcp_tools.py for better organization and AI assistant interaction."
-tags: [pipulate, mcp-tools, refactoring, architecture, technical-debt, ai-integration]
 ---
 
 **🔧 FINDER_TOKEN: MCP_CONSOLIDATION_PROGRESS**

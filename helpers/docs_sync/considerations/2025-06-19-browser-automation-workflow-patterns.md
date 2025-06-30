@@ -1,3 +1,9 @@
+---
+title: "Browser Automation Workflow Patterns"
+category: "browser-automation"
+tags: ["browser-automation", "workflow-patterns", "automation", "selenium"]
+---
+
 # Browser Automation Advanced Workflow Patterns
 
 ## Advanced AI Assistant Patterns

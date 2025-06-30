@@ -1,8 +1,5 @@
 ---
 title: "The Pipulate Philosophical Blueprint: Universal API Patterns and Computing Sovereignty"
-date: 2025-06-27
-excerpt: "At every scale of reality, we observe the same fundamental pattern: 'lumps of stuff' with APIs that enable interaction. This pattern guides Pipulate's architecture choices."
-tags: [pipulate, philosophy, architecture, local-first, computing-sovereignty, api-design]
 ---
 
 At every scale of reality, we observe the same fundamental pattern: **"lumps of stuff" with APIs** that enable interaction. From quantum to cosmic scales, this universal pattern shapes how systems communicate and evolve.

@@ -1,8 +1,5 @@
 ---
 title: "Pipulate Architectural Patterns"
-date: "2025-06-29"
-category: "architecture"
-tags: ["fasthtml", "html-generation", "technical-debt", "documentation"]
 ---
 
 # Pipulate Architectural Patterns

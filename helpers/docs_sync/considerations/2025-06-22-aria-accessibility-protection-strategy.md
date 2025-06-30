@@ -1,8 +1,5 @@
 ---
 title: "ARIA Accessibility Protection Strategy: Preventing the Great Regression"
-date: 2025-06-27
-excerpt: "How we built automated validation systems to protect accessibility work from merge conflicts and accidental reversions in complex codebases."
-tags: [accessibility, aria, automation, testing, web-development, regression-protection]
 ---
 
 **What happened**: A single commit accidentally reverted months of accessibility work, stripping ARIA attributes from critical UI components. **The solution**: A proactive defense system that prevents accessibility regressions before they enter the codebase.

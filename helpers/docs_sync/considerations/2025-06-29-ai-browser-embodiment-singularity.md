@@ -1,6 +1,5 @@
 ---
 title: "The AI Browser Embodiment Singularity: You Control the Horizontal, You Control the Vertical"
-date: 2025-06-29
 category: AI Automation Revolution
 tags: [ai-embodiment, browser-automation, mcp-tools, session-hijacking, radical-transparency, selenium-control]
 ---
