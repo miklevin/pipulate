@@ -12,7 +12,7 @@ import zipfile
 from collections import Counter, namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse, quote
 from typing import Optional
 import httpx
 import pandas as pd
@@ -22,7 +22,7 @@ ROLES = ['Developer']
 TOKEN_FILE = 'botify_token.txt'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
-class LinkGraph2:
+class LinkGraphVisualizer:
     """
     Botify Trifecta Workflow - Multi-Export Data Collection
 
@@ -212,7 +212,6 @@ class LinkGraph2:
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         app.route(f'/{app_name}/discover-fields/{{username}}/{{project}}/{{analysis}}', methods=['GET'])(self.discover_fields_endpoint)
         app.route(f'/{app_name}/step_02b_process', methods=['POST'])(self.step_02b_process)
-        app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
         app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
         app.route(f'/{app_name}/step_parameters_process', methods=['POST'])(self.step_parameters_process)
         app.route(f'/{app_name}/parameter_preview', methods=['POST'])(self.parameter_preview)
@@ -249,22 +248,22 @@ class LinkGraph2:
         return analysis_template == 'Link Graph Edges'
 
     def _build_dynamic_steps(self):
-        """Build the steps list dynamically based on template configuration.
-        
-        Returns:
-            list: List of Step namedtuples for the workflow
-            
-        CRITICAL: This method maintains compatibility with helper scripts by appending
-        a static dummy step at the end. The helper scripts can target this dummy step
-        for splicing operations without breaking the dynamic functionality.
-        """
         analysis_template = self.get_configured_template('analysis')
         crawler_template = self.get_configured_template('crawler')
         gsc_template = self.get_configured_template('gsc')
-        steps = [Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {analysis_template}', refill=False)]
+        steps = [
+            Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True),
+            Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {analysis_template}', refill=False)
+        ]
         if self._should_include_crawler_step(analysis_template):
             steps.append(Step(id='step_crawler', done='crawler_basic', show=f'Download Crawl: {crawler_template}', refill=False))
-        steps.extend([Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False), Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False), Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)])
+        steps.append(Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False))
+        steps.append(Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False))
+        # Insert Link Graph–specific steps before finalize
+        steps.append(Step(id='step_02b', done='node_attributes', show='Download: Node Attributes', refill=False))
+        steps.append(Step(id='step_05', done='visualization_ready', show='Prepare & Visualize Graph', refill=True))
+        steps.append(Step(id='step_06', done='visualization_complete', show='Visualization Complete', refill=False))
+        steps.append(Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False))
         return steps
 
     def get_export_type_for_template_config(self, template_config_key):
@@ -3074,11 +3073,11 @@ class LinkGraph2:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         analysis_result_str = step_data.get(step.done, '')
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
-        prev_step_id = 'step_02'
+        prev_step_id = 'step_analysis'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('analysis_selection', '')
         if not prev_data_str:
-            return P('Error: Analysis data not found. Please complete step 2 first.', cls='text-invalid')
+            return P('Error: Analysis data not found. Please complete step analysis first.', cls='text-invalid')
         prev_analysis_data = json.loads(prev_data_str)
         analysis_slug = prev_analysis_data.get('analysis_slug', '')
         project_name = prev_analysis_data.get('project', '')
@@ -3118,11 +3117,11 @@ class LinkGraph2:
             await pip.set_step_data(pipeline_id, step_id, json.dumps(skip_result), steps)
             await self.message_queue.add(pip, f'⏭️ Node Attributes step skipped. Proceeding to next step.', verbatim=True)
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Skipped', widget=Div(P('This step was skipped.', style='color: #888; font-style: italic;')), steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        prev_step_id = 'step_02'
+        prev_step_id = 'step_analysis'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('analysis_selection', '')
         if not prev_data_str:
-            return P('Error: Analysis data not found. Please complete step 2 first.', cls='text-invalid')
+            return P('Error: Analysis data not found. Please complete step analysis first.', cls='text-invalid')
         prev_analysis_data = json.loads(prev_data_str)
         analysis_slug = prev_analysis_data.get('analysis_slug', '')
         project_name = prev_analysis_data.get('project', '')
@@ -3549,8 +3548,8 @@ class LinkGraph2:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
         pipeline_id = form.get('pipeline_id', 'unknown')
-        project_data = pip.get_step_data(pipeline_id, 'step_01', {}).get('botify_project', '{}')
-        analysis_data = pip.get_step_data(pipeline_id, 'step_02', {}).get('analysis_selection', '{}')
+        project_data = pip.get_step_data(pipeline_id, 'step_project', {}).get('botify_project', '{}')
+        analysis_data = pip.get_step_data(pipeline_id, 'step_analysis', {}).get('analysis_selection', '{}')
         try:
             project_info = json.loads(project_data)
             analysis_info = json.loads(analysis_data)
