@@ -255,11 +255,11 @@ def falling_alice(console_output=True):
 def white_rabbit(console_output=True):
     """🐰 WHITE RABBIT: Whimsical White Rabbit-themed banner"""
     alice_art = r"""[black].[/black]
-- Welcome to radical transparency land.                   /)    ______
-  Every operation leaves traces...                  /)\__//    /      \
-  [dim]Curiouser and curiouser?[/dim]                   ___(/_ 0 0    |        |
-  [dim]Try: grep "FINDER_TOKEN" logs/server.log[/dim] *(    ==(_T_)== |[bold bright_blue]Pipulate[/bold bright_blue]|
-                                                 \  )   ""\    |        |
+ - This is Uvicorn webserver output.                       /)    ______
+   (i.e. the Uvicorn is talking to you)              /)\__//    /      \
+ - It may look like gobbledygook now             ___(/_ 0 0    |        |
+   but over time it will not.                  *(    ==(_T_)== |[bold bright_blue]Pipulate[/bold bright_blue]|
+ - Curious? Become a Carpenter!                  \  )   ""\    |        |
                                                   |__>-\_>_>    \______/
    """
     
