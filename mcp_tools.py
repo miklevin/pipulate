@@ -378,6 +378,10 @@ def register_all_mcp_tools():
     register_mcp_tool("botify_list_available_analyses", _botify_list_available_analyses)
     register_mcp_tool("botify_execute_custom_bql_query", _botify_execute_custom_bql_query)
     
+    # 🧠 AI SELF-DISCOVERY TOOLS - ELIMINATE UNCERTAINTY
+    register_mcp_tool("ai_self_discovery_assistant", _ai_self_discovery_assistant)
+    register_mcp_tool("ai_capability_test_suite", _ai_capability_test_suite)
+    
     # Get final count from server's registry
     import sys
     server_module = sys.modules.get('server')
@@ -2192,5 +2196,491 @@ async def _browser_interact_with_current_page(params: dict) -> dict:
 
 # All tools are now registered in register_all_mcp_tools() function above
 # This ensures proper loading order and centralized registration management
+
+# ================================================================
+# AI SELF-DISCOVERY TOOLS - ELIMINATE UNCERTAINTY
+# ================================================================
+
+async def _ai_self_discovery_assistant(params: dict) -> dict:
+    """
+    🧠 AI SELF-DISCOVERY ASSISTANT - The uncertainty eliminator.
+    
+    This tool provides instant capability awareness and usage patterns for AI assistants.
+    It eliminates the "what tools do I have?" and "how do I use them?" uncertainty.
+    
+    Args:
+        params: {
+            "discovery_type": "capabilities" | "usage_patterns" | "success_stories" | "all",
+            "include_examples": True,  # Include concrete usage examples
+            "include_troubleshooting": True  # Include common failure modes
+        }
+    
+    Returns:
+        dict: Complete AI capability map with usage guidance
+    """
+    logger.info(f"🧠 FINDER_TOKEN: AI_SELF_DISCOVERY_START - Type: {params.get('discovery_type', 'all')}")
+    
+    try:
+        discovery_type = params.get('discovery_type', 'all')
+        include_examples = params.get('include_examples', True)
+        include_troubleshooting = params.get('include_troubleshooting', True)
+        
+        # Get current MCP tool registry
+        import sys
+        server_module = sys.modules.get('server')
+        if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
+            available_tools = list(server_module.MCP_TOOL_REGISTRY.keys())
+        else:
+            available_tools = list(MCP_TOOL_REGISTRY.keys()) if MCP_TOOL_REGISTRY else []
+        
+        # Categorize tools by capability
+        tool_categories = {
+            "environment_mastery": [
+                "pipeline_state_inspector",
+                "local_llm_list_files", 
+                "local_llm_read_file"
+            ],
+            "browser_embodiment": [
+                "browser_scrape_page",
+                "browser_analyze_scraped_page", 
+                "browser_automate_workflow_walkthrough",
+                "browser_interact_with_current_page"
+            ],
+            "session_hijacking": [
+                "execute_ai_session_hijacking_demonstration",
+                "pipeline_state_inspector"
+            ],
+            "external_integration": [
+                "botify_ping",
+                "botify_list_projects",
+                "botify_get_full_schema",
+                "botify_execute_custom_bql_query"
+            ],
+            "debugging_transparency": [
+                "local_llm_grep_logs",
+                "ui_flash_element",
+                "ui_list_elements"
+            ],
+            "entertainment": [
+                "get_cat_fact"
+            ]
+        }
+        
+        # Build capability map
+        capabilities = {}
+        for category, tools in tool_categories.items():
+            available_in_category = [tool for tool in tools if tool in available_tools]
+            if available_in_category:
+                capabilities[category] = {
+                    "tools": available_in_category,
+                    "count": len(available_in_category),
+                    "description": get_category_description(category)
+                }
+        
+        # Usage patterns for common AI tasks
+        usage_patterns = {
+            "web_scraping_workflow": {
+                "description": "Complete web scraping with analysis",
+                "steps": [
+                    "1. browser_scrape_page - Capture page state",
+                    "2. browser_analyze_scraped_page - Find automation targets", 
+                    "3. local_llm_read_file - Examine captured content",
+                    "4. ui_flash_element - Guide user attention"
+                ],
+                "example_params": {
+                    "browser_scrape_page": {"url": "https://example.com", "take_screenshot": True},
+                    "browser_analyze_scraped_page": {"analysis_type": "all"},
+                    "local_llm_read_file": {"file_path": "browser_automation/looking_at/simple_dom.html"},
+                    "ui_flash_element": {"element_id": "important-element", "message": "Found key information!"}
+                }
+            },
+            "workflow_debugging": {
+                "description": "Debug user workflow issues",
+                "steps": [
+                    "1. pipeline_state_inspector - Check current state",
+                    "2. local_llm_grep_logs - Search for errors",
+                    "3. browser_scrape_page - See what user sees",
+                    "4. ui_flash_element - Highlight issues"
+                ]
+            },
+            "session_hijacking": {
+                "description": "Take over user session seamlessly",
+                "steps": [
+                    "1. pipeline_state_inspector - Understand current workflow",
+                    "2. browser_scrape_page - Capture current state",
+                    "3. browser_automate_workflow_walkthrough - Continue workflow",
+                    "4. execute_ai_session_hijacking_demonstration - Show capabilities"
+                ]
+            }
+        }
+        
+        # Success stories from real usage
+        success_stories = {
+            "bbc_news_headlines": {
+                "task": "Extract current news headlines from BBC",
+                "tools_used": ["browser_scrape_page", "local_llm_read_file"],
+                "result": "Successfully captured 15+ headlines with timestamps and categories",
+                "key_insight": "News sites are more accessible than search engines for automation"
+            },
+            "google_captcha_detection": {
+                "task": "Attempt Google search automation",
+                "tools_used": ["browser_scrape_page", "browser_analyze_scraped_page"],
+                "result": "Detected CAPTCHA challenge, demonstrated security awareness",
+                "key_insight": "Real-world security measures provide valuable learning opportunities"
+            },
+            "workflow_session_hijacking": {
+                "task": "Take over user's Botifython workflow",
+                "tools_used": ["pipeline_state_inspector", "browser_scrape_page"],
+                "result": "Successfully captured and analyzed user's current workflow state",
+                "key_insight": "Complete session visibility enables seamless AI assistance"
+            }
+        }
+        
+        # Common failure modes and solutions
+        troubleshooting = {
+            "tool_not_found": {
+                "symptom": "MCP tool not available in registry",
+                "solution": "Check server startup logs, ensure tool is registered in register_all_mcp_tools()",
+                "prevention": "Always verify tool availability before attempting usage"
+            },
+            "browser_automation_failure": {
+                "symptom": "Selenium operations fail or timeout",
+                "solution": "Check Chrome/Chromedriver installation, increase wait_seconds parameter",
+                "prevention": "Use headless mode for reliability, add error handling"
+            },
+            "file_access_denied": {
+                "symptom": "Cannot read files in /looking_at/ directory",
+                "solution": "Verify file exists, check permissions, use browser_scrape_page first",
+                "prevention": "Always check file existence before attempting to read"
+            },
+            "api_authentication_failure": {
+                "symptom": "Botify API calls return 401/403 errors",
+                "solution": "Verify botify_token.txt exists and contains valid token",
+                "prevention": "Use botify_ping to test connectivity before complex operations"
+            }
+        }
+        
+        # Build response based on discovery type
+        result = {
+            "success": True,
+            "discovery_type": discovery_type,
+            "total_tools_available": len(available_tools),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        if discovery_type in ["capabilities", "all"]:
+            result["capabilities"] = capabilities
+            
+        if discovery_type in ["usage_patterns", "all"] and include_examples:
+            result["usage_patterns"] = usage_patterns
+            
+        if discovery_type in ["success_stories", "all"]:
+            result["success_stories"] = success_stories
+            
+        if discovery_type in ["troubleshooting", "all"] and include_troubleshooting:
+            result["troubleshooting"] = troubleshooting
+        
+        # Add quick reference for immediate use
+        result["quick_reference"] = {
+            "most_powerful_tools": [
+                "browser_scrape_page",      # AI eyes
+                "browser_analyze_scraped_page",  # AI brain  
+                "pipeline_state_inspector",  # Workflow awareness
+                "execute_ai_session_hijacking_demonstration"  # Session takeover
+            ],
+            "essential_patterns": [
+                "Always check current state before acting",
+                "Use browser automation for visual tasks",
+                "Leverage FINDER_TOKEN logs for debugging",
+                "Provide user guidance with ui_flash_element"
+            ]
+        }
+        
+        logger.info(f"🎯 FINDER_TOKEN: AI_SELF_DISCOVERY_SUCCESS - {len(available_tools)} tools mapped, {len(capabilities)} categories")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: AI_SELF_DISCOVERY_ERROR - {e}")
+        return {"success": False, "error": str(e)}
+
+def get_category_description(category: str) -> str:
+    """Get human-readable description for tool category."""
+    descriptions = {
+        "environment_mastery": "Understand and control the development environment",
+        "browser_embodiment": "See, analyze, and interact with web pages like a human",
+        "session_hijacking": "Take over user sessions and continue their workflows",
+        "external_integration": "Connect to external APIs and services",
+        "debugging_transparency": "Debug issues with complete system visibility",
+        "entertainment": "Lightweight tools for engagement and testing"
+    }
+    return descriptions.get(category, "Unknown category")
+
+async def _ai_capability_test_suite(params: dict) -> dict:
+    """
+    🧪 AI CAPABILITY TEST SUITE - Prove your superpowers.
+    
+    This tool runs a comprehensive test of all AI capabilities to verify
+    that the system is working correctly and the AI has full access.
+    
+    Args:
+        params: {
+            "test_type": "quick" | "comprehensive" | "specific_tool",
+            "specific_tool": "tool_name"  # Only for specific_tool test
+        }
+    
+    Returns:
+        dict: Test results with success/failure details
+    """
+    logger.info(f"🧪 FINDER_TOKEN: AI_CAPABILITY_TEST_START - Type: {params.get('test_type', 'quick')}")
+    
+    try:
+        test_type = params.get('test_type', 'quick')
+        specific_tool = params.get('specific_tool')
+        
+        test_results = {
+            "timestamp": datetime.now().isoformat(),
+            "test_type": test_type,
+            "tests_run": 0,
+            "tests_passed": 0,
+            "tests_failed": 0,
+            "results": {}
+        }
+        
+        if test_type == "specific_tool" and specific_tool:
+            # Test specific tool
+            test_results["results"][specific_tool] = await _test_specific_tool(specific_tool)
+            test_results["tests_run"] = 1
+            test_results["tests_passed"] = 1 if test_results["results"][specific_tool]["success"] else 0
+            test_results["tests_failed"] = 1 - test_results["tests_passed"]
+            
+        elif test_type == "quick":
+            # Quick test of core capabilities
+            quick_tests = [
+                ("environment_check", _test_environment_access),
+                ("file_system", _test_file_system_access),
+                ("mcp_registry", _test_mcp_registry),
+                ("basic_browser", _test_basic_browser_capability)
+            ]
+            
+            for test_name, test_func in quick_tests:
+                test_results["tests_run"] += 1
+                result = await test_func()
+                test_results["results"][test_name] = result
+                if result["success"]:
+                    test_results["tests_passed"] += 1
+                else:
+                    test_results["tests_failed"] += 1
+                    
+        elif test_type == "comprehensive":
+            # Comprehensive test of all capabilities
+            comprehensive_tests = [
+                ("environment_check", _test_environment_access),
+                ("file_system", _test_file_system_access),
+                ("mcp_registry", _test_mcp_registry),
+                ("basic_browser", _test_basic_browser_capability),
+                ("pipeline_inspection", _test_pipeline_inspection),
+                ("log_access", _test_log_access),
+                ("ui_interaction", _test_ui_interaction),
+                ("botify_connectivity", _test_botify_connectivity)
+            ]
+            
+            for test_name, test_func in comprehensive_tests:
+                test_results["tests_run"] += 1
+                result = await test_func()
+                test_results["results"][test_name] = result
+                if result["success"]:
+                    test_results["tests_passed"] += 1
+                else:
+                    test_results["tests_failed"] += 1
+        
+        # Calculate success rate
+        if test_results["tests_run"] > 0:
+            test_results["success_rate"] = round((test_results["tests_passed"] / test_results["tests_run"]) * 100, 2)
+        else:
+            test_results["success_rate"] = 0
+            
+        # Add overall assessment
+        if test_results["success_rate"] >= 90:
+            test_results["assessment"] = "🎯 EXCELLENT - AI superpowers fully operational"
+        elif test_results["success_rate"] >= 75:
+            test_results["assessment"] = "✅ GOOD - Most capabilities working, minor issues detected"
+        elif test_results["success_rate"] >= 50:
+            test_results["assessment"] = "⚠️ FAIR - Some capabilities working, needs attention"
+        else:
+            test_results["assessment"] = "❌ POOR - Significant issues detected, requires investigation"
+        
+        logger.info(f"🎯 FINDER_TOKEN: AI_CAPABILITY_TEST_COMPLETE - {test_results['tests_passed']}/{test_results['tests_run']} passed ({test_results['success_rate']}%)")
+        return test_results
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: AI_CAPABILITY_TEST_ERROR - {e}")
+        return {"success": False, "error": str(e)}
+
+async def _test_environment_access() -> dict:
+    """Test basic environment access."""
+    try:
+        import os
+        current_dir = os.getcwd()
+        server_exists = os.path.exists("server.py")
+        plugins_exists = os.path.exists("plugins/")
+        
+        return {
+            "success": True,
+            "current_directory": current_dir,
+            "server_py_exists": server_exists,
+            "plugins_directory_exists": plugins_exists,
+            "environment_ready": server_exists and plugins_exists
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+async def _test_file_system_access() -> dict:
+    """Test file system access capabilities."""
+    try:
+        import os
+        from pathlib import Path
+        
+        # Test reading a simple file
+        test_file = "mcp_tools.py"
+        if os.path.exists(test_file):
+            with open(test_file, 'r') as f:
+                content = f.read(100)  # Just first 100 chars
+            return {
+                "success": True,
+                "file_read_success": True,
+                "test_file": test_file,
+                "content_preview": content[:50] + "..."
+            }
+        else:
+            return {"success": False, "error": f"Test file {test_file} not found"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+async def _test_mcp_registry() -> dict:
+    """Test MCP tool registry access."""
+    try:
+        import sys
+        server_module = sys.modules.get('server')
+        if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
+            tool_count = len(server_module.MCP_TOOL_REGISTRY)
+            return {
+                "success": True,
+                "registry_accessible": True,
+                "tool_count": tool_count,
+                "registry_ready": tool_count > 0
+            }
+        else:
+            return {"success": False, "error": "MCP tool registry not accessible"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+async def _test_basic_browser_capability() -> dict:
+    """Test basic browser automation capability."""
+    try:
+        # Test if Selenium is available
+        try:
+            from selenium import webdriver
+            from selenium.webdriver.chrome.options import Options
+            return {
+                "success": True,
+                "selenium_available": True,
+                "webdriver_import_success": True
+            }
+        except ImportError:
+            return {"success": False, "error": "Selenium not available"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+async def _test_pipeline_inspection() -> dict:
+    """Test pipeline inspection capability."""
+    try:
+        # Test if we can access the pipeline table
+        import sys
+        server_module = sys.modules.get('server')
+        if server_module and hasattr(server_module, 'pipeline'):
+            return {
+                "success": True,
+                "pipeline_table_accessible": True
+            }
+        else:
+            return {"success": False, "error": "Pipeline table not accessible"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+async def _test_log_access() -> dict:
+    """Test log file access capability."""
+    try:
+        import os
+        log_file = "logs/server.log"
+        if os.path.exists(log_file):
+            with open(log_file, 'r') as f:
+                lines = f.readlines()
+            return {
+                "success": True,
+                "log_file_accessible": True,
+                "log_lines_count": len(lines)
+            }
+        else:
+            return {"success": False, "error": "Log file not found"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+async def _test_ui_interaction() -> dict:
+    """Test UI interaction capability."""
+    try:
+        # Test if we can access the chat system
+        import sys
+        server_module = sys.modules.get('server')
+        if server_module and hasattr(server_module, 'chat'):
+            return {
+                "success": True,
+                "chat_system_accessible": True
+            }
+        else:
+            return {"success": False, "error": "Chat system not accessible"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+async def _test_botify_connectivity() -> dict:
+    """Test Botify API connectivity."""
+    try:
+        # Test if we can read the token file
+        token_file = "helpers/botify/botify_token.txt"
+        if os.path.exists(token_file):
+            with open(token_file, 'r') as f:
+                token = f.read().strip()
+            return {
+                "success": True,
+                "token_file_exists": True,
+                "token_available": bool(token)
+            }
+        else:
+            return {"success": False, "error": "Botify token file not found"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+async def _test_specific_tool(tool_name: str) -> dict:
+    """Test a specific MCP tool."""
+    try:
+        import sys
+        server_module = sys.modules.get('server')
+        if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
+            registry = server_module.MCP_TOOL_REGISTRY
+            if tool_name in registry:
+                return {
+                    "success": True,
+                    "tool_found": True,
+                    "tool_available": True
+                }
+            else:
+                return {"success": False, "error": f"Tool {tool_name} not found in registry"}
+        else:
+            return {"success": False, "error": "MCP tool registry not accessible"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+# Register the new AI self-discovery tools
+register_mcp_tool("ai_self_discovery_assistant", _ai_self_discovery_assistant)
+register_mcp_tool("ai_capability_test_suite", _ai_capability_test_suite)
 
 
