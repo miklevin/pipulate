@@ -315,12 +315,12 @@ body {
 }
 
 /* Headline Size Adjustments */
-h1 { font-size: 1.6rem; }   /* Reduced further for better proportion */
-h2 { font-size: 1.35rem; }  /* Reduced further for better proportion */
-h3 { font-size: 1.15rem; }  /* Reduced further for better proportion */
-h4 { font-size: 1rem; }     /* Reduced further for better proportion */
-h5 { font-size: 0.9rem; }   /* Reduced further for better proportion */
-h6 { font-size: 0.85rem; }  /* Reduced further for better proportion */
+h1 { font-size: 1.6rem;  font-family: inherit}   /* Reduced further for better proportion */
+h2 { font-size: 1.35rem; font-family: inherit}  /* Reduced further for better proportion */
+h3 { font-size: 1.15rem; font-family: inherit}  /* Reduced further for better proportion */
+h4 { font-size: 1rem;    font-family: inherit}     /* Reduced further for better proportion */
+h5 { font-size: 0.9rem;  font-family: inherit}   /* Reduced further for better proportion */
+h6 { font-size: 0.85rem; font-family: inherit}  /* Reduced further for better proportion */
 
 /* Main Container Structure */
 body > main:first-of-type {
@@ -888,9 +888,14 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 }
 
 .version-info-container {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 12px;
     padding: 0.5rem 1rem;
     border-top: 1px solid var(--pico-muted-border-color);
     text-align: center;
+    align-items: center;
     /* Version information display styling */
 }
 
