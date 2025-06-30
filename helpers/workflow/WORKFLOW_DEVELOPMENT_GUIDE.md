@@ -193,6 +193,16 @@ python helpers/workflow/workflow_reconstructor.py \
 - ✅ **Component Isolation**: Separates template structure from workflow logic
 - ✅ **Safe Testing**: Generate test versions before production deployment
 - ✅ **Route Registration**: Automatically handles custom endpoint registration
+- ✅ **Attribute Transplantation**: Automatically carries over `TRAINING_PROMPT` and `ENDPOINT_MESSAGE` from source to target
+
+**Attribute Transplantation System:**
+The workflow reconstructor automatically preserves workflow-specific attributes during transplantation:
+
+- **`TRAINING_PROMPT`**: AI assistant context and training instructions specific to the workflow
+- **`ENDPOINT_MESSAGE`**: User-facing welcome message and workflow description
+- **Template Override**: Source attributes replace template defaults, ensuring workflow-specific messaging
+- **Suffix Handling**: When creating variants with `--suffix`, attributes are carried over without modification
+- **Logging**: Transplanted attributes are logged with preview text for verification
 
 
 **Component Detection Patterns:**
@@ -205,6 +215,10 @@ async def parameter_optimization(self, request):    # ✅ Auto-detected
 # Bundle Type 2: Custom Endpoints (detected by route patterns)
 app.route(f'/{app_name}/step_parameters_process', methods=['POST'])  # ✅ Contains '_process'
 app.route(f'/{app_name}/parameter_preview', methods=['POST'])        # ✅ Contains 'preview'
+
+# Bundle Type 3: Class Attributes (automatically transplanted)
+TRAINING_PROMPT = 'Workflow-specific AI training prompt'  # ✅ Carried over from source
+ENDPOINT_MESSAGE = 'Workflow-specific welcome message'    # ✅ Carried over from source
 ```
 
 ---
