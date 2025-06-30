@@ -118,6 +118,52 @@ def sync_install_sh():
         print(f"⚠️  Install.sh sync failed: {e}")
         return False
 
+def sync_breadcrumb_trail():
+    """Syncs BREADCRUMB_TRAIL_DVCS.mdc to workspace root as DONT_WRITE_HERE.mdc with Cursor frontmatter."""
+    print("\n🍞 Step 4: Synchronizing breadcrumb trail to workspace root...")
+    
+    # Define paths
+    source_path = PIPULATE_ROOT / ".cursor" / "rules" / "BREADCRUMB_TRAIL_DVCS.mdc"
+    workspace_root = PIPULATE_ROOT.parent
+    dest_path = workspace_root / ".cursor" / "rules" / "DONT_WRITE_HERE.mdc"
+    
+    if not source_path.exists():
+        print(f"⚠️  Warning: Source breadcrumb trail not found at {source_path}. Skipping breadcrumb sync.")
+        return False
+    
+    # Create destination directory if it doesn't exist
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Read source content
+    source_content = source_path.read_text()
+    
+    # Create destination content with Cursor frontmatter
+    cursor_frontmatter = """---
+description: 
+globs: 
+alwaysApply: true
+---
+"""
+    
+    dest_content = cursor_frontmatter + source_content
+    
+    # Check if content has changed
+    content_changed = True
+    if dest_path.exists():
+        current_content = dest_path.read_text()
+        content_changed = current_content != dest_content
+    
+    if content_changed:
+        # Write the new content
+        dest_path.write_text(dest_content)
+        print(f"📄 Synced breadcrumb trail: {source_path.name} → {dest_path}")
+        print(f"📍 Location: {dest_path}")
+        print("✅ Breadcrumb trail updated at workspace root for Cursor 'Always include'.")
+        return True
+    else:
+        print("✅ Breadcrumb trail is already up-to-date at workspace root.")
+        return False
+
 def get_ai_commit_message():
     """Gets an AI-generated commit message from local LLM."""
     print("\n🤖 Generating AI commit message...")
@@ -162,6 +208,7 @@ def main():
     parser.add_argument("--skip-version-sync", action="store_true", help="Skip version synchronization")
     parser.add_argument("--skip-docs-sync", action="store_true", help="Skip documentation synchronization")
     parser.add_argument("--skip-install-sh-sync", action="store_true", help="Skip install.sh synchronization")
+    parser.add_argument("--skip-breadcrumb-sync", action="store_true", help="Skip breadcrumb trail synchronization")
     
     args = parser.parse_args()
     
@@ -194,6 +241,13 @@ def main():
     else:
         print("\n⏭️  Skipping install.sh synchronization (--skip-install-sh-sync)")
         install_sh_success = False
+    
+    # Step 4: Breadcrumb Trail Synchronization
+    if not args.skip_breadcrumb_sync:
+        breadcrumb_sync_success = sync_breadcrumb_trail()
+    else:
+        print("\n⏭️  Skipping breadcrumb trail synchronization (--skip-breadcrumb-sync)")
+        breadcrumb_sync_success = False
     
     # === RELEASE PIPELINE PHASE 2: GIT OPERATIONS ===
     print("\n📝 === RELEASE PIPELINE: GIT OPERATIONS PHASE ===")
