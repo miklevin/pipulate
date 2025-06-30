@@ -2894,10 +2894,6 @@ await main()
         if endpoint in friendly_names:
             return friendly_names[endpoint]
         return title_name(endpoint)
-        """Format an endpoint string into a human-readable form."""
-        if endpoint in friendly_names:
-            return friendly_names[endpoint]
-        return title_name(endpoint)
 
     def _get_clean_state(self, pkey):
         try:
@@ -6111,10 +6107,20 @@ async def poke_flyout(request):
     # Add Update button
     update_button = Button(f'🔄 Update {APP_NAME}', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
-    # Add version info display
+    # Add version info display with AI SEO Software SVG
     nix_version = get_nix_version()
+    
+    # Create prominent SVG logo
+    svg_logo = Img(
+        src='/static/images/ai-seo-software.svg',
+        alt='AI SEO Software',
+        style='width: 96px; height: 96px;',
+        cls='version-logo'
+    )
+    
     version_info = Div(
-        Span(f'🧊 Pipulate: {nix_version}', cls='version-info-text'),
+        svg_logo,
+        Span(f'{nix_version}', cls='version-info-text'),
         cls='version-info-container'
     )
     
