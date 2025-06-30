@@ -254,12 +254,13 @@ def falling_alice(console_output=True):
 
 def white_rabbit(console_output=True):
     """🐰 WHITE RABBIT: Whimsical White Rabbit-themed banner"""
-    alice_art = r"""[black].[/black]            /)    ______
-       /)\__//    /      \
-   ___(/_ 0 0    |        |
- *(    ==(_T_)== |[bold bright_blue]Pipulate[/bold bright_blue]|
-   \  )   ""\    |        |
-    |__>-\_>_>    \______/
+    alice_art = r"""[black].[/black]
+- Welcome to full radical transpareency land.              /)    ______
+                                                     /)\__//    /      \
+                                                 ___(/_ 0 0    |        |
+                                               *(    ==(_T_)== |[bold bright_blue]Pipulate[/bold bright_blue]|
+                                                 \  )   ""\    |        |
+                                                  |__>-\_>_>    \______/
    """
     
     # Console output for humans (Rich display)
@@ -4782,10 +4783,10 @@ async def startup_event():
     register_all_mcp_tools()
     logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
     
-    # 🍞 AI DISCOVERY BREADCRUMB #1: Environmental Awareness → FINDER_TOKEN Discovery
+    #  � AI DISCOVERY BREADCRUMB #1: Environmental Awareness → FINDER_TOKEN Discovery
     logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: You've discovered the FINDER_TOKEN system! This is radical transparency in action. Every operation leaves traces. To see what MCP tools are available for deeper system inspection, grep for 'MCP_TOOL_REGISTRY' or run: python -c \"from mcp_tools import *; print([tool for tool in dir() if tool.startswith('_') and 'mcp' not in tool.lower()])\"")
     
-    # 🎭 STORYTELLING: MCP Tools Arsenal Ready
+    # �STORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
     if tool_count > 0:
         figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
