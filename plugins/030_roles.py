@@ -183,11 +183,11 @@ class CrudCustomizer(BaseCrud):
             return HTMLResponse('Error toggling role', status_code=500)
 
 class CrudUI(PluginIdentityManager):
-    EMOJI = '👥'
+    EMOJI = ''
 
     @property
     def H3_HEADER(self):
-        return f"Check/uncheck Roles for APP menu. Drag-to-reorder APP menu."
+        return f"Configure APP menu. Drag-to-reorder."
 
     @property
     def ENDPOINT_MESSAGE(self):
@@ -339,7 +339,6 @@ class CrudUI(PluginIdentityManager):
         return Div(
             Style(self.generate_role_css()),
             Card(
-                H2(f"{self.DISPLAY_NAME}"),
                 H3(self.H3_HEADER),
                 P(
                     f"New to {self.get_app_name()}? Start with the ",

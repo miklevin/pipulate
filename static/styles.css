@@ -453,7 +453,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 .nav-breadcrumb {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     width: 100%;
     justify-content: space-between;
     flex-wrap: nowrap;
