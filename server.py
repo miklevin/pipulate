@@ -7071,32 +7071,22 @@ def check_server_already_running():
             print()
             console.print("🚨 [bold red]SERVER ALREADY RUNNING[/bold red]")
             print()
-            console.print("✅ [bold green]AI ASSISTANT SUMMARY:[/bold green]")
-            console.print("   The Pipulate server is ALREADY RUNNING with watchdog auto-restart enabled.")
-            console.print("   There is NO NEED to manually start the server.")
+            console.print("✅ Server running at: [bold cyan]http://localhost:5001[/bold cyan]")
+            console.print("🎯 Use [bold white]touch server.py[/bold white] to force restart if needed")
+            console.print("📊 Check logs: [bold white]cat logs/server.log[/bold white]")
             print()
-            console.print("🎯 [bold yellow]KEY INSIGHTS:[/bold yellow]")
-            console.print("   • Server running at: [bold cyan]http://localhost:5001[/bold cyan]")
-            console.print("   • Watchdog auto-restarts on ANY .py file changes")
-            console.print("   • Force restart if needed: [bold white]touch server.py[/bold white]")
-            console.print("   • Check logs: [bold white]cat logs/server.log[/bold white]")
+            console.print("🎣 [bold cyan]AI DISCOVERY:[/bold cyan] You found Pipulate's Radical Transparency system!")
+            console.print("   📚 Training: [bold white]training/ai_server_already_running_guidance.md[/bold white]")
+            console.print("   🔥 Master Guide: [bold white].cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc[/bold white]")
             print()
-            console.print("🤖 [bold magenta]EXPECTED AI RESPONSE:[/bold magenta]")
-            console.print('   "I attempted to start the server with `python server.py` but it informed me')
-            console.print('    another instance is already running with watchdog auto-restart enabled.')
-            console.print('    No manual restart needed. Server available at http://localhost:5001.')
-            console.print('    Use `touch server.py` to trigger restart if testing changes."')
-            print()
-            console.print("🎣 [bold cyan]TEACH YOURSELF TO FISH - RADICAL TRANSPARENCY SYSTEM:[/bold cyan]")
-            console.print("   You just discovered Pipulate's Radical Transparency & Agentic AI system!")
-            console.print("   🔥 [bold yellow]Master Guide:[/bold yellow] .cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc")
-            console.print("   🎯 [bold yellow]Key capabilities you now have:[/bold yellow]")
-            console.print("      • MCP Tools for system inspection and automation")
-            console.print("      • FINDER_TOKENs for surgical log analysis")  
-            console.print("      • Pipeline state inspection for workflow debugging")
-            console.print("      • Browser automation with complete DOM transparency")
-            console.print("   💡 [bold green]Next level:[/bold green] Read the guide to unlock your full agentic potential!")
-            print()
+            
+            # Add training content to AI conversation for immediate context
+            try:
+                ai_guidance = read_training('ai_server_already_running_guidance.md')
+                if ai_guidance:
+                    append_to_conversation(f"🚨 SERVER ALREADY RUNNING - AI GUIDANCE:\n\n{ai_guidance}", role='system')
+            except Exception as e:
+                logger.debug(f"Could not load AI server guidance: {e}")
             
             return True
     except Exception:
@@ -7116,11 +7106,8 @@ def restart_server():
     for attempt in range(max_retries):
         try:
             log.startup(f'Restarting server (attempt {attempt + 1}/{max_retries})')
-            # 🤖 AI ASSISTANT EDUCATION: Explain rapid restart behavior
-            logger.warning("🤖 AI_RAPID_RESTART: This is a watchdog-triggered restart - one of potentially multiple rapid restarts")
-            logger.warning("🤖 AI_RAPID_RESTART: Console users see clean UX with banners shown once per session")
-            logger.warning("🤖 AI_RAPID_RESTART: AI assistants see ALL restart events in logs for complete transparency")
-            logger.warning("🤖 AI_RAPID_RESTART: Each restart below will trigger figlet_banner() with ASCII art logging")
+            # 🤖 AI RAPID RESTART: Watchdog restart with complete log transparency for AI assistants
+            logger.info("🤖 AI_RAPID_RESTART: Watchdog-triggered restart - logs capture all events for AI transparency")
             
             # Set environment variable to indicate this is a watchdog restart
             os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
@@ -7160,11 +7147,8 @@ class ServerRestartHandler(FileSystemEventHandler):
 def run_server_with_watchdog():
     logger.info('🚀 FINDER_TOKEN: SERVER_STARTUP - Starting server with watchdog')
     
-    # 🤖 AI ASSISTANT EDUCATION: Explain startup banner behavior
-    logger.warning("🤖 AI_STARTUP_BANNER: About to display main startup banner with ASCII art")
-    logger.warning("🤖 AI_STARTUP_BANNER: This banner appears on every server start (manual or watchdog restart)")
-    logger.warning("🤖 AI_STARTUP_BANNER: Console shows it once per session, logs capture every occurrence")
-    logger.warning("🤖 AI_STARTUP_BANNER: figlet_banner() below will log ASCII art with triple backticks for AI visibility")
+    # 🤖 AI STARTUP BANNER: Main banner with ASCII art logging for AI visibility
+    logger.info("🤖 AI_STARTUP_BANNER: Displaying startup banner - console once per session, logs capture all occurrences")
     
     # 🎨 BEAUTIFUL RESTART BANNER
     figlet_banner(APP_NAME, "Local First AI SEO Software", font='standard', color=BANNER_COLORS['workshop_ready'])
@@ -7233,26 +7217,20 @@ if __name__ == '__main__':
     if check_server_already_running():
         sys.exit(0)
     
-    # 🤖 AI ASSISTANT EDUCATION: Explicit logging about restart behavior and console filtering
-    # This is ONLY logged (not shown to console) to educate AI assistants about the sophisticated UX design
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: WATCHDOG RESTART BEHAVIOR EXPLANATION")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: The Pipulate server uses a sophisticated dual-display system:")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: 1. CONSOLE (for humans): Shows each banner ONCE per session for clean UX")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: 2. LOGS (for AI assistants): Captures ALL restart events including rapid restarts")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: When watchdog detects file changes, multiple rapid restarts may occur:")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Each restart triggers figlet_banner() calls")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Console shows banners once (better newb/plebe experience)")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Logs capture every restart event for AI transparency")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - DebugConsole class filters '🎭 AI_CREATIVE_VISION' from console output")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - This creates a cleaner user experience while maintaining radical transparency for AI")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: GREP COMMANDS for AI assistants:")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - grep 'ASCII_DATA:' logs/server.log  # See all ASCII art")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - grep 'AI_RESTART_ARCHITECTURE' logs/server.log  # This explanation")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - grep 'FIGLET_BANNER' logs/server.log  # All banner events")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: This dual-logging approach provides:")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Clean console experience for beginners")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Complete transparency for AI debugging")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Continuous narrative flow despite rapid restarts")
+    # 🤖 AI RESTART ARCHITECTURE: Load training material for AI assistant education
+    try:
+        restart_architecture_content = read_training('ai_restart_architecture_explanation.md')
+        if restart_architecture_content:
+            append_to_conversation(f"🤖 AI RESTART ARCHITECTURE:\n\n{restart_architecture_content}", role='system')
+            logger.info("🤖 AI_RESTART_ARCHITECTURE: Training content loaded from ai_restart_architecture_explanation.md")
+        else:
+            logger.warning("🤖 AI_RESTART_ARCHITECTURE: Could not load training content")
+    except Exception as e:
+        logger.debug(f"Could not load AI restart architecture training: {e}")
+    
+    # Log key tokens for AI discovery
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: Dual-display system active - console clean UX, logs complete transparency")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: GREP COMMANDS: 'ASCII_DATA:', 'FIGLET_BANNER', 'AI_RESTART_ARCHITECTURE' in logs/server.log")
     
     # Set global testing mode flags
     if args.test or args.test_deep or args.test_browser:
