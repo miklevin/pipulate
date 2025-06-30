@@ -1156,15 +1156,23 @@ async def _browser_scrape_page(params: dict) -> dict:
         backup_dir = os.path.join('downloads/browser_scrapes', scrape_id)
         os.makedirs(backup_dir, exist_ok=True)
         
-        # Set up Selenium Wire for header capture
+        # Set up Selenium Wire for header capture with WORKING PATTERN from plugin
+        import tempfile
+        import shutil
+        
         chrome_options = Options()
         # Use headless unless screenshot is requested
         if not take_screenshot:
             chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--new-window')
+        chrome_options.add_argument('--start-maximized')
         chrome_options.add_argument('--window-size=1920,1080')
+        
+        # CRITICAL: Create temporary profile directory (prevents browser conflicts)
+        profile_dir = tempfile.mkdtemp()
+        chrome_options.add_argument(f'--user-data-dir={profile_dir}')
         
         driver = wire_webdriver.Chrome(options=chrome_options)
         
@@ -1309,6 +1317,8 @@ async def _browser_scrape_page(params: dict) -> dict:
                 
         finally:
             driver.quit()
+            # CRITICAL: Clean up temporary profile directory
+            shutil.rmtree(profile_dir, ignore_errors=True)
             
         result = {
             "success": True,
