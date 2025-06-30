@@ -1054,6 +1054,18 @@ async def _browser_scrape_page(params: dict) -> dict:
         if not url:
             return {"success": False, "error": "URL parameter is required"}
             
+        # === DIRECTORY ROTATION BEFORE NEW BROWSER SCRAPE ===
+        # Rotate looking_at directory to preserve AI perception history
+        from server import rotate_looking_at_directory
+        from pathlib import Path
+        
+        rotation_success = rotate_looking_at_directory(
+            looking_at_path=Path('browser_automation/looking_at')
+        )
+        
+        if not rotation_success:
+            logger.warning("⚠️ FINDER_TOKEN: DIRECTORY_ROTATION_WARNING - Directory rotation failed, continuing with scrape")
+            
         # Set up the /looking_at/ directory - AI's primary perception interface
         looking_at_dir = 'browser_automation/looking_at'
         os.makedirs(looking_at_dir, exist_ok=True)
@@ -1270,6 +1282,18 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
         
         if not plugin_filename:
             return {"success": False, "error": "plugin_filename is required"}
+        
+        # === DIRECTORY ROTATION BEFORE NEW WORKFLOW WALKTHROUGH ===
+        # Rotate looking_at directory to preserve AI workflow history
+        from server import rotate_looking_at_directory  
+        from pathlib import Path
+        
+        rotation_success = rotate_looking_at_directory(
+            looking_at_path=Path('browser_automation/looking_at')
+        )
+        
+        if not rotation_success:
+            logger.warning("⚠️ FINDER_TOKEN: WORKFLOW_DIRECTORY_ROTATION_WARNING - Directory rotation failed, continuing with workflow")
             
         logger.info(f"🚀 FINDER_TOKEN: WORKFLOW_AUTOMATION_START | Starting workflow walkthrough for {plugin_filename}")
         
