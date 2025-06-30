@@ -136,11 +136,11 @@ async def _pipeline_state_inspector(params: dict) -> dict:
         
         # Filter by pipeline_id if specified
         if pipeline_id:
-            all_pipelines = [p for p in all_pipelines if p.pipeline_id == pipeline_id]
+            all_pipelines = [p for p in all_pipelines if p.pkey == pipeline_id]
         
         # Filter by app_name if specified
         if app_name:
-            all_pipelines = [p for p in all_pipelines if p.pipeline_id.startswith(app_name)]
+            all_pipelines = [p for p in all_pipelines if p.pkey.startswith(app_name)]
         
         if not all_pipelines:
             return {
@@ -154,11 +154,11 @@ async def _pipeline_state_inspector(params: dict) -> dict:
         pipeline_data = []
         for pipeline in all_pipelines:
             try:
-                # Parse the state JSON
-                state = json.loads(pipeline.state) if pipeline.state else {}
+                # Parse the data JSON (FastLite stores JSON in 'data' field, not 'state')
+                state = json.loads(pipeline.data) if pipeline.data else {}
                 
                 pipeline_info = {
-                    "pipeline_id": pipeline.pipeline_id,
+                    "pipeline_id": pipeline.pkey,  # Use pkey instead of pipeline_id
                     "created": pipeline.created,
                     "updated": pipeline.updated,
                     "finalized": getattr(pipeline, 'finalized', False),
@@ -185,9 +185,9 @@ async def _pipeline_state_inspector(params: dict) -> dict:
                 
             except json.JSONDecodeError as e:
                 pipeline_data.append({
-                    "pipeline_id": pipeline.pipeline_id,
-                    "error": f"Invalid JSON in state: {str(e)}",
-                    "raw_state": pipeline.state[:200] if pipeline.state else None
+                    "pipeline_id": pipeline.pkey,
+                    "error": f"Invalid JSON in data: {str(e)}",
+                    "raw_state": pipeline.data[:200] if pipeline.data else None
                 })
         
         result = {
