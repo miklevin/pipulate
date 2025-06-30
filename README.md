@@ -1,6 +1,6 @@
 # Pipulate: Local First AI SEO Software
 
-![Pipulate Free & Open Source SEO with & for LLMs](https://github.com/miklevin/pipulate/raw/main/static/ai-seo-software.png)
+![Pipulate Free & Open Source SEO with & for LLMs](https://github.com/miklevin/pipulate/raw/main/static/images/ai-seo-software.png)
 
 <!-- Don't forget to sync_ascii_art.py -->
 > **Your data. Your AI. Your machine. Your control.**  
