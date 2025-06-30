@@ -409,12 +409,27 @@ class ASTWorkflowReconstructor:
             route_registrations = self.extract_route_registrations(source_tree, chunk2_methods)
             print(f"  📝 Found {len(route_registrations)} route registrations")
             
-            # Apply transformations to template
-            if transformations:
+            # Extract source attributes for transplantation
+            print("📋 Extracting source attributes for transplantation...")
+            source_attrs = self.extract_class_attributes(source_tree)
+            
+            # Build comprehensive transformations including source attributes
+            all_transformations = transformations or {}
+            
+            # Carry over TRAINING_PROMPT and ENDPOINT_MESSAGE from source
+            if 'TRAINING_PROMPT' in source_attrs:
+                all_transformations['TRAINING_PROMPT'] = source_attrs['TRAINING_PROMPT']
+                print(f"  📚 Carrying over TRAINING_PROMPT from source")
+            if 'ENDPOINT_MESSAGE' in source_attrs:
+                all_transformations['ENDPOINT_MESSAGE'] = source_attrs['ENDPOINT_MESSAGE']
+                print(f"  💬 Carrying over ENDPOINT_MESSAGE from source")
+            
+            # Apply all transformations to template
+            if all_transformations:
                 print("✏️  Applying transformations...")
-                template_tree = self.update_class_attributes(template_tree, transformations)
-                for attr, value in transformations.items():
-                    print(f"  🔄 {attr} = '{value}'")
+                template_tree = self.update_class_attributes(template_tree, all_transformations)
+                for attr, value in all_transformations.items():
+                    print(f"  🔄 {attr} = '{value[:50]}{'...' if len(value) > 50 else ''}'")
             
             # Update class name if provided
             if new_class_name:
@@ -462,6 +477,10 @@ class ASTWorkflowReconstructor:
             transformations['APP_NAME'] = f"{source_attrs['APP_NAME']}{suffix}"
         if 'DISPLAY_NAME' in source_attrs:
             transformations['DISPLAY_NAME'] = f"{source_attrs['DISPLAY_NAME']} {suffix}"
+        if 'TRAINING_PROMPT' in source_attrs:
+            transformations['TRAINING_PROMPT'] = source_attrs['TRAINING_PROMPT']
+        if 'ENDPOINT_MESSAGE' in source_attrs:
+            transformations['ENDPOINT_MESSAGE'] = source_attrs['ENDPOINT_MESSAGE']
         
         # Find class name and transform it
         new_class_name = None
@@ -471,7 +490,11 @@ class ASTWorkflowReconstructor:
             new_class_name = f"{original_class_name}{suffix}"
         
         print(f"🔄 Creating variant: {existing_name} + {suffix} -> {new_filename}")
-        print(f"📝 Transformations: {transformations}")
+        print(f"📝 Transformations: {list(transformations.keys())}")
+        if 'TRAINING_PROMPT' in transformations:
+            print(f"  📚 TRAINING_PROMPT: {transformations['TRAINING_PROMPT'][:50]}{'...' if len(transformations['TRAINING_PROMPT']) > 50 else ''}")
+        if 'ENDPOINT_MESSAGE' in transformations:
+            print(f"  💬 ENDPOINT_MESSAGE: {transformations['ENDPOINT_MESSAGE'][:50]}{'...' if len(transformations['ENDPOINT_MESSAGE']) > 50 else ''}")
         if new_class_name:
             print(f"🏷️ Class name: {class_node.name} -> {new_class_name}")
         
