@@ -73,16 +73,21 @@ class LinkGraphVisualizer:
         self.steps = steps
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
         pipulate.register_workflow_routes(self)
+        
+        # --- CUSTOM_ROUTE_START: Link Graph Workflow-Specific Routes ---
         app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
         app.route(f'/{app_name}/step_02b_process', methods=['POST'])(self.step_02b_process)
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
         app.route(f'/{app_name}/step_04_complete', methods=['POST'])(self.step_04_complete)
         app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
+        app.route(f'/{app_name}/step_parameters_process', methods=['POST'])(self.step_parameters_process)
+        app.route(f'/{app_name}/parameter_preview', methods=['POST'])(self.parameter_preview)
+        # --- CUSTOM_ROUTE_END: Link Graph Workflow-Specific Routes ---
+        
+        # Template routes (not transplanted)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         app.route(f'/{app_name}/download_file', methods=['GET'])(self.download_file)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
-        app.route(f'/{app_name}/step_parameters_process', methods=['POST'])(self.step_parameters_process)
-        app.route(f'/{app_name}/parameter_preview', methods=['POST'])(self.parameter_preview)
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f"Workflow finalized. Use {self.ui['BUTTON_LABELS']['UNLOCK']} to make changes."}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
             if step.id not in self.step_messages:
