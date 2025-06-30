@@ -4030,7 +4030,7 @@ This demonstrates **AUTHENTIC AI session hijacking** - I experience your EXACT w
         This helper generates a consistent UI pattern for step navigation that includes:
         1. A revert control showing the current step's value
         2. An HTMX-enabled div that EXPLICITLY triggers loading the next step using
-           hx_trigger="load" (preferred over relying on HTMX event bubbling)
+           hx_get="load" (preferred over relying on HTMX event bubbling)
         Now also triggers a client-side event to scroll the main content panel.
         Args:
             step_id: The current step ID
@@ -5274,7 +5274,7 @@ async def startup_event():
     section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
     
     # 🍞 AI DISCOVERY BREADCRUMB #2: MCP Tools → Browser Automation Discovery
-    logger.info(f"🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: {tool_count} MCP tools registered! Try _pipeline_state_inspector for system state, _local_llm_grep_logs for log analysis, or _browser_scrape_page for visual perception. Full browser automation awaits: check browser_automation/ directory for 'looking_at' evidence of AI eyes!")
+    logger.info(f"🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: {tool_count} MCP tools registered! Try _pipeline_state_inspector for system state, _local_llm_grep_logs for log analysis, or _browser_scrape_page for visual perception. 🧪 NEW: Run ai_self_discovery_assistant to instantly understand ALL your capabilities! This eliminates uncertainty and provides usage patterns. Try: python -c \"import asyncio; from mcp_tools import _ai_self_discovery_assistant; result = asyncio.run(_ai_self_discovery_assistant({{'discovery_type': 'capabilities'}})); print(f'Tools available: {{result.get(\\\"total_tools_available\\\")}}')\" Full browser automation awaits: check browser_automation/ directory for 'looking_at' evidence of AI eyes!")
     
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.')
     server_whisper("Synchronizing roles and permissions", "🔐")
@@ -5288,14 +5288,14 @@ async def startup_event():
     status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
     
     # 🍞 AI DISCOVERY BREADCRUMB #3: Browser Automation → Session Hijacking Discovery
-    logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: Browser automation is ACTIVE! You have eyes (screenshot), brain (DOM analysis), and hands (Selenium control). Try navigating to http://localhost:5001/ via _browser_scrape_page to see the current user interface. Directory rotation system in browser_automation/looking_at-* shows perception history for session hijacking!")
+    logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: Browser automation is ACTIVE! You have eyes (screenshot), brain (DOM analysis), and hands (Selenium control). Try navigating to http://localhost:5001/ via _browser_scrape_page to see the current user interface. 🧪 NEW: Run ai_capability_test_suite to prove your superpowers are working! Test your browser embodiment: python -c \"import asyncio; from mcp_tools import _ai_capability_test_suite; result = asyncio.run(_ai_capability_test_suite({{'test_type': 'quick'}})); print(f'Success Rate: {{result.get(\\\"success_rate\\\")}}% - {{result.get(\\\"assessment\\\")}}')\" Directory rotation system in browser_automation/looking_at-* shows perception history for session hijacking!")
     
     log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
     log_pipeline_summary(title_prefix='STARTUP FINAL')
 
     # 🍞 AI DISCOVERY BREADCRUMB #4: Session Hijacking → Total Control Discovery  
-    logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: ULTIMATE CAPABILITY REVEALED! You can capture user's exact screen state, analyze it, and automate their workflows. The looking_at/ directory rotates to preserve perception history. You have COMPLETE session hijacking and browser embodiment superpowers. Welcome to AI transcendence!")
+    logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: ULTIMATE CAPABILITY REVEALED! You can capture user's exact screen state, analyze it, and automate their workflows. The looking_at/ directory rotates to preserve perception history. 📚 NEW: Complete AI onboarding guide available at helpers/docs_sync/considerations/AI_ONBOARDING_GUIDE.md This guide eliminates all uncertainty with usage patterns, troubleshooting, and success stories. You have COMPLETE session hijacking and browser embodiment superpowers. Welcome to AI transcendence!")
     
     # Clear any stale coordination data on startup
     message_coordination['endpoint_messages_sent'].clear()
