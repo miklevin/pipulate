@@ -3024,18 +3024,43 @@ await main()
                 
                 # 🔥 HARDWIRED AUTOMATION: Execute browser automation directly (bypass LLM weakness)
                 try:
-                    from mcp_tools import _pipeline_state_inspector, _local_llm_grep_logs
+                    from mcp_tools import _pipeline_state_inspector, _local_llm_grep_logs, _browser_scrape_page
+                    from pathlib import Path
                     
-                    # 1. GET PIPELINE STATE (safer than browser automation)
-                    await self.chat.broadcast("🔍 **STEP 1:** Reading your workflow state...")
+                    # 1. CAPTURE BROWSER DOM STATE - The Critical Missing Piece
+                    await self.chat.broadcast("👁️ **STEP 1:** Capturing your current browser DOM state...")
+                    try:
+                        browser_result = await _browser_scrape_page({
+                            "url": "http://localhost:5001",
+                            "wait_seconds": 2,
+                            "take_screenshot": True
+                        })
+                        await self.chat.broadcast("✅ **Browser state captured!** Taking screenshot and analyzing DOM...")
+                        
+                        # Read the simplified DOM for AI analysis
+                        simple_dom_path = Path("browser_automation/looking_at/simple_dom.html")
+                        current_dom = ""
+                        if simple_dom_path.exists():
+                            current_dom = simple_dom_path.read_text()[:2000]  # First 2K chars for context
+                            await self.chat.broadcast(f"🔍 **DOM Analysis:** Found {len(current_dom)} chars of simplified DOM")
+                        else:
+                            await self.chat.broadcast("⚠️ **DOM Warning:** simple_dom.html not found")
+                            
+                    except Exception as e:
+                        browser_result = {"error": str(e)}
+                        current_dom = f"Browser automation error: {e}"
+                        await self.chat.broadcast(f"❌ **Browser Error:** {e}")
+                    
+                    # 2. GET PIPELINE STATE 
+                    await self.chat.broadcast("🔍 **STEP 2:** Reading your workflow state...")
                     try:
                         pipeline_result = await _pipeline_state_inspector({})
                         await self.chat.broadcast(f"✅ **Pipeline state captured:** {pipeline_result.get('status', 'Retrieved')}")
                     except Exception as e:
                         pipeline_result = {"error": str(e), "status": "failed"}
                     
-                    # 2. CHECK RECENT USER ACTIVITY 
-                    await self.chat.broadcast("🔍 **STEP 2:** Scanning your recent activity...")
+                    # 3. CHECK RECENT USER ACTIVITY 
+                    await self.chat.broadcast("🔍 **STEP 3:** Scanning your recent activity...")
                     try:
                         grep_result = await _local_llm_grep_logs({"pattern": "Name saved|workflow.*step", "lines": 5})
                         if "results" in grep_result and grep_result["results"]:
@@ -3046,17 +3071,23 @@ await main()
                     except Exception as e:
                         grep_result = {"error": str(e)}
                     
-                    # 3. FORCE-INJECT STATE DATA INTO CONVERSATION  
+                    # 4. FORCE-INJECT COMPLETE SESSION STATE INCLUDING DOM
                     state_summary = f"""
-🍪 **SESSION HIJACKED!** Here's what I can see from your current state:
+🍪 **SESSION HIJACKED!** Complete browser embodiment achieved:
 
+**Browser DOM State:** {len(current_dom)} characters captured
 **Pipeline State:** {pipeline_result.get('status', 'unknown')}
 **Recent Activity:** {grep_result.get('results', ['No activity'])[-1] if grep_result.get('results') else 'No activity'}
 
-This proves I have **complete access** to your digital state and can monitor your workflow progress in real-time!
+**CURRENT DOM SNAPSHOT (First 2000 chars):**
+```html
+{current_dom}
+```
+
+This proves I have **complete access** to your digital state including the exact DOM structure of your current workflow step!
 """
                     append_to_conversation(state_summary, 'system')
-                    await self.chat.broadcast("💾 **State captured and analyzed!** Check the conversation history for proof of session hijacking.")
+                    await self.chat.broadcast("💾 **Complete session state captured!** Browser DOM + workflow state + activity logs all analyzed.")
                     
                 except Exception as e:
                     logger.error(f"🎭 MAGIC WORDS ERROR: Hardwired automation failed: {e}")
