@@ -6630,12 +6630,12 @@ async def clear_pipeline(request):
         db['last_app_choice'] = last_app_choice
     if last_visited_url:
         db['last_visited_url'] = last_visited_url
-    if hasattr(pipulate.table, 'xtra'):
-        pipulate.table.xtra()
-    records = list(pipulate.table())
+    if hasattr(pipulate.pipeline_table, 'xtra'):
+        pipulate.pipeline_table.xtra()
+    records = list(pipulate.pipeline_table())
     logger.debug(f'Found {len(records)} records to delete')
     for record in records:
-        pipulate.table.delete(record.pkey)
+        pipulate.pipeline_table.delete(record.pkey)
     logger.debug(f'{workflow_display_name} table cleared')
     db['temp_message'] = f'{workflow_display_name} cleared. Next ID will be 01.'
     logger.debug(f'{workflow_display_name} DictLikeDB cleared for debugging')
