@@ -29,6 +29,8 @@ except FileNotFoundError:
     sys.exit(1)
 
 INIT_PY_PATH = PIPULATE_ROOT / "__init__.py"
+# Add Pipulate.com path configuration
+PIPULATE_COM_ROOT = PIPULATE_ROOT.parent / "Pipulate.com"
 
 def run_command(cmd, cwd=PIPULATE_ROOT, capture=False, check=True, shell=False):
     """Runs a command and handles errors."""
@@ -80,9 +82,45 @@ def run_ascii_art_sync():
         print(f"⚠️  Documentation sync failed: {e}")
         return False
 
+def sync_install_sh():
+    """Copies install.sh to Pipulate.com and commits if changed."""
+    print("\n🔄 Step 3: Synchronizing install.sh to Pipulate.com...")
+    source_path = PIPULATE_ROOT / "install.sh"
+    dest_path = PIPULATE_COM_ROOT / "install.sh"
+
+    if not PIPULATE_COM_ROOT.exists():
+        print(f"⚠️  Warning: Pipulate.com repo not found at {PIPULATE_COM_ROOT}. Skipping install.sh sync.")
+        return False
+
+    if not source_path.exists():
+        print(f"⚠️  Warning: Source install.sh not found at {source_path}. Skipping install.sh sync.")
+        return False
+
+    # Copy the file
+    dest_path.write_text(source_path.read_text())
+    print(f"📄 Copied {source_path.name} to {dest_path}")
+
+    # Check if there are changes in the Pipulate.com repo
+    try:
+        status_result = run_command(['git', 'status', '--porcelain', str(dest_path.name)], cwd=PIPULATE_COM_ROOT, capture=True)
+        if status_result.stdout.strip():
+            print(f"📦 Changes detected in {dest_path.name}. Committing and pushing...")
+            run_command(['git', 'add', str(dest_path.name)], cwd=PIPULATE_COM_ROOT)
+            commit_msg = f"chore: Update install.sh from pipulate repo v{get_current_version()}"
+            run_command(['git', 'commit', '-m', commit_msg], cwd=PIPULATE_COM_ROOT)
+            run_command(['git', 'push'], cwd=PIPULATE_COM_ROOT)
+            print("✅ Pushed install.sh update to Pipulate.com repo.")
+            return True
+        else:
+            print("✅ install.sh is already up-to-date in Pipulate.com repo.")
+            return False
+    except Exception as e:
+        print(f"⚠️  Install.sh sync failed: {e}")
+        return False
+
 def get_ai_commit_message():
     """Gets an AI-generated commit message from local LLM."""
-    print("\n🤖 Step 3: Generating AI commit message...")
+    print("\n🤖 Generating AI commit message...")
     
     # First, check if there are staged changes
     try:
@@ -123,6 +161,7 @@ def main():
     parser.add_argument("--ai-commit", action="store_true", help="Use AI to generate commit message")
     parser.add_argument("--skip-version-sync", action="store_true", help="Skip version synchronization")
     parser.add_argument("--skip-docs-sync", action="store_true", help="Skip documentation synchronization")
+    parser.add_argument("--skip-install-sh-sync", action="store_true", help="Skip install.sh synchronization")
     
     args = parser.parse_args()
     
@@ -148,6 +187,13 @@ def main():
     else:
         print("\n⏭️  Skipping documentation synchronization (--skip-docs-sync)")
         docs_sync_success = True
+    
+    # Step 3: Install.sh Synchronization
+    if not args.skip_install_sh_sync:
+        install_sh_success = sync_install_sh()
+    else:
+        print("\n⏭️  Skipping install.sh synchronization (--skip-install-sh-sync)")
+        install_sh_success = False
     
     # === RELEASE PIPELINE PHASE 2: GIT OPERATIONS ===
     print("\n📝 === RELEASE PIPELINE: GIT OPERATIONS PHASE ===")
