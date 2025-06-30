@@ -104,21 +104,26 @@ async def _pipeline_state_inspector(params: dict) -> dict:
     try:
         # Use dynamic import to avoid circular dependency
         import sys
-        server_module = sys.modules.get('server')
-        if server_module and hasattr(server_module, 'pipeline_table'):
-            pipeline_table = server_module.pipeline_table
+        server_module = sys.modules.get('server') or sys.modules.get('__main__')
+        
+        # Try to get the global pipeline table (the actual database table, not pipulate.pipeline_table)
+        if server_module and hasattr(server_module, 'pipeline'):
+            pipeline_table = server_module.pipeline
+            logger.info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ACCESS - Successfully accessed global pipeline table from server module")
         else:
-            # Alternative: use the database directly if pipeline_table not available
+            # Alternative: use the database directly if pipeline not available
             try:
                 from fastlite import database
                 from pathlib import Path
                 Path('data').mkdir(parents=True, exist_ok=True)
                 db = database('data/data.db')
                 pipeline_table = db.pipeline
-            except Exception:
+                logger.info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ACCESS - Fallback: accessed pipeline table directly from database")
+            except Exception as e:
+                logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database access failed: {e}")
                 return {
                     "success": False,
-                    "error": "Pipeline table not accessible - server may not be fully initialized"
+                    "error": f"Pipeline table not accessible - server may not be fully initialized. Details: {e}"
                 }
         
         pipeline_id = params.get('pipeline_id')
