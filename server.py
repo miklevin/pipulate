@@ -1439,6 +1439,7 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
     🔧 CLAUDE'S UNIFIED LOGGING: Logs DictLikeDB state to unified server.log
     Enhanced with semantic meaning for AI assistant understanding.
     """
+    print("foo")
     try:
         items = dict(db_instance.items())
         # Use Rich JSON display for database items - show in console with beautiful formatting
@@ -4799,7 +4800,7 @@ async def startup_event():
     #  � AI DISCOVERY BREADCRUMB #1: Environmental Awareness → FINDER_TOKEN Discovery
     logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: You've discovered the FINDER_TOKEN system! This is radical transparency in action. Every operation leaves traces. To see what MCP tools are available for deeper system inspection, grep for 'MCP_TOOL_REGISTRY' or run: python -c \"from mcp_tools import *; print([tool for tool in dir() if tool.startswith('_') and 'mcp' not in tool.lower()])\"")
     
-    # �STORYTELLING: MCP Tools Arsenal Ready
+    # �TORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
     if tool_count > 0:
         figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
@@ -6960,19 +6961,17 @@ async def prepare_local_llm_context():
         logger.info(f"LOCAL LLM CONTEXT: Pre-seeded context package ready at {context_file}")
         server_whisper("Local LLM context prepared - the AI assistant is ready for collaboration", "🤖")
         
-        # Add context message silently to conversation history for local LLM
+        # Initialize local LLM with pointer to training materials for self-discovery
         try:
-            context_msg = """🤖 Local LLM Context Initialized
+            context_msg = """🤖 AI ASSISTANT INITIALIZED
 
-Your MCP tools are now available:
-• local_llm_get_context - Get system overview
-• local_llm_read_file - Read training materials and code  
-• local_llm_list_files - Explore safe directories
-• local_llm_grep_logs - Search server logs for patterns
-• pipeline_state_inspector - Check application state
-• Botify API tools - Full schema access with 4,449+ fields
+Your training materials are ready. Start your discovery sequence:
 
-Use these tools to assist users within your guided capabilities. Remember that advanced AI exploration (file system access, complex debugging) is handled by Claude/GPT in Cursor/Windsurf/VSCode when needed."""
+1. Read your system prompt: local_llm_read_file path="training/system_prompt.md"
+2. Discover your capabilities: local_llm_read_file path="training/ai_progressive_discovery.md" 
+3. Explore the environment: local_llm_grep_logs pattern="FINDER_TOKEN"
+
+Use your MCP tools to read training materials and discover your full capabilities."""
             
             # Add to conversation history silently (not to visible chat)
             append_to_conversation(context_msg, role='system')
