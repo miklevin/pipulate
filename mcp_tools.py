@@ -1280,7 +1280,7 @@ async def _browser_scrape_page(params: dict) -> dict:
                 
                 # Create beautiful DOM with automation registry using AI DOM Beautifier
                 try:
-                    from ai_dom_beautifier import AIDOMBeautifier
+                    from helpers.dom_processing.ai_dom_beautifier import AIDOMBeautifier
                     beautifier = AIDOMBeautifier()
                     beautiful_dom, automation_registry = beautifier.beautify_dom(simple_dom_html)
                     
