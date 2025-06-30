@@ -583,16 +583,6 @@ class ASTWorkflowReconstructor:
         """Extract route registrations between CUSTOM_ROUTE_START/END markers."""
         import ast
         
-        # Get the source code of the init method
-        source_lines = []
-        for node in init_method.body:
-            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-                source_lines.append(node)
-        
-        # We need to examine the original source to find the markers
-        # This is a simplified approach - in practice, we'd parse comments properly
-        # For now, let's use a different approach based on the AST structure
-        
         custom_routes = []
         
         # Define legacy method names that should be filtered out
@@ -601,7 +591,59 @@ class ASTWorkflowReconstructor:
             'step_analysis', 'step_analysis_submit', 'step_analysis_process'  # Trifecta enhanced
         }
         
-        # Look for route registrations that match our known custom patterns
+        # Get the source code of the init method to find comment markers
+        method_source = ast.unparse(init_method)
+        lines = method_source.split('\n')
+        
+        # Find the line numbers of the markers
+        start_line = None
+        end_line = None
+        for i, line in enumerate(lines):
+            if 'CUSTOM_ROUTE_START' in line:
+                start_line = i
+                print(f"  🎯 Found CUSTOM_ROUTE_START marker at line {i+1}")
+            elif 'CUSTOM_ROUTE_END' in line:
+                end_line = i
+                print(f"  🎯 Found CUSTOM_ROUTE_END marker at line {i+1}")
+                break
+        
+        # If markers found, extract routes between them
+        if start_line is not None and end_line is not None:
+            # Parse the marked section to find route registrations
+            marked_section = '\n'.join(lines[start_line:end_line+1])
+            
+            # Find route registrations in the marked section
+            for node in ast.walk(init_method):
+                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+                    if (hasattr(node.value, 'func') and 
+                        isinstance(node.value.func, ast.Call) and
+                        self.is_route_registration(node.value.func)):
+                        
+                        # Check if this route is in the marked section
+                        route_source = ast.unparse(node)
+                        if route_source in marked_section:
+                            route_path = self.extract_route_path(node.value.func)
+                            method_name = self.extract_method_name_from_route(node)
+                            
+                            # Filter out legacy methods
+                            if method_name and method_name in legacy_method_names:
+                                print(f"  🚫 Filtered out legacy route: {route_path} (method: {method_name})")
+                                continue
+                            
+                            custom_routes.append(node)
+                            print(f"  🎯 Found custom route: {route_path}")
+        
+        # Fallback: if no markers found, use the old pattern-based approach
+        if not custom_routes:
+            print(f"  ⚠️ No CUSTOM_ROUTE markers found, using pattern-based detection")
+            return self._extract_custom_routes_by_pattern(init_method, legacy_method_names)
+        
+        return custom_routes
+    
+    def _extract_custom_routes_by_pattern(self, init_method: ast.FunctionDef, legacy_method_names: set) -> List[ast.Expr]:
+        """Fallback method to extract custom routes by pattern matching."""
+        custom_routes = []
+        
         for node in ast.walk(init_method):
             if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
                 if (hasattr(node.value, 'func') and 
@@ -622,7 +664,7 @@ class ASTWorkflowReconstructor:
                                 continue
                             
                             custom_routes.append(node)
-                            print(f"  🎯 Found custom route: {route_path}")
+                            print(f"  🎯 Found custom route by pattern: {route_path}")
         
         return custom_routes
 
