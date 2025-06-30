@@ -2997,6 +2997,44 @@ await main()
             return f'<a href="{url}" target="_blank">{url}</a>'
         return re.sub(url_pattern, replace_url, text)
 
+    def _is_hijack_magic_words(self, message):
+        """
+        🎭 MAGIC WORDS PATTERN MATCHING: Detect session hijacking demonstration triggers.
+        
+        Supports casual variations for easy demo usage:
+        - hi jack, Hi Jack, Hi, Jack!, etc.
+        - hijack, hijak, hijack!, etc.
+        - !hj (shorthand)
+        - Execute AI session hijacking demonstration (original)
+        
+        This enables low-friction demonstration during video calls - just type "hi jack"!
+        """
+        import re
+        
+        # Normalize the message: lowercase, remove punctuation except letters/digits/spaces
+        normalized = re.sub(r'[^\w\s]', '', message.lower().strip())
+        
+        # Pattern 1: Direct hijack variations (single words)
+        hijack_words = ['hijack', 'hijak']
+        for word in hijack_words:
+            if word in normalized:
+                return True
+        
+        # Pattern 2: "hi" + "jack" combinations (with up to 2 words between)
+        hi_jack_pattern = r'\bhi\b(?:\s+\w+){0,2}?\s+\b(?:jack|jak)\b'
+        if re.search(hi_jack_pattern, normalized):
+            return True
+            
+        # Pattern 3: Shorthand !hj or hj! (check original message for punctuation)
+        if re.search(r'!hj\b|hj!|\bhj$', message.lower()):
+            return True
+            
+        # Pattern 4: Original formal trigger
+        if 'execute ai session hijacking demonstration' in normalized:
+            return True
+            
+        return False
+
     async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=None, simulate_typing=True):
         """Stream a message to the chat interface.
         
@@ -3005,11 +3043,11 @@ await main()
         """
         logger.debug(f"🔍 DEBUG: === STARTING pipulate.stream (role: {role}) ===")
         
-        # 🎭 MAGIC WORDS DETECTION: Check for AI demonstration trigger
-        if "execute ai session hijacking demonstration" in message.lower() and role == 'user':
+        # 🎭 MAGIC WORDS DETECTION: Check for AI demonstration trigger (supports casual variations like "hi jack")
+        if self._is_hijack_magic_words(message) and role == 'user':
             # Load and inject the complete demonstration protocol
             magic_words_protocol = read_training("ai_magic_words_demonstration_protocol.md")
-            logger.info("🎭 MAGIC WORDS DETECTED - Loading session hijacking demonstration protocol")
+            logger.info(f"🎭 MAGIC WORDS DETECTED ('{message.strip()}') - Loading session hijacking demonstration protocol")
             
             # Add protocol to conversation history immediately
             append_to_conversation("🎭 **MAGIC WORDS DETECTED!** Loading session hijacking demonstration protocol...", 'system')
