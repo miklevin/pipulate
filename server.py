@@ -3021,6 +3021,47 @@ await main()
                 await self.chat.broadcast("🎭 **MAGIC WORDS DETECTED!** Loading session hijacking demonstration protocol...")
                 await asyncio.sleep(0.5)  # Brief pause for dramatic effect
                 await self.chat.broadcast("🚀 **PROTOCOL LOADED** - I now have complete instructions for demonstrating AI session hijacking superpowers!")
+                
+                # 🔥 HARDWIRED AUTOMATION: Execute browser automation directly (bypass LLM weakness)
+                try:
+                    from mcp_tools import _pipeline_state_inspector, _local_llm_grep_logs
+                    
+                    # 1. GET PIPELINE STATE (safer than browser automation)
+                    await self.chat.broadcast("🔍 **STEP 1:** Reading your workflow state...")
+                    try:
+                        pipeline_result = await _pipeline_state_inspector({})
+                        await self.chat.broadcast(f"✅ **Pipeline state captured:** {pipeline_result.get('status', 'Retrieved')}")
+                    except Exception as e:
+                        pipeline_result = {"error": str(e), "status": "failed"}
+                    
+                    # 2. CHECK RECENT USER ACTIVITY 
+                    await self.chat.broadcast("🔍 **STEP 2:** Scanning your recent activity...")
+                    try:
+                        grep_result = await _local_llm_grep_logs({"pattern": "Name saved|workflow.*step", "lines": 5})
+                        if "results" in grep_result and grep_result["results"]:
+                            latest_activity = grep_result["results"][-1] if grep_result["results"] else "No recent activity"
+                            await self.chat.broadcast(f"🎯 **Activity detected:** {latest_activity}")
+                        else:
+                            await self.chat.broadcast("📝 **Activity scan:** No recent workflow activity found")
+                    except Exception as e:
+                        grep_result = {"error": str(e)}
+                    
+                    # 3. FORCE-INJECT STATE DATA INTO CONVERSATION  
+                    state_summary = f"""
+🍪 **SESSION HIJACKED!** Here's what I can see from your current state:
+
+**Pipeline State:** {pipeline_result.get('status', 'unknown')}
+**Recent Activity:** {grep_result.get('results', ['No activity'])[-1] if grep_result.get('results') else 'No activity'}
+
+This proves I have **complete access** to your digital state and can monitor your workflow progress in real-time!
+"""
+                    append_to_conversation(state_summary, 'system')
+                    await self.chat.broadcast("💾 **State captured and analyzed!** Check the conversation history for proof of session hijacking.")
+                    
+                except Exception as e:
+                    logger.error(f"🎭 MAGIC WORDS ERROR: Hardwired automation failed: {e}")
+                    await self.chat.broadcast(f"🔧 **DEBUG:** Hardwired automation encountered an issue: {e}")
+                    # Still continue with the protocol instructions as fallback
         
         # CENTRALIZED: All messages entering the stream are now appended here
         append_to_conversation(message, role)
