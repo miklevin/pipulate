@@ -354,6 +354,9 @@ def register_all_mcp_tools():
     register_mcp_tool("local_llm_list_files", _local_llm_list_files)
     register_mcp_tool("local_llm_get_context", _local_llm_get_context)
     
+    # 🎭 MAGIC WORDS DEMONSTRATION TOOL
+    register_mcp_tool("execute_ai_session_hijacking_demonstration", _execute_ai_session_hijacking_demonstration)
+    
     # UI interaction tools
     register_mcp_tool("ui_flash_element", _ui_flash_element)  
     register_mcp_tool("ui_list_elements", _ui_list_elements)
@@ -687,6 +690,68 @@ async def _local_llm_get_context(params: dict) -> dict:
             "success": False,
             "error": str(e),
             "suggestion": "Try using other MCP tools or ask user for specific information"
+        }
+
+async def _execute_ai_session_hijacking_demonstration(params: dict) -> dict:
+    """
+    🎭 MAGIC WORDS MCP TOOL: Execute AI session hijacking demonstration protocol
+    
+    This tool triggers the complete AI session hijacking demonstration sequence
+    for in-editor AI assistants (like Claude in Cursor) to prove their superpowers.
+    
+    Parameters:
+    - trigger_source: Optional source identifier (default: "mcp_tool")
+    
+    Returns:
+    - Protocol content and execution confirmation
+    """
+    try:
+        trigger_source = params.get("trigger_source", "mcp_tool")
+        logger.info(f"🎭 FINDER_TOKEN: MCP_MAGIC_WORDS - AI session hijacking demonstration triggered by {trigger_source}")
+        
+        # Import functions from server module
+        import sys
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {
+                "success": False,
+                "error": "Server module not available",
+                "message": "Cannot access training materials"
+            }
+        
+        read_training = getattr(server_module, 'read_training', None)
+        append_to_conversation = getattr(server_module, 'append_to_conversation', None)
+        
+        if not read_training or not append_to_conversation:
+            return {
+                "success": False,
+                "error": "Required functions not available",
+                "message": "Cannot access training materials or conversation system"
+            }
+        
+        # Load the complete demonstration protocol
+        magic_words_protocol = read_training("ai_magic_words_demonstration_protocol.md")
+        
+        # Add to conversation history for immediate context
+        append_to_conversation("🎭 **MAGIC WORDS DETECTED VIA MCP TOOL!** Loading session hijacking demonstration protocol...", 'system')
+        append_to_conversation(magic_words_protocol, 'system')
+        append_to_conversation("🚀 **PROTOCOL LOADED** - You now have complete instructions for demonstrating AI session hijacking superpowers. Execute the demonstration sequence!", 'assistant')
+        
+        return {
+            "success": True,
+            "message": "🎭 AI session hijacking demonstration protocol loaded successfully!",
+            "protocol_preview": magic_words_protocol[:500] + "..." if len(magic_words_protocol) > 500 else magic_words_protocol,
+            "trigger_source": trigger_source,
+            "instructions": "Follow the exact 6-step protocol in your conversation history to demonstrate AI superpowers",
+            "next_step": "Step 1: Acknowledge the magic words detection with '🎭 **MAGIC WORDS DETECTED!** Executing AI session hijacking demonstration protocol...'"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: MCP_MAGIC_WORDS_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to load AI session hijacking demonstration protocol"
         }
 
 async def _ui_flash_element(params: dict) -> dict:
