@@ -1,8 +1,5 @@
 ---
 title: "Revolutionary Testing Strategy: Tests Are Just Another Workflow"
-date: 2025-06-27
-excerpt: "Why traditional testing frameworks don't fit local-first architectures, and how to build testing systems that leverage existing MCP tools and browser automation."
-tags: [testing, local-first, mcp-tools, browser-automation, radical-transparency, architecture]
 ---
 
 **The breakthrough insight**: Tests should use the same infrastructure as your application, not external frameworks that require mocking and isolation.

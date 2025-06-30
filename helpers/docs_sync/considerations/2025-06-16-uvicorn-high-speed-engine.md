@@ -1,6 +1,5 @@
 ---
 title: "Uvicorn: The High-Speed Engine for Modern Python Web Applications"
-date: 2025-01-15
 excerpt: "Deep dive into Uvicorn, the lightning-fast ASGI server powering modern Python web frameworks like FastAPI"
 tags: [uvicorn, python, asgi, fastapi, web-server, performance, async]
 ---
