@@ -255,10 +255,10 @@ def falling_alice(console_output=True):
 def white_rabbit(console_output=True):
     """🐰 WHITE RABBIT: Whimsical White Rabbit-themed banner"""
     alice_art = r"""[black].[/black]
-- Welcome to full radical transpareency land.              /)    ______
-                                                     /)\__//    /      \
-                                                 ___(/_ 0 0    |        |
-                                               *(    ==(_T_)== |[bold bright_blue]Pipulate[/bold bright_blue]|
+- Welcome to radical transparency land.                   /)    ______
+  Every operation leaves traces...                  /)\__//    /      \
+  [dim]Curiouser and curiouser?[/dim]                   ___(/_ 0 0    |        |
+  [dim]Try: grep "FINDER_TOKEN" logs/server.log[/dim] *(    ==(_T_)== |[bold bright_blue]Pipulate[/bold bright_blue]|
                                                  \  )   ""\    |        |
                                                   |__>-\_>_>    \______/
    """
@@ -1583,6 +1583,19 @@ def log_pipeline_summary(title_prefix: str=''):
 💬 [dim white]CHAT[/dim white]        - LLM interactions and AI conversations
 🎭 [dim white]AI_CREATIVE[/dim white] - ASCII art and AI-specific logging (logs only)
 🔍 [dim white]FINDER_TOKEN[/dim white] - Searchable debug markers for AI assistants
+🔧 [dim white]MCP_TOOLS[/dim white]   - Model Context Protocol tool operations
+🎯 [dim white]SUCCESS[/dim white]     - Completion markers and achievements
+🏷️ [dim white]CONFIG[/dim white]     - System configuration and tagging
+🗄️ [dim white]DB_CONFIG[/dim white]  - Database configuration events
+🤖 [dim white]LLM[/dim white]         - Local language model operations
+📁 [dim white]FILES[/dim white]       - File and directory operations
+🧹 [dim white]CLEANUP[/dim white]     - Housekeeping and maintenance
+✨ [dim white]FRESH[/dim white]       - New state creation and refresh
+🍞 [dim white]BREADCRUMBS[/dim white] - AI discovery guidance (AI_BREADCRUMB_01-04)
+📸 [dim white]CAPTURE[/dim white]     - Screenshots and visual state
+📝 [dim white]INPUT[/dim white]       - Form inputs and user data entry
+📤 [dim white]UPLOAD[/dim white]      - File upload operations
+✅ [dim white]COMPLETE[/dim white]    - Task completion and success
 ⚠️  [dim white]WARNING[/dim white]     - Important notices and potential issues
 ❌ [dim white]ERROR[/dim white]       - System errors and failures
 
@@ -1590,7 +1603,8 @@ def log_pipeline_summary(title_prefix: str=''):
 • [dim white]Use grep with emojis:[/dim white] [bright_white]grep "🌐" logs/server.log[/bright_white]
 • [dim white]Find specific events:[/dim white] [bright_white]grep "FINDER_TOKEN" logs/server.log[/bright_white]
 • [dim white]Follow live logs:[/dim white] [bright_white]tail -f logs/server.log[/bright_white]
-• [dim white]AI assistants:[/dim white] [bright_white]grep "AI_CREATIVE_VISION" logs/server.log[/bright_white]"""
+• [dim white]AI breadcrumbs:[/dim white] [bright_white]grep "AI_BREADCRUMB" logs/server.log[/bright_white]
+• [dim white]MCP tool calls:[/dim white] [bright_white]grep "MCP_.*_START" logs/server.log[/bright_white]"""
 
         legend_panel = Panel(
             legend_content,
