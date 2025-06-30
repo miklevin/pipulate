@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 import logging
+import sqlite3
 
 # Get logger from server context
 logger = logging.getLogger(__name__)
@@ -1464,13 +1465,36 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
                 logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_PERCEPTION_ERROR - {e}")
         
         try:
-            # Step 1: Navigate to the plugin
-            plugin_name = plugin_filename.replace('.py', '').replace('_', '-')
-            # Remove numeric prefix for URL
-            if plugin_name[0].isdigit():
-                plugin_name = '-'.join(plugin_name.split('-')[1:])
+            # Step 1: Navigate to the plugin - USE SAME LOGIC AS SESSION HIJACKING
+            # Get the most recent pipeline from database to determine correct endpoint
+            import sqlite3
+            from pathlib import Path
             
-            plugin_url = f"{base_url}/{plugin_name}"
+            try:
+                # Use same database logic as session hijacking
+                db_path = Path('data/botifython_dev.db')
+                if not db_path.exists():
+                    db_path = Path('data/data.db')  # Fallback
+                
+                conn = sqlite3.connect(str(db_path))
+                cursor = conn.cursor()
+                cursor.execute('SELECT app_name FROM pipeline ORDER BY updated DESC LIMIT 1')
+                result = cursor.fetchone()
+                conn.close()
+                
+                if result and result[0]:
+                    app_name = result[0]
+                    plugin_url = f"{base_url}/{app_name}_workflow"
+                    logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_DATABASE | Using database app_name: {app_name} -> {plugin_url}")
+                else:
+                    # Fallback to homepage if no pipelines
+                    plugin_url = base_url
+                    logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_NAVIGATION_FALLBACK | No pipelines found, using homepage: {plugin_url}")
+                    
+            except Exception as e:
+                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_NAVIGATION_ERROR | Database error: {e}, using homepage fallback")
+                plugin_url = base_url
+            
             logger.info(f"🌐 FINDER_TOKEN: WORKFLOW_NAVIGATION | Navigating to {plugin_url}")
             
             driver.get(plugin_url)
