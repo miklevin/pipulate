@@ -1606,8 +1606,8 @@ def log_pipeline_summary(title_prefix: str=''):
 🔍 [dim white]FINDER_TOKEN[/dim white] - Searchable debug markers for AI assistants         [white on default]    ,[/white on default][dim white]       O[/dim white]
 🔧 [dim white]MCP_TOOLS[/dim white]    - Model Context Protocol tool operations             [white on default]    \\\\  .[/white on default][dim white]  O[/dim white]
 🎯 [dim white]SUCCESS[/dim white]      - Completion markers and achievements                [white on default]    |\\\\/|[/white on default][dim white] o[/dim white]
-🏷️ [dim white]CONFIG[/dim white]        - System configuration and tagging                  [white on default]    / " '\\    [/white on default] 
-🗄️ [dim white]DB_CONFIG[/dim white]     - Database configuration events                     [white on default]   . .   .     [/white on default] 
+🏷️  [dim white]CONFIG[/dim white]       - System configuration and tagging                  [white on default]    / " '\\    [/white on default] 
+🗄️  [dim white]DB_CONFIG[/dim white]    - Database configuration events                     [white on default]   . .   .     [/white on default] 
 🤖 [dim white]LLM[/dim white]          - Local language model operations                    [white on default] /    ) |     [/white on default] 
 📁 [dim white]FILES[/dim white]        - File and directory operations                      [white on default]'  _.'  |    [/white on default] 
 🧹 [dim white]CLEANUP[/dim white]      - Housekeeping and maintenance                       [white on default]'-'/     \\   [/white on default]                     
@@ -3022,21 +3022,69 @@ await main()
                 await asyncio.sleep(0.5)  # Brief pause for dramatic effect
                 await self.chat.broadcast("🚀 **PROTOCOL LOADED** - I now have complete instructions for demonstrating AI session hijacking superpowers!")
                 
-                # 🔥 HARDWIRED AUTOMATION: Execute working automation (browser automation removed until fixed)
+                # 🔥 HARDWIRED AUTOMATION: Test EXACT working pattern from 440_browser_automation.py
                 try:
                     from mcp_tools import _pipeline_state_inspector, _local_llm_grep_logs
                     from pathlib import Path
                     
-                    # 1. CHECK FOR EXISTING DOM CAPTURES (safer approach)
-                    await self.chat.broadcast("👁️ **STEP 1:** Checking for existing DOM captures...")
-                    simple_dom_path = Path("browser_automation/looking_at/simple_dom.html")
-                    current_dom = ""
-                    if simple_dom_path.exists():
-                        current_dom = simple_dom_path.read_text()[:2000]  # First 2K chars for context
-                        await self.chat.broadcast(f"✅ **DOM Found:** {len(current_dom)} chars from previous capture")
-                    else:
-                        await self.chat.broadcast("⚠️ **No DOM:** Browser automation directory empty - run a manual browser automation first")
-                        current_dom = "No DOM captured yet - browser automation needs to be fixed"
+                    # 1. BINARY SEARCH TEST: Use EXACT working browser automation pattern
+                    await self.chat.broadcast("🔬 **BINARY SEARCH:** Testing exact working browser automation pattern...")
+                    
+                    try:
+                        import tempfile
+                        import shutil
+                        import asyncio
+                        import os
+                        from selenium import webdriver
+                        from selenium.webdriver.chrome.options import Options
+                        from selenium.webdriver.chrome.service import Service
+                        from webdriver_manager.chrome import ChromeDriverManager
+                        
+                        # EXACT pattern from working plugin 
+                        chrome_options = Options()
+                        chrome_options.add_argument('--no-sandbox')
+                        chrome_options.add_argument('--disable-dev-shm-usage')
+                        chrome_options.add_argument('--new-window')
+                        chrome_options.add_argument('--start-maximized')
+                        
+                        # CRITICAL: Profile directory setup (missing in MCP tool)
+                        profile_dir = tempfile.mkdtemp()
+                        chrome_options.add_argument(f'--user-data-dir={profile_dir}')
+                        
+                        effective_os = os.environ.get('EFFECTIVE_OS', 'unknown')
+                        await self.chat.broadcast(f"🔧 **DEBUG:** OS detected as {effective_os}")
+                        
+                        if effective_os == 'darwin':
+                            service = Service(ChromeDriverManager().install())
+                        else:
+                            service = Service()
+                        
+                        await self.chat.broadcast("🔧 **DEBUG:** Creating Chrome driver...")
+                        driver = webdriver.Chrome(service=service, options=chrome_options)
+                        
+                        await self.chat.broadcast("🔧 **DEBUG:** Navigating to localhost:5001...")
+                        driver.get("http://localhost:5001")
+                        await asyncio.sleep(2)
+                        
+                        title = driver.title
+                        await self.chat.broadcast(f"✅ **SUCCESS:** Page loaded! Title: {title}")
+                        
+                        # Save simplified DOM
+                        dom_html = driver.execute_script("return document.documentElement.outerHTML;")
+                        Path("browser_automation/looking_at").mkdir(parents=True, exist_ok=True)
+                        Path("browser_automation/looking_at/simple_dom.html").write_text(dom_html[:3000])
+                        
+                        current_dom = dom_html[:2000]
+                        await self.chat.broadcast(f"✅ **DOM CAPTURED:** {len(current_dom)} chars saved")
+                        
+                        # CRITICAL: Cleanup (missing in MCP tool)
+                        driver.quit()
+                        shutil.rmtree(profile_dir, ignore_errors=True)
+                        await self.chat.broadcast("✅ **CLEANUP:** Browser and profile directory cleaned up")
+                        
+                    except Exception as e:
+                        await self.chat.broadcast(f"❌ **BROWSER ERROR:** {e}")
+                        current_dom = f"Browser test failed: {e}"
                     
                     # 2. GET PIPELINE STATE 
                     await self.chat.broadcast("🔍 **STEP 2:** Reading your workflow state...")
