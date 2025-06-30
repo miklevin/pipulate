@@ -262,7 +262,7 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
     │ • Load balancers    │                    │ • Integrated AI         │
     │ • Database clusters │         VS         │ • SQLite simplicity     │
     │ • DevOps overhead   │                    │ • Nix reproducibility   │
-    │ • Cloud lock-in      │                    │ • Flexible deployment  │
+    │ • Cloud lock-in     │                    │ • Flexible deployment   │
     └─────────────────────┘                    └─────────────────────────┘
 
     🎯 One person understands                  🎯 One person controls
@@ -396,7 +396,7 @@ The revolution isn't just another framework — it's eliminating the template la
 
 **This is the Swiss Army knife approach:** Local by default, cloud by choice, with complete visibility into what's happening at each step. Whether you're processing confidential client data (local) or need cutting-edge AI capabilities (cloud), Pipulate gives you the framework to do both seamlessly.
 
-* **SQLite & Jupyter Notebooks:** Foundational tools for data persistence and the workflow development process (porting from notebooks to Pipulate workflows). SQLite is built into Python and really all things — the *get-out-of-tech-liability free card* you didn't know you had. And a full JupyterLab instance is installed side-by-side with Pipulate sharing the same Python `.venv` virtual environment (on Nix!!!), so... well... uhm, there are no words. If you know you know.
+* **SQLite & Jupyter Notebooks:** Foundational tools for data persistence and the workflow development process (porting from notebooks to Pipulate workflows). SQLite is built into Python and really all things — the *get-out-of-tech-liability free card* you didn't know you had. And a full JupyterLab instance is installed side-by-side with Pipulate sharing the same Python `.venv` virtual environment, which is also shared with your preferred AI code editor (Cursor, Windsurf, VSCode, Zed) so... well... uhm, there are no words for when 3 different portals-to-Python share the same environment. You can do such stupid AI-tricks as letting your local LLM and a frontier cloud model *inhabit* the same body (Pipulate) — controlling web browsers together and stuff.
 
 --------------------------------------------------------------------------------
 
