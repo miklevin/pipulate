@@ -661,7 +661,11 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
                 new_path = looking_at_path.parent / f'{looking_at_path.name}-{i + 1}'
                 if old_path.exists():
                     try:
-                        old_path.rename(new_path)
+                        # Use shutil.move() instead of rename() to handle non-empty directories
+                        if new_path.exists():
+                            # If target exists, remove it first
+                            shutil.rmtree(new_path)
+                        shutil.move(str(old_path), str(new_path))
                         logger.info(f'📁 FINDER_TOKEN: DIRECTORY_ROTATION - Rotated: {old_path.name} → {new_path.name}')
                     except Exception as e:
                         logger.warning(f'⚠️ Failed to rotate directory {old_path}: {e}')
@@ -669,7 +673,10 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
             # Move current looking_at to looking_at-1
             try:
                 archived_path = looking_at_path.parent / f'{looking_at_path.name}-1'
-                looking_at_path.rename(archived_path)
+                if archived_path.exists():
+                    # If target exists, remove it first
+                    shutil.rmtree(archived_path)
+                shutil.move(str(looking_at_path), str(archived_path))
                 logger.info(f'🎯 FINDER_TOKEN: DIRECTORY_ARCHIVE - Archived current perception: {looking_at_path.name} → {archived_path.name}')
             except Exception as e:
                 logger.warning(f'⚠️ Failed to archive current {looking_at_path}: {e}')
