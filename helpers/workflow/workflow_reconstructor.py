@@ -404,6 +404,15 @@ class ASTWorkflowReconstructor:
                 print("⚠️  No Chunk 2 methods found - nothing to transplant")
                 return False
             
+            # ENHANCED DROPDOWN LOGIC: Check if template has enhanced analysis dropdown
+            template_class_node = self.find_class_node(template_tree)
+            template_has_enhanced_dropdown = self.check_template_has_enhanced_dropdown(template_tree, template_class_node)
+            if template_has_enhanced_dropdown:
+                print("  🎯 Template has enhanced analysis dropdown - will preserve template logic")
+                # Filter out legacy analysis step methods from source to preserve template's enhanced version
+                chunk2_methods = self.filter_out_legacy_analysis_methods(chunk2_methods)
+                print(f"  📝 After filtering legacy methods: {len(chunk2_methods)} workflow-specific methods")
+            
             # Extract route registrations for transplanted methods
             print("🔗 Extracting route registrations for transplanted methods...")
             route_registrations = self.extract_route_registrations(source_tree, chunk2_methods)
@@ -660,6 +669,47 @@ class ASTWorkflowReconstructor:
                 node.func.attr == 'route' and
                 isinstance(node.func.value, ast.Name) and
                 node.func.value.id == 'app')
+
+    def check_template_has_enhanced_dropdown(self, template_tree: ast.AST, template_class_node: ast.ClassDef) -> bool:
+        """Check if template has enhanced analysis dropdown logic."""
+        if not template_class_node:
+            return False
+        
+        # Look for the enhanced dropdown pattern in template methods
+        for node in ast.walk(template_class_node):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                # Check if this method contains enhanced dropdown logic
+                if self.has_enhanced_dropdown_logic(node):
+                    return True
+        
+        return False
+
+    def has_enhanced_dropdown_logic(self, method_node) -> bool:
+        """Check if a method contains enhanced dropdown logic."""
+        # Only check for the enhanced logic pattern in the code (comments are not part of AST)
+        method_source = ast.unparse(method_node)
+        enhanced_patterns = [
+            "Convert analysis slug to readable date format",
+            "readable_date = f\"{date_obj.strftime('%Y %B')} {day_int}{day_suffix}\"",
+            "Download {template_name} for {readable_date}"
+        ]
+        return any(pattern in method_source for pattern in enhanced_patterns)
+
+    def filter_out_legacy_analysis_methods(self, methods: List[ast.FunctionDef]) -> List[ast.FunctionDef]:
+        """Filter out legacy analysis step methods to preserve template's enhanced version."""
+        legacy_method_names = {
+            'step_02', 'step_02_submit', 'step_02_process',  # Link Graph legacy
+            'step_analysis', 'step_analysis_submit', 'step_analysis_process'  # Trifecta enhanced
+        }
+        
+        filtered_methods = []
+        for method in methods:
+            if method.name not in legacy_method_names:
+                filtered_methods.append(method)
+            else:
+                print(f"  🚫 Filtered out legacy analysis method: {method.name}")
+        
+        return filtered_methods
 
 
 def main():
