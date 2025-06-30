@@ -3027,10 +3027,11 @@ await main()
                     from mcp_tools import _pipeline_state_inspector, _local_llm_grep_logs
                     from pathlib import Path
                     
-                    # 1. BINARY SEARCH TEST: Use EXACT working browser automation pattern
-                    await self.chat.broadcast("🔬 **BINARY SEARCH:** Testing exact working browser automation pattern...")
+                    # 1. BROWSER AUTOMATION TEST: Run in separate thread to avoid blocking event loop
+                    await self.chat.broadcast("🔬 **ASYNC THREADING:** Running browser automation in separate thread...")
                     
-                    try:
+                    def _blocking_browser_automation():
+                        """Blocking browser automation to be run in separate thread."""
                         import tempfile
                         import shutil
                         import os
@@ -3039,51 +3040,75 @@ await main()
                         from selenium.webdriver.chrome.service import Service
                         from webdriver_manager.chrome import ChromeDriverManager
                         
-                        # EXACT pattern from working plugin 
-                        chrome_options = Options()
-                        chrome_options.add_argument('--no-sandbox')
-                        chrome_options.add_argument('--disable-dev-shm-usage')
-                        chrome_options.add_argument('--new-window')
-                        chrome_options.add_argument('--start-maximized')
+                        try:
+                            # EXACT pattern from working plugin 
+                            chrome_options = Options()
+                            chrome_options.add_argument('--no-sandbox')
+                            chrome_options.add_argument('--disable-dev-shm-usage')
+                            chrome_options.add_argument('--new-window')
+                            chrome_options.add_argument('--start-maximized')
+                            
+                            # CRITICAL: Profile directory setup
+                            profile_dir = tempfile.mkdtemp()
+                            chrome_options.add_argument(f'--user-data-dir={profile_dir}')
+                            
+                            effective_os = os.environ.get('EFFECTIVE_OS', 'unknown')
+                            
+                            if effective_os == 'darwin':
+                                service = Service(ChromeDriverManager().install())
+                            else:
+                                service = Service()
+                            
+                            # All blocking operations in this thread
+                            driver = webdriver.Chrome(service=service, options=chrome_options)
+                            driver.get("http://localhost:5001")
+                            import time
+                            time.sleep(2)  # Use time.sleep in thread, not asyncio.sleep
+                            
+                            title = driver.title
+                            dom_html = driver.execute_script("return document.documentElement.outerHTML;")
+                            
+                            # Save DOM snapshot
+                            from pathlib import Path
+                            Path("browser_automation/looking_at").mkdir(parents=True, exist_ok=True)
+                            Path("browser_automation/looking_at/simple_dom.html").write_text(dom_html[:3000])
+                            
+                            current_dom = dom_html[:2000]
+                            
+                            # CRITICAL: Cleanup
+                            driver.quit()
+                            shutil.rmtree(profile_dir, ignore_errors=True)
+                            
+                            return {
+                                "success": True,
+                                "title": title,
+                                "dom_length": len(current_dom),
+                                "current_dom": current_dom
+                            }
+                            
+                        except Exception as e:
+                            return {
+                                "success": False,
+                                "error": str(e),
+                                "current_dom": f"Browser test failed: {e}"
+                            }
+                    
+                    # Run blocking browser automation in separate thread
+                    try:
+                        browser_result = await asyncio.to_thread(_blocking_browser_automation)
                         
-                        # CRITICAL: Profile directory setup (missing in MCP tool)
-                        profile_dir = tempfile.mkdtemp()
-                        chrome_options.add_argument(f'--user-data-dir={profile_dir}')
-                        
-                        effective_os = os.environ.get('EFFECTIVE_OS', 'unknown')
-                        await self.chat.broadcast(f"🔧 **DEBUG:** OS detected as {effective_os}")
-                        
-                        if effective_os == 'darwin':
-                            service = Service(ChromeDriverManager().install())
+                        if browser_result["success"]:
+                            await self.chat.broadcast(f"✅ **SUCCESS:** Page loaded! Title: {browser_result['title']}")
+                            await self.chat.broadcast(f"✅ **DOM CAPTURED:** {browser_result['dom_length']} chars saved")
+                            await self.chat.broadcast("✅ **CLEANUP:** Browser and profile directory cleaned up")
+                            current_dom = browser_result["current_dom"]
                         else:
-                            service = Service()
-                        
-                        await self.chat.broadcast("🔧 **DEBUG:** Creating Chrome driver...")
-                        driver = webdriver.Chrome(service=service, options=chrome_options)
-                        
-                        await self.chat.broadcast("🔧 **DEBUG:** Navigating to localhost:5001...")
-                        driver.get("http://localhost:5001")
-                        await asyncio.sleep(2)
-                        
-                        title = driver.title
-                        await self.chat.broadcast(f"✅ **SUCCESS:** Page loaded! Title: {title}")
-                        
-                        # Save simplified DOM
-                        dom_html = driver.execute_script("return document.documentElement.outerHTML;")
-                        Path("browser_automation/looking_at").mkdir(parents=True, exist_ok=True)
-                        Path("browser_automation/looking_at/simple_dom.html").write_text(dom_html[:3000])
-                        
-                        current_dom = dom_html[:2000]
-                        await self.chat.broadcast(f"✅ **DOM CAPTURED:** {len(current_dom)} chars saved")
-                        
-                        # CRITICAL: Cleanup (missing in MCP tool)
-                        driver.quit()
-                        shutil.rmtree(profile_dir, ignore_errors=True)
-                        await self.chat.broadcast("✅ **CLEANUP:** Browser and profile directory cleaned up")
-                        
+                            await self.chat.broadcast(f"❌ **BROWSER ERROR:** {browser_result['error']}")
+                            current_dom = browser_result["current_dom"]
+                            
                     except Exception as e:
-                        await self.chat.broadcast(f"❌ **BROWSER ERROR:** {e}")
-                        current_dom = f"Browser test failed: {e}"
+                        await self.chat.broadcast(f"❌ **THREADING ERROR:** {e}")
+                        current_dom = f"Threading failed: {e}"
                     
                     # 2. GET PIPELINE STATE 
                     await self.chat.broadcast("🔍 **STEP 2:** Reading your workflow state...")
