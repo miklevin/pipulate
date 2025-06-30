@@ -18,13 +18,13 @@ import httpx
 import pandas as pd
 from fasthtml.common import *
 from loguru import logger
-ROLES = ['Developer']
+ROLES = ['Botify Employee']
 TOKEN_FILE = 'botify_token.txt'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
-class Trifecta:
+class ParameterBuster:
     """
-    Botify Trifecta Workflow - Multi-Export Data Collection
+    Botify Parameter Buster Workflow - Multi-Export Data Collection
 
     A comprehensive workflow that downloads three types of Botify data (link
     graph/crawl analysis, web logs, and Search Console) and
@@ -78,7 +78,7 @@ class Trifecta:
     ## Workflow Modularity & Flexibility
     ===================================
 
-    While this is called the "Botify Trifecta" and downloads from four main data sources,
+    While this is called the "Botify Parameter Buster" and downloads from four main data sources,
     the workflow is highly modular:
 
     **REQUIRED STEP**: Only Step 2 (crawl data) is actually required because it:
@@ -91,7 +91,7 @@ class Trifecta:
     - Step 5 (finalize) will still work correctly with just crawl data
 
     **PRACTICAL USAGE**: Many users only need crawl data, making this essentially a
-    "Crawl Analysis Downloader" that can optionally become a full trifecta when needed.
+    "Crawl Analysis Downloader" that can optionally become a full Parameter Buster when needed.
 
     This modularity makes the workflow perfect as a template for various Botify data
     collection needs - from simple crawl analysis to comprehensive multi-source exports.
@@ -174,9 +174,9 @@ class Trifecta:
 
     **DO NOT REFACTOR THIS PATTERN WITHOUT UNDERSTANDING IT COMPLETELY**
     """
-    APP_NAME = 'trifecta'
-    DISPLAY_NAME = 'Trifecta 🏇'
-    ENDPOINT_MESSAGE = 'Download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) — the Trifecta!'
+    APP_NAME = 'parameterbuster'
+    DISPLAY_NAME = 'Parameter Buster 🏇'
+    ENDPOINT_MESSAGE = 'Download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) — the Parameter Buster!'
     TRAINING_PROMPT = '\n    🚀 BOTIFY API MASTERY: Core Workflow for Multi-Source Data Collection\n    ====================================================================\n    \n    This workflow demonstrates advanced Botify API usage with THREE specialized MCP tools:\n    \n    **CRITICAL MCP TOOLS** (Always use these for Botify interactions):\n    • `botify_get_full_schema` - Fetch complete 4,449+ field schema from official datamodel endpoints\n    • `botify_list_available_analyses` - Find analysis slugs without API calls using cached data  \n    • `botify_execute_custom_bql_query` - Run highly customized BQL queries with any dimensions/metrics/filters\n    \n    **DUAL BQL VERSION REALITY**: Botify has two coexisting BQL versions that MUST be used correctly:\n    • BQLv1: Web Logs (app.botify.com/api/v1/logs/) - dates at payload level\n    • BQLv2: Crawl/GSC (api.botify.com/v1/projects/.../query) - dates in periods array\n    \n    **GA4/ADOBE ANALYTICS INTEGRATION**: While there\'s no dedicated "Google Analytics" table, \n    relevant GA data points are integrated throughout:\n    • Traffic attribution: `visits_organic`, `visits_social`, `nb_organic_visits_from_google`\n    • Device breakdown: `nb_active_users_desktop`, `nb_active_users_mobile`, `conversion_rate_per_device_category`\n    • Revenue tracking: Goal conversions by source/medium with full attribution chains\n    • Session quality: Bounce rates, time on page, conversion funnels by traffic source\n    \n    **QUERY CUSTOMIZATION WORKFLOW**:\n    1. Use `botify_list_available_analyses` to find the latest analysis_slug\n    2. Call `botify_get_full_schema` to discover all available fields/dimensions\n    3. Craft custom `query_json` with desired dimensions/metrics/filters\n    4. Execute via `botify_execute_custom_bql_query` for instant results\n    \n    **SCHEMA-FIRST APPROACH**: Always consult the full schema via `botify_get_full_schema` \n    if unsure about field names, valid filter values, or available metrics. The schema \n    discovery reveals the true data structure beyond documentation.\n    \n    **EXAMPLE CUSTOM QUERY** (GA4-style attribution report):\n    ```json\n    {\n        "dimensions": ["url", "segments.pagetype.value"],\n        "metrics": [\n            "nb_organic_visits_from_google",\n            "nb_social_visits_from_facebook", \n            "conversion_rate",\n            "nb_visits"\n        ],\n        "filters": {\n            "field": "nb_visits", \n            "predicate": "gte", \n            "value": 100\n        },\n        "sort": [{"nb_visits": {"order": "desc"}}]\n    }\n    ```\n    \n    This workflow serves as the foundation for any Botify data collection need - from simple \n    crawl analysis to comprehensive multi-source exports with custom attribution reporting.\n    '
     QUERY_TEMPLATES = {'Crawl Basic': {'name': 'Basic Crawl Data', 'description': 'URL, HTTP status, and page title', 'export_type': 'crawl_attributes', 'user_message': 'This will download basic crawl data including URLs, HTTP status codes, and page titles.', 'button_label_suffix': 'Basic Attributes', 'query': {'dimensions': ['{collection}.url', '{collection}.http_code', '{collection}.metadata.title.content', '{collection}.segments.pagetype.value', '{collection}.compliant.is_compliant', '{collection}.canonical.to.equal', '{collection}.sitemaps.present'], 'metrics': [], 'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}}}, 'Not Compliant': {'name': 'Non-Compliant Pages', 'description': 'URLs with compliance issues and their reasons', 'export_type': 'crawl_attributes', 'user_message': 'This will download a list of non-compliant URLs with their compliance reasons.', 'button_label_suffix': 'Non-Compliant Attributes', 'query': {'dimensions': ['{collection}.url', '{collection}.compliant.main_reason', '{collection}.compliant.detailed_reason'], 'metrics': [{'function': 'count', 'args': ['{collection}.url']}], 'filters': {'field': '{collection}.compliant.is_compliant', 'predicate': 'eq', 'value': False}}, 'qualifier_config': {'enabled': True, 'qualifier_bql_template': {'dimensions': [], 'metrics': [{'function': 'count', 'args': ['{collection}.url']}], 'filters': {'field': '{collection}.compliant.is_compliant', 'predicate': 'eq', 'value': False}}, 'parameter_placeholder_in_main_query': None, 'iterative_parameter_name': 'non_compliant_url_count', 'target_metric_path': ['results', 0, 'metrics', 0], 'max_value_threshold': 5000000, 'iteration_range': (1, 1, 1), 'user_message_running': 'Estimating size of Non-Compliant Pages export...', 'user_message_found': 'Non-Compliant Pages export estimated at {metric_value:,} URLs. Proceeding.', 'user_message_threshold_exceeded': 'Warning: Non-Compliant Pages export is very large ({metric_value:,} URLs). Proceeding with caution.'}}, 'Link Graph Edges': {'name': 'Link Graph Edges', 'description': 'Exports internal link graph (source URL -> target URL). Automatically finds optimal depth for ~1M edges.', 'export_type': 'link_graph_edges', 'user_message': "This will download the site's internal link graph (source-target pairs). An optimal depth will be found first.", 'button_label_suffix': 'Link Graph', 'query': {'dimensions': ['{collection}.url', '{collection}.outlinks_internal.graph.url'], 'metrics': [], 'filters': {'field': '{collection}.depth', 'predicate': 'lte', 'value': '{OPTIMAL_DEPTH}'}}, 'qualifier_config': {'enabled': True, 'qualifier_bql_template': {'dimensions': [], 'metrics': [{'function': 'sum', 'args': ['{collection}.outlinks_internal.nb.total']}], 'filters': {'field': '{collection}.depth', 'predicate': 'lte', 'value': '{ITERATION_VALUE}'}}, 'parameter_placeholder_in_main_query': '{OPTIMAL_DEPTH}', 'iterative_parameter_name': 'depth', 'target_metric_path': ['results', 0, 'metrics', 0], 'max_value_threshold': 1000000, 'iteration_range': (1, 10, 1), 'user_message_running': '🔍 Finding optimal depth for Link Graph Edges...', 'user_message_found': '🎯 Optimal depth for Link Graph: {param_value} (for {metric_value:,} edges).', 'user_message_threshold_exceeded': 'Edge count exceeds threshold even at shallowest depth. Proceeding with depth 1.'}}, 'GSC Performance': {'name': 'GSC Performance', 'description': 'Impressions, clicks, CTR, and position', 'export_type': 'gsc_data', 'user_message': 'This will download Search Console performance data including impressions, clicks, CTR, and average position.', 'button_label_suffix': 'GSC Performance', 'query': {'dimensions': ['url'], 'metrics': [{'field': 'search_console.period_0.count_impressions', 'name': 'Impressions'}, {'field': 'search_console.period_0.count_clicks', 'name': 'Clicks'}, {'field': 'search_console.period_0.ctr', 'name': 'CTR'}, {'field': 'search_console.period_0.avg_position', 'name': 'Avg. Position'}], 'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]}}}
     TEMPLATE_CONFIG = {'analysis': 'Link Graph Edges', 'crawler': 'Crawl Basic', 'gsc': 'GSC Performance'}
@@ -347,12 +347,12 @@ class Trifecta:
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
             if finalize_step.done in finalize_data:
-                return Card(H3(self.ui['MESSAGES']['WORKFLOW_LOCKED']), Form(Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE'], id='trifecta-unlock-button', aria_label='Unlock workflow to make changes', data_testid='trifecta-unlock-button'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                return Card(H3(self.ui['MESSAGES']['WORKFLOW_LOCKED']), Form(Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE'], id='parameterbuster-unlock-button', aria_label='Unlock workflow to make changes', data_testid='parameterbuster-unlock-button'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
                     await self.message_queue.add(pip, 'All steps are complete. You can now finalize the workflow or revert to any step to make changes.', verbatim=True)
-                    return Card(H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), Form(Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY'], id='trifecta-finalize-button', aria_label='Finalize workflow and lock all steps', data_testid='trifecta-finalize-button'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                    return Card(H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), Form(Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY'], id='parameterbuster-finalize-button', aria_label='Finalize workflow and lock all steps', data_testid='parameterbuster-finalize-button'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -427,7 +427,7 @@ class Trifecta:
         else:
             display_value = project_url if step.refill and project_url else ''
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            return Div(Card(H3(f'{step.show}'), P('Enter a Botify project URL:'), Small('Example: ', Span('https://app.botify.com/uhnd-com/uhnd.com-demo-account/ <--click for example', id='copy-example-url', style='cursor: pointer; color: #888; text-decoration: none;', hx_on_click='document.querySelector(\'input[name="botify_url"]\').value = this.innerText.split(" <--")[0]; this.style.color = \'#28a745\'; setTimeout(() => this.style.color = \'#888\', 1000)', title='Click to use this example URL'), style='display: block; margin-bottom: 10px; color: #666; font-style: italic;'), Form(Input(type='url', name='botify_url', placeholder='https://app.botify.com/org/project/', value=display_value, required=True, pattern='https://(app|analyze)\\.botify\\.com/[^/]+/[^/]+/[^/]+.*', cls='w-full', id='trifecta-botify-url-input', aria_label='Enter Botify project URL', data_testid='trifecta-botify-url-input'), Div(Button('Use this URL ▸', type='submit', cls='primary', id='trifecta-url-submit-button', aria_label='Submit Botify project URL', data_testid='trifecta-url-submit-button'), cls='mt-vh text-end'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P('Enter a Botify project URL:'), Small('Example: ', Span('https://app.botify.com/uhnd-com/uhnd.com-demo-account/ <--click for example', id='copy-example-url', style='cursor: pointer; color: #888; text-decoration: none;', hx_on_click='document.querySelector(\'input[name="botify_url"]\').value = this.innerText.split(" <--")[0]; this.style.color = \'#28a745\'; setTimeout(() => this.style.color = \'#888\', 1000)', title='Click to use this example URL'), style='display: block; margin-bottom: 10px; color: #666; font-style: italic;'), Form(Input(type='url', name='botify_url', placeholder='https://app.botify.com/org/project/', value=display_value, required=True, pattern='https://(app|analyze)\\.botify\\.com/[^/]+/[^/]+/[^/]+.*', cls='w-full', id='parameterbuster-botify-url-input', aria_label='Enter Botify project URL', data_testid='parameterbuster-botify-url-input'), Div(Button('Use this URL ▸', type='submit', cls='primary', id='parameterbuster-url-submit-button', aria_label='Submit Botify project URL', data_testid='parameterbuster-url-submit-button'), cls='mt-vh text-end'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_project_submit(self, request):
         """Process the submission for Botify URL input widget.
@@ -589,7 +589,7 @@ class Trifecta:
                 button_text = f"Use Cached {button_suffix} ({file_info['size']}) ▸"
             else:
                 button_text = f'Download {button_suffix} ▸'
-            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted font-italic progress-spaced'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True, id='trifecta-analysis-select', aria_label='Select analysis for data download', data_testid='trifecta-analysis-select', hx_post=f'/{app_name}/update_button_text', hx_target='#submit-button', hx_trigger='change', hx_include='closest form', hx_swap='outerHTML'), Input(type='hidden', name='username', value=username, data_testid='trifecta-hidden-username'), Input(type='hidden', name='project_name', value=project_name, data_testid='trifecta-hidden-project-name'), Input(type='hidden', name='step_context', value='step_analysis', data_testid='trifecta-hidden-step-context'), Button(button_text, type='submit', cls='mt-10px primary', id='submit-button', aria_label='Download selected analysis data', data_testid='trifecta-analysis-submit-button', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted font-italic progress-spaced'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True, id='parameterbuster-analysis-select', aria_label='Select analysis for data download', data_testid='parameterbuster-analysis-select', hx_post=f'/{app_name}/update_button_text', hx_target='#submit-button', hx_trigger='change', hx_include='closest form', hx_swap='outerHTML'), Input(type='hidden', name='username', value=username, data_testid='parameterbuster-hidden-username'), Input(type='hidden', name='project_name', value=project_name, data_testid='parameterbuster-hidden-project-name'), Input(type='hidden', name='step_context', value='step_analysis', data_testid='parameterbuster-hidden-step-context'), Button(button_text, type='submit', cls='mt-10px primary', id='submit-button', aria_label='Download selected analysis data', data_testid='parameterbuster-analysis-submit-button', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
         except Exception as e:
             logger.error(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', cls='text-invalid')
@@ -3998,11 +3998,11 @@ class Trifecta:
         🔍 FIELD DISCOVERY ENDPOINT
         
         Simple endpoint to discover available fields for a Botify project analysis.
-        Call via: /trifecta/discover-fields/username/project/analysis
+        Call via: /parameterbuster/discover-fields/username/project/analysis
         
         Returns JSON with all available dimensions and metrics.
         If cached analysis_advanced.json file doesn't exist, it will be automatically 
-        generated using the same method as the Trifecta workflow.
+        generated using the same method as the Parameter Buster workflow.
         """
         username = request.path_params['username']
         project = request.path_params['project']
