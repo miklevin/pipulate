@@ -55,13 +55,13 @@ python create_workflow.py 035_kungfu_workflow KungfuWorkflow kungfu "Kung Fu Dow
 python create_workflow.py plugins/035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"  # plugins/ prefix optional
 
 # Can be run from project root:
-python helpers/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
+python helpers/workflow/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
 
 # Can be run from helpers directory:
 cd helpers && python create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
 
 # Can be run from anywhere with full path:
-python /path/to/pipulate/helpers/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
+python /path/to/pipulate/helpers/workflow/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
 
 # Original complex example:
 python create_workflow.py \

@@ -1261,7 +1261,7 @@ class DevAssistant:
             step_info = step_dependencies.get(step_id, {})
 
             # Generate command for swapping this step to a target workflow
-            command = f"python helpers/swap_workflow_step.py TARGET_FILE.py {step_id} plugins/{source_filename} {step_id} --force"
+            command = f"python helpers/workflow/swap_workflow_step.py TARGET_FILE.py {step_id} plugins/{source_filename} {step_id} --force"
 
             compatibility_notes = []
             if not step_info.get('has_swappable_markers', False):
@@ -1634,21 +1634,21 @@ class DevAssistant:
         commands = []
         
         # Default: Blank template (generic use)
-        blank_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
+        blank_cmd = f"python helpers/workflow/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
                    f"  {format_bash_command(version_data['display_name'])} \\\n" + \
                    f"  {format_bash_command(version_data['endpoint_message'])} \\\n" + \
                    f"  {format_bash_command(version_data['training_prompt'])} \\\n" + \
                    f"  --template blank --role Core --force"
         
         # Hello template option
-        hello_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
+        hello_cmd = f"python helpers/workflow/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
                    f"  {format_bash_command(version_data['display_name'])} \\\n" + \
                    f"  {format_bash_command(version_data['endpoint_message'])} \\\n" + \
                    f"  {format_bash_command(version_data['training_prompt'])} \\\n" + \
                    f"  --template hello --role Core --force"
         
         # Trifecta template option
-        trifecta_cmd = f"python helpers/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
+        trifecta_cmd = f"python helpers/workflow/create_workflow.py plugins/{next_filename} {version_data['class_name']} {version_data['app_name']} \\\n" + \
                        f"  {format_bash_command(version_data['display_name'])} \\\n" + \
                        f"  {format_bash_command(version_data['endpoint_message'])} \\\n" + \
                        f"  {format_bash_command(version_data['training_prompt'])} \\\n" + \
