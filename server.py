@@ -4471,6 +4471,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     default_hdrs=False,
     hdrs=(
         Meta(charset='utf-8'),
+        Link(rel='stylesheet', href='/static/roboto.css'),
         Link(rel='stylesheet', href='/static/pico.css'),
         Link(rel='stylesheet', href='/static/prism.css'),
         Link(rel='stylesheet', href='/static/rich-table.css'),

@@ -1,0 +1,114 @@
+/* Roboto Font Family - Local Embedding */
+
+/* Roboto Thin (100) */
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 100;
+    src: url('/static/fonts/Roboto-Thin.woff2') format('woff2'),
+         url('/static/fonts/Roboto-Thin.woff') format('woff'),
+         url('/static/fonts/Roboto-Thin.ttf') format('truetype');
+    font-display: swap;
+}
+
+/* Roboto Light (300) */
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 300;
+    src: url('/static/fonts/Roboto-Light.woff2') format('woff2'),
+         url('/static/fonts/Roboto-Light.ttf') format('truetype');
+    font-display: swap;
+}
+
+/* Roboto Light Italic (300) */
+@font-face {
+    font-family: 'Roboto';
+    font-style: italic;
+    font-weight: 300;
+    src: url('/static/fonts/Roboto-LightItalic.woff') format('woff');
+    font-display: swap;
+}
+
+/* Roboto Regular (400) */
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/static/fonts/Roboto-Regular.woff2') format('woff2'),
+         url('/static/fonts/Roboto-Regular.ttf') format('truetype');
+    font-display: swap;
+}
+
+/* Roboto Italic (400) */
+@font-face {
+    font-family: 'Roboto';
+    font-style: italic;
+    font-weight: 400;
+    src: url('/static/fonts/Roboto-Italic.woff2') format('woff2'),
+         url('/static/fonts/Roboto-Italic.woff') format('woff'),
+         url('/static/fonts/Roboto-Italic.ttf') format('truetype');
+    font-display: swap;
+}
+
+/* Roboto Medium (500) */
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 500;
+    src: url('/static/fonts/Roboto-Medium.woff2') format('woff2'),
+         url('/static/fonts/Roboto-Medium.ttf') format('truetype');
+    font-display: swap;
+}
+
+/* Roboto Medium Italic (500) */
+@font-face {
+    font-family: 'Roboto';
+    font-style: italic;
+    font-weight: 500;
+    src: url('/static/fonts/Roboto-MediumItalic.woff') format('woff');
+    font-display: swap;
+}
+
+/* Roboto Bold (700) */
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 700;
+    src: url('/static/fonts/Roboto-Bold.woff2') format('woff2'),
+         url('/static/fonts/Roboto-Bold.ttf') format('truetype');
+    font-display: swap;
+}
+
+/* Roboto Bold Italic (700) */
+@font-face {
+    font-family: 'Roboto';
+    font-style: italic;
+    font-weight: 700;
+    src: url('/static/fonts/Roboto-BoldItalic.woff') format('woff');
+    font-display: swap;
+}
+
+/* Roboto Black (900) */
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 900;
+    src: url('/static/fonts/Roboto-Black.woff2') format('woff2'),
+         url('/static/fonts/Roboto-Black.ttf') format('truetype');
+    font-display: swap;
+}
+
+/* Roboto Black Italic (900) */
+@font-face {
+    font-family: 'Roboto';
+    font-style: italic;
+    font-weight: 900;
+    src: url('/static/fonts/Roboto-BlackItalic.woff') format('woff');
+    font-display: swap;
+}
+
+/* Apply Roboto as the default font family */
+body {
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+} 
