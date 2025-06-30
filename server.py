@@ -557,6 +557,52 @@ def setup_logging():
                 print(f'🧹 Removed legacy log: {legacy_file}')
             except Exception as e:
                 print(f'⚠️ Failed to remove legacy log {legacy_file}: {e}')
+    
+    # === UNIFIED LOG FORMAT ===
+    log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
+    time_format = '{time:HH:mm:ss}'
+    
+    # File logging - comprehensive for debugging
+    file_format = f'{time_format} | {{level: <8}} | {{name: <15}} | {{message}}'
+    logger.add(
+        server_log_path, 
+        level=log_level, 
+        format=file_format, 
+        enqueue=True,
+        backtrace=True,
+        diagnose=True
+    )
+    
+    # Console logging - clean for live monitoring (exclude AI JSON data)
+    console_format = '<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}'
+    logger.add(
+        sys.stderr, 
+        level=log_level, 
+        format=console_format, 
+        colorize=True, 
+        filter=lambda record: (
+            # Exclude AI JSON data from console (humans see Rich display instead)
+            '🤖 AI_JSON' not in record['message'] and
+            # Exclude AI Creative Vision from console (humans see Rich display instead)
+            'AI_CREATIVE_VISION' not in record['message'] and
+            (
+                record['level'].name != 'DEBUG' or 
+                any(key in record['message'] for key in [
+                    'FINDER_TOKEN', 'MCP', 'BOTIFY', 'API', 'Pipeline ID:', 
+                    'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'
+                ])
+            )
+        )
+    )
+    # === STARTUP MESSAGES ===
+    if STATE_TABLES:
+        logger.info('🔍 FINDER_TOKEN: STATE_TABLES_ENABLED - Console will show 🍪 and ➡️ table snapshots')
+    
+    # Welcome message for the new unified system
+    logger.info('🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized')
+    logger.info(f'📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last {MAX_ROLLED_LOGS} server runs for debugging context')
+    
+    return logger
 
 
 def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: int = None) -> bool:
@@ -637,56 +683,9 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
     except Exception as e:
         logger.error(f'❌ FINDER_TOKEN: DIRECTORY_ROTATION_ERROR - Failed to rotate directories: {e}')
         return False
-    
-    # === UNIFIED LOG FORMAT ===
-    log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
-    time_format = '{time:HH:mm:ss}'
-    
-    # File logging - comprehensive for debugging
-    file_format = f'{time_format} | {{level: <8}} | {{name: <15}} | {{message}}'
-    logger.add(
-        server_log_path, 
-        level=log_level, 
-        format=file_format, 
-        enqueue=True,
-        backtrace=True,
-        diagnose=True
-    )
-    
-    # Console logging - clean for live monitoring (exclude AI JSON data)
-    console_format = '<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}'
-    logger.add(
-        sys.stderr, 
-        level=log_level, 
-        format=console_format, 
-        colorize=True, 
-        filter=lambda record: (
-            # Exclude AI JSON data from console (humans see Rich display instead)
-            '🤖 AI_JSON' not in record['message'] and
-            # Exclude AI Creative Vision from console (humans see Rich display instead)
-            'AI_CREATIVE_VISION' not in record['message'] and
-            (
-                record['level'].name != 'DEBUG' or 
-                any(key in record['message'] for key in [
-                    'FINDER_TOKEN', 'MCP', 'BOTIFY', 'API', 'Pipeline ID:', 
-                    'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'
-                ])
-            )
-        )
-    )
-    # === STARTUP MESSAGES ===
-    if STATE_TABLES:
-        logger.info('🔍 FINDER_TOKEN: STATE_TABLES_ENABLED - Console will show 🍪 and ➡️ table snapshots')
-    
-    # Welcome message for the new unified system
-    logger.info('🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized')
-    logger.info(f'📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last {MAX_ROLLED_LOGS} server runs for debugging context')
-    
-    return logger
 
-# Initialize logger immediately after basic configuration
+# Initialize logger BEFORE any functions that need it
 logger = setup_logging()
-
 
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
