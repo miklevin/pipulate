@@ -33,7 +33,7 @@ function setupGlobalScrollListener() {
                     top: leftPanel.scrollHeight,
                     behavior: 'smooth'
                 });
-            }, 100);
+            }, 400);
         }
     });
 }
