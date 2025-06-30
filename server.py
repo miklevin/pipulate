@@ -1577,19 +1577,19 @@ def log_pipeline_summary(title_prefix: str=''):
 🚀 [dim white]STARTUP[/dim white]      - Server initialization and startup events
 🌐 [dim white]NETWORK[/dim white]      - HTTP requests, API calls, web traffic
 🔄 [dim white]PIPELINE[/dim white]     - Workflow execution and step processing
-💾 [dim white]DATABASE[/dim white]     - Data storage operations and queries
-👤 [dim white]PROFILE[/dim white]      - User profile and authentication events
-🔌 [dim white]PLUGIN[/dim white]       - Plugin loading and workflow registration
-💬 [dim white]CHAT[/dim white]         - LLM interactions and AI conversations
-🎭 [dim white]AI_CREATIVE[/dim white]  - ASCII art and AI-specific logging (logs only)
-🔍 [dim white]FINDER_TOKEN[/dim white] - Searchable debug markers for AI assistants
-🔧 [dim white]MCP_TOOLS[/dim white]    - Model Context Protocol tool operations
-🎯 [dim white]SUCCESS[/dim white]      - Completion markers and achievements
-🏷️ [dim white]CONFIG[/dim white]        - System configuration and tagging
-🗄️ [dim white]DB_CONFIG[/dim white]     - Database configuration events
-🤖 [dim white]LLM[/dim white]          - Local language model operations
-📁 [dim white]FILES[/dim white]        - File and directory operations
-🧹 [dim white]CLEANUP[/dim white]      - Housekeeping and maintenance
+💾 [dim white]DATABASE[/dim white]     - Data storage operations and queries            
+👤 [dim white]PROFILE[/dim white]      - User profile and authentication events         
+🔌 [dim white]PLUGIN[/dim white]       - Plugin loading and workflow registration       
+💬 [dim white]CHAT[/dim white]         - LLM interactions and AI conversations              [dim white]You're speaking[/dim white]                                    
+🎭 [dim white]AI_CREATIVE[/dim white]  - ASCII art and AI-specific logging (logs only)      [dim white]  my language! [/dim white] 
+🔍 [dim white]FINDER_TOKEN[/dim white] - Searchable debug markers for AI assistants         [white on default]    ,[/white on default][dim white]       O[/dim white]
+🔧 [dim white]MCP_TOOLS[/dim white]    - Model Context Protocol tool operations             [white on default]    \\\\  .[/white on default][dim white]  O[/dim white]
+🎯 [dim white]SUCCESS[/dim white]      - Completion markers and achievements                [white on default]    |\\\\/|[/white on default][dim white] o[/dim white]
+🏷️ [dim white]CONFIG[/dim white]        - System configuration and tagging                  [white on default]    / " '\\    [/white on default] 
+🗄️ [dim white]DB_CONFIG[/dim white]     - Database configuration events                     [white on default]   . .   .     [/white on default] 
+🤖 [dim white]LLM[/dim white]          - Local language model operations                    [white on default] /    ) |     [/white on default] 
+📁 [dim white]FILES[/dim white]        - File and directory operations                      [white on default]'  _.'  |    [/white on default] 
+🧹 [dim white]CLEANUP[/dim white]      - Housekeeping and maintenance                       [white on default]'-'/     \\   [/white on default]                     
 ✨ [dim white]FRESH[/dim white]        - New state creation and refresh
 🍞 [dim white]BREADCRUMBS[/dim white]  - AI discovery guidance (AI_BREADCRUMB_01-04)
 📸 [dim white]CAPTURE[/dim white]      - Screenshots and visual state
