@@ -134,7 +134,13 @@ async def demo_ai_eyes():
         "take_screenshot": True
     })
     print(f"✅ Screenshot: {result['looking_at_files']['screenshot']}")
-    print(f"🧠 DOM captured: {len(result['simple_dom'])} characters")
+    
+    # Read the captured DOM file to show we can see
+    if 'simple_dom' in result.get('looking_at_files', {}):
+        with open(result['looking_at_files']['simple_dom'], 'r', encoding='utf-8') as f:
+            dom_content = f.read()
+        print(f"🧠 DOM captured: {len(dom_content)} characters")
+    
     print("🎯 I can see what the user sees!")
 
 asyncio.run(demo_ai_eyes())
