@@ -425,6 +425,14 @@ class ASTWorkflowReconstructor:
             # Build comprehensive transformations including source attributes
             all_transformations = transformations or {}
             
+            # SUFFIX LOGIC: Extract suffix from target name and apply to APP_NAME
+            suffix = self.extract_suffix_from_target_name(target_name)
+            if suffix and 'APP_NAME' in source_attrs:
+                original_app_name = source_attrs['APP_NAME']
+                new_app_name = f"{original_app_name}{suffix}"
+                all_transformations['APP_NAME'] = new_app_name
+                print(f"  🏷️ Applying suffix '{suffix}' to APP_NAME: {original_app_name} → {new_app_name}")
+            
             # Carry over key attributes from source
             if 'TRAINING_PROMPT' in source_attrs:
                 all_transformations['TRAINING_PROMPT'] = source_attrs['TRAINING_PROMPT']
@@ -432,7 +440,7 @@ class ASTWorkflowReconstructor:
             if 'ENDPOINT_MESSAGE' in source_attrs:
                 all_transformations['ENDPOINT_MESSAGE'] = source_attrs['ENDPOINT_MESSAGE']
                 print(f"  💬 Carrying over ENDPOINT_MESSAGE from source")
-            if 'APP_NAME' in source_attrs:
+            if 'APP_NAME' not in all_transformations and 'APP_NAME' in source_attrs:
                 all_transformations['APP_NAME'] = source_attrs['APP_NAME']
                 print(f"  🏷️ Carrying over APP_NAME from source: {source_attrs['APP_NAME']}")
             if 'DISPLAY_NAME' in source_attrs:
@@ -587,6 +595,12 @@ class ASTWorkflowReconstructor:
         
         custom_routes = []
         
+        # Define legacy method names that should be filtered out
+        legacy_method_names = {
+            'step_02', 'step_02_submit', 'step_02_process',  # Link Graph legacy
+            'step_analysis', 'step_analysis_submit', 'step_analysis_process'  # Trifecta enhanced
+        }
+        
         # Look for route registrations that match our known custom patterns
         for node in ast.walk(init_method):
             if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
@@ -600,6 +614,13 @@ class ASTWorkflowReconstructor:
                         # Exclude standard step processes that aren't custom
                         if not any(standard_step in route_path for standard_step in 
                                  ['step_analysis_process', 'step_webogs_process', 'step_gsc_process']):
+                            
+                            # Extract method name from route to check if it's legacy
+                            method_name = self.extract_method_name_from_route(node)
+                            if method_name and method_name in legacy_method_names:
+                                print(f"  🚫 Filtered out legacy route: {route_path} (method: {method_name})")
+                                continue
+                            
                             custom_routes.append(node)
                             print(f"  🎯 Found custom route: {route_path}")
         
@@ -621,6 +642,16 @@ class ASTWorkflowReconstructor:
               isinstance(route_call.args[0], ast.Constant)):
             return route_call.args[0].value
         return ""
+
+    def extract_method_name_from_route(self, route_node: ast.Expr) -> Optional[str]:
+        """Extract method name from app.route(...)(self.method_name) call."""
+        if (isinstance(route_node.value, ast.Call) and
+            len(route_node.value.args) > 0 and
+            isinstance(route_node.value.args[0], ast.Attribute) and
+            isinstance(route_node.value.args[0].value, ast.Name) and
+            route_node.value.args[0].value.id == 'self'):
+            return route_node.value.args[0].attr
+        return None
 
     def insert_route_registrations(self, target_tree: ast.AST, route_registrations: List[ast.Expr]) -> ast.AST:
         """Insert route registrations into target __init__ method."""
@@ -694,6 +725,19 @@ class ASTWorkflowReconstructor:
             "Download {template_name} for {readable_date}"
         ]
         return any(pattern in method_source for pattern in enhanced_patterns)
+
+    def extract_suffix_from_target_name(self, target_name: str) -> Optional[str]:
+        """Extract suffix from target filename (e.g., '120_link_graph2' → '2')."""
+        # Remove .py extension if present
+        base_name = target_name.replace('.py', '')
+        
+        # Look for numeric suffix at the end
+        import re
+        match = re.search(r'(\d+)$', base_name)
+        if match:
+            return match.group(1)
+        
+        return None
 
     def filter_out_legacy_analysis_methods(self, methods: List[ast.FunctionDef]) -> List[ast.FunctionDef]:
         """Filter out legacy analysis step methods to preserve template's enhanced version."""
