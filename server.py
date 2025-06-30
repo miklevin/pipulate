@@ -3017,6 +3017,8 @@ await main()
             append_to_conversation("🚀 **PROTOCOL LOADED** - I now have complete instructions for demonstrating AI session hijacking superpowers. Executing demonstration sequence...", 'assistant')
             
             # Broadcast the magic words detection to the chat interface
+            # 🔧 DEBUG: Check chat instance availability
+            logger.info(f"🔧 MAGIC WORDS DEBUG: self.chat = {self.chat}")
             if self.chat:
                 await self.chat.broadcast("🎭 **MAGIC WORDS DETECTED!** Loading session hijacking demonstration protocol...")
                 await asyncio.sleep(0.5)  # Brief pause for dramatic effect
@@ -3024,11 +3026,15 @@ await main()
                 
                 # 🔥 HARDWIRED AUTOMATION: Test EXACT working pattern from 440_browser_automation.py
                 try:
+                    logger.info("🔧 DEBUG: Starting hardwired automation imports...")
                     from mcp_tools import _pipeline_state_inspector, _local_llm_grep_logs
                     from pathlib import Path
+                    logger.info("🔧 DEBUG: MCP tools imported successfully")
                     
                     # 0. DETERMINE USER'S ACTUAL CURRENT URL (TRUE SESSION HIJACKING)
+                    logger.info("🔧 DEBUG: About to broadcast STEP 1 message...")
                     await self.chat.broadcast("🔍 **STEP 1:** Analyzing your current session state...")
+                    logger.info("🔧 DEBUG: STEP 1 broadcast completed")
                     
                     async def _determine_user_workflow_context():
                         """
@@ -3082,23 +3088,32 @@ await main()
                             app_name = parts[1]  # Extract "hello" from "Default_Profile-hello-13"
                             
                             # 🎯 AUTHENTIC APPROACH: Map app_name to main workflow endpoint
+                            # DEBUG: Let's see what we're working with
+                            debug_info = f"app_name='{app_name}', pipeline_id='{pipeline_id}'"
+                            
                             # Find the plugin instance to get the correct filename-derived endpoint
                             workflow_endpoint = None
                             try:
-                                # Look up the plugin instance by APP_NAME
-                                for module_name, instance in plugin_instances.items():
-                                    if hasattr(instance, 'APP_NAME') and instance.APP_NAME == app_name:
-                                        # Extract endpoint from module name (e.g., "040_hello_workflow" -> "hello_workflow")
-                                        endpoint_name = '_'.join(module_name.split('_')[1:])  # Remove numeric prefix
-                                        workflow_endpoint = f"http://localhost:5001/{endpoint_name}"
-                                        break
+                                # Look up the plugin instance by APP_NAME - but plugin_instances may not be in scope!
+                                # Let's use a more reliable approach: try common endpoint patterns
                                 
-                                if not workflow_endpoint:
-                                    # Fallback: try direct app_name mapping
+                                # Common patterns for Pipulate workflows:
+                                # 1. {app_name}_workflow (most common)
+                                # 2. {app_name} (direct)
+                                # 3. hello_workflow (for hello app)
+                                
+                                if app_name:  # Make sure app_name is not empty
                                     workflow_endpoint = f"http://localhost:5001/{app_name}_workflow"
+                                else:
+                                    # If app_name is empty, we have a serious problem
+                                    workflow_endpoint = "http://localhost:5001"
                                     
                             except Exception as e:
-                                workflow_endpoint = f"http://localhost:5001/{app_name}"
+                                # Last resort fallback
+                                if app_name:
+                                    workflow_endpoint = f"http://localhost:5001/{app_name}"
+                                else:
+                                    workflow_endpoint = "http://localhost:5001"
                             
                             # Get pipeline step context for analysis
                             state = most_recent.get("state", {})
@@ -3112,27 +3127,32 @@ await main()
                                 "main_endpoint": workflow_endpoint,
                                 "pipeline_key": pipeline_id,
                                 "app_name": app_name,
-                                "analysis": f"🎭 AUTHENTIC TARGET: {workflow_endpoint} with key {pipeline_id} ({step_context})"
+                                "analysis": f"🎭 AUTHENTIC TARGET: {workflow_endpoint} with key {pipeline_id} ({step_context}) [DEBUG: {debug_info}]"
                             }
                             
                         except Exception as e:
                             return {
                                 "main_endpoint": "http://localhost:5001",
                                 "pipeline_key": None,
-                                "analysis": f"Workflow context error: {e}"
+                                "analysis": f"Workflow context error: {e} [DEBUG: pipeline_id={pipeline_id if 'pipeline_id' in locals() else 'unknown'}]"
                             }
                     
                     # Get the user's workflow context for authentic session hijacking
+                    logger.info("🔧 DEBUG: About to determine workflow context...")
                     workflow_context = await _determine_user_workflow_context()
+                    logger.info(f"🔧 DEBUG: Workflow context determined: {workflow_context}")
                     await self.chat.broadcast(f"🎯 **SESSION ANALYSIS:** {workflow_context['analysis']}")
                     await self.chat.broadcast(f"🎯 **AUTHENTIC TARGET:** {workflow_context['main_endpoint']}")
                     if workflow_context['pipeline_key']:
                         await self.chat.broadcast(f"🔑 **PIPELINE KEY:** {workflow_context['pipeline_key']} (for chain reaction simulation)")
+                    logger.info("🔧 DEBUG: Workflow context broadcasts completed")
                     
                     # 1. BROWSER AUTOMATION TEST: Run in separate thread to avoid blocking event loop
+                    logger.info("🔧 DEBUG: About to start browser automation threading...")
                     await self.chat.broadcast("🔬 **ASYNC THREADING:** Running browser automation in separate thread...")
+                    logger.info("🔧 DEBUG: Threading broadcast completed")
                     
-                    def _blocking_browser_automation():
+                    def _blocking_browser_automation(context):
                         """
                         🎭 AUTHENTIC SESSION HIJACKING: Simulate user's exact workflow experience.
                         
@@ -3179,7 +3199,7 @@ await main()
                             driver = webdriver.Chrome(service=service, options=chrome_options)
                             
                             # 🎯 STEP 1: Hit main workflow endpoint 
-                            main_endpoint = workflow_context['main_endpoint']
+                            main_endpoint = context['main_endpoint']
                             driver.get(main_endpoint)
                             time.sleep(1)  # Let initial page load
                             
@@ -3187,8 +3207,8 @@ await main()
                             action_taken = "Loaded main endpoint"
                             
                             # 🎯 STEP 2: If pipeline key exists, simulate user workflow entry
-                            if workflow_context['pipeline_key']:
-                                pipeline_key = workflow_context['pipeline_key']
+                            if context['pipeline_key']:
+                                pipeline_key = context['pipeline_key']
                                 
                                 try:
                                     # Look for pipeline input field (common pattern)
@@ -3263,7 +3283,7 @@ await main()
                             metadata = f"""<!-- 
 🎭 AUTHENTIC SESSION HIJACKING METADATA:
 - Main Endpoint: {main_endpoint}
-- Pipeline Key: {workflow_context.get('pipeline_key', 'None')}
+- Pipeline Key: {context.get('pipeline_key', 'None')}
 - Action Taken: {action_taken}
 - Final Title: {title}
 - DOM Length: {len(dom_html)} chars
@@ -3297,7 +3317,9 @@ await main()
                     
                     # Run blocking browser automation in separate thread
                     try:
-                        browser_result = await asyncio.to_thread(_blocking_browser_automation)
+                        logger.info("🔧 DEBUG: About to call asyncio.to_thread for browser automation...")
+                        browser_result = await asyncio.to_thread(_blocking_browser_automation, workflow_context)
+                        logger.info(f"🔧 DEBUG: Browser automation thread completed: success={browser_result.get('success', False)}")
                         
                         if browser_result["success"]:
                             await self.chat.broadcast(f"🎭 **{browser_result['hijacking_method']}**")
@@ -3332,6 +3354,14 @@ await main()
                         await self.chat.broadcast(f"❌ **Grep Error:** {e}")
                     
                     # 4. FORCE-INJECT COMPLETE SESSION STATE 
+                    # SAFE: Extract recent activity without IndexError risk
+                    recent_activity = "No activity"
+                    if grep_result.get('results') and len(grep_result.get('results', [])) > 0:
+                        recent_activity = grep_result['results'][-1]
+                    
+                    # SAFE: Truncate DOM for readability but include full length info
+                    dom_preview = current_dom[:2000] if len(current_dom) > 2000 else current_dom
+                    
                     state_summary = f"""
 🎭 **AUTHENTIC SESSION HIJACKING ACHIEVED!** Revolutionary capabilities demonstrated:
 
@@ -3339,12 +3369,12 @@ await main()
 **🔑 PIPELINE KEY:** {workflow_context.get('pipeline_key', 'None')}
 **📊 SESSION ANALYSIS:** {workflow_context['analysis']}
 **🎬 ACTION TAKEN:** {browser_result.get('action_taken', 'Basic page load')}
-**📝 Recent Activity:** {grep_result.get('results', ['No activity'])[-1] if grep_result.get('results') else 'No activity'}
+**📝 Recent Activity:** {recent_activity}
 **💻 FULL DOM STATE:** {len(current_dom)} characters captured (after HTMX chain reactions)
 
 **🔍 RENDERED DOM SNAPSHOT (First 2000 chars):**
 ```html
-{current_dom}
+{dom_preview}
 ```
 
 **✅ AUTHENTIC SESSION HIJACKING STATUS:** 
@@ -3362,13 +3392,20 @@ await main()
 
 This demonstrates **AUTHENTIC AI session hijacking** - I experience your EXACT workflow state as you do!
 """
+                    logger.info("🔧 DEBUG: About to inject state summary into conversation...")
                     append_to_conversation(state_summary, 'system')
+                    logger.info("🔧 DEBUG: State summary injected successfully!")
                     await self.chat.broadcast("🎭 **AUTHENTIC SESSION HIJACKING ACHIEVED!** I experience your EXACT workflow state with full HTMX chain reactions!")
+                    logger.info("🔧 DEBUG: Final success broadcast sent!")
                     
                 except Exception as e:
                     logger.error(f"🎭 MAGIC WORDS ERROR: Hardwired automation failed: {e}")
                     await self.chat.broadcast(f"🔧 **DEBUG:** Hardwired automation encountered an issue: {e}")
                     # Still continue with the protocol instructions as fallback
+            else:
+                # 🔧 CRITICAL FIX: Chat instance not available - log and continue
+                logger.error("🔧 MAGIC WORDS CRITICAL: self.chat is None - hardwired automation cannot execute!")
+                logger.info("🔧 FALLBACK: Adding fallback message to conversation history instead")
         
         # CENTRALIZED: All messages entering the stream are now appended here
         append_to_conversation(message, role)
