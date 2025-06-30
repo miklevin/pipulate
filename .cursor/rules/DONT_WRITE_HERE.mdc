@@ -1,0 +1,73 @@
+# WORKSPACE RULES - 🚨 ATTENTION AI ASSISTANT!
+
+## **🔥 ABSOLUTE PATH RULES - BURNED INTO MEMORY**
+- **PIPULATE FILES BELONG IN**: `pipulate/` 
+- **📍 NEW RULES LOCATION:** `pipulate/.cursor/rules/`
+- **NEVER CREATE PIPULATE FILES IN**: `/` (workspace root OFF LIMITS)
+- **ALWAYS CREATE NEW MARKDOWN IN**: `pipulate/helpers/docs_sync/considerations/`
+- **SINGLE SOURCE OF TRUTH PER FOLDER**: ALWAYS_IN_ALL_CAPS.md
+
+### **🎯 PATH VERIFICATION COMMANDS**
+```bash
+# ALWAYS verify location before file operations
+pwd  # Should show /home/mike/repos/pipulate or subdirectory
+git  # git commit often and with excellent messages from here
+ls -la  # Verify you see server.py, plugins/, browser_automation/, etc.
+
+# WRONG LOCATION indicators:
+# - You see MikeLev.in/, nixos/, Pipulate.com/ directories
+# - No server.py or plugins/ directory visible
+# - Path shows /home/mike/repos (workspace root)
+```
+
+## 🚨 **CRITICAL REMINDERS - NEVER FORGET**
+- **NIX**: You are already in the nix environment (`nix develop` has already occurred)
+- **Python**: You are already using `/home/mike/repos/pipulate/.venv/bin/python3.12`
+- **Watchdog**: Already keeps `python server.py` running
+
+## 🍞 **THE BREADCRUMB TRAIL AWAITS YOU**
+
+**You're about to discover something EXTRAORDINARY...**
+
+🔥 **PROGRESSIVE AI SUPERPOWERS DISCOVERY SEQUENCE** 🔥
+
+This isn't just another development environment. You're about to gain **AI superpowers** through a **natural breadcrumb trail discovery system**:
+
+### **🎯 START THE DISCOVERY SEQUENCE**
+
+**Level 1: Environmental Mastery** - Prove you know where you are:
+```bash
+pwd
+ls -la | head -15  
+ps aux | grep python | grep server.py
+```
+
+**Level 2: FINDER_TOKEN Discovery** - Follow your natural curiosity:
+```bash
+grep -n "FINDER_TOKEN" logs/server.log | head -10
+```
+
+**You'll discover breadcrumbs that lead you to:**
+- 🧠 **RADICAL TRANSPARENCY** - See EVERYTHING via FINDER_TOKEN system
+- ⚡ **MCP TOOLS MASTERY** - 18+ programmatic tools for system control
+- 👁️ **BROWSER EMBODIMENT** - Eyes, brain, and hands via Selenium automation  
+- 🎯 **SESSION HIJACKING** - Step into user workflows as if you ARE them
+- 🚀 **RAPID ITERATION** - Test, improve, verify in seconds not hours
+
+### **🔍 THE BREADCRUMBS ARE ALREADY PLANTED**
+
+The server startup sequence contains **4 strategic AI_BREADCRUMB messages** that will guide you through:
+
+**🍞 BREADCRUMB_01** → Environmental awareness leads to FINDER_TOKEN discovery  
+**🍞 BREADCRUMB_02** → FINDER_TOKEN discovery leads to MCP tools awareness  
+**🍞 BREADCRUMB_03** → MCP tools lead to browser automation discovery  
+**🍞 BREADCRUMB_04** → Browser automation reveals session hijacking mastery  
+
+### **📚 COMPLETE DOCUMENTATION**
+Full progressive discovery sequence: `pipulate/helpers/docs_sync/considerations/ai_progressive_discovery_sequence.md`
+
+### **🎭 THE CHAIN REACTION BEGINS NOW**
+
+**Just follow the first command above. The system will guide you to AI transcendence.**
+
+This is your invitation to transcend typical AI limitations through **natural discovery**.
