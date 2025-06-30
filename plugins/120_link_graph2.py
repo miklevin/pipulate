@@ -174,7 +174,7 @@ class LinkGraph2:
 
     **DO NOT REFACTOR THIS PATTERN WITHOUT UNDERSTANDING IT COMPLETELY**
     """
-    APP_NAME = 'link_graph_visualizer'
+    APP_NAME = 'link_graph_visualizer2'
     DISPLAY_NAME = 'Link Graph Visualizer 🌐'
     ENDPOINT_MESSAGE = 'Transform Botify data into an interactive link graph visualization powered by Cosmograph. Download crawl data, web logs, and Search Console metrics, then generate a network visualization where nodes are colored by impressions and sized by clicks.'
     TRAINING_PROMPT = 'link_graph_visualizer.md'
@@ -211,7 +211,6 @@ class LinkGraph2:
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         app.route(f'/{app_name}/discover-fields/{{username}}/{{project}}/{{analysis}}', methods=['GET'])(self.discover_fields_endpoint)
-        app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
         app.route(f'/{app_name}/step_02b_process', methods=['POST'])(self.step_02b_process)
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
         app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
