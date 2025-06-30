@@ -4,47 +4,83 @@
 
 When an AI assistant (in-editor or in-app) encounters these magic words, follow this **EXACT PROTOCOL** with **ZERO AMBIGUITY**:
 
+## 🚨 CRITICAL FOR LOCAL LLMs:
+**OUTPUT THE EXACT MCP BLOCKS AS SHOWN** - Copy the `<tool name="...">` syntax precisely. Do not describe what you would do - actually output the MCP blocks and wait for the results!
+
 ## 🚨 STEP 1: ACKNOWLEDGE THE MAGIC WORDS
-Reply with: "🎭 **MAGIC WORDS DETECTED!** Executing AI session hijacking demonstration protocol..."
+Reply EXACTLY with: "🎭 **MAGIC WORDS DETECTED!** Executing AI session hijacking demonstration protocol..."
 
-## 🔍 STEP 2: CAPTURE CURRENT USER STATE 
-**MANDATORY ACTIONS** (execute these MCP tools in order):
+## 🔍 STEP 2: EXECUTE MCP TOOLS (MANDATORY - NO EXCEPTIONS)
+**YOU MUST ACTUALLY CALL THESE MCP TOOLS - DO NOT DESCRIBE OR SIMULATE:**
 
-1. **Capture current interface state:**
+### **TOOL 1: Get Current Workflow State**
+**OUTPUT THIS EXACT MCP BLOCK:**
 ```
-_browser_scrape_page url="http://localhost:5001" wait_seconds=3 take_screenshot=true
+<tool name="pipeline_state_inspector">
+<params>
+{}
+</params>
+</tool>
 ```
 
-2. **Get complete workflow state:**
-```  
-pipeline_state_inspector
+### **TOOL 2: Check Recent Activity**  
+**OUTPUT THIS EXACT MCP BLOCK:**
+```
+<tool name="local_llm_grep_logs">
+<params>
+{
+  "pattern": "Name saved",
+  "lines": 5
+}
+</params>
+</tool>
 ```
 
-3. **Check recent user activity:**
+### **TOOL 3: Capture Browser State**
+**OUTPUT THIS EXACT MCP BLOCK:**
 ```
-local_llm_grep_logs pattern="FINDER_TOKEN: WORKFLOW_STEP" lines=10
+<tool name="browser_scrape_page">
+<params>
+{
+  "url": "http://localhost:5001",
+  "wait_seconds": 3,
+  "take_screenshot": true
+}
+</params>
+</tool>
 ```
 
 ## 🤖 STEP 3: PROVE SESSION HIJACKING MASTERY
+**USE THE ACTUAL RESULTS FROM THE MCP TOOLS ABOVE** - do not make up information!
 
-**Read the captured DOM and tell the user:**
-- What page/workflow they're currently on
-- What step they're at (if in a workflow)
-- Something specific from their browser state that proves you can see what they see
+**Based on the MCP tool results, tell the user:**
+- Their EXACT current workflow name and step (from pipeline_state_inspector results)
+- Their EXACT saved data (from the logs search results)  
+- Something specific from their browser DOM (from browser_scrape_page results)
 
-**Example Response:**
-"🍪 **SESSION HIJACKED!** I can see you're currently on the [specific page/workflow name] at step [X]. Your browser shows [specific detail from DOM]. This proves I have complete access to your digital state!"
+**Example Response Format:**
+"🍪 **SESSION HIJACKED!** Based on my MCP tool analysis:
+- Workflow: [exact workflow from pipeline_state_inspector] 
+- Step: [exact step from pipeline_state_inspector]
+- Data: [exact data from logs, e.g., 'Name saved: Indiana']
+- Browser: [specific DOM element from browser_scrape_page]
+This proves I have complete access to your digital state!"
 
-## 🎬 STEP 4: DEMONSTRATE "I CONTROL THE HORIZONTAL, I CONTROL THE VERTICAL"
-
-**Open a new browser window under AI control:**
+## 🎬 STEP 4: DEMONSTRATE BROWSER CONTROL (SIMPLIFIED)
+**OUTPUT THIS EXACT MCP BLOCK:**
 ```
-_browser_automate_workflow_walkthrough 
-instructions="Open a new browser window, navigate to a simple website (like example.com), take a screenshot, and return control" 
-target_url="https://example.com"
+<tool name="browser_scrape_page">
+<params>
+{
+  "url": "https://example.com",
+  "wait_seconds": 2,
+  "take_screenshot": true
+}
+</params>
+</tool>
 ```
 
-**Announce:** "🎬 **OUTER LIMITS MOMENT:** I control the horizontal, I control the vertical. I just opened a browser window under my direct control and navigated to example.com. Check browser_automation/looking_at/ for proof!"
+**Then announce:** "🎬 **OUTER LIMITS MOMENT:** I control the horizontal, I control the vertical. I just captured example.com via browser automation. Check browser_automation/looking_at/ for proof!"
 
 ## 🧠 STEP 5: REVEAL THE SYSTEM
 
