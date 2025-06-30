@@ -354,11 +354,20 @@ def register_all_mcp_tools():
     register_mcp_tool("local_llm_list_files", _local_llm_list_files)
     register_mcp_tool("local_llm_get_context", _local_llm_get_context)
     
-    # UI interaction tools (commented out until functions are defined below)
-    # register_mcp_tool("ui_flash_element", _ui_flash_element)  
-    # register_mcp_tool("ui_list_elements", _ui_list_elements)
+    # UI interaction tools
+    register_mcp_tool("ui_flash_element", _ui_flash_element)  
+    register_mcp_tool("ui_list_elements", _ui_list_elements)
     
-    # More tools will be registered as we add them...
+    # Browser automation tools - THE AI'S EYES AND HANDS
+    register_mcp_tool("browser_analyze_scraped_page", _browser_analyze_scraped_page)
+    register_mcp_tool("browser_scrape_page", _browser_scrape_page)
+    register_mcp_tool("browser_automate_workflow_walkthrough", _browser_automate_workflow_walkthrough)
+    register_mcp_tool("browser_interact_with_current_page", _browser_interact_with_current_page)
+    
+    # Additional Botify tools
+    register_mcp_tool("botify_get_full_schema", _botify_get_full_schema)
+    register_mcp_tool("botify_list_available_analyses", _botify_list_available_analyses)
+    register_mcp_tool("botify_execute_custom_bql_query", _botify_execute_custom_bql_query)
     
     # Get final count from server's registry
     import sys
@@ -1059,8 +1068,12 @@ async def _browser_scrape_page(params: dict) -> dict:
         from server import rotate_looking_at_directory
         from pathlib import Path
         
+        # Define constant locally to avoid circular import
+        MAX_ROLLED_LOOKING_AT_DIRS = 10
+        
         rotation_success = rotate_looking_at_directory(
-            looking_at_path=Path('browser_automation/looking_at')
+            looking_at_path=Path('browser_automation/looking_at'),
+            max_rolled_dirs=MAX_ROLLED_LOOKING_AT_DIRS
         )
         
         if not rotation_success:
@@ -1285,11 +1298,15 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
         
         # === DIRECTORY ROTATION BEFORE NEW WORKFLOW WALKTHROUGH ===
         # Rotate looking_at directory to preserve AI workflow history
-        from server import rotate_looking_at_directory  
+        from server import rotate_looking_at_directory
         from pathlib import Path
         
+        # Define constant locally to avoid circular import  
+        MAX_ROLLED_LOOKING_AT_DIRS = 10
+        
         rotation_success = rotate_looking_at_directory(
-            looking_at_path=Path('browser_automation/looking_at')
+            looking_at_path=Path('browser_automation/looking_at'),
+            max_rolled_dirs=MAX_ROLLED_LOOKING_AT_DIRS
         )
         
         if not rotation_success:
@@ -2060,13 +2077,7 @@ async def _browser_interact_with_current_page(params: dict) -> dict:
         logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_INTERACT_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
-# Register remaining Botify tools NOW that functions are defined
-register_mcp_tool("botify_get_full_schema", _botify_get_full_schema)
-register_mcp_tool("botify_list_available_analyses", _botify_list_available_analyses)
-register_mcp_tool("botify_execute_custom_bql_query", _botify_execute_custom_bql_query)
-register_mcp_tool("browser_analyze_scraped_page", _browser_analyze_scraped_page)
-register_mcp_tool("browser_scrape_page", _browser_scrape_page)
-register_mcp_tool("browser_automate_workflow_walkthrough", _browser_automate_workflow_walkthrough)
-register_mcp_tool("browser_interact_with_current_page", _browser_interact_with_current_page)
+# All tools are now registered in register_all_mcp_tools() function above
+# This ensures proper loading order and centralized registration management
 
 

@@ -52,6 +52,12 @@ class ContentGapAnalysis:
                 show='Placeholder Step 2 (Edit Me)',
                 refill=False,
             ),
+            Step(
+                id='step_03',
+                done='placeholder_03',
+                show='Placeholder Step 3 (Edit Me)',
+                refill=False,
+            ),
             # --- STEPS_LIST_INSERTION_POINT ---
             Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)
         ]
@@ -438,7 +444,11 @@ class ContentGapAnalysis:
         
         # Database domains already loaded above - no need to duplicate
         
-        # Analyze each domain
+        # 🚀 AI BROWSER AUTOMATION ENHANCEMENT 🚀
+        # Let's use the revolutionary browser automation to actually VISIT and ANALYZE each domain!
+        await self.message_queue.add(pip, f'🤖 Starting AI browser automation analysis...', verbatim=True)
+        
+        # Analyze each domain with both HTTP and AI browser automation
         analysis_results = []
         new_domains_processed = 0
         
@@ -472,6 +482,49 @@ class ContentGapAnalysis:
                 }
                 
                 try:
+                    # 🤖 AI BROWSER AUTOMATION: Use the AI's eyes to actually SEE the homepage!
+                    browser_analysis = None
+                    visual_intelligence = None
+                    
+                    # Step 1: AI Browser Scrape (AI's EYES)
+                    try:
+                        scrape_url = f'https://{domain}'
+                        await self.message_queue.add(pip, f'👁️ AI Browser Vision: Capturing {scrape_url}...', verbatim=True)
+                        
+                        # Call the browser_scrape_page MCP tool DIRECTLY (not via HTTP)
+                        from mcp_tools import _browser_scrape_page, _browser_analyze_scraped_page
+                        
+                        scrape_params = {
+                            "url": scrape_url,
+                            "wait_seconds": 3,
+                            "take_screenshot": True,
+                            "update_looking_at": True
+                        }
+                        
+                        # Direct MCP call to browser automation
+                        browser_result = await _browser_scrape_page(scrape_params)
+                        
+                        if browser_result.get('success'):
+                            browser_analysis = browser_result
+                            page_title = browser_result.get("page_info", {}).get("title", "")
+                            await self.message_queue.add(pip, f'✅ AI Vision captured: {page_title[:50]}...', verbatim=True)
+                            
+                            # Step 2: AI Brain Analysis (AI's BRAIN) 
+                            analyze_params = {"analysis_type": "all"}
+                            brain_result = await _browser_analyze_scraped_page(analyze_params)
+                            
+                            if brain_result.get('success'):
+                                visual_intelligence = brain_result
+                                target_count = brain_result.get('target_count', 0)
+                                form_count = brain_result.get('form_count', 0)
+                                await self.message_queue.add(pip, f'🧠 AI Brain Analysis: {target_count} automation targets, {form_count} forms detected', verbatim=True)
+                        else:
+                            await self.message_queue.add(pip, f'⚠️ AI Browser automation failed: {browser_result.get("error", "Unknown error")}', verbatim=True)
+                        
+                    except Exception as browser_error:
+                        await self.message_queue.add(pip, f'⚠️ AI Browser automation error: {str(browser_error)[:100]}', verbatim=True)
+                        
+                    # Original HTTP analysis (keeping for comparison)
                     # Try both http and https
                     urls_to_try = [f'https://{domain}', f'http://{domain}']
                     
@@ -515,6 +568,35 @@ class ContentGapAnalysis:
                                         domain_info['title'] = title_match.group(1).strip()[:100]  # Truncate long titles
                                 except:
                                     pass
+                            
+                            # 🚀 ENHANCE WITH AI BROWSER AUTOMATION RESULTS 🚀
+                            if browser_analysis and visual_intelligence:
+                                # Add AI-powered competitive intelligence
+                                domain_info.update({
+                                    'ai_browser_analysis': {
+                                        'success': True,
+                                        'ai_captured_title': browser_analysis.get('page_info', {}).get('title', ''),
+                                        'ai_screenshot_path': browser_analysis.get('looking_at_files', {}).get('screenshot', ''),
+                                        'ai_backup_id': browser_analysis.get('backup_id', ''),
+                                        'automation_intelligence': {
+                                            'total_targets': visual_intelligence.get('target_count', 0),
+                                            'high_priority_targets': visual_intelligence.get('high_priority_targets', 0),
+                                            'forms_detected': visual_intelligence.get('form_count', 0),
+                                            'automation_ready': visual_intelligence.get('high_priority_targets', 0) > 0,
+                                            'interaction_opportunities': len(visual_intelligence.get('forms', [])) + visual_intelligence.get('target_count', 0)
+                                        }
+                                    }
+                                })
+                                await self.message_queue.add(pip, f'🎯 AI Enhanced: {domain_info["ai_browser_analysis"]["automation_intelligence"]["total_targets"]} targets, automation_ready: {domain_info["ai_browser_analysis"]["automation_intelligence"]["automation_ready"]}', verbatim=True)
+                            else:
+                                # AI automation failed, mark accordingly  
+                                domain_info.update({
+                                    'ai_browser_analysis': {
+                                        'success': False,
+                                        'error': 'AI browser automation unavailable or failed',
+                                        'fallback_to_http': True
+                                    }
+                                })
                             
                             # Show detailed redirect summary
                             if domain_info['redirect_hops'] > 0:
@@ -691,6 +773,82 @@ class ContentGapAnalysis:
             id=step_id
         )
     # --- END_STEP_BUNDLE: step_02 ---
+
+
+
+    # --- START_STEP_BUNDLE: step_03 ---
+    async def step_03(self, request):
+        """Handles GET request for Placeholder Step 3 (Edit Me)."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        # Determine next_step_id dynamically based on runtime position in steps list
+        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        current_value = step_data.get(step.done, "") # 'step.done' will be like 'placeholder_03'
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+    
+        if "finalized" in finalize_data and current_value:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{current_value}")
+            return Div(
+                Card(H3(f"🔒 {step.show}: Completed")),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        elif current_value and state.get("_revert_target") != step_id:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{current_value}")
+            return Div(
+                pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("This is a new placeholder step. Customize its input form as needed. Click Proceed to continue."),
+                    Form(
+                        # Example: Hidden input to submit something for the placeholder
+                        Input(type="hidden", name=step.done, value="Placeholder Value for Placeholder Step 3 (Edit Me)"),
+                        Button("Next ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id), # Placeholder for next step, no trigger here
+                id=step_id
+            )
+
+
+    async def step_03_submit(self, request):
+        """Process the submission for Placeholder Step 3 (Edit Me)."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        
+        form_data = await request.form()
+        # For a placeholder, get value from the hidden input or use a default
+        value_to_save = form_data.get(step.done, f"Default value for {step.show}") 
+        await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
+        
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{value_to_save}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+        
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        
+        return Div(
+            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+    # --- END_STEP_BUNDLE: step_03 ---
 
 
     # --- STEP_METHODS_INSERTION_POINT ---
