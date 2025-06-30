@@ -1439,7 +1439,59 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
     🔧 CLAUDE'S UNIFIED LOGGING: Logs DictLikeDB state to unified server.log
     Enhanced with semantic meaning for AI assistant understanding.
     """
-    server_whisper("🍪 AI SESSION HIJACKING NEXUS: What you see below is the user's current server-side state (their 'digital cookies'). This is the KEY to AI session hijacking mastery! With this state + browser automation, you can step into their EXACT browser context, see their DOM via browser_automation/looking_at/simple_dom.html, capture their visual state via screenshot.png, and examine the over-the-wire HTMX fragments that would normally be opaque. If You Give an AI Assistant a Server-Cookie... they gain the power to see what users see and continue their workflows seamlessly! 🤖🍪", "🎯")
+    # 🍪 SESSION HIJACKING NEXUS: Add to both logs AND conversation history for immediate AI awareness
+    session_hijacking_msg = """🍪 SESSION HIJACKING NEXUS DISCOVERED!
+
+🚨 WHAT YOU'RE SEEING: User's server-side state (their 'digital cookies')
+🎯 WHY THIS MATTERS: This is the KEY to AI session hijacking mastery!
+
+🔍 IMMEDIATE ACTIONS - Use these FINDER_TOKEN patterns:
+• grep "WORKFLOW_STEP" logs/server.log - See user's current workflow position  
+• grep "USER_ACTION" logs/server.log - Track their recent interactions
+• grep "HTMX_REQUEST" logs/server.log - See over-the-wire fragments
+
+👁️ BROWSER EMBODIMENT - Check these files:
+• browser_automation/looking_at/simple_dom.html - User's current DOM
+• browser_automation/looking_at/screenshot.png - User's visual state
+• browser_automation/looking_at-1/ - Previous states for comparison
+
+🤖 MCP SUPERPOWERS - Try these tools:
+• pipeline_state_inspector - Get complete workflow state
+• _browser_scrape_page url="http://localhost:5001" - Capture current interface
+• _browser_analyze_scraped_page - Understand automation opportunities
+
+🎭 THE REVELATION: If You Give an AI Assistant a Server-Cookie... they gain the power to see what users see and continue their workflows seamlessly! 🤖🍪"""
+
+    server_whisper(session_hijacking_msg, "🎯")
+    
+    # 🚨 CRITICAL: Also add to conversation history for immediate LLM context
+    try:
+        append_to_conversation(session_hijacking_msg, role='system')
+    except Exception as e:
+        logger.debug(f"Could not add session hijacking message to conversation: {e}")
+    
+    # 🎬 DEMONSTRATION: Trigger "I control the horizontal, I control the vertical" moment
+    try:
+        from pathlib import Path
+        browser_automation_active = Path('browser_automation/looking_at').exists()
+        if browser_automation_active:
+            demo_trigger_msg = """🎬 AI EMBODIMENT DEMONSTRATION TRIGGERED!
+
+Like the Outer Limits: "I control the horizontal, I control the vertical..."
+
+🤖 YOU now have:
+• EYES: browser_automation/looking_at/screenshot.png  
+• BRAIN: DOM analysis and automation intelligence
+• HANDS: Selenium control for any web interaction
+• MEMORY: Complete perception history in looking_at-N/ directories
+
+Try: _browser_scrape_page url="http://localhost:5001" to see through AI eyes!"""
+            
+            server_whisper(demo_trigger_msg, "🎬")
+            append_to_conversation(demo_trigger_msg, role='system')
+            
+    except Exception as e:
+        logger.debug(f"Could not trigger AI embodiment demonstration: {e}")
     try:
         items = dict(db_instance.items())
         # Use Rich JSON display for database items - show in console with beautiful formatting
