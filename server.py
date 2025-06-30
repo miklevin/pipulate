@@ -3081,10 +3081,9 @@ await main()
                             
                             app_name = parts[1]  # Extract "hello" from "Default_Profile-hello-13"
                             
-                            # 🎯 AUTHENTIC APPROACH: Use same database-driven logic as browser automation
-                            # Direct app_name to endpoint mapping - no plugin lookup needed
+                            # 🎯 AUTHENTIC APPROACH: Use centralized endpoint registry
                             try:
-                                workflow_endpoint = f"http://localhost:5001/{app_name}_workflow"
+                                workflow_endpoint = get_endpoint_url(app_name)
                                     
                             except Exception as e:
                                 workflow_endpoint = f"http://localhost:5001/{app_name}"
@@ -5013,6 +5012,58 @@ discovered_classes = find_plugin_classes(discovered_modules, discovered_modules)
 friendly_names = {'': HOME_MENU_ITEM}
 endpoint_training = {}
 
+# 🎯 ENDPOINT REGISTRY: Central mapping for app_name → endpoint URLs  
+# Populated during plugin discovery to prevent URL mapping bugs
+endpoint_registry = {}
+
+def register_plugin_endpoint(module_name: str, app_name: str) -> str:
+    """
+    Register a plugin's endpoint mapping during discovery.
+    
+    Args:
+        module_name: Plugin filename (e.g., "040_hello_workflow")
+        app_name: Plugin APP_NAME constant (e.g., "hello")
+    
+    Returns:
+        The registered endpoint URL
+    """
+    # Extract endpoint from module filename (once, correctly)
+    name = module_name.replace('.py', '')
+    parts = name.split('_')
+    if parts[0].isdigit():
+        parts = parts[1:]  # Remove numeric prefix
+    endpoint = '_'.join(parts)
+    
+    # Build full URL
+    endpoint_url = f"http://localhost:5001/{endpoint}"
+    
+    # Register the mapping
+    endpoint_registry[app_name] = {
+        'module_name': module_name,
+        'endpoint': endpoint,
+        'url': endpoint_url
+    }
+    
+    logger.debug(f"🎯 ENDPOINT_REGISTRY: Registered {app_name} → {endpoint_url}")
+    return endpoint_url
+
+def get_endpoint_url(app_name: str) -> str:
+    """
+    Get endpoint URL for an app_name. Single source of truth for all URL lookups.
+    
+    Args:
+        app_name: The APP_NAME from pipeline or plugin
+        
+    Returns:
+        The full endpoint URL
+    """
+    if app_name in endpoint_registry:
+        return endpoint_registry[app_name]['url']
+    
+    # Graceful fallback with logging
+    logger.warning(f"🎯 ENDPOINT_REGISTRY: Unknown app_name '{app_name}', using fallback")
+    return f"http://localhost:5001/{app_name}_workflow"
+
 def get_display_name(workflow_name):
     instance = plugin_instances.get(workflow_name)
     if instance:
@@ -5084,6 +5135,10 @@ for module_name, class_name, workflow_class in discovered_classes:
                         if instance:
                             instance.name = module_name
                             plugin_instances[module_name] = instance
+                            
+                            # 🎯 REGISTER ENDPOINT MAPPING: Build the registry during plugin discovery
+                            if hasattr(instance, 'APP_NAME') and instance.APP_NAME:
+                                register_plugin_endpoint(module_name, instance.APP_NAME)
                             class_display_name_attr = getattr(workflow_class, 'DISPLAY_NAME', None)
                             instance_display_name_attr = getattr(instance, 'DISPLAY_NAME', None)
                             if isinstance(instance_display_name_attr, str) and instance_display_name_attr.strip():
