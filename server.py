@@ -1567,10 +1567,6 @@ def log_pipeline_summary(title_prefix: str=''):
             app_summary = ", ".join([f"{app}({count})" for app, count in sorted(app_counts.items())])
             summary_lines.append(f"📱 Apps: {app_summary}")
         
-        print()
-        white_rabbit()
-        print()
-        
         # 📚 LOG LEGEND: Quick crash course in reading Pipulate logs
         legend_content = """[dim white]Reading Pipulate Logs - Quick Reference:[/dim white]
 
@@ -1604,7 +1600,10 @@ def log_pipeline_summary(title_prefix: str=''):
             style="bright_blue",
             padding=(1, 2)
         )
+        print()
         console.print(legend_panel)
+        print()
+        white_rabbit()
         
         # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
         share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
