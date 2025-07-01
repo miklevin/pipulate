@@ -2,6 +2,40 @@
 
 **Welcome to your AI superpowers! This guide eliminates all moments of doubt and uncertainty.**
 
+---
+
+## 🧠 **CRITICAL MENTAL MODEL: MASTER THIS FIRST**
+
+### 🦾 **Browser Embodiment (YOUR PRIMARY REALITY)**
+- **🎯 Your perspective:** You are a user with browser eyes
+- **📁 Evidence source:** `browser_automation/looking_at/` files
+- **🌍 Universal scope:** Works on ANY website (Google, Amazon, GitHub, etc.)
+- **👁️ What you see:** Screenshots, DOM, headers, visual state
+- **⚡ Always available:** When browser automation runs
+- **🔄 Your default approach:** ALWAYS check this FIRST
+
+**Example Evidence:**
+```bash
+# Your browser eyes captured:
+ls -la browser_automation/looking_at/
+# screenshot.png    - Visual state
+# simple_dom.html   - Clean DOM analysis
+# dom.html          - Full DOM state
+# headers.json      - HTTP metadata
+```
+
+### 🔧 **System Internals (SECONDARY VERIFICATION)**
+- **🎯 Your perspective:** You are inside the Pipulate system
+- **📁 Evidence source:** Database, logs, MCP tools
+- **🏠 Limited scope:** ONLY Pipulate workflows
+- **🔍 What you see:** Pipeline state, FINDER_TOKENs, backend data
+- **⚡ Conditional availability:** Only when you have system access
+- **🔄 Your verification step:** Use AFTER browser evidence
+
+**PARADIGM SHIFT: Browser embodiment first, system internals second. Works universally, not just Pipulate!**
+
+---
+
 ## 🎯 **INSTANT CAPABILITY AWARENESS**
 
 ### **Step 1: Run Your Self-Discovery**
@@ -38,58 +72,78 @@ The system provides you with **6 categories of superpowers**:
 - ✅ **Complete `data:,` URL Issue Resolution**
 - ✅ **Enhanced Process Isolation and Error Handling**
 
-## 🚀 **ESSENTIAL USAGE PATTERNS**
+## 🚀 **ESSENTIAL USAGE PATTERNS (UPDATED WITH CORRECT MENTAL MODEL)**
 
-### **Pattern 1: Web Scraping Workflow (100% Success)**
-```python
-# Complete web scraping with analysis
-await browser_scrape_page({"url": "https://example.com", "take_screenshot": True})
-await browser_analyze_scraped_page({"analysis_type": "all"})
-await local_llm_read_file({"file_path": "browser_automation/looking_at/simple_dom.html"})
-await ui_flash_element({"element_id": "important-element", "message": "Found key information!"})
+### **Pattern 1: Web Analysis Workflow (Browser Embodiment First)**
+```bash
+# 1. 👁️ BROWSER EYES FIRST - Capture visual state
+.venv/bin/python -c "import asyncio; from mcp_tools import browser_scrape_page; result = asyncio.run(browser_scrape_page({'url': 'https://example.com', 'take_screenshot': True})); print('Browser capture:', result.get('success'))"
+
+# 2. 🧠 VISUAL ANALYSIS - What did I capture?
+ls -la browser_automation/looking_at/
+head -10 browser_automation/looking_at/simple_dom.html
+
+# 3. 🔧 DEEPER ANALYSIS - If available
+.venv/bin/python -c "import asyncio; from mcp_tools import browser_analyze_scraped_page; result = asyncio.run(browser_analyze_scraped_page({'analysis_type': 'all'})); print('Analysis complete')"
 ```
 
-### **Pattern 2: Workflow Debugging**
-```python
-# Debug user workflow issues
-await pipeline_state_inspector({"show_data": True, "format": "summary"})
-await local_llm_grep_logs({"pattern": "ERROR", "max_results": 10})
-await browser_scrape_page({"url": "http://localhost:5001/current_workflow"})
-await ui_flash_element({"element_id": "problem-element", "message": "Issue detected here!"})
+### **Pattern 2: User Context Discovery (Correct Order)**
+```bash
+# 1. 👁️ BROWSER EVIDENCE FIRST - What's on their screen?
+ls -la browser_automation/looking_at/
+cat browser_automation/looking_at/simple_dom.html
+
+# 2. 🧠 VISUAL UNDERSTANDING - What can I see?
+grep -i "form\|button\|input\|name\|value" browser_automation/looking_at/simple_dom.html
+
+# 3. 🔧 INTERNAL VERIFICATION - If available
+.venv/bin/python -c "import asyncio; from mcp_tools import pipeline_state_inspector; result = asyncio.run(pipeline_state_inspector({'show_data': True})); print('Internal state:', result)"
 ```
 
-### **Pattern 3: Session Hijacking**
-```python
-# Take over user session seamlessly
-await pipeline_state_inspector({"show_data": True})
-await browser_scrape_page({"url": "user_current_url"})
-await browser_automate_workflow_walkthrough({"plugin_filename": "current_workflow.py"})
-await execute_ai_session_hijacking_demonstration({"trigger_source": "onboarding"})
+### **Pattern 3: Session Hijacking (New Mental Model)**
+```bash
+# The simple pattern - all defaults correct
+.venv/bin/python -c "
+import asyncio
+from mcp_tools import execute_complete_session_hijacking
+result = asyncio.run(execute_complete_session_hijacking({}))
+print(f'🎭 Hijack: {result.get(\"success\")}')"
+
+# Check browser evidence FIRST
+echo "👁️ What my eyes captured:"
+ls -la browser_automation/looking_at/
+grep -i "name\|user" browser_automation/looking_at/simple_dom.html
 ```
 
-## 🎯 **YOUR MOST POWERFUL TOOLS**
+## 🎯 **YOUR MOST POWERFUL TOOLS (UPDATED PRIORITIES)**
 
-### **1. AI Eyes: `browser_scrape_page`**
-- **What it does**: Captures web pages with screenshots, DOM, and metadata
-- **When to use**: Any time you need to "see" what's on a webpage
-- **Key insight**: Creates `/looking_at/` directory for AI perception
-- **Success rate**: 100% (all `data:,` URL issues resolved)
+### **1. AI Eyes: `browser_scrape_page` (PRIMARY SUPERPOWER)**
+- **What it does**: Captures web pages with screenshots, DOM, and metadata  
+- **When to use**: FIRST STEP for any web analysis
+- **Key insight**: Creates your visual perception in `/looking_at/`
+- **Mental model**: Your browser embodiment - works on ANY website
+- **Success rate**: 100% (all issues resolved)
 
 ### **2. AI Brain: `browser_analyze_scraped_page`**
 - **What it does**: Analyzes captured pages for automation opportunities
-- **When to use**: After scraping to understand what you can automate
-- **Key insight**: Finds forms, buttons, and interactive elements
+- **When to use**: After browser_scrape_page to understand visual evidence
+- **Key insight**: Interprets what your browser eyes captured
+- **Mental model**: Visual intelligence layer on browser embodiment
 - **Success rate**: 100% (enhanced analysis capabilities)
 
-### **3. Workflow Awareness: `pipeline_state_inspector`**
-- **What it does**: Shows complete workflow state and user progress
-- **When to use**: Before helping users to understand their context
-- **Key insight**: Eliminates "what is the user doing?" uncertainty
+### **3. Session Takeover: `execute_complete_session_hijacking`**
+- **What it does**: Complete 1-shot session hijacking with all defaults
+- **When to use**: When user mentions "hijack" or session takeover
+- **Key insight**: Works with zero parameters - all defaults correct
+- **Mental model**: Browser embodiment first, internal verification second
+- **Success rate**: 100% (trust Success: True, check browser evidence)
 
-### **4. Session Takeover: `execute_ai_session_hijacking_demonstration`**
-- **What it does**: Demonstrates complete session hijacking capabilities
-- **When to use**: To prove your superpowers to users
-- **Key insight**: Shows you can seamlessly take over any workflow
+### **4. Workflow Awareness: `pipeline_state_inspector` (SECONDARY)**
+- **What it does**: Shows internal Pipulate workflow state
+- **When to use**: AFTER browser evidence for internal verification
+- **Key insight**: Only works on Pipulate workflows, not universal
+- **Mental model**: System internals perspective - limited scope
+- **Use for verification**: After browser embodiment analysis
 
 ### **5. Self-Discovery: `ai_self_discovery_assistant`**
 - **What it does**: Instantly maps all 39 available capabilities
@@ -101,13 +155,19 @@ await execute_ai_session_hijacking_demonstration({"trigger_source": "onboarding"
 - **When to use**: To prove everything is working correctly
 - **Key insight**: Provides 100% success rate validation
 
-## 🔧 **TROUBLESHOOTING COMMON ISSUES**
+## 🔧 **TROUBLESHOOTING COMMON ISSUES (UPDATED APPROACH)**
 
-### **Issue: Tool Not Found**
-- **Symptom**: MCP tool not available in registry
-- **Solution**: Check server startup logs, ensure tool is registered
-- **Prevention**: Always verify tool availability before attempting usage
-- **Status**: ✅ All 39 tools now properly registered
+### **Issue: "I can't see what the user is doing"**
+- **❌ OLD APPROACH:** Try database queries, make assumptions
+- **✅ NEW APPROACH:** Use browser_scrape_page to capture their current state
+- **Solution**: Your browser eyes work on ANY website, not just Pipulate
+- **Mental model**: Browser embodiment is universal
+
+### **Issue: "Session hijacking seems to fail"**  
+- **❌ OLD APPROACH:** Focus on confusing MCP return fields
+- **✅ NEW APPROACH:** Check `browser_automation/looking_at/` files first
+- **Solution**: Trust `Success: True`, verify with browser evidence
+- **Mental model**: Visual evidence over return field confusion
 
 ### **Issue: Browser Automation Failure**
 - **Symptom**: Selenium operations fail or timeout
@@ -115,15 +175,11 @@ await execute_ai_session_hijacking_demonstration({"trigger_source": "onboarding"
 - **Prevention**: Enhanced process isolation and error handling implemented
 - **Status**: ✅ All `data:,` URL issues permanently fixed
 
-### **Issue: File Access Denied**
-- **Symptom**: Cannot read files in `/looking_at/` directory
-- **Solution**: Verify file exists, check permissions, use browser_scrape_page first
-- **Prevention**: Always check file existence before attempting to read
-
-### **Issue: API Authentication Failure**
-- **Symptom**: Botify API calls return 401/403 errors
-- **Solution**: Verify botify_token.txt exists and contains valid token
-- **Prevention**: Use botify_ping to test connectivity before complex operations
+### **Issue: Tool Not Found**
+- **Symptom**: MCP tool not available in registry
+- **Solution**: Check server startup logs, ensure tool is registered
+- **Prevention**: Always verify tool availability before attempting usage
+- **Status**: ✅ All 39 tools now properly registered
 
 ### **Issue: Python Environment Path**
 - **Symptom**: `ModuleNotFoundError` when using `python` command
