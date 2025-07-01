@@ -284,13 +284,15 @@ window.initializeSearchPluginsKeyboardNav = function() {
     // Global click handler for click-away dismissal
     document.addEventListener('click', function(event) {
         // Check if click is outside search area
-        const searchContainer = searchInput.closest('.search-dropdown-container');
-        const isClickInsideSearch = searchContainer && searchContainer.contains(event.target);
-        
-        if (!isClickInsideSearch) {
-            dropdown.style.display = 'none';
-            clearSearchSelection();
-            console.log('🔍 Search dropdown closed via click-away');
+        if (searchInput && dropdown) {
+            const searchContainer = searchInput.closest('.search-dropdown-container');
+            const isClickInsideSearch = searchContainer && searchContainer.contains(event.target);
+            
+            if (!isClickInsideSearch) {
+                dropdown.style.display = 'none';
+                clearSearchSelection();
+                console.log('🔍 Search dropdown closed via click-away');
+            }
         }
     });
     
@@ -426,3 +428,136 @@ function setupMenuFlashFeedback() {
     
     console.log('🔔 Enhanced menu flash feedback system initialized');
 }
+
+// === GLOBAL AUTO-SUBMIT FOR NEW PIPELINE KEY ===
+(function() {
+    try {
+        console.log('🔑 Setting up global auto-submit for new pipeline key');
+        
+        // Helper: Find and click the Enter Key button after new key appears
+        function autoSubmitEnterKeyButton() {
+            try {
+                console.log('🔑 Auto-submit function called');
+                
+                // Find all new key buttons and enter key buttons
+                const newKeyButtons = document.querySelectorAll('.new-key-button');
+                const enterKeyButtons = document.querySelectorAll('.inline-button-submit');
+                
+                console.log('🔑 Found newKeyButtons:', newKeyButtons.length);
+                console.log('🔑 Found enterKeyButtons:', enterKeyButtons.length);
+                
+                // Strategy: For each new key button, find the corresponding enter key button
+                newKeyButtons.forEach((newKeyBtn, index) => {
+                    try {
+                        console.log(`🔑 Processing newKeyButton[${index}]:`, newKeyBtn);
+                        
+                        // Find closest form
+                        let form = newKeyBtn.closest('form');
+                        let enterBtn = null;
+                        
+                        if (form) {
+                            enterBtn = form.querySelector('.inline-button-submit');
+                            console.log(`🔑 Found form, enterBtn in form:`, enterBtn);
+                        } else {
+                            // Fallback: global search
+                            enterBtn = document.querySelector('.inline-button-submit');
+                            console.log(`🔑 No form found, using global enterBtn:`, enterBtn);
+                        }
+                        
+                        if (enterBtn && !enterBtn.dataset.autoSubmitted) {
+                            console.log('🔑 Auto-clicking enter button:', enterBtn);
+                            // Mark as handled to avoid loops
+                            enterBtn.dataset.autoSubmitted = 'true';
+                            setTimeout(() => {
+                                try {
+                                    enterBtn.click();
+                                    console.log('🔑 Enter button clicked!');
+                                } catch (clickError) {
+                                    console.error('🔑 Error clicking enter button:', clickError);
+                                }
+                            }, 150); // Slight delay for DOM readiness
+                        } else if (!enterBtn) {
+                            console.log('🔑 No enter button found for this new key button');
+                        } else {
+                            console.log('🔑 Enter button already auto-submitted, skipping');
+                        }
+                    } catch (forEachError) {
+                        console.error('🔑 Error processing newKeyButton:', forEachError);
+                    }
+                });
+            } catch (autoSubmitError) {
+                console.error('🔑 Error in autoSubmitEnterKeyButton:', autoSubmitError);
+            }
+        }
+
+        // HTMX: After swap, if a .new-key-button is present, auto-submit
+        if (document && document.body) {
+            document.body.addEventListener('htmx:afterSwap', function(evt) {
+                try {
+                    console.log('🔑 HTMX afterSwap event:', evt.target);
+                    
+                    // Check if the swapped content contains a new-key-button
+                    if (evt.target && evt.target.querySelector && evt.target.querySelector('.new-key-button')) {
+                        console.log('🔑 New key button found in swapped content, triggering auto-submit');
+                        // Use a short delay to ensure DOM is ready
+                        setTimeout(autoSubmitEnterKeyButton, 100);
+                    }
+                } catch (afterSwapError) {
+                    console.error('🔑 Error in htmx:afterSwap handler:', afterSwapError);
+                }
+            });
+
+            // On click of new-key-button, set a sessionStorage flag for page reload fallback
+            document.body.addEventListener('click', function(evt) {
+                try {
+                    if (evt.target.classList && evt.target.classList.contains('new-key-button')) {
+                        console.log('🔑 New key button clicked, setting sessionStorage flag');
+                        sessionStorage.setItem('pipulate_auto_submit_new_key', 'true');
+                    }
+                } catch (clickError) {
+                    console.error('🔑 Error in click handler:', clickError);
+                }
+            });
+        } else {
+            console.error('🔑 Document or document.body not available');
+        }
+
+        // On page load, if flag is set, auto-submit and clear flag
+        if (document.readyState === 'loading') {
+            if (document && document.addEventListener) {
+                document.addEventListener('DOMContentLoaded', function() {
+                    try {
+                        if (sessionStorage.getItem('pipulate_auto_submit_new_key') === 'true') {
+                            console.log('🔑 Page loaded with auto-submit flag, triggering auto-submit');
+                            sessionStorage.removeItem('pipulate_auto_submit_new_key');
+                            setTimeout(autoSubmitEnterKeyButton, 150);
+                        }
+                    } catch (domReadyError) {
+                        console.error('🔑 Error in DOMContentLoaded handler:', domReadyError);
+                    }
+                });
+            }
+        } else {
+            // Document already loaded
+            try {
+                if (sessionStorage.getItem('pipulate_auto_submit_new_key') === 'true') {
+                    console.log('🔑 Document already loaded with auto-submit flag, triggering auto-submit');
+                    sessionStorage.removeItem('pipulate_auto_submit_new_key');
+                    setTimeout(autoSubmitEnterKeyButton, 150);
+                }
+            } catch (alreadyLoadedError) {
+                console.error('🔑 Error checking already loaded state:', alreadyLoadedError);
+            }
+        }
+        
+        // Debug function for manual testing
+        window.debugAutoSubmit = function() {
+            console.log('🔑 Manual debug trigger');
+            autoSubmitEnterKeyButton();
+        };
+        
+        console.log('🔑 Global auto-submit for new pipeline key initialized');
+    } catch (setupError) {
+        console.error('🔑 Error setting up global auto-submit:', setupError);
+    }
+})();
