@@ -92,6 +92,17 @@ def check_python_environment():
     python_version = sys.version
     print(f"Python version: {python_version}")
     
+    # 🚨 CRITICAL DIAGNOSIS
+    if venv_env and not venv_in_path:
+        print("🚨 CRITICAL ISSUE: Virtual environment exists but not in PATH!")
+        print("   This is why you get 'ModuleNotFoundError' - Python can't find .venv packages")
+        print("   SOLUTION: Use .venv/bin/python instead of python")
+    
+    if not venv_env and not in_venv:
+        print("🚨 CRITICAL ISSUE: No virtual environment detected!")
+        print("   This means dependencies aren't available")
+        print("   SOLUTION: Run 'nix develop .#quiet' to enter proper environment")
+    
     return in_venv or venv_env or venv_in_path
 
 def test_critical_dependencies():
@@ -186,6 +197,11 @@ def provide_fixes():
     print("4. TEST DEPENDENCIES:")
     print("   python -c 'import aiohttp; print(\"aiohttp OK\")'")
     print("   python -c 'from mcp_tools import _builtin_get_cat_fact; print(\"MCP tools OK\")'")
+    print()
+    
+    print("5. 🚀 AUTO-FIX ATTEMPT:")
+    print("   Run this script with --fix flag to attempt automatic fixes:")
+    print("   python test_python_environment_fix.py --fix")
     print()
 
 def main():
