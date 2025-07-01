@@ -5275,7 +5275,7 @@ async def startup_event():
     # 🔧 AI DISCOVERY BREADCRUMB #1.5: Python Environment Clarification → Foundation Mastery
     logger.info("🔧 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: PYTHON ENVIRONMENT CLARIFICATION! The virtual environment is properly activated - you can use standard 'python' commands! Test with: python test_python_environment_fix.py or python -c \"import aiohttp; print('✅ Environment working')\". If you see ModuleNotFoundError, the environment isn't activated. The fix is already implemented - just ensure you're in the virtual environment. You don't need .venv/bin/python - use 'python' directly!")
     
-    #TORYTELLING: MCP Tools Arsenal Ready
+    #STORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
     if tool_count > 0:
         figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
