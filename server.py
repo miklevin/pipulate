@@ -5383,7 +5383,7 @@ async def home(request):
     menux = normalize_menu_path(path)
     logger.debug(f'Selected explore item: {menux}')
     db['last_app_choice'] = menux
-    db['last_visited_url'] = request.url.path
+    db['last_visited_url'] = str(request.url)
     current_profile_id = get_current_profile_id()
     menux = db.get('last_app_choice', 'App')
     response = await create_outer_container(current_profile_id, menux, request)
