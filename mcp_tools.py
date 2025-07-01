@@ -25,6 +25,9 @@ import logging
 import sqlite3
 import inspect
 from urllib.parse import urlparse
+import tempfile
+import shutil
+import socket
 
 # Get logger from server context
 logger = logging.getLogger(__name__)
@@ -1319,7 +1322,7 @@ async def browser_scrape_page(params: dict) -> dict:
         import tempfile
         import shutil
         
-        # KILL ALL HUNG CHROMIUM INSTANCES FIRST
+        # KILL ALL HUNG CHROMIUM INSTANCES FIRST - BUT ONLY AUTOMATION INSTANCES
         import subprocess
         import signal
         
@@ -1331,20 +1334,26 @@ async def browser_scrape_page(params: dict) -> dict:
             logger.warning(f"⚠️ FINDER_TOKEN: CHROMEDRIVER_CLEANUP_WARNING - Error killing chromedriver: {e}")
         
         try:
-            # Kill any hung Chromium instances (but not user's Chrome)
-            result = subprocess.run(['pgrep', '-f', 'chromium.*--user-data-dir'], capture_output=True, text=True)
+            # Kill only hung Chromium automation instances (not user's main Chrome)
+            # Look for automation-specific patterns in command line
+            result = subprocess.run(['pgrep', '-f', 'chromium.*--user-data-dir.*temp'], capture_output=True, text=True)
             if result.stdout.strip():
                 pids = result.stdout.strip().split('\n')
                 for pid in pids:
                     if pid.strip():
                         try:
-                            os.kill(int(pid), signal.SIGKILL)
-                            logger.info(f"🔪 FINDER_TOKEN: CHROMIUM_CLEANUP - Killed hung Chromium PID: {pid}")
+                            # Verify this is actually an automation instance before killing
+                            cmdline_check = subprocess.run(['ps', '-p', pid, '-o', 'cmd', '--no-headers'], 
+                                                         capture_output=True, text=True)
+                            if 'temp' in cmdline_check.stdout and '--user-data-dir' in cmdline_check.stdout:
+                                os.kill(int(pid), signal.SIGKILL)
+                                logger.info(f"🔪 FINDER_TOKEN: AUTOMATION_CHROMIUM_CLEANUP - Killed automation Chromium PID: {pid}")
                         except Exception as e:
-                            logger.warning(f"⚠️ FINDER_TOKEN: CHROMIUM_CLEANUP_WARNING - Error killing PID {pid}: {e}")
+                            logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error killing PID {pid}: {e}")
         except Exception as e:
-            logger.warning(f"⚠️ FINDER_TOKEN: CHROMIUM_CLEANUP_WARNING - Error finding Chromium processes: {e}")
+            logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error finding automation Chromium processes: {e}")
         
+        # ENHANCED CHROME OPTIONS FOR MAXIMUM ISOLATION
         chrome_options = Options()
         # NEVER USE HEADLESS - ALWAYS VISIBLE FOR DEBUGGING
         chrome_options.add_argument('--start-maximized')
@@ -1358,18 +1367,64 @@ async def browser_scrape_page(params: dict) -> dict:
         chrome_options.add_argument('--disable-web-security')  # Allow localhost access
         chrome_options.add_argument('--allow-running-insecure-content')  # Allow HTTP
         
-        # CRITICAL: Create temporary profile directory (prevents browser conflicts)
-        profile_dir = tempfile.mkdtemp()
+        # CRITICAL ISOLATION PARAMETERS
+        chrome_options.add_argument('--no-first-run')  # Skip first run setup
+        chrome_options.add_argument('--no-default-browser-check')  # Skip default browser check
+        chrome_options.add_argument('--disable-default-apps')  # Disable default apps
+        chrome_options.add_argument('--disable-background-mode')  # Prevent background mode
+        chrome_options.add_argument('--disable-background-timer-throttling')  # Prevent throttling
+        chrome_options.add_argument('--disable-renderer-backgrounding')  # Keep renderer active
+        chrome_options.add_argument('--disable-backgrounding-occluded-windows')  # Keep windows active
+        chrome_options.add_argument('--disable-ipc-flooding-protection')  # Allow rapid IPC
+        
+        # UNIQUE SESSION ISOLATION
+        profile_dir = tempfile.mkdtemp(prefix='pipulate_automation_')
         chrome_options.add_argument(f'--user-data-dir={profile_dir}')
+        
+        # REMOTE DEBUGGING PORT FOR ISOLATION (find an unused port)
+        import socket
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('', 0))
+            debug_port = s.getsockname()[1]
+        chrome_options.add_argument(f'--remote-debugging-port={debug_port}')
+        
+        logger.info(f"🔧 FINDER_TOKEN: BROWSER_ISOLATION - Profile: {profile_dir}, Debug port: {debug_port}")
         
         # Use regular webdriver instead of wire_webdriver for better stability
         from selenium import webdriver
-        driver = webdriver.Chrome(options=chrome_options)
+        
+        # Create browser with enhanced error handling
+        try:
+            driver = webdriver.Chrome(options=chrome_options)
+            logger.info(f"✅ FINDER_TOKEN: BROWSER_CREATED - Chrome instance created successfully")
+        except Exception as browser_error:
+            logger.error(f"❌ FINDER_TOKEN: BROWSER_CREATION_FAILED - {browser_error}")
+            return {"success": False, "error": f"Failed to create browser instance: {browser_error}"}
+        
+        # Verify browser is responsive before proceeding
+        try:
+            initial_url = driver.current_url
+            logger.info(f"🎯 FINDER_TOKEN: BROWSER_INITIAL_STATE - Initial URL: {initial_url}")
+            
+            # Check if browser window is valid
+            if initial_url.startswith('data:'):
+                logger.error(f"❌ FINDER_TOKEN: INVALID_INITIAL_STATE - Browser started with data: URL: {initial_url}")
+                driver.quit()
+                shutil.rmtree(profile_dir, ignore_errors=True)
+                return {"success": False, "error": f"Browser started in invalid state with data: URL: {initial_url}"}
+        except Exception as state_error:
+            logger.error(f"❌ FINDER_TOKEN: BROWSER_STATE_CHECK_FAILED - {state_error}")
+            try:
+                driver.quit()
+            except:
+                pass
+            shutil.rmtree(profile_dir, ignore_errors=True)
+            return {"success": False, "error": f"Browser state check failed: {state_error}"}
         
         # Set timeouts to prevent hanging
-        driver.set_page_load_timeout(15)
-        driver.implicitly_wait(5)
-        driver.set_script_timeout(10)
+        driver.set_page_load_timeout(30)  # Increased timeout for localhost
+        driver.implicitly_wait(10)  # Increased implicit wait
+        driver.set_script_timeout(15)  # Increased script timeout
         
         try:
             # Validate URL before navigation to prevent data: URLs
@@ -1688,7 +1743,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             
         logger.info(f"🚀 FINDER_TOKEN: WORKFLOW_AUTOMATION_START | Starting workflow walkthrough for {plugin_filename}")
         
-        # KILL ALL HUNG CHROMIUM INSTANCES FIRST
+        # KILL ALL HUNG CHROMIUM INSTANCES FIRST - BUT ONLY AUTOMATION INSTANCES
         import subprocess
         import signal
         
@@ -1700,38 +1755,87 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CHROMEDRIVER_CLEANUP_WARNING - Error killing chromedriver: {e}")
         
         try:
-            # Kill any hung Chromium instances (but not user's Chrome)
-            result = subprocess.run(['pgrep', '-f', 'chromium.*--user-data-dir'], capture_output=True, text=True)
+            # Kill only hung Chromium automation instances (not user's main Chrome)
+            # Look for automation-specific patterns in command line
+            result = subprocess.run(['pgrep', '-f', 'chromium.*--user-data-dir.*temp'], capture_output=True, text=True)
             if result.stdout.strip():
                 pids = result.stdout.strip().split('\n')
                 for pid in pids:
                     if pid.strip():
                         try:
-                            os.kill(int(pid), signal.SIGKILL)
-                            logger.info(f"🔪 FINDER_TOKEN: WORKFLOW_CHROMIUM_CLEANUP - Killed hung Chromium PID: {pid}")
+                            # Verify this is actually an automation instance before killing
+                            cmdline_check = subprocess.run(['ps', '-p', pid, '-o', 'cmd', '--no-headers'], 
+                                                         capture_output=True, text=True)
+                            if 'temp' in cmdline_check.stdout and '--user-data-dir' in cmdline_check.stdout:
+                                os.kill(int(pid), signal.SIGKILL)
+                                logger.info(f"🔪 FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP - Killed automation Chromium PID: {pid}")
                         except Exception as e:
-                            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CHROMIUM_CLEANUP_WARNING - Error killing PID {pid}: {e}")
+                            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error killing PID {pid}: {e}")
         except Exception as e:
-            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CHROMIUM_CLEANUP_WARNING - Error finding Chromium processes: {e}")
+            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error finding automation Chromium processes: {e}")
         
-        # Set up Chrome with visible browser for workflow automation
+        # ENHANCED CHROME OPTIONS FOR WORKFLOW AUTOMATION ISOLATION
         options = Options()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--window-size=1920,1080')
         options.add_argument('--start-maximized')  # Ensure browser is visible
-        # Remove problematic options that might prevent browser from showing
-        # options.add_argument('--disable-gpu')  # Can cause issues
-        # options.add_argument('--disable-extensions')  # Can cause issues
-        # options.add_argument('--disable-plugins')  # Can cause issues
-        # options.add_argument('--disable-images')  # Can cause issues
-        # options.add_argument('--headless')  # Run in background to prevent hanging windows
         
-        driver = webdriver.Chrome(options=options)
+        # CRITICAL ISOLATION PARAMETERS FOR WORKFLOW AUTOMATION
+        options.add_argument('--no-first-run')  # Skip first run setup
+        options.add_argument('--no-default-browser-check')  # Skip default browser check
+        options.add_argument('--disable-default-apps')  # Disable default apps
+        options.add_argument('--disable-background-mode')  # Prevent background mode
+        options.add_argument('--disable-background-timer-throttling')  # Prevent throttling
+        options.add_argument('--disable-renderer-backgrounding')  # Keep renderer active
+        options.add_argument('--disable-backgrounding-occluded-windows')  # Keep windows active
+        options.add_argument('--disable-ipc-flooding-protection')  # Allow rapid IPC
+        options.add_argument('--disable-web-security')  # Allow localhost access
+        options.add_argument('--allow-running-insecure-content')  # Allow HTTP
+        
+        # UNIQUE SESSION ISOLATION FOR WORKFLOW
+        workflow_profile_dir = tempfile.mkdtemp(prefix='pipulate_workflow_automation_')
+        options.add_argument(f'--user-data-dir={workflow_profile_dir}')
+        
+        # REMOTE DEBUGGING PORT FOR WORKFLOW ISOLATION (find an unused port)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('', 0))
+            workflow_debug_port = s.getsockname()[1]
+        options.add_argument(f'--remote-debugging-port={workflow_debug_port}')
+        
+        logger.info(f"🔧 FINDER_TOKEN: WORKFLOW_BROWSER_ISOLATION - Profile: {workflow_profile_dir}, Debug port: {workflow_debug_port}")
+        
+        # Create browser with enhanced error handling
+        try:
+            driver = webdriver.Chrome(options=options)
+            logger.info(f"✅ FINDER_TOKEN: WORKFLOW_BROWSER_CREATED - Chrome instance created successfully")
+        except Exception as browser_error:
+            logger.error(f"❌ FINDER_TOKEN: WORKFLOW_BROWSER_CREATION_FAILED - {browser_error}")
+            return {"success": False, "error": f"Failed to create workflow browser instance: {browser_error}"}
+        
+        # Verify browser is responsive before proceeding
+        try:
+            initial_url = driver.current_url
+            logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_BROWSER_INITIAL_STATE - Initial URL: {initial_url}")
+            
+            # Check if browser window is valid
+            if initial_url.startswith('data:'):
+                logger.error(f"❌ FINDER_TOKEN: WORKFLOW_INVALID_INITIAL_STATE - Browser started with data: URL: {initial_url}")
+                driver.quit()
+                shutil.rmtree(workflow_profile_dir, ignore_errors=True)
+                return {"success": False, "error": f"Workflow browser started in invalid state with data: URL: {initial_url}"}
+        except Exception as state_error:
+            logger.error(f"❌ FINDER_TOKEN: WORKFLOW_BROWSER_STATE_CHECK_FAILED - {state_error}")
+            try:
+                driver.quit()
+            except:
+                pass
+            shutil.rmtree(workflow_profile_dir, ignore_errors=True)
+            return {"success": False, "error": f"Workflow browser state check failed: {state_error}"}
         driver.maximize_window()
-        driver.set_page_load_timeout(15)  # Reduced timeout to prevent hanging
-        driver.implicitly_wait(5)  # Reduced implicit wait
-        driver.set_script_timeout(10)  # Add script timeout
+        driver.set_page_load_timeout(30)  # Increased timeout for localhost
+        driver.implicitly_wait(10)  # Increased implicit wait 
+        driver.set_script_timeout(15)  # Increased script timeout
         
         screenshots = []
         workflow_steps = []
@@ -2060,10 +2164,31 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             }
             
         finally:
-            driver.quit()
+            # Clean up browser and profile directory
+            try:
+                driver.quit()
+                logger.info(f"🧹 FINDER_TOKEN: WORKFLOW_BROWSER_CLEANUP | Browser quit successfully")
+            except Exception as browser_quit_error:
+                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_BROWSER_CLEANUP_WARNING | Browser quit failed: {browser_quit_error}")
+            
+            # Clean up temporary profile directory
+            try:
+                if 'workflow_profile_dir' in locals():
+                    shutil.rmtree(workflow_profile_dir, ignore_errors=True)
+                    logger.info(f"🧹 FINDER_TOKEN: WORKFLOW_PROFILE_CLEANUP | Cleaned up profile directory: {workflow_profile_dir}")
+            except Exception as cleanup_error:
+                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_PROFILE_CLEANUP_WARNING | Profile cleanup failed: {cleanup_error}")
             
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: WORKFLOW_AUTOMATION_ERROR | {e}")
+        # Ensure cleanup even on exception
+        try:
+            if 'driver' in locals():
+                driver.quit()
+            if 'workflow_profile_dir' in locals():
+                shutil.rmtree(workflow_profile_dir, ignore_errors=True)
+        except:
+            pass
         return {"success": False, "error": str(e)}
 
 
@@ -3774,32 +3899,45 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
         
         session_result = await get_user_session_state({})
         if not session_result.get('success'):
-            return {
-                "success": False, 
-                "error": f"Failed to retrieve session state: {session_result.get('error')}"
-            }
-        
-        session_data = session_result.get('session_data', {})
-        last_app_choice = session_data.get('last_app_choice')
-        pipeline_id = session_data.get('pipeline_id')
-        last_visited_url = session_data.get('last_visited_url')
-        
-        if not last_app_choice:
-            return {
-                "success": False,
-                "error": "No active workflow found in session state"
-            }
-        
-        hijacking_steps.append({
-            "step": "session_state_retrieved",
-            "status": "success",
-            "details": {
-                "last_app_choice": last_app_choice,
-                "pipeline_id": pipeline_id,
-                "last_visited_url": last_visited_url,
-                "total_session_keys": session_result.get('total_keys', 0)
-            }
-        })
+            # Fallback: use hello_workflow as default for testing
+            logger.warning(f"⚠️ FINDER_TOKEN: SESSION_HIJACKING_FALLBACK - Session state unavailable, using hello_workflow as fallback")
+            last_app_choice = "hello_workflow"
+            pipeline_id = f"Default_Profile-hello-{int(time.time()) % 100:02d}"
+            last_visited_url = f"{base_url}/hello_workflow"
+            
+            hijacking_steps.append({
+                "step": "session_state_retrieved",
+                "status": "fallback",
+                "details": {
+                    "fallback_reason": session_result.get('error'),
+                    "last_app_choice": last_app_choice,
+                    "pipeline_id": pipeline_id,
+                    "last_visited_url": last_visited_url
+                }
+            })
+        else:
+            session_data = session_result.get('session_data', {})
+            last_app_choice = session_data.get('last_app_choice')
+            pipeline_id = session_data.get('pipeline_id')
+            last_visited_url = session_data.get('last_visited_url')
+            
+            if not last_app_choice:
+                # Fallback: use hello_workflow as default for testing
+                logger.warning(f"⚠️ FINDER_TOKEN: SESSION_HIJACKING_NO_APP - No app in session, using hello_workflow as fallback")
+                last_app_choice = "hello_workflow"
+                pipeline_id = f"Default_Profile-hello-{int(time.time()) % 100:02d}"
+                last_visited_url = f"{base_url}/hello_workflow"
+            
+            hijacking_steps.append({
+                "step": "session_state_retrieved",
+                "status": "success",
+                "details": {
+                    "last_app_choice": last_app_choice,
+                    "pipeline_id": pipeline_id,
+                    "last_visited_url": last_visited_url,
+                    "total_session_keys": session_result.get('total_keys', 0)
+                }
+            })
         
         # === STEP 2: USE EXACT LAST URL OR FALLBACK TO ENDPOINT MAPPING ===
         logger.info(f"🎯 FINDER_TOKEN: SESSION_HIJACKING_STEP_2 - Using exact last URL or mapping {last_app_choice}")
