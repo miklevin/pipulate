@@ -55,6 +55,80 @@ def _read_botify_api_token() -> str:
 # CORE MCP TOOLS
 # ================================================================
 
+async def get_user_session_state(params: dict) -> dict:
+    """
+    MCP Tool: GET USER SESSION STATE - The session hijacking superpower.
+    
+    Accesses the server-side DictLikeDB to read the user's current session state.
+    This provides access to server-side "cookies" like last_profile_id, last_app_choice,
+    current_environment, theme_preference, etc.
+    
+    This is THE tool for understanding what the user was just doing and continuing
+    their workflow seamlessly.
+    """
+    logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_START - {params}")
+    
+    try:
+        # Use dynamic import to avoid circular dependency
+        import sys
+        server_module = sys.modules.get('server') or sys.modules.get('__main__')
+        
+        # Try to get the global db instance (DictLikeDB)
+        if server_module and hasattr(server_module, 'db'):
+            db = server_module.db
+            logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ACCESS - Successfully accessed global db from server module")
+        else:
+            logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - db instance not accessible from server module")
+            return {
+                "success": False,
+                "error": "Server-side database not accessible - server may not be fully initialized"
+            }
+        
+        # Get specific keys if requested, otherwise get all
+        specific_keys = params.get('keys', [])
+        include_metadata = params.get('include_metadata', True)
+        
+        if specific_keys:
+            # Get only requested keys
+            session_data = {}
+            for key in specific_keys:
+                if key in db:
+                    session_data[key] = db[key]
+                else:
+                    session_data[key] = None
+        else:
+            # Get all session data
+            session_data = dict(db)
+        
+        # Add metadata about the session state
+        result = {
+            "success": True,
+            "session_data": session_data,
+            "total_keys": len(session_data),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        if include_metadata:
+            result["metadata"] = {
+                "current_profile_id": session_data.get('last_profile_id'),
+                "current_app": session_data.get('last_app_choice'),
+                "environment": session_data.get('current_environment'),
+                "theme": session_data.get('theme_preference'),
+                "profile_locked": session_data.get('profile_locked'),
+                "intro_page": session_data.get('intro_current_page'),
+                "split_sizes": session_data.get('split-sizes')
+            }
+        
+        logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_SUCCESS - Retrieved {len(session_data)} session keys")
+        return result
+        
+    except Exception as e:
+        logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - {e}")
+        return {
+            "success": False,
+            "error": f"Failed to access user session state: {str(e)}"
+        }
+
 async def builtin_get_cat_fact(params: dict) -> dict:
     """Built-in cat fact tool - demonstrates the MCP tool pattern."""
     try:
@@ -349,6 +423,7 @@ def register_all_mcp_tools():
     # Core tools
     register_mcp_tool("get_cat_fact", builtin_get_cat_fact)
     register_mcp_tool("pipeline_state_inspector", pipeline_state_inspector)
+    register_mcp_tool("get_user_session_state", get_user_session_state)
     
     # Botify API tools  
     register_mcp_tool("botify_ping", botify_ping)
