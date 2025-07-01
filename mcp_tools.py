@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 import logging
 import sqlite3
+import inspect
 
 # Get logger from server context
 logger = logging.getLogger(__name__)
@@ -3330,5 +3331,46 @@ async def browser_automate_instructions(params: dict) -> dict:
 
 # Register the new browser automation tool
 register_mcp_tool("browser_automate_instructions", browser_automate_instructions)
+
+def get_available_tools():
+    """
+    Returns a list of all callable MCP tools, their function names, signatures, and docstrings.
+    """
+    tools = []
+    public_tool_names = [
+        'builtin_get_cat_fact',
+        'pipeline_state_inspector',
+        'botify_ping',
+        'botify_list_projects',
+        'botify_simple_query',
+        'local_llm_read_file',
+        'local_llm_grep_logs',
+        'local_llm_list_files',
+        'local_llm_get_context',
+        'execute_ai_session_hijacking_demonstration',
+        'ui_flash_element',
+        'ui_list_elements',
+        'browser_analyze_scraped_page',
+        'browser_scrape_page',
+        'browser_automate_workflow_walkthrough',
+        'botify_get_full_schema',
+        'botify_list_available_analyses',
+        'botify_execute_custom_bql_query',
+        'browser_interact_with_current_page',
+        'ai_self_discovery_assistant',
+        'ai_capability_test_suite',
+        'browser_automate_instructions',
+    ]
+    for name in public_tool_names:
+        func = globals().get(name)
+        if func:
+            sig = str(inspect.signature(func))
+            doc = inspect.getdoc(func)
+            tools.append({
+                'name': name,
+                'signature': sig,
+                'doc': doc
+            })
+    return tools
 
 
