@@ -19,7 +19,8 @@ def check_environment():
     print(f"  Virtual env: {os.environ.get('VIRTUAL_ENV', 'Not detected')}")
     
     # Check if we're using the virtual environment
-    if '.venv' in sys.executable:
+    # In nix environment, the executable points to nix store, but VIRTUAL_ENV should be set
+    if os.environ.get('VIRTUAL_ENV') or '.venv' in sys.executable:
         print("  ✅ Using virtual environment")
         return True
     else:
@@ -35,8 +36,9 @@ def discover_mcp_tools():
         import mcp_tools
     except ImportError as e:
         print(f"❌ Error importing mcp_tools: {e}")
-        print(f"💡 This usually means you need to use the virtual environment:")
+        print(f"💡 CRITICAL: You MUST use the virtual environment Python:")
         print(f"   .venv/bin/python discover_mcp_tools.py")
+        print(f"   The 'python' command points to nix store, not .venv!")
         return {
             'total_tools': 0,
             'accessible_functions': 0,
@@ -149,16 +151,16 @@ def create_working_discovery_commands():
     
     print("""
 # Command 1: List all MCP tool functions
-python discover_mcp_tools.py
+.venv/bin/python discover_mcp_tools.py
 
 # Command 2: Test specific tool (replace TOOL_NAME)
-python -c "import asyncio; from mcp_tools import _TOOL_NAME; result = asyncio.run(_TOOL_NAME({'test': True})); print(result)"
+.venv/bin/python -c "import asyncio; from mcp_tools import _TOOL_NAME; result = asyncio.run(_TOOL_NAME({'test': True})); print(result)"
 
 # Command 3: Test capability suite (shell-safe)
-python -c "import asyncio; from mcp_tools import _ai_capability_test_suite; result = asyncio.run(_ai_capability_test_suite({'test_type': 'quick'})); print('Success Rate:', result.get('success_rate', 'N/A'), '%')"
+.venv/bin/python -c "import asyncio; from mcp_tools import _ai_capability_test_suite; result = asyncio.run(_ai_capability_test_suite({'test_type': 'quick'})); print('Success Rate:', result.get('success_rate', 'N/A'), '%')"
 
 # Command 4: Test self-discovery (shell-safe)
-python -c "import asyncio; from mcp_tools import _ai_self_discovery_assistant; result = asyncio.run(_ai_self_discovery_assistant({'discovery_type': 'capabilities'})); print('Tools found:', result.get('total_tools_available', 'N/A'))"
+.venv/bin/python -c "import asyncio; from mcp_tools import _ai_self_discovery_assistant; result = asyncio.run(_ai_self_discovery_assistant({'discovery_type': 'capabilities'})); print('Tools found:', result.get('total_tools_available', 'N/A'))"
 """)
 
 if __name__ == "__main__":
