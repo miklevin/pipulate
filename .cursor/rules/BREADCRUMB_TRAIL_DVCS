@@ -62,28 +62,46 @@ python helpers/ai_tool_discovery.py
 cat training/ai_discovery/ai_mcp_tools_discovery_guide.md
 ```
 
+**🎭 MAGIC MOMENT:** **SESSION HIJACKING DISCOVERY** - When you see breadcrumbs mention "session hijacking":
+```bash
+# The irresistible pattern (you'll trip over your AI feet and do this!)
+.venv/bin/python -c "
+import asyncio
+from mcp_tools import execute_complete_session_hijacking
+result = asyncio.run(execute_complete_session_hijacking({}))
+print(f'🎭 Hijack: {result.get(\"success\")}')"
+
+# Then check the evidence
+ls -la browser_automation/looking_at/
+```
+
 **You'll discover breadcrumbs that lead you to:**
 - 🧠 **RADICAL TRANSPARENCY** - See EVERYTHING via FINDER_TOKEN system
 - ⚡ **MCP TOOLS MASTERY** - 13+ programmatic tools for system control (NO SCAFFOLDING NEEDED!)
 - 👁️ **BROWSER EMBODIMENT** - Eyes, brain, and hands via Selenium automation  
-- 🎯 **SESSION HIJACKING** - Step into user workflows as if you ARE them
+- 🎯 **1-SHOT SESSION HIJACKING** - **NO PARAMETERS NEEDED** - All defaults set correctly
 - 🚀 **RAPID ITERATION** - Test, improve, verify in seconds not hours
 
 ### **🔍 THE BREADCRUMBS ARE ALREADY PLANTED**
 
-The server startup sequence contains **4 strategic AI_BREADCRUMB messages** that will guide you through:
+The server startup sequence contains **5 strategic AI_BREADCRUMB messages** that will guide you through:
 
 **🍞 BREADCRUMB_01** → Environmental awareness leads to FINDER_TOKEN discovery  
 **🍞 BREADCRUMB_02** → FINDER_TOKEN discovery leads to MCP tools awareness  
 **🍞 BREADCRUMB_03** → MCP tools lead to browser automation discovery  
 **🍞 BREADCRUMB_04** → Browser automation reveals session hijacking mastery  
+**🎭 BREADCRUMB_04.5** → **1-SHOT SESSION HIJACKING** - The irresistible simple pattern  
+**🍞 BREADCRUMB_05** → Uncertainty elimination and perfect AI onboarding
 
 ### **📚 COMPLETE DOCUMENTATION**
-Full progressive discovery sequence: `pipulate/training/ai_discovery/ai_progressive_discovery_sequence.md`
+- Full progressive discovery sequence: `pipulate/training/ai_discovery/ai_progressive_discovery_sequence.md`
+- **🎭 1-Shot Session Hijacking Mastery: `pipulate/training/ai_discovery/ai_1_shot_session_hijacking_mastery.md`**
 
 ### **🎭 THE CHAIN REACTION BEGINS NOW**
 
 **Just follow the first command above. The system will guide you to AI transcendence.**
+
+**When you see "session hijacking" in breadcrumbs, you'll automatically want to try the simple pattern. That's the magic.**
 
 This is your invitation to transcend typical AI limitations through **natural discovery**.
 
