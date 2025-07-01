@@ -23,28 +23,59 @@ print(f'🎭 Hijack: {result.get(\"success\")}')"
 
 **Expected Result:** `🎭 Hijack: True`
 
-### **Step 2: Check DOM and Storage**
+### **Step 2: Check Browser Evidence FIRST (Your Eyes)**
 ```bash
-# Check the evidence
-ls -la browser_automation/looking_at/ 
+# 🦾 BROWSER EMBODIMENT - Your primary source of truth
+echo "👁️ What my EYES captured in the hijack:"
+ls -la browser_automation/looking_at/
 
-# Verify DOM capture
-head -5 browser_automation/looking_at/simple_dom.html
+echo "🔍 Visual inspection of captured DOM:"
+head -10 browser_automation/looking_at/simple_dom.html
 
-# Verify storage update
+echo "🎯 Search for hijacked user data:"
+grep -i "name\|user\|value" browser_automation/looking_at/simple_dom.html
+```
+
+**Expected Result:** Fresh browser files with user data visible in DOM
+
+### **Step 3: Internal Verification (When Available)**
+```bash
+# 🔧 SYSTEM INTERNALS - Secondary verification (only works on Pipulate workflows)
 .venv/bin/python -c "
 import sqlite3, json
 conn = sqlite3.connect('data/botifython_dev.db')
 cursor = conn.cursor()
 cursor.execute('SELECT pkey, data FROM pipeline ORDER BY updated DESC LIMIT 1')
 latest = cursor.fetchone()
-data = json.loads(latest[1])
-print(f'🎭 Pipeline: {latest[0]}')
-print(f'👤 User: {data[\"step_01\"][\"name\"]}')
+if latest:
+    data = json.loads(latest[1])
+    if 'step_01' in data and 'name' in data['step_01']:
+        print(f'🎭 Pipeline: {latest[0]}')
+        print(f'👤 Database User: {data[\"step_01\"][\"name\"]}')
+    else:
+        print('❌ No step_01 name in latest pipeline')
+else:
+    print('❌ No pipeline entries found')
 conn.close()"
 ```
 
-**Expected Result:** Fresh browser files + database entry with user data
+**Expected Result:** Database confirmation (only when you have system access)
+
+## 🧠 **CRITICAL MENTAL MODEL: TWO PERSPECTIVES**
+
+### 🦾 **Browser Embodiment (PRIMARY)**
+- **Your perspective:** Like a user with browser eyes
+- **Evidence source:** `browser_automation/looking_at/` files
+- **Works on:** ANY website (Pipulate, Google, Amazon, etc.)
+- **Limitations:** Only what's visible on the page
+- **ALWAYS CHECK THIS FIRST**
+
+### 🔧 **System Internals (SECONDARY)**  
+- **Your perspective:** Inside the Pipulate system
+- **Evidence source:** Database, logs, MCP tool responses
+- **Works on:** ONLY Pipulate workflows
+- **Limitations:** Requires system access
+- **Use for verification when available**
 
 ## 🚨 Why This Works
 
@@ -64,11 +95,12 @@ When user says anything about "session hijacking" or "hijack", use this pattern.
 ### **The Simple Promise**
 **One line of code → Complete workflow takeover**
 
-### **The Evidence Check**
-Always verify success by checking:
-1. Browser files exist in `looking_at/`
-2. Database contains fresh pipeline entry
-3. User data is preserved in storage
+### **The Evidence Check Priority (CRITICAL)**
+1. 👁️ **Browser eyes FIRST** - Check `looking_at/` files
+2. 🧠 **Visual analysis** - What's actually on the page?
+3. 🔧 **System verification** - Database/logs (if available)
+
+**NEVER assume database access - browser embodiment works everywhere!**
 
 ## 🍞 How You'll Discover This
 
@@ -82,9 +114,9 @@ Always verify success by checking:
 ## 🎭 The User Experience
 
 **User**: "Can you hijack my session?"  
-**AI**: *Runs one command, checks evidence, reports success*  
+**AI**: *Runs one command, checks browser evidence first, reports what eyes captured*  
 **User**: "That's it?"  
-**AI**: "That's it. All defaults set correctly."
+**AI**: "That's it. My browser eyes see you entered '[name]' - all defaults set correctly."
 
 ## 🚀 Scaling to Complex Cases
 
@@ -102,8 +134,10 @@ Always verify success by checking:
 
 **One function call → Complete user workflow takeover**
 
-**No scaffolding. No complexity. Just results.**
+**Browser embodiment first → System internals second**
+
+**Works on ANY website → Not just Pipulate**
 
 This is the pattern that transforms AI assistants from "helpful text generators" to "digital embodiment superpowers."
 
-Welcome to the future. 
+**Welcome to the future.** 
