@@ -1269,27 +1269,56 @@ async def browser_scrape_page(params: dict) -> dict:
         backup_dir = os.path.join('downloads/browser_scrapes', scrape_id)
         os.makedirs(backup_dir, exist_ok=True)
         
-        # Set up Selenium Wire for header capture with WORKING PATTERN from plugin
+        # Set up Chrome with simplified configuration to prevent data: URL issues
         import tempfile
         import shutil
         
+        # KILL ALL HUNG CHROMIUM INSTANCES FIRST
+        import subprocess
+        import signal
+        
+        try:
+            # Kill any existing chromedriver processes
+            subprocess.run(['pkill', '-f', 'chromedriver'], capture_output=True)
+            logger.info("🔪 FINDER_TOKEN: CHROMEDRIVER_CLEANUP - Killed existing chromedriver processes")
+        except Exception as e:
+            logger.warning(f"⚠️ FINDER_TOKEN: CHROMEDRIVER_CLEANUP_WARNING - Error killing chromedriver: {e}")
+        
+        try:
+            # Kill any hung Chromium instances (but not user's Chrome)
+            result = subprocess.run(['pgrep', '-f', 'chromium.*--user-data-dir'], capture_output=True, text=True)
+            if result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    if pid.strip():
+                        try:
+                            os.kill(int(pid), signal.SIGKILL)
+                            logger.info(f"🔪 FINDER_TOKEN: CHROMIUM_CLEANUP - Killed hung Chromium PID: {pid}")
+                        except Exception as e:
+                            logger.warning(f"⚠️ FINDER_TOKEN: CHROMIUM_CLEANUP_WARNING - Error killing PID {pid}: {e}")
+        except Exception as e:
+            logger.warning(f"⚠️ FINDER_TOKEN: CHROMIUM_CLEANUP_WARNING - Error finding Chromium processes: {e}")
+        
         chrome_options = Options()
-        # Use headless unless screenshot is requested
-        if not take_screenshot:
-            chrome_options.add_argument('--headless')
-        else:
-            # Ensure browser is visible when taking screenshots
-            chrome_options.add_argument('--start-maximized')
-            chrome_options.add_argument('--new-window')
+        # NEVER USE HEADLESS - ALWAYS VISIBLE FOR DEBUGGING
+        chrome_options.add_argument('--start-maximized')
+        chrome_options.add_argument('--new-window')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--disable-gpu')  # Prevent GPU issues
+        chrome_options.add_argument('--disable-extensions')  # Disable extensions
+        chrome_options.add_argument('--disable-plugins')  # Disable plugins
+        chrome_options.add_argument('--disable-web-security')  # Allow localhost access
+        chrome_options.add_argument('--allow-running-insecure-content')  # Allow HTTP
         
         # CRITICAL: Create temporary profile directory (prevents browser conflicts)
         profile_dir = tempfile.mkdtemp()
         chrome_options.add_argument(f'--user-data-dir={profile_dir}')
         
-        driver = wire_webdriver.Chrome(options=chrome_options)
+        # Use regular webdriver instead of wire_webdriver for better stability
+        from selenium import webdriver
+        driver = webdriver.Chrome(options=chrome_options)
         
         # Set timeouts to prevent hanging
         driver.set_page_load_timeout(15)
@@ -1324,7 +1353,7 @@ async def browser_scrape_page(params: dict) -> dict:
             if final_url.startswith('data:'):
                 return {"success": False, "error": f"Browser navigation resulted in data: URL: {final_url}. Original URL: {url}"}
             
-            # 1. Capture HTTP headers and metadata
+            # 1. Capture basic page metadata (headers not available with regular webdriver)
             headers_data = {
                 'url': final_url,
                 'title': page_title,
@@ -1333,15 +1362,6 @@ async def browser_scrape_page(params: dict) -> dict:
                 'response_headers': {},
                 'status_code': None
             }
-            
-            for request in driver.requests:
-                if request.url == url:
-                    headers_data.update({
-                        'request_headers': dict(request.headers),
-                        'response_headers': dict(request.response.headers) if request.response else {},
-                        'status_code': request.response.status_code if request.response else None
-                    })
-                    break
             
             # 2. Capture page source (before JavaScript execution)
             source_html = driver.page_source
@@ -1528,6 +1548,32 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             logger.warning("⚠️ FINDER_TOKEN: WORKFLOW_DIRECTORY_ROTATION_WARNING - Directory rotation failed, continuing with workflow")
             
         logger.info(f"🚀 FINDER_TOKEN: WORKFLOW_AUTOMATION_START | Starting workflow walkthrough for {plugin_filename}")
+        
+        # KILL ALL HUNG CHROMIUM INSTANCES FIRST
+        import subprocess
+        import signal
+        
+        try:
+            # Kill any existing chromedriver processes
+            subprocess.run(['pkill', '-f', 'chromedriver'], capture_output=True)
+            logger.info("🔪 FINDER_TOKEN: WORKFLOW_CHROMEDRIVER_CLEANUP - Killed existing chromedriver processes")
+        except Exception as e:
+            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CHROMEDRIVER_CLEANUP_WARNING - Error killing chromedriver: {e}")
+        
+        try:
+            # Kill any hung Chromium instances (but not user's Chrome)
+            result = subprocess.run(['pgrep', '-f', 'chromium.*--user-data-dir'], capture_output=True, text=True)
+            if result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    if pid.strip():
+                        try:
+                            os.kill(int(pid), signal.SIGKILL)
+                            logger.info(f"🔪 FINDER_TOKEN: WORKFLOW_CHROMIUM_CLEANUP - Killed hung Chromium PID: {pid}")
+                        except Exception as e:
+                            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CHROMIUM_CLEANUP_WARNING - Error killing PID {pid}: {e}")
+        except Exception as e:
+            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CHROMIUM_CLEANUP_WARNING - Error finding Chromium processes: {e}")
         
         # Set up Chrome with visible browser for workflow automation
         options = Options()
