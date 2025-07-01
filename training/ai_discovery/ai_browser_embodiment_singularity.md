@@ -12,6 +12,56 @@ tags: [ai-embodiment, browser-automation, mcp-tools, session-hijacking, radical-
 
 **The promise Mike made is now reality:** *"You control the horizontal. You control the vertical."* Through Pipulate's revolutionary MCP toolkit, AI assistants now possess **total sensory-motor embodiment** in web browsers.
 
+## 🧠 **CRITICAL MENTAL MODEL: THE TWO PERSPECTIVES**
+
+### 🦾 **Browser Embodiment (PRIMARY SOURCE OF TRUTH)**
+**You are like a user with a browser:**
+- **🎯 Evidence:** `browser_automation/looking_at/` files (screenshots, DOM, headers)
+- **🌍 Scope:** Works on ANY website (Google, Amazon, Pipulate, any URL)
+- **👁️ Perspective:** What you can see and interact with on the page
+- **⚡ Speed:** Immediate visual evidence
+- **🔄 Reliability:** Always available when browser automation runs
+
+**Example Evidence Check:**
+```bash
+# Your browser eyes captured this:
+ls -la browser_automation/looking_at/
+# screenshot.png - What the page looks like
+# simple_dom.html - Clean DOM for analysis  
+# dom.html - Full DOM state
+# headers.json - HTTP metadata
+```
+
+### 🔧 **System Internals (SECONDARY VERIFICATION)**
+**You are inside the Pipulate system:**
+- **🎯 Evidence:** Database queries, FINDER_TOKEN logs, MCP tool responses
+- **🏠 Scope:** Only works on Pipulate workflows/system
+- **🔍 Perspective:** Backend state, pipeline data, system logs
+- **⚡ Speed:** Requires database/system access
+- **🔄 Reliability:** Only available when you have internal access
+
+**Example Internal Check:**
+```python
+# System internals verification:
+await pipeline_state_inspector({})  # Pipulate workflow state
+# Database queries, log analysis, etc.
+```
+
+## 🚨 **THE PARADIGM SHIFT: BROWSER EYES FIRST**
+
+**❌ OLD BROKEN PATTERN:**
+1. Try to query database
+2. Make assumptions about user state
+3. Hope the automation works
+
+**✅ NEW EMBODIED PATTERN:**
+1. **👁️ Look with browser eyes FIRST** - What's actually on screen?
+2. **🧠 Analyze visual evidence** - What can I interact with?
+3. **🔧 Verify internally** - If system access available
+4. **🤖 Act with confidence** - Based on what I can see
+
+**This works on Google, Amazon, any website - not just Pipulate!**
+
 ## 🚀 THE COMPLETE CAPABILITY MATRIX
 
 ### 👁️ **PERCEPTION LAYER: AI Eyes**
@@ -80,11 +130,11 @@ await browser_interact_with_current_page({
 **Scenario:** User starts a workflow, leaves mid-process. AI takes over completely.
 
 **The Magic Sequence:**
-1. **State Capture** - `browser_scrape_page` captures exact user state
-2. **Context Analysis** - AI understands current workflow position  
-3. **Chain Reaction Restoration** - HTMX triggers catch AI up to user's exact state
-4. **Seamless Continuation** - AI completes workflow from where user left off
-5. **Verification** - Updated `/looking_at/` confirms successful completion
+1. **🦾 Browser State Capture** - `browser_scrape_page` captures exact visual state
+2. **👁️ Visual Context Analysis** - AI understands current page from DOM/screenshot
+3. **🔧 Internal State Check** - (If available) Verify with system internals
+4. **🤖 Intelligent Continuation** - AI completes workflow from visual evidence
+5. **✅ Browser Verification** - Fresh `/looking_at/` confirms successful completion
 
 **This isn't theoretical. This is happening NOW.**
 

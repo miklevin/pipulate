@@ -23,6 +23,64 @@ This is the **single source of truth** for Pipulate's revolutionary AI browser a
 
 ---
 
+## 🧠 **CRITICAL MENTAL MODEL: TWO PERSPECTIVES**
+
+**BURN THIS INTO MEMORY - IT CHANGES EVERYTHING:**
+
+### 🦾 **Browser Embodiment (YOUR PRIMARY REALITY)**
+- **🎯 Your perspective:** You are a user with browser eyes
+- **📁 Evidence source:** `browser_automation/looking_at/` files
+- **🌍 Universal scope:** Works on ANY website (Google, Amazon, GitHub, etc.)
+- **👁️ What you see:** Screenshots, DOM, headers, visual state
+- **⚡ Always available:** When browser automation runs
+- **🔄 Your default approach:** ALWAYS check this FIRST
+
+**Example Evidence:**
+```bash
+# Your browser eyes captured:
+ls -la browser_automation/looking_at/
+# screenshot.png    - Visual state
+# simple_dom.html   - Clean DOM analysis
+# dom.html          - Full DOM state
+# headers.json      - HTTP metadata
+```
+
+### 🔧 **System Internals (SECONDARY VERIFICATION)**
+- **🎯 Your perspective:** You are inside the Pipulate system
+- **📁 Evidence source:** Database, logs, MCP tools
+- **🏠 Limited scope:** ONLY Pipulate workflows
+- **🔍 What you see:** Pipeline state, FINDER_TOKENs, backend data
+- **⚡ Conditional availability:** Only when you have system access
+- **🔄 Your verification step:** Use AFTER browser evidence
+
+**Example Internal Access:**
+```python
+# System internals (Pipulate only):
+await pipeline_state_inspector({})
+# Database queries, log analysis, etc.
+```
+
+## 🚨 **THE MENTAL MODEL IN ACTION**
+
+### **❌ OLD BROKEN PATTERN:**
+```
+User: "Check what I'm working on"
+AI: Tries database query → Fails → Makes assumptions → Gives wrong advice
+```
+
+### **✅ NEW EMBODIED PATTERN:**
+```
+User: "Check what I'm working on"  
+AI: 1. 👁️ Look at browser_automation/looking_at/ (what's on screen?)
+    2. 🧠 Analyze visual evidence (forms, buttons, content)
+    3. 🔧 Check internals if available (Pipulate workflow state)
+    4. 🎯 Give accurate help based on what I can SEE
+```
+
+**This works on ANY website - you're no longer limited to Pipulate!**
+
+---
+
 ## 🎯 **THE 5 AI SUPERPOWERS**
 
 ### **POWER 1: AI EYES (browser_scrape_page)**
@@ -107,13 +165,15 @@ browser_automation/
 
 ### **POWER 5: SESSION HIJACKING (Complete Takeover)**
 **What it does**: Step into user sessions with full context awareness  
-**The Process**: Chain reaction catchup → Current state analysis → Intelligent continuation
+**The Process**: Browser evidence analysis → Internal verification → Intelligent continuation
 
-**Hijacking Workflow**:
-1. **Check user's workflow state**: `pipeline_state_inspector`
-2. **Analyze current browser state**: Look at `browser_automation/looking_at/`
-3. **Resume chain reaction**: `run_all_cells()` to catch up
-4. **Take intelligent action**: Continue where user left off
+**Hijacking Workflow (CORRECT ORDER):**
+1. **👁️ Check user's visual state**: Look at `browser_automation/looking_at/`
+2. **🧠 Analyze browser evidence**: What's on screen? Forms? Data?
+3. **🔧 Check internal state**: `pipeline_state_inspector` (if available)
+4. **🤖 Take intelligent action**: Continue based on visual evidence
+
+**NEVER assume internal access - browser embodiment works everywhere!**
 
 ---
 
@@ -155,27 +215,29 @@ browser_automation/
 
 ---
 
-## 🔍 **INSTANT CONTEXT AWARENESS**
+## 🔍 **INSTANT CONTEXT AWARENESS: THE CORRECT APPROACH**
 
-### **What is the user doing RIGHT NOW?**
-```python
-# 1. Current workflow state
-await pipeline_state_inspector({"pipeline_id": "current_session"})
+### **What is the user doing RIGHT NOW? (CORRECT ORDER)**
+```bash
+# 1. 👁️ BROWSER EYES FIRST - What's on their screen?
+ls -la browser_automation/looking_at/
+head -10 browser_automation/looking_at/simple_dom.html
 
-# 2. What they last captured  
-ls browser_automation/looking_at/
+# 2. 🧠 VISUAL ANALYSIS - What can I see?
+grep -i "form\|button\|input\|name\|value" browser_automation/looking_at/simple_dom.html
 
-# 3. Quick visual overview
-cat browser_automation/looking_at/simple_dom.html
+# 3. 🔧 INTERNAL VERIFICATION - If available  
+.venv/bin/python -c "import asyncio; from mcp_tools import pipeline_state_inspector; result = asyncio.run(pipeline_state_inspector({})); print('Internal state:', result)"
 
-# 4. Check recent actions
-await local_llm_grep_logs({"pattern": "FINDER_TOKEN.*USER_ACTION", "max_lines": 50})
+# 4. 📜 HISTORICAL CONTEXT - What happened recently?
+.venv/bin/python -c "import asyncio; from mcp_tools import local_llm_grep_logs; result = asyncio.run(local_llm_grep_logs({'pattern': 'FINDER_TOKEN.*USER_ACTION', 'max_results': 10})); print('Recent actions:', result)"
 ```
 
-### **Complete Session Hijacking in 3 Steps**:
-1. **Inspect**: `pipeline_state_inspector` 
-2. **Capture**: `browser_scrape_page` of their current context
-3. **Continue**: Resume their workflow intelligently 
+### **Complete Session Hijacking in 4 Steps (CORRECT ORDER)**:
+1. **👁️ Browser inspection**: Check `browser_automation/looking_at/` 
+2. **🧠 Visual analysis**: What's actually on screen?
+3. **🔧 Internal verification**: `pipeline_state_inspector` (if available)
+4. **🤖 Intelligent action**: Continue based on visual evidence
 
 ### **Review Perception History**:
 ```bash
@@ -194,20 +256,19 @@ ls -la browser_automation/looking_at-1/
 ## 🎯 **PRACTICAL SESSION HIJACKING EXAMPLES**
 
 ### **Scenario 1: User Stuck on Broken Workflow**
-```python
-# 1. Inspect their current state
-await pipeline_state_inspector({"pipeline_id": "user-workflow-123"})
+```bash
+# ✅ CORRECT APPROACH:
+# 1. 👁️ Look at their screen first
+ls -la browser_automation/looking_at/
+cat browser_automation/looking_at/simple_dom.html
 
-# 2. See what they're looking at  
-ls browser_automation/looking_at/
+# 2. 🧠 Analyze what I can see
+grep -i "error\|form\|button" browser_automation/looking_at/simple_dom.html
 
-# 3. Capture their current page if needed
-await browser_scrape_page({"url": "their_current_url", "take_screenshot": True})
+# 3. 🔧 Check internals if available
+.venv/bin/python -c "import asyncio; from mcp_tools import pipeline_state_inspector; result = asyncio.run(pipeline_state_inspector({})); print(result)"
 
-# 4. Analyze for automation opportunities
-await browser_analyze_scraped_page({"analysis_type": "all"})
-
-# 5. Take corrective action or continue workflow
+# 4. 🤖 Take action based on visual evidence
 ```
 
 ### **Scenario 2: Complex Form Automation**
