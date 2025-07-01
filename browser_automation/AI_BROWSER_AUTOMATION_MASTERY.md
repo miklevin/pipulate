@@ -116,6 +116,41 @@ browser_automation/
 
 ---
 
+## 🩺 **SYSTEM HEALTH CHECK: CONTEXT-AWARE CAPABILITY TEST SUITE**
+
+### **Why This Matters**
+Old test suites could be misleading, reporting failures for context-dependent features that work perfectly in the real server environment. The new context-aware test suite provides:
+- Accurate, actionable health checks
+- Clear separation of core vs. context-dependent capabilities
+- No more false negatives or misleading results
+
+### **How to Run the Health Check**
+
+**Quick Test:**
+```bash
+python -c "import asyncio; from mcp_tools import _ai_capability_test_suite; result = asyncio.run(_ai_capability_test_suite({'test_type': 'quick'})); print(result)"
+```
+
+**Comprehensive Test:**
+```bash
+python -c "import asyncio; from mcp_tools import _ai_capability_test_suite; result = asyncio.run(_ai_capability_test_suite({'test_type': 'comprehensive'})); print(result)"
+```
+
+**Context-Aware Test (Recommended):**
+```bash
+python -c "import asyncio; from mcp_tools import _ai_capability_test_suite; result = asyncio.run(_ai_capability_test_suite({'test_type': 'context_aware'})); import json; print(json.dumps(result, indent=2))"
+```
+
+**What to Look For:**
+- `success_rate` should be high (typically 87.5%+)
+- `assessment` will tell you if any issues are context-dependent (not real problems)
+- `capability_assessment` breaks down core vs. context-dependent features
+
+**If you see a context-dependent failure:**
+- It is NOT a bug! It just means that feature needs the full server context to work (which it will in production).
+
+---
+
 ## 🔍 **INSTANT CONTEXT AWARENESS**
 
 ### **What is the user doing RIGHT NOW?**
@@ -339,6 +374,7 @@ ls browser_automation/looking_at*/
 - [ ] I understand the directory rotation system and perception history
 - [ ] I can review past browser sessions using the directory structure
 - [ ] I understand plugin-aware navigation and element targeting
+- [ ] I can verify system health using the context-aware test suite
 
 ### **✅ Practical Application**  
 - [ ] I can capture and analyze any webpage the user mentions
