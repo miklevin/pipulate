@@ -1276,10 +1276,12 @@ async def browser_scrape_page(params: dict) -> dict:
         # Use headless unless screenshot is requested
         if not take_screenshot:
             chrome_options.add_argument('--headless')
+        else:
+            # Ensure browser is visible when taking screenshots
+            chrome_options.add_argument('--start-maximized')
+            chrome_options.add_argument('--new-window')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--new-window')
-        chrome_options.add_argument('--start-maximized')
         chrome_options.add_argument('--window-size=1920,1080')
         
         # CRITICAL: Create temporary profile directory (prevents browser conflicts)
@@ -1288,14 +1290,38 @@ async def browser_scrape_page(params: dict) -> dict:
         
         driver = wire_webdriver.Chrome(options=chrome_options)
         
+        # Set timeouts to prevent hanging
+        driver.set_page_load_timeout(15)
+        driver.implicitly_wait(5)
+        driver.set_script_timeout(10)
+        
         try:
-            # Navigate and wait
-            driver.get(url)
-            time.sleep(wait_seconds)
+            # Validate URL before navigation to prevent data: URLs
+            if not url.startswith(('http://', 'https://')):
+                return {"success": False, "error": f"Invalid URL format: {url}. Expected http:// or https://"}
+            
+            # Navigate with timeout protection
+            try:
+                # Special handling for localhost URLs to prevent server conflicts
+                if 'localhost' in url or '127.0.0.1' in url:
+                    # Use a longer timeout for localhost and add extra delay
+                    driver.set_page_load_timeout(30)  # Longer timeout for localhost
+                    time.sleep(2)  # Extra delay to prevent server conflicts
+                else:
+                    driver.set_page_load_timeout(15)  # Normal timeout for external URLs
+                
+                driver.get(url)
+                time.sleep(wait_seconds)
+            except Exception as nav_error:
+                return {"success": False, "error": f"Navigation timeout or error: {nav_error}. URL: {url}"}
             
             # Capture page info
             page_title = driver.title
             final_url = driver.current_url
+            
+            # Verify we didn't end up with a data: URL
+            if final_url.startswith('data:'):
+                return {"success": False, "error": f"Browser navigation resulted in data: URL: {final_url}. Original URL: {url}"}
             
             # 1. Capture HTTP headers and metadata
             headers_data = {
@@ -1501,22 +1527,24 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             
         logger.info(f"🚀 FINDER_TOKEN: WORKFLOW_AUTOMATION_START | Starting workflow walkthrough for {plugin_filename}")
         
-        # Set up Chrome with the same proven configuration as _browser_scrape_page
+        # Set up Chrome with visible browser for workflow automation
         options = Options()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--window-size=1920,1080')
-        # === REFINEMENT 5: BROWSER LIFECYCLE MANAGEMENT ===
-        options.add_argument('--disable-gpu')  # Prevent GPU issues
-        options.add_argument('--disable-extensions')  # Disable extensions that might interfere
-        options.add_argument('--disable-plugins')  # Disable plugins
-        options.add_argument('--disable-images')  # Faster loading
+        options.add_argument('--start-maximized')  # Ensure browser is visible
+        # Remove problematic options that might prevent browser from showing
+        # options.add_argument('--disable-gpu')  # Can cause issues
+        # options.add_argument('--disable-extensions')  # Can cause issues
+        # options.add_argument('--disable-plugins')  # Can cause issues
+        # options.add_argument('--disable-images')  # Can cause issues
         # options.add_argument('--headless')  # Run in background to prevent hanging windows
         
         driver = webdriver.Chrome(options=options)
         driver.maximize_window()
-        driver.set_page_load_timeout(30)  # 30 second page load timeout
-        driver.implicitly_wait(10)  # 10 second implicit wait
+        driver.set_page_load_timeout(15)  # Reduced timeout to prevent hanging
+        driver.implicitly_wait(5)  # Reduced implicit wait
+        driver.set_script_timeout(10)  # Add script timeout
         
         screenshots = []
         workflow_steps = []
@@ -1613,7 +1641,19 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             
             logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_MAPPING | Plugin: {plugin_name} -> App: {app_name} -> URL: {plugin_url}")
             
-            driver.get(plugin_url)
+            # Validate URL before navigation to prevent data: URLs
+            if not plugin_url.startswith(('http://', 'https://')):
+                return {"success": False, "error": f"Invalid URL format: {plugin_url}. Expected http:// or https://"}
+            
+            try:
+                driver.get(plugin_url)
+                # Verify we didn't end up with a data: URL
+                current_url = driver.current_url
+                if current_url.startswith('data:'):
+                    return {"success": False, "error": f"Browser navigation resulted in data: URL: {current_url}. Original URL: {plugin_url}"}
+                logger.info(f"✅ FINDER_TOKEN: WORKFLOW_NAVIGATION_SUCCESS | Navigated to: {current_url}")
+            except Exception as nav_error:
+                return {"success": False, "error": f"Navigation failed: {nav_error}. URL: {plugin_url}"}
             
             # Update /looking_at/ with landing page state
             update_looking_at_state("landing")
@@ -1638,7 +1678,17 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             # Step 3: Look for and fill pipeline ID input
             try:
                 pipeline_input = driver.find_element(By.NAME, "pipeline_id")
-                pipeline_id = f"automation-test-{int(time.time())}"
+                
+                # Use existing pipeline ID from session if available, otherwise generate new one
+                from server import db
+                existing_pipeline_id = db.get('pipeline_id')
+                if existing_pipeline_id:
+                    pipeline_id = existing_pipeline_id
+                    logger.info(f"🔄 FINDER_TOKEN: WORKFLOW_REUSE | Using existing pipeline ID: {pipeline_id}")
+                else:
+                    pipeline_id = f"automation-test-{int(time.time())}"
+                    logger.info(f"🆕 FINDER_TOKEN: WORKFLOW_NEW | Generated new pipeline ID: {pipeline_id}")
+                
                 pipeline_input.clear()
                 pipeline_input.send_keys(pipeline_id)
                 
