@@ -1478,46 +1478,39 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
                 logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_PERCEPTION_ERROR - {e}")
         
         try:
-            # Step 1: Navigate to the plugin - USE SAME LOGIC AS SESSION HIJACKING
-            # Get the most recent pipeline from database to determine correct endpoint
-            import sqlite3
-            from pathlib import Path
+            # Step 1: Navigate to the specific plugin requested
+            # Extract plugin name from filename and construct URL
+            plugin_name = plugin_filename.replace('plugins/', '').replace('.py', '')
             
-            try:
-                # Use database to get app_name, then endpoint registry for URL
-                db_path = Path('data/botifython_dev.db')
-                if not db_path.exists():
-                    db_path = Path('data/data.db')  # Fallback
-                
-                conn = sqlite3.connect(str(db_path))
-                cursor = conn.cursor()
-                cursor.execute('SELECT app_name FROM pipeline ORDER BY updated DESC LIMIT 1')
-                result = cursor.fetchone()
-                conn.close()
-                
-                if result and result[0]:
-                    app_name = result[0]
-                    
-                    # Import and use the endpoint registry from server
-                    import sys
-                    server_module = sys.modules.get('server')
-                    if server_module and hasattr(server_module, 'get_endpoint_url'):
-                        plugin_url = server_module.get_endpoint_url(app_name)
-                        logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_REGISTRY | Using endpoint registry: {app_name} -> {plugin_url}")
-                    else:
-                        # Fallback to direct mapping if registry not available
-                        plugin_url = f"{base_url}/{app_name}_workflow"
-                        logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_FALLBACK | Using direct mapping: {app_name} -> {plugin_url}")
-                else:
-                    # Fallback to homepage if no pipelines
-                    plugin_url = base_url
-                    logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_NAVIGATION_FALLBACK | No pipelines found, using homepage: {plugin_url}")
-                    
-            except Exception as e:
-                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_NAVIGATION_ERROR | Database error: {e}, using homepage fallback")
-                plugin_url = base_url
+            # Map plugin filename to app name (this is the key fix!)
+            plugin_to_app_mapping = {
+                '010_introduction': 'introduction',
+                '580_upload': 'file_upload_widget',
+                '020_profiles': 'profiles',
+                '030_roles': 'roles',
+                '040_hello_workflow': 'hello_workflow',
+                '050_documentation': 'documentation',
+                '060_tasks': 'tasks',
+                '070_connect_with_botify': 'connect_with_botify',
+                '080_parameter_buster': 'parameter_buster',
+                '090_link_graph': 'link_graph',
+                '100_gap_analysis': 'gap_analysis',
+                '110_workflow_genesis': 'workflow_genesis',
+                '120_widget_examples': 'widget_examples',
+                '130_roadmap': 'roadmap',
+                '140_dev_assistant': 'dev_assistant',
+                '150_simon_mcp': 'simon_mcp',
+                '160_blank_placeholder': 'blank_placeholder',
+                '170_botify_trifecta': 'botify_trifecta',
+                '180_tab_opener': 'tab_opener',
+                '190_browser_automation': 'browser_automation',
+                '200_stream_simulator': 'stream_simulator'
+            }
             
-            logger.info(f"🌐 FINDER_TOKEN: WORKFLOW_NAVIGATION | Navigating to {plugin_url}")
+            app_name = plugin_to_app_mapping.get(plugin_name, plugin_name)
+            plugin_url = f"{base_url}/{app_name}"
+            
+            logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_MAPPING | Plugin: {plugin_name} -> App: {app_name} -> URL: {plugin_url}")
             
             driver.get(plugin_url)
             
@@ -1579,48 +1572,95 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
                     "description": "No pipeline initialization needed"
                 })
             
-            # Step 4: Look for file input and upload test file
+            # Step 4: Check if this plugin has file upload capabilities and test them
             try:
-                # Look for file input using our automation attribute
-                file_input = driver.find_element(By.CSS_SELECTOR, "[data-testid='file-upload-widget-file-input']")
-                logger.info(f"📁 FINDER_TOKEN: WORKFLOW_FILE_INPUT | Found file input with automation attribute")
+                # Determine if this plugin supports file uploads by checking the plugin name
+                plugin_supports_uploads = "upload" in plugin_filename.lower() or "file" in plugin_filename.lower()
                 
-                # Create a test file
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as temp_file:
-                    temp_file.write(f"Test file content for automation walkthrough\\nGenerated at: {time.ctime()}\\nPlugin: {plugin_filename}")
-                    test_file_path = temp_file.name
-                
-                # Upload the test file
-                file_input.send_keys(test_file_path)
-                logger.info(f"📤 FINDER_TOKEN: WORKFLOW_FILE_UPLOAD | Uploaded test file: {test_file_path}")
-                
-                # Look for upload button using automation attribute
-                upload_button = driver.find_element(By.CSS_SELECTOR, "[data-testid='file-upload-widget-upload-button']")
-                upload_button.click()
-                logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_SUBMIT | Clicked upload button")
-                
-                # Wait for processing
-                time.sleep(5)
-                
-                # Update /looking_at/ with post-upload state
-                update_looking_at_state("file_uploaded")
-                
-                if take_screenshots:
-                    screenshot_path = f"workflow_step_03_uploaded.png"
-                    driver.save_screenshot(screenshot_path)
-                    screenshots.append(screenshot_path)
-                
-                workflow_steps.append({
-                    "step": "file_upload",
-                    "status": "success",
-                    "description": f"Successfully uploaded file using automation attributes"
-                })
-                
-                # Clean up test file
-                try:
-                    Path(test_file_path).unlink()
-                except:
-                    pass
+                if plugin_supports_uploads:
+                    # For file upload plugins, we need to initialize the workflow first
+                    logger.info(f"📋 FINDER_TOKEN: WORKFLOW_UPLOAD_INIT | Initializing file upload workflow")
+                    
+                    # Look for pipeline initialization form
+                    try:
+                        pipeline_input = driver.find_element(By.CSS_SELECTOR, "input[name='pipeline_id']")
+                        if pipeline_input:
+                            # Generate a unique pipeline ID
+                            import uuid
+                            pipeline_id = f"automation-test-{uuid.uuid4().hex[:8]}"
+                            pipeline_input.send_keys(pipeline_id)
+                            logger.info(f"🔧 FINDER_TOKEN: WORKFLOW_PIPELINE_ID | Set pipeline ID: {pipeline_id}")
+                            
+                            # Look for and click the initialize button
+                            init_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
+                            init_button.click()
+                            logger.info(f"🚀 FINDER_TOKEN: WORKFLOW_INIT_CLICK | Clicked initialize button")
+                            
+                            # Wait for page to load
+                            time.sleep(3)
+                            
+                            # Update /looking_at/ with post-init state
+                            update_looking_at_state("workflow_initialized")
+                    except Exception as init_error:
+                        logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_INIT_SKIP | Workflow initialization failed: {init_error}")
+                    
+                    # Now look for file input using our automation attribute
+                    try:
+                        file_input = driver.find_element(By.CSS_SELECTOR, "[data-testid='file-upload-widget-file-input']")
+                        logger.info(f"📁 FINDER_TOKEN: WORKFLOW_FILE_INPUT | Found file input with automation attribute")
+                        
+                        # Create a test file
+                        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as temp_file:
+                            temp_file.write(f"Test file content for automation walkthrough\\nGenerated at: {time.ctime()}\\nPlugin: {plugin_filename}")
+                            test_file_path = temp_file.name
+                        
+                        # Upload the test file
+                        file_input.send_keys(test_file_path)
+                        logger.info(f"📤 FINDER_TOKEN: WORKFLOW_FILE_UPLOAD | Uploaded test file: {test_file_path}")
+                        
+                        # Look for upload button using automation attribute
+                        upload_button = driver.find_element(By.CSS_SELECTOR, "[data-testid='file-upload-widget-upload-button']")
+                        upload_button.click()
+                        logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_SUBMIT | Clicked upload button")
+                        
+                        # Wait for processing
+                        time.sleep(5)
+                        
+                        # Update /looking_at/ with post-upload state
+                        update_looking_at_state("file_uploaded")
+                        
+                        if take_screenshots:
+                            screenshot_path = f"workflow_step_03_uploaded.png"
+                            driver.save_screenshot(screenshot_path)
+                            screenshots.append(screenshot_path)
+                        
+                        workflow_steps.append({
+                            "step": "file_upload",
+                            "status": "success",
+                            "description": f"Successfully uploaded file using automation attributes"
+                        })
+                        
+                        # Clean up test file
+                        try:
+                            Path(test_file_path).unlink()
+                        except:
+                            pass
+                            
+                    except Exception as upload_error:
+                        logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_UPLOAD_ELEMENT_NOT_FOUND | File upload elements not found: {upload_error}")
+                        workflow_steps.append({
+                            "step": "file_upload",
+                            "status": "failed",
+                            "description": f"File upload elements not found: {str(upload_error)}"
+                        })
+                else:
+                    # This plugin doesn't support file uploads, skip gracefully
+                    logger.info(f"📋 FINDER_TOKEN: WORKFLOW_NO_UPLOAD | Plugin {plugin_filename} doesn't support file uploads, skipping")
+                    workflow_steps.append({
+                        "step": "file_upload",
+                        "status": "skipped",
+                        "description": f"Plugin {plugin_filename} doesn't support file uploads"
+                    })
                     
             except Exception as e:
                 logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_FILE_SKIP | File upload step failed: {e}")
