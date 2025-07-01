@@ -673,6 +673,12 @@ EOF
               
               # Run the full interactive script
               ${runScript}/bin/run-script
+              
+              # MCP Tools Discovery Reminder
+              echo
+              echo "🔧 MCP Tools Discovery: Run 'python discover_mcp_tools.py' to see all available AI superpowers"
+              echo "   Or use: 'python cli.py mcp-discover' for a rich interface"
+              echo
             '';
           };
           

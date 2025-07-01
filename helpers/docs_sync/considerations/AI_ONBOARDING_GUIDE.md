@@ -182,4 +182,10 @@ With these tools, you are **NOT** a limited AI assistant. You are:
 
 **Master this system. Use it. Transcend typical AI limitations.**
 
-**The revolution starts NOW.** 
+**The revolution starts NOW.**
+
+### **Step X: Enumerate All MCP Tools**
+Run the following command to see all available MCP tools and their categories:
+```bash
+python discover_mcp_tools.py
+``` 

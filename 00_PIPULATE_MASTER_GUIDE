@@ -1,0 +1,5 @@
+## 🧠 MCP Tool Discovery
+To enumerate all available MCP tools, run:
+```bash
+python discover_mcp_tools.py
+``` 
