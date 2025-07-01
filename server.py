@@ -7510,7 +7510,7 @@ def check_server_already_running():
             print()
             console.print("🎣 [bold cyan]AI DISCOVERY:[/bold cyan] You found Pipulate's Radical Transparency system!")
             console.print("   📚 Training: [bold white]training/ai_server_already_running_guidance.md[/bold white]")
-            console.print("   🔥 Master Guide: [bold white].cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc[/bold white]")
+            console.print("   🔥 Master Guide: [bold white]helpers/docs_sync/considerations/ai_progressive_discovery_sequence.md[/bold white]")
             print()
             
             # Add training content to AI conversation for immediate context
