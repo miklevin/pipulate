@@ -59,8 +59,8 @@ session_hijacking_msg = """🍪 SESSION HIJACKING NEXUS DISCOVERED!
 
 🤖 MCP SUPERPOWERS - Try these tools:
 • pipeline_state_inspector - Get complete workflow state
-• _browser_scrape_page url="http://localhost:5001" - Capture current interface
-• _browser_analyze_scraped_page - Understand automation opportunities"""
+• browser_scrape_page url="http://localhost:5001" - Capture current interface
+• browser_analyze_scraped_page - Understand automation opportunities"""
 
 server_whisper(session_hijacking_msg, "🎯")
 append_to_conversation(session_hijacking_msg, role='system')  # 🚨 CRITICAL ADDITION
@@ -81,7 +81,7 @@ Like the Outer Limits: "I control the horizontal, I control the vertical..."
 • HANDS: Selenium control for any web interaction
 • MEMORY: Complete perception history in looking_at-N/ directories
 
-Try: _browser_scrape_page url="http://localhost:5001" to see through AI eyes!"""
+Try: browser_scrape_page url="http://localhost:5001" to see through AI eyes!"""
 ```
 
 ## The Architecture Breakthrough
@@ -130,7 +130,7 @@ The system builds on existing AI_BREADCRUMB infrastructure:
 **Enhanced**: Specific commands ready to execute:
 - `grep "WORKFLOW_STEP" logs/server.log`
 - `pipeline_state_inspector`
-- `_browser_scrape_page url="http://localhost:5001"`
+- `browser_scrape_page url="http://localhost:5001"`
 
 ### 🎯 Zero Confusion Strategy
 **Previous**: Long paragraphs with unclear next steps  

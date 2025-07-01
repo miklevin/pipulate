@@ -51,12 +51,12 @@ async def enhanced_step_with_browser_intelligence(self, user_input):
     browser_intelligence = {}
     
     for url in urls:
-        capture_result = await _browser_scrape_page({
+        capture_result = await browser_scrape_page({
             "url": url, "wait_seconds": 3, "take_screenshot": True
         })
         
         if capture_result.get('success'):
-            analysis = await _browser_analyze_scraped_page({"analysis_type": "all"})
+            analysis = await browser_analyze_scraped_page({"analysis_type": "all"})
             browser_intelligence[url] = {
                 'screenshot_path': capture_result.get('looking_at_files', {}).get('screenshot'),
                 'automation_targets': analysis.get('target_count', 0),
