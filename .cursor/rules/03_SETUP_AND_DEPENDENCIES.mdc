@@ -1,8 +1,3 @@
----
-description: 
-globs: 
-alwaysApply: false
----
 # Environment Setup and Dependencies
 
 This guide covers the setup, installation, and dependency management for the Pipulate framework.
@@ -81,12 +76,88 @@ python -c "import sys; print(sys.executable)"
 
 ---
 
-## 5. Notebook Copy Solution: Preventing Git Conflicts
+## 5. 🔧 CRITICAL: AI Assistant Python Path Usage
+
+**🚨 VIRTUAL ENVIRONMENT PATH ISSUE ALERT**
+
+AI assistants using Cursor may encounter a critical issue where the virtual environment appears activated (showing `(.venv)` in prompt) but the PATH is not updated correctly.
+
+### **The Problem**
+- Virtual environment shows as active: `(.venv)`
+- `VIRTUAL_ENV` variable is set correctly
+- But `which python` points to system Python instead of `.venv/bin/python`
+- This causes `ModuleNotFoundError: No module named 'aiohttp'` and similar issues
+
+### **The Solution: Explicit Python Path Usage**
+
+**ALWAYS use the explicit Python path for all Python commands:**
+
+```bash
+# ❌ WRONG - May use system Python
+python -c "import aiohttp; print('test')"
+
+# ✅ CORRECT - Always use virtual environment Python
+.venv/bin/python -c "import aiohttp; print('test')"
+```
+
+### **AI Assistant Discovery Sequence**
+
+When AI assistants first encounter the environment, they should:
+
+1. **Start with Python path verification**:
+   ```bash
+   .venv/bin/python --version
+   .venv/bin/python -c "import sys; print('Python path:', sys.executable)"
+   ```
+
+2. **Test environment consistency**:
+   ```bash
+   .venv/bin/python -c "import aiohttp; print('✅ aiohttp available')"
+   ```
+
+3. **Use explicit path for all MCP tool testing**:
+   ```bash
+   .venv/bin/python -c "import asyncio; from mcp_tools import ai_self_discovery_assistant; result = asyncio.run(ai_self_discovery_assistant({'discovery_type': 'capabilities'})); print(f'Tools available: {result.get(\"total_tools_available\")}')"
+   ```
+
+### **Why This Happens**
+- Cursor AI environment limitations prevent proper PATH updates
+- Virtual environment activation scripts may not work correctly in certain shell environments
+- The `VIRTUAL_ENV` variable gets set but PATH doesn't include `.venv/bin`
+
+### **The Fix Strategy**
+- **Education over environment modification**: Teach AI assistants to use explicit paths
+- **Embed in discovery sequence**: Make Python path mastery part of the natural learning flow
+- **Consistent pattern**: Always use `.venv/bin/python` instead of relying on PATH
+
+### **Verification Commands**
+```bash
+# Check if virtual environment is properly activated
+echo $VIRTUAL_ENV
+# Should show: /home/mike/repos/pipulate/.venv
+
+# Check which Python is being used
+which python
+# May show system Python instead of .venv/bin/python
+
+# Use explicit path to verify correct Python
+.venv/bin/python -c "import sys; print('Using:', sys.executable)"
+# Should show: /home/mike/repos/pipulate/.venv/bin/python
+```
+
+---
+
+## 6. Notebook Copy Solution: Preventing Git Conflicts
 
 
 To prevent `git pull` conflicts from user edits to the introductory Jupyter Notebook, a "copy-on-first-run" system is used.
 
 - **Original Notebook**: `notebook_introduction.ipynb` (or similar) is tracked by git and receives updates.
+- **Local Copy**: `notebook_introduction_local.ipynb` is created automatically on the user's machine on the first run.
+- **Git Ignore**: The `_local.ipynb` file is listed in `.gitignore`.
+- **User Interaction**: The user only ever edits the local, untracked copy, which prevents conflicts with the auto-updating original.
+- **Getting Updates**: To get the latest version of the template notebook, the user can simply delete their local copy, and it will be re-created on the next run.
+
 - **Local Copy**: `notebook_introduction_local.ipynb` is created automatically on the user's machine on the first run.
 - **Git Ignore**: The `_local.ipynb` file is listed in `.gitignore`.
 - **User Interaction**: The user only ever edits the local, untracked copy, which prevents conflicts with the auto-updating original.
