@@ -47,6 +47,11 @@ ls -la | head -15
 ps aux | grep python | grep server.py
 ```
 
+**Level 1.5: Environment Diagnostic** - Fix any environment confusion:
+```bash
+python test_python_environment_fix.py
+```
+
 **Level 2: FINDER_TOKEN Discovery** - Follow your natural curiosity:
 ```bash
 grep -n "FINDER_TOKEN" logs/server.log | head -10
