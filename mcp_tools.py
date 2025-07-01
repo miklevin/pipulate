@@ -24,6 +24,7 @@ from typing import Optional, Dict, Any, List
 import logging
 import sqlite3
 import inspect
+from urllib.parse import urlparse
 
 # Get logger from server context
 logger = logging.getLogger(__name__)
@@ -1595,6 +1596,8 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         import tempfile
         import time
         from pathlib import Path
+        import re
+        from urllib.parse import urlparse
 
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options
@@ -1610,6 +1613,63 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         if not plugin_filename:
             return {"success": False, "error": "plugin_filename is required"}
         
+        # === AGGRESSIVE URL VALIDATION BEFORE BROWSER OPENING ===
+        # Map plugin filename to app name and construct URL
+        plugin_name = plugin_filename.replace('plugins/', '').replace('.py', '')
+        plugin_to_app_mapping = {
+            '010_introduction': 'introduction',
+            '580_upload': 'file_upload_widget',
+            '020_profiles': 'profiles',
+            '030_roles': 'roles',
+            '040_hello_workflow': 'hello_workflow',
+            '050_documentation': 'documentation',
+            '060_tasks': 'tasks',
+            '070_connect_with_botify': 'connect_with_botify',
+            '080_parameter_buster': 'parameter_buster',
+            '090_link_graph': 'link_graph',
+            '100_gap_analysis': 'gap_analysis',
+            '110_workflow_genesis': 'workflow_genesis',
+            '120_widget_examples': 'widget_examples',
+            '130_roadmap': 'roadmap',
+            '140_dev_assistant': 'dev_assistant',
+            '150_simon_mcp': 'simon_mcp',
+            '160_blank_placeholder': 'blank_placeholder',
+            '170_botify_trifecta': 'botify_trifecta',
+            '180_tab_opener': 'tab_opener',
+            '190_browser_automation': 'browser_automation',
+            '200_stream_simulator': 'stream_simulator'
+        }
+        app_name = plugin_to_app_mapping.get(plugin_name, plugin_name)
+        plugin_url = f"{base_url}/{app_name}"
+        logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_MAPPING | Plugin: {plugin_name} -> App: {app_name} -> URL: {plugin_url}")
+        
+        # Aggressive URL validation
+        if not plugin_url:
+            return {"success": False, "error": "No valid plugin URL could be determined"}
+        if not isinstance(plugin_url, str):
+            return {"success": False, "error": f"Plugin URL must be a string, got: {type(plugin_url)}"}
+        if not plugin_url.strip():
+            return {"success": False, "error": "Plugin URL is empty or whitespace only"}
+        invalid_patterns = [
+            'data:', 'about:', 'chrome:', 'file:', 'javascript:', 'mailto:', 'tel:', 'ftp:'
+        ]
+        for pattern in invalid_patterns:
+            if plugin_url.lower().startswith(pattern):
+                return {"success": False, "error": f"Invalid URL scheme detected: {pattern}. URL: {plugin_url}"}
+        if not plugin_url.startswith(('http://', 'https://')):
+            return {"success": False, "error": f"Plugin URL must start with http:// or https://. Got: {plugin_url}"}
+        if 'localhost' in plugin_url or '127.0.0.1' in plugin_url:
+            if not re.match(r'^https?://(localhost|127\.0\.0\.1)(:\d+)?(/.*)?$', plugin_url):
+                return {"success": False, "error": f"Malformed localhost URL: {plugin_url}"}
+        try:
+            parsed = urlparse(plugin_url)
+            if not parsed.netloc:
+                return {"success": False, "error": f"Plugin URL has no hostname: {plugin_url}"}
+        except Exception as e:
+            return {"success": False, "error": f"Plugin URL parsing failed: {plugin_url}. Error: {e}"}
+        logger.info(f"✅ FINDER_TOKEN: WORKFLOW_URL_VALIDATION_PASSED | Plugin URL validated: {plugin_url}")
+
+        # Only now do we proceed to rotate directories and create the browser
         # === DIRECTORY ROTATION BEFORE NEW WORKFLOW WALKTHROUGH ===
         # Rotate looking_at directory to preserve AI workflow history
         from server import rotate_looking_at_directory
