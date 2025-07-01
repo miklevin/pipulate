@@ -2228,50 +2228,86 @@ async def _ai_self_discovery_assistant(params: dict) -> dict:
         dict: Complete AI capability map with usage guidance
     """
     logger.info(f"🧠 FINDER_TOKEN: AI_SELF_DISCOVERY_START - Type: {params.get('discovery_type', 'all')}")
-    
+
+    # --- Ensure MCP_TOOL_REGISTRY is populated, even in direct/REPL/terminal use ---
+    global MCP_TOOL_REGISTRY
+    try:
+        if not MCP_TOOL_REGISTRY or len(MCP_TOOL_REGISTRY) < 10:
+            from mcp_tools import register_all_mcp_tools
+            register_all_mcp_tools()
+    except Exception as e:
+        logger.warning(f'Could not auto-register MCP tools: {e}')
+    # -----------------------------------------------------------------------------
+
     try:
         discovery_type = params.get('discovery_type', 'all')
         include_examples = params.get('include_examples', True)
         include_troubleshooting = params.get('include_troubleshooting', True)
         
-        # Get current MCP tool registry
+        # Get current MCP tool registry - try multiple sources
+        available_tools = []
+        
+        # Try server module first
         import sys
         server_module = sys.modules.get('server')
         if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
             available_tools = list(server_module.MCP_TOOL_REGISTRY.keys())
         else:
-            available_tools = list(MCP_TOOL_REGISTRY.keys()) if MCP_TOOL_REGISTRY else []
+            # Try main module (when running as __main__)
+            main_module = sys.modules.get('__main__')
+            if main_module and hasattr(main_module, 'MCP_TOOL_REGISTRY'):
+                available_tools = list(main_module.MCP_TOOL_REGISTRY.keys())
+            else:
+                # Fallback to local registry
+                available_tools = list(MCP_TOOL_REGISTRY.keys()) if MCP_TOOL_REGISTRY else []
         
-        # Categorize tools by capability
+        # If still no tools, try to discover them dynamically
+        if not available_tools:
+            try:
+                # Use the discovery script's logic to find all MCP tool functions
+                import inspect
+                import sys
+                mcp_module = sys.modules.get('mcp_tools')
+                if mcp_module:
+                    for name, obj in inspect.getmembers(mcp_module):
+                        if (name.startswith('_') and 
+                            callable(obj) and 
+                            not name.startswith('__') and
+                            'mcp' not in name.lower()):
+                            available_tools.append(name)
+            except Exception as e:
+                logger.warning(f"Could not discover tools dynamically: {e}")
+        
+        # Categorize tools by capability - use actual function names with underscores
         tool_categories = {
             "environment_mastery": [
-                "pipeline_state_inspector",
-                "local_llm_list_files", 
-                "local_llm_read_file"
+                "_pipeline_state_inspector",
+                "_local_llm_list_files", 
+                "_local_llm_read_file"
             ],
             "browser_embodiment": [
-                "browser_scrape_page",
-                "browser_analyze_scraped_page", 
-                "browser_automate_workflow_walkthrough",
-                "browser_interact_with_current_page"
+                "_browser_scrape_page",
+                "_browser_analyze_scraped_page", 
+                "_browser_automate_workflow_walkthrough",
+                "_browser_interact_with_current_page"
             ],
             "session_hijacking": [
-                "execute_ai_session_hijacking_demonstration",
-                "pipeline_state_inspector"
+                "_execute_ai_session_hijacking_demonstration",
+                "_pipeline_state_inspector"
             ],
             "external_integration": [
-                "botify_ping",
-                "botify_list_projects",
-                "botify_get_full_schema",
-                "botify_execute_custom_bql_query"
+                "_botify_ping",
+                "_botify_list_projects",
+                "_botify_get_full_schema",
+                "_botify_execute_custom_bql_query"
             ],
             "debugging_transparency": [
-                "local_llm_grep_logs",
-                "ui_flash_element",
-                "ui_list_elements"
+                "_local_llm_grep_logs",
+                "_ui_flash_element",
+                "_ui_list_elements"
             ],
             "entertainment": [
-                "get_cat_fact"
+                "_builtin_get_cat_fact"
             ]
         }
         
