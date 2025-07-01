@@ -16,12 +16,12 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mcp_tools import (
-    _browser_scrape_page,
-    _browser_analyze_scraped_page,
-    _pipeline_state_inspector,
-    _local_llm_grep_logs,
-    _ui_flash_element,
-    _botify_get_full_schema
+    browser_scrape_page,
+    browser_analyze_scraped_page,
+    pipeline_state_inspector,
+    local_llm_grep_logs,
+    ui_flash_element,
+    botify_get_full_schema
 )
 
 async def test_mcp_tools():
@@ -33,7 +33,7 @@ async def test_mcp_tools():
     # Test 1: Browser Scraping
     print("\n🌐 Testing browser_scrape_page...")
     try:
-        result = await _browser_scrape_page({
+        result = await browser_scrape_page({
             'url': 'https://httpbin.org/get',
             'wait_seconds': 1,
             'take_screenshot': False
@@ -46,7 +46,7 @@ async def test_mcp_tools():
     # Test 2: Pipeline State Inspection
     print("\n🔍 Testing pipeline_state_inspector...")
     try:
-        result = await _pipeline_state_inspector({})
+        result = await pipeline_state_inspector({})
         print("✅ pipeline_state_inspector: SUCCESS")
         print(f"   Active pipelines: {len(result.get('active_pipelines', []))}")
     except Exception as e:
@@ -55,7 +55,7 @@ async def test_mcp_tools():
     # Test 3: Log Analysis
     print("\n📋 Testing local_llm_grep_logs...")
     try:
-        result = await _local_llm_grep_logs({
+        result = await local_llm_grep_logs({
             'search_term': 'FINDER_TOKEN',
             'max_results': 5
         })
@@ -67,7 +67,7 @@ async def test_mcp_tools():
     # Test 4: UI Element Flashing
     print("\n🎨 Testing ui_flash_element...")
     try:
-        result = await _ui_flash_element({
+        result = await ui_flash_element({
             'selector': 'body',
             'color': 'blue',
             'duration': 1
