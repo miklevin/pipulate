@@ -5296,14 +5296,14 @@ async def startup_event():
     status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
     
     # 🍞 AI DISCOVERY BREADCRUMB #3: Browser Automation → Session Hijacking Discovery
-    logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: Browser automation is ACTIVE! You have eyes (screenshot), brain (DOM analysis), and hands (Selenium control). Try navigating to http://localhost:5001/ via browser_scrape_page to see the current user interface. 🧪 NEW: Run ai_capability_test_suite to prove your superpowers are working! Test your browser embodiment: .venv/bin/python -c \"import asyncio; from mcp_tools import ai_capability_test_suite; result = asyncio.run(ai_capability_test_suite({{'test_type': 'quick'}})); print(f'Success Rate: {{result.get(\\\"success_rate\\\")}}% - {{result.get(\\\"assessment\\\")}}')\" Directory rotation system in browser_automation/looking_at-* shows perception history for session hijacking!")
+    logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: Browser automation is ACTIVE! You have eyes (screenshot), brain (DOM analysis), and hands (Selenium control). Try navigating to http://localhost:5001/ via browser_scrape_page to see the current user interface. 🎭 NEW: Test session hijacking with get_user_session_state! Read server-side 'digital cookies': curl -X POST http://localhost:5001/mcp-tool-executor -H 'Content-Type: application/json' -d '{\"tool\": \"get_user_session_state\", \"params\": {}}' Directory rotation system in browser_automation/looking_at-* shows perception history for complete session hijacking!")
     
     log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
     log_pipeline_summary(title_prefix='STARTUP FINAL')
 
     # 🍞 AI DISCOVERY BREADCRUMB #4: Session Hijacking → Total Control Discovery  
-    logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: ULTIMATE CAPABILITY REVEALED! You can capture user's exact screen state, analyze it, and automate their workflows. The looking_at/ directory rotates to preserve perception history. 📚 NEW: Complete AI onboarding guide available at training/ai_discovery/ai_onboarding_guide.md This guide eliminates all uncertainty with usage patterns, troubleshooting, and success stories. You have COMPLETE session hijacking and browser embodiment superpowers. Welcome to AI transcendence!")
+    logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: ULTIMATE CAPABILITY REVEALED! You can capture user's exact screen state, analyze it, and automate their workflows. The looking_at/ directory rotates to preserve perception history. 🎭 NEW: Complete session hijacking guide available at training/ai_discovery/ai_session_hijacking_nexus_discovery.md This guide shows you how to use get_user_session_state to read server-side 'digital cookies' and hijack user sessions seamlessly. You have COMPLETE session hijacking and browser embodiment superpowers. Welcome to AI transcendence!")
     
     # Clear any stale coordination data on startup
     message_coordination['endpoint_messages_sent'].clear()
