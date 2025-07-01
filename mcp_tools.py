@@ -17,6 +17,7 @@ import random
 import asyncio
 import subprocess
 import aiohttp
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -1238,8 +1239,52 @@ async def browser_scrape_page(params: dict) -> dict:
         take_screenshot = params.get('take_screenshot', True)
         update_looking_at = params.get('update_looking_at', True)
         
+        # === AGGRESSIVE URL VALIDATION BEFORE BROWSER OPENING ===
         if not url:
             return {"success": False, "error": "URL parameter is required"}
+        
+        # Validate URL format BEFORE opening browser
+        if not isinstance(url, str):
+            return {"success": False, "error": f"URL must be a string, got: {type(url)}"}
+        
+        if not url.strip():
+            return {"success": False, "error": "URL is empty or whitespace only"}
+        
+        # Check for invalid URL patterns that cause data: URLs
+        invalid_patterns = [
+            'data:',
+            'about:',
+            'chrome:',
+            'file:',
+            'javascript:',
+            'mailto:',
+            'tel:',
+            'ftp:'
+        ]
+        
+        for pattern in invalid_patterns:
+            if url.lower().startswith(pattern):
+                return {"success": False, "error": f"Invalid URL scheme detected: {pattern}. URL: {url}"}
+        
+        # Validate URL structure
+        if not url.startswith(('http://', 'https://')):
+            return {"success": False, "error": f"URL must start with http:// or https://. Got: {url}"}
+        
+        # Check for malformed localhost URLs
+        if 'localhost' in url or '127.0.0.1' in url:
+            if not re.match(r'^https?://(localhost|127\.0\.0\.1)(:\d+)?(/.*)?$', url):
+                return {"success": False, "error": f"Malformed localhost URL: {url}"}
+        
+        # Check for empty hostname
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            if not parsed.netloc:
+                return {"success": False, "error": f"URL has no hostname: {url}"}
+        except Exception as e:
+            return {"success": False, "error": f"URL parsing failed: {url}. Error: {e}"}
+        
+        logger.info(f"✅ FINDER_TOKEN: URL_VALIDATION_PASSED | URL validated: {url}")
             
         # === DIRECTORY ROTATION BEFORE NEW BROWSER SCRAPE ===
         # Rotate looking_at directory to preserve AI perception history
@@ -3716,6 +3761,53 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
                 endpoint_url = f"{base_url}/{last_app_choice}"
                 mapping_method = "fallback_construction"
                 logger.warning(f"⚠️ FINDER_TOKEN: ENDPOINT_MAPPING_FALLBACK - Using fallback URL: {endpoint_url}")
+        
+        # === AGGRESSIVE URL VALIDATION BEFORE BROWSER OPENING ===
+        if not endpoint_url:
+            return {"success": False, "error": "No valid endpoint URL could be determined"}
+        
+        # Validate URL format BEFORE opening browser
+        if not isinstance(endpoint_url, str):
+            return {"success": False, "error": f"Endpoint URL must be a string, got: {type(endpoint_url)}"}
+        
+        if not endpoint_url.strip():
+            return {"success": False, "error": "Endpoint URL is empty or whitespace only"}
+        
+        # Check for invalid URL patterns that cause data: URLs
+        invalid_patterns = [
+            'data:',
+            'about:',
+            'chrome:',
+            'file:',
+            'javascript:',
+            'mailto:',
+            'tel:',
+            'ftp:'
+        ]
+        
+        for pattern in invalid_patterns:
+            if endpoint_url.lower().startswith(pattern):
+                return {"success": False, "error": f"Invalid URL scheme detected: {pattern}. URL: {endpoint_url}"}
+        
+        # Validate URL structure
+        if not endpoint_url.startswith(('http://', 'https://')):
+            return {"success": False, "error": f"Endpoint URL must start with http:// or https://. Got: {endpoint_url}"}
+        
+        # Check for malformed localhost URLs
+        if 'localhost' in endpoint_url or '127.0.0.1' in endpoint_url:
+            if not re.match(r'^https?://(localhost|127\.0\.0\.1)(:\d+)?(/.*)?$', endpoint_url):
+                return {"success": False, "error": f"Malformed localhost URL: {endpoint_url}"}
+        
+        # Check for empty hostname
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(endpoint_url)
+            if not parsed.netloc:
+                return {"success": False, "error": f"Endpoint URL has no hostname: {endpoint_url}"}
+        except Exception as e:
+            return {"success": False, "error": f"Endpoint URL parsing failed: {endpoint_url}. Error: {e}"}
+        
+        logger.info(f"✅ FINDER_TOKEN: SESSION_URL_VALIDATION_PASSED | Endpoint URL validated: {endpoint_url}")
         
         hijacking_steps.append({
             "step": "endpoint_mapped", 
