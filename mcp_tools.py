@@ -1330,19 +1330,53 @@ async def browser_scrape_page(params: dict) -> dict:
             if not url.startswith(('http://', 'https://')):
                 return {"success": False, "error": f"Invalid URL format: {url}. Expected http:// or https://"}
             
-            # Navigate with timeout protection
+            # Navigate with aggressive debugging and validation
             try:
+                logger.info(f"🎯 FINDER_TOKEN: NAVIGATION_ATTEMPT | About to navigate to: {url}")
+                
+                # Check current URL before navigation
+                try:
+                    current_url_before = driver.current_url
+                    logger.info(f"🎯 FINDER_TOKEN: CURRENT_URL_BEFORE | {current_url_before}")
+                except Exception as e:
+                    logger.warning(f"⚠️ FINDER_TOKEN: CURRENT_URL_ERROR | Could not get current URL: {e}")
+                
                 # Special handling for localhost URLs to prevent server conflicts
                 if 'localhost' in url or '127.0.0.1' in url:
-                    # Use a longer timeout for localhost and add extra delay
+                    logger.info("🎯 FINDER_TOKEN: LOCALHOST_DETECTED | Using extended timeout")
                     driver.set_page_load_timeout(30)  # Longer timeout for localhost
                     time.sleep(2)  # Extra delay to prevent server conflicts
                 else:
                     driver.set_page_load_timeout(15)  # Normal timeout for external URLs
                 
+                # Attempt navigation with detailed logging
+                logger.info(f"🎯 FINDER_TOKEN: DRIVER_GET_START | Calling driver.get('{url}')")
                 driver.get(url)
+                logger.info(f"🎯 FINDER_TOKEN: DRIVER_GET_COMPLETE | driver.get() returned")
+                
+                # Immediate URL check after navigation
+                time.sleep(1)  # Brief pause to let navigation settle
+                current_url_after = driver.current_url
+                logger.info(f"🎯 FINDER_TOKEN: CURRENT_URL_AFTER | {current_url_after}")
+                
+                # Validate navigation result
+                if current_url_after.startswith('data:'):
+                    logger.error(f"❌ FINDER_TOKEN: DATA_URL_DETECTED | Navigation resulted in data: URL: {current_url_after}")
+                    return {"success": False, "error": f"Browser navigation resulted in data: URL: {current_url_after}. Original URL: {url}"}
+                
+                if current_url_after == 'about:blank':
+                    logger.error(f"❌ FINDER_TOKEN: ABOUT_BLANK_DETECTED | Navigation resulted in about:blank")
+                    return {"success": False, "error": f"Browser navigation resulted in about:blank. Original URL: {url}"}
+                
+                if not current_url_after or current_url_after == current_url_before:
+                    logger.error(f"❌ FINDER_TOKEN: NO_NAVIGATION | URL unchanged: {current_url_after}")
+                    return {"success": False, "error": f"Browser navigation failed - URL unchanged: {current_url_after}. Original URL: {url}"}
+                
+                logger.info(f"✅ FINDER_TOKEN: NAVIGATION_SUCCESS | Successfully navigated to: {current_url_after}")
                 time.sleep(wait_seconds)
+                
             except Exception as nav_error:
+                logger.error(f"❌ FINDER_TOKEN: NAVIGATION_EXCEPTION | {nav_error}")
                 return {"success": False, "error": f"Navigation timeout or error: {nav_error}. URL: {url}"}
             
             # Capture page info
@@ -1694,13 +1728,41 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 return {"success": False, "error": f"Invalid URL format: {plugin_url}. Expected http:// or https://"}
             
             try:
+                logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_ATTEMPT | About to navigate to: {plugin_url}")
+                
+                # Check current URL before navigation
+                try:
+                    current_url_before = driver.current_url
+                    logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_CURRENT_URL_BEFORE | {current_url_before}")
+                except Exception as e:
+                    logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CURRENT_URL_ERROR | Could not get current URL: {e}")
+                
+                # Attempt navigation with detailed logging
+                logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_DRIVER_GET_START | Calling driver.get('{plugin_url}')")
                 driver.get(plugin_url)
-                # Verify we didn't end up with a data: URL
+                logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_DRIVER_GET_COMPLETE | driver.get() returned")
+                
+                # Immediate URL check after navigation
+                time.sleep(1)  # Brief pause to let navigation settle
                 current_url = driver.current_url
+                logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_CURRENT_URL_AFTER | {current_url}")
+                
+                # Verify we didn't end up with a data: URL
                 if current_url.startswith('data:'):
+                    logger.error(f"❌ FINDER_TOKEN: WORKFLOW_DATA_URL_DETECTED | Navigation resulted in data: URL: {current_url}")
                     return {"success": False, "error": f"Browser navigation resulted in data: URL: {current_url}. Original URL: {plugin_url}"}
+                
+                if current_url == 'about:blank':
+                    logger.error(f"❌ FINDER_TOKEN: WORKFLOW_ABOUT_BLANK_DETECTED | Navigation resulted in about:blank")
+                    return {"success": False, "error": f"Browser navigation resulted in about:blank. Original URL: {plugin_url}"}
+                
+                if not current_url or current_url == current_url_before:
+                    logger.error(f"❌ FINDER_TOKEN: WORKFLOW_NO_NAVIGATION | URL unchanged: {current_url}")
+                    return {"success": False, "error": f"Browser navigation failed - URL unchanged: {current_url}. Original URL: {plugin_url}"}
+                
                 logger.info(f"✅ FINDER_TOKEN: WORKFLOW_NAVIGATION_SUCCESS | Navigated to: {current_url}")
             except Exception as nav_error:
+                logger.error(f"❌ FINDER_TOKEN: WORKFLOW_NAVIGATION_EXCEPTION | {nav_error}")
                 return {"success": False, "error": f"Navigation failed: {nav_error}. URL: {plugin_url}"}
             
             # Update /looking_at/ with landing page state
