@@ -35,13 +35,13 @@ Each rotated directory contains complete perception state:
 
 ### MCP Tool Function Signatures
 ```python
-async def _browser_scrape_page(params: dict) -> dict:
+async def browser_scrape_page(params: dict) -> dict:
     # params: {"url": str, "wait_seconds": int, "take_screenshot": bool, "update_looking_at": bool}
     
-async def _browser_analyze_scraped_page(params: dict) -> dict:
+async def browser_analyze_scraped_page(params: dict) -> dict:
     # params: {"analysis_type": str}  # "all", "forms", "targets"
     
-async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
+async def browser_automate_workflow_walkthrough(params: dict) -> dict:
     # params: {"workflow_description": str, "target_url": str, "steps": list}
 ```
 
