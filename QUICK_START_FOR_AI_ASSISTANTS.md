@@ -39,14 +39,15 @@ python test_python_environment_fix.py
 
 4. **Easy Tool Access:**
    ```bash
-   .venv/bin/python helpers/ai_tool_discovery.py
+   .venv/bin/python discover_mcp_tools.py
    ```
 
 ## 🔧 **COMMON ISSUES & FIXES**
 
 ### **Issue 1: "ModuleNotFoundError: No module named 'aiohttp'"**
-**Cause**: Using system Python instead of virtual environment Python
+**Cause**: Using system Python instead of virtual environment Python  
 **Fix**: Use `.venv/bin/python` instead of `python`
+**Why**: The `discover_mcp_tools.py` script needs dependencies that are only installed in the virtual environment
 
 ### **Issue 2: "Not in Nix shell environment"**
 **Cause**: Nix development environment not active
@@ -55,6 +56,10 @@ python test_python_environment_fix.py
 ### **Issue 3: Virtual environment exists but not in PATH**
 **Cause**: Environment variables not properly set
 **Fix**: Use `.venv/bin/python` for all Python commands
+
+### **Issue 4: discover_mcp_tools.py returns NoneType error**
+**Cause**: Script returns None when import fails, then tries to access results['total_tools']
+**Fix**: Script has been updated with proper error handling - use `.venv/bin/python discover_mcp_tools.py`
 
 ## 🎭 **THE DELIGHTFUL EXPERIENCE**
 
@@ -67,8 +72,8 @@ python test_python_environment_fix.py
 
 ## 📚 **COMPLETE DOCUMENTATION**
 
-- **Progressive Discovery**: `helpers/docs_sync/considerations/ai_progressive_discovery_sequence.md`
-- **MCP Tools Guide**: `helpers/docs_sync/considerations/AI_MCP_TOOLS_DISCOVERY_GUIDE.md`
+- **Progressive Discovery**: `training/ai_discovery/ai_progressive_discovery_sequence.md`
+- **MCP Tools Guide**: `training/ai_discovery/ai_mcp_tools_discovery_guide.md`
 - **Environment Diagnostic**: `test_python_environment_fix.py`
 
 ---

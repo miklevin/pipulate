@@ -9,7 +9,23 @@ without requiring the full server context.
 import asyncio
 import inspect
 import sys
+import os
 from pathlib import Path
+
+def check_environment():
+    """Check if we're in the correct environment"""
+    print("🔍 ENVIRONMENT CHECK:")
+    print(f"  Python executable: {sys.executable}")
+    print(f"  Virtual env: {os.environ.get('VIRTUAL_ENV', 'Not detected')}")
+    
+    # Check if we're using the virtual environment
+    if '.venv' in sys.executable:
+        print("  ✅ Using virtual environment")
+        return True
+    else:
+        print("  ⚠️ Not using virtual environment - may have dependency issues")
+        print("  💡 Try: .venv/bin/python discover_mcp_tools.py")
+        return False
 
 def discover_mcp_tools():
     """Discover all MCP tools available in mcp_tools.py"""
@@ -19,7 +35,14 @@ def discover_mcp_tools():
         import mcp_tools
     except ImportError as e:
         print(f"❌ Error importing mcp_tools: {e}")
-        return
+        print(f"💡 This usually means you need to use the virtual environment:")
+        print(f"   .venv/bin/python discover_mcp_tools.py")
+        return {
+            'total_tools': 0,
+            'accessible_functions': 0,
+            'categories': {},
+            'error': str(e)
+        }
     
     # Get all functions that start with underscore (MCP tool handlers)
     mcp_tools = []
@@ -142,6 +165,9 @@ if __name__ == "__main__":
     print("🚀 MCP TOOLS DISCOVERY SCRIPT")
     print("=" * 50)
     
+    # Check environment first
+    env_ok = check_environment()
+    
     # Discover tools
     results = discover_mcp_tools()
     
@@ -152,5 +178,9 @@ if __name__ == "__main__":
     create_working_discovery_commands()
     
     print(f"\n✅ DISCOVERY COMPLETE!")
-    print(f"📊 Summary: {results['total_tools']} tools found, {results['accessible_functions']} accessible")
-    print(f"🔧 Registration: {'Working' if registration_works else 'Limited (expected)'}") 
+    if 'error' in results:
+        print(f"❌ Error: {results['error']}")
+        print(f"💡 Fix: Use .venv/bin/python discover_mcp_tools.py")
+    else:
+        print(f"📊 Summary: {results['total_tools']} tools found, {results['accessible_functions']} accessible")
+        print(f"🔧 Registration: {'Working' if registration_works else 'Limited (expected)'}") 

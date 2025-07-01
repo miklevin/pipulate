@@ -676,7 +676,7 @@ EOF
               
               # MCP Tools Discovery Reminder
               echo
-              echo "🔧 MCP Tools Discovery: Run 'python discover_mcp_tools.py' to see all available AI superpowers"
+              echo "🔧 MCP Tools Discovery: Run '.venv/bin/python discover_mcp_tools.py' to see all available AI superpowers"
               echo "   Or use: 'python cli.py mcp-discover' for a rich interface"
               echo
             '';
