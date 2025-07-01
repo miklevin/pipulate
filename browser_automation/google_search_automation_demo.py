@@ -29,7 +29,7 @@ import time
 
 # Add current directory to path for imports
 sys.path.append('.')
-from server import _browser_scrape_page, _browser_interact_with_current_page
+from server import browser_scrape_page, browser_interact_with_current_page
 from helpers.dom_processing.enhanced_dom_processor import EnhancedDOMProcessor
 
 
@@ -46,7 +46,7 @@ class GoogleSearchAutomationDemo:
         """Step 1: Capture Google.com with full redirect chain analysis"""
         print("🔍 STEP 1: Capturing Google.com...")
         
-        result = await _browser_scrape_page({
+        result = await browser_scrape_page({
             'url': 'https://google.com',
             'wait_seconds': 5,
             'take_screenshot': True,

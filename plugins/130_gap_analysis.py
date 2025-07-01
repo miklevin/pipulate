@@ -492,7 +492,7 @@ class ContentGapAnalysis:
                         await self.message_queue.add(pip, f'👁️ AI Browser Vision: Capturing {scrape_url}...', verbatim=True)
                         
                         # Call the browser_scrape_page MCP tool DIRECTLY (not via HTTP)
-                        from mcp_tools import _browser_scrape_page, _browser_analyze_scraped_page
+                        from mcp_tools import browser_scrape_page, browser_analyze_scraped_page
                         
                         scrape_params = {
                             "url": scrape_url,
@@ -502,7 +502,7 @@ class ContentGapAnalysis:
                         }
                         
                         # Direct MCP call to browser automation
-                        browser_result = await _browser_scrape_page(scrape_params)
+                        browser_result = await browser_scrape_page(scrape_params)
                         
                         if browser_result.get('success'):
                             browser_analysis = browser_result

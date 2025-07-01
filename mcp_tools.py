@@ -2568,10 +2568,10 @@ async def ai_capability_test_suite(params: dict) -> dict:
         elif test_type == "quick":
             # Quick test of core capabilities (context-aware)
             quick_tests = [
-                ("environment_check", _test_environment_access),
-                ("file_system", _test_file_system_access),
-                ("mcp_registry", _test_mcp_registry_context_aware),
-                ("basic_browser", _test_basic_browser_capability)
+                ("environment_check", test_environment_access),
+                ("file_system", test_file_system_access),
+                ("mcp_registry", test_mcp_registry_context_aware),
+                ("basic_browser", test_basic_browser_capability)
             ]
             
             for test_name, test_func in quick_tests:
@@ -2586,14 +2586,14 @@ async def ai_capability_test_suite(params: dict) -> dict:
         elif test_type == "comprehensive":
             # Comprehensive test of all capabilities (context-aware)
             comprehensive_tests = [
-                ("environment_check", _test_environment_access),
-                ("file_system", _test_file_system_access),
-                ("mcp_registry", _test_mcp_registry_context_aware),
-                ("basic_browser", _test_basic_browser_capability),
-                ("pipeline_inspection", _test_pipeline_inspection_context_aware),
-                ("log_access", _test_log_access),
-                ("ui_interaction", _test_ui_interaction_context_aware),
-                ("botify_connectivity", _test_botify_connectivity)
+                ("environment_check", test_environment_access),
+                ("file_system", test_file_system_access),
+                ("mcp_registry", test_mcp_registry_context_aware),
+                ("basic_browser", test_basic_browser_capability),
+                ("pipeline_inspection", test_pipeline_inspection_context_aware),
+                ("log_access", test_log_access),
+                ("ui_interaction", test_ui_interaction_context_aware),
+                ("botify_connectivity", test_botify_connectivity)
             ]
             
             for test_name, test_func in comprehensive_tests:
@@ -2642,7 +2642,7 @@ async def _run_context_aware_test_suite() -> dict:
     
     # Test 1: Environment and File System (Always available)
     test_results["tests_run"] += 1
-    env_result = await _test_environment_access()
+    env_result = await test_environment_access()
     test_results["results"]["environment"] = env_result
     if env_result["success"]:
         test_results["tests_passed"] += 1
@@ -2651,7 +2651,7 @@ async def _run_context_aware_test_suite() -> dict:
     
     # Test 2: File System Access
     test_results["tests_run"] += 1
-    fs_result = await _test_file_system_access()
+    fs_result = await test_file_system_access()
     test_results["results"]["file_system"] = fs_result
     if fs_result["success"]:
         test_results["tests_passed"] += 1
@@ -2660,7 +2660,7 @@ async def _run_context_aware_test_suite() -> dict:
     
     # Test 3: MCP Tools Availability (Context-aware)
     test_results["tests_run"] += 1
-    mcp_result = await _test_mcp_tools_availability()
+    mcp_result = await test_mcp_tools_availability()
     test_results["results"]["mcp_tools"] = mcp_result
     if mcp_result["success"]:
         test_results["tests_passed"] += 1
@@ -2669,7 +2669,7 @@ async def _run_context_aware_test_suite() -> dict:
     
     # Test 4: Browser Automation (Always available if Selenium installed)
     test_results["tests_run"] += 1
-    browser_result = await _test_basic_browser_capability()
+    browser_result = await test_basic_browser_capability()
     test_results["results"]["browser_automation"] = browser_result
     if browser_result["success"]:
         test_results["tests_passed"] += 1
@@ -2678,7 +2678,7 @@ async def _run_context_aware_test_suite() -> dict:
     
     # Test 5: Pipeline Functionality (Test actual functionality, not just context)
     test_results["tests_run"] += 1
-    pipeline_result = await _test_pipeline_functionality()
+    pipeline_result = await test_pipeline_functionality()
     test_results["results"]["pipeline_functionality"] = pipeline_result
     if pipeline_result["success"]:
         test_results["tests_passed"] += 1
@@ -2687,7 +2687,7 @@ async def _run_context_aware_test_suite() -> dict:
     
     # Test 6: Botify API (Test actual connectivity)
     test_results["tests_run"] += 1
-    botify_result = await _test_botify_actual_connectivity()
+    botify_result = await test_botify_actual_connectivity()
     test_results["results"]["botify_api"] = botify_result
     if botify_result["success"]:
         test_results["tests_passed"] += 1
@@ -2696,7 +2696,7 @@ async def _run_context_aware_test_suite() -> dict:
     
     # Test 7: Log Access
     test_results["tests_run"] += 1
-    log_result = await _test_log_access()
+    log_result = await test_log_access()
     test_results["results"]["log_access"] = log_result
     if log_result["success"]:
         test_results["tests_passed"] += 1
@@ -2705,7 +2705,7 @@ async def _run_context_aware_test_suite() -> dict:
     
     # Test 8: UI Interaction (Test if server is running and accessible)
     test_results["tests_run"] += 1
-    ui_result = await _test_ui_accessibility()
+    ui_result = await test_ui_accessibility()
     test_results["results"]["ui_accessibility"] = ui_result
     if ui_result["success"]:
         test_results["tests_passed"] += 1
@@ -2728,9 +2728,9 @@ async def test_mcp_tools_availability() -> dict:
     try:
         # Test if we can import and access MCP tools directly
         try:
-            from mcp_tools import _builtin_get_cat_fact
+            from mcp_tools import builtin_get_cat_fact
             # Test a simple tool call
-            result = await _builtin_get_cat_fact({})
+            result = await builtin_get_cat_fact({})
             if result.get("status") == "success" or result.get("fact"):
                 return {
                     "success": True,
@@ -3178,7 +3178,7 @@ async def browser_automate_instructions(params: dict) -> dict:
             }
         
         # First, capture the current page state
-        scrape_result = await _browser_scrape_page({
+        scrape_result = await browser_scrape_page({
             'url': target_url,
             'wait_seconds': 2,
             'take_screenshot': True
@@ -3275,7 +3275,7 @@ async def browser_automate_instructions(params: dict) -> dict:
                 result = {'success': True, 'action': 'wait', 'description': action['description']}
             else:
                 # Use the existing interaction function
-                result = await _browser_interact_with_current_page({
+                result = await browser_interact_with_current_page({
                     'action': action['action'],
                     'target': action.get('target'),
                     'input_text': action.get('input_text', ''),
@@ -3292,7 +3292,7 @@ async def browser_automate_instructions(params: dict) -> dict:
                 logger.warning(f"⚠️ FINDER_TOKEN: INSTRUCTION_FAILURE | {action['description']}: {result.get('error')}")
         
         # Take final screenshot
-        final_screenshot = await _browser_interact_with_current_page({
+        final_screenshot = await browser_interact_with_current_page({
             'action': 'screenshot',
             'wait_seconds': 1
         })
