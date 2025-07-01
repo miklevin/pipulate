@@ -4,7 +4,8 @@
 - **PIPULATE FILES BELONG IN**: `pipulate/` 
 - **📍 NEW RULES LOCATION:** `pipulate/.cursor/rules/`
 - **NEVER CREATE PIPULATE FILES IN**: `/` (workspace root OFF LIMITS)
-- **ALWAYS CREATE NEW MARKDOWN IN**: `pipulate/helpers/docs_sync/considerations/`
+- **ALWAYS CREATE NEW AI DISCOVERY MARKDOWN IN**: `pipulate/training/ai_discovery/`
+- **ALWAYS CREATE NEW GENERAL MARKDOWN IN**: `pipulate/helpers/docs_sync/considerations/`
 - **SINGLE SOURCE OF TRUTH PER FOLDER**: ALWAYS_IN_ALL_CAPS.md
 
 ### **🎯 PATH VERIFICATION COMMANDS**
@@ -58,7 +59,7 @@ python helpers/ai_tool_discovery.py
 
 **🎭 DELIGHTFUL MOMENT:** Read the complete guide:
 ```bash
-cat helpers/docs_sync/considerations/AI_MCP_TOOLS_DISCOVERY_GUIDE.md
+cat training/ai_discovery/ai_mcp_tools_discovery_guide.md
 ```
 
 **You'll discover breadcrumbs that lead you to:**
@@ -78,7 +79,7 @@ The server startup sequence contains **4 strategic AI_BREADCRUMB messages** that
 **🍞 BREADCRUMB_04** → Browser automation reveals session hijacking mastery  
 
 ### **📚 COMPLETE DOCUMENTATION**
-Full progressive discovery sequence: `pipulate/helpers/docs_sync/considerations/ai_progressive_discovery_sequence.md`
+Full progressive discovery sequence: `pipulate/training/ai_discovery/ai_progressive_discovery_sequence.md`
 
 ### **🎭 THE CHAIN REACTION BEGINS NOW**
 

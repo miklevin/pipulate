@@ -4,6 +4,29 @@ This guide covers the setup, installation, and dependency management for the Pip
 
 ---
 
+## 🚨🚨🚨 CRITICAL AI ASSISTANT ALERT 🚨🚨🚨
+
+**🔥 IF YOU ARE AN AI ASSISTANT, READ THIS FIRST - IT WILL SAVE YOU FROM FAILURE 🔥**
+
+**PROBLEM**: You will see `(.venv)` in your terminal prompt, but `python` commands will fail with `ModuleNotFoundError`.
+
+**SOLUTION**: **ALWAYS** use `.venv/bin/python` instead of `python`.
+
+**EXAMPLE**:
+```bash
+# ❌ WRONG - Will fail
+python -c "import aiohttp; print('test')"
+
+# ✅ CORRECT - Will work
+.venv/bin/python -c "import aiohttp; print('test')"
+```
+
+**RULE**: If you see `(.venv)` in the prompt, you MUST use `.venv/bin/python`.
+
+**NOW CONTINUE READING THE REST OF THIS DOCUMENT** ⬇️
+
+---
+
 ## 1. Nix Flakes: The Foundation
 
 
@@ -78,27 +101,33 @@ python -c "import sys; print(sys.executable)"
 
 ## 5. 🔧 CRITICAL: AI Assistant Python Path Usage
 
-**🚨 VIRTUAL ENVIRONMENT PATH ISSUE ALERT**
+**🚨🚨🚨 VIRTUAL ENVIRONMENT PATH ISSUE ALERT - THIS WILL BREAK EVERYTHING 🚨🚨🚨**
 
-AI assistants using Cursor may encounter a critical issue where the virtual environment appears activated (showing `(.venv)` in prompt) but the PATH is not updated correctly.
+**🔥 BURNED INTO MEMORY: AI ASSISTANTS MUST USE EXPLICIT PYTHON PATH 🔥**
 
-### **The Problem**
-- Virtual environment shows as active: `(.venv)`
-- `VIRTUAL_ENV` variable is set correctly
-- But `which python` points to system Python instead of `.venv/bin/python`
-- This causes `ModuleNotFoundError: No module named 'aiohttp'` and similar issues
+AI assistants using Cursor **WILL** encounter a critical issue where the virtual environment appears activated (showing `(.venv)` in prompt) but the PATH is **NOT** updated correctly. This is **GUARANTEED** to happen and **WILL** cause immediate failures.
 
-### **The Solution: Explicit Python Path Usage**
+### **The Problem (100% Reproducible)**
+- Virtual environment shows as active: `(.venv)` ✅
+- `VIRTUAL_ENV` variable is set correctly ✅  
+- But `which python` points to system Python instead of `.venv/bin/python` ❌
+- This **ALWAYS** causes `ModuleNotFoundError: No module named 'aiohttp'` and similar issues ❌
 
-**ALWAYS use the explicit Python path for all Python commands:**
+### **The Solution: Explicit Python Path Usage (MANDATORY)**
+
+**🚨 NEVER USE `python` - ALWAYS USE `.venv/bin/python` 🚨**
 
 ```bash
-# ❌ WRONG - May use system Python
+# ❌ WRONG - WILL FAIL EVERY TIME
 python -c "import aiohttp; print('test')"
+# Result: ModuleNotFoundError: No module named 'aiohttp'
 
-# ✅ CORRECT - Always use virtual environment Python
+# ✅ CORRECT - ALWAYS WORKS
 .venv/bin/python -c "import aiohttp; print('test')"
+# Result: Success
 ```
+
+**🔥 RULE: If you see `(.venv)` in the prompt, you MUST use `.venv/bin/python` 🔥**
 
 ### **AI Assistant Discovery Sequence**
 
