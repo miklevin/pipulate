@@ -69,6 +69,8 @@ python -c "from mcp_tools import _builtin_get_cat_fact; print('✅ MCP tools acc
 
 **Expected Realization:** "I don't need to use .venv/bin/python - the environment is already set up correctly!"
 
+**📚 For detailed environment troubleshooting, see:** `helpers/PROMPT_FOO_TECHNIQUE.md` (Environment Diagnostic section)
+
 ---
 
 ## 🍞 **BREADCRUMB_02: EASY TOOL DISCOVERY** ⭐ **NEW DELIGHTFUL EXPERIENCE**

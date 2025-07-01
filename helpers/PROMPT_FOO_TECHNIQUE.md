@@ -67,6 +67,28 @@ python generate_files_list.py
 ### **3. `pipulate-context.xsd` - The Structure Validator**
 **Primary Purpose**: XML Schema Definition ensuring structural integrity and enabling validation of generated context payloads.
 
+### **4. `test_python_environment_fix.py` - The Environment Diagnostic**
+**Primary Purpose**: Comprehensive diagnostic tool for AI assistants to identify and fix Python environment issues during the progressive discovery sequence.
+
+**Key Capabilities**:
+- **Environment Validation**: Checks directory, Python environment, dependencies, MCP tools, Nix environment
+- **Issue Detection**: Identifies nested virtual environments, missing dependencies, PATH confusion
+- **Specific Fixes**: Provides exact command sequences for common environment problems
+- **Clear Reporting**: Pass/fail status for each environment component
+
+**Usage Patterns**:
+```bash
+# Run comprehensive diagnostic
+python test_python_environment_fix.py
+
+# Common fixes provided automatically:
+# 1. Clean nested environment: unset VIRTUAL_ENV; unset PATH; exec nix develop .#quiet
+# 2. Enter Nix environment: nix develop .#quiet
+# 3. Fix git dirty tree: git add .; git commit -m "Fix"; nix develop .#quiet
+```
+
+**Integration**: This diagnostic is integrated into the AI progressive discovery sequence as Level 1.5, ensuring environment clarity before proceeding with discovery.
+
 **Schema Highlights**:
 - **Root Element**: `<context schema="pipulate-context" version="1.0">`
 - **Manifest System**: Structured file metadata with token counts

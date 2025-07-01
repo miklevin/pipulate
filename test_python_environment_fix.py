@@ -122,6 +122,13 @@ def test_mcp_tools():
     print_section("MCP Tools Test")
     
     try:
+        # Add parent directory to Python path to find mcp_tools
+        import sys
+        import os
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if parent_dir not in sys.path:
+            sys.path.insert(0, parent_dir)
+        
         from mcp_tools import _builtin_get_cat_fact
         print("✅ MCP tools import: OK")
         
