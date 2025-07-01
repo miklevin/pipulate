@@ -2723,7 +2723,7 @@ async def _run_context_aware_test_suite() -> dict:
     
     return test_results
 
-async def _test_mcp_tools_availability() -> dict:
+async def test_mcp_tools_availability() -> dict:
     """Test MCP tools availability with context awareness."""
     try:
         # Test if we can import and access MCP tools directly
@@ -2767,7 +2767,7 @@ async def _test_mcp_tools_availability() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def _test_pipeline_functionality() -> dict:
+async def test_pipeline_functionality() -> dict:
     """Test actual pipeline functionality, not just context availability."""
     try:
         # Test if we can access the database directly
@@ -2816,7 +2816,7 @@ async def _test_pipeline_functionality() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def _test_botify_actual_connectivity() -> dict:
+async def test_botify_actual_connectivity() -> dict:
     """Test actual Botify API connectivity."""
     try:
         # First check if token is available
@@ -2875,7 +2875,7 @@ async def _test_botify_actual_connectivity() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def _test_ui_accessibility() -> dict:
+async def test_ui_accessibility() -> dict:
     """Test if the UI is accessible via HTTP."""
     try:
         import aiohttp
@@ -2963,19 +2963,19 @@ def _generate_detailed_capability_assessment(test_results: dict) -> dict:
     
     return assessment
 
-async def _test_mcp_registry_context_aware() -> dict:
+async def test_mcp_registry_context_aware() -> dict:
     """Context-aware MCP registry test."""
-    return await _test_mcp_tools_availability()
+    return await test_mcp_tools_availability()
 
-async def _test_pipeline_inspection_context_aware() -> dict:
+async def test_pipeline_inspection_context_aware() -> dict:
     """Context-aware pipeline inspection test."""
-    return await _test_pipeline_functionality()
+    return await test_pipeline_functionality()
 
-async def _test_ui_interaction_context_aware() -> dict:
+async def test_ui_interaction_context_aware() -> dict:
     """Context-aware UI interaction test."""
-    return await _test_ui_accessibility()
+    return await test_ui_accessibility()
 
-async def _test_environment_access() -> dict:
+async def test_environment_access() -> dict:
     """Test basic environment access."""
     try:
         import os
@@ -2993,7 +2993,7 @@ async def _test_environment_access() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def _test_file_system_access() -> dict:
+async def test_file_system_access() -> dict:
     """Test file system access capabilities."""
     try:
         import os
@@ -3015,7 +3015,7 @@ async def _test_file_system_access() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def _test_mcp_registry() -> dict:
+async def test_mcp_registry() -> dict:
     """Test MCP tool registry access."""
     try:
         import sys
@@ -3033,7 +3033,7 @@ async def _test_mcp_registry() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def _test_basic_browser_capability() -> dict:
+async def test_basic_browser_capability() -> dict:
     """Test basic browser automation capability."""
     try:
         # Test if Selenium is available
@@ -3050,7 +3050,7 @@ async def _test_basic_browser_capability() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def _test_pipeline_inspection() -> dict:
+async def test_pipeline_inspection() -> dict:
     """Test pipeline inspection capability."""
     try:
         # Test if we can access the pipeline table
@@ -3066,7 +3066,7 @@ async def _test_pipeline_inspection() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def _test_log_access() -> dict:
+async def test_log_access() -> dict:
     """Test log file access capability."""
     try:
         import os
@@ -3084,7 +3084,7 @@ async def _test_log_access() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def _test_ui_interaction() -> dict:
+async def test_ui_interaction() -> dict:
     """Test UI interaction capability."""
     try:
         # Test if we can access the chat system
@@ -3100,7 +3100,7 @@ async def _test_ui_interaction() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def _test_botify_connectivity() -> dict:
+async def test_botify_connectivity() -> dict:
     """Test Botify API connectivity."""
     try:
         # Test if we can read the token file
@@ -3118,7 +3118,7 @@ async def _test_botify_connectivity() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def _test_specific_tool(tool_name: str) -> dict:
+async def test_specific_tool(tool_name: str) -> dict:
     """Test a specific MCP tool."""
     try:
         import sys

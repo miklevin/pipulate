@@ -46,13 +46,12 @@ def discover_mcp_tools():
             'error': str(e)
         }
     
-    # Get all functions that start with underscore (MCP tool handlers)
+    # Get all functions that are MCP tool handlers (test functions and main tools)
     mcp_tools = []
     for name, obj in inspect.getmembers(sys.modules['mcp_tools']):
-        if (name.startswith('_') and 
-            callable(obj) and 
+        if (callable(obj) and 
             not name.startswith('__') and
-            'mcp' not in name.lower()):
+            ('test_' in name or 'ai_' in name or 'botify_' in name or 'browser_' in name or 'ui_' in name or 'local_llm_' in name or 'pipeline_' in name)):
             mcp_tools.append(name)
     
     # Sort tools by category
@@ -67,17 +66,17 @@ def discover_mcp_tools():
     }
     
     for tool in sorted(mcp_tools):
-        if tool in ['_builtin_get_cat_fact', '_pipeline_state_inspector']:
+        if tool in ['builtin_get_cat_fact', 'pipeline_state_inspector']:
             categories['Core Tools'].append(tool)
-        elif tool.startswith('_botify'):
+        elif tool.startswith('botify'):
             categories['Botify API'].append(tool)
-        elif tool.startswith('_local_llm'):
+        elif tool.startswith('local_llm'):
             categories['Local LLM'].append(tool)
-        elif tool.startswith('_browser'):
+        elif tool.startswith('browser'):
             categories['Browser Automation'].append(tool)
-        elif tool.startswith('_ui'):
+        elif tool.startswith('ui'):
             categories['UI Interaction'].append(tool)
-        elif tool.startswith('_ai_'):
+        elif tool.startswith('ai_'):
             categories['AI Discovery'].append(tool)
         elif 'session' in tool.lower() or 'hijacking' in tool.lower():
             categories['Session Hijacking'].append(tool)
@@ -93,9 +92,8 @@ def discover_mcp_tools():
         if tools:
             print(f"\n📂 {category} ({len(tools)} tools):")
             for tool in tools:
-                # Remove leading underscore for display
-                display_name = tool[1:] if tool.startswith('_') else tool
-                print(f"  • {display_name}")
+                # Display the tool name as-is (no underscores to remove)
+                print(f"  • {tool}")
             total_tools += len(tools)
     
     print(f"\n🎯 TOTAL TOOLS DISCOVERED: {total_tools}")
@@ -108,11 +106,11 @@ def discover_mcp_tools():
             func = getattr(sys.modules['mcp_tools'], tool)
             if callable(func):
                 accessible_count += 1
-                print(f"  ✅ {tool[1:]}: Accessible")
+                print(f"  ✅ {tool}: Accessible")
             else:
-                print(f"  ❌ {tool[1:]}: Not callable")
+                print(f"  ❌ {tool}: Not callable")
         except Exception as e:
-            print(f"  ❌ {tool[1:]}: Error - {e}")
+            print(f"  ❌ {tool}: Error - {e}")
     
     print(f"\n🎯 ACCESSIBLE FUNCTIONS: {accessible_count}/{total_tools}")
     
@@ -153,14 +151,17 @@ def create_working_discovery_commands():
 # Command 1: List all MCP tool functions
 .venv/bin/python discover_mcp_tools.py
 
-# Command 2: Test specific tool (replace TOOL_NAME)
-.venv/bin/python -c "import asyncio; from mcp_tools import _TOOL_NAME; result = asyncio.run(_TOOL_NAME({'test': True})); print(result)"
+# Command 2: Test specific tool (use exact function name)
+.venv/bin/python -c "import asyncio; from mcp_tools import test_environment_access; result = asyncio.run(test_environment_access()); print('Environment Test Result:', result)"
 
 # Command 3: Test capability suite (shell-safe)
-.venv/bin/python -c "import asyncio; from mcp_tools import _ai_capability_test_suite; result = asyncio.run(_ai_capability_test_suite({'test_type': 'quick'})); print('Success Rate:', result.get('success_rate', 'N/A'), '%')"
+.venv/bin/python -c "import asyncio; from mcp_tools import ai_capability_test_suite; result = asyncio.run(ai_capability_test_suite({'test_type': 'quick'})); print('Success Rate:', result.get('success_rate', 'N/A'), '%')"
 
 # Command 4: Test self-discovery (shell-safe)
-.venv/bin/python -c "import asyncio; from mcp_tools import _ai_self_discovery_assistant; result = asyncio.run(_ai_self_discovery_assistant({'discovery_type': 'capabilities'})); print('Tools found:', result.get('total_tools_available', 'N/A'))"
+.venv/bin/python -c "import asyncio; from mcp_tools import ai_self_discovery_assistant; result = asyncio.run(ai_self_discovery_assistant({'discovery_type': 'capabilities'})); print('Tools found:', result.get('total_tools_available', 'N/A'))"
+
+# Command 5: Test environment access (no parameters needed)
+.venv/bin/python -c "import asyncio; from mcp_tools import test_environment_access; result = asyncio.run(test_environment_access()); print('Environment Test Result:', result)"
 """)
 
 if __name__ == "__main__":
