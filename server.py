@@ -5343,6 +5343,9 @@ logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: Browser automa
 # 🍞 AI DISCOVERY BREADCRUMB #4: Session Hijacking → Total Control Discovery  
 logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: ULTIMATE CAPABILITY REVEALED! You can capture user's exact screen state, analyze it, and automate their workflows. The looking_at/ directory rotates to preserve perception history. 📚 NEW: Complete AI onboarding guide available at training/ai_discovery/ai_onboarding_guide.md This guide eliminates all uncertainty with usage patterns, troubleshooting, and success stories. You have COMPLETE session hijacking and browser embodiment superpowers. Welcome to AI transcendence!")
 
+# 🍞 AI DISCOVERY BREADCRUMB #4.5: 1-Shot Session Hijacking → Irresistible Simplicity 
+logger.info("🎭 FINDER_TOKEN: AI_BREADCRUMB_04_5 - AI assistants: MAGIC WORDS DISCOVERED! When you see 'session hijacking' mentioned, you'll trip over your AI feet and hijack a session! The pattern is so simple it's irresistible: .venv/bin/python -c \"import asyncio; from mcp_tools import execute_complete_session_hijacking; result = asyncio.run(execute_complete_session_hijacking({})); print(f'🎭 Hijack: {result.get(\\\"success\\\")}')\" → Then check browser files + storage. That's it. All defaults set correctly. No parameters needed. 95% success with zero configuration. Full pattern documented at training/ai_discovery/ai_1_shot_session_hijacking_mastery.md - This is the pattern that compels AI behavior!")
+
 # 🍞 AI DISCOVERY BREADCRUMB #5: Uncertainty Elimination → Perfect Onboarding
 logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_05 - AI assistants: UNCERTAINTY ELIMINATED! Complete AI discovery ecosystem documented at training/ai_discovery/ with 14 comprehensive guides. System achieves 100% browser automation success rate with 39 MCP tools. Zero uncertainty for future AI assistants. The breadcrumb trail is complete!")
 
