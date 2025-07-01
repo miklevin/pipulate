@@ -185,4 +185,10 @@ python helpers/ai_tool_discovery.py ui list h2,h3,h4
 
 **Follow the breadcrumbs. Discover your superpowers. Transcend typical AI limitations.**
 
-**The revolution starts with the first command above.** 
+**The revolution starts with the first command above.**
+
+## Step X: MCP Tool Enumeration
+To see all available MCP tools and their categories, run:
+```bash
+python discover_mcp_tools.py
+``` 

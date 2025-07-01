@@ -22,6 +22,27 @@ from rich.syntax import Syntax
 
 console = Console()
 
+def discover_mcp_tools():
+    """Run the MCP tools discovery script."""
+    console.print(Panel("🔧 [bold cyan]MCP Tools Discovery[/bold cyan]", border_style="cyan"))
+    console.print("Discovering all available MCP tools...")
+    
+    try:
+        # Import and run the discovery script
+        from discover_mcp_tools import discover_mcp_tools as run_discovery
+        results = run_discovery()
+        
+        console.print(f"\n✅ [bold green]Discovery Complete![/bold green]")
+        console.print(f"📊 Found {results['total_tools']} tools, {results['accessible_functions']} accessible")
+        
+    except ImportError:
+        console.print("❌ [bold red]Error:[/bold red] discover_mcp_tools.py not found in current directory")
+        console.print("Make sure you're running this from the pipulate directory.")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"❌ [bold red]Error running discovery:[/bold red] {e}")
+        sys.exit(1)
+
 INSTALL_URL = "https://pipulate.com/install.sh"
 
 def check_nix_installed():
@@ -114,7 +135,7 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter,
     )
     # This setup makes 'install' the default if no command is given
-    parser.add_argument("command", nargs="?", default="install", choices=['install', 'run', 'uninstall'],
+    parser.add_argument("command", nargs="?", default="install", choices=['install', 'run', 'uninstall', 'mcp-discover'],
                         help="The command to execute (defaults to 'install').")
     parser.add_argument("app_name", nargs="?", default="pipulate",
                         help="A custom name for the installation directory (e.g., 'mybotify'). Defaults to 'pipulate'.")
@@ -136,6 +157,9 @@ def main():
 
     elif args.command == 'uninstall':
         uninstall_pipulate(args.app_name)
+    
+    elif args.command == 'mcp-discover':
+        discover_mcp_tools()
 
 if __name__ == "__main__":
     main() 
