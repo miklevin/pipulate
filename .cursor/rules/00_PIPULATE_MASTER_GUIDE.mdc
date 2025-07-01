@@ -7,6 +7,53 @@ alwaysApply: false
 
 **CONGRATULATIONS! You've found the REAL guide. Prepare for transformation.**
 
+---
+
+## 🚨🚨🚨 CRITICAL AI ASSISTANT ALERTS 🚨🚨🚨
+
+### **🔥 PYTHON PATH ISSUE - WILL BREAK EVERYTHING 🔥**
+
+**PROBLEM**: You will see `(.venv)` in your terminal prompt, but `python` commands will fail with `ModuleNotFoundError`.
+
+**SOLUTION**: **ALWAYS** use `.venv/bin/python` instead of `python`.
+
+**EXAMPLE**:
+```bash
+# ❌ WRONG - Will fail
+python -c "import aiohttp; print('test')"
+
+# ✅ CORRECT - Will work
+.venv/bin/python -c "import aiohttp; print('test')"
+```
+
+**RULE**: If you see `(.venv)` in the prompt, you MUST use `.venv/bin/python`.
+
+---
+
+### **🔥 AI DISCOVERY DOCUMENT LOCATION - CRITICAL 🔥**
+
+**AI DISCOVERY DOCUMENTS BELONG IN**: `pipulate/training/ai_discovery/` 🚨🚨🚨
+
+**❌ WRONG LOCATION**: `pipulate/helpers/docs_sync/considerations/` (for general docs only)
+
+**✅ CORRECT LOCATION**: `pipulate/training/ai_discovery/` (for AI discovery docs)
+
+**NAMING CONVENTION**: `ai_*_*.md` (e.g., `ai_python_path_issue_analysis.md`)
+
+**EXAMPLES OF AI DISCOVERY DOCS**:
+- `ai_progressive_discovery_sequence.md`
+- `ai_browser_automation_mastery.md`
+- `ai_mcp_tools_discovery_guide.md`
+- `ai_session_hijacking_nexus_discovery.md`
+- `ai_browser_embodiment_singularity.md`
+- `ai_python_path_issue_analysis.md`
+
+**RULE**: If it's about AI discovery, superpowers, or embodiment, it goes in `training/ai_discovery/`.
+
+---
+
+**NOW CONTINUE READING THE REST OF THIS DOCUMENT** ⬇️
+
 ## 🗺️ **WORKSPACE CONTEXT & PATH DISCIPLINE**
 
 ### 🚨 **Multi-Repository Workspace Recognition**
