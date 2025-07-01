@@ -64,7 +64,7 @@ async def get_user_session_state(params: dict) -> dict:
     """
     MCP Tool: GET USER SESSION STATE - The session hijacking superpower.
     
-    Accesses the server-side DictLikeDB to read the user's current session state.
+    Accesses the server-side store table to read the user's current session state.
     This provides access to server-side "cookies" like last_profile_id, last_app_choice,
     current_environment, theme_preference, etc.
     
@@ -78,16 +78,115 @@ async def get_user_session_state(params: dict) -> dict:
         import sys
         server_module = sys.modules.get('server') or sys.modules.get('__main__')
         
-        # Try to get the global db instance (DictLikeDB)
+        # Try to get the global db instance (DictLikeDB wrapper around store table)
+        db_instance = None
         if server_module and hasattr(server_module, 'db'):
-            db = server_module.db
-            logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ACCESS - Successfully accessed global db from server module")
+            db_instance = server_module.db
+            logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ACCESS - Successfully accessed global db (DictLikeDB) from server module")
         else:
-            logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - db instance not accessible from server module")
-            return {
-                "success": False,
-                "error": "Server-side database not accessible - server may not be fully initialized"
-            }
+            # Alternative: use raw SQL if db not available (for standalone MCP tool usage)
+            try:
+                import sqlite3
+                from pathlib import Path
+                Path('data').mkdir(parents=True, exist_ok=True)
+                
+                # Direct SQLite access using the same database file as the server
+                # Determine correct database file based on environment
+                env_file = Path('data/current_environment.txt')
+                if env_file.exists():
+                    current_env = env_file.read_text().strip()
+                else:
+                    current_env = 'Development'
+                
+                # Get APP_NAME using the same logic as server.py get_app_name()
+                try:
+                    # Import get_app_name function from server module if available
+                    if server_module and hasattr(server_module, 'get_app_name'):
+                        app_name = server_module.get_app_name()
+                    elif server_module and hasattr(server_module, 'APP_NAME'):
+                        app_name = server_module.APP_NAME
+                    else:
+                        # Fallback: replicate the same logic as server.py get_app_name()
+                        app_name = None
+                        app_name_file = 'app_name.txt'
+                        if Path(app_name_file).exists():
+                            try:
+                                app_name = Path(app_name_file).read_text().strip()
+                            except:
+                                pass
+                        if not app_name:
+                            # Use current directory name as fallback
+                            app_name = Path.cwd().name
+                            app_name = app_name[:-5] if app_name.endswith('-main') else app_name
+                        app_name = app_name.capitalize()
+                except Exception as e:
+                    logger.warning(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_WARNING - Could not determine app name: {e}")
+                    app_name = Path.cwd().name.lower()  # Final fallback
+                
+                # Use same logic as get_db_filename() in server.py
+                if current_env == 'Development':
+                    db_filename = f'data/{app_name.lower()}_dev.db'
+                else:
+                    db_filename = f'data/{app_name.lower()}.db'
+                
+                logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_DB_FILE - App name: {app_name}, Environment: {current_env}, Database: {db_filename}")
+                
+                # Check if database file exists
+                if not Path(db_filename).exists():
+                    logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Database file does not exist: {db_filename}")
+                    return {
+                        "success": False,
+                        "error": f"Database file does not exist: {db_filename} - server may not have been started yet"
+                    }
+                
+                conn = sqlite3.connect(db_filename)
+                cursor = conn.cursor()
+                
+                # Check if store table exists
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='store'")
+                if not cursor.fetchone():
+                    logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Store table does not exist in database: {db_filename}")
+                    # List all tables for debugging
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                    tables = [row[0] for row in cursor.fetchall()]
+                    logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_DEBUG - Available tables: {tables}")
+                    return {
+                        "success": False,
+                        "error": f"Store table does not exist in {db_filename} - available tables: {tables}"
+                    }
+                
+                # Create a simple dict-like interface using raw SQL
+                class SQLiteDictDB:
+                    def __init__(self, connection):
+                        self.conn = connection
+                    
+                    def get(self, key, default=None):
+                        try:
+                            cursor = self.conn.cursor()
+                            cursor.execute("SELECT value FROM store WHERE key = ?", (key,))
+                            result = cursor.fetchone()
+                            return result[0] if result else default
+                        except:
+                            return default
+                    
+                    def items(self):
+                        cursor = self.conn.cursor()
+                        cursor.execute("SELECT key, value FROM store")
+                        return cursor.fetchall()
+                    
+                    def keys(self):
+                        cursor = self.conn.cursor()
+                        cursor.execute("SELECT key FROM store")
+                        return [row[0] for row in cursor.fetchall()]
+                
+                db_instance = SQLiteDictDB(conn)
+                logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ACCESS - Fallback: accessed store table via raw SQL")
+            except Exception as e:
+                logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Database access failed: {e}")
+                return {
+                    "success": False,
+                    "error": f"Database not accessible - server may not be fully initialized. Details: {e}"
+                }
         
         # Get specific keys if requested, otherwise get all
         specific_keys = params.get('keys', [])
@@ -97,13 +196,15 @@ async def get_user_session_state(params: dict) -> dict:
             # Get only requested keys
             session_data = {}
             for key in specific_keys:
-                if key in db:
-                    session_data[key] = db[key]
-                else:
-                    session_data[key] = None
+                session_data[key] = db_instance.get(key)
         else:
             # Get all session data
-            session_data = dict(db)
+            if hasattr(db_instance, 'items'):
+                # Use items() method for both DictLikeDB and SimpleDictDB
+                session_data = dict(db_instance.items())
+            else:
+                # Fallback to dict conversion for DictLikeDB
+                session_data = dict(db_instance)
         
         # Add metadata about the session state
         result = {
