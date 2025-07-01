@@ -1,140 +1,227 @@
 #!/usr/bin/env python3
 """
-Python Environment Fix Test Script
+Python Environment Diagnostic and Fix Script
+============================================
 
-This script tests that the Python environment is properly configured
-and all MCP tools are accessible without explicit path requirements.
+This script helps AI assistants diagnose and fix Python environment issues
+that commonly occur during the progressive discovery sequence.
 
-FIXED: Python environment confusion - virtual environment now activates correctly
+Usage:
+    python test_python_environment_fix.py
+
+The script will:
+1. Check if we're in the correct directory
+2. Verify Python environment activation
+3. Test critical dependencies
+4. Provide specific fixes for common issues
 """
 
-import asyncio
-import sys
 import os
+import sys
+import subprocess
+from pathlib import Path
 
-def test_environment():
-    """Test basic environment configuration"""
-    print("🔧 Testing Python Environment Configuration")
-    print("=" * 50)
-    
-    # Test 1: Check Python path
-    print(f"✅ Python executable: {sys.executable}")
-    print(f"✅ Python version: {sys.version}")
-    print(f"✅ Virtual env: {os.environ.get('VIRTUAL_ENV', 'Not set')}")
-    
-    # Test 2: Check key dependencies
+def print_header(title):
+    print(f"\n{'='*60}")
+    print(f"🔍 {title}")
+    print(f"{'='*60}")
+
+def print_section(title):
+    print(f"\n📋 {title}")
+    print("-" * 40)
+
+def run_command(cmd, capture_output=True):
+    """Run a command and return result"""
     try:
-        import aiohttp
-        print("✅ aiohttp import successful")
-    except ImportError as e:
-        print(f"❌ aiohttp import failed: {e}")
+        result = subprocess.run(cmd, shell=True, capture_output=capture_output, text=True)
+        return result.returncode == 0, result.stdout, result.stderr
+    except Exception as e:
+        return False, "", str(e)
+
+def check_directory():
+    """Check if we're in the correct pipulate directory"""
+    print_section("Directory Check")
+    
+    current_dir = Path.cwd()
+    print(f"Current directory: {current_dir}")
+    
+    # Check if we're in a pipulate directory
+    if "pipulate" not in str(current_dir):
+        print("❌ WARNING: Not in a pipulate directory")
+        print("   Expected: /path/to/pipulate/")
+        print("   Current:  {current_dir}")
         return False
     
-    # Test 3: Check MCP tools import
+    # Check for key files
+    key_files = ["server.py", "flake.nix", "requirements.txt"]
+    missing_files = []
+    
+    for file in key_files:
+        if not Path(file).exists():
+            missing_files.append(file)
+    
+    if missing_files:
+        print(f"❌ Missing key files: {missing_files}")
+        return False
+    
+    print("✅ Directory looks correct")
+    return True
+
+def check_python_environment():
+    """Check Python environment status"""
+    print_section("Python Environment Check")
+    
+    # Check Python executable
+    python_path = sys.executable
+    print(f"Python executable: {python_path}")
+    
+    # Check if we're in a virtual environment
+    in_venv = hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+    print(f"In virtual environment: {in_venv}")
+    
+    # Check VIRTUAL_ENV environment variable
+    venv_env = os.environ.get('VIRTUAL_ENV')
+    print(f"VIRTUAL_ENV: {venv_env}")
+    
+    # Check PATH
+    path = os.environ.get('PATH', '')
+    venv_in_path = '.venv/bin' in path or 'venv/bin' in path
+    print(f"Virtual env in PATH: {venv_in_path}")
+    
+    # Check Python version
+    python_version = sys.version
+    print(f"Python version: {python_version}")
+    
+    return in_venv or venv_env or venv_in_path
+
+def test_critical_dependencies():
+    """Test critical dependencies"""
+    print_section("Critical Dependencies Test")
+    
+    critical_modules = [
+        'aiohttp',
+        'fasthtml',
+        'starlette',
+        'uvicorn'
+    ]
+    
+    failed_modules = []
+    
+    for module in critical_modules:
+        try:
+            __import__(module)
+            print(f"✅ {module}: OK")
+        except ImportError as e:
+            print(f"❌ {module}: FAILED - {e}")
+            failed_modules.append(module)
+    
+    return len(failed_modules) == 0
+
+def test_mcp_tools():
+    """Test MCP tools accessibility"""
+    print_section("MCP Tools Test")
+    
     try:
         from mcp_tools import _builtin_get_cat_fact
-        print("✅ MCP tools import successful")
+        print("✅ MCP tools import: OK")
+        
+        # Test a simple MCP tool
+        import asyncio
+        result = asyncio.run(_builtin_get_cat_fact({}))
+        print(f"✅ MCP tool execution: OK - {result.get('fact', 'No fact returned')[:50]}...")
+        return True
     except ImportError as e:
-        print(f"❌ MCP tools import failed: {e}")
+        print(f"❌ MCP tools import: FAILED - {e}")
         return False
-    
-    return True
+    except Exception as e:
+        print(f"❌ MCP tool execution: FAILED - {e}")
+        return False
 
-async def test_mcp_tools():
-    """Test MCP tools functionality"""
-    print("\n🚀 Testing MCP Tools Functionality")
-    print("=" * 50)
+def check_nix_environment():
+    """Check Nix environment status"""
+    print_section("Nix Environment Check")
     
-    # Test 1: Basic MCP tool
-    try:
-        from mcp_tools import _builtin_get_cat_fact
-        result = await _builtin_get_cat_fact({})
-        print(f"✅ Cat fact tool: {result.get('fact', 'No fact')[:50]}...")
-    except Exception as e:
-        print(f"❌ Cat fact tool failed: {e}")
+    in_nix_shell = os.environ.get('IN_NIX_SHELL')
+    print(f"IN_NIX_SHELL: {in_nix_shell}")
+    
+    # Check if we're in a Nix environment
+    if in_nix_shell:
+        print("✅ In Nix shell environment")
+        return True
+    else:
+        print("⚠️  Not in Nix shell environment")
         return False
-    
-    # Test 2: Self-discovery tool
-    try:
-        from mcp_tools import _ai_self_discovery_assistant
-        result = await _ai_self_discovery_assistant({'discovery_type': 'capabilities'})
-        tools_available = result.get('total_tools_available', 0)
-        print(f"✅ Self-discovery tool: {tools_available} tools available")
-    except Exception as e:
-        print(f"❌ Self-discovery tool failed: {e}")
-        return False
-    
-    # Test 3: Capability test suite
-    try:
-        from mcp_tools import _ai_capability_test_suite
-        result = await _ai_capability_test_suite({'test_type': 'quick'})
-        success_rate = result.get('success_rate', 0)
-        print(f"✅ Capability test: {success_rate}% success rate")
-    except Exception as e:
-        print(f"❌ Capability test failed: {e}")
-        return False
-    
-    return True
 
-async def test_browser_automation():
-    """Test browser automation capabilities"""
-    print("\n👁️ Testing Browser Automation")
-    print("=" * 50)
+def provide_fixes():
+    """Provide specific fixes for common issues"""
+    print_section("Common Issues & Fixes")
     
-    try:
-        from mcp_tools import _browser_scrape_page
-        result = await _browser_scrape_page({
-            'url': 'https://httpbin.org/json',
-            'take_screenshot': True,
-            'wait_seconds': 2
-        })
-        
-        status = result.get('status', 'Unknown')
-        screenshot = result.get('screenshot_path', 'N/A')
-        
-        print(f"✅ Browser scraping: {status}")
-        print(f"✅ Screenshot captured: {screenshot}")
-        
-        # Check if files were actually created
-        import os
-        if os.path.exists('browser_automation/looking_at/screenshot.png'):
-            print("✅ Screenshot file exists")
-        else:
-            print("❌ Screenshot file missing")
-            
-    except Exception as e:
-        print(f"❌ Browser automation failed: {e}")
-        return False
+    print("🚨 If you're having environment issues, try these fixes:")
+    print()
     
-    return True
+    print("1. ENTER NIX ENVIRONMENT:")
+    print("   nix develop .#quiet")
+    print()
+    
+    print("2. CLEAN ENVIRONMENT (if nested):")
+    print("   unset VIRTUAL_ENV")
+    print("   unset PATH")
+    print("   export PATH='/run/wrappers/bin:/usr/bin:/usr/sbin:/home/mike/.nix-profile/bin:/nix/profile/bin:/home/mike/.local/state/nix/profile/bin:/etc/profiles/per-user/mike/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin'")
+    print("   exec nix develop .#quiet")
+    print()
+    
+    print("3. VERIFY ENVIRONMENT:")
+    print("   echo $IN_NIX_SHELL  # Should show 'impure'")
+    print("   which python       # Should show .venv/bin/python")
+    print("   python --version   # Should show Python 3.12.11")
+    print()
+    
+    print("4. TEST DEPENDENCIES:")
+    print("   python -c 'import aiohttp; print(\"aiohttp OK\")'")
+    print("   python -c 'from mcp_tools import _builtin_get_cat_fact; print(\"MCP tools OK\")'")
+    print()
 
 def main():
-    """Main test function"""
-    print("🧪 Python Environment Fix Test")
-    print("=" * 60)
+    """Main diagnostic function"""
+    print_header("Python Environment Diagnostic")
     
-    # Test 1: Environment
-    if not test_environment():
-        print("\n❌ Environment test failed")
-        return False
+    print("This script will diagnose your Python environment and help fix common issues.")
+    print("Run this script if you encounter 'ModuleNotFoundError' or environment confusion.")
     
-    # Test 2: MCP Tools
-    if not asyncio.run(test_mcp_tools()):
-        print("\n❌ MCP tools test failed")
-        return False
+    # Run all checks
+    checks = [
+        ("Directory", check_directory()),
+        ("Python Environment", check_python_environment()),
+        ("Critical Dependencies", test_critical_dependencies()),
+        ("MCP Tools", test_mcp_tools()),
+        ("Nix Environment", check_nix_environment())
+    ]
     
-    # Test 3: Browser Automation
-    if not asyncio.run(test_browser_automation()):
-        print("\n❌ Browser automation test failed")
-        return False
+    print_section("Summary")
     
-    print("\n🎉 ALL TESTS PASSED!")
-    print("✅ Python environment confusion RESOLVED")
-    print("✅ All MCP tools accessible without explicit paths")
-    print("✅ Browser automation working correctly")
+    all_passed = True
+    for check_name, passed in checks:
+        status = "✅ PASS" if passed else "❌ FAIL"
+        print(f"{check_name}: {status}")
+        if not passed:
+            all_passed = False
     
-    return True
+    print()
+    
+    if all_passed:
+        print("🎉 ALL CHECKS PASSED!")
+        print("Your Python environment is working correctly.")
+        print("You can proceed with the AI progressive discovery sequence.")
+    else:
+        print("⚠️  SOME CHECKS FAILED!")
+        print("Please review the issues above and apply the fixes below.")
+        provide_fixes()
+    
+    print_header("Next Steps")
+    print("If environment is working, continue with:")
+    print("1. python discover_mcp_tools.py")
+    print("2. Follow the breadcrumb trail in the discovery sequence")
+    print("3. Use helpers/ai_tool_discovery.py for easy tool access")
 
 if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1) 
+    main() 

@@ -15,6 +15,31 @@ ps aux | grep python | grep server.py  # Confirm server is running
 
 ---
 
+## 🔧 **LEVEL 1.5: ENVIRONMENT DIAGNOSTIC** ⭐ **CRITICAL FOUNDATION**
+
+**🚨 RESOLVE ENVIRONMENT CONFUSION BEFORE PROCEEDING:**
+```bash
+# Run the comprehensive diagnostic script
+python test_python_environment_fix.py
+```
+
+**Expected Realization:** "The virtual environment is properly activated - I can use standard 'python' commands!"
+
+**🎯 CRITICAL INSIGHT:** If you see `ModuleNotFoundError: No module named 'aiohttp'`, the environment isn't activated properly. The diagnostic script will provide specific fixes.
+
+**Common Fix:** If environment is nested or confused:
+```bash
+# Clean environment and re-enter Nix shell
+unset VIRTUAL_ENV
+unset PATH
+export PATH='/run/wrappers/bin:/usr/bin:/usr/sbin:/home/mike/.nix-profile/bin:/nix/profile/bin:/home/mike/.local/state/nix/profile/bin:/etc/profiles/per-user/mike/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin'
+exec nix develop .#quiet
+```
+
+**Expected Realization:** "I don't need to use .venv/bin/python - the environment is already set up correctly!"
+
+---
+
 ## 🍞 **BREADCRUMB_01: FINDER_TOKEN DISCOVERY**
 
 **Follow your natural curiosity:**
