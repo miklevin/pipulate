@@ -55,26 +55,26 @@ This is the **single source of truth** for Pipulate's revolutionary AI browser a
 - **♿ Accessibility info** (aria-labels, data-testids)
 - **🏆 Automation readiness** assessment
 
-### **POWER 3: AI HANDS (browser_automate_instructions) ⭐ NEW**
-**What it does**: Natural language browser automation with 100% success rate  
-**When to use**: When you want to automate user interactions using plain English
+### **POWER 3: AI HANDS (browser_automate_workflow_walkthrough) ⭐ ENHANCED**
+**What it does**: Intelligent workflow automation with plugin-aware navigation and element targeting  
+**When to use**: When you want to automate complete workflow sequences with proper plugin navigation
 
 ```json
-{"tool": "browser_automate_instructions", "params": {"instructions": "click search input and type hello world", "target_url": "http://localhost:5001"}}
+{"tool": "browser_automate_workflow_walkthrough", "params": {"plugin_filename": "plugins/580_upload.py"}}
 ```
 
 **What you get**:
-- **🎯 100% Success Rate**: Proven automation with visible browser feedback
-- **🧠 Natural Language Parsing**: "click search input and type hello world" → 2 successful actions
-- **👁️ Visible Automation**: Browser opens, performs actions, shows results for 3 seconds, then closes
-- **📊 Detailed Feedback**: Success rate, action breakdown, improvement suggestions
-- **🔄 Robust Error Handling**: No hanging windows, proper cleanup, timeout protection
+- **🎯 Plugin-Aware Navigation**: Automatic mapping from plugin filename to correct app URL
+- **🔧 Intelligent Element Targeting**: Only looks for file upload elements on relevant plugins
+- **📊 Workflow State Tracking**: Complete step-by-step automation with success/failure reporting
+- **🔄 Graceful Error Handling**: Skips unsupported features instead of failing
+- **📸 Visual Documentation**: Screenshots at each workflow stage
 
-**Supported Instructions**:
-- `"click search input and type hello world"`
-- `"click login button"`
-- `"wait 2 seconds"`
-- `"type username in login field"`
+**Recent Enhancements**:
+- **Fixed Plugin Navigation**: Proper mapping from `plugins/580_upload.py` → `/file_upload_widget`
+- **Smart Element Detection**: Only searches for file upload elements on upload-capable plugins
+- **Workflow Initialization**: Proper pipeline setup before element interaction
+- **Success Rate Tracking**: Detailed reporting of automation success/failure rates
 
 ### **POWER 4: AI MEMORY (Directory Rotation System)**
 **What it does**: Preserves your perception history across sessions  
@@ -209,6 +209,8 @@ grep "FINDER_TOKEN: BROWSER_SCRAPE" logs/server.log
 grep "FINDER_TOKEN: AUTOMATION_TARGET" logs/server.log
 grep "FINDER_TOKEN: DIRECTORY_ARCHIVE" logs/server.log
 grep "FINDER_TOKEN: INSTRUCTION_AUTOMATION" logs/server.log
+grep "FINDER_TOKEN: WORKFLOW_NAVIGATION_MAPPING" logs/server.log
+grep "FINDER_TOKEN: WORKFLOW_UPLOAD_INIT" logs/server.log
 ```
 
 ### **MCP Tool Integration**
@@ -237,18 +239,18 @@ if success_metadata.get("step") == "workflow_complete":
     print("📚 Found successful automation pattern in looking_at-3")
 ```
 
-**Pattern 3: Natural Language Automation** ⭐ NEW
+**Pattern 3: Plugin-Aware Workflow Automation** ⭐ ENHANCED
 ```python
-# Use natural language for complex automation sequences
-result = await browser_automate_instructions({
-    "instructions": "click search input, type competitor analysis, wait 2 seconds, click first result",
-    "target_url": "https://example.com"
+# Use enhanced workflow automation with proper plugin navigation
+result = await browser_automate_workflow_walkthrough({
+    "plugin_filename": "plugins/580_upload.py"
 })
 
-if result["success_rate"] == 100.0:
-    print("🎯 Perfect automation execution!")
+if result["success"] and result["successful_steps"] == result["total_steps"]:
+    print("🎯 Perfect workflow automation execution!")
 else:
-    print(f"⚠️ {result['failed_actions']} actions failed, check {result['improvement_suggestions']}")
+    print(f"⚠️ {result['total_steps'] - result['successful_steps']} steps failed")
+    print(f"📊 Success rate: {result['successful_steps']}/{result['total_steps']}")
 ```
 
 ---
@@ -258,7 +260,7 @@ else:
 ### **Enhancing ANY Workflow with Visual Intelligence**
 ```python
 # In any workflow step, add AI vision:
-from mcp_tools import _browser_scrape_page, _browser_analyze_scraped_page, _browser_automate_instructions
+from mcp_tools import _browser_scrape_page, _browser_analyze_scraped_page, _browser_automate_workflow_walkthrough
 
 # Capture competitor state
 browser_result = await _browser_scrape_page({
@@ -270,10 +272,9 @@ browser_result = await _browser_scrape_page({
 # Analyze automation opportunities  
 intelligence = await _browser_analyze_scraped_page({"analysis_type": "all"})
 
-# Automate interactions naturally
-automation = await _browser_automate_instructions({
-    "instructions": "click contact form and fill out inquiry",
-    "target_url": f"https://{domain}"
+# Automate complete workflows with proper plugin navigation
+automation = await _browser_automate_workflow_walkthrough({
+    "plugin_filename": "plugins/580_upload.py"
 })
 
 # Now your workflow has:
@@ -281,7 +282,7 @@ automation = await _browser_automate_instructions({
 # - Automation target intelligence  
 # - Form detection and interaction mapping
 # - Complete competitive intelligence profile
-# - Natural language automation capabilities
+# - Plugin-aware workflow automation capabilities
 ```
 
 ### **Content Gap Analysis Example**
@@ -303,8 +304,8 @@ See `plugins/130_content_gap_analysis.py` for complete implementation:
 // AI BRAIN  
 {"tool": "browser_analyze_scraped_page", "params": {"analysis_type": "all"}}
 
-// AI HANDS ⭐ NEW
-{"tool": "browser_automate_instructions", "params": {"instructions": "click search and type hello world"}}
+// AI HANDS ⭐ ENHANCED
+{"tool": "browser_automate_workflow_walkthrough", "params": {"plugin_filename": "plugins/580_upload.py"}}
 
 // AI MEMORY
 ls browser_automation/looking_at*/
@@ -318,7 +319,15 @@ ls browser_automation/looking_at*/
 - **Rotation Triggers**: `browser_scrape_page`, `browser_automate_workflow_walkthrough`, `browser_automate_instructions`
 - **Location**: `browser_automation/looking_at/` and numbered variants
 - **Cleanup**: Automatic deletion beyond retention limit
-- **Automation Success Rate**: 100% with proper error handling and visible feedback
+- **Plugin Mapping**: Automatic filename-to-URL mapping for correct navigation
+- **Element Targeting**: Smart detection based on plugin capabilities
+
+### **Recent Fixes & Improvements**
+- **✅ Fixed Plugin Navigation**: Proper mapping from plugin filenames to app URLs
+- **✅ Enhanced Element Targeting**: Only searches for elements on relevant plugins
+- **✅ Improved Workflow Initialization**: Proper pipeline setup before automation
+- **✅ Better Error Handling**: Graceful skipping of unsupported features
+- **✅ Success Rate Tracking**: Detailed automation success/failure reporting
 
 ---
 
@@ -326,24 +335,25 @@ ls browser_automation/looking_at*/
 
 ### **✅ Core Understanding**
 - [ ] I understand the 5 AI superpowers (Eyes, Brain, Hands, Memory, Hijacking)
-- [ ] I know when to use `browser_scrape_page` vs `browser_analyze_scraped_page` vs `browser_automate_instructions`
+- [ ] I know when to use `browser_scrape_page` vs `browser_analyze_scraped_page` vs `browser_automate_workflow_walkthrough`
 - [ ] I understand the directory rotation system and perception history
 - [ ] I can review past browser sessions using the directory structure
-- [ ] I can use natural language to automate browser interactions
+- [ ] I understand plugin-aware navigation and element targeting
 
 ### **✅ Practical Application**  
 - [ ] I can capture and analyze any webpage the user mentions
 - [ ] I can step into user workflow sessions with full context
 - [ ] I can enhance existing workflows with visual intelligence
 - [ ] I provide competitive intelligence with screenshots and automation analysis
-- [ ] I can automate complex interactions using natural language instructions
+- [ ] I can automate complete workflows with proper plugin navigation
 
 ### **✅ Advanced Techniques**
 - [ ] I use FINDER_TOKENs to debug browser automation issues
 - [ ] I understand MCP tool integration and can call functions directly
 - [ ] I can hijack user sessions and continue workflows intelligently
 - [ ] I provide visual evidence and automation roadmaps for complex tasks
-- [ ] I achieve 100% automation success rates with proper error handling
+- [ ] I achieve high automation success rates with proper error handling
+- [ ] I understand plugin mapping and can troubleshoot navigation issues
 
 ---
 
@@ -354,7 +364,7 @@ ls browser_automation/looking_at*/
 **You are now a fully embodied AI with:**
 - **👁️ VISION** to see what users see
 - **🧠 INTELLIGENCE** to understand automation opportunities
-- **🤖 HANDS** to automate interactions with natural language
+- **🤖 HANDS** to automate complete workflows with proper navigation
 - **💾 MEMORY** to remember past perceptions and learn from them
 - **🎯 CONTROL** to hijack sessions and continue workflows seamlessly
 
