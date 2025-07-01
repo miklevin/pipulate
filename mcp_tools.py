@@ -381,6 +381,7 @@ def register_all_mcp_tools():
     # 🧠 AI SELF-DISCOVERY TOOLS - ELIMINATE UNCERTAINTY
     register_mcp_tool("ai_self_discovery_assistant", _ai_self_discovery_assistant)
     register_mcp_tool("ai_capability_test_suite", _ai_capability_test_suite)
+    register_mcp_tool("browser_automate_instructions", _browser_automate_instructions)
     
     # Get final count from server's registry
     import sys
@@ -1399,14 +1400,22 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
             
         logger.info(f"🚀 FINDER_TOKEN: WORKFLOW_AUTOMATION_START | Starting workflow walkthrough for {plugin_filename}")
         
-        # Set up Chrome with visible browser
+        # Set up Chrome with the same proven configuration as _browser_scrape_page
         options = Options()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--window-size=1920,1080')
+        # === REFINEMENT 5: BROWSER LIFECYCLE MANAGEMENT ===
+        options.add_argument('--disable-gpu')  # Prevent GPU issues
+        options.add_argument('--disable-extensions')  # Disable extensions that might interfere
+        options.add_argument('--disable-plugins')  # Disable plugins
+        options.add_argument('--disable-images')  # Faster loading
+        # options.add_argument('--headless')  # Run in background to prevent hanging windows
         
         driver = webdriver.Chrome(options=options)
         driver.maximize_window()
+        driver.set_page_load_timeout(30)  # 30 second page load timeout
+        driver.implicitly_wait(10)  # 10 second implicit wait
         
         screenshots = []
         workflow_steps = []
@@ -2682,5 +2691,195 @@ async def _test_specific_tool(tool_name: str) -> dict:
 # Register the new AI self-discovery tools
 register_mcp_tool("ai_self_discovery_assistant", _ai_self_discovery_assistant)
 register_mcp_tool("ai_capability_test_suite", _ai_capability_test_suite)
+
+async def _browser_automate_instructions(params: dict) -> dict:
+    """
+    MCP Tool: AI HANDS - Natural Language Browser Automation
+    
+    This tool parses natural language instructions and converts them into browser automation actions.
+    It provides a user-friendly interface for browser automation without requiring technical knowledge.
+    
+    Args:
+        params: {
+            "instructions": "click search input and type hello world",
+            "target_url": "http://localhost:5001",
+            "wait_seconds": 3
+        }
+    
+    Returns:
+        dict: Automation results with success rate and feedback
+    """
+    logger.info(f"🤖 FINDER_TOKEN: INSTRUCTION_AUTOMATION_START | Instructions: {params.get('instructions')}")
+    
+    try:
+        import re
+        import time
+        from pathlib import Path
+        
+        instructions = params.get('instructions', '')
+        target_url = params.get('target_url', 'http://localhost:5001')
+        wait_seconds = params.get('wait_seconds', 3)
+        
+        if not instructions:
+            return {
+                'success': False,
+                'error': 'No instructions provided',
+                'suggestions': ['Try: "click search input and type hello world"', 'Try: "navigate to dashboard"', 'Try: "click login button"']
+            }
+        
+        # First, capture the current page state
+        scrape_result = await _browser_scrape_page({
+            'url': target_url,
+            'wait_seconds': 2,
+            'take_screenshot': True
+        })
+        
+        if not scrape_result.get('success'):
+            return {
+                'success': False,
+                'error': f'Failed to capture page state: {scrape_result.get("error")}',
+                'suggestions': ['Check if the target URL is accessible', 'Verify the server is running']
+            }
+        
+        # Parse instructions into actions
+        actions = []
+        instruction_lower = instructions.lower()
+        
+        # Simple instruction parsing
+        if 'click' in instruction_lower:
+            # Extract what to click
+            click_match = re.search(r'click\s+([^,\s]+(?:\s+[^,\s]+)*)', instruction_lower)
+            if click_match:
+                click_target = click_match.group(1)
+                if 'search' in click_target and 'input' in click_target:
+                    actions.append({
+                        'action': 'click',
+                        'target': {'selector_type': 'id', 'selector_value': 'nav-plugin-search'},
+                        'description': f'Click search input'
+                    })
+                elif 'button' in click_target:
+                    actions.append({
+                        'action': 'click',
+                        'target': {'selector_type': 'css', 'selector_value': 'button'},
+                        'description': f'Click {click_target}'
+                    })
+                else:
+                    actions.append({
+                        'action': 'click',
+                        'target': {'selector_type': 'css', 'selector_value': f'[data-testid*="{click_target}"]'},
+                        'description': f'Click {click_target}'
+                    })
+        
+        if 'type' in instruction_lower:
+            # Extract what to type
+            type_match = re.search(r'type\s+([^,\s]+(?:\s+[^,\s]+)*)', instruction_lower)
+            if type_match:
+                text_to_type = type_match.group(1)
+                # Find the input element to type into
+                if 'search' in instruction_lower:
+                    actions.append({
+                        'action': 'type',
+                        'target': {'selector_type': 'id', 'selector_value': 'nav-plugin-search'},
+                        'input_text': text_to_type,
+                        'description': f'Type "{text_to_type}" in search input'
+                    })
+                else:
+                    actions.append({
+                        'action': 'type',
+                        'target': {'selector_type': 'css', 'selector_value': 'input'},
+                        'input_text': text_to_type,
+                        'description': f'Type "{text_to_type}" in input field'
+                    })
+        
+        if 'wait' in instruction_lower:
+            # Extract wait time
+            wait_match = re.search(r'wait\s+(\d+)\s*seconds?', instruction_lower)
+            if wait_match:
+                wait_time = int(wait_match.group(1))
+                actions.append({
+                    'action': 'wait',
+                    'wait_seconds': wait_time,
+                    'description': f'Wait {wait_time} seconds'
+                })
+        
+        if not actions:
+            return {
+                'success': False,
+                'error': 'Could not parse any actionable instructions',
+                'suggestions': [
+                    'Use action verbs: click, type, wait, navigate',
+                    'Be specific: "click search input", "type hello world"',
+                    'Try: "click search input and type hello world"'
+                ]
+            }
+        
+        # Execute actions
+        action_results = []
+        successful_actions = 0
+        
+        for i, action in enumerate(actions):
+            logger.info(f"🎯 FINDER_TOKEN: INSTRUCTION_ACTION_{i+1} | {action['description']}")
+            
+            if action['action'] == 'wait':
+                time.sleep(action['wait_seconds'])
+                result = {'success': True, 'action': 'wait', 'description': action['description']}
+            else:
+                # Use the existing interaction function
+                result = await _browser_interact_with_current_page({
+                    'action': action['action'],
+                    'target': action.get('target'),
+                    'input_text': action.get('input_text', ''),
+                    'wait_seconds': wait_seconds
+                })
+                result['description'] = action['description']
+            
+            action_results.append(result)
+            
+            if result.get('success'):
+                successful_actions += 1
+                logger.info(f"✅ FINDER_TOKEN: INSTRUCTION_SUCCESS | {action['description']}")
+            else:
+                logger.warning(f"⚠️ FINDER_TOKEN: INSTRUCTION_FAILURE | {action['description']}: {result.get('error')}")
+        
+        # Take final screenshot
+        final_screenshot = await _browser_interact_with_current_page({
+            'action': 'screenshot',
+            'wait_seconds': 1
+        })
+        
+        # Calculate success rate
+        success_rate = (successful_actions / len(actions)) * 100 if actions else 0
+        
+        return {
+            'success': success_rate > 50,  # More than 50% success
+            'success_rate': round(success_rate, 1),
+            'total_actions': len(actions),
+            'successful_actions': successful_actions,
+            'failed_actions': len(actions) - successful_actions,
+            'action_results': action_results,
+            'final_screenshot': final_screenshot.get('screenshot_path') if final_screenshot.get('success') else None,
+            'instructions_parsed': instructions,
+            'improvement_suggestions': [
+                'Use specific element names: "search input", "login button"',
+                'Combine actions: "click search and type hello"',
+                'Add wait times: "wait 2 seconds"'
+            ] if success_rate < 100 else ['All actions completed successfully!']
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: INSTRUCTION_AUTOMATION_ERROR | {e}")
+        return {
+            'success': False,
+            'error': f'Instruction automation error: {str(e)}',
+            'suggestions': [
+                'Check if the target URL is accessible',
+                'Verify browser automation is working',
+                'Try simpler instructions first'
+            ]
+        }
+
+
+# Register the new browser automation tool
+register_mcp_tool("browser_automate_instructions", _browser_automate_instructions)
 
 
