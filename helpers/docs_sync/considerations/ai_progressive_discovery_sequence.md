@@ -26,6 +26,26 @@ grep -n "FINDER_TOKEN" logs/server.log | head -10
 
 ---
 
+## 🔧 **BREADCRUMB_01.5: PYTHON ENVIRONMENT CLARIFICATION** ⭐ **CRITICAL FOUNDATION**
+
+**🚨 RESOLVE ENVIRONMENT CONFUSION BEFORE PROCEEDING:**
+```bash
+# Test if Python environment is working correctly
+python test_python_environment_fix.py
+
+# Or verify manually
+python -c "import aiohttp; print('✅ aiohttp import successful')"
+python -c "from mcp_tools import _builtin_get_cat_fact; print('✅ MCP tools accessible')"
+```
+
+**Expected Realization:** "The virtual environment is properly activated - I can use standard 'python' commands!"
+
+**🎯 CRITICAL INSIGHT:** If you see `ModuleNotFoundError: No module named 'aiohttp'`, the environment isn't activated properly. The fix is already implemented - just ensure you're in the virtual environment.
+
+**Expected Realization:** "I don't need to use .venv/bin/python - the environment is already set up correctly!"
+
+---
+
 ## 🍞 **BREADCRUMB_02: EASY TOOL DISCOVERY** ⭐ **NEW DELIGHTFUL EXPERIENCE**
 
 **🚀 DISCOVER THE EASY WAY FIRST:**

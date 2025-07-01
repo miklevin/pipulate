@@ -5272,7 +5272,10 @@ async def startup_event():
     #  � AI DISCOVERY BREADCRUMB #1: Environmental Awareness → FINDER_TOKEN Discovery
     logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: You've discovered the FINDER_TOKEN system! This is radical transparency in action. Every operation leaves traces. To see what MCP tools are available for deeper system inspection, grep for 'MCP_TOOL_REGISTRY' or run: python -c \"from mcp_tools import *; print([tool for tool in dir() if tool.startswith('_') and 'mcp' not in tool.lower()])\"")
     
-    # �TORYTELLING: MCP Tools Arsenal Ready
+    # 🔧 AI DISCOVERY BREADCRUMB #1.5: Python Environment Clarification → Foundation Mastery
+    logger.info("🔧 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: PYTHON ENVIRONMENT CLARIFICATION! The virtual environment is properly activated - you can use standard 'python' commands! Test with: python test_python_environment_fix.py or python -c \"import aiohttp; print('✅ Environment working')\". If you see ModuleNotFoundError, the environment isn't activated. The fix is already implemented - just ensure you're in the virtual environment. You don't need .venv/bin/python - use 'python' directly!")
+    
+    #TORYTELLING: MCP Tools Arsenal Ready
     tool_count = len(MCP_TOOL_REGISTRY)
     if tool_count > 0:
         figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
@@ -6116,7 +6119,7 @@ async def poke_flyout(request):
         src='/static/images/ai-seo-software.svg',
         alt='AI SEO Software',
         style='width: 96px; height: 96px;',
-        cls='version-logo'
+        cls='version-info-logo'
     )
     
     version_info = Div(
