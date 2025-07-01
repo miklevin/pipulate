@@ -458,6 +458,7 @@ def register_all_mcp_tools():
     register_mcp_tool("ai_self_discovery_assistant", ai_self_discovery_assistant)
     register_mcp_tool("ai_capability_test_suite", ai_capability_test_suite)
     register_mcp_tool("browser_automate_instructions", browser_automate_instructions)
+    register_mcp_tool("execute_complete_session_hijacking", execute_complete_session_hijacking)
     
     # Get final count from server's registry
     import sys
@@ -1505,6 +1506,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         plugin_filename = params.get("plugin_filename", "")
         base_url = params.get("base_url", "http://localhost:5001")
         take_screenshots = params.get("take_screenshots", True)
+        use_existing_pipeline_id = params.get("use_existing_pipeline_id", False)
         
         if not plugin_filename:
             return {"success": False, "error": "plugin_filename is required"}
@@ -1679,10 +1681,10 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             try:
                 pipeline_input = driver.find_element(By.NAME, "pipeline_id")
                 
-                # Use existing pipeline ID from session if available, otherwise generate new one
+                # Use existing pipeline ID from session if requested and available, otherwise generate new one
                 from server import db
                 existing_pipeline_id = db.get('pipeline_id')
-                if existing_pipeline_id:
+                if use_existing_pipeline_id and existing_pipeline_id:
                     pipeline_id = existing_pipeline_id
                     logger.info(f"🔄 FINDER_TOKEN: WORKFLOW_REUSE | Using existing pipeline ID: {pipeline_id}")
                 else:
@@ -1736,11 +1738,15 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                     try:
                         pipeline_input = driver.find_element(By.CSS_SELECTOR, "input[name='pipeline_id']")
                         if pipeline_input:
-                            # Generate a unique pipeline ID
-                            import uuid
-                            pipeline_id = f"automation-test-{uuid.uuid4().hex[:8]}"
+                            # Use existing pipeline ID if requested, otherwise generate new one
+                            if use_existing_pipeline_id and existing_pipeline_id:
+                                pipeline_id = existing_pipeline_id
+                                logger.info(f"🔧 FINDER_TOKEN: WORKFLOW_PIPELINE_ID | Using existing pipeline ID: {pipeline_id}")
+                            else:
+                                import uuid
+                                pipeline_id = f"automation-test-{uuid.uuid4().hex[:8]}"
+                                logger.info(f"🔧 FINDER_TOKEN: WORKFLOW_PIPELINE_ID | Generated new pipeline ID: {pipeline_id}")
                             pipeline_input.send_keys(pipeline_id)
-                            logger.info(f"🔧 FINDER_TOKEN: WORKFLOW_PIPELINE_ID | Set pipeline ID: {pipeline_id}")
                             
                             # Look for and click the initialize button
                             init_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
@@ -3485,6 +3491,7 @@ def get_available_tools():
         'ai_self_discovery_assistant',
         'ai_capability_test_suite',
         'browser_automate_instructions',
+        'execute_complete_session_hijacking',
     ]
     for name in public_tool_names:
         func = globals().get(name)
@@ -3497,5 +3504,223 @@ def get_available_tools():
                 'doc': doc
             })
     return tools
+
+async def execute_complete_session_hijacking(params: dict) -> dict:
+    """
+    MCP Tool: COMPLETE SESSION HIJACKING - Full end-to-end user session takeover
+    
+    This is the ultimate session hijacking tool that:
+    1. Gets the user's current session state from server-side "cookies"
+    2. Maps the internal app name to the user-facing URL using the endpoint registry
+    3. Uses browser automation to navigate to the correct endpoint
+    4. Sets up the pipeline ID for the workflow
+    5. Triggers the HTMX chain reaction to resume the user's workflow exactly where they left off
+    
+    This is the "canned way" to hijack a user's session and continue their work seamlessly.
+    
+    Args:
+        params: {
+            "take_screenshot": True,  # Optional: capture visual state during hijacking
+            "wait_seconds": 3,        # Optional: wait time for page loads
+            "base_url": "http://localhost:5001"  # Optional: base URL for navigation
+        }
+    
+    Returns:
+        dict: {
+            "success": True,
+            "session_hijacking_steps": [
+                {"step": "session_state_retrieved", "status": "success", "details": {...}},
+                {"step": "endpoint_mapped", "status": "success", "details": {...}},
+                {"step": "browser_navigation", "status": "success", "details": {...}},
+                {"step": "pipeline_id_setup", "status": "success", "details": {...}},
+                {"step": "workflow_resumed", "status": "success", "details": {...}}
+            ],
+            "user_session_summary": {
+                "last_app": "hello_workflow",
+                "pipeline_id": "Default_Profile-hello-08",
+                "current_step": "step_02",
+                "endpoint_url": "http://localhost:5001/hello_workflow"
+            }
+        }
+    """
+    import time
+    from datetime import datetime
+    
+    logger.info(f"🎭 FINDER_TOKEN: COMPLETE_SESSION_HIJACKING_START - {params}")
+    
+    try:
+        take_screenshot = params.get('take_screenshot', True)
+        wait_seconds = params.get('wait_seconds', 3)
+        base_url = params.get('base_url', 'http://localhost:5001')
+        
+        hijacking_steps = []
+        user_session_summary = {}
+        
+        # === STEP 1: GET USER SESSION STATE (Server Cookies) ===
+        logger.info("🔍 FINDER_TOKEN: SESSION_HIJACKING_STEP_1 - Retrieving user session state")
+        
+        session_result = await get_user_session_state({})
+        if not session_result.get('success'):
+            return {
+                "success": False, 
+                "error": f"Failed to retrieve session state: {session_result.get('error')}"
+            }
+        
+        session_data = session_result.get('session_data', {})
+        last_app_choice = session_data.get('last_app_choice')
+        pipeline_id = session_data.get('pipeline_id')
+        last_visited_url = session_data.get('last_visited_url')
+        
+        if not last_app_choice:
+            return {
+                "success": False,
+                "error": "No active workflow found in session state"
+            }
+        
+        hijacking_steps.append({
+            "step": "session_state_retrieved",
+            "status": "success",
+            "details": {
+                "last_app_choice": last_app_choice,
+                "pipeline_id": pipeline_id,
+                "last_visited_url": last_visited_url,
+                "total_session_keys": session_result.get('total_keys', 0)
+            }
+        })
+        
+        # === STEP 2: USE EXACT LAST URL OR FALLBACK TO ENDPOINT MAPPING ===
+        logger.info(f"🎯 FINDER_TOKEN: SESSION_HIJACKING_STEP_2 - Using exact last URL or mapping {last_app_choice}")
+        
+        # Primary: Use the exact last URL the user visited
+        if last_visited_url and last_visited_url.startswith(('http://', 'https://')):
+            endpoint_url = last_visited_url
+            mapping_method = "exact_last_url"
+            logger.info(f"✅ FINDER_TOKEN: EXACT_URL_SUCCESS - Using exact last URL: {endpoint_url}")
+        else:
+            # Fallback: Map internal app name to endpoint URL
+            try:
+                from server import get_endpoint_url
+                endpoint_url = get_endpoint_url(last_app_choice)
+                mapping_method = "endpoint_registry"
+                logger.info(f"✅ FINDER_TOKEN: ENDPOINT_MAPPING_SUCCESS - {last_app_choice} → {endpoint_url}")
+            except ImportError:
+                # Final fallback: Construct URL from app name
+                endpoint_url = f"{base_url}/{last_app_choice}"
+                mapping_method = "fallback_construction"
+                logger.warning(f"⚠️ FINDER_TOKEN: ENDPOINT_MAPPING_FALLBACK - Using fallback URL: {endpoint_url}")
+        
+        hijacking_steps.append({
+            "step": "endpoint_mapped", 
+            "status": "success",
+            "details": {
+                "internal_app_name": last_app_choice,
+                "exact_last_url": last_visited_url,
+                "endpoint_url": endpoint_url,
+                "mapping_method": mapping_method
+            }
+        })
+        
+        # === STEP 3: GET WORKFLOW STATE FOR CONTEXT ===
+        logger.info(f"📊 FINDER_TOKEN: SESSION_HIJACKING_STEP_3 - Getting workflow state for {pipeline_id}")
+        
+        if pipeline_id:
+            pipeline_result = await pipeline_state_inspector({"pipeline_id": pipeline_id})
+            if pipeline_result.get('success'):
+                pipeline_state = pipeline_result.get('pipeline_state', {})
+                current_step = pipeline_state.get('current_step', 'unknown')
+                completed_steps = pipeline_state.get('completed_steps', [])
+                
+                user_session_summary.update({
+                    "current_step": current_step,
+                    "completed_steps": completed_steps,
+                    "total_steps": len(completed_steps) + 1
+                })
+                
+                hijacking_steps.append({
+                    "step": "workflow_state_retrieved",
+                    "status": "success", 
+                    "details": {
+                        "current_step": current_step,
+                        "completed_steps": completed_steps,
+                        "workflow_progress": f"{len(completed_steps)}/{len(completed_steps) + 1} steps"
+                    }
+                })
+            else:
+                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_STATE_FAILED - {pipeline_result.get('error')}")
+                hijacking_steps.append({
+                    "step": "workflow_state_retrieved",
+                    "status": "warning",
+                    "details": {"error": pipeline_result.get('error')}
+                })
+        
+        # === STEP 4: BROWSER AUTOMATION TO NAVIGATE AND SETUP ===
+        logger.info(f"🌐 FINDER_TOKEN: SESSION_HIJACKING_STEP_4 - Browser automation to {endpoint_url}")
+        
+        # Use the browser automation workflow walkthrough with the correct plugin mapping
+        plugin_filename = f"plugins/{last_app_choice}.py"  # This will be mapped correctly
+        
+        browser_result = await browser_automate_workflow_walkthrough({
+            "plugin_filename": plugin_filename,
+            "base_url": base_url,
+            "take_screenshots": take_screenshot,
+            "use_existing_pipeline_id": True  # New parameter to use existing pipeline_id
+        })
+        
+        if browser_result.get('success'):
+            hijacking_steps.append({
+                "step": "browser_navigation",
+                "status": "success",
+                "details": {
+                    "navigated_to": endpoint_url,
+                    "workflow_steps": browser_result.get('workflow_steps', []),
+                    "screenshots_taken": len(browser_result.get('screenshots', []))
+                }
+            })
+        else:
+            hijacking_steps.append({
+                "step": "browser_navigation", 
+                "status": "failed",
+                "details": {"error": browser_result.get('error')}
+            })
+            return {
+                "success": False,
+                "error": f"Browser automation failed: {browser_result.get('error')}",
+                "session_hijacking_steps": hijacking_steps
+            }
+        
+        # === STEP 5: FINAL SESSION SUMMARY ===
+        user_session_summary.update({
+            "last_app": last_app_choice,
+            "pipeline_id": pipeline_id,
+            "endpoint_url": endpoint_url,
+            "hijacking_timestamp": datetime.now().isoformat()
+        })
+        
+        hijacking_steps.append({
+            "step": "workflow_resumed",
+            "status": "success",
+            "details": {
+                "session_hijacked": True,
+                "user_workflow_resumed": True,
+                "total_hijacking_steps": len(hijacking_steps)
+            }
+        })
+        
+        logger.info(f"🎉 FINDER_TOKEN: COMPLETE_SESSION_HIJACKING_SUCCESS - User session hijacked and workflow resumed")
+        
+        return {
+            "success": True,
+            "session_hijacking_steps": hijacking_steps,
+            "user_session_summary": user_session_summary,
+            "total_steps_completed": len(hijacking_steps)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: COMPLETE_SESSION_HIJACKING_ERROR - {e}")
+        return {
+            "success": False,
+            "error": f"Session hijacking failed: {str(e)}",
+            "session_hijacking_steps": hijacking_steps if 'hijacking_steps' in locals() else []
+        }
 
 
