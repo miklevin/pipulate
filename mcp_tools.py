@@ -54,7 +54,7 @@ def _read_botify_api_token() -> str:
 # CORE MCP TOOLS
 # ================================================================
 
-async def _builtin_get_cat_fact(params: dict) -> dict:
+async def builtin_get_cat_fact(params: dict) -> dict:
     """Built-in cat fact tool - demonstrates the MCP tool pattern."""
     try:
         async with aiohttp.ClientSession() as session:
@@ -93,7 +93,7 @@ async def _builtin_get_cat_fact(params: dict) -> dict:
             "source": "local_fallback"
         }
 
-async def _pipeline_state_inspector(params: dict) -> dict:
+async def pipeline_state_inspector(params: dict) -> dict:
     """
     MCP Tool: PIPELINE STATE INSPECTOR - The debugging game changer.
     
@@ -214,7 +214,7 @@ async def _pipeline_state_inspector(params: dict) -> dict:
 # BOTIFY API MCP TOOLS
 # ================================================================
 
-async def _botify_ping(params: dict) -> dict:
+async def botify_ping(params: dict) -> dict:
     """Test Botify API connectivity and authentication."""
     api_token = _read_botify_api_token()
     if not api_token:
@@ -262,7 +262,7 @@ async def _botify_ping(params: dict) -> dict:
             "external_api_method": "GET"
         }
 
-async def _botify_list_projects(params: dict) -> dict:
+async def botify_list_projects(params: dict) -> dict:
     """List all projects for the authenticated user."""
     api_token = _read_botify_api_token()
     if not api_token:
@@ -346,42 +346,42 @@ def register_all_mcp_tools():
     # Debug logging removed - registry working correctly
     
     # Core tools
-    register_mcp_tool("get_cat_fact", _builtin_get_cat_fact)
-    register_mcp_tool("pipeline_state_inspector", _pipeline_state_inspector)
+    register_mcp_tool("get_cat_fact", builtin_get_cat_fact)
+    register_mcp_tool("pipeline_state_inspector", pipeline_state_inspector)
     
     # Botify API tools  
-    register_mcp_tool("botify_ping", _botify_ping)
-    register_mcp_tool("botify_list_projects", _botify_list_projects)
-    register_mcp_tool("botify_simple_query", _botify_simple_query)
+    register_mcp_tool("botify_ping", botify_ping)
+    register_mcp_tool("botify_list_projects", botify_list_projects)
+    register_mcp_tool("botify_simple_query", botify_simple_query)
     
     # Local LLM tools
-    register_mcp_tool("local_llm_read_file", _local_llm_read_file)
-    register_mcp_tool("local_llm_grep_logs", _local_llm_grep_logs)
-    register_mcp_tool("local_llm_list_files", _local_llm_list_files)
-    register_mcp_tool("local_llm_get_context", _local_llm_get_context)
+    register_mcp_tool("local_llm_read_file", local_llm_read_file)
+    register_mcp_tool("local_llm_grep_logs", local_llm_grep_logs)
+    register_mcp_tool("local_llm_list_files", local_llm_list_files)
+    register_mcp_tool("local_llm_get_context", local_llm_get_context)
     
     # 🎭 MAGIC WORDS DEMONSTRATION TOOL
-    register_mcp_tool("execute_ai_session_hijacking_demonstration", _execute_ai_session_hijacking_demonstration)
+    register_mcp_tool("execute_ai_session_hijacking_demonstration", execute_ai_session_hijacking_demonstration)
     
     # UI interaction tools
-    register_mcp_tool("ui_flash_element", _ui_flash_element)  
-    register_mcp_tool("ui_list_elements", _ui_list_elements)
+    register_mcp_tool("ui_flash_element", ui_flash_element)  
+    register_mcp_tool("ui_list_elements", ui_list_elements)
     
     # Browser automation tools - THE AI'S EYES AND HANDS
-    register_mcp_tool("browser_analyze_scraped_page", _browser_analyze_scraped_page)
-    register_mcp_tool("browser_scrape_page", _browser_scrape_page)
-    register_mcp_tool("browser_automate_workflow_walkthrough", _browser_automate_workflow_walkthrough)
-    register_mcp_tool("browser_interact_with_current_page", _browser_interact_with_current_page)
+    register_mcp_tool("browser_analyze_scraped_page", browser_analyze_scraped_page)
+    register_mcp_tool("browser_scrape_page", browser_scrape_page)
+    register_mcp_tool("browser_automate_workflow_walkthrough", browser_automate_workflow_walkthrough)
+    register_mcp_tool("browser_interact_with_current_page", browser_interact_with_current_page)
     
     # Additional Botify tools
-    register_mcp_tool("botify_get_full_schema", _botify_get_full_schema)
-    register_mcp_tool("botify_list_available_analyses", _botify_list_available_analyses)
-    register_mcp_tool("botify_execute_custom_bql_query", _botify_execute_custom_bql_query)
+    register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
+    register_mcp_tool("botify_list_available_analyses", botify_list_available_analyses)
+    register_mcp_tool("botify_execute_custom_bql_query", botify_execute_custom_bql_query)
     
     # 🧠 AI SELF-DISCOVERY TOOLS - ELIMINATE UNCERTAINTY
-    register_mcp_tool("ai_self_discovery_assistant", _ai_self_discovery_assistant)
-    register_mcp_tool("ai_capability_test_suite", _ai_capability_test_suite)
-    register_mcp_tool("browser_automate_instructions", _browser_automate_instructions)
+    register_mcp_tool("ai_self_discovery_assistant", ai_self_discovery_assistant)
+    register_mcp_tool("ai_capability_test_suite", ai_capability_test_suite)
+    register_mcp_tool("browser_automate_instructions", browser_automate_instructions)
     
     # Get final count from server's registry
     import sys
@@ -394,7 +394,7 @@ def register_all_mcp_tools():
     logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {tool_count} tools registered")
 
 # Additional Botify tools from server.py
-async def _botify_simple_query(params: dict) -> dict:
+async def botify_simple_query(params: dict) -> dict:
     """Execute a simple BQL query against Botify API."""
     api_token = _read_botify_api_token()
     if not api_token:
@@ -494,7 +494,7 @@ async def _botify_simple_query(params: dict) -> dict:
         }
 
 # Local LLM tools for file system operations
-async def _local_llm_read_file(params: dict) -> dict:
+async def local_llm_read_file(params: dict) -> dict:
     """Read file contents for AI analysis."""
     logger.info(f"🔧 FINDER_TOKEN: MCP_READ_FILE_START - {params.get('file_path')}")
     
@@ -554,7 +554,7 @@ async def _local_llm_read_file(params: dict) -> dict:
         logger.error(f"❌ FINDER_TOKEN: MCP_READ_FILE_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
-async def _local_llm_grep_logs(params: dict) -> dict:
+async def local_llm_grep_logs(params: dict) -> dict:
     """Search logs with FINDER_TOKENs for debugging."""
     logger.info(f"🔧 FINDER_TOKEN: MCP_GREP_LOGS_START - {params.get('pattern')}")
     
@@ -616,7 +616,7 @@ async def _local_llm_grep_logs(params: dict) -> dict:
         logger.error(f"❌ FINDER_TOKEN: MCP_GREP_LOGS_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
-async def _local_llm_list_files(params: dict) -> dict:
+async def local_llm_list_files(params: dict) -> dict:
     """List files and directories for AI exploration."""
     logger.info(f"🔧 FINDER_TOKEN: MCP_LIST_FILES_START - {params.get('directory', '.')}")
     
@@ -691,7 +691,7 @@ async def _local_llm_list_files(params: dict) -> dict:
         logger.error(f"❌ FINDER_TOKEN: MCP_LIST_FILES_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
-async def _local_llm_get_context(params: dict) -> dict:
+async def local_llm_get_context(params: dict) -> dict:
     """Local LLM helper: Get pre-seeded system context for immediate capability awareness"""
     try:
         from pathlib import Path
@@ -728,7 +728,7 @@ async def _local_llm_get_context(params: dict) -> dict:
             "suggestion": "Try using other MCP tools or ask user for specific information"
         }
 
-async def _execute_ai_session_hijacking_demonstration(params: dict) -> dict:
+async def execute_ai_session_hijacking_demonstration(params: dict) -> dict:
     """
     🎭 MAGIC WORDS MCP TOOL: Execute AI session hijacking demonstration protocol
     
@@ -790,7 +790,7 @@ async def _execute_ai_session_hijacking_demonstration(params: dict) -> dict:
             "message": "Failed to load AI session hijacking demonstration protocol"
         }
 
-async def _ui_flash_element(params: dict) -> dict:
+async def ui_flash_element(params: dict) -> dict:
     """Flash a UI element by ID to draw user attention.
     
     Args:
@@ -891,7 +891,7 @@ async def _ui_flash_element(params: dict) -> dict:
             "error": f"Failed to flash element: {str(e)}"
         }
 
-async def _ui_list_elements(params: dict) -> dict:
+async def ui_list_elements(params: dict) -> dict:
     """List common UI element IDs that can be flashed for user guidance.
     
     Returns:
@@ -937,7 +937,7 @@ async def _ui_list_elements(params: dict) -> dict:
             "error": f"Failed to list UI elements: {str(e)}"
         }
 
-async def _browser_analyze_scraped_page(params: dict) -> dict:
+async def browser_analyze_scraped_page(params: dict) -> dict:
     """
     MCP Tool: AI BRAIN - Analyze current /looking_at/ page state for automation opportunities.
     
@@ -1103,7 +1103,7 @@ async def _browser_analyze_scraped_page(params: dict) -> dict:
         return {"success": False, "error": str(e)}
 
 
-async def _browser_scrape_page(params: dict) -> dict:
+async def browser_scrape_page(params: dict) -> dict:
     """
     MCP Tool: AI EYES - Scrape a web page and save to /looking_at/ for AI perception.
     
@@ -1378,7 +1378,7 @@ async def _browser_scrape_page(params: dict) -> dict:
         return {"success": False, "error": str(e)}
 
 
-async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
+async def browser_automate_workflow_walkthrough(params: dict) -> dict:
     """
     MCP Tool: AI HANDS - Complete Workflow Automation Walkthrough
     
@@ -1723,10 +1723,10 @@ async def _browser_automate_workflow_walkthrough(params: dict) -> dict:
 
 
 # Register UI tools NOW that functions are defined
-register_mcp_tool("ui_flash_element", _ui_flash_element)
-register_mcp_tool("ui_list_elements", _ui_list_elements)
+register_mcp_tool("ui_flash_element", ui_flash_element)
+register_mcp_tool("ui_list_elements", ui_list_elements)
 
-async def _botify_get_full_schema(params: dict) -> dict:
+async def botify_get_full_schema(params: dict) -> dict:
     """Discover complete Botify API schema using the true_schema_discoverer.py module.
     
     This tool fetches the comprehensive schema from Botify's official datamodel endpoints,
@@ -1851,7 +1851,7 @@ async def _botify_get_full_schema(params: dict) -> dict:
             "analysis": analysis
         }
 
-async def _botify_list_available_analyses(params: dict) -> dict:
+async def botify_list_available_analyses(params: dict) -> dict:
     """List available analyses from the local analyses.json file.
     
     This tool reads the cached analyses data to help LLMs select the correct
@@ -1915,7 +1915,7 @@ async def _botify_list_available_analyses(params: dict) -> dict:
             "attempted_path": str(analyses_path) if 'analyses_path' in locals() else None
         }
 
-async def _botify_execute_custom_bql_query(params: dict) -> dict:
+async def botify_execute_custom_bql_query(params: dict) -> dict:
     """Execute a custom BQL query with full parameter control.
     
     This is the core 'query wizard' tool that enables LLMs to construct and execute
@@ -2027,7 +2027,7 @@ async def _botify_execute_custom_bql_query(params: dict) -> dict:
             }
         }
 
-async def _browser_interact_with_current_page(params: dict) -> dict:
+async def browser_interact_with_current_page(params: dict) -> dict:
     """
     MCP Tool: AI INTERACTION - Interact with the current page using /looking_at/ state.
     
@@ -2275,7 +2275,7 @@ async def _browser_interact_with_current_page(params: dict) -> dict:
 # AI SELF-DISCOVERY TOOLS - ELIMINATE UNCERTAINTY
 # ================================================================
 
-async def _ai_self_discovery_assistant(params: dict) -> dict:
+async def ai_self_discovery_assistant(params: dict) -> dict:
     """
     🧠 AI SELF-DISCOVERY ASSISTANT - The uncertainty eliminator.
     
@@ -2525,7 +2525,7 @@ def get_category_description(category: str) -> str:
     }
     return descriptions.get(category, "Unknown category")
 
-async def _ai_capability_test_suite(params: dict) -> dict:
+async def ai_capability_test_suite(params: dict) -> dict:
     """
     🧪 AI CAPABILITY TEST SUITE - Prove your superpowers.
     
@@ -3138,10 +3138,10 @@ async def _test_specific_tool(tool_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 # Register the new AI self-discovery tools
-register_mcp_tool("ai_self_discovery_assistant", _ai_self_discovery_assistant)
-register_mcp_tool("ai_capability_test_suite", _ai_capability_test_suite)
+register_mcp_tool("ai_self_discovery_assistant", ai_self_discovery_assistant)
+register_mcp_tool("ai_capability_test_suite", ai_capability_test_suite)
 
-async def _browser_automate_instructions(params: dict) -> dict:
+async def browser_automate_instructions(params: dict) -> dict:
     """
     MCP Tool: AI HANDS - Natural Language Browser Automation
     
@@ -3329,6 +3329,6 @@ async def _browser_automate_instructions(params: dict) -> dict:
 
 
 # Register the new browser automation tool
-register_mcp_tool("browser_automate_instructions", _browser_automate_instructions)
+register_mcp_tool("browser_automate_instructions", browser_automate_instructions)
 
 
