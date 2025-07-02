@@ -5265,7 +5265,12 @@ async def poke_flyout(request):
                 hx_post='/explicit-restore', 
                 hx_swap='none',  # No immediate swap - let server restart handle the reload
                 cls='secondary outline restore-button',
-                **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Restarting server..."; document.body.style.pointerEvents = "none";'}
+                **{'hx-on:click': '''
+                    this.setAttribute("aria-busy", "true"); 
+                    this.textContent = "Restarting server..."; 
+                    document.body.style.pointerEvents = "none";
+                    document.getElementById("poke-summary").innerHTML = '<div aria-busy="true" style="width: 22px; height: 22px; display: inline-block;"></div>';
+                '''}
             )
             
         except Exception as e:
