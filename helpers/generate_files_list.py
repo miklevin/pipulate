@@ -9,13 +9,40 @@ Usage:
 """
 
 import os
+import re
 from pathlib import Path
 from collections import namedtuple
 
 # Named tuple for file entries with explicit labels
 FileEntry = namedtuple('FileEntry', ['filename', 'double_comment', 'description'])
 
-def should_exclude_file(file_path):
+def parse_gitignore(repo_root):
+    """Parse .gitignore file and return patterns to exclude."""
+    gitignore_path = os.path.join(repo_root, '.gitignore')
+    ignore_patterns = []
+    
+    if os.path.exists(gitignore_path):
+        try:
+            with open(gitignore_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    # Skip empty lines and comments
+                    if not line or line.startswith('#'):
+                        continue
+                    # Convert gitignore pattern to regex pattern
+                    pattern = line.replace('.', r'\.').replace('*', '.*')
+                    # Handle directory patterns (ending with /)
+                    if pattern.endswith('/'):
+                        pattern = f"^{pattern}.*"
+                    else:
+                        pattern = f"^{pattern}$|^{pattern}/|/{pattern}$|/{pattern}/"
+                    ignore_patterns.append(re.compile(pattern))
+        except Exception as e:
+            print(f"Warning: Error parsing .gitignore: {e}")
+    
+    return ignore_patterns
+
+def should_exclude_file(file_path, ignore_patterns=None):
     """Check if a file should be excluded from the enumeration."""
     file_name = os.path.basename(file_path)
     file_ext = os.path.splitext(file_name)[1].lower()
@@ -58,10 +85,16 @@ def should_exclude_file(file_path):
     # Exclude hidden files (starting with .)
     if file_name.startswith('.') and file_name not in ['.gitignore']:
         return True
+    
+    # Check against gitignore patterns
+    if ignore_patterns:
+        for pattern in ignore_patterns:
+            if pattern.search(file_path):
+                return True
         
     return False
 
-def should_skip_directory(dir_name):
+def should_skip_directory(dir_name, dir_path=None, ignore_patterns=None):
     """Check if a directory should be skipped during recursive walking."""
     skip_dirs = {
         '__pycache__',
@@ -70,9 +103,20 @@ def should_skip_directory(dir_name):
         'node_modules',
         '.venv'
     }
-    return dir_name in skip_dirs
+    
+    # Basic directory name check
+    if dir_name in skip_dirs:
+        return True
+    
+    # Check against gitignore patterns if provided
+    if ignore_patterns and dir_path:
+        for pattern in ignore_patterns:
+            if pattern.search(f"{dir_path}/"):
+                return True
+    
+    return False
 
-def enumerate_directory(path, comment_prefix="# ", description="", defaults_uncommented=None, recursive=False):
+def enumerate_directory(path, comment_prefix="# ", description="", defaults_uncommented=None, recursive=False, ignore_patterns=None):
     """Enumerate files in a directory, returning them as commented lines.
     
     Args:
@@ -81,6 +125,7 @@ def enumerate_directory(path, comment_prefix="# ", description="", defaults_unco
         description: Section description
         defaults_uncommented: List of filenames that should be uncommented by default
         recursive: Whether to walk directories recursively
+        ignore_patterns: List of regex patterns from .gitignore
     """
     lines = []
     if description:
@@ -95,13 +140,14 @@ def enumerate_directory(path, comment_prefix="# ", description="", defaults_unco
                 # Use os.walk for recursive directory traversal
                 for root, dirs, files in os.walk(path):
                     # Skip unwanted directories in-place (modifies dirs list)
-                    dirs[:] = [d for d in dirs if not should_skip_directory(d)]
+                    dirs[:] = [d for d in dirs if not should_skip_directory(d, os.path.join(root, d), ignore_patterns)]
                     
                     for file in sorted(files):
                         file_path = os.path.join(root, file)
+                        rel_path = os.path.relpath(file_path, os.path.dirname(path))
                         
                         # Skip files that should be excluded
-                        if should_exclude_file(file_path):
+                        if should_exclude_file(rel_path, ignore_patterns):
                             continue
                             
                         # Check if this file should be uncommented by default
@@ -114,8 +160,10 @@ def enumerate_directory(path, comment_prefix="# ", description="", defaults_unco
                 for file in files:
                     file_path = os.path.join(path, file)
                     if os.path.isfile(file_path):
+                        rel_path = os.path.relpath(file_path, os.path.dirname(path))
+                        
                         # Skip files that should be excluded
-                        if should_exclude_file(file_path):
+                        if should_exclude_file(rel_path, ignore_patterns):
                             continue
                             
                         # Check if this file should be uncommented by default
@@ -129,7 +177,7 @@ def enumerate_directory(path, comment_prefix="# ", description="", defaults_unco
     
     return lines
 
-def enumerate_specific_files(file_list, comment_prefix="# ", description=""):
+def enumerate_specific_files(file_list, comment_prefix="# ", description="", ignore_patterns=None):
     """Enumerate specific files, commenting them out."""
     lines = []
     if description:
@@ -137,7 +185,7 @@ def enumerate_specific_files(file_list, comment_prefix="# ", description=""):
     
     for file_path in file_list:
         # Skip files that should be excluded
-        if should_exclude_file(file_path):
+        if should_exclude_file(file_path, ignore_patterns):
             continue
             
         if os.path.exists(file_path):
@@ -156,6 +204,9 @@ def generate_files_list():
         'mikelev': '/home/mike/repos/MikeLev.in',
         'pipulate_com': '/home/mike/repos/Pipulate.com'
     }
+    
+    # Parse .gitignore for more intelligent exclusions
+    ignore_patterns = parse_gitignore(base_paths['pipulate'])
     
     lines = []
     
@@ -201,11 +252,11 @@ def generate_files_list():
         FileEntry("__init__.py", False, "Package init with version"),
         FileEntry("cli.py", False, "CLI interface for PyPI package"),
         FileEntry("pyproject.toml", False, "Package configuration"),
-        FileEntry("version_sync.py", False, "Version synchronization system"),
-        FileEntry("VERSION_MANAGEMENT.md", False, "Version system docs"),
-        FileEntry("TESTING_PYPI.md", False, "PyPI testing guide"),
         FileEntry("LICENSE", False, "MIT License for PyPI package"),
-        FileEntry("PUBLISHING.md", False, "PyPI publishing documentation"),
+        # FileEntry("version_sync.py", False, "Version synchronization system"),
+        # FileEntry("VERSION_MANAGEMENT.md", False, "Version system docs"),
+        # FileEntry("TESTING_PYPI.md", False, "PyPI testing guide"),
+        # FileEntry("PUBLISHING.md", False, "PyPI publishing documentation"),
     ]
     for entry in pypi_files:
         full_path = f"{base_paths['pipulate']}/{entry.filename}"
@@ -219,7 +270,7 @@ def generate_files_list():
     # Common/shared files
     lines.extend(enumerate_specific_files([
         f"{base_paths['pipulate_com']}/install.sh"
-    ], description="COMMON/SHARED FILES"))
+    ], description="COMMON/SHARED FILES", ignore_patterns=ignore_patterns))
     
     # Current prompt necessities (placeholder - user fills this in)
     lines.append("\n## NECESSARY FOR CURRENT PROMPT")
@@ -234,63 +285,100 @@ def generate_files_list():
     ]
     lines.extend(enumerate_specific_files(
         external_files,
-        description="EXTERNAL/ADD-ON FILES (Frequently used with AI)"
+        description="EXTERNAL/ADD-ON FILES (Frequently used with AI)",
+        ignore_patterns=ignore_patterns
+    ))
+    
+    # AI Discovery directory (NEW)
+    lines.extend(enumerate_directory(
+        f"{base_paths['pipulate']}/ai_discovery",
+        description="AI DISCOVERY (AI Assistant Training & Progressive Discovery)",
+        ignore_patterns=ignore_patterns
     ))
     
     # Botify API documentation
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/training", 
-        description="BOTIFY API DOCUMENTATION"
+        description="BOTIFY API DOCUMENTATION",
+        ignore_patterns=ignore_patterns
     ))
     
     # Static resources
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/static",
-        description="STATIC RESOURCES"
+        description="STATIC RESOURCES",
+        ignore_patterns=ignore_patterns
     ))
     
     # Helper scripts - recursive to include subdirectories
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/helpers",
         description="HELPER SCRIPTS",
-        recursive=True
+        recursive=True,
+        ignore_patterns=ignore_patterns
     ))
     
     # Plugins
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/plugins", 
-        description="PLUGINS"
+        description="PLUGINS",
+        ignore_patterns=ignore_patterns
     ))
     
     # Rules documentation
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/.cursor/rules",
-        description="DA RULES"
+        description="DA RULES",
+        ignore_patterns=ignore_patterns
     ))
     
     # Training files
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/training",
-        description="TRAINING FILES"
+        description="TRAINING FILES",
+        ignore_patterns=ignore_patterns
+    ))
+    
+    # Browser automation directory (NEW)
+    lines.extend(enumerate_directory(
+        f"{base_paths['pipulate']}/browser_automation",
+        description="BROWSER AUTOMATION (Selenium Scripts & Templates)",
+        ignore_patterns=ignore_patterns
     ))
     
     # Pipulate.com website
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate_com']}",
-        description="PIPULATE.COM WEBSITE & GUIDE"
+        description="PIPULATE.COM WEBSITE & GUIDE",
+        ignore_patterns=ignore_patterns
     ))
     
     # Pipulate.com guide files
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate_com']}/_guide",
-        description="PIPULATE.COM GUIDE ARTICLES"
+        description="PIPULATE.COM GUIDE ARTICLES",
+        ignore_patterns=ignore_patterns
     ))
     
     # Recent blog posts (just list directory, user picks)
     lines.extend(enumerate_directory(
         f"{base_paths['mikelev']}/_posts",
-        description="ARTICLES FROM MIKELEV.IN"
+        description="ARTICLES FROM MIKELEV.IN",
+        ignore_patterns=ignore_patterns
     ))
+    
+    # Add suggestions for other directories to consider
+    # lines.extend([
+    #     "\n## POTENTIAL DIRECTORIES TO CONSIDER",
+    #     "# The following directories might be worth including if they exist or are added later:",
+    #     "# /home/mike/repos/pipulate/notebooks/  # Jupyter notebooks directory",
+    #     "# /home/mike/repos/pipulate/examples/   # Example code and usage patterns",
+    #     "# /home/mike/repos/pipulate/docs/       # Documentation files",
+    #     "# /home/mike/repos/pipulate/tests/      # Test files and test fixtures",
+    #     "# /home/mike/repos/pipulate/scripts/    # Utility scripts",
+    #     "# /home/mike/repos/pipulate/templates/  # Template files",
+    #     "# /home/mike/repos/pipulate/config/     # Configuration files"
+    # ])
     
     return "\n".join(lines)
 
@@ -305,6 +393,12 @@ def main():
     module_content = f'''"""
 Generated file list for prompt_foo.py
 Auto-generated by generate_files_list.py - edit this file to uncomment desired files.
+
+IMPORTANT NOTES:
+1. Lines starting with # are commented out and will NOT be included in the prompt
+2. Files matching patterns in .gitignore are automatically excluded
+3. Add files needed for your current task under "NECESSARY FOR CURRENT PROMPT"
+4. The AI discovery directory contains critical AI assistant training materials
 """
 
 FILES_TO_INCLUDE_RAW = """\\{content}
