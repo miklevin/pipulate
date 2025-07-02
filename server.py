@@ -5437,12 +5437,18 @@ async def poke_flyout(request):
     # Add version info display with AI SEO Software SVG
     nix_version = get_nix_version()
     
-    # Create prominent SVG logo
-    svg_logo = Img(
-        src='/static/images/ai-seo-software.svg',
-        alt='AI SEO Software',
-        style='width: 96px; height: 96px;',
-        cls='version-info-logo'
+    # Create prominent SVG logo as a link to pipulate.com
+    svg_logo = A(
+        Img(
+            src='/static/images/ai-seo-software.svg',
+            alt='AI SEO Software',
+            style='width: 96px; height: 96px;',
+            cls='version-info-logo'
+        ),
+        href='https://pipulate.com/',
+        target='_blank',
+        rel='noopener noreferrer',
+        aria_label='Visit Pipulate.com website'
     )
     
     version_info = Div(
