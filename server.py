@@ -530,6 +530,63 @@ def get_nix_version():
             logger.debug(f"Could not parse version from __init__.py: {e}")
     
     return "Unknown version"
+
+def get_backup_status() -> dict:
+    """Get backup system status for display in settings."""
+    try:
+        # Import backup manager
+        from helpers.durable_backup_system import backup_manager
+        
+        # Get backup directory info
+        backup_root = str(backup_manager.backup_root)
+        
+        # Check if backup directory exists and get basic info
+        backup_exists = backup_manager.backup_root.exists()
+        
+        if backup_exists:
+            # Get list of backup files
+            backup_files = list(backup_manager.backup_root.glob("*.db"))
+            table_status = {}
+            
+            for file in backup_files:
+                # Parse filename to get table name and date
+                name_parts = file.stem.split('_')
+                if len(name_parts) >= 2:
+                    table_name = '_'.join(name_parts[:-1])
+                    date_str = name_parts[-1]
+                    
+                    # Get file info
+                    file_size = file.stat().st_size
+                    mod_time = file.stat().st_mtime
+                    
+                    if table_name not in table_status or mod_time > table_status[table_name]['last_backup']:
+                        table_status[table_name] = {
+                            'last_backup': mod_time,
+                            'date_str': date_str,
+                            'size': file_size
+                        }
+        else:
+            table_status = {}
+        
+        return {
+            'available': True,
+            'backup_root': backup_root,
+            'backup_exists': backup_exists,
+            'table_status': table_status,
+            'total_files': len(backup_files) if backup_exists else 0
+        }
+        
+    except ImportError:
+        return {
+            'available': False,
+            'error': 'Backup system not available'
+        }
+    except Exception as e:
+        return {
+            'available': False,
+            'error': str(e)
+        }
+
 ENV_FILE = Path('data/current_environment.txt')
 
 APP_NAME = get_app_name()
@@ -5148,6 +5205,41 @@ async def poke_flyout(request):
     # Add Update button
     update_button = Button(f'🔄 Update {APP_NAME}', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
+    # Add Backup controls (Prod mode only)
+    backup_status = None
+    backup_button = None
+    if not is_dev_mode:  # Only show backup controls in Prod mode
+        try:
+            backup_info = get_backup_status()
+            if backup_info['available']:
+                # Create backup status display
+                if backup_info['backup_exists'] and backup_info['table_status']:
+                    table_count = len(backup_info['table_status'])
+                    backup_status_text = f"💾 {table_count} tables backed up"
+                    backup_status_detail = f"📁 {backup_info['backup_root']}"
+                else:
+                    backup_status_text = "💾 No backups yet"
+                    backup_status_detail = f"📁 {backup_info['backup_root']}"
+                
+                backup_status = Div(
+                    Small(backup_status_text, cls='text-secondary'),
+                    Small(backup_status_detail, cls='text-muted'),
+                    Div(id='backup-status-result'),  # Target for backup results
+                    cls='backup-status-display'
+                )
+                
+                backup_button = Button(
+                    '💾 Backup Now', 
+                    hx_post='/backup-now', 
+                    hx_target='#backup-status-result', 
+                    hx_swap='innerHTML',
+                    cls='secondary outline backup-button'
+                )
+            else:
+                backup_status = Small(f"❌ Backup unavailable: {backup_info.get('error', 'Unknown error')}", cls='text-invalid')
+        except Exception as e:
+            backup_status = Small(f"❌ Backup error: {str(e)}", cls='text-invalid')
+    
     # Add version info display with AI SEO Software SVG
     nix_version = get_nix_version()
     
@@ -5165,12 +5257,19 @@ async def poke_flyout(request):
         cls='version-info-container'
     )
     
-    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, MCP Test
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Backup (Prod only), Clear Workflows, Reset Database, MCP Test
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
         Li(lock_button, cls='flyout-list-item'),
         Li(update_button, cls='flyout-list-item')
     ]
+    
+    # Add backup controls (Prod mode only)
+    if not is_dev_mode and backup_button:
+        list_items.append(Li(backup_button, cls='flyout-list-item'))
+    if not is_dev_mode and backup_status:
+        list_items.append(Li(backup_status, cls='flyout-list-item backup-status-item'))
+    
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
@@ -5356,6 +5455,57 @@ async def open_folder_endpoint(request):
         return HTMLResponse(f'Failed to open folder: {str(e)}', status_code=500)
     except Exception as e:
         return HTMLResponse(f'An unexpected error occurred: {str(e)}', status_code=500)
+
+@rt('/backup-now', methods=['POST'])
+async def backup_now(request):
+    """Trigger manual backup and return status."""
+    try:
+        from helpers.durable_backup_system import backup_manager
+        
+        # Get main database path
+        main_db_path = DB_FILENAME
+        keychain_db_path = 'data/ai_keychain.db'
+        
+        # Perform backup
+        results = backup_manager.auto_backup_all(main_db_path, keychain_db_path)
+        
+        # Count successes
+        successful = sum(1 for success in results.values() if success)
+        total = len(results)
+        
+        # Create response message
+        if successful == total:
+            status_msg = f"✅ Backup Complete: {successful}/{total} tables backed up successfully"
+            status_class = "text-success"
+        elif successful > 0:
+            status_msg = f"⚠️ Partial Backup: {successful}/{total} tables backed up"
+            status_class = "text-warning"
+        else:
+            status_msg = f"❌ Backup Failed: No tables were backed up"
+            status_class = "text-invalid"
+        
+        # Add location info
+        backup_location = str(backup_manager.backup_root)
+        details = f"📁 Location: {backup_location}"
+        
+        response_html = Div(
+            P(status_msg, cls=status_class),
+            P(details, cls='text-secondary'),
+            id='backup-status-result'
+        )
+        
+        return response_html
+        
+    except ImportError:
+        return Div(
+            P("❌ Backup system not available", cls='text-invalid'),
+            id='backup-status-result'
+        )
+    except Exception as e:
+        return Div(
+            P(f"❌ Backup error: {str(e)}", cls='text-invalid'),
+            id='backup-status-result'
+        )
 
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):
