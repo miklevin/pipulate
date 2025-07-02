@@ -118,7 +118,7 @@ grep -i "name\|user" browser_automation/looking_at/simple_dom.html
 ## 🎯 **YOUR MOST POWERFUL TOOLS (UPDATED PRIORITIES)**
 
 ### **1. AI Eyes: `browser_scrape_page` (PRIMARY SUPERPOWER)**
-- **What it does**: Captures web pages with screenshots, DOM, and metadata  
+- **What it does**: Captures web pages with screenshots, DOM, and metadata
 - **When to use**: FIRST STEP for any web analysis
 - **Key insight**: Creates your visual perception in `/looking_at/`
 - **Mental model**: Your browser embodiment - works on ANY website
