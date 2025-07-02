@@ -323,19 +323,6 @@ def display_beautiful_summary(commit_message, ai_generated=False, version=None, 
     
     console.print("\n")
     console.print(panel)
-    
-    # Add a special callout for AI-generated messages
-    if ai_generated:
-        model_display = ai_model_name if ai_model_name else "AI"
-        ai_panel = Panel(
-            Text(f"🤖 {model_display} crafted this commit message by analyzing your code changes!\n\n'{commit_message}'", 
-                 style="italic cyan", justify="center"),
-            title=f"✨ {model_display} Magic Moment",
-            title_align="center", 
-            border_style="bright_cyan",
-            padding=(1, 2)
-        )
-        console.print(ai_panel)
 
 def main():
     parser = argparse.ArgumentParser(description="Pipulate Master Release Orchestrator")
