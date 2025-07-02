@@ -7,7 +7,10 @@
 .ssh/key
 .venv/
 
-# A Notebooks playground
+# Write your screenshots here
+temp/*
+
+# User will play with non-repo notebooks here
 Notebooks/*
 
 # JupyterLab: Ignore user-specific session data but keep shared settings
