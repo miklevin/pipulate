@@ -176,6 +176,24 @@ alwaysApply: true
         print("✅ Breadcrumb trail is already up-to-date at workspace root.")
         return False
 
+def get_ai_model_name():
+    """Extract the model name from ai_commit.py."""
+    ai_commit_script = PIPULATE_ROOT / "helpers" / "release" / "ai_commit.py"
+    if not ai_commit_script.exists():
+        return "AI Model"
+    
+    try:
+        content = ai_commit_script.read_text()
+        # Look for OLLAMA_MODEL = "model_name"
+        import re
+        match = re.search(r'OLLAMA_MODEL\s*=\s*["\']([^"\']+)["\']', content)
+        if match:
+            return match.group(1)
+        else:
+            return "AI Model"
+    except Exception:
+        return "AI Model"
+
 def get_ai_commit_message():
     """Gets an AI-generated commit message from local LLM."""
     print("🤖 Analyzing changes for AI commit message...")
@@ -186,16 +204,19 @@ def get_ai_commit_message():
         unstaged_result = run_command(['git', 'diff'], capture=True)
         if not staged_result.stdout.strip() and not unstaged_result.stdout.strip():
             print("❌ No changes found for AI commit message generation")
-            return None
+            return None, None
     except Exception as e:
         print(f"❌ Error checking git changes: {e}")
-        return None
+        return None, None
+    
+    # Get the model name
+    model_name = get_ai_model_name()
     
     # Try to get AI commit message
     ai_commit_script = PIPULATE_ROOT / "helpers" / "release" / "ai_commit.py"
     if not ai_commit_script.exists():
         print("❌ ai_commit.py not found, skipping AI commit generation")
-        return None
+        return None, None
     
     try:
         result = run_command(["python", str(ai_commit_script)], capture=True)
@@ -203,16 +224,16 @@ def get_ai_commit_message():
         if ai_message:
             print(f"🤖 AI generated commit message:")
             print(f"   {ai_message}")
-            return ai_message
+            return ai_message, model_name
         else:
             print("⚠️  AI commit script returned empty message")
-            return None
+            return None, None
     except Exception as e:
         print(f"⚠️  AI commit generation failed: {e}")
         print("💡 Make sure Ollama is running: ollama serve")
-        return None
+        return None, None
 
-def display_beautiful_summary(commit_message, ai_generated=False, version=None, published=False):
+def display_beautiful_summary(commit_message, ai_generated=False, version=None, published=False, ai_model_name=None):
     """Display a beautiful rich table summary of the release."""
     if not RICH_AVAILABLE:
         # Fallback to simple text display
@@ -220,7 +241,8 @@ def display_beautiful_summary(commit_message, ai_generated=False, version=None, 
         print("🎉 RELEASE SUMMARY")
         print("="*60)
         if ai_generated:
-            print(f"🤖 AI-Generated Commit Message:")
+            model_display = f" ({ai_model_name})" if ai_model_name else ""
+            print(f"🤖 AI-Generated Commit Message{model_display}:")
             print(f"   {commit_message}")
         else:
             print(f"📝 Commit Message: {commit_message}")
@@ -251,10 +273,12 @@ def display_beautiful_summary(commit_message, ai_generated=False, version=None, 
     # Add commit message row with special styling for AI-generated
     if ai_generated:
         commit_text = Text(commit_message, style="italic green")
+        ai_label = f"🤖 {ai_model_name} Message" if ai_model_name else "🤖 AI Commit Message"
+        ai_status = f"✨ {ai_model_name}" if ai_model_name else "✨ AI"
         table.add_row(
-            "🤖 AI Commit Message",
+            ai_label,
             commit_text,
-            "✨ AI"
+            ai_status
         )
     else:
         table.add_row(
@@ -302,10 +326,11 @@ def display_beautiful_summary(commit_message, ai_generated=False, version=None, 
     
     # Add a special callout for AI-generated messages
     if ai_generated:
+        model_display = ai_model_name if ai_model_name else "AI"
         ai_panel = Panel(
-            Text(f"🤖 Ollama crafted this commit message by analyzing your code changes!\n\n'{commit_message}'", 
+            Text(f"🤖 {model_display} crafted this commit message by analyzing your code changes!\n\n'{commit_message}'", 
                  style="italic cyan", justify="center"),
-            title="✨ AI Magic Moment",
+            title=f"✨ {model_display} Magic Moment",
             title_align="center", 
             border_style="bright_cyan",
             padding=(1, 2)
@@ -379,23 +404,27 @@ def main():
         print("\n🚨 --force flag detected: Proceeding despite no git changes.")
         commit_message = args.message or "force: Manual republish without code changes"
         ai_generated_commit = False
+        ai_model_name = None
     else:
         # We have changes, determine commit message
         if args.message:
             # User provided explicit message, use it
             commit_message = args.message
             ai_generated_commit = False
+            ai_model_name = None
         else:
             # Default behavior: Try AI commit, fallback to standard message
             print("\n🤖 Generating AI commit message...")
-            ai_message = get_ai_commit_message()
+            ai_message, model_name = get_ai_commit_message()
             if ai_message:
                 commit_message = ai_message
                 ai_generated_commit = True
+                ai_model_name = model_name
             else:
                 print("⚠️  Falling back to standard commit message")
                 commit_message = "chore: Update project files"
                 ai_generated_commit = False
+                ai_model_name = None
     
     # Handle git operations
     if has_changes:
@@ -428,7 +457,8 @@ def main():
         commit_message=commit_message,
         ai_generated=ai_generated_commit,
         version=current_version,
-        published=published_to_pypi
+        published=published_to_pypi,
+        ai_model_name=ai_model_name
     )
 
 if __name__ == "__main__":
