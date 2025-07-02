@@ -4310,6 +4310,10 @@ def run_workflow_hijacking():
             
             print(f"✅ SUBPROCESS: Chain reaction wait completed")
             
+            # Extra time for workflow stabilization
+            print(f"⏳ SUBPROCESS: Allowing 3 additional seconds for workflow stabilization...")
+            time.sleep(3)
+            
             # === STEP 5: CAPTURE FINAL WORKFLOW STATE ===
             print(f"📸 SUBPROCESS: Step 5 - Capturing final workflow state")
             
@@ -4373,6 +4377,10 @@ def run_workflow_hijacking():
             print(f"🎉 SUBPROCESS: Workflow hijacking completed successfully!")
             print(f"📁 SUBPROCESS: All files saved to {looking_at_dir}")
             
+            # Brief pause to allow human observation of final state
+            print(f"👁️ SUBPROCESS: Displaying final state for 2 seconds...")
+            time.sleep(2)
+            
             return {{
                 "success": True,
                 "workflow_hijacked": True,
@@ -4386,6 +4394,7 @@ def run_workflow_hijacking():
             }}
             
         finally:
+            print(f"🚀 SUBPROCESS: Closing browser gracefully...")
             driver.quit()
             # Clean up profile directory
             import shutil
