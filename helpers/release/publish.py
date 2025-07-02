@@ -212,6 +212,106 @@ def get_ai_commit_message():
         print("💡 Make sure Ollama is running: ollama serve")
         return None
 
+def display_beautiful_summary(commit_message, ai_generated=False, version=None, published=False):
+    """Display a beautiful rich table summary of the release."""
+    if not RICH_AVAILABLE:
+        # Fallback to simple text display
+        print("\n" + "="*60)
+        print("🎉 RELEASE SUMMARY")
+        print("="*60)
+        if ai_generated:
+            print(f"🤖 AI-Generated Commit Message:")
+            print(f"   {commit_message}")
+        else:
+            print(f"📝 Commit Message: {commit_message}")
+        if version:
+            print(f"📦 Version: {version}")
+        if published:
+            print(f"🚀 Published to PyPI: ✅")
+        print("="*60)
+        return
+    
+    console = Console()
+    
+    # Create the main summary table
+    table = Table(
+        title="🎉 Pipulate Release Summary",
+        box=box.ROUNDED,
+        title_style="bold magenta",
+        header_style="bold cyan",
+        show_header=True,
+        show_lines=True,
+        expand=True
+    )
+    
+    table.add_column("Component", style="bold yellow", width=20)
+    table.add_column("Details", style="white", width=60)
+    table.add_column("Status", justify="center", width=10)
+    
+    # Add commit message row with special styling for AI-generated
+    if ai_generated:
+        commit_text = Text(commit_message, style="italic green")
+        table.add_row(
+            "🤖 AI Commit Message",
+            commit_text,
+            "✨ AI"
+        )
+    else:
+        table.add_row(
+            "📝 Commit Message", 
+            commit_message,
+            "📝 Manual"
+        )
+    
+    # Add version row if provided
+    if version:
+        table.add_row(
+            "📦 Version",
+            version,
+            "✅ Set"
+        )
+    
+    # Add PyPI status if published
+    if published:
+        table.add_row(
+            "🚀 PyPI Release",
+            f"https://pypi.org/project/pipulate/{version}/",
+            "✅ Live"
+        )
+    
+    # Add timestamp
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    table.add_row(
+        "⏰ Completed",
+        timestamp,
+        "🎯 Done"
+    )
+    
+    # Create a panel around the table for extra beauty
+    panel = Panel(
+        table,
+        title="🎉 Release Pipeline Complete",
+        title_align="center",
+        border_style="bright_green",
+        padding=(1, 2)
+    )
+    
+    console.print("\n")
+    console.print(panel)
+    
+    # Add a special callout for AI-generated messages
+    if ai_generated:
+        ai_panel = Panel(
+            Text(f"🤖 Ollama crafted this commit message by analyzing your code changes!\n\n'{commit_message}'", 
+                 style="italic cyan", justify="center"),
+            title="✨ AI Magic Moment",
+            title_align="center", 
+            border_style="bright_cyan",
+            padding=(1, 2)
+        )
+        console.print(ai_panel)
+
 def main():
     parser = argparse.ArgumentParser(description="Pipulate Master Release Orchestrator")
     parser.add_argument("--release", action="store_true", help="Perform a PyPI release")
@@ -278,20 +378,24 @@ def main():
     elif not has_changes and args.force:
         print("\n🚨 --force flag detected: Proceeding despite no git changes.")
         commit_message = args.message or "force: Manual republish without code changes"
+        ai_generated_commit = False
     else:
         # We have changes, determine commit message
         if args.message:
             # User provided explicit message, use it
             commit_message = args.message
+            ai_generated_commit = False
         else:
             # Default behavior: Try AI commit, fallback to standard message
             print("\n🤖 Generating AI commit message...")
             ai_message = get_ai_commit_message()
             if ai_message:
                 commit_message = ai_message
+                ai_generated_commit = True
             else:
                 print("⚠️  Falling back to standard commit message")
                 commit_message = "chore: Update project files"
+                ai_generated_commit = False
     
     # Handle git operations
     if has_changes:
@@ -304,6 +408,7 @@ def main():
         print("➡️  Proceeding directly to PyPI publishing...")
     
     # === RELEASE PIPELINE PHASE 3: PYPI PUBLISHING ===
+    published_to_pypi = False
     if args.release:
         print("\n📦 === RELEASE PIPELINE: PYPI PUBLISHING PHASE ===")
         print(f"🏗️  Building and Publishing version {current_version} to PyPI...")
@@ -315,9 +420,16 @@ def main():
         run_command([".venv/bin/python", '-m', 'twine', 'upload', 'dist/*'])
         print(f"\n🎉 Successfully published version {current_version} to PyPI! 🎉")
         print(f"📍 View at: https://pypi.org/project/pipulate/{current_version}/")
+        published_to_pypi = True
     
-    print("\n✨ Release pipeline complete! ✨")
-    print("=" * 50)
+    # === BEAUTIFUL SUMMARY DISPLAY ===
+    print("\n" + "=" * 50)
+    display_beautiful_summary(
+        commit_message=commit_message,
+        ai_generated=ai_generated_commit,
+        version=current_version,
+        published=published_to_pypi
+    )
 
 if __name__ == "__main__":
     main()
