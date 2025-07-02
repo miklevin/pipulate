@@ -47,7 +47,7 @@ class WorkflowHijackTiming:
     PAGE_LOAD_WAIT = 2           # Time to wait for initial page load
     FORM_INTERACTION_DELAY = 1   # Dramatic pause after filling forms  
     POST_REQUEST_WAIT = 2        # Wait for POST request to complete
-    CHAIN_REACTION_WAIT = 3      # Main chain reaction progression time
+    CHAIN_REACTION_WAIT = 4      # Main chain reaction progression time
     FINAL_STABILIZATION = 1      # Final workflow stabilization
     HUMAN_OBSERVATION = 1        # Time for human to see final state
     
@@ -100,7 +100,7 @@ def apply_timing_preset(preset_name: str):
         logger.warning(f"⚠️ Unknown timing preset: {preset_name}")
 
 # 🎯 Apply default timing preset (change this to tune global speed)
-apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
+apply_timing_preset("dramatic")  # Options: "lightning", "fast", "dramatic"
 
 # ================================================================
 # HELPER FUNCTIONS
@@ -4270,8 +4270,16 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
         
         # === SUBPROCESS WORKFLOW HIJACKING TO AVOID THREADING ISSUES ===
         # Create a Python script that handles the complete workflow hijacking
-        # Use centralized timing configuration
+        # Use centralized timing configuration - get actual values for subprocess
         timing = WorkflowHijackTiming
+        page_load_wait = timing.PAGE_LOAD_WAIT
+        form_delay = timing.FORM_INTERACTION_DELAY  
+        post_wait = timing.POST_REQUEST_WAIT
+        chain_wait = timing.CHAIN_REACTION_WAIT
+        stabilization = timing.FINAL_STABILIZATION
+        human_view = timing.HUMAN_OBSERVATION
+        total_time = timing.total_browser_time()
+        
         hijack_script = f'''
 import json
 import os
@@ -4322,7 +4330,7 @@ def run_workflow_hijacking():
             # === STEP 1: NAVIGATION ===
             print(f"🌐 SUBPROCESS: Step 1 - Navigating to {{target_url}}")
             driver.get(target_url)
-            time.sleep({timing.PAGE_LOAD_WAIT})  # Let page load
+            time.sleep({page_load_wait})  # Let page load
             print(f"✅ SUBPROCESS: Navigation completed")
             
             # === STEP 2: FIND AND FILL PIPELINE KEY INPUT ===
@@ -4359,21 +4367,21 @@ def run_workflow_hijacking():
             pipeline_input.clear()
             pipeline_input.send_keys(target_pipeline_id)
             print(f"🔑 SUBPROCESS: Filled pipeline key: {{target_pipeline_id}}")
-            time.sleep({timing.FORM_INTERACTION_DELAY})  # Dramatic pause
+            time.sleep({form_delay})  # Dramatic pause
             
             # === STEP 3: PRESS ENTER TO TRIGGER HTMX CHAIN REACTION ===
             print(f"⚡ SUBPROCESS: Step 3 - Pressing Enter to trigger HTMX chain reaction")
             pipeline_input.send_keys(Keys.RETURN)
             
             # === STEP 3.5: CONSOLIDATED POST + HTMX RESPONSE WAIT ===
-            print(f"📤 SUBPROCESS: Step 3.5 - Waiting {{timing.POST_REQUEST_WAIT}}s for POST request + HTMX response...")
-            time.sleep({timing.POST_REQUEST_WAIT})  # Consolidated wait for POST + HTMX
+            print(f"📤 SUBPROCESS: Step 3.5 - Waiting {post_wait}s for POST request + HTMX response...")
+            time.sleep({post_wait})  # Consolidated wait for POST + HTMX
             
             # === STEP 4: WAIT FOR HTMX CHAIN REACTION TO COMPLETE ===
-            print(f"🔄 SUBPROCESS: Step 4 - Waiting {{timing.CHAIN_REACTION_WAIT}} seconds for HTMX chain reaction to complete")
+            print(f"🔄 SUBPROCESS: Step 4 - Waiting {chain_wait} seconds for HTMX chain reaction to complete")
             
             # Wait and watch for DOM changes indicating chain reaction progress
-            for i in range({timing.CHAIN_REACTION_WAIT}):
+            for i in range({chain_wait}):
                 time.sleep(1)
                 if i % 2 == 0:  # Progress messages every 2 seconds
                     try:
@@ -4381,13 +4389,13 @@ def run_workflow_hijacking():
                         steps = driver.find_elements(By.CSS_SELECTOR, '[id*="step_"], .card h3, .card h2')
                         print(f"🔄 SUBPROCESS: Chain reaction progress - {{len(steps)}} workflow elements detected")
                     except:
-                        print(f"🔄 SUBPROCESS: Chain reaction progress - {{i+1}}/{{timing.CHAIN_REACTION_WAIT}} seconds")
+                        print(f"🔄 SUBPROCESS: Chain reaction progress - {{i+1}}/{chain_wait} seconds")
             
             print(f"✅ SUBPROCESS: Chain reaction wait completed")
             
             # Extra time for workflow stabilization
-            print(f"⏳ SUBPROCESS: Allowing {{timing.FINAL_STABILIZATION}} seconds for workflow stabilization...")
-            time.sleep({timing.FINAL_STABILIZATION})
+            print(f"⏳ SUBPROCESS: Allowing {stabilization} seconds for workflow stabilization...")
+            time.sleep({stabilization})
             
             # === STEP 5: CAPTURE FINAL WORKFLOW STATE ===
             print(f"📸 SUBPROCESS: Step 5 - Capturing final workflow state")
@@ -4440,8 +4448,8 @@ def run_workflow_hijacking():
                 "pipeline_id": target_pipeline_id,
                 "timestamp": datetime.now().isoformat(),
                 "hijacking_type": "complete_workflow_chain_reaction", 
-                "chain_reaction_wait_seconds": {timing.CHAIN_REACTION_WAIT},
-                "total_browser_time_seconds": {timing.total_browser_time()},
+                "chain_reaction_wait_seconds": {chain_wait},
+                "total_browser_time_seconds": {total_time},
                 "screenshot_taken": screenshot_saved,
                 "status": "success"
             }}
@@ -4454,8 +4462,8 @@ def run_workflow_hijacking():
             print(f"📁 SUBPROCESS: All files saved to {looking_at_dir}")
             
             # Brief pause to allow human observation of final state
-            print(f"👁️ SUBPROCESS: Displaying final state for {{timing.HUMAN_OBSERVATION}} seconds...")
-            time.sleep({timing.HUMAN_OBSERVATION})
+            print(f"👁️ SUBPROCESS: Displaying final state for {human_view} seconds...")
+            time.sleep({human_view})
             
             return {{
                 "success": True,
