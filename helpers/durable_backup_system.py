@@ -83,8 +83,10 @@ class DurableBackupManager:
             cursor.execute(f"PRAGMA table_info({table_name})")
             columns = [col[1] for col in cursor.fetchall()]
             
+            # Use proper SQLite-compatible defaults for ALTER TABLE
             if 'updated_at' not in columns:
-                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP")
+                # SQLite ALTER TABLE requires constant defaults, not functions
+                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN updated_at TEXT DEFAULT ''")
                 logger.info(f"✅ Added updated_at to {table_name}")
             
             if 'deleted_at' not in columns:
@@ -97,6 +99,20 @@ class DurableBackupManager:
         finally:
             conn.close()
     
+    def _table_has_backup_fields(self, db_path: str, table_name: str) -> bool:
+        """Check if table has backup timestamp fields."""
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [col[1] for col in cursor.fetchall()]
+            return 'updated_at' in columns
+        except Exception:
+            return False
+        finally:
+            conn.close()
+    
     def backup_table(self, source_db_path: str, table_name: str) -> bool:
         """
         📁 Backup a table to the durable storage.
@@ -104,9 +120,6 @@ class DurableBackupManager:
         Returns True if backup successful, False otherwise.
         """
         try:
-            # Ensure source table has soft delete fields
-            self.ensure_soft_delete_schema(source_db_path, table_name)
-            
             # Get today's backup file
             backup_file = self.get_backup_filename(table_name)
             
@@ -117,16 +130,69 @@ class DurableBackupManager:
                 logger.info(f"🎯 Created initial backup: {backup_file}")
                 return True
             
-            # Merge data using conflict resolution (newer wins)
-            return self._merge_table_data(source_db_path, backup_file, table_name)
+            # Check if table has backup fields for advanced merge
+            if self._table_has_backup_fields(source_db_path, table_name):
+                # Advanced merge with conflict resolution
+                return self._merge_table_data(source_db_path, backup_file, table_name)
+            else:
+                # Basic backup: simple table copy for tables without backup fields
+                return self._basic_table_backup(source_db_path, backup_file, table_name)
             
         except Exception as e:
             logger.error(f"❌ Backup failed for {table_name}: {e}")
             return False
     
+    def _basic_table_backup(self, source_db_path: str, backup_db: Path, table_name: str) -> bool:
+        """
+        📋 Basic table backup without timestamp-based conflict resolution.
+        
+        Used for tables that don't have backup fields yet.
+        """
+        source_conn = sqlite3.connect(source_db_path)
+        backup_conn = sqlite3.connect(str(backup_db))
+        
+        try:
+            # Get table config
+            table_config = self.backup_tables.get(table_name, {})
+            pk_field = table_config.get('primary_key', 'id')
+            
+            # Clear and repopulate backup table (simple strategy)
+            backup_cursor = backup_conn.cursor()
+            backup_cursor.execute(f"DELETE FROM {table_name}")
+            
+            # Copy all current records from source
+            source_cursor = source_conn.cursor()
+            source_cursor.execute(f"SELECT * FROM {table_name}")
+            source_rows = source_cursor.fetchall()
+            
+            # Get column names
+            source_cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [col[1] for col in source_cursor.fetchall()]
+            
+            # Insert all records
+            if source_rows:
+                placeholders = ', '.join(['?' for _ in columns])
+                backup_cursor.executemany(
+                    f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})",
+                    source_rows
+                )
+            
+            backup_conn.commit()
+            logger.info(f"✅ Successfully backed up {table_name} (basic mode: {len(source_rows)} records)")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Basic backup failed for {table_name}: {e}")
+            return False
+        finally:
+            source_conn.close()
+            backup_conn.close()
+    
     def _merge_table_data(self, source_db: str, backup_db: Path, table_name: str) -> bool:
         """
         🔄 Merge table data using conflict resolution: newer updated_at wins.
+        
+        Only called for tables that have backup fields.
         """
         source_conn = sqlite3.connect(source_db)
         backup_conn = sqlite3.connect(str(backup_db))
@@ -137,14 +203,19 @@ class DurableBackupManager:
             pk_field = table_config.get('primary_key', 'id')
             timestamp_field = table_config.get('timestamp_field', 'updated_at')
             
-            # Get all records from source (including soft-deleted)
+            # Get column names first
             source_cursor = source_conn.cursor()
-            source_cursor.execute(f"SELECT * FROM {table_name}")
-            source_rows = source_cursor.fetchall()
-            
-            # Get column names
             source_cursor.execute(f"PRAGMA table_info({table_name})")
             columns = [col[1] for col in source_cursor.fetchall()]
+            
+            # Safety check: ensure timestamp field exists
+            if timestamp_field not in columns:
+                logger.warning(f"⚠️ Timestamp field {timestamp_field} not found in {table_name}, falling back to basic backup")
+                return self._basic_table_backup(source_db, backup_db, table_name)
+            
+            # Get all records from source (including soft-deleted)
+            source_cursor.execute(f"SELECT * FROM {table_name}")
+            source_rows = source_cursor.fetchall()
             
             # Merge each record
             backup_cursor = backup_conn.cursor()
