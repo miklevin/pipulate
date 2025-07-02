@@ -4294,8 +4294,16 @@ def run_workflow_hijacking():
             print(f"⚡ SUBPROCESS: Step 3 - Pressing Enter to trigger HTMX chain reaction")
             pipeline_input.send_keys(Keys.RETURN)
             
+            # === STEP 3.5: WAIT FOR POST REQUEST TO COMPLETE ===
+            print(f"📤 SUBPROCESS: Step 3.5 - Waiting for POST /hello/init to complete...")
+            time.sleep(3)  # Wait for POST request to server
+            
+            # Wait for page to start changing (HTMX response)
+            print(f"🔄 SUBPROCESS: Waiting for HTMX response to start chain reaction...")
+            time.sleep(2)  # Wait for HTMX to start updating DOM
+            
             # === STEP 4: WAIT FOR HTMX CHAIN REACTION TO COMPLETE ===
-            print(f"🔄 SUBPROCESS: Step 4 - Waiting {{wait_chain_reaction}} seconds for HTMX chain reaction to complete")
+            print(f"🔄 SUBPROCESS: Step 4 - Waiting {wait_chain_reaction} seconds for HTMX chain reaction to complete")
             
             # Wait and watch for DOM changes indicating chain reaction progress
             for i in range({wait_chain_reaction}):
@@ -4306,7 +4314,7 @@ def run_workflow_hijacking():
                         steps = driver.find_elements(By.CSS_SELECTOR, '[id*="step_"], .card h3, .card h2')
                         print(f"🔄 SUBPROCESS: Chain reaction progress - {{len(steps)}} workflow elements detected")
                     except:
-                        print(f"🔄 SUBPROCESS: Chain reaction progress - {{i+1}}/{{wait_chain_reaction}} seconds")
+                        print(f"🔄 SUBPROCESS: Chain reaction progress - {{i+1}}/{wait_chain_reaction} seconds")
             
             print(f"✅ SUBPROCESS: Chain reaction wait completed")
             
@@ -4364,7 +4372,7 @@ def run_workflow_hijacking():
                 "title": page_title,
                 "pipeline_id": target_pipeline_id,
                 "timestamp": datetime.now().isoformat(),
-                "hijacking_type": "complete_workflow_chain_reaction",
+                "hijacking_type": "complete_workflow_chain_reaction", 
                 "chain_reaction_wait_seconds": {wait_chain_reaction},
                 "screenshot_taken": screenshot_saved,
                 "status": "success"
