@@ -1,279 +1,329 @@
 # ASCII Art and Visual Display Functions
 # Externalized from server.py to reduce token count while preserving functionality
+# IMPORTANT: These are EXACT transcriptions of the original ASCII art - not generated substitutes!
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 from rich.align import Align
-import pyfiglet
+from rich.box import ROUNDED, HEAVY, DOUBLE
+from pyfiglet import Figlet
 import logging
 
 logger = logging.getLogger(__name__)
 
-def falling_alice(console_output=True):
-    """Display falling Alice ASCII art for Pipulate startup"""
-    alice_art = '''
-    
-        🕳️ Down the Rabbit Hole We Go... 🕳️
-    
-                    .-""""""-.
-                  .'          '.
-                 /   O      O   \\
-                :           `    :
-                |                |
-                :    .------.    :
-                 \\  '        '  /
-                  '.          .'
-                    '-.......-'
-                        
-            🚀 Pipulate: Local-First AI SEO Software
-            
-                "We're all mad here..." 
-                    - Cheshire Cat
-    '''
-    
-    if console_output:
-        console = Console()
-        panel = Panel(
-            Align.center(alice_art),
-            title="🎭 Welcome to Wonderland",
-            border_style="bright_blue",
-            padding=(1, 2)
-        )
-        console.print(panel)
-    
-    logger.info(f"🎭 NARRATOR: {alice_art}")
-    return alice_art
+# Initialize console for display functions
+console = Console()
 
+# Color schemes (matching server.py BANNER_COLORS)
+BANNER_COLORS = {
+    'white_rabbit': 'bright_white',
+    'system_diagram': 'bright_green', 
+    'figlet_primary': 'bright_blue',
+    'figlet_subtitle': 'bright_cyan',
+    'chip_narrator': 'bright_yellow',
+    'story_moment': 'bright_magenta',
+    'server_whisper': 'dim white',
+    'ascii_title': 'bright_blue',
+    'ascii_subtitle': 'bright_cyan',
+    'transparency_banner': 'bright_yellow',
+    'status_banner': 'bright_cyan',
+    'workshop_ready': 'bright_green',
+    'mcp_arsenal': 'bright_blue',
+    'plugin_registry_success': 'bright_green'
+}
+
+def strip_rich_formatting(text):
+    """Remove Rich markup from text for logging"""
+    import re
+    return re.sub(r'\[/?[^\]]*\]', '', text)
+
+def share_ascii_with_ai(ascii_art, context_message, emoji="🎭"):
+    """Share ASCII art with AI assistants via logging"""
+    logger.info(f"{emoji} AI_CREATIVE_VISION: {context_message}")
+    logger.info(f"{emoji} ASCII_ART_DATA:\n{ascii_art}")
+
+def falling_alice(console_output=True):
+    """🍄 FALLING ALICE: Large ASCII art of Alice falling down the rabbit hole"""
+    lines = 20
+    falling_alice_art = lines * "\n" + r"""[white on default]
+                    ___
+                   |   |         _____
+                   |_  |        /     \
+                     \ |       |       \
+                     |  \      |       /   Test
+                      \  \____ \_      \
+                       \      \_/      |
+                 ___.   \_            _/
+.-,             /    \    |          |
+|  \          _/      `--_/           \_
+ \  \________/                     /\   \
+ |                                /  \_  \
+ `-----------,                   |     \  \
+             |                  /       \  |
+             |                 |         | \
+             /                 |         \__|
+            /   _              |
+           /   / \_             \
+           |  /    \__      __--`
+          _/ /        \   _/
+      ___/  /          \_/
+     /     /
+     `----`[/white on default]""" + lines * "\n"
+    
+    # Console output for humans (Rich display)
+    if console_output:
+        console.print()  # Add spacing
+        console.print(Align.center(falling_alice_art))  # No conflicting style parameter
+        console.print()  # Add spacing
+        logger.info("🍄 FALLING_ALICE_BANNER: Large Alice art displayed")
+    
+    # 🎭 AI CREATIVE TRANSPARENCY: Let AI assistants experience the whimsical narrative
+    share_ascii_with_ai(falling_alice_art, "Falling Alice ASCII Art - 🍄 Narrative moment: Alice tumbles down the rabbit hole of radical transparency!", "🍄")
+    return falling_alice_art
 
 def white_rabbit(console_output=True):
-    """Display White Rabbit ASCII art for time-sensitive operations"""
-    rabbit_art = '''
+    """🐰 WHITE RABBIT: Whimsical White Rabbit-themed banner"""
+    alice_art = r"""[black].[/black]
+ - This is Uvicorn webserver output.                       /)    ______
+   (i.e. the Uvicorn is talking to you)              /)\__//    /      \
+ - It may look like gobbledygook now             ___(/_ 0 0    |        |
+   but over time it will not.                  *(    ==(_T_)== |[bold bright_blue]Pipulate[/bold bright_blue]|
+ - Curious? Become a Carpenter!                  \  )   ""\    |        |
+                                                  |__>-\_>_>    \______/
+   """
     
-        🐰 "I'm Late! I'm Late! For a Very Important Date!" 🐰
-    
-                    (\   /)
-                   ( ._.)
-                  o_(")(")
-                
-            ⏰ Time to Optimize Your SEO Workflows!
-            
-                "The hurrier I go, the behinder I get"
-                    - White Rabbit
-    '''
-    
+    # Console output for humans (Rich display)
     if console_output:
-        console = Console()
+        style = BANNER_COLORS['white_rabbit']
         panel = Panel(
-            Align.center(rabbit_art),
-            title="⏰ Time is Ticking",
-            border_style="bright_white",
+            Align.center(alice_art.strip()),
+            title=f"[bold {style}]🐰 Welcome to Consoleland[/bold {style}]",
+            subtitle="[dim]Down the rabbit hole of radical transparency[/dim]",
+            box=ROUNDED,
+            style=style,
             padding=(1, 2)
         )
         console.print(panel)
     
-    logger.info(f"🐰 NARRATOR: {rabbit_art}")
-    return rabbit_art
-
+    # 🎭 AI CREATIVE TRANSPARENCY: Share the whimsical White Rabbit moment
+    share_ascii_with_ai(alice_art, "White Rabbit ASCII Art - 🐰 Narrative moment: Welcome to Consoleland - down the rabbit hole of radical transparency!", "🐰")
+    return alice_art
 
 def system_diagram(console_output=True):
-    """Display system architecture diagram"""
-    diagram = '''
+    """📐 SYSTEM DIAGRAMS: ASCII art system overview"""
+    diagram = """[black].[/black][white on default]
+               ┌─────────────────────────────┐
+               │         Navigation         ◄── Search, Profiles,
+               ├───────────────┬─────────────┤    Apps, Settings
+               │               │             │
+    Workflow, ──►   Main Area  │    Chat     │
+    App UI     │   (Pipeline)  │  Interface ◄── LLM Interaction 
+               │               │             │
+               └─────────────────────────────┘[/white on default]
+    """
     
-        🏗️ Pipulate Architecture Overview 🏗️
-    
-        Browser ←→ FastHTML Server ←→ Local AI
-            ↓           ↓              ↓
-        HTMX/JS    Plugin System    Ollama LLM
-            ↓           ↓              ↓
-        User UI     Workflows      WebSocket Chat
-            ↓           ↓              ↓
-        Data Flow   SQLite DB      Context Sync
-        
-            🎯 Local-First • Privacy-Preserving • AI-Enhanced
-    '''
-    
+    # Console output for humans (Rich display)
     if console_output:
-        console = Console()
+        style = BANNER_COLORS['system_diagram']
         panel = Panel(
-            Align.center(diagram),
-            title="🏗️ System Architecture",
-            border_style="bright_green",
+            Align.center(diagram.strip()),
+            title=f"[bold {style}]🏗️  Pipulate Architecture[/bold {style}]",
+            box=DOUBLE,
+            style=style,
             padding=(1, 2)
         )
         console.print(panel)
     
-    logger.info(f"🏗️ DIAGRAM: {diagram}")
+    # 🎭 AI CREATIVE TRANSPARENCY: System architecture for AI understanding
+    share_ascii_with_ai(diagram, "System Architecture Diagram - 🏗️ Architecture moment: This shows how Pipulate's UI is organized - Navigation, Main Pipeline Area, and Chat Interface!", "🏗️")
     return diagram
 
-
 def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None, console_output=True):
-    """Generate figlet ASCII art banner"""
-    try:
-        figlet_text = pyfiglet.figlet_format(text, font=font)
-    except:
-        figlet_text = f"=== {text.upper()} ==="
+    """🎨 FIGLET BANNERS: Beautiful FIGlet text in Rich panels"""
+    if color is None:
+        color = BANNER_COLORS['figlet_primary']
+    if box_style is None:
+        box_style = HEAVY  # Default to HEAVY, can be overridden by BANNER_COLORS later
     
-    banner_content = figlet_text
-    if subtitle:
-        banner_content += f"\n\n{subtitle}"
+    figlet = Figlet(font=font, width=80)
+    fig_text = figlet.renderText(str(text))
     
+    # Console output for humans (Rich display)
     if console_output:
-        console = Console()
-        if box_style:
-            panel = Panel(
-                Align.center(banner_content),
-                border_style=box_style or "bright_blue",
-                padding=(1, 2)
-            )
-            console.print(panel)
+        if subtitle:
+            subtitle_color = BANNER_COLORS['figlet_subtitle']
+            content = f"[{color}]{fig_text}[/{color}]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
         else:
-            console.print(Align.center(banner_content))
+            content = f"[{color}]{fig_text}[/{color}]"
+        
+        panel = Panel(
+            Align.center(content),
+            box=box_style,
+            style=color,
+            padding=(1, 2)
+        )
+        console.print(panel)
+        logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
     
-    logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font}) - {subtitle or 'No subtitle'}")
-    return banner_content
+    # 🎭 AI CREATIVE TRANSPARENCY: Share the figlet art for AI context
+    context_msg = f"Figlet Banner ({font} font) - 🎨 Text: '{text}'" + (f" | Subtitle: '{subtitle}'" if subtitle else "")
+    share_ascii_with_ai(fig_text, context_msg, "🎨")
+    return fig_text
 
+def fig(text, font='slant', color=None, width=200):
+    """🎨 CHIP O'THESEUS STORYTELLING: Tasteful FIGlet banners for key server moments"""
+    if color is None:
+        color = BANNER_COLORS['figlet_primary']
+    
+    figlet = Figlet(font=font, width=width)
+    fig_text = figlet.renderText(str(text))
+    colored_text = Text(fig_text, style=f'{color} on default')
+    console.print(colored_text, style='on default')
+    
+    # Log ASCII art with backticks for easy grepping
+    logger.info(f"🎨 BANNER: {text} (figlet: {font}) | ASCII_DATA:\n```\n{fig_text}\n```")
+    return fig_text
+
+def chip_says(message, style=None, prefix="💬 Chip O'Theseus"):
+    """🎭 CHIP O'THESEUS NARRATOR: Discrete storytelling moments in the logs"""
+    if style is None:
+        style = BANNER_COLORS['chip_narrator']
+    console.print(f"{prefix}: {message}", style=style)
+    logger.info(f"🎭 NARRATOR: {prefix}: {message}")
+    return f"{prefix}: {message}"
+
+def story_moment(title, details=None, color=None):
+    """📖 STORY MOMENTS: Mark significant server events with tasteful color"""
+    if color is None:
+        color = BANNER_COLORS['story_moment']
+    
+    if details:
+        console.print(f"📖 {title}", style=f"bold {color}")
+        console.print(f"   {details}", style=f"dim {color}")
+        logger.info(f"📖 STORY: {title} - {details}")
+        return f"{title}: {details}"
+    else:
+        console.print(f"📖 {title}", style=f"bold {color}")
+        logger.info(f"📖 STORY: {title}")
+        return title
+
+def server_whisper(message, emoji="🤫"):
+    """🤫 SERVER WHISPERS: Subtle behind-the-scenes commentary"""
+    style = BANNER_COLORS['server_whisper']
+    console.print(f"{emoji} {message}", style=style)
+    logger.info(f"🤫 WHISPER: {message}")
+    return f"{emoji} {message}"
 
 def ascii_banner(title, subtitle=None, style=None, box_style=None):
-    """Create a simple ASCII banner"""
-    banner = f"\n{'=' * 60}\n"
-    banner += f"  {title.upper()}\n"
+    """🎨 ASCII BANNERS: Beautiful framed banners for major sections"""
+    if style is None:
+        style = BANNER_COLORS['ascii_title']
+    if box_style is None:
+        box_style = ROUNDED  # Default to ROUNDED
+    
     if subtitle:
-        banner += f"  {subtitle}\n"
-    banner += f"{'=' * 60}\n"
-    
-    console = Console()
-    if box_style:
-        panel = Panel(
-            Align.center(banner),
-            border_style=box_style,
-            padding=(1, 2)
-        )
-        console.print(panel)
+        subtitle_color = BANNER_COLORS['ascii_subtitle']
+        content = f"[bold]{title}[/bold]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
     else:
-        console.print(banner)
+        content = f"[bold]{title}[/bold]"
     
-    return banner
-
-
-def radical_transparency_banner(console_output=True):
-    """Display radical transparency mission statement"""
-    transparency_art = '''
-    
-        🔍 RADICAL TRANSPARENCY ACTIVATED 🔍
-    
-            "In this house, we practice radical transparency.
-             Every operation is observable.
-             Every state change is logged.
-             Every decision is traceable."
-             
-                - The Pipulate Philosophy
-                
-        🎯 FINDER_TOKENs guide the way to truth
-        📊 Complete system observability enabled
-        🔧 Zero black boxes, maximum insight
-    '''
-    
-    if console_output:
-        console = Console()
-        panel = Panel(
-            Align.center(transparency_art),
-            title="🔍 Radical Transparency",
-            border_style="bright_yellow",
-            padding=(1, 2)
-        )
-        console.print(panel)
-    
-    logger.info(f"🔍 TRANSPARENCY: Radical transparency banner displayed")
-    return transparency_art
-
-
-def status_banner(mcp_count, plugin_count, env="Development"):
-    """Display current system status banner"""
-    status_art = f'''
-    
-        🚀 PIPULATE STATUS
-        Local First AI SEO Software
-        
-        🌐 Server: http://localhost:5001
-        🔧 MCP Tools: {mcp_count} active
-        📦 Plugins: {plugin_count} registered  
-        🏡 Environment: {env}
-        🔍 Transparency: Full visibility enabled
-    '''
-    
-    console = Console()
     panel = Panel(
-        Align.center(status_art),
-        title="⚡ System Status",
-        border_style="bright_cyan",
+        Align.center(content),
+        box=box_style,
+        style=style,
         padding=(1, 2)
     )
     console.print(panel)
+    logger.info(f"🎨 ASCII_BANNER: {title}" + (f" - {subtitle}" if subtitle else ""))
     
-    logger.info(f"📊 STATUS_BANNER: MCP:{mcp_count}, Plugins:{plugin_count}, Env:{env}")
-    return status_art
-
-
-def fig(text, font='slant', color=None, width=200):
-    """Quick figlet generation"""
-    try:
-        return pyfiglet.figlet_format(text, font=font, width=width)
-    except:
-        return f"=== {text.upper()} ==="
-
-
-def chip_says(message, style=None, prefix="💬 Chip O'Theseus"):
-    """Display a message from Chip O'Theseus narrator"""
-    full_message = f"{prefix}: {message}"
-    console = Console()
-    console.print(full_message, style=style)
-    logger.info(f"🎭 NARRATOR: {full_message}")
-    return full_message
-
-
-def story_moment(title, details=None, color=None):
-    """Create a narrative story moment"""
-    console = Console()
-    text = Text(f"📖 {title}", style=f"bold {color or 'bright_blue'}")
-    
-    if details:
-        text.append(f"\n   {details}")
-    
-    panel = Panel(
-        text,
-        border_style=color or "bright_blue",
-        padding=(0, 1)
-    )
-    console.print(panel)
-    
-    logger.info(f"📖 STORY: {title} - {details or 'No details'}")
-    return f"{title}: {details}" if details else title
-
-
-def server_whisper(message, emoji="🤫"):
-    """Display a quiet server message"""
-    full_message = f"{emoji} {message}"
-    console = Console()
-    console.print(full_message, style="dim")
-    return full_message
-
+    # Log the banner content with backticks for easy grepping
+    clean_content = strip_rich_formatting(content)
+    logger.info(f"🎨 ASCII_BANNER_ASCII: {title} banner displayed | ASCII_DATA:\n```\n{clean_content}\n```")
+    return content
 
 def section_header(icon, title, description=None, color=None):
-    """Create a section header with consistent formatting"""
+    """📋 SECTION HEADERS: Clean section dividers with icons"""
+    if color is None:
+        color = BANNER_COLORS['ascii_title']
+    
     header_text = f"{icon}  {title}"
     if description:
         header_text += f"\n{description}"
         
     separator = "─" * 60
     
-    console = Console()
     panel = Panel(
         Align.center(f"{header_text}\n{separator}"),
-        border_style=color or "bright_blue",
+        box=ROUNDED,
+        style=color,
         padding=(1, 2)
     )
     console.print(panel)
     
     logger.info(f"📋 SECTION: {icon} {title} - {description or 'No description'}")
-    return f"{header_text}\n{separator}" 
+    return f"{header_text}\n{separator}"
+
+def radical_transparency_banner(console_output=True):
+    """🔍 RADICAL TRANSPARENCY: Beautiful banner explaining the philosophy"""
+    transparency_text = """
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                    RADICAL TRANSPARENCY                      ║
+    ║                                                              ║
+    ║  Every operation is observable • Every call is logged        ║
+    ║  Every state change is tracked • Every error is explained    ║
+    ║                                                              ║
+    ║  🔍 FINDER_TOKENs guide your debugging journey               ║
+    ║  🔧 MCP Tools provide programmatic access to everything      ║
+    ║  📊 Pipeline State Inspector reveals workflow internals      ║
+    ║  🤖 AI Assistants have complete system visibility            ║
+    ║                                                              ║
+    ║           "Know EVERYTHING that's happening!"                ║
+    ╚══════════════════════════════════════════════════════════════╝
+    """
+    
+    # Console output for humans (Rich display)
+    if console_output:
+        style = BANNER_COLORS['transparency_banner']
+        console.print(transparency_text, style=style)
+        logger.info("🔍 RADICAL_TRANSPARENCY_BANNER: Philosophy banner displayed")
+    
+    # 🎭 AI CREATIVE TRANSPARENCY: The philosophy itself - for AI assistants to experience
+    share_ascii_with_ai(transparency_text, "Radical Transparency Banner - 🔍 Philosophy moment: This is the core principle - AI assistants get complete system visibility!", "🔍")
+    return transparency_text
+
+def status_banner(mcp_count, plugin_count, env="Development"):
+    """📊 STATUS BANNER: Current system status overview"""
+    # Use centralized colors
+    primary_color = BANNER_COLORS['status_banner']
+    server_color = BANNER_COLORS['workshop_ready']
+    mcp_color = BANNER_COLORS['mcp_arsenal']
+    plugin_color = BANNER_COLORS['plugin_registry_success']
+    env_color = BANNER_COLORS['white_rabbit']
+    transparency_color = BANNER_COLORS['transparency_banner']
+    
+    status_content = f"""
+[bold white]🚀 PIPULATE STATUS[/bold white]
+[dim white]Local First AI SEO Software[/dim white]
+
+[white]🌐 Server:[/white] [{server_color}]http://localhost:5001[/{server_color}]
+[white]🔧 MCP Tools:[/white] [{mcp_color}]{mcp_count} active[/{mcp_color}]
+[white]📦 Plugins:[/white] [{plugin_color}]{plugin_count} registered[/{plugin_color}]
+[white]🏡 Environment:[/white] [{env_color}]{env}[/{env_color}]
+[white]🔍 Transparency:[/white] [{transparency_color}]Full visibility enabled[/{transparency_color}]
+    """
+    
+    panel = Panel(
+        status_content.strip(),
+        title=f"[bold {primary_color}]⚡ System Status[/bold {primary_color}]",
+        box=DOUBLE,
+        style=primary_color,
+        padding=(1, 2)
+    )
+    console.print(panel)
+    logger.info(f"📊 STATUS_BANNER: MCP:{mcp_count}, Plugins:{plugin_count}, Env:{env}")
+    
+    # Log the status content with backticks for easy grepping
+    clean_content = strip_rich_formatting(status_content.strip())
+    logger.info(f"📊 STATUS_BANNER_ASCII: Status banner displayed | ASCII_DATA:\n```\n{clean_content}\n```")
+    return status_content 
