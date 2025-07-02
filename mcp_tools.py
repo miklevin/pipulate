@@ -36,6 +36,73 @@ logger = logging.getLogger(__name__)
 MCP_TOOL_REGISTRY = None
 
 # ================================================================
+# 🔧 GLOBAL WORKFLOW HIJACKING TIMING CONFIGURATION
+# ================================================================
+class WorkflowHijackTiming:
+    """Centralized timing configuration for all workflow hijacking operations.
+    
+    🎯 EASY TUNING: Change these values to adjust overall hijacking speed
+    """
+    # === CORE TIMING (adjust these to tune overall speed) ===
+    PAGE_LOAD_WAIT = 2           # Time to wait for initial page load
+    FORM_INTERACTION_DELAY = 1   # Dramatic pause after filling forms  
+    POST_REQUEST_WAIT = 2        # Wait for POST request to complete
+    CHAIN_REACTION_WAIT = 3      # Main chain reaction progression time
+    FINAL_STABILIZATION = 1      # Final workflow stabilization
+    HUMAN_OBSERVATION = 1        # Time for human to see final state
+    
+    # === CALCULATED TOTALS ===
+    @classmethod
+    def total_browser_time(cls) -> int:
+        """Calculate total expected browser visibility time"""
+        return (cls.PAGE_LOAD_WAIT + cls.FORM_INTERACTION_DELAY + 
+                cls.POST_REQUEST_WAIT + cls.CHAIN_REACTION_WAIT + 
+                cls.FINAL_STABILIZATION + cls.HUMAN_OBSERVATION)
+    
+    @classmethod
+    def get_timing_summary(cls) -> str:
+        """Get human-readable timing breakdown"""
+        return f"""
+🕐 Workflow Hijacking Timing Breakdown:
+   📄 Page Load: {cls.PAGE_LOAD_WAIT}s
+   🔑 Form Fill: {cls.FORM_INTERACTION_DELAY}s  
+   📤 POST Wait: {cls.POST_REQUEST_WAIT}s
+   ⚡ Chain Reaction: {cls.CHAIN_REACTION_WAIT}s
+   ⏳ Stabilization: {cls.FINAL_STABILIZATION}s
+   👁️  Human View: {cls.HUMAN_OBSERVATION}s
+   ⏱️  TOTAL: {cls.total_browser_time()}s
+        """.strip()
+
+# 🚀 Quick timing presets for different use cases
+TIMING_PRESETS = {
+    "lightning": {  # Ultra-fast for development
+        "PAGE_LOAD_WAIT": 1, "FORM_INTERACTION_DELAY": 0, "POST_REQUEST_WAIT": 1,
+        "CHAIN_REACTION_WAIT": 2, "FINAL_STABILIZATION": 0, "HUMAN_OBSERVATION": 1
+    },
+    "fast": {  # Current optimized timing  
+        "PAGE_LOAD_WAIT": 2, "FORM_INTERACTION_DELAY": 1, "POST_REQUEST_WAIT": 2,
+        "CHAIN_REACTION_WAIT": 3, "FINAL_STABILIZATION": 1, "HUMAN_OBSERVATION": 1
+    },
+    "dramatic": {  # Slower for demos/presentations
+        "PAGE_LOAD_WAIT": 3, "FORM_INTERACTION_DELAY": 2, "POST_REQUEST_WAIT": 3,
+        "CHAIN_REACTION_WAIT": 5, "FINAL_STABILIZATION": 2, "HUMAN_OBSERVATION": 3
+    }
+}
+
+def apply_timing_preset(preset_name: str):
+    """Apply a timing preset to WorkflowHijackTiming class"""
+    if preset_name in TIMING_PRESETS:
+        preset = TIMING_PRESETS[preset_name]
+        for attr, value in preset.items():
+            setattr(WorkflowHijackTiming, attr, value)
+        logger.info(f"⏰ Applied '{preset_name}' timing preset - Total: {WorkflowHijackTiming.total_browser_time()}s")
+    else:
+        logger.warning(f"⚠️ Unknown timing preset: {preset_name}")
+
+# 🎯 Apply default timing preset (change this to tune global speed)
+apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
+
+# ================================================================
 # HELPER FUNCTIONS
 # ================================================================
 
@@ -4130,10 +4197,11 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
         params: {
             "url": "http://localhost:5001/hello_workflow",  # Required: Workflow URL
             "pipeline_id": "Default_Profile-hello-16",      # Required: Pipeline key to enter
-            "wait_chain_reaction": 4,                       # Optional: seconds to wait for chain reaction
-            "wait_seconds": 3,                              # Optional: page load wait
             "take_screenshot": True                         # Optional: capture visual state
         }
+        
+        Timing: Uses centralized WorkflowHijackTiming configuration ({WorkflowHijackTiming.total_browser_time()}s total)
+        To adjust timing: Change WorkflowHijackTiming class values or apply_timing_preset("lightning"/"fast"/"dramatic")
     
     Returns:
         dict: {
@@ -4170,9 +4238,10 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
     try:
         url = params.get('url')
         pipeline_id = params.get('pipeline_id')
-        wait_chain_reaction = params.get('wait_chain_reaction', 4)
-        wait_seconds = params.get('wait_seconds', 3)
         take_screenshot = params.get('take_screenshot', True)
+        
+        # Show current timing configuration
+        logger.info(f"⏰ FINDER_TOKEN: TIMING_CONFIG - {WorkflowHijackTiming.get_timing_summary()}")
         
         # === VALIDATION ===
         if not url:
@@ -4201,6 +4270,8 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
         
         # === SUBPROCESS WORKFLOW HIJACKING TO AVOID THREADING ISSUES ===
         # Create a Python script that handles the complete workflow hijacking
+        # Use centralized timing configuration
+        timing = WorkflowHijackTiming
         hijack_script = f'''
 import json
 import os
@@ -4251,7 +4322,7 @@ def run_workflow_hijacking():
             # === STEP 1: NAVIGATION ===
             print(f"🌐 SUBPROCESS: Step 1 - Navigating to {{target_url}}")
             driver.get(target_url)
-            time.sleep({wait_seconds})  # Let page load
+            time.sleep({timing.PAGE_LOAD_WAIT})  # Let page load
             print(f"✅ SUBPROCESS: Navigation completed")
             
             # === STEP 2: FIND AND FILL PIPELINE KEY INPUT ===
@@ -4288,25 +4359,21 @@ def run_workflow_hijacking():
             pipeline_input.clear()
             pipeline_input.send_keys(target_pipeline_id)
             print(f"🔑 SUBPROCESS: Filled pipeline key: {{target_pipeline_id}}")
-            time.sleep(1)  # Dramatic pause
+            time.sleep({timing.FORM_INTERACTION_DELAY})  # Dramatic pause
             
             # === STEP 3: PRESS ENTER TO TRIGGER HTMX CHAIN REACTION ===
             print(f"⚡ SUBPROCESS: Step 3 - Pressing Enter to trigger HTMX chain reaction")
             pipeline_input.send_keys(Keys.RETURN)
             
-            # === STEP 3.5: WAIT FOR POST REQUEST TO COMPLETE ===
-            print(f"📤 SUBPROCESS: Step 3.5 - Waiting for POST /hello/init to complete...")
-            time.sleep(3)  # Wait for POST request to server
-            
-            # Wait for page to start changing (HTMX response)
-            print(f"🔄 SUBPROCESS: Waiting for HTMX response to start chain reaction...")
-            time.sleep(2)  # Wait for HTMX to start updating DOM
+            # === STEP 3.5: CONSOLIDATED POST + HTMX RESPONSE WAIT ===
+            print(f"📤 SUBPROCESS: Step 3.5 - Waiting {{timing.POST_REQUEST_WAIT}}s for POST request + HTMX response...")
+            time.sleep({timing.POST_REQUEST_WAIT})  # Consolidated wait for POST + HTMX
             
             # === STEP 4: WAIT FOR HTMX CHAIN REACTION TO COMPLETE ===
-            print(f"🔄 SUBPROCESS: Step 4 - Waiting {wait_chain_reaction} seconds for HTMX chain reaction to complete")
+            print(f"🔄 SUBPROCESS: Step 4 - Waiting {{timing.CHAIN_REACTION_WAIT}} seconds for HTMX chain reaction to complete")
             
             # Wait and watch for DOM changes indicating chain reaction progress
-            for i in range({wait_chain_reaction}):
+            for i in range({timing.CHAIN_REACTION_WAIT}):
                 time.sleep(1)
                 if i % 2 == 0:  # Progress messages every 2 seconds
                     try:
@@ -4314,13 +4381,13 @@ def run_workflow_hijacking():
                         steps = driver.find_elements(By.CSS_SELECTOR, '[id*="step_"], .card h3, .card h2')
                         print(f"🔄 SUBPROCESS: Chain reaction progress - {{len(steps)}} workflow elements detected")
                     except:
-                        print(f"🔄 SUBPROCESS: Chain reaction progress - {{i+1}}/{wait_chain_reaction} seconds")
+                        print(f"🔄 SUBPROCESS: Chain reaction progress - {{i+1}}/{{timing.CHAIN_REACTION_WAIT}} seconds")
             
             print(f"✅ SUBPROCESS: Chain reaction wait completed")
             
             # Extra time for workflow stabilization
-            print(f"⏳ SUBPROCESS: Allowing 3 additional seconds for workflow stabilization...")
-            time.sleep(3)
+            print(f"⏳ SUBPROCESS: Allowing {{timing.FINAL_STABILIZATION}} seconds for workflow stabilization...")
+            time.sleep({timing.FINAL_STABILIZATION})
             
             # === STEP 5: CAPTURE FINAL WORKFLOW STATE ===
             print(f"📸 SUBPROCESS: Step 5 - Capturing final workflow state")
@@ -4373,7 +4440,8 @@ def run_workflow_hijacking():
                 "pipeline_id": target_pipeline_id,
                 "timestamp": datetime.now().isoformat(),
                 "hijacking_type": "complete_workflow_chain_reaction", 
-                "chain_reaction_wait_seconds": {wait_chain_reaction},
+                "chain_reaction_wait_seconds": {timing.CHAIN_REACTION_WAIT},
+                "total_browser_time_seconds": {timing.total_browser_time()},
                 "screenshot_taken": screenshot_saved,
                 "status": "success"
             }}
@@ -4386,8 +4454,8 @@ def run_workflow_hijacking():
             print(f"📁 SUBPROCESS: All files saved to {looking_at_dir}")
             
             # Brief pause to allow human observation of final state
-            print(f"👁️ SUBPROCESS: Displaying final state for 2 seconds...")
-            time.sleep(2)
+            print(f"👁️ SUBPROCESS: Displaying final state for {{timing.HUMAN_OBSERVATION}} seconds...")
+            time.sleep({timing.HUMAN_OBSERVATION})
             
             return {{
                 "success": True,
