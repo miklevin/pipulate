@@ -19,7 +19,7 @@ There is NO NEED to manually start the server.
 You just discovered Pipulate's Radical Transparency & Agentic AI system!
 
 ### Master Guide
-Read: `training/ai_discovery/ai_progressive_discovery_sequence.md`
+Read: `ai_discovery/ai_progressive_discovery_sequence.md`
 
 ### Key Capabilities You Now Have
 • MCP Tools for system inspection and automation

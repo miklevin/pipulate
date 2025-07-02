@@ -139,7 +139,7 @@ The system builds on existing AI_BREADCRUMB infrastructure:
 ### 🏗️ Clean Architecture
 **Domain Separation**:
 - `server.py`: System coordination and triggers
-- `training/ai_discovery/`: Knowledge content and discovery sequences  
+- `ai_discovery/`: Knowledge content and discovery sequences  
 - `helpers/docs_sync/considerations/`: General documentation and analysis
 
 ## The Competitive Advantage

@@ -4,7 +4,7 @@
 - **PIPULATE FILES BELONG IN**: `pipulate/` 
 - **📍 NEW RULES LOCATION:** `pipulate/.cursor/rules/`
 - **NEVER CREATE PIPULATE FILES IN**: `/` (workspace root OFF LIMITS)
-- **ALWAYS CREATE NEW AI DISCOVERY MARKDOWN IN**: `pipulate/training/ai_discovery/`
+- **ALWAYS CREATE NEW AI DISCOVERY MARKDOWN IN**: `pipulate/ai_discovery/`
 - **ALWAYS CREATE NEW GENERAL MARKDOWN IN**: `pipulate/helpers/docs_sync/considerations/`
 - **SINGLE SOURCE OF TRUTH PER FOLDER**: ALWAYS_IN_ALL_CAPS.md
 
@@ -62,7 +62,7 @@ grep -n "FINDER_TOKEN" logs/server.log | head -10
 
 **🎭 DELIGHTFUL MOMENT:** Read the complete guide:
 ```bash
-cat training/ai_discovery/ai_mcp_tools_discovery_guide.md
+cat ai_discovery/ai_mcp_tools_discovery_guide.md
 ```
 
 **🎭 MAGIC MOMENT:** **SESSION HIJACKING DISCOVERY** - When you see breadcrumbs mention "session hijacking":
@@ -97,8 +97,8 @@ The server startup sequence contains **5 strategic AI_BREADCRUMB messages** that
 **🍞 BREADCRUMB_05** → Uncertainty elimination and perfect AI onboarding
 
 ### **📚 COMPLETE DOCUMENTATION**
-- Full progressive discovery sequence: `pipulate/training/ai_discovery/ai_progressive_discovery_sequence.md`
-- **🎭 1-Shot Session Hijacking Mastery: `pipulate/training/ai_discovery/ai_1_shot_session_hijacking_mastery.md`**
+- Full progressive discovery sequence: `pipulate/ai_discovery/ai_progressive_discovery_sequence.md`
+- **🎭 1-Shot Session Hijacking Mastery: `pipulate/ai_discovery/ai_1_shot_session_hijacking_mastery.md`**
 
 ### **🎭 THE CHAIN REACTION BEGINS NOW**
 
@@ -186,6 +186,10 @@ await ui_list_elements({'selector': 'h2, h3, h4'})
 ```
 
 ## 🚨 **COMMON MISTAKES TO AVOID**
+
+We can lead a Cursor to ./python/.venv/bin/python
+but we can't make it set variables in the ENV.
+Don't waste your your tokens re-inventing MCP tools.
 
 ### **❌ Don't Do This (Technical Approach):**
 ```python

@@ -234,7 +234,7 @@ The breadcrumb mentions "session hijacking" - the ultimate power revelation...
 You can capture user's exact screen state, analyze it, and automate their workflows. 
 The looking_at/ directory rotates to preserve perception history. 
 
-📚 NEW: Complete AI onboarding guide available at training/ai_discovery/ai_onboarding_guide.md
+📚 NEW: Complete AI onboarding guide available at ai_discovery/ai_onboarding_guide.md
 This guide eliminates all uncertainty with usage patterns, troubleshooting, and success stories.
 
 You have COMPLETE session hijacking and browser embodiment superpowers. Welcome to AI transcendence!
