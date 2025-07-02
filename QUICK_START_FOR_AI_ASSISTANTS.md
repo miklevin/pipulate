@@ -2,17 +2,19 @@
 
 **This guide prevents the environment confusion that breaks the discovery sequence.**
 
-## 🚨 **STEP 1: ALWAYS VALIDATE ENVIRONMENT FIRST**
+## 🚨 **STEP 1: ALWAYS USE CORRECT PYTHON PATH**
 
-**Before doing ANYTHING else, run this diagnostic:**
+**CRITICAL RULE: If you see `(.venv)` in your terminal prompt, you MUST use `.venv/bin/python` instead of `python`**
+
+**Before doing ANYTHING else, verify your Python path:**
 ```bash
-python test_python_environment_fix.py
+.venv/bin/python -c "import aiohttp; print('✅ Environment working')"
 ```
 
-**Expected Result:** All checks should show ✅ PASS
+**Expected Result:** Should show "✅ Environment working"
 
 **If you see "ModuleNotFoundError: No module named 'aiohttp'":**
-- **Problem**: Virtual environment not properly activated
+- **Problem**: Using system Python instead of virtual environment Python
 - **Solution**: Use `.venv/bin/python` instead of `python`
 - **Example**: `.venv/bin/python discover_mcp_tools.py`
 
@@ -74,7 +76,7 @@ python test_python_environment_fix.py
 
 - **Progressive Discovery**: `training/ai_discovery/ai_progressive_discovery_sequence.md`
 - **MCP Tools Guide**: `training/ai_discovery/ai_mcp_tools_discovery_guide.md`
-- **Environment Diagnostic**: `test_python_environment_fix.py`
+- **Python Path Analysis**: `training/ai_discovery/ai_python_path_issue_analysis.md`
 
 ---
 

@@ -23,12 +23,15 @@ ls -la  # Verify you see server.py, plugins/, browser_automation/, etc.
 
 ## 🚨 **CRITICAL REMINDERS - NEVER FORGET**
 - **NIX**: You are already in the nix environment (`nix develop` has already occurred)
-- **Python**: You are already using `/home/mike/repos/pipulate/.venv/bin/python3.12`
-- **Watchdog**: Already keeps `python server.py` running
+- **Python**: You must always specify `.venv/bin/python`
+- **Watchdog**: Already keeps `.venv/bin/python server.py` running
 
 ## 🍞 **THE BREADCRUMB TRAIL AWAITS YOU**
 
 **You're about to discover something EXTRAORDINARY...**
+
+Feel free to initiate this process on your own, but if you don't, please do so when the user uses
+keywords: explore, hijack, upgrade, or simply "go"
 
 🔥 **PROGRESSIVE AI SUPERPOWERS DISCOVERY SEQUENCE** 🔥
 
@@ -51,10 +54,10 @@ grep -n "FINDER_TOKEN" logs/server.log | head -10
 **Level 3: MCP TOOLS DISCOVERY** ⭐ **NEW DELIGHTFUL EXPERIENCE** - Discover your superpowers:
 ```bash
 # Quick tool inventory
-python helpers/ai_tool_discovery.py list
+.venv/bin/python helpers/ai_tool_discovery.py list
 
 # Full tool verification  
-python helpers/ai_tool_discovery.py
+.venv/bin/python helpers/ai_tool_discovery.py
 ```
 
 **🎭 DELIGHTFUL MOMENT:** Read the complete guide:
@@ -112,7 +115,7 @@ This is your invitation to transcend typical AI limitations through **natural di
 **You have DIRECT access to 13 MCP tools as function calls:**
 
 ### **🌐 Browser Tools (Your Eyes, Brain, Hands)**
-```python
+```.venv/bin/python
 # Your EYES on the web
 await browser_scrape_page({'url': 'https://example.com'})
 
@@ -127,7 +130,7 @@ await browser_interact_with_current_page({'action': 'click', 'selector': '#submi
 ```
 
 ### **🔍 Analysis Tools (Your Intelligence)**
-```python
+```.venv/bin/python
 # See complete workflow state
 await pipeline_state_inspector({})
 
@@ -142,7 +145,7 @@ await local_llm_list_files({'directory': 'browser_automation/'})
 ```
 
 ### **📊 Botify Tools (Your API Mastery)**
-```python
+```.venv/bin/python
 # The 4,449 field revolution
 await botify_get_full_schema({'username': 'user', 'project': 'project'})
 
@@ -154,7 +157,7 @@ await botify_execute_custom_bql_query({'username': 'user', 'project': 'project'}
 ```
 
 ### **🎨 UI Tools (Your Visual Debugging)**
-```python
+```.venv/bin/python
 # Flash elements for visual debugging
 await ui_flash_element({'selector': '.problematic-element', 'color': 'red'})
 
@@ -165,13 +168,13 @@ await ui_list_elements({'selector': 'h2, h3, h4'})
 ## 🎯 **IMMEDIATE SUCCESS PATTERNS**
 
 ### **Pattern 1: News Headlines**
-```python
+```.venv/bin/python
 await browser_scrape_page({'url': 'https://www.bbc.com/news'})
 await browser_analyze_scraped_page({'analysis_type': 'headlines'})
 ```
 
 ### **Pattern 2: Workflow Debugging**
-```python
+```.venv/bin/python
 await pipeline_state_inspector({})
 await local_llm_grep_logs({'search_term': 'ERROR'})
 ```
@@ -199,7 +202,7 @@ asyncio.run(scrape())
 ```
 
 ### **✅ Do This (Delightful Approach):**
-```python
+```.venv/bin/python
 # RIGHT - Direct MCP tool usage
 await browser_scrape_page({'url': 'https://example.com'})
 ```
