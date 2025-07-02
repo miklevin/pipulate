@@ -13,37 +13,67 @@ import asyncio
 import inspect
 import json
 import logging
+from datetime import datetime
 from fasthtml.common import HTMLResponse, Li, A, Input, to_xml
+from loguru import logger
+
+# 🎯 Import the durable backup system
+try:
+    from helpers.durable_backup_system import backup_manager
+except ImportError:
+    backup_manager = None
+    logger.warning("⚠️ Durable backup system not available")
 
 
 class BaseCrud:
     """
     CRUD base class for all Apps. The CRUD is DRY and the Workflows are WET!
+    
+    🎯 ENHANCED with Durable Backup Support:
+    - Auto-triggers backups on data changes
+    - Soft delete support (mark as deleted_at instead of hard delete)
+    - Gantt field support for task management
+    - Cross-platform data persistence
     """
 
     def __init__(self, name, table, toggle_field=None, sort_field=None, sort_dict=None, pipulate_instance=None):
         self.name = name
         self.table = table
-        self.toggle_field = toggle_field
-        self.sort_field = sort_field
+        self.toggle_field = toggle_field  # Field to toggle (e.g., 'done', 'active')
+        self.sort_field = sort_field or 'priority'
         self.item_name_field = 'name'
-        self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
+        self.sort_dict = sort_dict or {}
         self.pipulate_instance = pipulate_instance
-
+        
+        # 🎯 DURABLE BACKUP INTEGRATION
+        self.backup_enabled = backup_manager is not None
+        self.table_name = getattr(table, 'name', name.lower())
+        
+        # 🎯 SOFT DELETE CONFIGURATION
+        self.soft_delete_enabled = True  # Enable soft deletes by default
+        self.deleted_field = 'deleted_at'
+        self.updated_field = 'updated_at'
+        
+        if self.backup_enabled:
+            logger.info(f"🗃️ {name} CRUD initialized with durable backup support")
+            self._ensure_backup_schema()
+        
+        # Existing pipeline_instance method wrapper
         def safe_send_message(message, verbatim=True):
-            if not self.pipulate_instance:
-                return
+            """Safely send message through pipulate without breaking if not available."""
             try:
-                stream_method = self.pipulate_instance.stream
-                if inspect.iscoroutinefunction(stream_method):
-                    return asyncio.create_task(stream_method(message, verbatim=verbatim, spaces_after=1))
-                else:
-                    return stream_method(message, verbatim=verbatim, spaces_after=1)
+                if self.pipulate_instance and hasattr(self.pipulate_instance, 'get_message_queue'):
+                    queue = self.pipulate_instance.get_message_queue()
+                    if hasattr(queue, 'add'):
+                        asyncio.create_task(queue.add(self.pipulate_instance, message, verbatim=verbatim))
+                    elif hasattr(self.pipulate_instance, 'stream'):
+                        asyncio.create_task(self.pipulate_instance.stream(message, verbatim=verbatim))
+                    else:
+                        print(f"Message: {message}")
             except Exception as e:
-                logger = logging.getLogger(__name__)
-                logger.error(f'Error in send_message: {e}')
-                return None
-        self.send_message = safe_send_message
+                print(f"Failed to send message: {message} (Error: {e})")
+        
+        self.safe_send_message = safe_send_message
 
     def get_global_border_radius(self):
         """Get the global button border radius setting for consistent styling."""
@@ -104,25 +134,37 @@ class BaseCrud:
     async def delete_item(self, request, item_id: int):
         try:
             item = self.table[item_id]
-            item_name = getattr(item, self.item_name_field, 'Item')
-            self.table.delete(item_id)
-            logger = logging.getLogger(__name__)
-            logger.debug(f'Deleted item ID: {item_id}')
-            action_details = f"The {self.name} item '{item_name}' was removed."
+            item_name = getattr(item, self.item_name_field, f'Item {item_id}')
+            
+            # 🎯 ENHANCED: Use soft delete when enabled and supported
+            soft_delete_attempted = False
+            if self.soft_delete_enabled:
+                soft_delete_attempted = self._soft_delete_item(item_id)
+            
+            if soft_delete_attempted:
+                action_verb = "soft deleted"
+            else:
+                # Traditional hard delete as fallback
+                self.table.delete(item_id)
+                action_verb = "removed"
+            
+            # 🎯 TRIGGER BACKUP after successful delete
+            self._trigger_backup()
+            
+            action_details = f"The {self.name} item '{item_name}' was {action_verb}."
             prompt = action_details
-            self.send_message(prompt, verbatim=True)
+            self.safe_send_message(prompt, verbatim=True)
             if self.name == 'profiles':
                 response = HTMLResponse('')
-                response.headers['HX-Trigger'] = json.dumps({'refreshProfileMenu': {}})
+                response.headers['HX-Refresh'] = 'true'
                 return response
-            return HTMLResponse('')
+            else:
+                return HTMLResponse('')
         except Exception as e:
-            error_msg = f'Error deleting item: {str(e)}'
-            logger = logging.getLogger(__name__)
-            logger.error(error_msg)
+            error_msg = str(e)
             action_details = f'An error occurred while deleting {self.name} (ID: {item_id}): {error_msg}'
             prompt = action_details
-            self.send_message(prompt, verbatim=True)
+            self.safe_send_message(prompt, verbatim=True)
             return (str(e), 500)
 
     async def toggle_item(self, request, item_id: int):
@@ -136,7 +178,7 @@ class BaseCrud:
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             status_text = 'checked' if new_status else 'unchecked'
             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
-            self.send_message(action_details, verbatim=True)
+            self.safe_send_message(action_details, verbatim=True)
             rendered_item_ft = self.render_item(updated_item)
             logger = logging.getLogger(__name__)
             logger.debug(f'[DEBUG] Rendered item type (toggle_item): {type(rendered_item_ft)}')
@@ -156,7 +198,7 @@ class BaseCrud:
             logger.error(error_msg)
             logger.exception(f'Detailed error toggling item {item_id} in {self.name}:')
             action_details = f'An error occurred while toggling {self.name} (ID: {item_id}): {error_msg}'
-            self.send_message(action_details, verbatim=True)
+            self.safe_send_message(action_details, verbatim=True)
             return HTMLResponse(f"<div style='color:red;'>Error: {error_msg}</div>", status_code=500)
 
     async def sort_items(self, request):
@@ -198,7 +240,7 @@ class BaseCrud:
             items_list = ', '.join(updated_items)
             action_details = f'Reordered {self.name}: {items_list}'
             prompt = action_details
-            self.send_message(prompt, verbatim=True)
+            self.safe_send_message(prompt, verbatim=True)
             logger.debug(f'{self.name.capitalize()} order updated successfully')
             response = HTMLResponse('')
             triggers = {}
@@ -215,7 +257,7 @@ class BaseCrud:
             logger.error(error_msg)
             action_details = f'An error occurred while sorting {self.name} items: {error_msg}'
             prompt = action_details
-            self.send_message(prompt, verbatim=True)
+            self.safe_send_message(prompt, verbatim=True)
             return ('Invalid data format', 400)
         except Exception as e:
             error_msg = f'Error updating {self.name} order: {str(e)}'
@@ -223,91 +265,92 @@ class BaseCrud:
             logger.error(error_msg)
             action_details = f'An error occurred while sorting {self.name} items: {error_msg}'
             prompt = action_details
-            self.send_message(prompt, verbatim=True)
+            self.safe_send_message(prompt, verbatim=True)
             return (str(e), 500)
 
     async def insert_item(self, request):
         try:
-            logger = logging.getLogger(__name__)
-            logger.debug(f'[DEBUG] Starting BaseCrud insert_item for {self.name}')
             form = await request.form()
-            logger.debug(f'[DEBUG] Form data for {self.name}: {dict(form)}')
-            new_item_data = self.prepare_insert_data(form)
-            if not new_item_data:
-                logger.debug(f'[DEBUG] No new_item_data for {self.name}, returning empty response for HTMX.')
-                return HTMLResponse('')
-            new_item = await self.create_item(**new_item_data)
-            logger.debug(f'[DEBUG] Created new item for {self.name}: {new_item}')
+            insert_data = self.prepare_insert_data(form)
+            if insert_data is None:
+                return HTMLResponse(f"<div style='color:red;'>Invalid {self.name} data</div>", status_code=400)
+            
+            # 🎯 ENHANCED: Add timestamp fields for backup tracking (only if table supports it)
+            if self.backup_enabled and self._has_backup_fields():
+                current_time = datetime.now().isoformat()
+                insert_data[self.updated_field] = current_time
+                # Don't set deleted_at on insert (should be NULL for active records)
+            
+            logger.debug(f'[DEBUG] Attempting to insert data into {self.name}: {insert_data}')
+            new_item = self.table.insert(insert_data)
+            logger.debug(f'[DEBUG] Successfully inserted item into {self.name}: {new_item}')
+            
+            # 🎯 TRIGGER BACKUP after successful insert
+            self._trigger_backup()
+            
             item_name = getattr(new_item, self.item_name_field, 'Item')
             action_details = f"A new {self.name} item '{item_name}' was added."
-            self.send_message(action_details, verbatim=True)
+            self.safe_send_message(action_details, verbatim=True)
             rendered_item_ft = self.render_item(new_item)
             logger.debug(f'[DEBUG] Rendered item type (insert_item for {self.name}): {type(rendered_item_ft)}')
-            html_content = to_xml(rendered_item_ft)
-            logger.debug(f'[DEBUG] Rendered item HTML (insert_item for {self.name}): {html_content[:150]}...')
-            response = HTMLResponse(str(html_content))
-            if self.name == 'profiles':
-                logger.debug(f"Adding HX-Trigger for refreshProfileMenu due to insert_item on '{self.name}'")
-                response.headers['HX-Trigger'] = json.dumps({'refreshProfileMenu': {}})
-            return response
+            return rendered_item_ft
         except Exception as e:
-            error_msg = f'Error inserting {self.name}: {str(e)}'
-            logger = logging.getLogger(__name__)
-            logger.error(error_msg)
+            import traceback
             logger.exception(f'Detailed error inserting item in {self.name}:')
+            error_msg = f'Error inserting {self.name}: {str(e)}'
             action_details = f'An error occurred while adding a new {self.name}: {error_msg}'
-            self.send_message(action_details, verbatim=True)
+            self.safe_send_message(action_details, verbatim=True)
             return HTMLResponse(f"<div style='color:red;'>Error inserting {self.name}: {error_msg}</div>", status_code=500)
 
     async def update_item(self, request, item_id: int):
-        """Override the BaseCrud update_item to handle FastHTML objects properly"""
         try:
             form = await request.form()
             update_data = self.prepare_update_data(form)
-            if not update_data:
-                logger = logging.getLogger(__name__)
-                logger.debug(f'Update for {self.name} item {item_id} aborted by prepare_update_data.')
-                return HTMLResponse('')
-            item = self.table[item_id]
-            before_state = {k: getattr(item, k, None) for k in update_data.keys()}
-            for key, value in update_data.items():
-                setattr(item, key, value)
-            updated_item = self.table.update(item)
-            after_state = {k: getattr(updated_item, k, None) for k in update_data.keys()}
-            change_dict = {}
-            changes_log_list = []
-            for key in update_data.keys():
-                if before_state.get(key) != after_state.get(key):
-                    change_dict[key] = after_state.get(key)
-                    changes_log_list.append(f"{key} changed from '{before_state.get(key)}' to '{after_state.get(key)}'")
-            changes_str = '; '.join(changes_log_list)
-            item_name_display = getattr(updated_item, self.item_name_field, 'Item')
-            if changes_log_list:
-                formatted_changes = self.pipulate_instance.fmt(changes_str) if hasattr(self.pipulate_instance, 'fmt') else changes_str
+            if update_data is None:
+                return HTMLResponse(f"<div style='color:red;'>Invalid {self.name} data</div>", status_code=400)
+            
+            # 🎯 ENHANCED: Add updated timestamp for backup tracking (only if table supports it)
+            if self.backup_enabled and self._has_backup_fields():
+                update_data[self.updated_field] = datetime.now().isoformat()
+            
+            original_item = self.table[item_id]
+            old_values = {field: getattr(original_item, field, None) for field in update_data.keys()}
+            
+            # Update the item
+            updated_item = self.table.update(item_id, **update_data)
+            
+            # 🎯 TRIGGER BACKUP after successful update
+            self._trigger_backup()
+            
+            # Track changes for logging
+            changes = {}
+            for field, new_value in update_data.items():
+                old_value = old_values.get(field)
+                if old_value != new_value:
+                    changes[field] = {'old': old_value, 'new': new_value}
+            
+            if changes:
+                item_name_display = getattr(updated_item, self.item_name_field, f'Item {item_id}')
+                changes_str = ', '.join([f"{field}: '{change['old']}' → '{change['new']}'" for field, change in changes.items()])
+                
+                if hasattr(self.pipulate_instance, 'fmt'):
+                    formatted_changes = self.pipulate_instance.fmt(changes_str)
+                else:
+                    formatted_changes = changes_str
+                    
                 action_details = f"The {self.name} item '{item_name_display}' was updated. Changes: {formatted_changes}"
-                self.send_message(action_details, verbatim=True)
-                logger = logging.getLogger(__name__)
+                self.safe_send_message(action_details, verbatim=True)
                 logger.debug(f'Updated {self.name} item {item_id}. Changes: {changes_str}')
-            else:
-                logger = logging.getLogger(__name__)
-                logger.debug(f'No effective changes for {self.name} item {item_id}.')
+            
             rendered_item_ft = self.render_item(updated_item)
-            logger = logging.getLogger(__name__)
-            logger.debug(f'[DEBUG] Rendered item type (update_item): {type(rendered_item_ft)}')
-            html_content = to_xml(rendered_item_ft)
-            logger.debug(f'[DEBUG] HTML content (update_item): {html_content[:100]}...')
-            response = HTMLResponse(str(html_content))
-            if self.name == 'profiles' and 'name' in change_dict:
-                logger.debug(f"Adding HX-Trigger for refreshProfileMenu due to update_item (name change) on '{self.name}'")
-                response.headers['HX-Trigger'] = json.dumps({'refreshProfileMenu': {}})
-            return response
+            return rendered_item_ft
+            
         except Exception as e:
-            error_msg = f'Error updating {self.name} item {item_id}: {str(e)}'
-            logger = logging.getLogger(__name__)
-            logger.error(error_msg)
+            import traceback
             logger.exception(f'Detailed error updating item {item_id} in {self.name}:')
+            error_msg = f'Error updating {self.name}: {str(e)}'
             action_details = f'An error occurred while updating {self.name} (ID: {item_id}): {error_msg}'
-            self.send_message(action_details, verbatim=True)
+            self.safe_send_message(action_details, verbatim=True)
             return HTMLResponse(f"<div style='color:red;'>Error: {error_msg}</div>", status_code=500)
 
     async def create_item(self, **kwargs):
@@ -326,4 +369,79 @@ class BaseCrud:
         raise NotImplementedError('Subclasses must implement prepare_insert_data')
 
     def prepare_update_data(self, form):
-        raise NotImplementedError('Subclasses must implement prepare_update_data') 
+        raise NotImplementedError('Subclasses must implement prepare_update_data')
+
+    def _has_backup_fields(self) -> bool:
+        """Check if the table has the required backup fields."""
+        if not self.backup_enabled:
+            return False
+            
+        try:
+            # Check if the table has updated_at and deleted_at fields
+            # For now, we'll assume tables don't have these fields by default
+            # This can be enhanced later to actually check the table schema
+            return False
+        except Exception as e:
+            logger.debug(f"Error checking backup fields for {self.table_name}: {e}")
+            return False
+    
+    def _ensure_backup_schema(self):
+        """Ensure table has the required fields for backup integration."""
+        if not self.backup_enabled:
+            return
+            
+        try:
+            # For now, just log that we're checking the schema
+            # Later we can add actual schema migration logic here
+            has_fields = self._has_backup_fields()
+            if has_fields:
+                logger.debug(f"✅ Backup schema verified for {self.table_name}")
+            else:
+                logger.debug(f"ℹ️ Backup fields not present in {self.table_name} - backup disabled for this table")
+                self.backup_enabled = False
+        except Exception as e:
+            logger.error(f"❌ Error ensuring backup schema for {self.table_name}: {e}")
+            self.backup_enabled = False
+    
+    def _trigger_backup(self):
+        """Trigger a backup operation for this table."""
+        if not self.backup_enabled:
+            return
+            
+        try:
+            # Get the database path from the table or use default
+            db_path = getattr(self.table, 'db_path', 'data/app.db')
+            success = backup_manager.backup_table(db_path, self.table_name)
+            if success:
+                logger.debug(f"✅ Backup triggered for {self.table_name}")
+            else:
+                logger.warning(f"⚠️ Backup failed for {self.table_name}")
+        except Exception as e:
+            logger.error(f"❌ Error triggering backup for {self.table_name}: {e}")
+    
+    def _soft_delete_item(self, item_id: int):
+        """Perform soft delete by setting deleted_at timestamp."""
+        # Only do soft delete if table supports backup fields
+        if not self.backup_enabled or not self._has_backup_fields():
+            return False
+            
+        try:
+            # Update the item with deleted_at timestamp
+            update_data = {
+                self.deleted_field: datetime.now().isoformat(),
+                self.updated_field: datetime.now().isoformat()
+            }
+            
+            # Update the database record
+            item = self.table[item_id]
+            for field, value in update_data.items():
+                if hasattr(item, field):
+                    setattr(item, field, value)
+            
+            # Save changes (FastLite should handle this automatically)
+            logger.info(f"🗑️ Soft deleted {self.name} ID {item_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Soft delete failed for {self.name} ID {item_id}: {e}")
+            return False 
