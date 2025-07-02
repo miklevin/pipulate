@@ -4592,13 +4592,27 @@ def create_env_menu():
     dev_classes = 'menu-item-base menu-item-hover'
     if is_dev:
         dev_classes += ' menu-item-active'
-    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Development environment', data_testid='env-dev-radio'), 'DEV', cls='dropdown-menu-item'), cls=dev_classes, id='dev-env-item', data_testid='env-dev-item')
+    # Create info SVG for tooltips
+    info_svg_dev = '''<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info" style="margin-left: 6px; opacity: 0.7;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'''
+    info_svg_prod = '''<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info" style="margin-left: 6px; opacity: 0.7;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'''
+    
+    dev_item = Li(Label(
+        Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Development environment', data_testid='env-dev-radio'), 
+        'DEV',
+        Span(NotStr(info_svg_dev), data_tooltip='Development mode: Experiment and play! Freely reset ddatabase.', data_placement='left', aria_label='Development environment information'),
+        cls='dropdown-menu-item'
+    ), cls=dev_classes, id='dev-env-item', data_testid='env-dev-item')
     menu_items.append(dev_item)
     is_prod = current_env == 'Production'
     prod_classes = 'menu-item-base menu-item-hover'
     if is_prod:
         prod_classes += ' menu-item-active'
-    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Production environment', data_testid='env-prod-radio'), 'Prod', cls='dropdown-menu-item'), cls=prod_classes, id='prod-env-item', data_testid='env-prod-item')
+    prod_item = Li(Label(
+        Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Production environment', data_testid='env-prod-radio'), 
+        'Prod',
+        Span(NotStr(info_svg_prod), data_tooltip='Production mode: Automatically backs up Profile and Tasks data.', data_placement='left', aria_label='Production environment information'),
+        cls='dropdown-menu-item'
+    ), cls=prod_classes, id='prod-env-item', data_testid='env-prod-item')
     menu_items.append(prod_item)
     return Details(
         Summary(
