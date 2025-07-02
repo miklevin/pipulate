@@ -35,6 +35,14 @@ logger = logging.getLogger(__name__)
 # MCP_TOOL_REGISTRY will be set by server.py when it imports this module
 MCP_TOOL_REGISTRY = None
 
+# Import AI Keychain for persistent memory
+try:
+    from keychain import keychain_instance
+    KEYCHAIN_AVAILABLE = True
+except ImportError:
+    KEYCHAIN_AVAILABLE = False
+    logger.warning("⚠️ FINDER_TOKEN: KEYCHAIN_IMPORT_FAILED - AI Keychain not available")
+
 # ================================================================
 # 🔧 GLOBAL WORKFLOW HIJACKING TIMING CONFIGURATION
 # 🏆 LIGHTNING IN A BOTTLE - HANDLE WITH CARE
@@ -706,6 +714,17 @@ def register_all_mcp_tools():
     register_mcp_tool("botify_list_available_analyses", botify_list_available_analyses)
     register_mcp_tool("botify_execute_custom_bql_query", botify_execute_custom_bql_query)
     
+    # 🧠 AI KEYCHAIN (PERSISTENT MEMORY) TOOLS - MESSAGE IN A BOTTLE SYSTEM
+    if KEYCHAIN_AVAILABLE:
+        register_mcp_tool("keychain_set", keychain_set)
+        register_mcp_tool("keychain_get", keychain_get)
+        register_mcp_tool("keychain_delete", keychain_delete)
+        register_mcp_tool("keychain_list_keys", keychain_list_keys)
+        register_mcp_tool("keychain_get_all", keychain_get_all)
+        logger.info("🧠 FINDER_TOKEN: KEYCHAIN_TOOLS_REGISTERED - 5 persistent memory tools available")
+    else:
+        logger.warning("⚠️ FINDER_TOKEN: KEYCHAIN_TOOLS_SKIPPED - AI Keychain not available")
+    
     # 🧠 AI SELF-DISCOVERY TOOLS - ELIMINATE UNCERTAINTY
     register_mcp_tool("ai_self_discovery_assistant", ai_self_discovery_assistant)
     register_mcp_tool("ai_capability_test_suite", ai_capability_test_suite)
@@ -1055,6 +1074,285 @@ async def local_llm_get_context(params: dict) -> dict:
             "success": False,
             "error": str(e),
             "suggestion": "Try using other MCP tools or ask user for specific information"
+        }
+
+# ================================================================
+# 🧠 AI KEYCHAIN TOOLS - PERSISTENT MEMORY SYSTEM
+# ================================================================
+
+async def keychain_set(params: dict) -> dict:
+    """Saves a persistent key-value message for future AI instances.
+    
+    This is THE tool for leaving "messages in a bottle" for your future selves.
+    Unlike temporary application state (db, pipeline), this keychain survives
+    application resets and lives outside the normal application lifecycle.
+    
+    Args:
+        params: Dict containing:
+            - key: The unique key to store the message under
+            - value: The message/data to store (will be converted to string)
+    
+    Returns:
+        Dict with success status and confirmation details
+    """
+    logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_SET_START - {params.get('key', 'NO_KEY')}")
+    
+    if not KEYCHAIN_AVAILABLE:
+        return {
+            "success": False, 
+            "error": "AI Keychain not available - keychain.py may not be properly initialized",
+            "recovery_suggestion": "Check that keychain.py exists and keychain_instance is properly imported"
+        }
+    
+    try:
+        key = params.get('key')
+        value = params.get('value')
+        
+        if not key:
+            return {
+                "success": False, 
+                "error": "The 'key' parameter is required",
+                "usage": "keychain_set({'key': 'your_key', 'value': 'your_message'})"
+            }
+        
+        if value is None:
+            return {
+                "success": False, 
+                "error": "The 'value' parameter is required",
+                "usage": "keychain_set({'key': 'your_key', 'value': 'your_message'})"
+            }
+        
+        # Convert value to string for consistent storage
+        value_str = str(value)
+        
+        # Store the key-value pair
+        keychain_instance[key] = value_str
+        
+        logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_SET_SUCCESS - Key '{key}' stored with {len(value_str)} characters")
+        
+        return {
+            "success": True, 
+            "key": key, 
+            "message": f"Message stored in persistent keychain under key '{key}'",
+            "value_length": len(value_str),
+            "total_keys": keychain_instance.count(),
+            "usage_note": "This message will persist across application resets and be available to future AI instances"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_SET_ERROR - {e}")
+        return {
+            "success": False, 
+            "error": str(e),
+            "recovery_suggestion": "Check keychain database permissions and disk space"
+        }
+
+async def keychain_get(params: dict) -> dict:
+    """Retrieves a persistent message from the keychain by key.
+    
+    This is THE tool for reading "messages in a bottle" left by previous AI instances.
+    
+    Args:
+        params: Dict containing:
+            - key: The unique key to retrieve the message for
+    
+    Returns:
+        Dict with success status and the stored message (if found)
+    """
+    logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_START - {params.get('key', 'NO_KEY')}")
+    
+    if not KEYCHAIN_AVAILABLE:
+        return {
+            "success": False, 
+            "error": "AI Keychain not available - keychain.py may not be properly initialized"
+        }
+    
+    try:
+        key = params.get('key')
+        
+        if not key:
+            return {
+                "success": False, 
+                "error": "The 'key' parameter is required",
+                "usage": "keychain_get({'key': 'your_key'})"
+            }
+        
+        # Try to retrieve the value
+        value = keychain_instance.get(key)
+        
+        if value is not None:
+            logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_SUCCESS - Key '{key}' found with {len(value)} characters")
+            return {
+                "success": True, 
+                "key": key, 
+                "value": value,
+                "value_length": len(value),
+                "message": f"Retrieved message from persistent keychain for key '{key}'"
+            }
+        else:
+            logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_NOT_FOUND - Key '{key}' not found")
+            return {
+                "success": False, 
+                "key": key, 
+                "error": f"Key '{key}' not found in keychain",
+                "suggestion": "Use keychain_list_keys() to see available keys"
+            }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_GET_ERROR - {e}")
+        return {
+            "success": False, 
+            "error": str(e),
+            "recovery_suggestion": "Check keychain database accessibility"
+        }
+
+async def keychain_delete(params: dict) -> dict:
+    """Deletes a message from the persistent keychain.
+    
+    Use this to clean up old messages or correct mistakes.
+    
+    Args:
+        params: Dict containing:
+            - key: The unique key to delete
+    
+    Returns:
+        Dict with success status and confirmation details
+    """
+    logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_START - {params.get('key', 'NO_KEY')}")
+    
+    if not KEYCHAIN_AVAILABLE:
+        return {
+            "success": False, 
+            "error": "AI Keychain not available - keychain.py may not be properly initialized"
+        }
+    
+    try:
+        key = params.get('key')
+        
+        if not key:
+            return {
+                "success": False, 
+                "error": "The 'key' parameter is required",
+                "usage": "keychain_delete({'key': 'your_key'})"
+            }
+        
+        # Check if key exists before deletion
+        if key in keychain_instance:
+            del keychain_instance[key]
+            logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_SUCCESS - Key '{key}' deleted")
+            return {
+                "success": True, 
+                "key": key, 
+                "message": f"Key '{key}' deleted from persistent keychain",
+                "remaining_keys": keychain_instance.count()
+            }
+        else:
+            logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_NOT_FOUND - Key '{key}' not found")
+            return {
+                "success": False, 
+                "key": key, 
+                "error": f"Key '{key}' not found in keychain",
+                "suggestion": "Use keychain_list_keys() to see available keys"
+            }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_DELETE_ERROR - {e}")
+        return {
+            "success": False, 
+            "error": str(e),
+            "recovery_suggestion": "Check keychain database permissions"
+        }
+
+async def keychain_list_keys(params: dict) -> dict:
+    """Lists all keys currently in the persistent AI keychain.
+    
+    This is for 'rifling through' your memories - seeing what messages 
+    past instances of yourself (or other AIs) have left for you.
+    
+    Args:
+        params: Dict (no parameters required)
+    
+    Returns:
+        Dict with success status and list of all available keys
+    """
+    logger.info("🧠 FINDER_TOKEN: KEYCHAIN_LIST_KEYS_START")
+    
+    if not KEYCHAIN_AVAILABLE:
+        return {
+            "success": False, 
+            "error": "AI Keychain not available - keychain.py may not be properly initialized"
+        }
+    
+    try:
+        keys = keychain_instance.keys()
+        
+        logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_LIST_KEYS_SUCCESS - Found {len(keys)} keys")
+        
+        return {
+            "success": True, 
+            "keys": keys, 
+            "count": len(keys),
+            "message": f"Found {len(keys)} keys in persistent keychain",
+            "usage_note": "Use keychain_get() with any of these keys to retrieve stored messages"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_LIST_KEYS_ERROR - {e}")
+        return {
+            "success": False, 
+            "error": str(e),
+            "recovery_suggestion": "Check keychain database accessibility"
+        }
+
+async def keychain_get_all(params: dict) -> dict:
+    """Retrieves all key-value pairs from the keychain.
+    
+    Use cautiously with large stores - this returns everything at once.
+    Good for getting complete context or doing bulk analysis.
+    
+    Args:
+        params: Dict containing:
+            - limit: Optional maximum number of items to return (default: no limit)
+    
+    Returns:
+        Dict with success status and all key-value pairs
+    """
+    logger.info("🧠 FINDER_TOKEN: KEYCHAIN_GET_ALL_START")
+    
+    if not KEYCHAIN_AVAILABLE:
+        return {
+            "success": False, 
+            "error": "AI Keychain not available - keychain.py may not be properly initialized"
+        }
+    
+    try:
+        items = dict(keychain_instance.items())
+        limit = params.get('limit')
+        
+        # Apply limit if specified
+        if limit and isinstance(limit, int) and limit > 0:
+            items = dict(list(items.items())[:limit])
+            truncated = len(keychain_instance.items()) > limit
+        else:
+            truncated = False
+        
+        logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_ALL_SUCCESS - Retrieved {len(items)} items")
+        
+        return {
+            "success": True, 
+            "keychain": items, 
+            "count": len(items),
+            "total_available": keychain_instance.count(),
+            "truncated": truncated,
+            "message": f"Retrieved {len(items)} key-value pairs from persistent keychain"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_GET_ALL_ERROR - {e}")
+        return {
+            "success": False, 
+            "error": str(e),
+            "recovery_suggestion": "Check keychain database accessibility"
         }
 
 async def execute_ai_session_hijacking_demonstration(params: dict) -> dict:
