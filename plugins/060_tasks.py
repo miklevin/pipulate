@@ -71,7 +71,13 @@ class CrudCustomizer(BaseCrud):
         items_for_profile = self.table('profile_id = ?', [current_profile_id])
         max_priority = max((i.priority or 0 for i in items_for_profile), default=-1) + 1
         priority = int(form.get(f'{self.plugin.name}_priority', max_priority))
-        insert_data = {'text': text, 'done': False, 'priority': priority, 'profile_id': current_profile_id}
+            
+        insert_data = {
+            'text': text, 
+            'done': False, 
+            'priority': priority, 
+            'profile_id': current_profile_id
+        }
         logger.debug(f'Prepared insert data: {insert_data}')
         return insert_data
 
@@ -105,7 +111,14 @@ class CrudUI(PluginIdentityManager):
         db_path = os.path.join(os.path.dirname(__file__), '..', DB_FILENAME)
         logger.debug(f'Using database path: {db_path}')
         self.plugin_db = fastlite.database(db_path)
-        schema = {'id': int, 'text': str, 'done': bool, 'priority': int, 'profile_id': int, 'pk': 'id'}
+        schema = {
+            'id': int, 
+            'text': str, 
+            'done': bool, 
+            'priority': int, 
+            'profile_id': int,
+            'pk': 'id'
+        }
         schema_fields = {k: v for k, v in schema.items() if k != 'pk'}
         primary_key = schema.get('pk')
         if not primary_key:
