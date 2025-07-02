@@ -1811,6 +1811,12 @@ details.dropdown summary + ul {
     z-index: 9999 !important;
 }
 
+/* Remove underline from tooltip elements in dropdowns */
+details.dropdown [data-tooltip]:not(a, button, input) {
+    border-bottom: none !important;
+    text-decoration: none !important;
+}
+
 /* Dropdown menu item - consistent spacing for all dropdown labels */
 .dropdown-menu-item {
     display: flex;
