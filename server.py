@@ -4729,13 +4729,21 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     else:
         plugin_display_name = getattr(profiles_plugin_inst, 'DISPLAY_NAME', 'Profiles')
         if not profile_locked:
-            menu_items.append(Li(A(f'Edit {plugin_display_name}', Span(
-                NotStr(INFO_SVG),
-                data_tooltip='Create, modify, and organize your profile collections. Each profile controls which features are available.',
-                data_placement='left',
-                aria_label='Edit profiles information',
-                cls='dropdown-tooltip'
-            ), href=f'/redirect/{profiles_plugin_inst.name}', cls='dropdown-item menu-item-header'), cls='block dropdown-tooltip-container'))
+            menu_items.append(Li(Label(
+                f'Edit {plugin_display_name}',
+                Span(
+                    NotStr(INFO_SVG),
+                    data_tooltip='Create, modify, and organize Customer profiles. Each profile has its own set of Tasks.',
+                    data_placement='left',
+                    aria_label='Edit profiles information',
+                    cls='dropdown-tooltip'
+                ),
+                hx_post=f'/redirect/{profiles_plugin_inst.name}',
+                hx_target='body',
+                hx_swap='outerHTML',
+                cls='dropdown-item menu-item-header dropdown-menu-item',
+                style='cursor: pointer;'
+            )))
     active_profiles_list = []
     if profiles:
         if profile_locked:
