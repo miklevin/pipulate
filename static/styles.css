@@ -1770,25 +1770,48 @@ input[type="password"]:focus {
    ============================================================================ */
 
 /* ============================================================================
-   DROPDOWN TOOLTIP Z-INDEX FIX - Escape Container Clipping
+   DROPDOWN MENU TOOLTIP STYLING - Centralized Tooltip Solution
    ============================================================================
    
-   🚨 TOOLTIP CLIPPING ISSUE - CASE SOLVED! 🕵️
+   🎯 PURPOSE: Ensure all dropdown menu tooltips work consistently without clipping
    
-   PROBLEM: PicoCSS tooltips inside dropdown menus get clipped/masked because
-   the dropdown container creates a stacking context that limits tooltip visibility.
+   This centralized class solves tooltip visibility issues in dropdown menus by:
+   1. Using a very high z-index to escape container stacking contexts
+   2. Ensuring tooltip containers allow overflow
+   3. Providing consistent spacing and appearance
    
-   🧠 ROOT CAUSE:
-   - PicoCSS tooltips use z-index: 99
-   - Dropdown containers use position: absolute with their own stacking context
-   - Tooltips inside dropdowns can't escape their parent container bounds
-   
-   ✅ THE SOLUTION:
-   1. Increase z-index for tooltips specifically within dropdown contexts
-   2. Ensure dropdown containers allow tooltip overflow
-   3. Use !important to override PicoCSS defaults when needed
-   
-   🎯 RESULT: Tooltips within dropdown menus now display properly above all content
+   USAGE: Add 'dropdown-tooltip' class to any tooltip span in dropdown menus
+   ============================================================================ */
+
+.dropdown-tooltip {
+    display: inline-block;
+    margin-left: 12px;
+    /* Remove any background/border styling that might interfere */
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* Ensure dropdown tooltips always appear above everything */
+.dropdown-tooltip[data-tooltip]::before,
+.dropdown-tooltip[data-tooltip]::after {
+    z-index: 99999 !important; /* Even higher than the previous fix */
+}
+
+/* Ensure parent containers don't clip these tooltips */
+.dropdown-tooltip[data-tooltip] {
+    overflow: visible !important;
+}
+
+/* Clean up any unwanted underlines on tooltip elements */
+.dropdown-tooltip[data-tooltip] {
+    border-bottom: none !important;
+    text-decoration: none !important;
+    cursor: help;
+}
+
+/* ============================================================================
+   DROPDOWN TOOLTIP Z-INDEX FIX - Escape Container Clipping
    ============================================================================ */
 
 /* Fix dropdown tooltip z-index and positioning */
@@ -2190,5 +2213,11 @@ span[data-tooltip] {
 .nav-breadcrumb h1 span,
 .nav-breadcrumb h1 a {
     font-family: inherit !important;
+}
+
+/* Parent containers that contain tooltips must also allow overflow */
+.dropdown-tooltip-container {
+    overflow: visible !important;
+    position: relative;
 }
 

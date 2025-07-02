@@ -4714,7 +4714,13 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
     profile_locked = db.get('profile_locked', '0') == '1'
-    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', aria_label='Lock or unlock profile editing'), 'Lock Profile', cls='dropdown-menu-item'), cls='profile-menu-item'))
+    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', aria_label='Lock or unlock profile editing'), 'Lock Profile',         Span(
+            NotStr(INFO_SVG),
+            data_tooltip='Prevent accidental profile changes. When locked, only selected profile is shown.',
+            data_placement='left',
+            aria_label='Profile lock information',
+            cls='dropdown-tooltip'
+        ), cls='dropdown-menu-item'), cls='profile-menu-item'))
     menu_items.append(Li(Hr(cls='profile-menu-separator'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
@@ -4723,7 +4729,13 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     else:
         plugin_display_name = getattr(profiles_plugin_inst, 'DISPLAY_NAME', 'Profiles')
         if not profile_locked:
-            menu_items.append(Li(A(f'Edit {plugin_display_name}', href=f'/redirect/{profiles_plugin_inst.name}', cls='dropdown-item menu-item-header'), cls='block'))
+            menu_items.append(Li(A(f'Edit {plugin_display_name}', Span(
+                NotStr(INFO_SVG),
+                data_tooltip='Create, modify, and organize your profile collections. Each profile controls which features are available.',
+                data_placement='left',
+                aria_label='Edit profiles information',
+                cls='dropdown-tooltip'
+            ), href=f'/redirect/{profiles_plugin_inst.name}', cls='dropdown-item menu-item-header'), cls='block dropdown-tooltip-container'))
     active_profiles_list = []
     if profiles:
         if profile_locked:
@@ -4861,7 +4873,7 @@ def create_home_menu_item(menux):
             data_tooltip='Customize by adding and sorting groups of Plugins (Roles)',
             data_placement='left',
             aria_label='Roles information',
-            style='display: inline-block; margin-left: 8px; background: none !important; border: none !important; padding: 0 !important;'
+            cls='dropdown-tooltip'
         ),
         cls=home_css_classes
     )
