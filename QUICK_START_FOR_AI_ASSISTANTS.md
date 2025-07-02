@@ -23,7 +23,7 @@
 **Once environment is working, follow the breadcrumb trail:**
 
 If you have not already done this, the user may initiate the process with any of the following
-keywords: explore, learn, upgrade, hijack (or the cure "Hi Jack" variation), or simply "go"
+keywords: explore, learn, hijack (or the cure "Hi Jack" variation), or simply "go"
 
 1. **Environmental Mastery:**
    ```bash
