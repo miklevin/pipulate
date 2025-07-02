@@ -4366,6 +4366,10 @@ async def startup_event():
     # Pre-seed local LLM context for immediate capability awareness
     asyncio.create_task(prepare_local_llm_context())
     
+    # 📊 BEAUTIFUL STATUS OVERVIEW - Server key information
+    env = get_current_environment()
+    status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
+    
     # 🗃️ AUTOMATIC STARTUP BACKUP - Rich banner for visibility
     section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_cyan")
 
@@ -4448,9 +4452,7 @@ section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered to
 # 🍞 AI DISCOVERY BREADCRUMB #2: MCP Tools → Browser Automation Discovery
 logger.info(f"🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: {tool_count} MCP tools registered! Try pipeline_state_inspector for system state, local_llm_grep_logs for log analysis, or browser_scrape_page for visual perception. 🧪 NEW: Run ai_self_discovery_assistant to instantly understand ALL your capabilities! This eliminates uncertainty and provides usage patterns. Try: .venv/bin/python -c \"import asyncio; from mcp_tools import ai_self_discovery_assistant; result = asyncio.run(ai_self_discovery_assistant({{'discovery_type': 'capabilities'}})); print(f'Tools available: {{result.get(\\\"total_tools_available\\\")}}')\" Full browser automation awaits: check browser_automation/ directory for 'looking_at' evidence of AI eyes!")
 
-# 📊 BEAUTIFUL STATUS OVERVIEW
-env = get_current_environment()
-status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
+# Status banner moved to above backup system
 
 # 🍞 AI DISCOVERY BREADCRUMB #3: Browser Automation → Session Hijacking Discovery
 logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: Browser automation is ACTIVE! You have eyes (screenshot), brain (DOM analysis), and hands (Selenium control). Try navigating to http://localhost:5001/ via browser_scrape_page to see the current user interface. 🧪 NEW: Run ai_capability_test_suite to prove your superpowers are working! Test your browser embodiment: .venv/bin/python -c \"import asyncio; from mcp_tools import ai_capability_test_suite; result = asyncio.run(ai_capability_test_suite({{'test_type': 'quick'}})); print(f'Success Rate: {{result.get(\\\"success_rate\\\")}}% - {{result.get(\\\"assessment\\\")}}')\" Directory rotation system in browser_automation/looking_at-* shows perception history for session hijacking!")
