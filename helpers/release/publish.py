@@ -21,6 +21,18 @@ import json
 import requests
 from pathlib import Path
 
+# Rich table imports for beautiful output
+try:
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich import box
+    RICH_AVAILABLE = True
+except ImportError:
+    RICH_AVAILABLE = False
+    print("💡 Install 'rich' for beautiful table output: pip install rich")
+
 # --- Configuration ---
 try:
     PIPULATE_ROOT = Path(__file__).parent.parent.parent.resolve()
