@@ -1771,6 +1771,46 @@ input[type="password"]:focus {
    
    ============================================================================ */
 
+/* ============================================================================
+   DROPDOWN TOOLTIP Z-INDEX FIX - Escape Container Clipping
+   ============================================================================
+   
+   🚨 TOOLTIP CLIPPING ISSUE - CASE SOLVED! 🕵️
+   
+   PROBLEM: PicoCSS tooltips inside dropdown menus get clipped/masked because
+   the dropdown container creates a stacking context that limits tooltip visibility.
+   
+   🧠 ROOT CAUSE:
+   - PicoCSS tooltips use z-index: 99
+   - Dropdown containers use position: absolute with their own stacking context
+   - Tooltips inside dropdowns can't escape their parent container bounds
+   
+   ✅ THE SOLUTION:
+   1. Increase z-index for tooltips specifically within dropdown contexts
+   2. Ensure dropdown containers allow tooltip overflow
+   3. Use !important to override PicoCSS defaults when needed
+   
+   🎯 RESULT: Tooltips within dropdown menus now display properly above all content
+   ============================================================================ */
+
+/* Fix dropdown tooltip z-index and positioning */
+details.dropdown [data-tooltip]::before,
+details.dropdown [data-tooltip]::after {
+    z-index: 9999 !important; /* Much higher than default 99 */
+}
+
+/* Ensure dropdown containers don't clip tooltips */
+details.dropdown,
+details.dropdown summary + ul {
+    overflow: visible !important;
+}
+
+/* Specific fix for environment dropdown tooltips */
+.env-dropdown-menu [data-tooltip]::before,
+.env-dropdown-menu [data-tooltip]::after {
+    z-index: 9999 !important;
+}
+
 /* Dropdown menu item - consistent spacing for all dropdown labels */
 .dropdown-menu-item {
     display: flex;
