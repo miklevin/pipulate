@@ -5241,11 +5241,12 @@ async def poke_flyout(request):
             current_text = " + ".join(current_breakdown) if current_breakdown else "0 records"
             backup_text = " + ".join(backup_breakdown) if backup_breakdown else "0 records"
             
-            # Status display showing detailed breakdown
+            # Status display with compact formatting
             backup_status = Div(
-                Small(f"💾 Current: {current_text} | Backup: {backup_text}", cls='text-secondary'),
-                Small(f"📁 {backup_manager.backup_root}", cls='text-muted'),
-                Div(id='backup-restore-result'),  # Target for operation results
+                Small(f"💾 Current: {current_text}", cls='text-secondary', style='font-size: 0.75em; line-height: 1.2;'),
+                Small(f"📥 Backup: {backup_text}", cls='text-secondary', style='font-size: 0.75em; line-height: 1.2;'),
+                Small(f"📁 {backup_manager.backup_root}", cls='text-muted', style='font-size: 0.7em; word-break: break-all; line-height: 1.1;'),
+                Div(id='backup-restore-result', style='font-size: 0.8em; line-height: 1.3; word-wrap: break-word;'),  # Target for operation results
                 cls='backup-status-display'
             )
             
@@ -5639,15 +5640,23 @@ async def explicit_restore(request):
             status_msg = f"⚠️ Partial Restore: {successful}/{total} tables restored ({breakdown_text})"
             status_class = "text-warning"
         
-        # Add refresh instruction for major data changes
+        # Add magical TWINKLE effect for successful restores
         if successful > 0 and backup_total > 0:
-            details = f"🔄 Page refresh recommended to see restored data"
+            details = f"🔄 Data restored - page refreshing to show changes..."
+            # Add magical page refresh for the TWINKLE effect
+            refresh_script = Script("""
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1500);  // Brief delay to read the success message
+            """)
         else:
             details = f"📁 Backup location: {backup_manager.backup_root}"
+            refresh_script = ""
         
         return Div(
             P(status_msg, cls=status_class),
             P(details, cls='text-secondary'),
+            refresh_script,  # Magical TWINKLE reload for successful restores
             id='backup-restore-result'
         )
         
