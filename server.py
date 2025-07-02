@@ -4384,23 +4384,6 @@ async def startup_event():
     
     # 🗃️ AUTOMATIC STARTUP BACKUP - Rich banner for visibility
     section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_cyan")
-
-    # 📖 LOG READING LEGEND - Educational guide for understanding logs
-    logger.info("📖 LOG_READING_LEGEND: Educational guide displayed for log interpretation")
-    from helpers.ascii_displays import log_reading_legend
-    legend_content = log_reading_legend()
-    panel = Panel(
-        legend_content,
-        title="[bold bright_cyan]📖 Log Reading Guide[/bold bright_cyan]",
-        box=ROUNDED,
-        style="bright_cyan",
-        padding=(1, 2)
-    )
-    console.print(panel)
-    
-    white_rabbit()
-    
-    # 🗃️ AUTOMATIC STARTUP BACKUP - Ensure data protection on every server start
     try:
         from helpers.durable_backup_system import backup_manager
         main_db_path = DB_FILENAME
@@ -4417,6 +4400,22 @@ async def startup_event():
                 logger.debug(f'🗃️ STARTUP_BACKUP: {table_name} - {count} records backed up')
     except Exception as e:
         logger.error(f'🗃️ STARTUP_BACKUP: Failed to create automatic backup - {str(e)}')
+    
+
+    # 📖 LOG READING LEGEND - Educational guide for understanding logs
+    logger.info("📖 LOG_READING_LEGEND: Educational guide displayed for log interpretation")
+    from helpers.ascii_displays import log_reading_legend
+    legend_content = log_reading_legend()
+    panel = Panel(
+        legend_content,
+        title="[bold bright_cyan]📖 Log Reading Guide[/bold bright_cyan]",
+        box=ROUNDED,
+        style="bright_cyan",
+        padding=(1, 2)
+    )
+    console.print(panel)
+    
+    white_rabbit()
     
 ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
