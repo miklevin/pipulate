@@ -100,7 +100,7 @@ def apply_timing_preset(preset_name: str):
         logger.warning(f"⚠️ Unknown timing preset: {preset_name}")
 
 # 🎯 Apply default timing preset (change this to tune global speed)
-apply_timing_preset("dramatic")  # Options: "lightning", "fast", "dramatic"
+apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
 
 # ================================================================
 # HELPER FUNCTIONS
