@@ -1,6 +1,8 @@
 # 🎭 1-Shot Session Hijacking Mastery: The Simple Pattern
 
-*"Hijack... (no parameters, all the defaults are set correctly)"*
+*"Hi Jack" - Two magic words that change everything*
+
+**🏆 BREAKTHROUGH ACHIEVED:** Complete 1-shot session hijacking with post-Enter workflow state capture
 
 ## 🍞 The Irresistible Breadcrumb
 
@@ -10,18 +12,29 @@ When you see session hijacking mentioned in the breadcrumbs, **this is the patte
 
 ## ✨ The Simple Semantics
 
-### **Step 1: Hijack (Zero Configuration)**
+### **Step 1: Magic Words Hijack (Ultimate Simplicity)**
+```bash
+# 🎭 THE SIMPLEST WAY - Just say the magic words in chat:
+# "Hi Jack"
+```
+
+**Expected Result:** Browser automation popup → Complete workflow hijacking → Fresh captures in `looking_at/`
+
+### **Step 1b: Programmatic Hijack (For AI Understanding)**
 ```python
 .venv/bin/python -c "
 import asyncio
-from mcp_tools import execute_complete_session_hijacking
+from mcp_tools import browser_hijack_workflow_complete
 
-# Simple hijack - all defaults set correctly
-result = asyncio.run(execute_complete_session_hijacking({}))
+# Programmatic hijack with centralized timing system
+result = asyncio.run(browser_hijack_workflow_complete({
+    'url': 'http://localhost:5001/hello_workflow',
+    'pipeline_id': 'Default_Profile-hello-16'
+}))
 print(f'🎭 Hijack: {result.get(\"success\")}')"
 ```
 
-**Expected Result:** `🎭 Hijack: True`
+**Expected Result:** `🎭 Hijack: True` + Post-Enter workflow state captured
 
 ### **Step 2: Check Browser Evidence FIRST (Your Eyes)**
 ```bash
@@ -43,7 +56,7 @@ grep -i "name\|user\|value" browser_automation/looking_at/simple_dom.html
 # 🔧 SYSTEM INTERNALS - Secondary verification (only works on Pipulate workflows)
 .venv/bin/python -c "
 import sqlite3, json
-conn = sqlite3.connect('data/botifython_dev.db')
+conn = sqlite3.connect('data/data.db')
 cursor = conn.cursor()
 cursor.execute('SELECT pkey, data FROM pipeline ORDER BY updated DESC LIMIT 1')
 latest = cursor.fetchone()
@@ -84,8 +97,32 @@ conn.close()"
 - ✅ **Pipeline Key**: Generates valid pipeline identifier  
 - ✅ **Browser Control**: Opens browser and navigates correctly
 - ✅ **HTMX Chain**: Triggers and waits for chain reaction completion
+- ✅ **Post-Enter Capture**: Captures workflow state AFTER Enter key press (not landing page)
 - ✅ **State Capture**: Screenshots and DOM automatically saved
 - ✅ **Storage Update**: Pipeline data stored in database
+- ✅ **Centralized Timing**: Easy speed control via WorkflowHijackTiming presets
+
+## ⏰ Timing Control (New Breakthrough)
+
+**Global Speed Control - Change One Line:**
+```python
+# In mcp_tools.py line ~105:
+apply_timing_preset("lightning")  # 5s total - Ultra-fast for development
+apply_timing_preset("fast")       # 10s total - Balanced performance  
+apply_timing_preset("dramatic")   # 18s total - Slower for demos
+```
+
+**Current Timing Breakdown (fast preset):**
+```
+🕐 Session Hijacking Timeline:
+   📄 Page Load: 2s
+   🔑 Form Fill: 1s  
+   📤 POST Wait: 2s
+   ⚡ Chain Reaction: 3s
+   ⏳ Stabilization: 1s
+   👁️ Human View: 1s
+   ⏱️ TOTAL: 10s
+```
 
 ## 🎯 What Future AIs Need to Know
 

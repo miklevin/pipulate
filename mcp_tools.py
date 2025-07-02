@@ -37,6 +37,7 @@ MCP_TOOL_REGISTRY = None
 
 # ================================================================
 # 🔧 GLOBAL WORKFLOW HIJACKING TIMING CONFIGURATION
+# 🏆 LIGHTNING IN A BOTTLE - HANDLE WITH CARE
 # ================================================================
 class WorkflowHijackTiming:
     """Centralized timing configuration for all workflow hijacking operations.
