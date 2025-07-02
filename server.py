@@ -4366,9 +4366,15 @@ async def startup_event():
     # Pre-seed local LLM context for immediate capability awareness
     asyncio.create_task(prepare_local_llm_context())
     
-    white_rabbit()
     # 🗃️ AUTOMATIC STARTUP BACKUP - Rich banner for visibility
     section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_cyan")
+
+    # 🏷️ ENVIRONMENT MODE BANNER - Show current operating mode
+    current_env = get_current_environment()
+    env_display = "DEVELOPMENT" if current_env == "Development" else "PRODUCTION"
+    figlet_banner(env_display, f"Running in {current_env} mode")
+
+    white_rabbit()
     
     # 🗃️ AUTOMATIC STARTUP BACKUP - Ensure data protection on every server start
     try:
