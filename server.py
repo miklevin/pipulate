@@ -4366,10 +4366,18 @@ async def startup_event():
     # Pre-seed local LLM context for immediate capability awareness
     asyncio.create_task(prepare_local_llm_context())
     
+    # 🏷️ ENVIRONMENT MODE BANNER - Show current operating mode
+    current_env = get_current_environment()
+    env_display = "DEVELOPMENT" if current_env == "Development" else "PRODUCTION"
+    figlet_banner(env_display, f"Running in {current_env} mode")
+
     # 📊 BEAUTIFUL STATUS OVERVIEW - Server key information
     env = get_current_environment()
     status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
     
+    # 🗃️ AUTOMATIC STARTUP BACKUP - Rich banner for visibility
+    section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_cyan")
+
     # 📖 LOG READING LEGEND - Educational guide for understanding logs
     from helpers.ascii_displays import log_reading_legend
     legend_content = log_reading_legend()
@@ -4383,14 +4391,6 @@ async def startup_event():
     console.print(panel)
     logger.info("📖 LOG_READING_LEGEND: Educational guide displayed for log interpretation")
     
-    # 🗃️ AUTOMATIC STARTUP BACKUP - Rich banner for visibility
-    section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_cyan")
-
-    # 🏷️ ENVIRONMENT MODE BANNER - Show current operating mode
-    current_env = get_current_environment()
-    env_display = "DEVELOPMENT" if current_env == "Development" else "PRODUCTION"
-    figlet_banner(env_display, f"Running in {current_env} mode")
-
     white_rabbit()
     
     # 🗃️ AUTOMATIC STARTUP BACKUP - Ensure data protection on every server start
