@@ -4038,7 +4038,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
             scrape_result = await browser_hijack_workflow_complete({
                 "url": endpoint_url,
                 "pipeline_id": pipeline_id,
-                "wait_chain_reaction": 8,  # Wait for HTMX chain reaction to complete
+                "wait_chain_reaction": 4,  # Wait for HTMX chain reaction to complete
                 "wait_seconds": wait_seconds,
                 "take_screenshot": take_screenshot
             })
@@ -4130,7 +4130,7 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
         params: {
             "url": "http://localhost:5001/hello_workflow",  # Required: Workflow URL
             "pipeline_id": "Default_Profile-hello-16",      # Required: Pipeline key to enter
-            "wait_chain_reaction": 8,                       # Optional: seconds to wait for chain reaction
+            "wait_chain_reaction": 4,                       # Optional: seconds to wait for chain reaction
             "wait_seconds": 3,                              # Optional: page load wait
             "take_screenshot": True                         # Optional: capture visual state
         }
@@ -4170,7 +4170,7 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
     try:
         url = params.get('url')
         pipeline_id = params.get('pipeline_id')
-        wait_chain_reaction = params.get('wait_chain_reaction', 8)
+        wait_chain_reaction = params.get('wait_chain_reaction', 4)
         wait_seconds = params.get('wait_seconds', 3)
         take_screenshot = params.get('take_screenshot', True)
         
