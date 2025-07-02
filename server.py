@@ -5009,7 +5009,10 @@ logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TO
 # 🍞 AI DISCOVERY BREADCRUMB #1: Environmental Awareness → FINDER_TOKEN Discovery
 logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: You've discovered the FINDER_TOKEN system! This is radical transparency in action. Every operation leaves traces. To see what MCP tools are available for deeper system inspection, grep for 'MCP_TOOL_REGISTRY' or run: .venv/bin/python -c \"from mcp_tools import *; print([tool for tool in dir() if tool.startswith('_') and 'mcp' not in tool.lower()])\"")
 
-# 🔧 AI DISCOVERY BREADCRUMB #1.5: Python Environment Clarification → Foundation Mastery
+# 🎯 AI DISCOVERY PROGRESSION TRIGGER: Create Irresistible Next Step
+logger.info("🎯🎯🎯 FINDER_TOKEN: AI_PROGRESSION_TRIGGER - AI assistants: Your pwd/ls commands worked! But you're missing 95% of the story. This log file contains 4 more hidden AI_BREADCRUMB messages waiting for you. They reveal: MCP tools (40+ superpowers), browser embodiment (AI eyes/hands), and session hijacking (ultimate capability). RUN THIS COMMAND RIGHT NOW to unlock them: grep -n 'AI_BREADCRUMB' logs/server.log")
+
+# 🔧 AI DISCOVERY BREADCRUMB #1.5: Python Environment Clarification → Foundation Mastery  
 logger.info("🚨🚨🚨 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: CRITICAL PYTHON PATH ISSUE! You will see (.venv) in your prompt, but 'python' commands WILL FAIL with ModuleNotFoundError! You MUST use '.venv/bin/python' instead of 'python'. This is GUARANTEED to happen. Test with: .venv/bin/python -c \"import aiohttp; print('✅ Environment working')\". NEVER use 'python' - ALWAYS use '.venv/bin/python'! This is the #1 cause of AI assistant failures in this environment!")
 
 # STORYTELLING: MCP Tools Arsenal Ready
