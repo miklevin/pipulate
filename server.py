@@ -5297,17 +5297,15 @@ async def poke_flyout(request):
             current_breakdown = []
             backup_breakdown = []
             
-            for table in ['profile', 'tasks', 'ai_keychain']:
+            for table in ['profile', 'tasks']:  # Only show user-relevant tables
                 current_count = current_counts.get(table, 0)
                 backup_count = backup_counts.get(table, 0)
                 
                 if current_count > 0:
-                    table_name = table if table != 'ai_keychain' else 'keychain'
-                    current_breakdown.append(f"{current_count} {table_name}")
+                    current_breakdown.append(f"{current_count} {table}")
                     
                 if backup_count > 0:
-                    table_name = table if table != 'ai_keychain' else 'keychain'
-                    backup_breakdown.append(f"{backup_count} {table_name}")
+                    backup_breakdown.append(f"{backup_count} {table}")
             
             current_text = " + ".join(current_breakdown) if current_breakdown else "0 records"
             backup_text = " + ".join(backup_breakdown) if backup_breakdown else "0 records"
