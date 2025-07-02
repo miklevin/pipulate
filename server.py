@@ -5208,36 +5208,47 @@ async def poke_flyout(request):
     # Add Backup controls (Prod mode only)
     backup_status = None
     backup_button = None
+    restore_button = None
     if not is_dev_mode:  # Only show backup controls in Prod mode
         try:
-            backup_info = get_backup_status()
-            if backup_info['available']:
-                # Create backup status display
-                if backup_info['backup_exists'] and backup_info['table_status']:
-                    table_count = len(backup_info['table_status'])
-                    backup_status_text = f"💾 {table_count} tables backed up"
-                    backup_status_detail = f"📁 {backup_info['backup_root']}"
-                else:
-                    backup_status_text = "💾 No backups yet"
-                    backup_status_detail = f"📁 {backup_info['backup_root']}"
-                
-                backup_status = Div(
-                    Small(backup_status_text, cls='text-secondary'),
-                    Small(backup_status_detail, cls='text-muted'),
-                    Div(id='backup-status-result'),  # Target for backup results
-                    cls='backup-status-display'
-                )
-                
-                backup_button = Button(
-                    '💾 Backup Now', 
-                    hx_post='/backup-now', 
-                    hx_target='#backup-status-result', 
-                    hx_swap='innerHTML',
-                    cls='secondary outline backup-button',
-                    **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Backing up..."'}
-                )
-            else:
-                backup_status = Small(f"❌ Backup unavailable: {backup_info.get('error', 'Unknown error')}", cls='text-invalid')
+            from helpers.durable_backup_system import backup_manager
+            
+            # Get current database and backup counts
+            main_db_path = DB_FILENAME
+            current_counts = backup_manager.get_current_db_counts(main_db_path)
+            backup_counts = backup_manager.get_backup_counts()
+            
+            # Calculate totals for clear labeling
+            current_total = sum(current_counts.values())
+            backup_total = sum(backup_counts.values())
+            
+            # Status display showing both current and backup state
+            backup_status = Div(
+                Small(f"💾 Current: {current_total} records | Backup: {backup_total} records", cls='text-secondary'),
+                Small(f"📁 {backup_manager.backup_root}", cls='text-muted'),
+                Div(id='backup-restore-result'),  # Target for operation results
+                cls='backup-status-display'
+            )
+            
+            # Separate explicit buttons
+            backup_button = Button(
+                f'📤 Save {current_total} records', 
+                hx_post='/explicit-backup', 
+                hx_target='#backup-restore-result', 
+                hx_swap='innerHTML',
+                cls='secondary outline backup-button',
+                **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Saving..."'}
+            )
+            
+            restore_button = Button(
+                f'📥 Load {backup_total} records', 
+                hx_post='/explicit-restore', 
+                hx_target='#backup-restore-result', 
+                hx_swap='innerHTML',
+                cls='secondary outline restore-button',
+                **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Loading..."'}
+            )
+            
         except Exception as e:
             backup_status = Small(f"❌ Backup error: {str(e)}", cls='text-invalid')
     
@@ -5268,6 +5279,8 @@ async def poke_flyout(request):
     # Add backup controls (Prod mode only)
     if not is_dev_mode and backup_button:
         list_items.append(Li(backup_button, cls='flyout-list-item'))
+    if not is_dev_mode and restore_button:
+        list_items.append(Li(restore_button, cls='flyout-list-item'))
     if not is_dev_mode and backup_status:
         list_items.append(Li(backup_status, cls='flyout-list-item backup-status-item'))
     
@@ -5506,6 +5519,101 @@ async def backup_now(request):
         return Div(
             P(f"❌ Backup error: {str(e)}", cls='text-invalid'),
             id='backup-status-result'
+        )
+
+@rt('/explicit-backup', methods=['POST'])
+async def explicit_backup(request):
+    """📤 EXPLICIT BACKUP: Save current data TO backup files."""
+    try:
+        from helpers.durable_backup_system import backup_manager
+        
+        # Get main database path
+        main_db_path = DB_FILENAME
+        keychain_db_path = 'data/ai_keychain.db'
+        
+        # Get counts for status messages
+        current_counts = backup_manager.get_current_db_counts(main_db_path)
+        current_total = sum(current_counts.values())
+        
+        # Perform explicit backup
+        results = backup_manager.explicit_backup_all(main_db_path, keychain_db_path)
+        
+        # Count successes
+        successful = sum(1 for success in results.values() if success)
+        total = len(results)
+        
+        # Create response message
+        if successful == total:
+            status_msg = f"📤 Saved: {current_total} records backed up successfully"
+            status_class = "text-success"
+        else:
+            status_msg = f"⚠️ Partial Save: {successful}/{total} tables backed up"
+            status_class = "text-warning"
+        
+        # Add location info
+        backup_location = str(backup_manager.backup_root)
+        details = f"📁 Location: {backup_location}"
+        
+        return Div(
+            P(status_msg, cls=status_class),
+            P(details, cls='text-secondary'),
+            id='backup-restore-result'
+        )
+        
+    except Exception as e:
+        return Div(
+            P(f"❌ Backup error: {str(e)}", cls='text-invalid'),
+            id='backup-restore-result'
+        )
+
+@rt('/explicit-restore', methods=['POST'])
+async def explicit_restore(request):
+    """📥 EXPLICIT RESTORE: Load backup data INTO current database."""
+    try:
+        from helpers.durable_backup_system import backup_manager
+        
+        # Get main database path
+        main_db_path = DB_FILENAME
+        keychain_db_path = 'data/ai_keychain.db'
+        
+        # Get counts for status messages
+        backup_counts = backup_manager.get_backup_counts()
+        backup_total = sum(backup_counts.values())
+        
+        # Perform explicit restore
+        results = backup_manager.explicit_restore_all(main_db_path, keychain_db_path)
+        
+        # Count successes
+        successful = sum(1 for success in results.values() if success)
+        total = len(results)
+        
+        # Create response message
+        if successful == total and backup_total > 0:
+            status_msg = f"📥 Loaded: {backup_total} records restored successfully"
+            status_class = "text-success"
+        elif backup_total == 0:
+            status_msg = f"⚠️ No Data: No backup records found to restore"
+            status_class = "text-warning"
+        else:
+            status_msg = f"⚠️ Partial Restore: {successful}/{total} tables restored"
+            status_class = "text-warning"
+        
+        # Add refresh instruction for major data changes
+        if successful > 0 and backup_total > 0:
+            details = f"🔄 Page refresh recommended to see restored data"
+        else:
+            details = f"📁 Backup location: {backup_manager.backup_root}"
+        
+        return Div(
+            P(status_msg, cls=status_class),
+            P(details, cls='text-secondary'),
+            id='backup-restore-result'
+        )
+        
+    except Exception as e:
+        return Div(
+            P(f"❌ Restore error: {str(e)}", cls='text-invalid'),
+            id='backup-restore-result'
         )
 
 @rt('/toggle_profile_lock', methods=['POST'])
