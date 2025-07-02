@@ -5315,7 +5315,7 @@ async def poke_flyout(request):
             # Status display with compact formatting
             backup_status = Div(
                 Small(f"💾 Current: {current_text}", cls='text-secondary', style='font-size: 0.75em; line-height: 1.2;'),
-                Small(f"📥 Backup: {backup_text}", cls='text-secondary', style='font-size: 0.75em; line-height: 1.2;'),
+                Small(f"📥 Backup:\n{backup_text}", cls='text-secondary', style='font-size: 0.75em; line-height: 1.2; white-space: pre-line;'),
                 Small(f"📁 {backup_manager.backup_root}", cls='text-muted', style='font-size: 0.7em; word-break: break-all; line-height: 1.1;'),
                 Div(id='backup-restore-result', style='font-size: 0.8em; line-height: 1.3; word-wrap: break-word;'),  # Target for operation results
                 cls='backup-status-display'
