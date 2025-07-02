@@ -4580,6 +4580,11 @@ def create_nav_group():
     app_menu_refresh_listener = Div(id='app-menu-refresh-listener', hx_get='/refresh-app-menu', hx_trigger='refreshAppMenu from:body', hx_target='#app-dropdown-menu', hx_swap='outerHTML', cls='hidden')
     return Div(nav, refresh_listener, app_menu_refresh_listener, id='nav-group', role='navigation', aria_label='Main navigation')
 
+# Centralized SVG definitions for reuse across the application
+INFO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'''
+
+SETTINGS_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'''
+
 def create_env_menu():
     """Create environment selection dropdown menu."""
     current_env = get_current_environment()
@@ -4597,7 +4602,13 @@ def create_env_menu():
     dev_item = Li(Label(
         Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Development environment', data_testid='env-dev-radio'), 
         'DEV',
-        Img(src='/static/feather/info.svg', alt='Info', data_tooltip='Development mode: Experiment and play! Freely reset ddatabase.', data_placement='left', aria_label='Development environment information', cls='info-icon tooltip-clean'),
+        Span(
+            NotStr(INFO_SVG),
+            data_tooltip='Development mode: Experiment and play! Freely reset database.',
+            data_placement='left',
+            aria_label='Development environment information',
+            style='display: inline-block; margin-left: 12px;'
+        ),
         cls='dropdown-menu-item'
     ), cls=dev_classes, id='dev-env-item', data_testid='env-dev-item')
     menu_items.append(dev_item)
@@ -4608,7 +4619,13 @@ def create_env_menu():
     prod_item = Li(Label(
         Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Production environment', data_testid='env-prod-radio'), 
         'Prod',
-        Img(src='/static/feather/info.svg', alt='Info', data_tooltip='Production mode: Automatically backs up Profile and Tasks data.', data_placement='left', aria_label='Production environment information', cls='info-icon tooltip-clean'),
+        Span(
+            NotStr(INFO_SVG),
+            data_tooltip='Production mode: Automatically backs up Profile and Tasks data.',
+            data_placement='left',
+            aria_label='Production environment information',
+            style='display: inline-block; margin-left: 12px;'
+        ),
         cls='dropdown-menu-item'
     ), cls=prod_classes, id='prod-env-item', data_testid='env-prod-item')
     menu_items.append(prod_item)
@@ -4652,7 +4669,7 @@ def create_nav_menu():
     # Use external SVG file for poke button settings icon
     nav_flyout_panel = Div(id='nav-flyout-panel', cls='nav-flyout-panel hidden')
     poke_section = Details(
-        Summary(Img(src='/static/feather/settings.svg', alt='Settings', cls='settings-icon'), cls='inline-nowrap nav-poke-button', id='poke-summary', hx_get='/poke-flyout', hx_target='#nav-flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML'),
+        Summary(NotStr(SETTINGS_SVG), cls='inline-nowrap nav-poke-button', id='poke-summary', hx_get='/poke-flyout', hx_target='#nav-flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML'),
         nav_flyout_panel,
         cls='dropdown nav-poke-section',
         id='poke-dropdown-menu'

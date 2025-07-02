@@ -1811,8 +1811,8 @@ details.dropdown summary + ul {
     z-index: 9999 !important;
 }
 
-/* Remove underline from tooltip elements in dropdowns */
-details.dropdown [data-tooltip]:not(a, button, input) {
+/* Remove underlines from tooltip spans without breaking PicoCSS tooltip functionality */
+span[data-tooltip] {
     border-bottom: none !important;
     text-decoration: none !important;
 }
