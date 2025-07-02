@@ -5233,7 +5233,8 @@ async def poke_flyout(request):
                     hx_post='/backup-now', 
                     hx_target='#backup-status-result', 
                     hx_swap='innerHTML',
-                    cls='secondary outline backup-button'
+                    cls='secondary outline backup-button',
+                    **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Backing up..."'}
                 )
             else:
                 backup_status = Small(f"❌ Backup unavailable: {backup_info.get('error', 'Unknown error')}", cls='text-invalid')
