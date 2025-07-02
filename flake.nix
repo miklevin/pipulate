@@ -648,6 +648,9 @@ EOF
               fi
             fi
           fi
+
+          # Add a 'release' alias for quick access to the release pipeline
+          alias release='.venv/bin/python helpers/release/publish.py'
         '';
 
         # Function to create shells for each OS
@@ -701,6 +704,9 @@ EOF
               export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
               # We don't need to run the setup script here, as the env var is enough
               # to make Jupyter use the config files if they exist.
+
+              # Add a 'release' alias for quick access to the release pipeline
+              alias release='.venv/bin/python helpers/release/publish.py'
             '';
           };
         };
