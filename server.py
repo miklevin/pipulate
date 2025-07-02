@@ -4367,6 +4367,9 @@ async def startup_event():
     # Pre-seed local LLM context for immediate capability awareness
     asyncio.create_task(prepare_local_llm_context())
     
+    # 🗃️ AUTOMATIC STARTUP BACKUP - Rich banner for visibility
+    section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_cyan")
+    
     # 🗃️ AUTOMATIC STARTUP BACKUP - Ensure data protection on every server start
     try:
         from helpers.durable_backup_system import backup_manager
