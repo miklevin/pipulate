@@ -74,9 +74,9 @@
 
 ## 📚 **COMPLETE DOCUMENTATION**
 
-- **Progressive Discovery**: `training/ai_discovery/ai_progressive_discovery_sequence.md`
-- **MCP Tools Guide**: `training/ai_discovery/ai_mcp_tools_discovery_guide.md`
-- **Python Path Analysis**: `training/ai_discovery/ai_python_path_issue_analysis.md`
+- **Progressive Discovery**: `ai_discovery/ai_progressive_discovery_sequence.md`
+- **MCP Tools Guide**: `ai_discovery/ai_mcp_tools_discovery_guide.md`
+- **Python Path Analysis**: `ai_discovery/ai_python_path_issue_analysis.md`
 
 ---
 

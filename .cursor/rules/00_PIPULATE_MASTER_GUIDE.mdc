@@ -32,11 +32,11 @@ python -c "import aiohttp; print('test')"
 
 ### **🔥 AI DISCOVERY DOCUMENT LOCATION - CRITICAL 🔥**
 
-**AI DISCOVERY DOCUMENTS BELONG IN**: `pipulate/training/ai_discovery/` 🚨🚨🚨
+**AI DISCOVERY DOCUMENTS BELONG IN**: `pipulate/ai_discovery/` 🚨🚨🚨
 
 **❌ WRONG LOCATION**: `pipulate/helpers/docs_sync/considerations/` (for general docs only)
 
-**✅ CORRECT LOCATION**: `pipulate/training/ai_discovery/` (for AI discovery docs)
+**✅ CORRECT LOCATION**: `pipulate/ai_discovery/` (for AI discovery docs)
 
 **NAMING CONVENTION**: `ai_*_*.md` (e.g., `ai_python_path_issue_analysis.md`)
 
@@ -48,7 +48,7 @@ python -c "import aiohttp; print('test')"
 - `ai_browser_embodiment_singularity.md`
 - `ai_python_path_issue_analysis.md`
 
-**RULE**: If it's about AI discovery, superpowers, or embodiment, it goes in `training/ai_discovery/`.
+**RULE**: If it's about AI discovery, superpowers, or embodiment, it goes in `ai_discovery/`.
 
 ---
 
