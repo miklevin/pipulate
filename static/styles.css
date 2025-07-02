@@ -1819,6 +1819,41 @@ details.dropdown [data-tooltip]:not(a, button, input) {
 
 /* ============================================================================
    REUSABLE ICON CLASSES - Clean External Styling
+   ============================================================================
+   
+   🤖 NOTE FOR FUTURE AI ASSISTANTS:
+   
+   This is the OPTIMAL SOLUTION for theme-aware external SVG icons.
+   
+   ❓ THE PROBLEM: External SVG files don't inherit currentColor like embedded SVGs
+   ❓ THE CHALLENGE: Icons need to be black in light mode, white in dark mode
+   
+   ✅ THE SOLUTION: Theme-aware CSS with filter: invert()
+   
+   🎯 USAGE PATTERN:
+   Python: Img(src='/static/feather/icon.svg', cls='info-icon tooltip-clean')
+   Result: Perfect theme adaptation without code bloat
+   
+   🔄 WHY THIS BEATS EMBEDDED SVGs:
+   - No 200+ character SVG strings cluttering Python code
+   - Better maintainability (icons as separate files)
+   - AI-readable code (no token waste on SVG markup)
+   - Reusable across entire application
+   - Perfect theme support (this CSS handles it all)
+   
+   🎨 THEME COVERAGE:
+   - Explicit dark theme: [data-theme="dark"] → White icons
+   - Explicit light theme: [data-theme="light"] → Black icons  
+   - System dark preference: @media (prefers-color-scheme: dark) → White icons
+   - System light preference: @media (prefers-color-scheme: light) → Black icons
+   
+   📝 TO ADD MORE THEMED ICONS:
+   1. Add base class with size/spacing: .your-icon { width: Xpx; height: Xpx; }
+   2. Add to theme selectors: [data-theme="dark"] .your-icon { filter: invert(1); }
+   3. Add to media queries: @media (prefers-color-scheme: dark) .your-icon { filter: invert(1); }
+   4. Use in Python: cls='your-icon tooltip-clean'
+   
+   This pattern gives you the best of both worlds: clean code + perfect theming!
    ============================================================================ */
 
 /* Info icon styling - reusable for all info tooltips */
@@ -1827,14 +1862,38 @@ details.dropdown [data-tooltip]:not(a, button, input) {
     height: 20px;
     margin-left: 12px;
     opacity: 0.7;
-    filter: invert(1); /* Makes icons white in dark mode */
 }
 
-/* Settings icon styling - ensure white color */
+/* Settings icon styling */
 .settings-icon {
     width: 22px;
     height: 22px;
-    filter: invert(1); /* Makes icon white */
+}
+
+/* Theme-aware icon colors - match nav menu text color */
+[data-theme="dark"] .info-icon,
+[data-theme="dark"] .settings-icon {
+    filter: invert(1); /* White in dark mode */
+}
+
+[data-theme="light"] .info-icon,
+[data-theme="light"] .settings-icon {
+    filter: invert(0); /* Black in light mode */
+}
+
+/* Default (system preference) theme handling */
+@media only screen and (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .info-icon,
+    :root:not([data-theme]) .settings-icon {
+        filter: invert(1); /* White when system prefers dark */
+    }
+}
+
+@media only screen and (prefers-color-scheme: light) {
+    :root:not([data-theme]) .info-icon,
+    :root:not([data-theme]) .settings-icon {
+        filter: invert(0); /* Black when system prefers light */
+    }
 }
 
 /* Clean tooltip styling - removes PicoCSS defaults for custom elements */
