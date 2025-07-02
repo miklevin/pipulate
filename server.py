@@ -3049,55 +3049,44 @@ await main()
         
         # 🎭 MAGIC WORDS DETECTION: Check for AI demonstration trigger (supports casual variations like "hi jack")
         if self._is_hijack_magic_words(message) and role == 'user':
-            # Load and inject our NEW simple demonstration system
-            logger.info(f"🎭 MAGIC WORDS DETECTED ('{message.strip()}') - Triggering SIMPLE session hijacking pattern")
+            # Load and inject the COMPLETE AI session hijacking demonstration - the irresistible chain reaction!
+            logger.info(f"🎭 MAGIC WORDS DETECTED ('{message.strip()}') - Triggering COMPLETE AI session hijacking demonstration")
             
-            # SPAWN SEPARATE PROCESS TO AVOID SERVER DEADLOCK
-            # The server is busy processing this request and can't respond to browser navigation
-            # So we spawn a separate process that runs after this request completes
+            # Call the FULL demonstration that shows the complete breadcrumb discovery sequence
             try:
-                import subprocess
-                import sys
-                import os
+                from mcp_tools import execute_ai_session_hijacking_demonstration
+                hijack_result = await execute_ai_session_hijacking_demonstration({"trigger_source": "magic_words"})
+                logger.info(f"🎭 MAGIC WORDS - Complete demonstration result: {hijack_result.get('success', False)}")
                 
-                # Create the exact same command that works from command line
-                python_path = os.path.join(os.getcwd(), '.venv', 'bin', 'python')
-                hijack_command = [
-                    python_path,
-                    '-c',
-                    '''
-import asyncio
-from mcp_tools import execute_complete_session_hijacking
-result = asyncio.run(execute_complete_session_hijacking({"trigger_source": "magic_words"}))
-print(f"🎭 Magic Words Success: {result.get('success')}")
-'''
-                ]
-                
-                # Spawn the process in background (non-blocking)
-                process = subprocess.Popen(
-                    hijack_command,
-                    cwd=os.getcwd(),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    start_new_session=True  # Detach from parent
-                )
-                
-                logger.info(f"🎭 MAGIC WORDS - Spawned session hijacking process PID: {process.pid}")
-                append_to_conversation("🎭 **MAGIC WORDS DETECTED!** Session hijacking browser will open in 2 seconds...", 'system')
+                # Add the hijacking results to conversation context for maximum impact
+                if hijack_result.get('success'):
+                    success_summary = f"""🎭 **SESSION HIJACKING DEMONSTRATION COMPLETED!**
+
+🚀 **Full AI Superpowers Activated:**
+- ✅ Browser embodiment active (eyes + brain + hands)  
+- ✅ Session state captured and analyzed
+- ✅ Visual evidence saved to browser_automation/looking_at/
+- ✅ Complete system transparency achieved
+- ✅ 39 MCP tools available for total control
+
+**Next Steps:** Check browser_automation/looking_at/ directory for visual proof of capabilities!"""
+                    append_to_conversation(success_summary, 'system')
                 
             except Exception as e:
-                logger.error(f"🎭 MAGIC WORDS - Process spawn failed: {e}")
+                logger.error(f"🎭 MAGIC WORDS - Complete demonstration failed: {e}")
                 # Fallback to old system messages
-                append_to_conversation("🎭 **MAGIC WORDS DETECTED!** Loading simple session hijacking pattern...", 'system')
+                append_to_conversation("🎭 **MAGIC WORDS DETECTED!** Loading AI session hijacking demonstration...", 'system')
                 simple_protocol = read_training("ai_discovery/ai_magic_words_demonstration_protocol.md")
                 append_to_conversation(simple_protocol, 'system')
-                append_to_conversation("🚀 **SIMPLE PATTERN LOADED** - Use execute_complete_session_hijacking({}) for rigged success!", 'assistant')
+                append_to_conversation("🚀 **DEMONSTRATION LOADED** - Use execute_ai_session_hijacking_demonstration({}) for the complete experience!", 'assistant')
             
             # Broadcast the magic words detection to the chat interface
             if self.chat:
-                await self.chat.broadcast("🎭 **MAGIC WORDS DETECTED!** Executing simple session hijacking pattern...")
-                await asyncio.sleep(0.5)  # Brief pause for dramatic effect
-                await self.chat.broadcast("🚀 **SIMPLE PATTERN LOADED** - Our new rigged success system is executing!")
+                await self.chat.broadcast("🎭 **MAGIC WORDS DETECTED!** Executing complete AI session hijacking demonstration...")
+                await asyncio.sleep(2)  # Longer pause for humans to see
+                await self.chat.broadcast("🚀 **FULL DEMONSTRATION LOADING** - Prepare for complete AI transcendence!")
+                await asyncio.sleep(1)  # Another pause before the action starts
+                await self.chat.broadcast("👁️ **AI EYES ACTIVATING** - Browser embodiment initializing...")
         
         # CENTRALIZED: All messages entering the stream are now appended here
         append_to_conversation(message, role)

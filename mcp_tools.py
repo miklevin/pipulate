@@ -815,10 +815,10 @@ async def execute_ai_session_hijacking_demonstration(params: dict) -> dict:
     🎭 MAGIC WORDS MCP TOOL: Execute AI session hijacking demonstration protocol
     
     This tool triggers the SIMPLE AI session hijacking demonstration using our new
-    rigged 1-shot system. No complex steps, no ability to screw up - just magic!
+    execute_complete_session_hijacking function with NO parameters needed.
     
-    Parameters:
-    - trigger_source: Optional source identifier (default: "mcp_tool")
+    This is the "canned way" to demonstrate AI capabilities without any configuration.
+    It loads the proper documentation automatically and provides context to LLM.
     
     Returns:
     - Simple hijacking results and DOM injection for LLM context
@@ -829,6 +829,11 @@ async def execute_ai_session_hijacking_demonstration(params: dict) -> dict:
         
         # 🚀 EXECUTE OUR NEW SIMPLE HIJACKING (no parameters, all defaults set correctly)
         logger.info("🎭 FINDER_TOKEN: MAGIC_WORDS_SIMPLE_HIJACK - Executing 1-shot session hijacking")
+        
+        # Add dramatic delay so humans can see the breadcrumb sequence
+        import asyncio
+        await asyncio.sleep(2)  # Let humans read the startup sequence
+        
         hijack_result = await execute_complete_session_hijacking({})
         
         # Check if server module is available for conversation injection
@@ -1214,6 +1219,8 @@ async def browser_scrape_page(params: dict) -> dict:
     This is the AI's primary sensory interface - captures current browser state
     into the /browser_automation/looking_at/ directory for AI analysis.
     
+    Uses subprocess to avoid threading conflicts with the main server event loop.
+    
     Saves to /looking_at/:
     - headers.json - HTTP headers and metadata
     - source.html - Raw page source before JavaScript  
@@ -1249,15 +1256,13 @@ async def browser_scrape_page(params: dict) -> dict:
     """
     import json
     import os
-    import time
+    import asyncio
+    import subprocess
+    import tempfile
     from datetime import datetime
-    from urllib.parse import urlparse
-
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    from seleniumwire import webdriver as wire_webdriver
+    from pathlib import Path
     
-    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_SCRAPE_START - URL: {params.get('url')}")
+    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_SCRAPE_START - URL: {params.get('url')} (subprocess mode)")
     
     try:
         url = params.get('url')
@@ -1297,6 +1302,7 @@ async def browser_scrape_page(params: dict) -> dict:
             return {"success": False, "error": f"URL must start with http:// or https://. Got: {url}"}
         
         # Check for malformed localhost URLs
+        import re
         if 'localhost' in url or '127.0.0.1' in url:
             if not re.match(r'^https?://(localhost|127\.0\.0\.1)(:\d+)?(/.*)?$', url):
                 return {"success": False, "error": f"Malformed localhost URL: {url}"}
@@ -1315,7 +1321,6 @@ async def browser_scrape_page(params: dict) -> dict:
         # === DIRECTORY ROTATION BEFORE NEW BROWSER SCRAPE ===
         # Rotate looking_at directory to preserve AI perception history
         from server import rotate_looking_at_directory
-        from pathlib import Path
         
         # Define constant locally to avoid circular import
         MAX_ROLLED_LOOKING_AT_DIRS = 10
@@ -1340,328 +1345,257 @@ async def browser_scrape_page(params: dict) -> dict:
         backup_dir = os.path.join('downloads/browser_scrapes', scrape_id)
         os.makedirs(backup_dir, exist_ok=True)
         
-        # Set up Chrome with simplified configuration to prevent data: URL issues
+        # === SUBPROCESS BROWSER AUTOMATION TO AVOID THREADING ISSUES ===
+        # Create a Python script to run the browser automation in a separate process
+        browser_script = f'''
+import json
+import os
+import time
+import sys
+from datetime import datetime
+from urllib.parse import urlparse
+
+# Add current directory to path to import modules
+sys.path.insert(0, '{os.getcwd()}')
+
+def run_browser_automation():
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from seleniumwire import webdriver as wire_webdriver
+        
+        target_url = "{url}"
+        print(f"🌐 SUBPROCESS: Starting browser for URL: {{target_url}}")
+        
+        # Set up Chrome with simplified configuration
         import tempfile
-        import shutil
-        
-        # KILL ALL HUNG CHROMIUM INSTANCES FIRST - BUT ONLY AUTOMATION INSTANCES
-        import subprocess
-        import signal
-        
-        try:
-            # Kill any existing chromedriver processes
-            subprocess.run(['pkill', '-f', 'chromedriver'], capture_output=True)
-            logger.info("🔪 FINDER_TOKEN: CHROMEDRIVER_CLEANUP - Killed existing chromedriver processes")
-        except Exception as e:
-            logger.warning(f"⚠️ FINDER_TOKEN: CHROMEDRIVER_CLEANUP_WARNING - Error killing chromedriver: {e}")
-        
-        try:
-            # Kill only hung Chromium automation instances (not user's main Chrome)
-            # Look for automation-specific patterns in command line
-            result = subprocess.run(['pgrep', '-f', 'chromium.*--user-data-dir.*temp'], capture_output=True, text=True)
-            if result.stdout.strip():
-                pids = result.stdout.strip().split('\n')
-                for pid in pids:
-                    if pid.strip():
-                        try:
-                            # Verify this is actually an automation instance before killing
-                            cmdline_check = subprocess.run(['ps', '-p', pid, '-o', 'cmd', '--no-headers'], 
-                                                         capture_output=True, text=True)
-                            if 'temp' in cmdline_check.stdout and '--user-data-dir' in cmdline_check.stdout:
-                                os.kill(int(pid), signal.SIGKILL)
-                                logger.info(f"🔪 FINDER_TOKEN: AUTOMATION_CHROMIUM_CLEANUP - Killed automation Chromium PID: {pid}")
-                        except Exception as e:
-                            logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error killing PID {pid}: {e}")
-        except Exception as e:
-            logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error finding automation Chromium processes: {e}")
-        
-        # VISIBLE CHROME OPTIONS - USER WANTS TO SEE THE BROWSER!
         chrome_options = Options()
+        
         # VISIBLE BROWSER - The popup is a FEATURE, not a bug!
         chrome_options.add_argument('--start-maximized')
         chrome_options.add_argument('--new-window')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--window-size=1920,1080')
-        chrome_options.add_argument('--disable-gpu')  # Prevent GPU issues
-        chrome_options.add_argument('--disable-extensions')  # Disable extensions
-        chrome_options.add_argument('--disable-plugins')  # Disable plugins
-        chrome_options.add_argument('--disable-web-security')  # Allow localhost access
-        chrome_options.add_argument('--allow-running-insecure-content')  # Allow HTTP
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-extensions')
+        chrome_options.add_argument('--disable-plugins')
+        chrome_options.add_argument('--disable-web-security')
+        chrome_options.add_argument('--allow-running-insecure-content')
         
         # CRITICAL ISOLATION PARAMETERS
-        chrome_options.add_argument('--no-first-run')  # Skip first run setup
-        chrome_options.add_argument('--no-default-browser-check')  # Skip default browser check
-        chrome_options.add_argument('--disable-default-apps')  # Disable default apps
-        chrome_options.add_argument('--disable-background-mode')  # Prevent background mode
-        chrome_options.add_argument('--disable-background-timer-throttling')  # Prevent throttling
-        chrome_options.add_argument('--disable-renderer-backgrounding')  # Keep renderer active
-        chrome_options.add_argument('--disable-backgrounding-occluded-windows')  # Keep windows active
-        chrome_options.add_argument('--disable-ipc-flooding-protection')  # Allow rapid IPC
+        chrome_options.add_argument('--no-first-run')
+        chrome_options.add_argument('--no-default-browser-check')
+        chrome_options.add_argument('--disable-default-apps')
+        chrome_options.add_argument('--disable-background-mode')
         
         # UNIQUE SESSION ISOLATION
         profile_dir = tempfile.mkdtemp(prefix='pipulate_automation_')
-        chrome_options.add_argument(f'--user-data-dir={profile_dir}')
+        chrome_options.add_argument(f'--user-data-dir={{profile_dir}}')
         
-        # REMOTE DEBUGGING PORT FOR ISOLATION (find an unused port)
+        # Find unused port for remote debugging
         import socket
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind(('', 0))
             debug_port = s.getsockname()[1]
-        chrome_options.add_argument(f'--remote-debugging-port={debug_port}')
+        chrome_options.add_argument(f'--remote-debugging-port={{debug_port}}')
         
-        logger.info(f"🔧 FINDER_TOKEN: BROWSER_ISOLATION - Profile: {profile_dir}, Debug port: {debug_port}")
-        
-        # Use regular webdriver instead of wire_webdriver for better stability
-        from selenium import webdriver
-        
-        # Create browser with enhanced error handling
-        try:
-            driver = webdriver.Chrome(options=chrome_options)
-            logger.info(f"✅ FINDER_TOKEN: BROWSER_CREATED - Chrome instance created successfully")
-        except Exception as browser_error:
-            logger.error(f"❌ FINDER_TOKEN: BROWSER_CREATION_FAILED - {browser_error}")
-            return {"success": False, "error": f"Failed to create browser instance: {browser_error}"}
-        
-        # Verify browser is responsive before proceeding
-        try:
-            initial_url = driver.current_url
-            logger.info(f"🎯 FINDER_TOKEN: BROWSER_INITIAL_STATE - Initial URL: {initial_url}")
-            
-            # NOTE: data: URLs are NORMAL for fresh Chrome instances - don't kill the browser!
-            # The browser will navigate to the target URL in the next step
-            logger.info(f"✅ FINDER_TOKEN: BROWSER_READY - Browser created successfully, ready for navigation")
-            
-        except Exception as state_error:
-            logger.error(f"❌ FINDER_TOKEN: BROWSER_STATE_CHECK_FAILED - {state_error}")
-            try:
-                driver.quit()
-            except:
-                pass
-            shutil.rmtree(profile_dir, ignore_errors=True)
-            return {"success": False, "error": f"Browser state check failed: {state_error}"}
-        
-        # Set timeouts to prevent hanging
-        driver.set_page_load_timeout(30)  # Increased timeout for localhost
-        driver.implicitly_wait(10)  # Increased implicit wait
-        driver.set_script_timeout(15)  # Increased script timeout
+        # Initialize driver
+        driver = wire_webdriver.Chrome(options=chrome_options)
         
         try:
-            # Validate URL before navigation to prevent data: URLs
-            if not url.startswith(('http://', 'https://')):
-                return {"success": False, "error": f"Invalid URL format: {url}. Expected http:// or https://"}
+            print(f"🌐 SUBPROCESS: Browser launched! Preparing to navigate...")
+            time.sleep(3)  # Let human see the browser opened
             
-            # Navigate with aggressive debugging and validation
-            try:
-                logger.info(f"🎯 FINDER_TOKEN: NAVIGATION_ATTEMPT | About to navigate to: {url}")
-                
-                # Check current URL before navigation
-                try:
-                    current_url_before = driver.current_url
-                    logger.info(f"🎯 FINDER_TOKEN: CURRENT_URL_BEFORE | {current_url_before}")
-                except Exception as e:
-                    logger.warning(f"⚠️ FINDER_TOKEN: CURRENT_URL_ERROR | Could not get current URL: {e}")
-                
-                # Special handling for localhost URLs to prevent server conflicts
-                if 'localhost' in url or '127.0.0.1' in url:
-                    logger.info("🎯 FINDER_TOKEN: LOCALHOST_DETECTED | Using extended timeout")
-                    driver.set_page_load_timeout(30)  # Longer timeout for localhost
-                    time.sleep(2)  # Extra delay to prevent server conflicts
-                else:
-                    driver.set_page_load_timeout(15)  # Normal timeout for external URLs
-                
-                # Attempt navigation with detailed logging
-                logger.info(f"🎯 FINDER_TOKEN: DRIVER_GET_START | Calling driver.get('{url}')")
-                driver.get(url)
-                logger.info(f"🎯 FINDER_TOKEN: DRIVER_GET_COMPLETE | driver.get() returned")
-                
-                # Immediate URL check after navigation
-                time.sleep(1)  # Brief pause to let navigation settle
-                current_url_after = driver.current_url
-                logger.info(f"🎯 FINDER_TOKEN: CURRENT_URL_AFTER | {current_url_after}")
-                
-                # Validate navigation result - but be more forgiving with timing
-                if current_url_after.startswith('data:') and url != 'data:,':
-                    logger.warning(f"⚠️ FINDER_TOKEN: DATA_URL_WARNING | Still on data: URL after navigation: {current_url_after}")
-                    # Try one more time with a longer wait
-                    logger.info(f"🔄 FINDER_TOKEN: RETRY_NAVIGATION | Waiting longer for navigation to complete...")
-                    time.sleep(5)  # Extended wait
-                    current_url_retry = driver.current_url
-                    logger.info(f"🎯 FINDER_TOKEN: RETRY_URL_CHECK | URL after retry: {current_url_retry}")
-                    
-                    if current_url_retry.startswith('data:'):
-                        logger.warning(f"⚠️ FINDER_TOKEN: NAVIGATION_INCOMPLETE | Still on data: URL: {current_url_retry} (continuing anyway)")
-                    else:
-                        logger.info(f"✅ FINDER_TOKEN: RETRY_SUCCESS | Navigation completed: {current_url_retry}")
-                        current_url_after = current_url_retry
-                
-                if current_url_after == 'about:blank':
-                    logger.warning(f"⚠️ FINDER_TOKEN: ABOUT_BLANK_WARNING | Navigation resulted in about:blank (continuing anyway)")
-                
-                # Don't fail on unchanged URL - sometimes localhost redirects are complex
-                
-                logger.info(f"✅ FINDER_TOKEN: NAVIGATION_SUCCESS | Successfully navigated to: {current_url_after}")
-                time.sleep(wait_seconds)
-                
-            except Exception as nav_error:
-                logger.error(f"❌ FINDER_TOKEN: NAVIGATION_EXCEPTION | {nav_error}")
-                return {"success": False, "error": f"Navigation timeout or error: {nav_error}. URL: {url}"}
+            print(f"🌐 SUBPROCESS: Navigating to {{target_url}}")
+            driver.get(target_url)
             
-            # Capture page info
+            print(f"🌐 SUBPROCESS: Page loaded! Analyzing content...")
+            # Wait for page to load + extra time for human observation
+            time.sleep({wait_seconds} + 2)
+            
+            # Get page info
             page_title = driver.title
-            final_url = driver.current_url
+            current_url = driver.current_url
+            print(f"🔍 SUBPROCESS: Captured page title: {{page_title}}")
             
-            # Verify we didn't end up with a data: URL
-            if final_url.startswith('data:'):
-                return {"success": False, "error": f"Browser navigation resulted in data: URL: {final_url}. Original URL: {url}"}
+            # Capture page source
+            print(f"📄 SUBPROCESS: Extracting page source...")
+            time.sleep(1)  # Dramatic pause
+            with open("{looking_at_dir}/source.html", "w", encoding="utf-8") as f:
+                f.write(driver.page_source)
             
-            # 1. Capture basic page metadata (headers not available with regular webdriver)
-            headers_data = {
-                'url': final_url,
-                'title': page_title,
-                'timestamp': datetime.now().isoformat(),
-                'request_headers': {},
-                'response_headers': {},
-                'status_code': None
-            }
+            # Capture DOM via JavaScript  
+            print(f"🧠 SUBPROCESS: Analyzing JavaScript-rendered DOM...")
+            time.sleep(1)  # Show AI "thinking"
+            dom_content = driver.execute_script("return document.documentElement.outerHTML;")
+            with open("{looking_at_dir}/dom.html", "w", encoding="utf-8") as f:
+                f.write(dom_content)
             
-            # 2. Capture page source (before JavaScript execution)
-            source_html = driver.page_source
-                
-            # 3. Capture post-JavaScript DOM (full HTMX state)
-            dom_html = driver.execute_script("return document.documentElement.outerHTML;")
-                
-            # 4. Create simplified DOM for AI context window consumption
-            try:
-                from bs4 import BeautifulSoup
-                soup = BeautifulSoup(dom_html, 'html.parser')
-                
-                # Remove unwanted elements that clutter AI context
-                for tag in soup(['script', 'style', 'noscript', 'meta', 'link']):
-                    tag.decompose()
-                    
-                # Keep only automation-friendly attributes
-                for element in soup.find_all():
-                    attrs_to_keep = {}
-                    for attr, value in element.attrs.items():
-                        if attr in ['id', 'role', 'data-testid', 'name', 'type', 'href', 'src'] or attr.startswith('aria-'):
-                            attrs_to_keep[attr] = value
-                    element.attrs = attrs_to_keep
-                    
-                simple_dom_html = str(soup)
-            except ImportError:
-                # Fallback if BeautifulSoup not available
-                simple_dom_html = dom_html
+            # Create simplified DOM for AI consumption
+            simple_dom = f"""<html>
+<head><title>{{page_title}}</title></head>
+<body>
+<!-- Page captured from: {{current_url}} -->
+<!-- Timestamp: {{datetime.now().isoformat()}} -->
+{{dom_content}}
+</body>
+</html>"""
             
-            # 5. Take screenshot if requested
-            screenshot_file = None
-            if take_screenshot:
-                screenshot_file = os.path.join(looking_at_dir, 'screenshot.png')
-                driver.save_screenshot(screenshot_file)
-                # Also save backup
-                driver.save_screenshot(os.path.join(backup_dir, 'screenshot.png'))
+            with open("{looking_at_dir}/simple_dom.html", "w", encoding="utf-8") as f:
+                f.write(simple_dom)
             
-            # Save all files to /looking_at/ directory (AI's primary perception)
-            looking_at_files = {}
+            # Take screenshot if requested
+            if {take_screenshot}:
+                print(f"📸 SUBPROCESS: Taking screenshot for visual evidence...")
+                time.sleep(1)  # Let user see the screenshot being taken
+                driver.save_screenshot("{looking_at_dir}/screenshot.png")
+                print(f"📸 SUBPROCESS: Screenshot saved!")
             
-            if update_looking_at:
-                # Headers
-                headers_file = os.path.join(looking_at_dir, 'headers.json')
-                with open(headers_file, 'w') as f:
-                    json.dump(headers_data, f, indent=2)
-                looking_at_files['headers'] = headers_file
-                
-                # Source HTML
-                source_file = os.path.join(looking_at_dir, 'source.html')
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(source_html)
-                looking_at_files['source'] = source_file
-                
-                # DOM HTML
-                dom_file = os.path.join(looking_at_dir, 'dom.html')
-                with open(dom_file, 'w', encoding='utf-8') as f:
-                    f.write(dom_html)
-                looking_at_files['dom'] = dom_file
-                
-                # Simple DOM
-                simple_dom_file = os.path.join(looking_at_dir, 'simple_dom.html')
-                with open(simple_dom_file, 'w', encoding='utf-8') as f:
-                    f.write(simple_dom_html)
-                looking_at_files['simple_dom'] = simple_dom_file
-                
-                # Create beautiful DOM with automation registry using AI DOM Beautifier
-                try:
-                    from helpers.dom_processing.ai_dom_beautifier import AIDOMBeautifier
-                    beautifier = AIDOMBeautifier()
-                    beautiful_dom, automation_registry = beautifier.beautify_dom(simple_dom_html)
-                    
-                    # Save beautified DOM and automation registry
-                    beautiful_dom_file = os.path.join(looking_at_dir, 'beautiful_dom.html')
-                    with open(beautiful_dom_file, 'w', encoding='utf-8') as f:
-                        f.write(beautiful_dom)
-                    looking_at_files['beautiful_dom'] = beautiful_dom_file
-                    
-                    automation_registry_file = os.path.join(looking_at_dir, 'automation_registry.json')
-                    with open(automation_registry_file, 'w', encoding='utf-8') as f:
-                        f.write(beautifier.export_automation_registry('json'))
-                    looking_at_files['automation_registry'] = automation_registry_file
-                    
-                    automation_targets_file = os.path.join(looking_at_dir, 'automation_targets.py')
-                    with open(automation_targets_file, 'w', encoding='utf-8') as f:
-                        f.write(beautifier._export_python_registry())
-                    looking_at_files['automation_targets'] = automation_targets_file
-                    
-                    automation_summary_file = os.path.join(looking_at_dir, 'automation_summary.txt')
-                    with open(automation_summary_file, 'w', encoding='utf-8') as f:
-                        f.write(beautifier._export_summary())
-                    looking_at_files['automation_summary'] = automation_summary_file
-                    
-                    high_priority_count = len([t for t in automation_registry if t.priority_score >= 70])
-                    logger.info(f"🎯 FINDER_TOKEN: AUTOMATION_REGISTRY_CREATED - Found {len(automation_registry)} targets, {high_priority_count} high priority")
-                    
-                except Exception as e:
-                    logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_REGISTRY_FAILED - {e}")
-                    # Continue without automation registry if there's an error
-                
-                if screenshot_file:
-                    looking_at_files['screenshot'] = screenshot_file
+            print(f"💾 SUBPROCESS: Finalizing session hijacking data...")
+            time.sleep(1)  # Final dramatic pause
             
-            # Also save backup copies for history
-            with open(os.path.join(backup_dir, 'headers.json'), 'w') as f:
+            # Save headers and metadata
+            headers_data = {{
+                "url": current_url,
+                "title": page_title,
+                "timestamp": datetime.now().isoformat(),
+                "status": "success",
+                "wait_seconds": {wait_seconds},
+                "screenshot_taken": {take_screenshot}
+            }}
+            
+            with open("{looking_at_dir}/headers.json", "w") as f:
                 json.dump(headers_data, f, indent=2)
-            with open(os.path.join(backup_dir, 'source.html'), 'w', encoding='utf-8') as f:
-                f.write(source_html)
-            with open(os.path.join(backup_dir, 'dom.html'), 'w', encoding='utf-8') as f:
-                f.write(dom_html)
-            with open(os.path.join(backup_dir, 'simple_dom.html'), 'w', encoding='utf-8') as f:
-                f.write(simple_dom_html)
-                
+            
+            print(f"✅ SUBPROCESS: Browser automation completed successfully")
+            print(f"📁 SUBPROCESS: Files saved to {looking_at_dir}")
+            
+            return {{
+                "success": True,
+                "url": current_url,
+                "title": page_title,
+                "timestamp": datetime.now().isoformat()
+            }}
+            
         finally:
             driver.quit()
-            # CRITICAL: Clean up temporary profile directory
-            shutil.rmtree(profile_dir, ignore_errors=True)
-            
-        result = {
-            "success": True,
-            "url": final_url,
-            "looking_at_files": looking_at_files,
-            "backup_id": scrape_id,
-            "backup_dir": backup_dir,
-            "page_info": {
-                "title": page_title,
-                "url": final_url,
-                "timestamp": datetime.now().isoformat()
-            }
-        }
-        
-        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_SCRAPE_SUCCESS - AI can now see: {final_url}")
-        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_PERCEPTION_UPDATE - Files in /looking_at/: {list(looking_at_files.keys())}")
-        return result
-        
+            # Clean up profile directory
+            import shutil
+            try:
+                shutil.rmtree(profile_dir)
+            except:
+                pass
+                
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_SCRAPE_ERROR - {e}")
-        return {"success": False, "error": str(e)}
+        print(f"❌ SUBPROCESS: Browser automation failed: {{e}}")
+        return {{
+            "success": False,
+            "error": str(e)
+        }}
 
+if __name__ == "__main__":
+    result = run_browser_automation()
+    print(f"SUBPROCESS_RESULT:{{json.dumps(result)}}")
+'''
+        
+        # Write the browser script to a temporary file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as script_file:
+            script_file.write(browser_script)
+            script_path = script_file.name
+        
+        try:
+            # Run the browser automation in subprocess
+            logger.info(f"🔄 FINDER_TOKEN: SUBPROCESS_BROWSER_START - Running browser automation in separate process")
+            
+            # Use asyncio.create_subprocess_exec for async subprocess
+            process = await asyncio.create_subprocess_exec(
+                '.venv/bin/python', script_path,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=os.getcwd()
+            )
+            
+            # Wait for completion with timeout
+            try:
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60.0)
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                return {
+                    "success": False,
+                    "error": "Browser automation timed out after 60 seconds"
+                }
+            
+            # Parse the result from subprocess output
+            output = stdout.decode('utf-8')
+            error_output = stderr.decode('utf-8')
+            
+            if process.returncode != 0:
+                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_ERROR - Return code: {process.returncode}")
+                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_STDERR - {error_output}")
+                return {
+                    "success": False,
+                    "error": f"Subprocess failed with return code {process.returncode}: {error_output}"
+                }
+            
+            # Extract result from subprocess output
+            result_line = None
+            for line in output.split('\n'):
+                if line.startswith('SUBPROCESS_RESULT:'):
+                    result_line = line.replace('SUBPROCESS_RESULT:', '')
+                    break
+            
+            if result_line:
+                subprocess_result = json.loads(result_line)
+                
+                if subprocess_result.get('success'):
+                    logger.info(f"✅ FINDER_TOKEN: SUBPROCESS_BROWSER_SUCCESS - Browser automation completed")
+                    
+                    # Build the final result structure
+                    looking_at_files = {
+                        "headers": f"{looking_at_dir}/headers.json",
+                        "source": f"{looking_at_dir}/source.html",
+                        "dom": f"{looking_at_dir}/dom.html",
+                        "simple_dom": f"{looking_at_dir}/simple_dom.html"
+                    }
+                    
+                    if take_screenshot:
+                        looking_at_files["screenshot"] = f"{looking_at_dir}/screenshot.png"
+                    
+                    return {
+                        "success": True,
+                        "url": subprocess_result.get('url', url),
+                        "looking_at_files": looking_at_files,
+                        "page_info": {
+                            "title": subprocess_result.get('title', 'Unknown'),
+                            "url": subprocess_result.get('url', url),
+                            "timestamp": subprocess_result.get('timestamp', datetime.now().isoformat())
+                        },
+                        "subprocess_output": output.split('\n')[:-1]  # Remove empty last line
+                    }
+                else:
+                    return subprocess_result
+            else:
+                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_NO_RESULT - No result found in output: {output}")
+                return {
+                    "success": False,
+                    "error": f"No result found in subprocess output: {output}"
+                }
+                
+        finally:
+            # Clean up the temporary script file
+            try:
+                os.unlink(script_path)
+            except:
+                pass
+                
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_EXCEPTION - {e}")
+        return {
+            "success": False,
+            "error": f"Browser automation subprocess failed: {str(e)}"
+        }
 
 async def browser_automate_workflow_walkthrough(params: dict) -> dict:
     """
