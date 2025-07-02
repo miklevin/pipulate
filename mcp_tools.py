@@ -121,7 +121,7 @@ async def get_user_session_state(params: dict) -> dict:
                 "theme": session_data.get('theme_preference'),
                 "profile_locked": session_data.get('profile_locked'),
                 "intro_page": session_data.get('intro_current_page'),
-                "split_sizes": session_data.get('split-sizes')
+                "split-sizes": session_data.get('split-sizes')
             }
         
         logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_SUCCESS - Retrieved {len(session_data)} session keys")
@@ -453,6 +453,7 @@ def register_all_mcp_tools():
     register_mcp_tool("browser_scrape_page", browser_scrape_page)
     register_mcp_tool("browser_automate_workflow_walkthrough", browser_automate_workflow_walkthrough)
     register_mcp_tool("browser_interact_with_current_page", browser_interact_with_current_page)
+    register_mcp_tool("browser_hijack_workflow_complete", browser_hijack_workflow_complete)
     
     # Additional Botify tools
     register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
@@ -3783,6 +3784,7 @@ def get_available_tools():
         'browser_analyze_scraped_page',
         'browser_scrape_page',
         'browser_automate_workflow_walkthrough',
+        'browser_hijack_workflow_complete',
         'botify_get_full_schema',
         'botify_list_available_analyses',
         'botify_execute_custom_bql_query',
@@ -4028,46 +4030,51 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
                     "details": {"error": pipeline_result.get('error')}
                 })
         
-        # === STEP 4: LIGHTWEIGHT DOM CAPTURE (NO BROWSER POPUP) ===
-        logger.info(f"📸 FINDER_TOKEN: SESSION_HIJACKING_STEP_4 - Lightweight DOM capture from {endpoint_url}")
+        # === STEP 4: COMPLETE WORKFLOW HIJACKING (NAVIGATE + ENTER + CHAIN REACTION + CAPTURE) ===
+        logger.info(f"🎭 FINDER_TOKEN: SESSION_HIJACKING_STEP_4 - Complete workflow hijacking from {endpoint_url}")
         
-        # Use simple browser scraping instead of full automation to avoid popup windows
+        # Use the COMPLETE workflow hijacking pattern: navigate + enter + chain reaction + capture
         try:
-            scrape_result = await browser_scrape_page({
+            scrape_result = await browser_hijack_workflow_complete({
                 "url": endpoint_url,
+                "pipeline_id": pipeline_id,
+                "wait_chain_reaction": 8,  # Wait for HTMX chain reaction to complete
                 "wait_seconds": wait_seconds,
                 "take_screenshot": take_screenshot
             })
             
             if scrape_result.get('success'):
                 hijacking_steps.append({
-                    "step": "dom_capture",
+                    "step": "complete_workflow_hijacking",
                     "status": "success",
                     "details": {
-                        "captured_from": endpoint_url,
-                        "dom_captured": True,
-                        "screenshot_taken": scrape_result.get('screenshot_saved', False),
-                        "looking_at_files": scrape_result.get('looking_at_files', {})
+                        "original_url": endpoint_url,
+                        "final_url": scrape_result.get('url'),
+                        "pipeline_id": pipeline_id,
+                        "workflow_hijacked": scrape_result.get('workflow_hijacked', False),
+                        "chain_reaction_completed": scrape_result.get('chain_reaction_completed', False),
+                        "looking_at_files": scrape_result.get('looking_at_files', {}),
+                        "hijacking_steps": scrape_result.get('hijacking_steps', [])
                     }
                 })
-                logger.info(f"✅ FINDER_TOKEN: DOM_CAPTURE_SUCCESS - No browser popup, clean capture from {endpoint_url}")
+                logger.info(f"✅ FINDER_TOKEN: COMPLETE_WORKFLOW_HIJACKING_SUCCESS - Post-chain-reaction state captured from {scrape_result.get('url')}")
             else:
-                # Even if scraping fails, don't fail the whole hijacking - just note it
+                # Even if workflow hijacking fails, don't fail the whole session hijacking - just note it
                 hijacking_steps.append({
-                    "step": "dom_capture", 
+                    "step": "complete_workflow_hijacking", 
                     "status": "warning",
-                    "details": {"error": scrape_result.get('error'), "note": "DOM capture failed but session hijacking continues"}
+                    "details": {"error": scrape_result.get('error'), "note": "Workflow hijacking failed but session hijacking continues"}
                 })
-                logger.warning(f"⚠️ FINDER_TOKEN: DOM_CAPTURE_WARNING - {scrape_result.get('error')} (continuing anyway)")
+                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_HIJACKING_WARNING - {scrape_result.get('error')} (continuing anyway)")
                 
         except Exception as capture_error:
-            # Don't fail the whole hijacking if DOM capture fails
+            # Don't fail the whole session hijacking if workflow hijacking fails
             hijacking_steps.append({
-                "step": "dom_capture",
+                "step": "complete_workflow_hijacking",
                 "status": "warning", 
-                "details": {"error": str(capture_error), "note": "DOM capture failed but session hijacking continues"}
+                "details": {"error": str(capture_error), "note": "Workflow hijacking failed but session hijacking continues"}
             })
-            logger.warning(f"⚠️ FINDER_TOKEN: DOM_CAPTURE_EXCEPTION - {capture_error} (continuing anyway)")
+            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_HIJACKING_EXCEPTION - {capture_error} (continuing anyway)")
         
         # === STEP 5: FINAL SESSION SUMMARY ===
         user_session_summary.update({
@@ -4083,12 +4090,13 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
             "details": {
                 "session_hijacked": True,
                 "user_state_captured": True,
-                "no_browser_popup": True,
+                "workflow_chain_reaction_completed": True,
+                "post_enter_state_captured": True,
                 "total_hijacking_steps": len(hijacking_steps)
             }
         })
         
-        logger.info(f"🎉 FINDER_TOKEN: COMPLETE_SESSION_HIJACKING_SUCCESS - User session hijacked and workflow resumed")
+        logger.info(f"🎉 FINDER_TOKEN: COMPLETE_SESSION_HIJACKING_SUCCESS - User session hijacked, workflow initiated, and post-chain-reaction state captured")
         
         return {
             "success": True,
@@ -4103,6 +4111,409 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
             "success": False,
             "error": f"Session hijacking failed: {str(e)}",
             "session_hijacking_steps": hijacking_steps if 'hijacking_steps' in locals() else []
+        }
+
+async def browser_hijack_workflow_complete(params: dict) -> dict:
+    """
+    MCP Tool: COMPLETE WORKFLOW HIJACKING - Navigate + Enter + Chain Reaction + Capture
+    
+    This is the common pattern for all session hijacking that handles:
+    1. Navigate to workflow URL (e.g., http://localhost:5001/hello_workflow)
+    2. Fill in pipeline key input field  
+    3. Press Enter to trigger HTMX chain reaction
+    4. Wait for chain reaction to complete (all hx_trigger="load" steps)
+    5. Capture final workflow state (DOM + screenshot)
+    
+    This captures the POST-ENTER workflow state, not just the landing page form.
+    
+    Args:
+        params: {
+            "url": "http://localhost:5001/hello_workflow",  # Required: Workflow URL
+            "pipeline_id": "Default_Profile-hello-16",      # Required: Pipeline key to enter
+            "wait_chain_reaction": 8,                       # Optional: seconds to wait for chain reaction
+            "wait_seconds": 3,                              # Optional: page load wait
+            "take_screenshot": True                         # Optional: capture visual state
+        }
+    
+    Returns:
+        dict: {
+            "success": True,
+            "workflow_hijacked": True,
+            "chain_reaction_completed": True,
+            "url": "http://localhost:5001/hello_workflow",
+            "pipeline_id": "Default_Profile-hello-16",
+            "looking_at_files": {
+                "screenshot": "browser_automation/looking_at/screenshot.png",
+                "dom": "browser_automation/looking_at/dom.html",
+                "simple_dom": "browser_automation/looking_at/simple_dom.html"
+            },
+            "hijacking_steps": [
+                {"step": "navigation", "status": "success"},
+                {"step": "pipeline_key_entry", "status": "success"},
+                {"step": "form_submission", "status": "success"},
+                {"step": "chain_reaction_wait", "status": "success"},
+                {"step": "final_state_capture", "status": "success"}
+            ]
+        }
+    """
+    import json
+    import os
+    import asyncio
+    import subprocess
+    import tempfile
+    from datetime import datetime
+    from pathlib import Path
+    from urllib.parse import urlparse
+    
+    logger.info(f"🎭 FINDER_TOKEN: MCP_WORKFLOW_HIJACK_START - URL: {params.get('url')}, Pipeline: {params.get('pipeline_id')}")
+    
+    try:
+        url = params.get('url')
+        pipeline_id = params.get('pipeline_id')
+        wait_chain_reaction = params.get('wait_chain_reaction', 8)
+        wait_seconds = params.get('wait_seconds', 3)
+        take_screenshot = params.get('take_screenshot', True)
+        
+        # === VALIDATION ===
+        if not url:
+            return {"success": False, "error": "URL parameter is required"}
+        if not pipeline_id:
+            return {"success": False, "error": "pipeline_id parameter is required"}
+        
+        # Validate URL format
+        if not url.startswith(('http://', 'https://')):
+            return {"success": False, "error": f"URL must start with http:// or https://. Got: {url}"}
+        
+        logger.info(f"✅ FINDER_TOKEN: WORKFLOW_HIJACK_VALIDATION_PASSED - URL: {url}, Pipeline: {pipeline_id}")
+        
+        # === DIRECTORY ROTATION ===
+        from server import rotate_looking_at_directory
+        MAX_ROLLED_LOOKING_AT_DIRS = 10
+        rotation_success = rotate_looking_at_directory(
+            looking_at_path=Path('browser_automation/looking_at'),
+            max_rolled_dirs=MAX_ROLLED_LOOKING_AT_DIRS
+        )
+        
+        looking_at_dir = 'browser_automation/looking_at'
+        os.makedirs(looking_at_dir, exist_ok=True)
+        
+        hijacking_steps = []
+        
+        # === SUBPROCESS WORKFLOW HIJACKING TO AVOID THREADING ISSUES ===
+        # Create a Python script that handles the complete workflow hijacking
+        hijack_script = f'''
+import json
+import os
+import time
+import sys
+from datetime import datetime
+from urllib.parse import urlparse
+
+# Add current directory to path
+sys.path.insert(0, '{os.getcwd()}')
+
+def run_workflow_hijacking():
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.common.keys import Keys
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.common.exceptions import TimeoutException, NoSuchElementException
+        from seleniumwire import webdriver as wire_webdriver
+        
+        target_url = "{url}"
+        target_pipeline_id = "{pipeline_id}"
+        print(f"🎭 SUBPROCESS: Starting workflow hijacking for {{target_url}} with pipeline {{target_pipeline_id}}")
+        
+        # Set up Chrome with visible browser (dramatic effect)
+        import tempfile
+        chrome_options = Options()
+        
+        # VISIBLE BROWSER - The popup is the FEATURE!
+        chrome_options.add_argument('--start-maximized')
+        chrome_options.add_argument('--new-window')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-extensions')
+        
+        # Unique session isolation
+        profile_dir = tempfile.mkdtemp(prefix='pipulate_workflow_hijack_')
+        chrome_options.add_argument(f'--user-data-dir={{profile_dir}}')
+        
+        # Initialize driver
+        driver = wire_webdriver.Chrome(options=chrome_options)
+        
+        try:
+            # === STEP 1: NAVIGATION ===
+            print(f"🌐 SUBPROCESS: Step 1 - Navigating to {{target_url}}")
+            driver.get(target_url)
+            time.sleep({wait_seconds})  # Let page load
+            print(f"✅ SUBPROCESS: Navigation completed")
+            
+            # === STEP 2: FIND AND FILL PIPELINE KEY INPUT ===
+            print(f"🔑 SUBPROCESS: Step 2 - Looking for pipeline key input field")
+            
+            # Try multiple selectors for pipeline key input
+            pipeline_input = None
+            selectors = [
+                'input[name="pipeline_id"]',
+                'input[placeholder*="pipeline"]',
+                'input[placeholder*="key"]',
+                'input[type="text"]',
+                '#pipeline_id',
+                '.pipeline-input'
+            ]
+            
+            for selector in selectors:
+                try:
+                    pipeline_input = driver.find_element(By.CSS_SELECTOR, selector)
+                    print(f"✅ SUBPROCESS: Found pipeline input using selector: {{selector}}")
+                    break
+                except NoSuchElementException:
+                    continue
+            
+            if not pipeline_input:
+                return {{
+                    "success": False,
+                    "error": "Could not find pipeline key input field",
+                    "page_title": driver.title,
+                    "current_url": driver.current_url
+                }}
+            
+            # Clear and fill the pipeline key
+            pipeline_input.clear()
+            pipeline_input.send_keys(target_pipeline_id)
+            print(f"🔑 SUBPROCESS: Filled pipeline key: {{target_pipeline_id}}")
+            time.sleep(1)  # Dramatic pause
+            
+            # === STEP 3: PRESS ENTER TO TRIGGER HTMX CHAIN REACTION ===
+            print(f"⚡ SUBPROCESS: Step 3 - Pressing Enter to trigger HTMX chain reaction")
+            pipeline_input.send_keys(Keys.RETURN)
+            
+            # === STEP 4: WAIT FOR HTMX CHAIN REACTION TO COMPLETE ===
+            print(f"🔄 SUBPROCESS: Step 4 - Waiting {{wait_chain_reaction}} seconds for HTMX chain reaction to complete")
+            
+            # Wait and watch for DOM changes indicating chain reaction progress
+            for i in range({wait_chain_reaction}):
+                time.sleep(1)
+                if i % 2 == 0:  # Progress messages every 2 seconds
+                    try:
+                        # Look for workflow step indicators
+                        steps = driver.find_elements(By.CSS_SELECTOR, '[id*="step_"], .card h3, .card h2')
+                        print(f"🔄 SUBPROCESS: Chain reaction progress - {{len(steps)}} workflow elements detected")
+                    except:
+                        print(f"🔄 SUBPROCESS: Chain reaction progress - {{i+1}}/{{wait_chain_reaction}} seconds")
+            
+            print(f"✅ SUBPROCESS: Chain reaction wait completed")
+            
+            # === STEP 5: CAPTURE FINAL WORKFLOW STATE ===
+            print(f"📸 SUBPROCESS: Step 5 - Capturing final workflow state")
+            
+            # Get final page info
+            page_title = driver.title
+            current_url = driver.current_url
+            print(f"📄 SUBPROCESS: Final state - Title: {{page_title}}")
+            print(f"📄 SUBPROCESS: Final state - URL: {{current_url}}")
+            
+            # Capture page source
+            with open("{looking_at_dir}/source.html", "w", encoding="utf-8") as f:
+                f.write(driver.page_source)
+            print(f"💾 SUBPROCESS: Saved source.html")
+            
+            # Capture DOM via JavaScript  
+            dom_content = driver.execute_script("return document.documentElement.outerHTML;")
+            with open("{looking_at_dir}/dom.html", "w", encoding="utf-8") as f:
+                f.write(dom_content)
+            print(f"💾 SUBPROCESS: Saved dom.html")
+            
+            # Create simplified DOM for AI consumption
+            simple_dom = f"""<html>
+<head><title>{{page_title}}</title></head>
+<body>
+<!-- Workflow captured from: {{current_url}} -->
+<!-- Pipeline ID: {{target_pipeline_id}} -->
+<!-- Timestamp: {{datetime.now().isoformat()}} -->
+<!-- Post-HTMX Chain Reaction State -->
+{{dom_content}}
+</body>
+</html>"""
+            
+            with open("{looking_at_dir}/simple_dom.html", "w", encoding="utf-8") as f:
+                f.write(simple_dom)
+            print(f"💾 SUBPROCESS: Saved simple_dom.html")
+            
+            # Take screenshot
+            screenshot_saved = False
+            if {take_screenshot}:
+                driver.save_screenshot("{looking_at_dir}/screenshot.png")
+                screenshot_saved = True
+                print(f"📸 SUBPROCESS: Saved screenshot.png")
+            
+            # Save headers and metadata
+            headers_data = {{
+                "url": current_url,
+                "original_url": target_url,
+                "title": page_title,
+                "pipeline_id": target_pipeline_id,
+                "timestamp": datetime.now().isoformat(),
+                "hijacking_type": "complete_workflow_chain_reaction",
+                "chain_reaction_wait_seconds": {wait_chain_reaction},
+                "screenshot_taken": screenshot_saved,
+                "status": "success"
+            }}
+            
+            with open("{looking_at_dir}/headers.json", "w") as f:
+                json.dump(headers_data, f, indent=2)
+            print(f"💾 SUBPROCESS: Saved headers.json")
+            
+            print(f"🎉 SUBPROCESS: Workflow hijacking completed successfully!")
+            print(f"📁 SUBPROCESS: All files saved to {looking_at_dir}")
+            
+            return {{
+                "success": True,
+                "workflow_hijacked": True,
+                "chain_reaction_completed": True,
+                "url": current_url,
+                "original_url": target_url,
+                "pipeline_id": target_pipeline_id,
+                "title": page_title,
+                "timestamp": datetime.now().isoformat(),
+                "screenshot_saved": screenshot_saved
+            }}
+            
+        finally:
+            driver.quit()
+            # Clean up profile directory
+            import shutil
+            try:
+                shutil.rmtree(profile_dir)
+            except:
+                pass
+                
+    except Exception as e:
+        print(f"❌ SUBPROCESS: Workflow hijacking failed: {{e}}")
+        return {{
+            "success": False,
+            "error": str(e)
+        }}
+
+if __name__ == "__main__":
+    result = run_workflow_hijacking()
+    print(f"SUBPROCESS_RESULT:{{json.dumps(result)}}")
+'''
+        
+        # Write the hijacking script to a temporary file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as script_file:
+            script_file.write(hijack_script)
+            script_path = script_file.name
+        
+        try:
+            # Run the workflow hijacking in subprocess
+            logger.info(f"🔄 FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_START - Running complete workflow hijacking")
+            
+            # Use asyncio.create_subprocess_exec for async subprocess
+            process = await asyncio.create_subprocess_exec(
+                '.venv/bin/python', script_path,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=os.getcwd()
+            )
+            
+            # Wait for completion with timeout
+            try:
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=120.0)  # Longer timeout for chain reaction
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                return {
+                    "success": False,
+                    "error": "Workflow hijacking timed out after 120 seconds"
+                }
+            
+            # Parse the result from subprocess output
+            output = stdout.decode('utf-8')
+            error_output = stderr.decode('utf-8')
+            
+            if process.returncode != 0:
+                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_ERROR - Return code: {process.returncode}")
+                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_STDERR - {error_output}")
+                return {
+                    "success": False,
+                    "error": f"Workflow hijacking subprocess failed: {error_output}"
+                }
+            
+            # Extract result from subprocess output
+            result_line = None
+            for line in output.split('\n'):
+                if line.startswith('SUBPROCESS_RESULT:'):
+                    result_line = line.replace('SUBPROCESS_RESULT:', '')
+                    break
+            
+            if result_line:
+                try:
+                    subprocess_result = json.loads(result_line)
+                    
+                    if subprocess_result.get('success'):
+                        # Build the complete response
+                        return {
+                            "success": True,
+                            "workflow_hijacked": True,
+                            "chain_reaction_completed": True,
+                            "url": subprocess_result.get('url'),
+                            "original_url": url,
+                            "pipeline_id": pipeline_id,
+                            "title": subprocess_result.get('title'),
+                            "timestamp": subprocess_result.get('timestamp'),
+                            "looking_at_files": {
+                                "headers": f"{looking_at_dir}/headers.json",
+                                "source": f"{looking_at_dir}/source.html",
+                                "dom": f"{looking_at_dir}/dom.html",
+                                "simple_dom": f"{looking_at_dir}/simple_dom.html",
+                                "screenshot": f"{looking_at_dir}/screenshot.png" if take_screenshot else None
+                            },
+                            "hijacking_steps": [
+                                {"step": "navigation", "status": "success", "details": {"url": url}},
+                                {"step": "pipeline_key_entry", "status": "success", "details": {"pipeline_id": pipeline_id}},
+                                {"step": "form_submission", "status": "success", "details": {"method": "enter_key"}},
+                                {"step": "chain_reaction_wait", "status": "success", "details": {"wait_seconds": wait_chain_reaction}},
+                                {"step": "final_state_capture", "status": "success", "details": {"files_saved": 4 + (1 if take_screenshot else 0)}}
+                            ]
+                        }
+                    else:
+                        return {
+                            "success": False,
+                            "error": subprocess_result.get('error', 'Unknown subprocess error')
+                        }
+                        
+                except json.JSONDecodeError as e:
+                    logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_JSON_DECODE_ERROR - {e}")
+                    return {
+                        "success": False,
+                        "error": f"Failed to parse subprocess result: {e}"
+                    }
+            else:
+                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_NO_RESULT - No result line found in output")
+                return {
+                    "success": False,
+                    "error": "No result found in subprocess output"
+                }
+                
+        finally:
+            # Clean up the temporary script file
+            try:
+                os.unlink(script_path)
+            except:
+                pass
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: MCP_WORKFLOW_HIJACK_ERROR - {e}")
+        return {
+            "success": False,
+            "error": f"Workflow hijacking failed: {str(e)}"
         }
 
 
