@@ -1817,6 +1817,33 @@ details.dropdown [data-tooltip]:not(a, button, input) {
     text-decoration: none !important;
 }
 
+/* ============================================================================
+   REUSABLE ICON CLASSES - Clean External Styling
+   ============================================================================ */
+
+/* Info icon styling - reusable for all info tooltips */
+.info-icon {
+    width: 20px;
+    height: 20px;
+    margin-left: 12px;
+    opacity: 0.7;
+    filter: invert(1); /* Makes icons white in dark mode */
+}
+
+/* Settings icon styling - ensure white color */
+.settings-icon {
+    width: 22px;
+    height: 22px;
+    filter: invert(1); /* Makes icon white */
+}
+
+/* Clean tooltip styling - removes PicoCSS defaults for custom elements */
+.tooltip-clean {
+    border-bottom: none !important;
+    text-decoration: none !important;
+    cursor: help;
+}
+
 /* Dropdown menu item - consistent spacing for all dropdown labels */
 .dropdown-menu-item {
     display: flex;
