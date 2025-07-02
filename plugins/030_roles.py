@@ -8,7 +8,7 @@ import sys
 import fastlite
 from fasthtml.common import *
 from loguru import logger
-from server import DB_FILENAME, title_name
+from server import DB_FILENAME, title_name, EXTERNAL_LINK_SVG
 from common import BaseCrud
 
 # ROLES constant is now used for discovery, not for defining the roles themselves.
@@ -187,7 +187,7 @@ class CrudUI(PluginIdentityManager):
 
     @property
     def H3_HEADER(self):
-        return f"Configure APP menu. Drag-to-reorder."
+        return f"Customize APP menu."
 
     @property
     def ENDPOINT_MESSAGE(self):
@@ -341,22 +341,15 @@ class CrudUI(PluginIdentityManager):
             Card(
                 H3(self.H3_HEADER),
                 P(
-                    f"New to {self.get_app_name()}? Start with the ",
+                    f"New to here? Here's an ",
                     A("Introduction", href="/redirect/introduction", 
                       cls="link-primary-bold",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
-                    " for a guided overview. Chat not working? Optionally install ",
+                    ". Chat not working? Optionally install ",
                     A("Ollama", 
-                      Img(src='/static/feather/external-link.svg', 
-                          alt='External link', 
-                          style='width: 14px; height: 14px; margin-left: 0.25rem; vertical-align: middle; filter: brightness(0) invert(1);'),
+                      NotStr(EXTERNAL_LINK_SVG),
                       href="https://ollama.com/", target="_blank",
-                      cls="link-primary-bold",
-                      onmouseover="this.style.color = 'var(--pico-primary-hover)';",
-                      onmouseout="this.style.color = 'var(--pico-primary-color)';"),
-                    ". ",
-                    A("Developer?", href="/redirect/documentation", 
                       cls="link-primary-bold",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
