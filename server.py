@@ -5251,7 +5251,13 @@ async def poke_flyout(request):
     theme_is_dark = current_theme == 'dark'
     
     # Create buttons
-    lock_button = Button(lock_button_text, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline')
+    lock_button = Button(lock_button_text, Span(
+        NotStr(INFO_SVG),
+        data_tooltip='Prevent accidental profile changes. When locked, only selected profile is shown',
+        data_placement='left',
+        aria_label='Profile lock information',
+        cls='dropdown-tooltip'
+    ), hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline')
     
     # Theme toggle switch
     theme_switch = Div(
@@ -5265,7 +5271,14 @@ async def poke_flyout(request):
                 hx_target='#theme-switch-container',
                 hx_swap='outerHTML'
             ), 
-            Span('🌙 Dark Mode', cls='ml-quarter')
+            Span('🌙 Dark Mode', cls='ml-quarter'),
+            Span(
+                NotStr(INFO_SVG),
+                data_tooltip='Toggle between dark and light themes. Setting persists across browser sessions',
+                data_placement='left',
+                aria_label='Theme toggle information',
+                cls='dropdown-tooltip'
+            )
         ),
         Script(f"""
             // Ensure switch state matches localStorage (sticky preference)
@@ -5296,18 +5309,47 @@ async def poke_flyout(request):
         id='theme-switch-container',
         cls='theme-switch-container'
     )
-    delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
-    reset_db_button = Button('🔄 Reset Entire DEV Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
-    reset_python_button = Button('🐍 Reset Python Environment', 
-                                hx_post='/reset-python-env', 
+    delete_workflows_button = Button('🗑️ Clear Workflows', Span(
+        NotStr(INFO_SVG),
+        data_tooltip='Delete all current workflow data and progress. This only affects the active workflow, not your profiles or other data',
+        data_placement='left',
+        aria_label='Clear workflows information',
+        cls='dropdown-tooltip'
+    ), hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
+    reset_db_button = Button('🔄 Reset Entire DEV Database', Span(
+        NotStr(INFO_SVG),
+        data_tooltip='WARNING: Completely resets development database to initial state. Deletes all DEV profiles, workflows, and data. Production data is never affected',
+        data_placement='left',
+        aria_label='Reset database information',
+        cls='dropdown-tooltip'
+    ), hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
+    reset_python_button = Button('🐍 Reset Python Environment', Span(
+        NotStr(INFO_SVG),
+        data_tooltip='Removes .venv directory and requires manual restart. You will need to type "exit" then "nix develop" to rebuild Python environment',
+        data_placement='left',
+        aria_label='Reset Python environment information',
+        cls='dropdown-tooltip'
+    ), hx_post='/reset-python-env', 
                                 hx_target='#msg-list', 
                                 hx_swap='beforeend', 
                                 hx_confirm='⚠️ This will remove the .venv directory and require a manual restart. You will need to type "exit" then "nix develop" to rebuild the environment. Continue?', 
                                 cls='secondary outline dev-button-muted') if is_dev_mode else None
-    mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
+    mcp_test_button = Button(f'🤖 MCP Test {MODEL}', Span(
+        NotStr(INFO_SVG),
+        data_tooltip=f'Test the MCP (Model Context Protocol) connection with {MODEL}. Sends a test message to verify LLM integration is working',
+        data_placement='left',
+        aria_label='MCP test information',
+        cls='dropdown-tooltip'
+    ), hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
     # Add Update button
-    update_button = Button(f'🔄 Update {APP_NAME}', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
+    update_button = Button(f'🔄 Update {APP_NAME}', Span(
+        NotStr(INFO_SVG),
+        data_tooltip=f'Pull latest updates for {APP_NAME} from Git repository and restart the application',
+        data_placement='left',
+        aria_label='Update application information',
+        cls='dropdown-tooltip'
+    ), hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
     # Add Backup controls (Prod mode only)
     backup_status = None
@@ -5355,6 +5397,13 @@ async def poke_flyout(request):
             # Separate explicit buttons with clear labeling
             backup_button = Button(
                 f'📤 Save all data ({current_total} records)', 
+                Span(
+                    NotStr(INFO_SVG),
+                    data_tooltip='Create a backup of all your profiles, workflows, and data. Backup files are saved locally and can be restored later',
+                    data_placement='left',
+                    aria_label='Backup data information',
+                    cls='dropdown-tooltip'
+                ),
                 hx_post='/explicit-backup', 
                 hx_target='#backup-restore-result', 
                 hx_swap='innerHTML',
@@ -5364,6 +5413,13 @@ async def poke_flyout(request):
             
             restore_button = Button(
                 f'📥 Load all data ({backup_total} records)', 
+                Span(
+                    NotStr(INFO_SVG),
+                    data_tooltip='Restore all data from backup. This will replace your current profiles and workflows with the backed up versions and restart the server',
+                    data_placement='left',
+                    aria_label='Restore data information',
+                    cls='dropdown-tooltip'
+                ),
                 hx_post='/explicit-restore', 
                 hx_swap='none',  # No immediate swap - let server restart handle the reload
                 cls='secondary outline restore-button',
@@ -5395,11 +5451,12 @@ async def poke_flyout(request):
         cls='version-info-container'
     )
     
-    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Backup (Prod only), Clear Workflows, Reset Database, MCP Test
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, MCP Test, Backup (Prod only), Clear Workflows, Reset Database
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
         Li(lock_button, cls='flyout-list-item'),
-        Li(update_button, cls='flyout-list-item')
+        Li(update_button, cls='flyout-list-item'),
+        Li(mcp_test_button, cls='flyout-list-item')
     ]
     
     # Add backup controls (Prod mode only)
@@ -5415,7 +5472,6 @@ async def poke_flyout(request):
     if is_dev_mode:
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
         list_items.append(Li(reset_python_button, cls='flyout-list-item'))
-    list_items.append(Li(mcp_test_button, cls='flyout-list-item'))
     
     # Always use nav flyout now - no more fallback to old flyout
     target_id = 'nav-flyout-panel'
