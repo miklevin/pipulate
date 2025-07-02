@@ -166,16 +166,17 @@ alwaysApply: true
 
 def get_ai_commit_message():
     """Gets an AI-generated commit message from local LLM."""
-    print("\n🤖 Generating AI commit message...")
+    print("🤖 Analyzing changes for AI commit message...")
     
-    # First, check if there are staged changes
+    # Check if there are any changes (staged or unstaged)
     try:
-        result = run_command(['git', 'diff', '--staged'], capture=True)
-        if not result.stdout.strip():
-            print("❌ No staged changes found for AI commit message generation")
+        staged_result = run_command(['git', 'diff', '--staged'], capture=True)
+        unstaged_result = run_command(['git', 'diff'], capture=True)
+        if not staged_result.stdout.strip() and not unstaged_result.stdout.strip():
+            print("❌ No changes found for AI commit message generation")
             return None
     except Exception as e:
-        print(f"❌ Error checking staged changes: {e}")
+        print(f"❌ Error checking git changes: {e}")
         return None
     
     # Try to get AI commit message
@@ -267,23 +268,23 @@ def main():
         commit_message = args.message or "force: Manual republish without code changes"
     else:
         # We have changes, determine commit message
-        if args.ai_commit and not args.message:
-            print("\n🤖 AI commit message requested...")
-            run_command(['git', 'add', '.'])  # Stage changes for AI analysis
+        if args.message:
+            # User provided explicit message, use it
+            commit_message = args.message
+        else:
+            # Default behavior: Try AI commit, fallback to standard message
+            print("\n🤖 Generating AI commit message...")
             ai_message = get_ai_commit_message()
             if ai_message:
                 commit_message = ai_message
             else:
                 print("⚠️  Falling back to standard commit message")
                 commit_message = "chore: Update project files"
-        else:
-            commit_message = args.message or "chore: Update project files"
     
     # Handle git operations
     if has_changes:
         print(f"\n📝 Commit message: {commit_message}")
-        run_command(['git', 'add', '.'])
-        run_command(['git', 'commit', '-m', commit_message])
+        run_command(['git', 'commit', '-am', commit_message])
         run_command(['git', 'push'])
         print("✅ Pushed changes to remote repository.")
     elif args.force:

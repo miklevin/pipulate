@@ -15,7 +15,7 @@ import sys
 
 # Configuration for the local LLM
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "gemma:2b"  # Using a smaller, faster model for this task
+OLLAMA_MODEL = "gemma3"  # Using a smaller, faster model for this task
 
 COMMIT_PROMPT_TEMPLATE = """
 You are an expert programmer and git contributor for the "Pipulate" project, a local-first AI SEO tool.
@@ -50,8 +50,16 @@ def get_staged_diff():
             check=True
         )
         if not result.stdout.strip():
-            print("No staged changes found to generate a commit message.")
-            sys.exit(0)
+            # If no staged changes, check for unstaged changes
+            result = subprocess.run(
+                ['git', 'diff'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            if not result.stdout.strip():
+                print("No changes found to generate a commit message.")
+                sys.exit(0)
         return result.stdout
     except subprocess.CalledProcessError as e:
         print(f"Error getting git diff: {e.stderr}", file=sys.stderr)
