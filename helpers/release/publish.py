@@ -125,7 +125,7 @@ def sync_breadcrumb_trail():
     # Define paths
     source_path = PIPULATE_ROOT / ".cursor" / "rules" / "BREADCRUMB_TRAIL_DVCS.mdc"
     workspace_root = PIPULATE_ROOT.parent
-    dest_path = workspace_root / ".cursor" / "rules" / "DONT_WRITE_HERE.mdc"
+    dest_path = workspace_root / ".cursor" / "rules" / "BREADCRUMB_TRAIL.mdc"
     
     if not source_path.exists():
         print(f"⚠️  Warning: Source breadcrumb trail not found at {source_path}. Skipping breadcrumb sync.")
