@@ -1598,20 +1598,24 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
     Analyzes the current page state captured in /browser_automation/looking_at/
     to identify automation targets, form elements, and interaction opportunities.
     
+    Now includes ENHANCED DOM PROCESSING for automation assistant functionality!
+    
     Args:
         params: {
-            "analysis_type": "form_elements" | "navigation" | "automation_targets" | "all",
-            "use_backup_id": "domain_com_2025-01-11_14-30-15"  # Optional: analyze backup instead
+            "analysis_type": "form_elements" | "navigation" | "automation_targets" | "all" | "enhanced",
+            "use_backup_id": "domain_com_2025-01-11_14-30-15",  # Optional: analyze backup instead
+            "include_automation_assistant": True  # Optional: generate automation shortcuts
         }
     
     Returns:
-        dict: Analysis results with actionable automation data
+        dict: Analysis results with actionable automation data + automation assistant files
     """
     logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_ANALYZE_START - Analysis: {params.get('analysis_type', 'automation_targets')}")
     
     try:
         analysis_type = params.get('analysis_type', 'automation_targets')
         backup_id = params.get('use_backup_id')
+        include_automation_assistant = params.get('include_automation_assistant', True)
         
         # Determine which HTML file to analyze
         if backup_id:
@@ -1634,7 +1638,35 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
         except ImportError:
             return {"success": False, "error": "BeautifulSoup not available for HTML parsing"}
         
-        if analysis_type == "form_elements":
+        # === ENHANCED DOM PROCESSING INTEGRATION ===
+        automation_assistant_result = None
+        if include_automation_assistant and analysis_type in ["all", "enhanced"]:
+            try:
+                from helpers.dom_processing.enhanced_dom_processor import process_current_looking_at
+                logger.info("🎯 FINDER_TOKEN: ENHANCED_DOM_PROCESSING_START - Generating automation assistant files")
+                automation_assistant_result = process_current_looking_at()
+                logger.info(f"✅ FINDER_TOKEN: ENHANCED_DOM_PROCESSING_SUCCESS - Generated {len(automation_assistant_result.get('cleaned_files', []))} automation files")
+            except Exception as e:
+                logger.warning(f"⚠️ FINDER_TOKEN: ENHANCED_DOM_PROCESSING_WARNING - Could not generate automation assistant: {e}")
+        
+        if analysis_type == "enhanced":
+            # Return enhanced automation assistant analysis
+            if automation_assistant_result:
+                return {
+                    "success": True,
+                    "analysis_type": "enhanced_automation_assistant",
+                    "automation_assistant": automation_assistant_result,
+                    "automation_ready": automation_assistant_result.get('automation_ready', False),
+                    "automation_strategy": automation_assistant_result.get('automation_hints', {}).get('automation_strategy', 'unknown'),
+                    "generated_files": automation_assistant_result.get('cleaned_files', []),
+                    "automation_hints": automation_assistant_result.get('automation_hints', {}),
+                    "google_targets": automation_assistant_result.get('google_targets', {}),
+                    "analyzed_file": html_file
+                }
+            else:
+                return {"success": False, "error": "Enhanced DOM processing failed"}
+        
+        elif analysis_type == "form_elements":
             # Find all forms and their elements
             forms = []
             for form in soup.find_all('form'):
@@ -1746,6 +1778,13 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                 "analyzed_file": html_file
             }
             
+            # Add automation assistant data if available
+            if automation_assistant_result:
+                result["automation_assistant"] = automation_assistant_result
+                result["automation_ready"] = automation_assistant_result.get('automation_ready', False)
+                result["automation_strategy"] = automation_assistant_result.get('automation_hints', {}).get('automation_strategy', 'unknown')
+                result["generated_files"] = automation_assistant_result.get('cleaned_files', [])
+        
         else:
             result = {"success": False, "error": f"Unknown analysis_type: {analysis_type}"}
             
@@ -1755,7 +1794,6 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_ANALYZE_ERROR - {e}")
         return {"success": False, "error": str(e)}
-
 
 async def browser_scrape_page(params: dict) -> dict:
     """
