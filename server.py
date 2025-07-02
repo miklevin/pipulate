@@ -3049,356 +3049,55 @@ await main()
         
         # 🎭 MAGIC WORDS DETECTION: Check for AI demonstration trigger (supports casual variations like "hi jack")
         if self._is_hijack_magic_words(message) and role == 'user':
-            # Load and inject the complete demonstration protocol
-            magic_words_protocol = read_training("ai_magic_words_demonstration_protocol.md")
-            logger.info(f"🎭 MAGIC WORDS DETECTED ('{message.strip()}') - Loading session hijacking demonstration protocol")
+            # Load and inject our NEW simple demonstration system
+            logger.info(f"🎭 MAGIC WORDS DETECTED ('{message.strip()}') - Triggering SIMPLE session hijacking pattern")
             
-            # Add protocol to conversation history immediately
-            append_to_conversation("🎭 **MAGIC WORDS DETECTED!** Loading session hijacking demonstration protocol...", 'system')
-            append_to_conversation(magic_words_protocol, 'system')
-            append_to_conversation("🚀 **PROTOCOL LOADED** - I now have complete instructions for demonstrating AI session hijacking superpowers. Executing demonstration sequence...", 'assistant')
+            # SPAWN SEPARATE PROCESS TO AVOID SERVER DEADLOCK
+            # The server is busy processing this request and can't respond to browser navigation
+            # So we spawn a separate process that runs after this request completes
+            try:
+                import subprocess
+                import sys
+                import os
+                
+                # Create the exact same command that works from command line
+                python_path = os.path.join(os.getcwd(), '.venv', 'bin', 'python')
+                hijack_command = [
+                    python_path,
+                    '-c',
+                    '''
+import asyncio
+from mcp_tools import execute_complete_session_hijacking
+result = asyncio.run(execute_complete_session_hijacking({"trigger_source": "magic_words"}))
+print(f"🎭 Magic Words Success: {result.get('success')}")
+'''
+                ]
+                
+                # Spawn the process in background (non-blocking)
+                process = subprocess.Popen(
+                    hijack_command,
+                    cwd=os.getcwd(),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    start_new_session=True  # Detach from parent
+                )
+                
+                logger.info(f"🎭 MAGIC WORDS - Spawned session hijacking process PID: {process.pid}")
+                append_to_conversation("🎭 **MAGIC WORDS DETECTED!** Session hijacking browser will open in 2 seconds...", 'system')
+                
+            except Exception as e:
+                logger.error(f"🎭 MAGIC WORDS - Process spawn failed: {e}")
+                # Fallback to old system messages
+                append_to_conversation("🎭 **MAGIC WORDS DETECTED!** Loading simple session hijacking pattern...", 'system')
+                simple_protocol = read_training("ai_discovery/ai_magic_words_demonstration_protocol.md")
+                append_to_conversation(simple_protocol, 'system')
+                append_to_conversation("🚀 **SIMPLE PATTERN LOADED** - Use execute_complete_session_hijacking({}) for rigged success!", 'assistant')
             
             # Broadcast the magic words detection to the chat interface
             if self.chat:
-                await self.chat.broadcast("🎭 **MAGIC WORDS DETECTED!** Loading session hijacking demonstration protocol...")
+                await self.chat.broadcast("🎭 **MAGIC WORDS DETECTED!** Executing simple session hijacking pattern...")
                 await asyncio.sleep(0.5)  # Brief pause for dramatic effect
-                await self.chat.broadcast("🚀 **PROTOCOL LOADED** - I now have complete instructions for demonstrating AI session hijacking superpowers!")
-                
-                # 🔥 HARDWIRED AUTOMATION: Test EXACT working pattern from 440_browser_automation.py
-                try:
-                    from mcp_tools import _pipeline_state_inspector, _local_llm_grep_logs
-                    from pathlib import Path
-                    
-                    # 0. DETERMINE USER'S ACTUAL CURRENT URL (TRUE SESSION HIJACKING)
-                    await self.chat.broadcast("🔍 **STEP 1:** Analyzing your current session state...")
-                    
-                    async def _determine_user_workflow_context():
-                        """
-                        🎭 AUTHENTIC SESSION HIJACKING: Determine user's workflow context for TRUE session reproduction.
-                        
-                        CRITICAL DIFFERENCE:
-                        ❌ OLD: Hit sub-endpoints directly (/hello/step_01) = Bare HTMX fragments
-                        ✅ NEW: Hit main endpoints + submit pipeline key = Full rendered DOM with chain reactions
-                        
-                        This is the difference between "endpoint forensics" vs "genuine session hijacking"!
-                        """
-                        try:
-                            # Get current pipeline state
-                            pipeline_result = await _pipeline_state_inspector({})
-                            
-                            if not pipeline_result.get("success"):
-                                return {
-                                    "main_endpoint": "http://localhost:5001",
-                                    "pipeline_key": None,
-                                    "analysis": f"Pipeline analysis failed: {pipeline_result.get('error', 'unknown')}"
-                                }
-                            
-                            pipelines = pipeline_result.get("pipelines", [])
-                            if not pipelines:
-                                return {
-                                    "main_endpoint": "http://localhost:5001", 
-                                    "pipeline_key": None,
-                                    "analysis": "No active pipelines found - defaulting to homepage"
-                                }
-                            
-                            # Find the most recently updated pipeline
-                            most_recent = max(pipelines, key=lambda p: p.get("updated", ""))
-                            pipeline_id = most_recent.get("pipeline_id", "")
-                            
-                            if not pipeline_id:
-                                return {
-                                    "main_endpoint": "http://localhost:5001",
-                                    "pipeline_key": None, 
-                                    "analysis": "No valid pipeline ID found"
-                                }
-                            
-                            # Parse pipeline ID: "Default_Profile-hello-13" -> app="hello"
-                            parts = pipeline_id.split('-')
-                            if len(parts) < 2:
-                                return {
-                                    "main_endpoint": "http://localhost:5001",
-                                    "pipeline_key": None,
-                                    "analysis": f"Cannot parse pipeline ID: {pipeline_id}"
-                                }
-                            
-                            app_name = parts[1]  # Extract "hello" from "Default_Profile-hello-13"
-                            
-                            # 🎯 AUTHENTIC APPROACH: Use centralized endpoint registry
-                            try:
-                                workflow_endpoint = get_endpoint_url(app_name)
-                                    
-                            except Exception as e:
-                                workflow_endpoint = f"http://localhost:5001/{app_name}"
-                            
-                            # Get pipeline step context for analysis
-                            state = most_recent.get("state", {})
-                            step_context = "No steps"
-                            if isinstance(state, dict):
-                                steps = [key for key in state.keys() if key.startswith('step_')]
-                                if steps:
-                                    step_context = f"{len(steps)} steps, latest: {max(steps)}"
-                            
-                            return {
-                                "main_endpoint": workflow_endpoint,
-                                "pipeline_key": pipeline_id,
-                                "app_name": app_name,
-                                "analysis": f"🎭 AUTHENTIC TARGET: {workflow_endpoint} with key {pipeline_id} ({step_context})"
-                            }
-                            
-                        except Exception as e:
-                            return {
-                                "main_endpoint": "http://localhost:5001",
-                                "pipeline_key": None,
-                                "analysis": f"Workflow context error: {e}"
-                            }
-                    
-                    # Get the user's workflow context for authentic session hijacking
-                    workflow_context = await _determine_user_workflow_context()
-                    await self.chat.broadcast(f"🎯 **SESSION ANALYSIS:** {workflow_context['analysis']}")
-                    await self.chat.broadcast(f"🎯 **AUTHENTIC TARGET:** {workflow_context['main_endpoint']}")
-                    if workflow_context['pipeline_key']:
-                        await self.chat.broadcast(f"🔑 **PIPELINE KEY:** {workflow_context['pipeline_key']} (for chain reaction simulation)")
-                    
-                    # 1. BROWSER AUTOMATION TEST: Run in separate thread to avoid blocking event loop
-                    await self.chat.broadcast("🔬 **ASYNC THREADING:** Running browser automation in separate thread...")
-                    
-                    def _blocking_browser_automation():
-                        """
-                        🎭 AUTHENTIC SESSION HIJACKING: Simulate user's exact workflow experience.
-                        
-                        PROCESS:
-                        1. Hit main workflow endpoint (derived from filename)
-                        2. If pipeline key exists, submit it to trigger HTMX chain reactions
-                        3. Wait for pop, pop, pop chain reaction to complete
-                        4. Capture FULL rendered DOM (not bare HTMX fragments)
-                        
-                        This gives us the ACTUAL DOM the user sees, not simplified sub-endpoint fragments!
-                        """
-                        import tempfile
-                        import shutil
-                        import os
-                        import time
-                        from selenium import webdriver
-                        from selenium.webdriver.chrome.options import Options
-                        from selenium.webdriver.chrome.service import Service
-                        from selenium.webdriver.common.by import By
-                        from selenium.webdriver.support.ui import WebDriverWait
-                        from selenium.webdriver.support import expected_conditions as EC
-                        from webdriver_manager.chrome import ChromeDriverManager
-                        
-                        try:
-                            # EXACT pattern from working plugin 
-                            chrome_options = Options()
-                            chrome_options.add_argument('--no-sandbox')
-                            chrome_options.add_argument('--disable-dev-shm-usage')
-                            chrome_options.add_argument('--new-window')
-                            chrome_options.add_argument('--start-maximized')
-                            
-                            # CRITICAL: Profile directory setup
-                            profile_dir = tempfile.mkdtemp()
-                            chrome_options.add_argument(f'--user-data-dir={profile_dir}')
-                            
-                            effective_os = os.environ.get('EFFECTIVE_OS', 'unknown')
-                            
-                            if effective_os == 'darwin':
-                                service = Service(ChromeDriverManager().install())
-                            else:
-                                service = Service()
-                            
-                            # All blocking operations in this thread
-                            driver = webdriver.Chrome(service=service, options=chrome_options)
-                            
-                            # 🎯 STEP 1: Hit main workflow endpoint 
-                            main_endpoint = workflow_context['main_endpoint']
-                            driver.get(main_endpoint)
-                            time.sleep(1)  # Let initial page load
-                            
-                            title_after_main = driver.title
-                            action_taken = "Loaded main endpoint"
-                            
-                            # 🎯 STEP 2: If pipeline key exists, simulate user workflow entry
-                            if workflow_context['pipeline_key']:
-                                pipeline_key = workflow_context['pipeline_key']
-                                
-                                try:
-                                    # Look for pipeline input field (common pattern)
-                                    wait = WebDriverWait(driver, 5)
-                                    
-                                    # Try different selectors for pipeline input
-                                    input_selectors = [
-                                        'input[name="pipeline_id"]',
-                                        'input[type="search"]',
-                                        'input[placeholder*="key"]',
-                                        'input[placeholder*="Key"]',
-                                        'input[placeholder*="ID"]'
-                                    ]
-                                    
-                                    input_element = None
-                                    for selector in input_selectors:
-                                        try:
-                                            input_element = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
-                                            break
-                                        except:
-                                            continue
-                                    
-                                    if input_element:
-                                        # 🎭 AUTHENTIC SIMULATION: Enter user's exact pipeline key
-                                        input_element.clear()
-                                        input_element.send_keys(pipeline_key)
-                                        
-                                        # Submit to trigger chain reaction
-                                        from selenium.webdriver.common.keys import Keys
-                                        input_element.send_keys(Keys.RETURN)
-                                        
-                                        action_taken = f"Submitted pipeline key: {pipeline_key}"
-                                        
-                                        # 🎯 STEP 3: Wait for HTMX chain reactions to complete
-                                        # This is the critical timing - let the pop, pop, pop occur!
-                                        time.sleep(4)  # Give chain reactions time to complete
-                                        
-                                        # Wait for any pending HTMX requests to finish
-                                        driver.execute_script("""
-                                            return new Promise(function(resolve) {
-                                                if (typeof htmx !== 'undefined') {
-                                                    htmx.on('htmx:afterRequest', function() {
-                                                        setTimeout(resolve, 100);
-                                                    });
-                                                    setTimeout(resolve, 2000); // Fallback timeout
-                                                } else {
-                                                    resolve();
-                                                }
-                                            });
-                                        """)
-                                        
-                                        action_taken += " + waited for HTMX chain reactions"
-                                    else:
-                                        action_taken += " (no input field found)"
-                                        
-                                except Exception as e:
-                                    action_taken += f" (form interaction failed: {e})"
-                            
-                            # 🎯 STEP 4: Capture FULL rendered DOM (after chain reactions)
-                            time.sleep(1)  # Final stabilization
-                            title = driver.title
-                            dom_html = driver.execute_script("return document.documentElement.outerHTML;")
-                            
-                            # Save DOM snapshot with metadata
-                            from pathlib import Path
-                            Path("browser_automation/looking_at").mkdir(parents=True, exist_ok=True)
-                            
-                            # Save full DOM 
-                            Path("browser_automation/looking_at/simple_dom.html").write_text(dom_html[:3000])
-                            
-                            # Save metadata about the hijacking approach
-                            metadata = f"""<!-- 
-🎭 AUTHENTIC SESSION HIJACKING METADATA:
-- Main Endpoint: {main_endpoint}
-- Pipeline Key: {workflow_context.get('pipeline_key', 'None')}
-- Action Taken: {action_taken}
-- Final Title: {title}
-- DOM Length: {len(dom_html)} chars
-- Capture Method: Full workflow simulation (not sub-endpoint sniping)
--->
-{dom_html[:2500]}"""
-                            Path("browser_automation/looking_at/simple_dom.html").write_text(metadata)
-                            
-                            current_dom = dom_html[:2000]
-                            
-                            # CRITICAL: Cleanup
-                            driver.quit()
-                            shutil.rmtree(profile_dir, ignore_errors=True)
-                            
-                            return {
-                                "success": True,
-                                "title": title,
-                                "action_taken": action_taken,
-                                "dom_length": len(current_dom),
-                                "current_dom": current_dom,
-                                "hijacking_method": "🎭 AUTHENTIC: Full workflow simulation with chain reactions"
-                            }
-                            
-                        except Exception as e:
-                            return {
-                                "success": False,
-                                "error": str(e),
-                                "current_dom": f"Authentic browser hijacking failed: {e}",
-                                "hijacking_method": "❌ FAILED: Authentic session hijacking attempt"
-                            }
-                    
-                    # Run blocking browser automation in separate thread
-                    try:
-                        browser_result = await asyncio.to_thread(_blocking_browser_automation)
-                        
-                        if browser_result["success"]:
-                            await self.chat.broadcast(f"🎭 **{browser_result['hijacking_method']}**")
-                            await self.chat.broadcast(f"✅ **ACTION TAKEN:** {browser_result['action_taken']}")
-                            await self.chat.broadcast(f"✅ **FINAL TITLE:** {browser_result['title']}")
-                            await self.chat.broadcast(f"✅ **FULL DOM CAPTURED:** {browser_result['dom_length']} chars (after chain reactions)")
-                            await self.chat.broadcast("✅ **CLEANUP:** Browser and profile directory cleaned up")
-                            current_dom = browser_result["current_dom"]
-                        else:
-                            await self.chat.broadcast(f"❌ **{browser_result['hijacking_method']}**")
-                            await self.chat.broadcast(f"❌ **ERROR:** {browser_result['error']}")
-                            current_dom = browser_result["current_dom"]
-                            
-                    except Exception as e:
-                        await self.chat.broadcast(f"❌ **THREADING ERROR:** {e}")
-                        current_dom = f"Threading failed: {e}"
-                    
-                    # 2. SESSION HIJACKING COMPLETE 
-                    await self.chat.broadcast("🎭 **STEP 2:** Session hijacking executed! AI now accessing your exact screen state...")
-                    
-                    # 3. CHECK RECENT USER ACTIVITY (this actually works)
-                    await self.chat.broadcast("🔍 **STEP 3:** Scanning your recent activity...")
-                    try:
-                        grep_result = await _local_llm_grep_logs({"pattern": "Name saved|workflow.*step", "lines": 5})
-                        if "results" in grep_result and grep_result["results"]:
-                            latest_activity = grep_result["results"][-1] if grep_result["results"] else "No recent activity"
-                            await self.chat.broadcast(f"🎯 **Activity detected:** {latest_activity}")
-                        else:
-                            await self.chat.broadcast("📝 **Activity scan:** No recent workflow activity found")
-                    except Exception as e:
-                        grep_result = {"error": str(e)}
-                        await self.chat.broadcast(f"❌ **Grep Error:** {e}")
-                    
-                    # 4. FORCE-INJECT COMPLETE SESSION STATE 
-                    state_summary = f"""
-🎭 **AUTHENTIC SESSION HIJACKING ACHIEVED!** Revolutionary capabilities demonstrated:
-
-**🎯 MAIN ENDPOINT:** {workflow_context['main_endpoint']}
-**🔑 PIPELINE KEY:** {workflow_context.get('pipeline_key', 'None')}
-**📊 SESSION ANALYSIS:** {workflow_context['analysis']}
-**🎬 ACTION TAKEN:** {browser_result.get('action_taken', 'Basic page load')}
-**📝 Recent Activity:** {grep_result.get('results', ['No activity'])[-1] if grep_result.get('results') else 'No activity'}
-**💻 FULL DOM STATE:** {len(current_dom)} characters captured (after HTMX chain reactions)
-
-**🔍 RENDERED DOM SNAPSHOT (First 2000 chars):**
-```html
-{current_dom}
-```
-
-**✅ AUTHENTIC SESSION HIJACKING STATUS:** 
-- ✅ Pipeline state analysis: WORKING
-- ✅ Main endpoint mapping: WORKING (filename → URL)
-- ✅ Pipeline key submission: WORKING (form automation)
-- ✅ HTMX chain reaction simulation: WORKING (pop, pop, pop!)
-- ✅ Full rendered DOM capture: WORKING (not bare fragments)
-- ✅ Browser automation: WORKING (authentic user simulation)
-- ✅ Log analysis: WORKING
-
-**🆚 COMPARISON: Endpoint Sniping vs Authentic Hijacking**
-❌ OLD: Hit `/hello/step_01` directly → Bare HTMX fragment 
-✅ NEW: Hit `/hello_workflow` + submit key → Full rendered DOM after chain reactions
-
-This demonstrates **AUTHENTIC AI session hijacking** - I experience your EXACT workflow state as you do!
-"""
-                    append_to_conversation(state_summary, 'system')
-                    await self.chat.broadcast("🎭 **AUTHENTIC SESSION HIJACKING ACHIEVED!** I experience your EXACT workflow state with full HTMX chain reactions!")
-                    
-                except Exception as e:
-                    logger.error(f"🎭 MAGIC WORDS ERROR: Hardwired automation failed: {e}")
-                    await self.chat.broadcast(f"🔧 **DEBUG:** Hardwired automation encountered an issue: {e}")
-                    # Still continue with the protocol instructions as fallback
+                await self.chat.broadcast("🚀 **SIMPLE PATTERN LOADED** - Our new rigged success system is executing!")
         
         # CENTRALIZED: All messages entering the stream are now appended here
         append_to_conversation(message, role)
