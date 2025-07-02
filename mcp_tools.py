@@ -4573,7 +4573,7 @@ if __name__ == "__main__":
                                 {"step": "navigation", "status": "success", "details": {"url": url}},
                                 {"step": "pipeline_key_entry", "status": "success", "details": {"pipeline_id": pipeline_id}},
                                 {"step": "form_submission", "status": "success", "details": {"method": "enter_key"}},
-                                {"step": "chain_reaction_wait", "status": "success", "details": {"wait_seconds": wait_chain_reaction}},
+                                {"step": "chain_reaction_wait", "status": "success", "details": {"wait_seconds": chain_wait}},
                                 {"step": "final_state_capture", "status": "success", "details": {"files_saved": 4 + (1 if take_screenshot else 0)}}
                             ]
                         }
