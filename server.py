@@ -5222,17 +5222,36 @@ async def poke_flyout(request):
             current_total = sum(current_counts.values())
             backup_total = sum(backup_counts.values())
             
-            # Status display showing both current and backup state
+            # Create detailed breakdown for clarity
+            current_breakdown = []
+            backup_breakdown = []
+            
+            for table in ['profile', 'tasks', 'ai_keychain']:
+                current_count = current_counts.get(table, 0)
+                backup_count = backup_counts.get(table, 0)
+                
+                if current_count > 0:
+                    table_name = table if table != 'ai_keychain' else 'keychain'
+                    current_breakdown.append(f"{current_count} {table_name}")
+                    
+                if backup_count > 0:
+                    table_name = table if table != 'ai_keychain' else 'keychain'
+                    backup_breakdown.append(f"{backup_count} {table_name}")
+            
+            current_text = " + ".join(current_breakdown) if current_breakdown else "0 records"
+            backup_text = " + ".join(backup_breakdown) if backup_breakdown else "0 records"
+            
+            # Status display showing detailed breakdown
             backup_status = Div(
-                Small(f"💾 Current: {current_total} records | Backup: {backup_total} records", cls='text-secondary'),
+                Small(f"💾 Current: {current_text} | Backup: {backup_text}", cls='text-secondary'),
                 Small(f"📁 {backup_manager.backup_root}", cls='text-muted'),
                 Div(id='backup-restore-result'),  # Target for operation results
                 cls='backup-status-display'
             )
             
-            # Separate explicit buttons
+            # Separate explicit buttons with clear labeling
             backup_button = Button(
-                f'📤 Save {current_total} records', 
+                f'📤 Save all data ({current_total} records)', 
                 hx_post='/explicit-backup', 
                 hx_target='#backup-restore-result', 
                 hx_swap='innerHTML',
@@ -5241,7 +5260,7 @@ async def poke_flyout(request):
             )
             
             restore_button = Button(
-                f'📥 Load {backup_total} records', 
+                f'📥 Load all data ({backup_total} records)', 
                 hx_post='/explicit-restore', 
                 hx_target='#backup-restore-result', 
                 hx_swap='innerHTML',
@@ -5542,12 +5561,23 @@ async def explicit_backup(request):
         successful = sum(1 for success in results.values() if success)
         total = len(results)
         
+        # Create detailed response message
+        current_breakdown = []
+        # Include all tables that were actually counted, not just backup_tables
+        for table_name in ['profile', 'tasks', 'ai_keychain']:
+            count = current_counts.get(table_name, 0)
+            if count > 0:
+                table_display = table_name if table_name != 'ai_keychain' else 'keychain'
+                current_breakdown.append(f"{count} {table_display}")
+        
+        breakdown_text = " + ".join(current_breakdown) if current_breakdown else "no data"
+        
         # Create response message
         if successful == total:
-            status_msg = f"📤 Saved: {current_total} records backed up successfully"
+            status_msg = f"📤 Saved: {breakdown_text} backed up successfully"
             status_class = "text-success"
         else:
-            status_msg = f"⚠️ Partial Save: {successful}/{total} tables backed up"
+            status_msg = f"⚠️ Partial Save: {successful}/{total} tables backed up ({breakdown_text})"
             status_class = "text-warning"
         
         # Add location info
@@ -5587,15 +5617,26 @@ async def explicit_restore(request):
         successful = sum(1 for success in results.values() if success)
         total = len(results)
         
+        # Create detailed response message
+        backup_breakdown = []
+        # Include all tables that were actually counted, not just backup_tables
+        for table_name in ['profile', 'tasks', 'ai_keychain']:
+            count = backup_counts.get(table_name, 0)
+            if count > 0:
+                table_display = table_name if table_name != 'ai_keychain' else 'keychain'
+                backup_breakdown.append(f"{count} {table_display}")
+        
+        breakdown_text = " + ".join(backup_breakdown) if backup_breakdown else "no data"
+        
         # Create response message
         if successful == total and backup_total > 0:
-            status_msg = f"📥 Loaded: {backup_total} records restored successfully"
+            status_msg = f"📥 Loaded: {breakdown_text} restored successfully"
             status_class = "text-success"
         elif backup_total == 0:
             status_msg = f"⚠️ No Data: No backup records found to restore"
             status_class = "text-warning"
         else:
-            status_msg = f"⚠️ Partial Restore: {successful}/{total} tables restored"
+            status_msg = f"⚠️ Partial Restore: {successful}/{total} tables restored ({breakdown_text})"
             status_class = "text-warning"
         
         # Add refresh instruction for major data changes
