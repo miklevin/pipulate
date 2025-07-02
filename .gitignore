@@ -24,6 +24,9 @@ client/
 config.json
 data/
 downloads/*
+
+# AI Keychain persistent memory - survives application resets
+data/ai_keychain.db
 flake.lock
 foo.txt
 foo_files.py
