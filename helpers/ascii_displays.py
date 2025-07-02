@@ -326,4 +326,53 @@ def status_banner(mcp_count, plugin_count, env="Development"):
     # Log the status content with backticks for easy grepping
     clean_content = strip_rich_formatting(status_content.strip())
     logger.info(f"📊 STATUS_BANNER_ASCII: Status banner displayed | ASCII_DATA:\n```\n{clean_content}\n```")
-    return status_content 
+    return status_content
+
+def log_reading_legend():
+    """📖 LOG READING LEGEND: Educational guide for understanding Pipulate logs
+    
+    Returns the complete log legend content with Rich formatting.
+    This helps users understand emojis, log format, and search techniques.
+    
+    Returns:
+        str: Rich-formatted legend content for display in panels
+    """
+    legend_content = """[dim white]Reading Pipulate Logs - Quick Reference:[/dim white]
+
+[bold bright_white]Log Format:[/bold bright_white] [dim white]TIME | LEVEL | MODULE | MESSAGE[/dim white]
+[bright_white]Example:[/bright_white] [dim white]14:20:03 | INFO | __main__ | [🌐 NETWORK] GET /simon_mcp | ID: 6aac3fe0[/dim white]
+
+[bold bright_white]Common Emojis & Meanings:[/bold bright_white]
+🚀 [dim white]STARTUP[/dim white]      - Server initialization and startup events
+🌐 [dim white]NETWORK[/dim white]      - HTTP requests, API calls, web traffic
+🔄 [dim white]PIPELINE[/dim white]     - Workflow execution and step processing
+💾 [dim white]DATABASE[/dim white]     - Data storage operations and queries            
+👤 [dim white]PROFILE[/dim white]      - User profile and authentication events         
+🔌 [dim white]PLUGIN[/dim white]       - Plugin loading and workflow registration       
+💬 [dim white]CHAT[/dim white]         - LLM interactions and AI conversations              [dim white]You're speaking[/dim white]                                    
+🎭 [dim white]AI_CREATIVE[/dim white]  - ASCII art and AI-specific logging (logs only)      [dim white]  my language! [/dim white] 
+🔍 [dim white]FINDER_TOKEN[/dim white] - Searchable debug markers for AI assistants         [white on default]    ,[/white on default][dim white]       O[/dim white]
+🔧 [dim white]MCP_TOOLS[/dim white]    - Model Context Protocol tool operations             [white on default]    \\\\  .[/white on default][dim white]  O[/dim white]
+🎯 [dim white]SUCCESS[/dim white]      - Completion markers and achievements                [white on default]    |\\\\/|[/white on default][dim white] o[/dim white]
+🏷️  [dim white]CONFIG[/dim white]       - System configuration and tagging                  [white on default]    / " '\\    [/white on default] 
+🗄️  [dim white]DB_CONFIG[/dim white]    - Database configuration events                     [white on default]   . .   .     [/white on default] 
+🤖 [dim white]LLM[/dim white]          - Local language model operations                    [white on default] /    ) |     [/white on default] 
+📁 [dim white]FILES[/dim white]        - File and directory operations                      [white on default]'  _.'  |    [/white on default] 
+🧹 [dim white]CLEANUP[/dim white]      - Housekeeping and maintenance                       [white on default]'-'/     \\   [/white on default]                     
+✨ [dim white]FRESH[/dim white]        - New state creation and refresh
+🍞 [dim white]BREADCRUMBS[/dim white]  - AI discovery guidance (AI_BREADCRUMB_01-04)
+📸 [dim white]CAPTURE[/dim white]      - Screenshots and visual state
+📝 [dim white]INPUT[/dim white]        - Form inputs and user data entry
+📤 [dim white]UPLOAD[/dim white]       - File upload operations
+✅ [dim white]COMPLETE[/dim white]     - Task completion and success
+⚠️  [dim white]WARNING[/dim white]      - Important notices and potential issues
+❌ [dim white]ERROR[/dim white]        - System errors and failures
+
+[bold bright_white]Pro Tips:[/bold bright_white]
+• [dim white]Use grep with emojis:[/dim white] [bright_white]grep "🌐" logs/server.log[/bright_white]
+• [dim white]Find specific events:[/dim white] [bright_white]grep "FINDER_TOKEN" logs/server.log[/bright_white]
+• [dim white]Follow live logs:[/dim white] [bright_white]tail -f logs/server.log[/bright_white]
+• [dim white]AI breadcrumbs:[/dim white] [bright_white]grep "AI_BREADCRUMB" logs/server.log[/bright_white]
+• [dim white]MCP tool calls:[/dim white] [bright_white]grep "MCP_.*_START" logs/server.log[/bright_white]"""
+    
+    return legend_content 
