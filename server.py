@@ -5263,10 +5263,9 @@ async def poke_flyout(request):
             restore_button = Button(
                 f'📥 Load all data ({backup_total} records)', 
                 hx_post='/explicit-restore', 
-                hx_target='#backup-restore-result', 
-                hx_swap='innerHTML',
+                hx_swap='none',  # No immediate swap - let server restart handle the reload
                 cls='secondary outline restore-button',
-                **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Loading..."'}
+                **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Restarting server..."; document.body.style.pointerEvents = "none";'}
             )
             
         except Exception as e:
@@ -5640,31 +5639,25 @@ async def explicit_restore(request):
             status_msg = f"⚠️ Partial Restore: {successful}/{total} tables restored ({breakdown_text})"
             status_class = "text-warning"
         
-        # Add magical TWINKLE effect for successful restores
+        # Schedule server restart for successful restores to reload database state
         if successful > 0 and backup_total > 0:
-            details = f"🔄 Data restored - page refreshing to show changes..."
-            # Add magical page refresh for the TWINKLE effect
-            refresh_script = Script("""
-                setTimeout(function() {
-                    window.location.reload();
-                }, 1500);  // Brief delay to read the success message
-            """)
-        else:
-            details = f"📁 Backup location: {backup_manager.backup_root}"
-            refresh_script = ""
+            # Schedule server restart after a brief delay to allow restore completion
+            asyncio.create_task(delayed_restart(2))
         
-        return Div(
-            P(status_msg, cls=status_class),
-            P(details, cls='text-secondary'),
-            refresh_script,  # Magical TWINKLE reload for successful restores
-            id='backup-restore-result'
-        )
+        # For successful restores, just schedule restart and return simple response
+        # The button's hx-on:click handles the loading state display
+        if successful > 0 and backup_total > 0:
+            # Log success for transparency 
+            logger.info(f"📥 EXPLICIT_RESTORE: Successfully restored {backup_total} records, restarting server")
+            return HTMLResponse("")  # Empty response since button handles UI and restart handles reload
+        else:
+            # For failures, still return a response (could enhance this with error handling)
+            logger.warning(f"📥 EXPLICIT_RESTORE: {status_msg}")
+            return HTMLResponse("")
         
     except Exception as e:
-        return Div(
-            P(f"❌ Restore error: {str(e)}", cls='text-invalid'),
-            id='backup-restore-result'
-        )
+        logger.error(f"📥 EXPLICIT_RESTORE: Error during restore - {str(e)}")
+        return HTMLResponse("")  # Let button handle error state display
 
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):
