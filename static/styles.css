@@ -259,9 +259,7 @@
 }
 
 /* Chat interface uses natural PicoCSS defaults (no custom overrides) */
-#chat-interface {
-    /* This container will use PicoCSS defaults naturally since it's outside #grid-left-content */
-}
+/* #chat-interface uses PicoCSS defaults naturally since it's outside #grid-left-content */
 
 /* Ensure scoped styling works across all themes */
 [data-theme="light"] #grid-left-content,
