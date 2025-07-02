@@ -4386,6 +4386,7 @@ async def startup_event():
     section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_cyan")
 
     # 📖 LOG READING LEGEND - Educational guide for understanding logs
+    logger.info("📖 LOG_READING_LEGEND: Educational guide displayed for log interpretation")
     from helpers.ascii_displays import log_reading_legend
     legend_content = log_reading_legend()
     panel = Panel(
@@ -4396,7 +4397,6 @@ async def startup_event():
         padding=(1, 2)
     )
     console.print(panel)
-    logger.info("📖 LOG_READING_LEGEND: Educational guide displayed for log interpretation")
     
     white_rabbit()
     

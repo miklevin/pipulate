@@ -79,20 +79,190 @@ def run_version_sync():
         return False
 
 def run_ascii_art_sync():
-    """Runs the ASCII art documentation synchronization."""
+    """Runs the ASCII art documentation synchronization and captures statistics."""
     print("\n📚 Step 2: Synchronizing ASCII art documentation...")
     ascii_sync_script = PIPULATE_ROOT / "helpers" / "docs_sync" / "sync_ascii_art.py"
     if not ascii_sync_script.exists():
         print("❌ sync_ascii_art.py not found, skipping documentation sync")
-        return False
+        return False, None
     
     try:
-        run_command(["python", str(ascii_sync_script)])
+        result = run_command([".venv/bin/python", str(ascii_sync_script)], capture=True)
+        output = result.stdout
+        
+        # Parse statistics from output
+        stats = parse_ascii_art_stats(output)
+        
         print("✅ ASCII art documentation synchronization complete")
-        return True
+        return True, stats
     except Exception as e:
         print(f"⚠️  Documentation sync failed: {e}")
-        return False
+        return False, None
+
+def parse_ascii_art_stats(output):
+    """Parse ASCII art synchronization statistics from output."""
+    stats = {
+        'files_updated': 0,
+        'total_blocks_updated': 0,
+        'ascii_blocks_found': 0,
+        'used_blocks': 0,
+        'unused_blocks': 0,
+        'coverage_percentage': 0.0,
+        'heuristic_candidates': 0,
+        'quality_candidates': 0,
+        'unknown_markers': 0,
+        'markdown_files_scanned': 0
+    }
+    
+    try:
+        import re
+        
+        # Extract key statistics using regex patterns
+        patterns = {
+            'files_updated': r'📊 Files updated:\s*(\d+)',
+            'total_blocks_updated': r'🔄 Total blocks updated:\s*(\d+)',
+            'ascii_blocks_found': r'✅ Found (\d+) ASCII blocks in README\.md',
+            'markdown_files_scanned': r'🔍 Found (\d+) markdown files',
+            'used_blocks': r'✅ Used blocks:\s*(\d+)',
+            'unused_blocks': r'📝 Unused blocks:\s*(\d+)',
+            'coverage_percentage': r'Used blocks:\s*\d+ \((\d+\.?\d*)%\)',
+            'heuristic_candidates': r'Found (\d+) potential ASCII art blocks in naked fenced code blocks',
+            'quality_candidates': r'HIGH-QUALITY CANDIDATES \((\d+)\)',
+            'unknown_markers': r'UNKNOWN MARKERS FOUND \((\d+)\)'
+        }
+        
+        for key, pattern in patterns.items():
+            match = re.search(pattern, output)
+            if match:
+                if key == 'coverage_percentage':
+                    stats[key] = float(match.group(1))
+                else:
+                    stats[key] = int(match.group(1))
+    
+    except Exception as e:
+        print(f"⚠️  Failed to parse ASCII art statistics: {e}")
+    
+    return stats
+
+def display_ascii_art_stats(stats):
+    """Display ASCII art synchronization statistics in a beautiful rich table."""
+    if not RICH_AVAILABLE or not stats:
+        # Fallback to simple text display
+        if stats:
+            print("\n📊 ASCII ART SYNC STATISTICS:")
+            print(f"   📄 Markdown files scanned: {stats['markdown_files_scanned']}")
+            print(f"   📦 ASCII blocks found: {stats['ascii_blocks_found']}")
+            print(f"   ✅ Used blocks: {stats['used_blocks']}")
+            print(f"   📝 Unused blocks: {stats['unused_blocks']}")
+            print(f"   📊 Coverage: {stats['coverage_percentage']:.1f}%")
+            print(f"   🔄 Files updated: {stats['files_updated']}")
+            print(f"   🎯 Blocks updated: {stats['total_blocks_updated']}")
+        return
+    
+    console = Console()
+    
+    # Create ASCII art statistics table
+    table = Table(
+        title="📚 ASCII Art Sync Statistics",
+        box=box.ROUNDED,
+        title_style="bold blue",
+        header_style="bold cyan",
+        show_header=True,
+        show_lines=True,
+        expand=True
+    )
+    
+    table.add_column("Metric", style="bold yellow", width=25)
+    table.add_column("Value", style="white", width=15)
+    table.add_column("Status", justify="center", width=15)
+    
+    # Add rows with appropriate status indicators
+    coverage = stats['coverage_percentage']
+    coverage_status = "🎯 Excellent" if coverage >= 80 else "⚡ Good" if coverage >= 60 else "📈 Improving"
+    coverage_color = "green" if coverage >= 80 else "yellow" if coverage >= 60 else "red"
+    
+    table.add_row(
+        "📄 Markdown Files Scanned",
+        str(stats['markdown_files_scanned']),
+        "🔍 Complete"
+    )
+    
+    table.add_row(
+        "📦 ASCII Blocks Available", 
+        str(stats['ascii_blocks_found']),
+        "📚 Ready"
+    )
+    
+    table.add_row(
+        "✅ Blocks in Use",
+        str(stats['used_blocks']),
+        "🎨 Active"
+    )
+    
+    table.add_row(
+        "📝 Unused Blocks",
+        str(stats['unused_blocks']),
+        "💤 Dormant" if stats['unused_blocks'] > 0 else "✨ All Used"
+    )
+    
+    table.add_row(
+        "📊 Coverage Percentage",
+        Text(f"{coverage:.1f}%", style=f"bold {coverage_color}"),
+        coverage_status
+    )
+    
+    if stats['files_updated'] > 0:
+        table.add_row(
+            "🔄 Files Updated",
+            str(stats['files_updated']),
+            "✅ Synced"
+        )
+        
+        table.add_row(
+            "🎯 Blocks Updated",
+            str(stats['total_blocks_updated']),
+            "🚀 Fresh"
+        )
+    else:
+        table.add_row(
+            "🔄 Files Updated",
+            "0",
+            "✨ Current"
+        )
+    
+    # Add discovery statistics if present
+    if stats['heuristic_candidates'] > 0:
+        table.add_row(
+            "🔍 New Candidates Found",
+            str(stats['heuristic_candidates']),
+            "🌟 Potential"
+        )
+        
+        if stats['quality_candidates'] > 0:
+            table.add_row(
+                "⭐ Quality Candidates",
+                str(stats['quality_candidates']),
+                "🎨 Promote"
+            )
+    
+    if stats['unknown_markers'] > 0:
+        table.add_row(
+            "❓ Unknown Markers",
+            str(stats['unknown_markers']),
+            "⚠️ Review"
+        )
+    
+    # Create a panel around the table
+    panel = Panel(
+        table,
+        title="📚 Documentation Sync Results",
+        title_align="center",
+        border_style="bright_blue",
+        padding=(1, 2)
+    )
+    
+    console.print("\n")
+    console.print(panel)
 
 def sync_install_sh():
     """Copies install.sh to Pipulate.com and commits if changed."""
@@ -355,10 +525,13 @@ def main():
     
     # Step 2: Documentation Synchronization  
     if not args.skip_docs_sync:
-        docs_sync_success = run_ascii_art_sync()
+        docs_sync_success, ascii_art_stats = run_ascii_art_sync()
+        if ascii_art_stats:
+            display_ascii_art_stats(ascii_art_stats)
     else:
         print("\n⏭️  Skipping documentation synchronization (--skip-docs-sync)")
         docs_sync_success = True
+        ascii_art_stats = None
     
     # Step 3: Install.sh Synchronization
     if not args.skip_install_sh_sync:
