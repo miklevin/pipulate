@@ -1394,7 +1394,6 @@ def log_pipeline_summary(title_prefix: str=''):
         print()
         console.print(legend_panel)
         print()
-        white_rabbit()
         
         # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
         share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
@@ -4367,6 +4366,7 @@ async def startup_event():
     # Pre-seed local LLM context for immediate capability awareness
     asyncio.create_task(prepare_local_llm_context())
     
+    white_rabbit()
     # 🗃️ AUTOMATIC STARTUP BACKUP - Rich banner for visibility
     section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_cyan")
     
