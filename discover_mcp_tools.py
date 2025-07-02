@@ -51,7 +51,8 @@ def discover_mcp_tools():
     for name, obj in inspect.getmembers(sys.modules['mcp_tools']):
         if (callable(obj) and 
             not name.startswith('__') and
-            ('test_' in name or 'ai_' in name or 'botify_' in name or 'browser_' in name or 'ui_' in name or 'local_llm_' in name or 'pipeline_' in name)):
+            ('test_' in name or 'ai_' in name or 'botify_' in name or 'browser_' in name or 
+             'ui_' in name or 'local_llm_' in name or 'pipeline_' in name or 'execute_' in name)):
             mcp_tools.append(name)
     
     # Sort tools by category
@@ -78,7 +79,7 @@ def discover_mcp_tools():
             categories['UI Interaction'].append(tool)
         elif tool.startswith('ai_'):
             categories['AI Discovery'].append(tool)
-        elif 'session' in tool.lower() or 'hijacking' in tool.lower():
+        elif 'session' in tool.lower() or 'hijacking' in tool.lower() or tool.startswith('execute_'):
             categories['Session Hijacking'].append(tool)
         else:
             categories['Core Tools'].append(tool)

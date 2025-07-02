@@ -2812,36 +2812,37 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
         # Get current MCP tool registry - try multiple sources
         available_tools = []
         
-        # Try server module first
-        import sys
-        server_module = sys.modules.get('server')
-        if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
-            available_tools = list(server_module.MCP_TOOL_REGISTRY.keys())
-        else:
-            # Try main module (when running as __main__)
-            main_module = sys.modules.get('__main__')
-            if main_module and hasattr(main_module, 'MCP_TOOL_REGISTRY'):
-                available_tools = list(main_module.MCP_TOOL_REGISTRY.keys())
-            else:
-                # Fallback to local registry
-                available_tools = list(MCP_TOOL_REGISTRY.keys()) if MCP_TOOL_REGISTRY else []
-        
-        # If still no tools, try to discover them dynamically
+        # Try to discover tools using the same method as discover_mcp_tools.py
+        try:
+            # Get all functions that are MCP tool handlers (test functions and main tools)
+            import inspect
+            import sys
+            mcp_module = sys.modules.get('mcp_tools')
+            if mcp_module:
+                for name, obj in inspect.getmembers(mcp_module):
+                    if (callable(obj) and 
+                        not name.startswith('__') and
+                        ('test_' in name or 'ai_' in name or 'botify_' in name or 
+                         'browser_' in name or 'ui_' in name or 'local_llm_' in name or 
+                         'pipeline_' in name or 'execute_' in name)):
+                        available_tools.append(name)
+        except Exception as e:
+            logger.warning(f"Could not discover tools dynamically: {e}")
+            
+        # If dynamic discovery failed, fall back to registry methods
         if not available_tools:
-            try:
-                # Use the discovery script's logic to find all MCP tool functions
-                import inspect
-                import sys
-                mcp_module = sys.modules.get('mcp_tools')
-                if mcp_module:
-                    for name, obj in inspect.getmembers(mcp_module):
-                        if (name.startswith('_') and 
-                            callable(obj) and 
-                            not name.startswith('__') and
-                            'mcp' not in name.lower()):
-                            available_tools.append(name)
-            except Exception as e:
-                logger.warning(f"Could not discover tools dynamically: {e}")
+            # Try server module first
+            server_module = sys.modules.get('server')
+            if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
+                available_tools = list(server_module.MCP_TOOL_REGISTRY.keys())
+            else:
+                # Try main module (when running as __main__)
+                main_module = sys.modules.get('__main__')
+                if main_module and hasattr(main_module, 'MCP_TOOL_REGISTRY'):
+                    available_tools = list(main_module.MCP_TOOL_REGISTRY.keys())
+                else:
+                    # Fallback to local registry
+                    available_tools = list(MCP_TOOL_REGISTRY.keys()) if MCP_TOOL_REGISTRY else []
         
         # Categorize tools by capability - use actual function names with underscores
         tool_categories = {
