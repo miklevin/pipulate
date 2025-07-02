@@ -236,6 +236,7 @@ def generate_files_list():
         FileEntry("server.py", False, "Server entrypoint"),
         FileEntry("common.py", False, "CRUD base class"),
         FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
+        FileEntry("helpers/ascii_displays.py", True, "Externalized ASCII art functions"),
     ]
     for entry in core_files:
         full_path = f"{base_paths['pipulate']}/{entry.filename}"
@@ -246,17 +247,17 @@ def generate_files_list():
             # Single comment with description
             lines.append(f"{full_path}  # {entry.description}")
     
-    # PyPI release system files - all uncommented by default for version management
+    # PyPI release system files - commented out by default
     lines.append("\n## PYPI RELEASE SYSTEM FILES")
     pypi_files = [
-        FileEntry("__init__.py", False, "Package init with version"),
-        FileEntry("cli.py", False, "CLI interface for PyPI package"),
-        FileEntry("pyproject.toml", False, "Package configuration"),
-        FileEntry("LICENSE", False, "MIT License for PyPI package"),
-        # FileEntry("version_sync.py", False, "Version synchronization system"),
-        # FileEntry("VERSION_MANAGEMENT.md", False, "Version system docs"),
-        # FileEntry("TESTING_PYPI.md", False, "PyPI testing guide"),
-        # FileEntry("PUBLISHING.md", False, "PyPI publishing documentation"),
+        FileEntry("__init__.py", True, "Package init with version"),
+        FileEntry("cli.py", True, "CLI interface for PyPI package"),
+        FileEntry("pyproject.toml", True, "Package configuration"),
+        FileEntry("LICENSE", True, "MIT License for PyPI package"),
+        # FileEntry("version_sync.py", True, "Version synchronization system"),
+        # FileEntry("VERSION_MANAGEMENT.md", True, "Version system docs"),
+        # FileEntry("TESTING_PYPI.md", True, "PyPI testing guide"),
+        # FileEntry("PUBLISHING.md", True, "PyPI publishing documentation"),
     ]
     for entry in pypi_files:
         full_path = f"{base_paths['pipulate']}/{entry.filename}"

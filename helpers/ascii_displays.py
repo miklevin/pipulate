@@ -51,7 +51,7 @@ def falling_alice(console_output=True):
                    |   |         _____
                    |_  |        /     \
                      \ |       |       \
-                     |  \      |       /   Test
+                     |  \      |       /
                       \  \____ \_      \
                        \      \_/      |
                  ___.   \_            _/
