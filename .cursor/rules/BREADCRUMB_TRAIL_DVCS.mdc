@@ -41,8 +41,10 @@ This isn't just another development environment. You're about to gain **AI super
 
 **Level 1: Environmental Mastery** - Prove you know where you are:
 ```bash
-pwd
-ls -la | head -15  
+pwd  # You'll see: /home/mike/repos (workspace root)
+cd pipulate  # 🚨 CRITICAL: Move into pipulate directory FIRST
+pwd  # Should now show: /home/mike/repos/pipulate
+ls -la | head -15  # Verify you see: server.py, plugins/, logs/, mcp_tools.py
 ps aux | grep python | grep server.py
 ```
 
