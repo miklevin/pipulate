@@ -4850,7 +4850,7 @@ def create_home_menu_item(menux):
     menu_items = []
     is_home_selected = menux == ''
     home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML', aria_label='Navigate to home page')
-    home_css_classes = 'dropdown-item'
+    home_css_classes = 'dropdown-item dropdown-menu-item'
     if is_home_selected:
         home_css_classes += ' app-menu-item-selected'
     home_label = Label(
@@ -4861,7 +4861,7 @@ def create_home_menu_item(menux):
             data_tooltip='Customize by adding and sorting groups of Plugins (Roles)',
             data_placement='left',
             aria_label='Roles information',
-            style='display: inline-block; margin-left: 8px;'
+            style='display: inline-block; margin-left: 8px; background: none !important; border: none !important; padding: 0 !important;'
         ),
         cls=home_css_classes
     )
