@@ -178,8 +178,8 @@ def generate_files_list():
     # Core files (in pipulate root) - some uncommented by default
     lines.append("# CORE FILES & DOCS (Setting the stage)")
     core_files = [
-        FileEntry("README.md", True, "Single source of truth"),
-        FileEntry(".gitignore", True, "Lets data stay in the repo"),
+        FileEntry("README.md", False, "Single source of truth"),
+        FileEntry(".gitignore", False, "Lets data stay in the repo"),
         FileEntry("flake.nix", False, "IaC - Infrastructure as Code"),
         FileEntry("requirements.txt", False, "Python dependencies"),
         FileEntry("server.py", False, "Server entrypoint"),

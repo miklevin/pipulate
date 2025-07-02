@@ -149,13 +149,78 @@ async def get_user_session_state(params: dict) -> dict:
         # Try to get the global db instance (DictLikeDB)
         if server_module and hasattr(server_module, 'db'):
             db = server_module.db
+            # Validate that db has the expected structure
+            if not hasattr(db, 'get') or not hasattr(db, 'items'):
+                logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - db instance doesn't have expected DictLikeDB methods")
+                return {
+                    "success": False,
+                    "error": "Server-side database has incorrect structure - missing expected methods",
+                    "recovery_suggestion": "Server restart may be required to reinitialize the database properly"
+                }
             logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ACCESS - Successfully accessed global db from server module")
         else:
-            logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - db instance not accessible from server module")
-            return {
-                "success": False,
-                "error": "Server-side database not accessible - server may not be fully initialized"
-            }
+            # Fallback: Try to initialize a new database connection
+            try:
+                from fastlite import database
+                from pathlib import Path
+                Path('data').mkdir(parents=True, exist_ok=True)
+                db_file = 'data/data.db'
+                
+                # Check if the database file exists
+                if not Path(db_file).exists():
+                    logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Database file {db_file} does not exist")
+                    return {
+                        "success": False,
+                        "error": f"Database file {db_file} does not exist - server may not be fully initialized",
+                        "recovery_suggestion": "Ensure server has started properly and created the database file"
+                    }
+                
+                # Try to connect to the database directly
+                db_conn = database(db_file)
+                if not hasattr(db_conn, 'store'):
+                    logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Direct database connection missing 'store' table")
+                    return {
+                        "success": False,
+                        "error": "Database structure is incorrect - missing 'store' table",
+                        "recovery_suggestion": "Server may need to be restarted to create the proper database structure"
+                    }
+                
+                # Create a temporary DictLikeDB wrapper
+                class TempDictLikeDB:
+                    def __init__(self, store_table):
+                        self.store = store_table
+                    
+                    def get(self, key, default=None):
+                        try:
+                            item = self.store[key]
+                            return item.value if hasattr(item, 'value') else default
+                        except Exception:
+                            return default
+                    
+                    def items(self):
+                        try:
+                            for item in self.store():
+                                if hasattr(item, 'key') and hasattr(item, 'value'):
+                                    yield (item.key, item.value)
+                        except Exception as e:
+                            logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Error iterating store: {e}")
+                            return []
+                    
+                    def __contains__(self, key):
+                        try:
+                            return key in self.store
+                        except Exception:
+                            return False
+                
+                db = TempDictLikeDB(db_conn.store)
+                logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ACCESS - Created fallback DictLikeDB wrapper")
+            except Exception as e:
+                logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Failed to create fallback database: {e}")
+                return {
+                    "success": False,
+                    "error": f"Server-side database not accessible and fallback failed: {str(e)}",
+                    "recovery_suggestion": "Check if server is running and database file exists"
+                }
         
         # Get specific keys if requested, otherwise get all
         specific_keys = params.get('keys', [])
@@ -165,13 +230,32 @@ async def get_user_session_state(params: dict) -> dict:
             # Get only requested keys
             session_data = {}
             for key in specific_keys:
-                if key in db:
-                    session_data[key] = db[key]
-                else:
+                try:
+                    if key in db:
+                        session_data[key] = db.get(key)
+                    else:
+                        session_data[key] = None
+                except Exception as e:
+                    logger.warning(f"🎭 FINDER_TOKEN: MCP_SESSION_KEY_ACCESS_ERROR - Error accessing key {key}: {e}")
                     session_data[key] = None
         else:
-            # Get all session data
-            session_data = dict(db)
+            # Get all session data with error handling for each key
+            try:
+                session_data = dict(db.items())
+            except Exception as e:
+                logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Failed to get all items: {e}")
+                # Fallback to empty dict if items() fails
+                session_data = {}
+                # Try to get common keys individually
+                common_keys = ['last_profile_id', 'last_app_choice', 'current_environment', 
+                              'theme_preference', 'profile_locked', 'intro_current_page', 'split-sizes']
+                for key in common_keys:
+                    try:
+                        value = db.get(key)
+                        if value is not None:
+                            session_data[key] = value
+                    except Exception:
+                        pass
         
         # Add metadata about the session state
         result = {
@@ -199,7 +283,8 @@ async def get_user_session_state(params: dict) -> dict:
         logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - {e}")
         return {
             "success": False,
-            "error": f"Failed to access user session state: {str(e)}"
+            "error": f"Failed to access user session state: {str(e)}",
+            "recovery_suggestion": "Server may need to be restarted if this error persists"
         }
 
 async def builtin_get_cat_fact(params: dict) -> dict:
@@ -258,21 +343,49 @@ async def pipeline_state_inspector(params: dict) -> dict:
         # Try to get the global pipeline table (the actual database table, not pipulate.pipeline_table)
         if server_module and hasattr(server_module, 'pipeline'):
             pipeline_table = server_module.pipeline
+            # Validate that pipeline_table has the expected methods
+            if not hasattr(pipeline_table, '__call__'):
+                logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - pipeline_table doesn't have expected callable interface")
+                return {
+                    "success": False,
+                    "error": "Pipeline table has incorrect structure - missing expected methods",
+                    "recovery_suggestion": "Server restart may be required to reinitialize the database properly"
+                }
             logger.info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ACCESS - Successfully accessed global pipeline table from server module")
         else:
             # Alternative: use the database directly if pipeline not available
             try:
                 from fastlite import database
                 from pathlib import Path
+                db_file = 'data/data.db'
                 Path('data').mkdir(parents=True, exist_ok=True)
-                db = database('data/data.db')
+                
+                # Check if the database file exists
+                if not Path(db_file).exists():
+                    logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database file {db_file} does not exist")
+                    return {
+                        "success": False,
+                        "error": f"Database file {db_file} does not exist - server may not be fully initialized",
+                        "recovery_suggestion": "Ensure server has started properly and created the database file"
+                    }
+                
+                db = database(db_file)
+                if not hasattr(db, 'pipeline'):
+                    logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database missing 'pipeline' table")
+                    return {
+                        "success": False,
+                        "error": "Database structure is incorrect - missing 'pipeline' table",
+                        "recovery_suggestion": "Server may need to be restarted to create the proper database structure"
+                    }
+                
                 pipeline_table = db.pipeline
                 logger.info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ACCESS - Fallback: accessed pipeline table directly from database")
             except Exception as e:
                 logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database access failed: {e}")
                 return {
                     "success": False,
-                    "error": f"Pipeline table not accessible - server may not be fully initialized. Details: {e}"
+                    "error": f"Pipeline table not accessible - server may not be fully initialized. Details: {e}",
+                    "recovery_suggestion": "Check if server is running and database file exists"
                 }
         
         pipeline_id = params.get('pipeline_id')
@@ -280,16 +393,40 @@ async def pipeline_state_inspector(params: dict) -> dict:
         show_data = params.get('show_data', True)
         format_type = params.get('format', 'detailed')
         
-        # Get all pipeline records
-        all_pipelines = list(pipeline_table())
+        # Get all pipeline records with error handling
+        try:
+            all_pipelines = list(pipeline_table())
+        except Exception as e:
+            logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Failed to list pipeline records: {e}")
+            return {
+                "success": False,
+                "error": f"Failed to list pipeline records: {str(e)}",
+                "recovery_suggestion": "Database may be corrupted or server needs restart"
+            }
         
         # Filter by pipeline_id if specified
         if pipeline_id:
-            all_pipelines = [p for p in all_pipelines if p.pkey == pipeline_id]
+            try:
+                all_pipelines = [p for p in all_pipelines if hasattr(p, 'pkey') and p.pkey == pipeline_id]
+            except Exception as e:
+                logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Error filtering by pipeline_id: {e}")
+                return {
+                    "success": False,
+                    "error": f"Error filtering by pipeline_id: {str(e)}",
+                    "recovery_suggestion": "Pipeline records may have incorrect structure"
+                }
         
         # Filter by app_name if specified
         if app_name:
-            all_pipelines = [p for p in all_pipelines if p.pkey.startswith(app_name)]
+            try:
+                all_pipelines = [p for p in all_pipelines if hasattr(p, 'pkey') and p.pkey.startswith(app_name)]
+            except Exception as e:
+                logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Error filtering by app_name: {e}")
+                return {
+                    "success": False,
+                    "error": f"Error filtering by app_name: {str(e)}",
+                    "recovery_suggestion": "Pipeline records may have incorrect structure"
+                }
         
         if not all_pipelines:
             return {
@@ -301,10 +438,33 @@ async def pipeline_state_inspector(params: dict) -> dict:
         
         # Process pipeline data
         pipeline_data = []
+        missing_fields_count = 0
+        
         for pipeline in all_pipelines:
             try:
+                # Validate pipeline record has required fields
+                required_fields = ['pkey', 'data', 'created', 'updated']
+                missing_fields = [field for field in required_fields if not hasattr(pipeline, field)]
+                
+                if missing_fields:
+                    missing_fields_count += 1
+                    pipeline_data.append({
+                        "pipeline_id": getattr(pipeline, 'pkey', f"unknown-{missing_fields_count}"),
+                        "error": f"Pipeline record missing required fields: {missing_fields}",
+                        "available_fields": [attr for attr in dir(pipeline) if not attr.startswith('_')][:10]
+                    })
+                    continue
+                
                 # Parse the data JSON (FastLite stores JSON in 'data' field, not 'state')
-                state = json.loads(pipeline.data) if pipeline.data else {}
+                try:
+                    state = json.loads(pipeline.data) if pipeline.data else {}
+                except json.JSONDecodeError as e:
+                    pipeline_data.append({
+                        "pipeline_id": pipeline.pkey,
+                        "error": f"Invalid JSON in data: {str(e)}",
+                        "raw_state": pipeline.data[:200] if pipeline.data else None
+                    })
+                    continue
                 
                 pipeline_info = {
                     "pipeline_id": pipeline.pkey,  # Use pkey instead of pipeline_id
@@ -332,12 +492,21 @@ async def pipeline_state_inspector(params: dict) -> dict:
                 
                 pipeline_data.append(pipeline_info)
                 
-            except json.JSONDecodeError as e:
+            except Exception as e:
+                # Catch any other errors during pipeline processing
+                logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_PROCESSING_ERROR - {e}")
+                try:
+                    pipeline_id_value = getattr(pipeline, 'pkey', 'unknown')
+                except:
+                    pipeline_id_value = 'unknown'
+                    
                 pipeline_data.append({
-                    "pipeline_id": pipeline.pkey,
-                    "error": f"Invalid JSON in data: {str(e)}",
-                    "raw_state": pipeline.data[:200] if pipeline.data else None
+                    "pipeline_id": pipeline_id_value,
+                    "error": f"Error processing pipeline: {str(e)}"
                 })
+        
+        # Check for errors in pipeline data
+        error_count = sum(1 for p in pipeline_data if "error" in p)
         
         result = {
             "success": True,
@@ -351,7 +520,16 @@ async def pipeline_state_inspector(params: dict) -> dict:
             }
         }
         
-        logger.info(f"🎯 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_SUCCESS - Found {len(pipeline_data)} pipelines")
+        # Add error summary if there were any errors
+        if error_count > 0:
+            result["error_summary"] = {
+                "error_count": error_count,
+                "total_records": len(pipeline_data),
+                "error_percentage": round(error_count / len(pipeline_data) * 100, 1) if pipeline_data else 0,
+                "recovery_suggestion": "Some pipeline records have errors but others were processed successfully"
+            }
+        
+        logger.info(f"🎯 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_SUCCESS - Found {len(pipeline_data)} pipelines (with {error_count} errors)")
         return result
         
     except Exception as e:
