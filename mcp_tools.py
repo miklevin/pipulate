@@ -6518,14 +6518,30 @@ async def browser_save_all_data_single_session(params: dict = None) -> dict:
     from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
     from datetime import datetime
     
-    # 🎯 BULLETPROOF DEFAULTS - These always work!
+    # 🎯 BULLETPROOF DEFAULTS - Read from recipe file if not provided
     if params is None:
         params = {}
     
-    # Extract parameters with bulletproof defaults
-    base_url = params.get('base_url', 'http://localhost:5001')
-    max_retries = params.get('max_retries', 3)
-    wait_timeout = params.get('wait_timeout', 10)
+    # Read recipe defaults if no parameters provided
+    recipe_defaults = {}
+    try:
+        import json
+        recipe_path = "ai_discovery/automation_recipes/save_all_data_recipe.json"
+        with open(recipe_path, 'r') as f:
+            recipe_data = json.load(f)
+            recipe_defaults = {
+                'base_url': recipe_data.get('url', 'http://localhost:5001'),
+                'max_retries': recipe_data.get('max_retries', 3),
+                'wait_timeout': recipe_data.get('wait_timeout', 10)
+            }
+    except Exception as e:
+        get_logger().warning(f"📋 Could not load save recipe defaults: {e}")
+        recipe_defaults = {'base_url': 'http://localhost:5001', 'max_retries': 3, 'wait_timeout': 10}
+    
+    # Extract parameters with recipe defaults
+    base_url = params.get('base_url', recipe_defaults.get('base_url', 'http://localhost:5001'))
+    max_retries = params.get('max_retries', recipe_defaults.get('max_retries', 3))
+    wait_timeout = params.get('wait_timeout', recipe_defaults.get('wait_timeout', 10))
     
     get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_SAVE_START - Saving all data via Settings flyout")
     
@@ -6781,15 +6797,32 @@ async def browser_load_all_data_single_session(params: dict = None) -> dict:
     from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
     from datetime import datetime
     
-    # 🎯 BULLETPROOF DEFAULTS - These always work!
+    # 🎯 BULLETPROOF DEFAULTS - Read from recipe file if not provided
     if params is None:
         params = {}
     
-    # Extract parameters with bulletproof defaults
-    base_url = params.get('base_url', 'http://localhost:5001')
-    max_retries = params.get('max_retries', 3)
-    wait_timeout = params.get('wait_timeout', 10)
-    restart_wait_timeout = params.get('restart_wait_timeout', 30)
+    # Read recipe defaults if no parameters provided
+    recipe_defaults = {}
+    try:
+        import json
+        recipe_path = "ai_discovery/automation_recipes/load_all_data_recipe.json"
+        with open(recipe_path, 'r') as f:
+            recipe_data = json.load(f)
+            recipe_defaults = {
+                'base_url': recipe_data.get('url', 'http://localhost:5001'),
+                'max_retries': recipe_data.get('max_retries', 3),
+                'wait_timeout': recipe_data.get('wait_timeout', 10),
+                'restart_wait_timeout': recipe_data.get('restart_wait_timeout', 30)
+            }
+    except Exception as e:
+        get_logger().warning(f"📋 Could not load load recipe defaults: {e}")
+        recipe_defaults = {'base_url': 'http://localhost:5001', 'max_retries': 3, 'wait_timeout': 10, 'restart_wait_timeout': 30}
+    
+    # Extract parameters with recipe defaults
+    base_url = params.get('base_url', recipe_defaults.get('base_url', 'http://localhost:5001'))
+    max_retries = params.get('max_retries', recipe_defaults.get('max_retries', 3))
+    wait_timeout = params.get('wait_timeout', recipe_defaults.get('wait_timeout', 10))
+    restart_wait_timeout = params.get('restart_wait_timeout', recipe_defaults.get('restart_wait_timeout', 30))
     
     get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_LOAD_START - Loading all data via Settings flyout (with restart handling)")
     
