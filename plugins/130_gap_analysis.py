@@ -511,7 +511,7 @@ class ContentGapAnalysis:
                             
                             # Step 2: AI Brain Analysis (AI's BRAIN) 
                             analyze_params = {"analysis_type": "all"}
-                            brain_result = await _browser_analyze_scraped_page(analyze_params)
+                            brain_result = await browser_analyze_scraped_page(analyze_params)
                             
                             if brain_result.get('success'):
                                 visual_intelligence = brain_result

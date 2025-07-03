@@ -2762,10 +2762,6 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         return {"success": False, "error": str(e)}
 
 
-# Register UI tools NOW that functions are defined
-register_mcp_tool("ui_flash_element", ui_flash_element)
-register_mcp_tool("ui_list_elements", ui_list_elements)
-
 async def botify_get_full_schema(params: dict) -> dict:
     """Discover complete Botify API schema using the true_schema_discoverer.py module.
     
@@ -3336,14 +3332,8 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
     """
     logger.info(f"🧠 FINDER_TOKEN: AI_SELF_DISCOVERY_START - Type: {params.get('discovery_type', 'all')}")
 
-    # --- Ensure MCP_TOOL_REGISTRY is populated, even in direct/REPL/terminal use ---
-    global MCP_TOOL_REGISTRY
-    try:
-        if not MCP_TOOL_REGISTRY or len(MCP_TOOL_REGISTRY) < 10:
-            from mcp_tools import register_all_mcp_tools
-            register_all_mcp_tools()
-    except Exception as e:
-        logger.warning(f'Could not auto-register MCP tools: {e}')
+    # --- MCP_TOOL_REGISTRY is populated by server.py during startup ---
+    # No module-level registration to avoid duplicate startup messages
     # -----------------------------------------------------------------------------
 
     try:
@@ -4180,9 +4170,7 @@ async def test_specific_tool(tool_name: str) -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-# Register the new AI self-discovery tools
-register_mcp_tool("ai_self_discovery_assistant", ai_self_discovery_assistant)
-register_mcp_tool("ai_capability_test_suite", ai_capability_test_suite)
+# AI self-discovery tools registered in register_all_mcp_tools() function
 
 async def browser_automate_instructions(params: dict) -> dict:
     """
@@ -4371,8 +4359,7 @@ async def browser_automate_instructions(params: dict) -> dict:
         }
 
 
-# Register the new browser automation tool
-register_mcp_tool("browser_automate_instructions", browser_automate_instructions)
+# Browser automation tool registered in register_all_mcp_tools() function
 
 def get_available_tools():
     """
