@@ -741,6 +741,7 @@ def register_all_mcp_tools():
     register_mcp_tool("browser_create_profile_single_session", browser_create_profile_single_session)
     register_mcp_tool("browser_save_all_data_single_session", browser_save_all_data_single_session)
     register_mcp_tool("browser_load_all_data_single_session", browser_load_all_data_single_session)
+    register_mcp_tool("browser_complete_backup_restore_test", browser_complete_backup_restore_test)
     
     # Additional Botify tools
     register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
@@ -6718,6 +6719,10 @@ async def browser_save_all_data_single_session(params: dict = None) -> dict:
         
         get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_SAVE_COMPLETE - Data saved successfully in {execution_time}ms with {success_rate:.1f}% success rate")
         
+        # Give user time to observe the save result
+        get_logger().info(f"🕐 FINDER_TOKEN: SAVE_SETTLE_WAIT - Allowing 10 seconds for save result observation")
+        time.sleep(10)
+        
         return {
             "success": True,
             "operation": "save_all_data",
@@ -7048,6 +7053,10 @@ async def browser_load_all_data_single_session(params: dict = None) -> dict:
         
         get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_LOAD_COMPLETE - Data loaded successfully in {execution_time}ms with {success_rate:.1f}% success rate")
         
+        # Give user time to observe the load result
+        get_logger().info(f"🕐 FINDER_TOKEN: LOAD_SETTLE_WAIT - Allowing 10 seconds for load result observation")
+        time.sleep(10)
+        
         return {
             "success": True,
             "operation": "load_all_data",
@@ -7092,6 +7101,160 @@ async def browser_load_all_data_single_session(params: dict = None) -> dict:
                 get_logger().info(f"🧹 FINDER_TOKEN: LOAD_BROWSER_CLEANUP - Browser quit successfully")
         except Exception as browser_quit_error:
             get_logger().warning(f"⚠️ FINDER_TOKEN: LOAD_BROWSER_CLEANUP_WARNING - Browser quit failed: {browser_quit_error}")
+
+
+async def browser_complete_backup_restore_test(params: dict = None) -> dict:
+    """
+    🎯 COMPREHENSIVE BACKUP & RESTORE TEST SUITE
+    
+    ✨ COMPLETE ROUND-TRIP VALIDATION: Creates profile → Saves data → Loads data → Verifies profile exists
+    
+    This function orchestrates all three browser automation functions:
+    1. Creates a new profile with unique name
+    2. Saves all data via Settings flyout  
+    3. Loads all data via Settings flyout (with server restart)
+    4. Verifies the original profile still exists after restore
+    
+    Features:
+    - 🎯 End-to-end validation of backup/restore functionality
+    - 🔍 Profile name verification and tracking
+    - 📊 Comprehensive result reporting with timing
+    - 🛡️ Error handling and detailed logging
+    - ⚡ Uses correct URLs from recipe files
+    - 🕐 10-second settle waits after save/load operations
+    """
+    # 🌍 UPSTREAM BROWSER LOGGING
+    get_logger().info(f"🌍 FINDER_TOKEN: COMPREHENSIVE_TEST_START - browser_complete_backup_restore_test called with params: {params}")
+    
+    import time
+    from datetime import datetime
+    
+    # 🎯 BULLETPROOF DEFAULTS
+    if params is None:
+        params = {}
+    
+    start_time = time.time()
+    test_results = {
+        "success": False,
+        "test_started": datetime.now().isoformat(),
+        "operations_completed": [],
+        "profile_name_created": None,
+        "profile_verified_after_restore": False,
+        "timing": {},
+        "errors": []
+    }
+    
+    try:
+        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_1 - Creating new profile")
+        
+        # Phase 1: Create Profile
+        phase1_start = time.time()
+        create_result = await browser_create_profile_single_session(params)
+        phase1_time = int((time.time() - phase1_start) * 1000)
+        
+        if not create_result.get("success"):
+            test_results["errors"].append(f"Profile creation failed: {create_result.get('error', 'Unknown error')}")
+            return test_results
+        
+        profile_name = create_result.get("profile_name")
+        if not profile_name:
+            test_results["errors"].append("Profile creation succeeded but no profile name returned")
+            return test_results
+        
+        test_results["profile_name_created"] = profile_name
+        test_results["operations_completed"].append("create_profile")
+        test_results["timing"]["create_profile_ms"] = phase1_time
+        
+        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_1_SUCCESS - Profile created: {profile_name}")
+        
+        # Phase 2: Save All Data
+        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_2 - Saving all data")
+        phase2_start = time.time()
+        save_result = await browser_save_all_data_single_session(params)
+        phase2_time = int((time.time() - phase2_start) * 1000)
+        
+        if not save_result.get("success"):
+            test_results["errors"].append(f"Save operation failed: {save_result.get('error', 'Unknown error')}")
+            return test_results
+        
+        test_results["operations_completed"].append("save_all_data")
+        test_results["timing"]["save_all_data_ms"] = phase2_time
+        
+        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_2_SUCCESS - Data saved successfully")
+        
+        # Phase 3: Load All Data (with server restart)
+        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_3 - Loading all data")
+        phase3_start = time.time()
+        load_result = await browser_load_all_data_single_session(params)
+        phase3_time = int((time.time() - phase3_start) * 1000)
+        
+        if not load_result.get("success"):
+            test_results["errors"].append(f"Load operation failed: {load_result.get('error', 'Unknown error')}")
+            return test_results
+        
+        test_results["operations_completed"].append("load_all_data")
+        test_results["timing"]["load_all_data_ms"] = phase3_time
+        test_results["server_restarted"] = load_result.get("server_restarted", False)
+        
+        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_3_SUCCESS - Data loaded successfully")
+        
+        # Phase 4: Verify Profile Still Exists
+        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_4 - Verifying profile exists after restore")
+        phase4_start = time.time()
+        
+        # Use browser_scrape_page to check if profile still exists
+        verification_result = await browser_scrape_page({
+            'url': 'http://localhost:5001/profiles',
+            'take_screenshot': False
+        })
+        
+        if verification_result.get("success"):
+            # Check if our profile name appears in the scraped content
+            scraped_content = verification_result.get("text_content", "")
+            if profile_name in scraped_content:
+                test_results["profile_verified_after_restore"] = True
+                get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_4_SUCCESS - Profile {profile_name} verified after restore")
+            else:
+                test_results["errors"].append(f"Profile {profile_name} not found after restore")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_4_WARNING - Profile {profile_name} not found in content")
+        else:
+            test_results["errors"].append(f"Failed to verify profiles page: {verification_result.get('error', 'Unknown error')}")
+        
+        phase4_time = int((time.time() - phase4_start) * 1000)
+        test_results["timing"]["verification_ms"] = phase4_time
+        test_results["operations_completed"].append("verify_profile")
+        
+        # Calculate total execution time
+        total_time = int((time.time() - start_time) * 1000)
+        test_results["timing"]["total_test_ms"] = total_time
+        
+        # Determine overall success
+        expected_operations = ["create_profile", "save_all_data", "load_all_data", "verify_profile"]
+        operations_successful = len(test_results["operations_completed"])
+        test_results["success"] = (
+            operations_successful == len(expected_operations) and 
+            test_results["profile_verified_after_restore"] and
+            len(test_results["errors"]) == 0
+        )
+        
+        if test_results["success"]:
+            get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_COMPLETE - ALL TESTS PASSED in {total_time}ms")
+            test_results["result_message"] = f"Complete backup/restore cycle successful. Profile '{profile_name}' created, saved, restored, and verified."
+        else:
+            get_logger().warning(f"⚠️ FINDER_TOKEN: COMPREHENSIVE_TEST_PARTIAL - Some tests failed in {total_time}ms")
+            test_results["result_message"] = f"Partial success: {operations_successful}/{len(expected_operations)} operations completed"
+        
+        return test_results
+        
+    except Exception as e:
+        execution_time = int((time.time() - start_time) * 1000)
+        get_logger().error(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_ERROR - Unexpected error in {execution_time}ms: {e}")
+        
+        test_results["errors"].append(f"Unexpected error: {str(e)}")
+        test_results["timing"]["total_test_ms"] = execution_time
+        test_results["result_message"] = f"Test suite failed with error: {str(e)}"
+        
+        return test_results
 
 
 # Registration moved to register_all_mcp_tools() function
