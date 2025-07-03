@@ -1842,6 +1842,9 @@ async def browser_scrape_page(params: dict) -> dict:
             }
         }
     """
+    # 🌍 UPSTREAM BROWSER LOGGING - Captured before any subprocess detachment
+    logger.info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_scrape_page called with params: {params}")
+    
     import json
     import os
     import asyncio
@@ -2196,6 +2199,9 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
     The ultimate test of automation readiness - actually USING the improved components
     and providing real-time feedback on automation success/failure.
     """
+    # 🌍 UPSTREAM BROWSER LOGGING - Captured before any subprocess detachment
+    logger.info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_automate_workflow_walkthrough called with params: {params}")
+    
     try:
         import tempfile
         import time
@@ -5165,6 +5171,9 @@ async def browser_interact_enhanced(params: dict) -> dict:
     Returns:
         dict: Comprehensive interaction results with diagnostic feedback
     """
+    # 🌍 UPSTREAM BROWSER LOGGING - Captured before any subprocess detachment
+    logger.info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_interact_enhanced called with params: {params}")
+    
     logger.info(f"🎯 FINDER_TOKEN: ENHANCED_BROWSER_INTERACT_START - Action: {params.get('action')}")
     
     try:
@@ -5473,6 +5482,9 @@ async def navigate_with_verification(params: dict) -> dict:
     Returns:
         dict: Navigation results with page validation
     """
+    # 🌍 UPSTREAM BROWSER LOGGING - Captured before any subprocess detachment
+    logger.info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - navigate_with_verification called with params: {params}")
+    
     logger.info(f"🗺️ FINDER_TOKEN: NAVIGATE_WITH_VERIFICATION_START - URL: {params.get('url')}")
     
     try:
@@ -6135,6 +6147,9 @@ async def browser_create_profile_single_session(params: dict = None) -> dict:
     - ⚡ Optimized timing that feels natural
     - 🎭 Idempotent - safe to run repeatedly
     """
+    # 🌍 UPSTREAM BROWSER LOGGING - Captured before any subprocess detachment
+    logger.info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_create_profile_single_session called with params: {params}")
+    
     import os
     import time
     from selenium import webdriver
