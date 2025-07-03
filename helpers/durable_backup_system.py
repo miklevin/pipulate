@@ -530,7 +530,6 @@ class DurableBackupManager:
                 return
             
             today = datetime.now()
-            files_to_delete = []
             
             # Collect all backup dates with their files
             backup_dates = {}
@@ -561,18 +560,20 @@ class DurableBackupManager:
             # Sort dates newest to oldest
             sorted_dates = sorted(backup_dates.keys(), reverse=True)
             
-            # Determine which dates to keep
-            keep_dates = set()
+            # Track retention categories
+            daily_kept = set()
+            weekly_kept = set()
+            monthly_kept = set()
             
             # Keep last 7 daily backups
             for i, date in enumerate(sorted_dates[:7]):
-                keep_dates.add(date)
+                daily_kept.add(date)
             
             # Keep last 4 weekly backups (Sundays)
             sunday_count = 0
             for date in sorted_dates:
                 if date.weekday() == 6:  # Sunday
-                    keep_dates.add(date)
+                    weekly_kept.add(date)
                     sunday_count += 1
                     if sunday_count >= 4:
                         break
@@ -581,18 +582,32 @@ class DurableBackupManager:
             monthly_count = 0
             for date in sorted_dates:
                 if date.day == 1:  # First of month
-                    keep_dates.add(date)
+                    monthly_kept.add(date)
                     monthly_count += 1
                     if monthly_count >= 12:
                         break
             
+            # Combine all dates to keep (remove duplicates)
+            keep_dates = daily_kept | weekly_kept | monthly_kept
+            
+            # Count overlaps for detailed reporting
+            daily_only = daily_kept - weekly_kept - monthly_kept
+            weekly_only = weekly_kept - daily_kept - monthly_kept
+            monthly_only = monthly_kept - daily_kept - weekly_kept
+            daily_weekly = (daily_kept & weekly_kept) - monthly_kept
+            daily_monthly = (daily_kept & monthly_kept) - weekly_kept
+            weekly_monthly = (weekly_kept & monthly_kept) - daily_kept
+            all_three = daily_kept & weekly_kept & monthly_kept
+            
             # Mark directories for deletion
             deleted_count = 0
+            deleted_dates = []
             for date, day_dir in backup_dates.items():
                 if date not in keep_dates:
                     try:
                         shutil.rmtree(day_dir)
                         deleted_count += 1
+                        deleted_dates.append(date)
                         
                         # Clean up empty parent directories
                         month_dir = day_dir.parent
@@ -606,8 +621,45 @@ class DurableBackupManager:
                     except Exception as e:
                         logger.warning(f"⚠️ Could not delete {day_dir}: {e}")
             
+            # Comprehensive retention reporting
+            total_found = len(backup_dates)
             kept_count = len(keep_dates)
-            logger.info(f"🧹 Cleanup complete: kept {kept_count} backup dates, deleted {deleted_count}")
+            
+            if total_found > 0:
+                # Build detailed retention report
+                retention_details = []
+                
+                if daily_only:
+                    retention_details.append(f"📅 {len(daily_only)} daily")
+                if weekly_only:
+                    retention_details.append(f"📅 {len(weekly_only)} weekly (Sun)")
+                if monthly_only:
+                    retention_details.append(f"📅 {len(monthly_only)} monthly (1st)")
+                if daily_weekly:
+                    retention_details.append(f"📅 {len(daily_weekly)} daily+weekly")
+                if daily_monthly:
+                    retention_details.append(f"📅 {len(daily_monthly)} daily+monthly")
+                if weekly_monthly:
+                    retention_details.append(f"📅 {len(weekly_monthly)} weekly+monthly")
+                if all_three:
+                    retention_details.append(f"📅 {len(all_three)} daily+weekly+monthly")
+                
+                retention_summary = ", ".join(retention_details) if retention_details else "none"
+                
+                logger.info(f"🧹 Retention policy applied: found {total_found} backup dates")
+                logger.info(f"🧹 Preserved {kept_count} dates: {retention_summary}")
+                
+                if deleted_count > 0:
+                    # Show some deleted dates for transparency
+                    deleted_sample = sorted(deleted_dates, reverse=True)[:3]
+                    deleted_preview = ", ".join([d.strftime('%Y/%m/%d') for d in deleted_sample])
+                    if len(deleted_dates) > 3:
+                        deleted_preview += f" (and {len(deleted_dates) - 3} more)"
+                    logger.info(f"🧹 Deleted {deleted_count} old dates: {deleted_preview}")
+                else:
+                    logger.info(f"🧹 No cleanup needed - all dates within retention policy")
+            else:
+                logger.info(f"🧹 No backup dates found for cleanup")
             
         except Exception as e:
             logger.error(f"❌ Cleanup failed: {e}")
