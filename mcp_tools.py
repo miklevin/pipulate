@@ -6603,14 +6603,13 @@ async def browser_save_all_data_single_session(params: dict = None) -> dict:
                     add_step(1, "error", "Navigate to main page", f"Navigation failed after {max_retries} attempts", str(e))
                     return {"success": False, "error": "Navigation failed", "steps_executed": steps_executed}
         
-        # Step 2: Hover over Settings (Poke) button to trigger flyout
+        # Step 2: Click Settings (Poke) button to trigger flyout
         for attempt in range(max_retries):
             try:
                 poke_button = driver.find_element(By.ID, "poke-summary")
                 
-                # Use ActionChains for proper hover
-                actions = ActionChains(driver)
-                actions.move_to_element(poke_button).perform()
+                # Click the settings button to trigger flyout
+                poke_button.click()
                 
                 # More robust flyout detection - check for content rather than just visibility
                 def flyout_has_content(driver):
@@ -6626,25 +6625,25 @@ async def browser_save_all_data_single_session(params: dict = None) -> dict:
                 # Wait for flyout to appear with content
                 WebDriverWait(driver, 8).until(flyout_has_content)
                 
-                add_step(2, "success", "Hover trigger Settings flyout", "Flyout panel appeared successfully")
+                add_step(2, "success", "Click trigger Settings flyout", "Flyout panel appeared successfully")
                 time.sleep(1)  # Let flyout fully load
                 break
                 
             except TimeoutException as te:
-                error_msg = f"Flyout visibility timeout after hover (attempt {attempt + 1}): {str(te)}"
+                error_msg = f"Flyout visibility timeout after click (attempt {attempt + 1}): {str(te)}"
                 if attempt < max_retries - 1:
-                    add_step(2, "retry", "Hover trigger Settings flyout", f"Hover failed, retrying... (attempt {attempt + 1})", error_msg)
+                    add_step(2, "retry", "Click trigger Settings flyout", f"Click failed, retrying... (attempt {attempt + 1})", error_msg)
                     time.sleep(0.5)
                 else:
-                    add_step(2, "error", "Hover trigger Settings flyout", f"Hover failed after {max_retries} attempts", error_msg)
+                    add_step(2, "error", "Click trigger Settings flyout", f"Click failed after {max_retries} attempts", error_msg)
                     return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
             except Exception as e:
-                error_msg = f"Hover operation failed: {type(e).__name__}: {str(e)}"
+                error_msg = f"Click operation failed: {type(e).__name__}: {str(e)}"
                 if attempt < max_retries - 1:
-                    add_step(2, "retry", "Hover trigger Settings flyout", f"Hover failed, retrying... (attempt {attempt + 1})", error_msg)
+                    add_step(2, "retry", "Click trigger Settings flyout", f"Click failed, retrying... (attempt {attempt + 1})", error_msg)
                     time.sleep(0.5)
                 else:
-                    add_step(2, "error", "Hover trigger Settings flyout", f"Hover failed after {max_retries} attempts", error_msg)
+                    add_step(2, "error", "Click trigger Settings flyout", f"Click failed after {max_retries} attempts", error_msg)
                     return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
         
         # Step 3: Click Save all data button
@@ -6868,14 +6867,13 @@ async def browser_load_all_data_single_session(params: dict = None) -> dict:
                     add_step(1, "error", "Navigate to main page", f"Navigation failed after {max_retries} attempts", str(e))
                     return {"success": False, "error": "Navigation failed", "steps_executed": steps_executed}
         
-        # Step 2: Hover over Settings (Poke) button to trigger flyout
+        # Step 2: Click Settings (Poke) button to trigger flyout
         for attempt in range(max_retries):
             try:
                 poke_button = driver.find_element(By.ID, "poke-summary")
                 
-                # Use ActionChains for proper hover
-                actions = ActionChains(driver)
-                actions.move_to_element(poke_button).perform()
+                # Click the settings button to trigger flyout
+                poke_button.click()
                 
                 # More robust flyout detection - check for content rather than just visibility
                 def flyout_has_content(driver):
@@ -6891,25 +6889,25 @@ async def browser_load_all_data_single_session(params: dict = None) -> dict:
                 # Wait for flyout to appear with content
                 WebDriverWait(driver, 8).until(flyout_has_content)
                 
-                add_step(2, "success", "Hover trigger Settings flyout", "Flyout panel appeared successfully")
+                add_step(2, "success", "Click trigger Settings flyout", "Flyout panel appeared successfully")
                 time.sleep(1)  # Let flyout fully load
                 break
                 
             except TimeoutException as te:
-                error_msg = f"Flyout visibility timeout after hover (attempt {attempt + 1}): {str(te)}"
+                error_msg = f"Flyout visibility timeout after click (attempt {attempt + 1}): {str(te)}"
                 if attempt < max_retries - 1:
-                    add_step(2, "retry", "Hover trigger Settings flyout", f"Hover failed, retrying... (attempt {attempt + 1})", error_msg)
+                    add_step(2, "retry", "Click trigger Settings flyout", f"Click failed, retrying... (attempt {attempt + 1})", error_msg)
                     time.sleep(0.5)
                 else:
-                    add_step(2, "error", "Hover trigger Settings flyout", f"Hover failed after {max_retries} attempts", error_msg)
+                    add_step(2, "error", "Click trigger Settings flyout", f"Click failed after {max_retries} attempts", error_msg)
                     return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
             except Exception as e:
-                error_msg = f"Hover operation failed: {type(e).__name__}: {str(e)}"
+                error_msg = f"Click operation failed: {type(e).__name__}: {str(e)}"
                 if attempt < max_retries - 1:
-                    add_step(2, "retry", "Hover trigger Settings flyout", f"Hover failed, retrying... (attempt {attempt + 1})", error_msg)
+                    add_step(2, "retry", "Click trigger Settings flyout", f"Click failed, retrying... (attempt {attempt + 1})", error_msg)
                     time.sleep(0.5)
                 else:
-                    add_step(2, "error", "Hover trigger Settings flyout", f"Hover failed after {max_retries} attempts", error_msg)
+                    add_step(2, "error", "Click trigger Settings flyout", f"Click failed after {max_retries} attempts", error_msg)
                     return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
         
         # Step 3: Check for backup data and click Load all data button
