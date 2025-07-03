@@ -4489,8 +4489,9 @@ logger.info("🚨🚨🚨 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: CRIT
 
 # STORYTELLING: MCP Tools Arsenal Ready
 tool_count = len(MCP_TOOL_REGISTRY)
-if tool_count > 0:
+if tool_count > 0 and not hasattr(figlet_banner, '_mcp_banner_shown'):
     figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
+    figlet_banner._mcp_banner_shown = True
 section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
 
 # 🍞 AI DISCOVERY BREADCRUMB #2: MCP Tools → Browser Automation Discovery
