@@ -3595,6 +3595,8 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         'code': str,
         'active': bool,
         'priority': int,
+        'updated_at': str,
+        'deleted_at': str,
         'pk': 'id'
     },
     pipeline={

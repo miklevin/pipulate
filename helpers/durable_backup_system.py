@@ -294,21 +294,21 @@ class DurableBackupManager:
                 if timestamp_index is not None:
                     # Conflict resolution: check if backup has newer data
                     backup_cursor.execute(
-                        f"SELECT {timestamp_field} FROM {table_name} WHERE {pk_field} = ?",
-                        (pk_value,)
-                    )
+                    f"SELECT {timestamp_field} FROM {table_name} WHERE {pk_field} = ?", 
+                    (pk_value,)
+                )
                     backup_row = backup_cursor.fetchone()
-                    
+                
                     if backup_row and backup_row[0] > row[timestamp_index]:
                         # Backup has newer data, skip this record
                         continue
                 
                 # Insert or replace record
-                placeholders = ', '.join(['?' for _ in columns])
-                backup_cursor.execute(
+                    placeholders = ', '.join(['?' for _ in columns])
+                    backup_cursor.execute(
                     f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})",
-                    row
-                )
+                        row
+                    )
                 records_processed += 1
             
             backup_conn.commit()
@@ -465,7 +465,7 @@ class DurableBackupManager:
             relative_path = latest_backup.relative_to(self.backup_root)
             logger.info(f"🧠 AI Keychain restore: {relative_path} ({total_records} total records)")
             return total_records
-            
+                
         except Exception as e:
             logger.error(f"❌ AI Keychain restore failed: {e}")
             return 0
@@ -483,7 +483,7 @@ class DurableBackupManager:
             results[table_name] = self.backup_table(main_db_path, table_name)
         
         # Backup AI keychain
-        results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
+            results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
         
         # Automatic cleanup after backup
         self.cleanup_old_backups()
@@ -750,7 +750,7 @@ class DurableBackupManager:
             results[table_name] = self.backup_table(main_db_path, table_name)
         
         # Backup AI keychain
-        results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
+            results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
         
         # Automatic cleanup
         self.cleanup_old_backups()

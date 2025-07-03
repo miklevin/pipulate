@@ -117,6 +117,8 @@ class CrudUI(PluginIdentityManager):
             'done': bool, 
             'priority': int, 
             'profile_id': int,
+            'updated_at': str,
+            'deleted_at': str,
             'pk': 'id'
         }
         schema_fields = {k: v for k, v in schema.items() if k != 'pk'}
