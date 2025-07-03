@@ -304,8 +304,8 @@ class DurableBackupManager:
                         continue
                 
                 # Insert or replace record
-                placeholders = ', '.join(['?' for _ in columns])
-                backup_cursor.execute(
+                    placeholders = ', '.join(['?' for _ in columns])
+                    backup_cursor.execute(
                     f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})",
                     row
                 )
@@ -325,7 +325,7 @@ class DurableBackupManager:
         finally:
             source_conn.close()
             backup_conn.close()
-
+    
     def _merge_table_data_restore(self, backup_db_path: str, target_db_path: str, table_name: str) -> int:
         """
         📥 Merge table data during RESTORE operations, return record count.
