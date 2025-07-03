@@ -852,6 +852,129 @@ class DurableBackupManager:
         
         return results
 
+    def log_complete_system_state(self, main_db_path: str) -> Dict[str, int]:
+        """
+        🔍 REVOLUTIONARY: Log complete system state for AI assistant visibility.
+        
+        Creates comprehensive state snapshot in logs that AI assistants can grep
+        to understand the full system state after server initialization.
+        
+        Returns record counts for verification.
+        """
+        try:
+            if not Path(main_db_path).exists():
+                logger.warning("🔍 FINDER_TOKEN: SYSTEM_STATE_LOG - Database not found for state logging")
+                return {}
+
+            conn = sqlite3.connect(main_db_path)
+            cursor = conn.cursor()
+            
+            # Log state dump header
+            logger.info("🔍 FINDER_TOKEN: SYSTEM_STATE_LOG_START - Complete system state snapshot begins")
+            
+            state_counts = {}
+            
+            # ===========================================
+            # PROFILES STATE LOGGING
+            # ===========================================
+            try:
+                cursor.execute("SELECT * FROM profile ORDER BY priority")
+                profiles = cursor.fetchall()
+                
+                # Get column names for profiles
+                cursor.execute("PRAGMA table_info(profile)")
+                profile_columns = [col[1] for col in cursor.fetchall()]
+                
+                state_counts['profiles'] = len(profiles)
+                logger.info(f"🔍 FINDER_TOKEN: PROFILES_COUNT - Total profiles: {len(profiles)}")
+                
+                for profile_row in profiles:
+                    # Create profile dict from row data
+                    profile_data = dict(zip(profile_columns, profile_row))
+                    
+                    # Log detailed profile information
+                    profile_id = profile_data['id']
+                    profile_name = profile_data['name']
+                    real_name = profile_data.get('real_name', '')
+                    address = profile_data.get('address', '')
+                    code = profile_data.get('code', '')
+                    active = profile_data.get('active', False)
+                    priority = profile_data.get('priority', 0)
+                    
+                    active_status = "ACTIVE" if active else "INACTIVE"
+                    
+                    logger.info(f"🔍 FINDER_TOKEN: PROFILE_DETAIL - ID:{profile_id} | '{profile_name}' ({real_name}) | {address} | {code} | {active_status} | Priority:{priority}")
+                    
+            except Exception as e:
+                logger.error(f"🔍 FINDER_TOKEN: PROFILES_ERROR - Failed to log profile state: {e}")
+                state_counts['profiles'] = 0
+            
+            # ===========================================
+            # TASKS STATE LOGGING  
+            # ===========================================
+            try:
+                cursor.execute("SELECT * FROM tasks ORDER BY profile_id, priority")
+                tasks = cursor.fetchall()
+                
+                # Get column names for tasks
+                cursor.execute("PRAGMA table_info(tasks)")
+                task_columns = [col[1] for col in cursor.fetchall()]
+                
+                state_counts['tasks'] = len(tasks)
+                logger.info(f"🔍 FINDER_TOKEN: TASKS_COUNT - Total tasks: {len(tasks)}")
+                
+                # Group tasks by profile for organized logging
+                tasks_by_profile = {}
+                for task_row in tasks:
+                    task_data = dict(zip(task_columns, task_row))
+                    profile_id = task_data['profile_id']
+                    
+                    if profile_id not in tasks_by_profile:
+                        tasks_by_profile[profile_id] = []
+                    tasks_by_profile[profile_id].append(task_data)
+                
+                # Log tasks organized by profile
+                for profile_id, profile_tasks in tasks_by_profile.items():
+                    logger.info(f"🔍 FINDER_TOKEN: PROFILE_TASKS_START - Profile ID:{profile_id} has {len(profile_tasks)} tasks")
+                    
+                    for task_data in profile_tasks:
+                        task_id = task_data['id']
+                        text = task_data['text']
+                        done = task_data.get('done', False)
+                        priority = task_data.get('priority', 0)
+                        
+                        done_status = "COMPLETED" if done else "PENDING"
+                        
+                        logger.info(f"🔍 FINDER_TOKEN: TASK_DETAIL - Profile:{profile_id} | Task:{task_id} | '{text}' | {done_status} | Priority:{priority}")
+                    
+                    logger.info(f"🔍 FINDER_TOKEN: PROFILE_TASKS_END - Profile ID:{profile_id} tasks complete")
+                
+                # Log profiles with no tasks
+                all_profile_ids = set(profile_data['id'] for profile_data in [dict(zip(profile_columns, row)) for row in profiles])
+                profiles_with_tasks = set(tasks_by_profile.keys())
+                profiles_without_tasks = all_profile_ids - profiles_with_tasks
+                
+                for profile_id in profiles_without_tasks:
+                    logger.info(f"🔍 FINDER_TOKEN: PROFILE_NO_TASKS - Profile ID:{profile_id} has 0 tasks")
+                    
+            except Exception as e:
+                logger.error(f"🔍 FINDER_TOKEN: TASKS_ERROR - Failed to log tasks state: {e}")
+                state_counts['tasks'] = 0
+            
+            # ===========================================
+            # STATE SUMMARY
+            # ===========================================
+            total_records = sum(state_counts.values())
+            logger.info(f"🔍 FINDER_TOKEN: SYSTEM_STATE_SUMMARY - {state_counts.get('profiles', 0)} profiles, {state_counts.get('tasks', 0)} tasks, {total_records} total records")
+            logger.info("🔍 FINDER_TOKEN: SYSTEM_STATE_LOG_END - Complete system state snapshot complete")
+            
+            conn.close()
+            return state_counts
+            
+        except Exception as e:
+            logger.error(f"🔍 FINDER_TOKEN: SYSTEM_STATE_ERROR - Failed to log system state: {e}")
+            return {}
+
 
 # 🎯 GLOBAL INSTANCE for easy import
 backup_manager = DurableBackupManager() 

@@ -4403,6 +4403,25 @@ async def startup_event():
     except Exception as e:
         logger.error(f'🗃️ STARTUP_BACKUP: Failed to create automatic backup - {str(e)}')
     
+    # 🔍 COMPREHENSIVE STATE LOGGING - AI Assistant Visibility
+    section_header("🔍", "State Snapshot", "Complete system state for AI assistant discovery", "bright_magenta")
+    try:
+        from helpers.durable_backup_system import backup_manager
+        main_db_path = DB_FILENAME
+        state_results = backup_manager.log_complete_system_state(main_db_path)
+        
+        total_state_records = sum(state_results.values())
+        logger.bind(lifecycle=True).info(f'🔍 STARTUP_STATE_LOG: Complete state snapshot logged - {total_state_records} records detailed across {len(state_results)} tables')
+        logger.info(f'FINDER_TOKEN: STARTUP_STATE_SUMMARY - AI assistants can now grep logs for complete visibility: {state_results}')
+        
+        # Log discovery commands for AI assistants
+        logger.info("🔍 FINDER_TOKEN: AI_DISCOVERY_COMMANDS - Use these grep commands to understand system state:")
+        logger.info("🔍 FINDER_TOKEN: AI_DISCOVERY_COMMANDS - grep 'FINDER_TOKEN: PROFILE_DETAIL' logs/server.log | tail -10")
+        logger.info("🔍 FINDER_TOKEN: AI_DISCOVERY_COMMANDS - grep 'FINDER_TOKEN: TASK_DETAIL' logs/server.log | tail -20") 
+        logger.info("🔍 FINDER_TOKEN: AI_DISCOVERY_COMMANDS - grep 'FINDER_TOKEN: SYSTEM_STATE_SUMMARY' logs/server.log | tail -5")
+        
+    except Exception as e:
+        logger.error(f'🔍 STARTUP_STATE_LOG: Failed to log complete system state - {str(e)}')
 
     # 📖 LOG READING LEGEND - Educational guide for understanding logs
     logger.info("📖 LOG_READING_LEGEND: Educational guide displayed for log interpretation")
