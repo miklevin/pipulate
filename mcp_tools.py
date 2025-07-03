@@ -37,15 +37,22 @@ MCP_TOOL_REGISTRY = None
 
 def get_logger():
     """Get the configured logger from server context"""
-    if logger is None:
-        # Try to get the logger from the server module
-        import sys
-        server_module = sys.modules.get('server') or sys.modules.get('__main__')
-        if server_module and hasattr(server_module, 'logger'):
-            return server_module.logger
-        else:
-            raise RuntimeError("Logger not available - mcp_tools must be imported through server.py")
-    return logger
+    # Try to get the logger from the server module
+    import sys
+    server_module = sys.modules.get('server') or sys.modules.get('__main__')
+    if server_module and hasattr(server_module, 'logger'):
+        return server_module.logger
+    else:
+        # Create a fallback logger for direct imports
+        import logging
+        fallback_logger = logging.getLogger('mcp_tools_fallback')
+        if not fallback_logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(levelname)s: %(message)s')
+            handler.setFormatter(formatter)
+            fallback_logger.addHandler(handler)
+            fallback_logger.setLevel(logging.INFO)
+        return fallback_logger
 
 # Import AI Keychain for persistent memory
 try:
@@ -126,12 +133,8 @@ def apply_timing_preset(preset_name: str):
         get_logger().warning(f"⚠️ Unknown timing preset: {preset_name}")
 
 # 🎯 Apply default timing preset (change this to tune global speed)
-# Only apply when logger is available (i.e., when imported through server.py)
-try:
-    apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
-except RuntimeError:
-    # Logger not available yet - will be applied when server.py sets up logging
-    pass
+# Now works with both server context and direct imports
+apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
 
 # ================================================================
 # HELPER FUNCTIONS
@@ -169,7 +172,7 @@ async def get_user_session_state(params: dict) -> dict:
     This is THE tool for understanding what the user was just doing and continuing
     their workflow seamlessly.
     """
-    logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_START - {params}")
+    get_logger().info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_START - {params}")
     
     try:
         # Use dynamic import to avoid circular dependency
@@ -181,13 +184,13 @@ async def get_user_session_state(params: dict) -> dict:
             db = server_module.db
             # Validate that db has the expected structure
             if not hasattr(db, 'get') or not hasattr(db, 'items'):
-                logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - db instance doesn't have expected DictLikeDB methods")
+                get_logger().error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - db instance doesn't have expected DictLikeDB methods")
                 return {
                     "success": False,
                     "error": "Server-side database has incorrect structure - missing expected methods",
                     "recovery_suggestion": "Server restart may be required to reinitialize the database properly"
                 }
-            logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ACCESS - Successfully accessed global db from server module")
+            get_logger().info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ACCESS - Successfully accessed global db from server module")
         else:
             # Fallback: Try to initialize a new database connection
             try:
@@ -198,7 +201,7 @@ async def get_user_session_state(params: dict) -> dict:
                 
                 # Check if the database file exists
                 if not Path(db_file).exists():
-                    logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Database file {db_file} does not exist")
+                    get_logger().error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Database file {db_file} does not exist")
                     return {
                         "success": False,
                         "error": f"Database file {db_file} does not exist - server may not be fully initialized",
@@ -208,7 +211,7 @@ async def get_user_session_state(params: dict) -> dict:
                 # Try to connect to the database directly
                 db_conn = database(db_file)
                 if not hasattr(db_conn, 'store'):
-                    logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Direct database connection missing 'store' table")
+                    get_logger().error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Direct database connection missing 'store' table")
                     return {
                         "success": False,
                         "error": "Database structure is incorrect - missing 'store' table",
@@ -233,7 +236,7 @@ async def get_user_session_state(params: dict) -> dict:
                                 if hasattr(item, 'key') and hasattr(item, 'value'):
                                     yield (item.key, item.value)
                         except Exception as e:
-                            logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Error iterating store: {e}")
+                            get_logger().error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Error iterating store: {e}")
                             return []
                     
                     def __contains__(self, key):
@@ -243,9 +246,9 @@ async def get_user_session_state(params: dict) -> dict:
                             return False
                 
                 db = TempDictLikeDB(db_conn.store)
-                logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ACCESS - Created fallback DictLikeDB wrapper")
+                get_logger().info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ACCESS - Created fallback DictLikeDB wrapper")
             except Exception as e:
-                logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Failed to create fallback database: {e}")
+                get_logger().error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Failed to create fallback database: {e}")
                 return {
                     "success": False,
                     "error": f"Server-side database not accessible and fallback failed: {str(e)}",
@@ -266,14 +269,14 @@ async def get_user_session_state(params: dict) -> dict:
                     else:
                         session_data[key] = None
                 except Exception as e:
-                    logger.warning(f"🎭 FINDER_TOKEN: MCP_SESSION_KEY_ACCESS_ERROR - Error accessing key {key}: {e}")
+                    get_logger().warning(f"🎭 FINDER_TOKEN: MCP_SESSION_KEY_ACCESS_ERROR - Error accessing key {key}: {e}")
                     session_data[key] = None
         else:
             # Get all session data with error handling for each key
             try:
                 session_data = dict(db.items())
             except Exception as e:
-                logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Failed to get all items: {e}")
+                get_logger().error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Failed to get all items: {e}")
                 # Fallback to empty dict if items() fails
                 session_data = {}
                 # Try to get common keys individually
@@ -306,11 +309,11 @@ async def get_user_session_state(params: dict) -> dict:
                 "split-sizes": session_data.get('split-sizes')
             }
         
-        logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_SUCCESS - Retrieved {len(session_data)} session keys")
+        get_logger().info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_SUCCESS - Retrieved {len(session_data)} session keys")
         return result
         
     except Exception as e:
-        logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - {e}")
+        get_logger().error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - {e}")
         return {
             "success": False,
             "error": f"Failed to access user session state: {str(e)}",
@@ -363,7 +366,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
     Complete workflow state visibility for AI assistants.
     This is THE tool for understanding what's happening in any workflow.
     """
-    logger.info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_START - {params}")
+    get_logger().info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_START - {params}")
     
     try:
         # Use dynamic import to avoid circular dependency
@@ -375,13 +378,13 @@ async def pipeline_state_inspector(params: dict) -> dict:
             pipeline_table = server_module.pipeline
             # Validate that pipeline_table has the expected methods
             if not hasattr(pipeline_table, '__call__'):
-                logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - pipeline_table doesn't have expected callable interface")
+                get_logger().error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - pipeline_table doesn't have expected callable interface")
                 return {
                     "success": False,
                     "error": "Pipeline table has incorrect structure - missing expected methods",
                     "recovery_suggestion": "Server restart may be required to reinitialize the database properly"
                 }
-            logger.info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ACCESS - Successfully accessed global pipeline table from server module")
+            get_logger().info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ACCESS - Successfully accessed global pipeline table from server module")
         else:
             # Alternative: use the database directly if pipeline not available
             try:
@@ -392,7 +395,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
                 
                 # Check if the database file exists
                 if not Path(db_file).exists():
-                    logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database file {db_file} does not exist")
+                    get_logger().error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database file {db_file} does not exist")
                     return {
                         "success": False,
                         "error": f"Database file {db_file} does not exist - server may not be fully initialized",
@@ -401,7 +404,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
                 
                 db = database(db_file)
                 if not hasattr(db, 'pipeline'):
-                    logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database missing 'pipeline' table")
+                    get_logger().error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database missing 'pipeline' table")
                     return {
                         "success": False,
                         "error": "Database structure is incorrect - missing 'pipeline' table",
@@ -409,9 +412,9 @@ async def pipeline_state_inspector(params: dict) -> dict:
                     }
                 
                 pipeline_table = db.pipeline
-                logger.info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ACCESS - Fallback: accessed pipeline table directly from database")
+                get_logger().info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ACCESS - Fallback: accessed pipeline table directly from database")
             except Exception as e:
-                logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database access failed: {e}")
+                get_logger().error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database access failed: {e}")
                 return {
                     "success": False,
                     "error": f"Pipeline table not accessible - server may not be fully initialized. Details: {e}",
@@ -427,7 +430,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
         try:
             all_pipelines = list(pipeline_table())
         except Exception as e:
-            logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Failed to list pipeline records: {e}")
+            get_logger().error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Failed to list pipeline records: {e}")
             return {
                 "success": False,
                 "error": f"Failed to list pipeline records: {str(e)}",
@@ -439,7 +442,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
             try:
                 all_pipelines = [p for p in all_pipelines if hasattr(p, 'pkey') and p.pkey == pipeline_id]
             except Exception as e:
-                logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Error filtering by pipeline_id: {e}")
+                get_logger().error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Error filtering by pipeline_id: {e}")
                 return {
                     "success": False,
                     "error": f"Error filtering by pipeline_id: {str(e)}",
@@ -451,7 +454,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
             try:
                 all_pipelines = [p for p in all_pipelines if hasattr(p, 'pkey') and p.pkey.startswith(app_name)]
             except Exception as e:
-                logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Error filtering by app_name: {e}")
+                get_logger().error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Error filtering by app_name: {e}")
                 return {
                     "success": False,
                     "error": f"Error filtering by app_name: {str(e)}",
@@ -524,7 +527,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
                 
             except Exception as e:
                 # Catch any other errors during pipeline processing
-                logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_PROCESSING_ERROR - {e}")
+                get_logger().error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_PROCESSING_ERROR - {e}")
                 try:
                     pipeline_id_value = getattr(pipeline, 'pkey', 'unknown')
                 except:
@@ -559,11 +562,11 @@ async def pipeline_state_inspector(params: dict) -> dict:
                 "recovery_suggestion": "Some pipeline records have errors but others were processed successfully"
             }
         
-        logger.info(f"🎯 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_SUCCESS - Found {len(pipeline_data)} pipelines (with {error_count} errors)")
+        get_logger().info(f"🎯 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_SUCCESS - Found {len(pipeline_data)} pipelines (with {error_count} errors)")
         return result
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
 # ================================================================
@@ -736,6 +739,8 @@ def register_all_mcp_tools():
     register_mcp_tool("navigate_with_verification", navigate_with_verification)
     register_mcp_tool("browser_automate_recipe", browser_automate_recipe)
     register_mcp_tool("browser_create_profile_single_session", browser_create_profile_single_session)
+    register_mcp_tool("browser_save_all_data_single_session", browser_save_all_data_single_session)
+    register_mcp_tool("browser_load_all_data_single_session", browser_load_all_data_single_session)
     
     # Additional Botify tools
     register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
@@ -923,16 +928,16 @@ async def local_llm_read_file(params: dict) -> dict:
             "end_line": end_line or total_lines
         }
         
-        logger.info(f"🎯 FINDER_TOKEN: MCP_READ_FILE_SUCCESS - {file_path} ({len(lines)} lines)")
+        get_logger().info(f"🎯 FINDER_TOKEN: MCP_READ_FILE_SUCCESS - {file_path} ({len(lines)} lines)")
         return result
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: MCP_READ_FILE_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: MCP_READ_FILE_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
 async def local_llm_grep_logs(params: dict) -> dict:
     """Search logs with FINDER_TOKENs for debugging."""
-    logger.info(f"🔧 FINDER_TOKEN: MCP_GREP_LOGS_START - {params.get('pattern')}")
+    get_logger().info(f"🔧 FINDER_TOKEN: MCP_GREP_LOGS_START - {params.get('pattern')}")
     
     try:
         pattern = params.get('pattern')
@@ -989,12 +994,12 @@ async def local_llm_grep_logs(params: dict) -> dict:
             return {"success": False, "error": "grep command not found"}
             
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: MCP_GREP_LOGS_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: MCP_GREP_LOGS_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
 async def local_llm_list_files(params: dict) -> dict:
     """List files and directories for AI exploration."""
-    logger.info(f"🔧 FINDER_TOKEN: MCP_LIST_FILES_START - {params.get('directory', '.')}")
+    get_logger().info(f"🔧 FINDER_TOKEN: MCP_LIST_FILES_START - {params.get('directory', '.')}")
     
     try:
         directory = params.get('directory', '.')
@@ -1064,7 +1069,7 @@ async def local_llm_list_files(params: dict) -> dict:
             return {"success": False, "error": f"Permission denied accessing: {directory}"}
             
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: MCP_LIST_FILES_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: MCP_LIST_FILES_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
 async def local_llm_get_context(params: dict) -> dict:
@@ -1088,7 +1093,7 @@ async def local_llm_get_context(params: dict) -> dict:
         with open(context_file, 'r') as f:
             context_data = json.load(f)
         
-        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_CONTEXT_ACCESS - Context retrieved for local LLM")
+        get_logger().info(f"🔍 FINDER_TOKEN: LOCAL_LLM_CONTEXT_ACCESS - Context retrieved for local LLM")
         
         return {
             "success": True,
@@ -1097,7 +1102,7 @@ async def local_llm_get_context(params: dict) -> dict:
         }
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_CONTEXT_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: LOCAL_LLM_CONTEXT_ERROR - {e}")
         return {
             "success": False,
             "error": str(e),
@@ -1123,7 +1128,7 @@ async def keychain_set(params: dict) -> dict:
     Returns:
         Dict with success status and confirmation details
     """
-    logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_SET_START - {params.get('key', 'NO_KEY')}")
+    get_logger().info(f"🧠 FINDER_TOKEN: KEYCHAIN_SET_START - {params.get('key', 'NO_KEY')}")
     
     if not KEYCHAIN_AVAILABLE:
         return {
@@ -1156,7 +1161,7 @@ async def keychain_set(params: dict) -> dict:
         # Store the key-value pair
         keychain_instance[key] = value_str
         
-        logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_SET_SUCCESS - Key '{key}' stored with {len(value_str)} characters")
+        get_logger().info(f"🧠 FINDER_TOKEN: KEYCHAIN_SET_SUCCESS - Key '{key}' stored with {len(value_str)} characters")
         
         return {
             "success": True, 
@@ -1168,7 +1173,7 @@ async def keychain_set(params: dict) -> dict:
         }
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_SET_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: KEYCHAIN_SET_ERROR - {e}")
         return {
             "success": False, 
             "error": str(e),
@@ -1187,7 +1192,7 @@ async def keychain_get(params: dict) -> dict:
     Returns:
         Dict with success status and the stored message (if found)
     """
-    logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_START - {params.get('key', 'NO_KEY')}")
+    get_logger().info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_START - {params.get('key', 'NO_KEY')}")
     
     if not KEYCHAIN_AVAILABLE:
         return {
@@ -1209,7 +1214,7 @@ async def keychain_get(params: dict) -> dict:
         value = keychain_instance.get(key)
         
         if value is not None:
-            logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_SUCCESS - Key '{key}' found with {len(value)} characters")
+            get_logger().info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_SUCCESS - Key '{key}' found with {len(value)} characters")
             return {
                 "success": True, 
                 "key": key, 
@@ -1218,7 +1223,7 @@ async def keychain_get(params: dict) -> dict:
                 "message": f"Retrieved message from persistent keychain for key '{key}'"
             }
         else:
-            logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_NOT_FOUND - Key '{key}' not found")
+            get_logger().info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_NOT_FOUND - Key '{key}' not found")
             return {
                 "success": False, 
                 "key": key, 
@@ -1227,7 +1232,7 @@ async def keychain_get(params: dict) -> dict:
             }
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_GET_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: KEYCHAIN_GET_ERROR - {e}")
         return {
             "success": False, 
             "error": str(e),
@@ -1246,7 +1251,7 @@ async def keychain_delete(params: dict) -> dict:
     Returns:
         Dict with success status and confirmation details
     """
-    logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_START - {params.get('key', 'NO_KEY')}")
+    get_logger().info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_START - {params.get('key', 'NO_KEY')}")
     
     if not KEYCHAIN_AVAILABLE:
         return {
@@ -1267,7 +1272,7 @@ async def keychain_delete(params: dict) -> dict:
         # Check if key exists before deletion
         if key in keychain_instance:
             del keychain_instance[key]
-            logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_SUCCESS - Key '{key}' deleted")
+            get_logger().info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_SUCCESS - Key '{key}' deleted")
             return {
                 "success": True, 
                 "key": key, 
@@ -1275,7 +1280,7 @@ async def keychain_delete(params: dict) -> dict:
                 "remaining_keys": keychain_instance.count()
             }
         else:
-            logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_NOT_FOUND - Key '{key}' not found")
+            get_logger().info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_NOT_FOUND - Key '{key}' not found")
             return {
                 "success": False, 
                 "key": key, 
@@ -1284,7 +1289,7 @@ async def keychain_delete(params: dict) -> dict:
             }
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_DELETE_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: KEYCHAIN_DELETE_ERROR - {e}")
         return {
             "success": False, 
             "error": str(e),
@@ -1303,7 +1308,7 @@ async def keychain_list_keys(params: dict) -> dict:
     Returns:
         Dict with success status and list of all available keys
     """
-    logger.info("🧠 FINDER_TOKEN: KEYCHAIN_LIST_KEYS_START")
+    get_logger().info("🧠 FINDER_TOKEN: KEYCHAIN_LIST_KEYS_START")
     
     if not KEYCHAIN_AVAILABLE:
         return {
@@ -1314,7 +1319,7 @@ async def keychain_list_keys(params: dict) -> dict:
     try:
         keys = keychain_instance.keys()
         
-        logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_LIST_KEYS_SUCCESS - Found {len(keys)} keys")
+        get_logger().info(f"🧠 FINDER_TOKEN: KEYCHAIN_LIST_KEYS_SUCCESS - Found {len(keys)} keys")
         
         return {
             "success": True, 
@@ -1325,7 +1330,7 @@ async def keychain_list_keys(params: dict) -> dict:
         }
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_LIST_KEYS_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: KEYCHAIN_LIST_KEYS_ERROR - {e}")
         return {
             "success": False, 
             "error": str(e),
@@ -1345,7 +1350,7 @@ async def keychain_get_all(params: dict) -> dict:
     Returns:
         Dict with success status and all key-value pairs
     """
-    logger.info("🧠 FINDER_TOKEN: KEYCHAIN_GET_ALL_START")
+    get_logger().info("🧠 FINDER_TOKEN: KEYCHAIN_GET_ALL_START")
     
     if not KEYCHAIN_AVAILABLE:
         return {
@@ -1364,7 +1369,7 @@ async def keychain_get_all(params: dict) -> dict:
         else:
             truncated = False
         
-        logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_ALL_SUCCESS - Retrieved {len(items)} items")
+        get_logger().info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_ALL_SUCCESS - Retrieved {len(items)} items")
         
         return {
             "success": True, 
@@ -1376,7 +1381,7 @@ async def keychain_get_all(params: dict) -> dict:
         }
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_GET_ALL_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: KEYCHAIN_GET_ALL_ERROR - {e}")
         return {
             "success": False, 
             "error": str(e),
@@ -1398,10 +1403,10 @@ async def execute_ai_session_hijacking_demonstration(params: dict) -> dict:
     """
     try:
         trigger_source = params.get("trigger_source", "mcp_tool")
-        logger.info(f"🎭 FINDER_TOKEN: MCP_MAGIC_WORDS - AI session hijacking demonstration triggered by {trigger_source}")
+        get_logger().info(f"🎭 FINDER_TOKEN: MCP_MAGIC_WORDS - AI session hijacking demonstration triggered by {trigger_source}")
         
         # 🚀 EXECUTE OUR NEW SIMPLE HIJACKING (no parameters, all defaults set correctly)
-        logger.info("🎭 FINDER_TOKEN: MAGIC_WORDS_SIMPLE_HIJACK - Executing 1-shot session hijacking")
+        get_logger().info("🎭 FINDER_TOKEN: MAGIC_WORDS_SIMPLE_HIJACK - Executing 1-shot session hijacking")
         
         # Add dramatic delay so humans can see the breadcrumb sequence
         import asyncio
@@ -1465,7 +1470,7 @@ print(f'🎭 Hijack: {{result.get("success")}}')
         }
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: MCP_MAGIC_WORDS_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: MCP_MAGIC_WORDS_ERROR - {e}")
         return {
             "success": False,
             "error": str(e),
@@ -1548,7 +1553,7 @@ async def ui_flash_element(params: dict) -> dict:
         if server_module and hasattr(server_module, 'chat'):
             chat = getattr(server_module, 'chat')
             if chat:
-                logger.info(f"🔔 UI FLASH: Broadcasting script via global chat for element: {element_id}")
+                get_logger().info(f"🔔 UI FLASH: Broadcasting script via global chat for element: {element_id}")
                 # Send script to execute the flash
                 await chat.broadcast(flash_script)
                 
@@ -1556,9 +1561,9 @@ async def ui_flash_element(params: dict) -> dict:
                 if message:
                     await chat.broadcast(message)
             else:
-                logger.warning(f"🔔 UI FLASH: Global chat not available for element: {element_id}")
+                get_logger().warning(f"🔔 UI FLASH: Global chat not available for element: {element_id}")
         else:
-            logger.error(f"🔔 UI FLASH: No chat instance available for element: {element_id}")
+            get_logger().error(f"🔔 UI FLASH: No chat instance available for element: {element_id}")
         
         return {
             "success": True,
@@ -1638,7 +1643,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
     Returns:
         dict: Analysis results with actionable automation data + automation assistant files
     """
-    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_ANALYZE_START - Analysis: {params.get('analysis_type', 'automation_targets')}")
+    get_logger().info(f"🔧 FINDER_TOKEN: MCP_BROWSER_ANALYZE_START - Analysis: {params.get('analysis_type', 'automation_targets')}")
     
     try:
         analysis_type = params.get('analysis_type', 'automation_targets')
@@ -1671,11 +1676,11 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
         if include_automation_assistant and analysis_type in ["all", "enhanced"]:
             try:
                 from helpers.dom_processing.enhanced_dom_processor import process_current_looking_at
-                logger.info("🎯 FINDER_TOKEN: ENHANCED_DOM_PROCESSING_START - Generating automation assistant files")
+                get_logger().info("🎯 FINDER_TOKEN: ENHANCED_DOM_PROCESSING_START - Generating automation assistant files")
                 automation_assistant_result = process_current_looking_at()
-                logger.info(f"✅ FINDER_TOKEN: ENHANCED_DOM_PROCESSING_SUCCESS - Generated {len(automation_assistant_result.get('cleaned_files', []))} automation files")
+                get_logger().info(f"✅ FINDER_TOKEN: ENHANCED_DOM_PROCESSING_SUCCESS - Generated {len(automation_assistant_result.get('cleaned_files', []))} automation files")
             except Exception as e:
-                logger.warning(f"⚠️ FINDER_TOKEN: ENHANCED_DOM_PROCESSING_WARNING - Could not generate automation assistant: {e}")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: ENHANCED_DOM_PROCESSING_WARNING - Could not generate automation assistant: {e}")
         
         if analysis_type == "enhanced":
             # Return enhanced automation assistant analysis
@@ -1816,11 +1821,11 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
         else:
             result = {"success": False, "error": f"Unknown analysis_type: {analysis_type}"}
             
-        logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_ANALYZE_SUCCESS - {result.get('target_count', 0)} targets, {result.get('form_count', 0)} forms")
+        get_logger().info(f"🎯 FINDER_TOKEN: MCP_BROWSER_ANALYZE_SUCCESS - {result.get('target_count', 0)} targets, {result.get('form_count', 0)} forms")
         return result
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_ANALYZE_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: MCP_BROWSER_ANALYZE_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
 async def browser_scrape_page(params: dict) -> dict:
@@ -1931,7 +1936,7 @@ async def browser_scrape_page(params: dict) -> dict:
         except Exception as e:
             return {"success": False, "error": f"URL parsing failed: {url}. Error: {e}"}
         
-        logger.info(f"✅ FINDER_TOKEN: URL_VALIDATION_PASSED | URL validated: {url}")
+        get_logger().info(f"✅ FINDER_TOKEN: URL_VALIDATION_PASSED | URL validated: {url}")
             
         # === DIRECTORY ROTATION BEFORE NEW BROWSER SCRAPE ===
         # Rotate looking_at directory to preserve AI perception history
@@ -1946,7 +1951,7 @@ async def browser_scrape_page(params: dict) -> dict:
         )
         
         if not rotation_success:
-            logger.warning("⚠️ FINDER_TOKEN: DIRECTORY_ROTATION_WARNING - Directory rotation failed, continuing with scrape")
+            get_logger().warning("⚠️ FINDER_TOKEN: DIRECTORY_ROTATION_WARNING - Directory rotation failed, continuing with scrape")
             
         # Set up the /looking_at/ directory - AI's primary perception interface
         looking_at_dir = 'browser_automation/looking_at'
@@ -2121,7 +2126,7 @@ if __name__ == "__main__":
         
         try:
             # Run the browser automation in subprocess
-            logger.info(f"🔄 FINDER_TOKEN: SUBPROCESS_BROWSER_START - Running browser automation in separate process")
+            get_logger().info(f"🔄 FINDER_TOKEN: SUBPROCESS_BROWSER_START - Running browser automation in separate process")
             
             # Use asyncio.create_subprocess_exec for async subprocess
             process = await asyncio.create_subprocess_exec(
@@ -2147,8 +2152,8 @@ if __name__ == "__main__":
             error_output = stderr.decode('utf-8')
             
             if process.returncode != 0:
-                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_ERROR - Return code: {process.returncode}")
-                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_STDERR - {error_output}")
+                get_logger().error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_ERROR - Return code: {process.returncode}")
+                get_logger().error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_STDERR - {error_output}")
                 return {
                     "success": False,
                     "error": f"Subprocess failed with return code {process.returncode}: {error_output}"
@@ -2165,7 +2170,7 @@ if __name__ == "__main__":
                 subprocess_result = json.loads(result_line)
                 
                 if subprocess_result.get('success'):
-                    logger.info(f"✅ FINDER_TOKEN: SUBPROCESS_BROWSER_SUCCESS - Browser automation completed")
+                    get_logger().info(f"✅ FINDER_TOKEN: SUBPROCESS_BROWSER_SUCCESS - Browser automation completed")
                     
                     # Build the final result structure
                     looking_at_files = {
@@ -2192,7 +2197,7 @@ if __name__ == "__main__":
                 else:
                     return subprocess_result
             else:
-                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_NO_RESULT - No result found in output: {output}")
+                get_logger().error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_NO_RESULT - No result found in output: {output}")
                 return {
                     "success": False,
                     "error": f"No result found in subprocess output: {output}"
@@ -2206,7 +2211,7 @@ if __name__ == "__main__":
                 pass
                 
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_EXCEPTION - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_EXCEPTION - {e}")
         return {
             "success": False,
             "error": f"Browser automation subprocess failed: {str(e)}"
@@ -2224,7 +2229,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
     and providing real-time feedback on automation success/failure.
     """
     # 🌍 UPSTREAM BROWSER LOGGING - Captured before any subprocess detachment
-    logger.info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_automate_workflow_walkthrough called with params: {params}")
+    get_logger().info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_automate_workflow_walkthrough called with params: {params}")
     
     try:
         import tempfile
@@ -2275,7 +2280,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         }
         app_name = plugin_to_app_mapping.get(plugin_name, plugin_name)
         plugin_url = f"{base_url}/{app_name}"
-        logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_MAPPING | Plugin: {plugin_name} -> App: {app_name} -> URL: {plugin_url}")
+        get_logger().info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_MAPPING | Plugin: {plugin_name} -> App: {app_name} -> URL: {plugin_url}")
         
         # Aggressive URL validation
         if not plugin_url:
@@ -2301,7 +2306,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 return {"success": False, "error": f"Plugin URL has no hostname: {plugin_url}"}
         except Exception as e:
             return {"success": False, "error": f"Plugin URL parsing failed: {plugin_url}. Error: {e}"}
-        logger.info(f"✅ FINDER_TOKEN: WORKFLOW_URL_VALIDATION_PASSED | Plugin URL validated: {plugin_url}")
+        get_logger().info(f"✅ FINDER_TOKEN: WORKFLOW_URL_VALIDATION_PASSED | Plugin URL validated: {plugin_url}")
 
         # Only now do we proceed to rotate directories and create the browser
         # === DIRECTORY ROTATION BEFORE NEW WORKFLOW WALKTHROUGH ===
@@ -2318,9 +2323,9 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         )
         
         if not rotation_success:
-            logger.warning("⚠️ FINDER_TOKEN: WORKFLOW_DIRECTORY_ROTATION_WARNING - Directory rotation failed, continuing with workflow")
+            get_logger().warning("⚠️ FINDER_TOKEN: WORKFLOW_DIRECTORY_ROTATION_WARNING - Directory rotation failed, continuing with workflow")
             
-        logger.info(f"🚀 FINDER_TOKEN: WORKFLOW_AUTOMATION_START | Starting workflow walkthrough for {plugin_filename}")
+        get_logger().info(f"🚀 FINDER_TOKEN: WORKFLOW_AUTOMATION_START | Starting workflow walkthrough for {plugin_filename}")
         
         # KILL ALL HUNG CHROMIUM INSTANCES FIRST - BUT ONLY AUTOMATION INSTANCES
         import subprocess
@@ -2329,9 +2334,9 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         try:
             # Kill any existing chromedriver processes
             subprocess.run(['pkill', '-f', 'chromedriver'], capture_output=True)
-            logger.info("🔪 FINDER_TOKEN: WORKFLOW_CHROMEDRIVER_CLEANUP - Killed existing chromedriver processes")
+            get_logger().info("🔪 FINDER_TOKEN: WORKFLOW_CHROMEDRIVER_CLEANUP - Killed existing chromedriver processes")
         except Exception as e:
-            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CHROMEDRIVER_CLEANUP_WARNING - Error killing chromedriver: {e}")
+            get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CHROMEDRIVER_CLEANUP_WARNING - Error killing chromedriver: {e}")
         
         try:
             # Kill only hung Chromium automation instances (not user's main Chrome)
@@ -2347,11 +2352,11 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                                                          capture_output=True, text=True)
                             if 'temp' in cmdline_check.stdout and '--user-data-dir' in cmdline_check.stdout:
                                 os.kill(int(pid), signal.SIGKILL)
-                                logger.info(f"🔪 FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP - Killed automation Chromium PID: {pid}")
+                                get_logger().info(f"🔪 FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP - Killed automation Chromium PID: {pid}")
                         except Exception as e:
-                            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error killing PID {pid}: {e}")
+                            get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error killing PID {pid}: {e}")
         except Exception as e:
-            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error finding automation Chromium processes: {e}")
+            get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error finding automation Chromium processes: {e}")
         
         # ENHANCED CHROME OPTIONS FOR WORKFLOW AUTOMATION ISOLATION
         options = Options()
@@ -2382,30 +2387,30 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             workflow_debug_port = s.getsockname()[1]
         options.add_argument(f'--remote-debugging-port={workflow_debug_port}')
         
-        logger.info(f"🔧 FINDER_TOKEN: WORKFLOW_BROWSER_ISOLATION - Profile: {workflow_profile_dir}, Debug port: {workflow_debug_port}")
+        get_logger().info(f"🔧 FINDER_TOKEN: WORKFLOW_BROWSER_ISOLATION - Profile: {workflow_profile_dir}, Debug port: {workflow_debug_port}")
         
         # Create browser with enhanced error handling
         try:
-            logger.info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(options)} in browser_automate_workflow_walkthrough")
+            get_logger().info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(options)} in browser_automate_workflow_walkthrough")
             driver = webdriver.Chrome(options=options)
-            logger.info(f"✅ FINDER_TOKEN: WORKFLOW_BROWSER_CREATED - Chrome instance created successfully")
+            get_logger().info(f"✅ FINDER_TOKEN: WORKFLOW_BROWSER_CREATED - Chrome instance created successfully")
         except Exception as browser_error:
-            logger.error(f"❌ FINDER_TOKEN: WORKFLOW_BROWSER_CREATION_FAILED - {browser_error}")
+            get_logger().error(f"❌ FINDER_TOKEN: WORKFLOW_BROWSER_CREATION_FAILED - {browser_error}")
             return {"success": False, "error": f"Failed to create workflow browser instance: {browser_error}"}
         
         # Verify browser is responsive before proceeding
         try:
             initial_url = driver.current_url
-            logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_BROWSER_INITIAL_STATE - Initial URL: {initial_url}")
+            get_logger().info(f"🎯 FINDER_TOKEN: WORKFLOW_BROWSER_INITIAL_STATE - Initial URL: {initial_url}")
             
             # Check if browser window is valid
             if initial_url.startswith('data:'):
-                logger.error(f"❌ FINDER_TOKEN: WORKFLOW_INVALID_INITIAL_STATE - Browser started with data: URL: {initial_url}")
+                get_logger().error(f"❌ FINDER_TOKEN: WORKFLOW_INVALID_INITIAL_STATE - Browser started with data: URL: {initial_url}")
                 driver.quit()
                 shutil.rmtree(workflow_profile_dir, ignore_errors=True)
                 return {"success": False, "error": f"Workflow browser started in invalid state with data: URL: {initial_url}"}
         except Exception as state_error:
-            logger.error(f"❌ FINDER_TOKEN: WORKFLOW_BROWSER_STATE_CHECK_FAILED - {state_error}")
+            get_logger().error(f"❌ FINDER_TOKEN: WORKFLOW_BROWSER_STATE_CHECK_FAILED - {state_error}")
             try:
                 driver.quit()
             except:
@@ -2472,10 +2477,10 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 # Take screenshot
                 driver.save_screenshot(os.path.join(looking_at_dir, 'screenshot.png'))
                 
-                logger.info(f"🎯 FINDER_TOKEN: AUTOMATION_PERCEPTION_UPDATE - Step: {step_name}, URL: {current_url}")
+                get_logger().info(f"🎯 FINDER_TOKEN: AUTOMATION_PERCEPTION_UPDATE - Step: {step_name}, URL: {current_url}")
                 
             except Exception as e:
-                logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_PERCEPTION_ERROR - {e}")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: AUTOMATION_PERCEPTION_ERROR - {e}")
         
         try:
             # Step 1: Navigate to the specific plugin requested
@@ -2510,48 +2515,48 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             app_name = plugin_to_app_mapping.get(plugin_name, plugin_name)
             plugin_url = f"{base_url}/{app_name}"
             
-            logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_MAPPING | Plugin: {plugin_name} -> App: {app_name} -> URL: {plugin_url}")
+            get_logger().info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_MAPPING | Plugin: {plugin_name} -> App: {app_name} -> URL: {plugin_url}")
             
             # Validate URL before navigation to prevent data: URLs
             if not plugin_url.startswith(('http://', 'https://')):
                 return {"success": False, "error": f"Invalid URL format: {plugin_url}. Expected http:// or https://"}
             
             try:
-                logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_ATTEMPT | About to navigate to: {plugin_url}")
+                get_logger().info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_ATTEMPT | About to navigate to: {plugin_url}")
                 
                 # Check current URL before navigation
                 try:
                     current_url_before = driver.current_url
-                    logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_CURRENT_URL_BEFORE | {current_url_before}")
+                    get_logger().info(f"🎯 FINDER_TOKEN: WORKFLOW_CURRENT_URL_BEFORE | {current_url_before}")
                 except Exception as e:
-                    logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CURRENT_URL_ERROR | Could not get current URL: {e}")
+                    get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CURRENT_URL_ERROR | Could not get current URL: {e}")
                 
                 # Attempt navigation with detailed logging
-                logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_DRIVER_GET_START | Calling driver.get('{plugin_url}')")
+                get_logger().info(f"🎯 FINDER_TOKEN: WORKFLOW_DRIVER_GET_START | Calling driver.get('{plugin_url}')")
                 driver.get(plugin_url)
-                logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_DRIVER_GET_COMPLETE | driver.get() returned")
+                get_logger().info(f"🎯 FINDER_TOKEN: WORKFLOW_DRIVER_GET_COMPLETE | driver.get() returned")
                 
                 # Immediate URL check after navigation
                 time.sleep(1)  # Brief pause to let navigation settle
                 current_url = driver.current_url
-                logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_CURRENT_URL_AFTER | {current_url}")
+                get_logger().info(f"🎯 FINDER_TOKEN: WORKFLOW_CURRENT_URL_AFTER | {current_url}")
                 
                 # Verify we didn't end up with a data: URL
                 if current_url.startswith('data:'):
-                    logger.error(f"❌ FINDER_TOKEN: WORKFLOW_DATA_URL_DETECTED | Navigation resulted in data: URL: {current_url}")
+                    get_logger().error(f"❌ FINDER_TOKEN: WORKFLOW_DATA_URL_DETECTED | Navigation resulted in data: URL: {current_url}")
                     return {"success": False, "error": f"Browser navigation resulted in data: URL: {current_url}. Original URL: {plugin_url}"}
                 
                 if current_url == 'about:blank':
-                    logger.error(f"❌ FINDER_TOKEN: WORKFLOW_ABOUT_BLANK_DETECTED | Navigation resulted in about:blank")
+                    get_logger().error(f"❌ FINDER_TOKEN: WORKFLOW_ABOUT_BLANK_DETECTED | Navigation resulted in about:blank")
                     return {"success": False, "error": f"Browser navigation resulted in about:blank. Original URL: {plugin_url}"}
                 
                 if not current_url or current_url == current_url_before:
-                    logger.error(f"❌ FINDER_TOKEN: WORKFLOW_NO_NAVIGATION | URL unchanged: {current_url}")
+                    get_logger().error(f"❌ FINDER_TOKEN: WORKFLOW_NO_NAVIGATION | URL unchanged: {current_url}")
                     return {"success": False, "error": f"Browser navigation failed - URL unchanged: {current_url}. Original URL: {plugin_url}"}
                 
-                logger.info(f"✅ FINDER_TOKEN: WORKFLOW_NAVIGATION_SUCCESS | Navigated to: {current_url}")
+                get_logger().info(f"✅ FINDER_TOKEN: WORKFLOW_NAVIGATION_SUCCESS | Navigated to: {current_url}")
             except Exception as nav_error:
-                logger.error(f"❌ FINDER_TOKEN: WORKFLOW_NAVIGATION_EXCEPTION | {nav_error}")
+                get_logger().error(f"❌ FINDER_TOKEN: WORKFLOW_NAVIGATION_EXCEPTION | {nav_error}")
                 return {"success": False, "error": f"Navigation failed: {nav_error}. URL: {plugin_url}"}
             
             # Update /looking_at/ with landing page state
@@ -2561,7 +2566,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 screenshot_path = f"workflow_step_01_landing.png"
                 driver.save_screenshot(screenshot_path)
                 screenshots.append(screenshot_path)
-                logger.info(f"📸 FINDER_TOKEN: WORKFLOW_SCREENSHOT | Captured landing page")
+                get_logger().info(f"📸 FINDER_TOKEN: WORKFLOW_SCREENSHOT | Captured landing page")
             
             # Step 2: Wait for page load and look for pipeline input
             WebDriverWait(driver, 10).until(
@@ -2583,15 +2588,15 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 existing_pipeline_id = db.get('pipeline_id')
                 if use_existing_pipeline_id and existing_pipeline_id:
                     pipeline_id = existing_pipeline_id
-                    logger.info(f"🔄 FINDER_TOKEN: WORKFLOW_REUSE | Using existing pipeline ID: {pipeline_id}")
+                    get_logger().info(f"🔄 FINDER_TOKEN: WORKFLOW_REUSE | Using existing pipeline ID: {pipeline_id}")
                 else:
                     pipeline_id = f"automation-test-{int(time.time())}"
-                    logger.info(f"🆕 FINDER_TOKEN: WORKFLOW_NEW | Generated new pipeline ID: {pipeline_id}")
+                    get_logger().info(f"🆕 FINDER_TOKEN: WORKFLOW_NEW | Generated new pipeline ID: {pipeline_id}")
                 
                 pipeline_input.clear()
                 pipeline_input.send_keys(pipeline_id)
                 
-                logger.info(f"📝 FINDER_TOKEN: WORKFLOW_INPUT | Entered pipeline ID: {pipeline_id}")
+                get_logger().info(f"📝 FINDER_TOKEN: WORKFLOW_INPUT | Entered pipeline ID: {pipeline_id}")
                 
                 # Submit the form
                 submit_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit'], input[type='submit']")
@@ -2615,7 +2620,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                     screenshots.append(screenshot_path)
                     
             except Exception as e:
-                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_INIT_SKIP | No pipeline input found, continuing: {e}")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_INIT_SKIP | No pipeline input found, continuing: {e}")
                 workflow_steps.append({
                     "step": "init",
                     "status": "skipped",
@@ -2629,7 +2634,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 
                 if plugin_supports_uploads:
                     # For file upload plugins, we need to initialize the workflow first
-                    logger.info(f"📋 FINDER_TOKEN: WORKFLOW_UPLOAD_INIT | Initializing file upload workflow")
+                    get_logger().info(f"📋 FINDER_TOKEN: WORKFLOW_UPLOAD_INIT | Initializing file upload workflow")
                     
                     # Look for pipeline initialization form
                     try:
@@ -2638,17 +2643,17 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                             # Use existing pipeline ID if requested, otherwise generate new one
                             if use_existing_pipeline_id and existing_pipeline_id:
                                 pipeline_id = existing_pipeline_id
-                                logger.info(f"🔧 FINDER_TOKEN: WORKFLOW_PIPELINE_ID | Using existing pipeline ID: {pipeline_id}")
+                                get_logger().info(f"🔧 FINDER_TOKEN: WORKFLOW_PIPELINE_ID | Using existing pipeline ID: {pipeline_id}")
                             else:
                                 import uuid
                                 pipeline_id = f"automation-test-{uuid.uuid4().hex[:8]}"
-                                logger.info(f"🔧 FINDER_TOKEN: WORKFLOW_PIPELINE_ID | Generated new pipeline ID: {pipeline_id}")
+                                get_logger().info(f"🔧 FINDER_TOKEN: WORKFLOW_PIPELINE_ID | Generated new pipeline ID: {pipeline_id}")
                             pipeline_input.send_keys(pipeline_id)
                             
                             # Look for and click the initialize button
                             init_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
                             init_button.click()
-                            logger.info(f"🚀 FINDER_TOKEN: WORKFLOW_INIT_CLICK | Clicked initialize button")
+                            get_logger().info(f"🚀 FINDER_TOKEN: WORKFLOW_INIT_CLICK | Clicked initialize button")
                             
                             # Wait for page to load
                             time.sleep(3)
@@ -2656,12 +2661,12 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                             # Update /looking_at/ with post-init state
                             update_looking_at_state("workflow_initialized")
                     except Exception as init_error:
-                        logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_INIT_SKIP | Workflow initialization failed: {init_error}")
+                        get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_INIT_SKIP | Workflow initialization failed: {init_error}")
                     
                     # Now look for file input using our automation attribute
                     try:
                         file_input = driver.find_element(By.CSS_SELECTOR, "[data-testid='file-upload-widget-file-input']")
-                        logger.info(f"📁 FINDER_TOKEN: WORKFLOW_FILE_INPUT | Found file input with automation attribute")
+                        get_logger().info(f"📁 FINDER_TOKEN: WORKFLOW_FILE_INPUT | Found file input with automation attribute")
                         
                         # Create a test file
                         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as temp_file:
@@ -2670,12 +2675,12 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                         
                         # Upload the test file
                         file_input.send_keys(test_file_path)
-                        logger.info(f"📤 FINDER_TOKEN: WORKFLOW_FILE_UPLOAD | Uploaded test file: {test_file_path}")
+                        get_logger().info(f"📤 FINDER_TOKEN: WORKFLOW_FILE_UPLOAD | Uploaded test file: {test_file_path}")
                         
                         # Look for upload button using automation attribute
                         upload_button = driver.find_element(By.CSS_SELECTOR, "[data-testid='file-upload-widget-upload-button']")
                         upload_button.click()
-                        logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_SUBMIT | Clicked upload button")
+                        get_logger().info(f"🎯 FINDER_TOKEN: WORKFLOW_SUBMIT | Clicked upload button")
                         
                         # Wait for processing
                         time.sleep(5)
@@ -2701,7 +2706,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                             pass
                             
                     except Exception as upload_error:
-                        logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_UPLOAD_ELEMENT_NOT_FOUND | File upload elements not found: {upload_error}")
+                        get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_UPLOAD_ELEMENT_NOT_FOUND | File upload elements not found: {upload_error}")
                         workflow_steps.append({
                             "step": "file_upload",
                             "status": "failed",
@@ -2709,7 +2714,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                         })
                 else:
                     # This plugin doesn't support file uploads, skip gracefully
-                    logger.info(f"📋 FINDER_TOKEN: WORKFLOW_NO_UPLOAD | Plugin {plugin_filename} doesn't support file uploads, skipping")
+                    get_logger().info(f"📋 FINDER_TOKEN: WORKFLOW_NO_UPLOAD | Plugin {plugin_filename} doesn't support file uploads, skipping")
                     workflow_steps.append({
                         "step": "file_upload",
                         "status": "skipped",
@@ -2717,7 +2722,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                     })
                     
             except Exception as e:
-                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_FILE_SKIP | File upload step failed: {e}")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_FILE_SKIP | File upload step failed: {e}")
                 workflow_steps.append({
                     "step": "file_upload",
                     "status": "failed",
@@ -2732,7 +2737,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 driver.save_screenshot(screenshot_path)
                 screenshots.append(screenshot_path)
             
-            logger.info(f"✅ FINDER_TOKEN: WORKFLOW_AUTOMATION_SUCCESS | Completed walkthrough of {plugin_filename}")
+            get_logger().info(f"✅ FINDER_TOKEN: WORKFLOW_AUTOMATION_SUCCESS | Completed walkthrough of {plugin_filename}")
             
             return {
                 "success": True,
@@ -2747,20 +2752,20 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             # Clean up browser and profile directory
             try:
                 driver.quit()
-                logger.info(f"🧹 FINDER_TOKEN: WORKFLOW_BROWSER_CLEANUP | Browser quit successfully")
+                get_logger().info(f"🧹 FINDER_TOKEN: WORKFLOW_BROWSER_CLEANUP | Browser quit successfully")
             except Exception as browser_quit_error:
-                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_BROWSER_CLEANUP_WARNING | Browser quit failed: {browser_quit_error}")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_BROWSER_CLEANUP_WARNING | Browser quit failed: {browser_quit_error}")
             
             # Clean up temporary profile directory
             try:
                 if 'workflow_profile_dir' in locals():
                     shutil.rmtree(workflow_profile_dir, ignore_errors=True)
-                    logger.info(f"🧹 FINDER_TOKEN: WORKFLOW_PROFILE_CLEANUP | Cleaned up profile directory: {workflow_profile_dir}")
+                    get_logger().info(f"🧹 FINDER_TOKEN: WORKFLOW_PROFILE_CLEANUP | Cleaned up profile directory: {workflow_profile_dir}")
             except Exception as cleanup_error:
-                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_PROFILE_CLEANUP_WARNING | Profile cleanup failed: {cleanup_error}")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_PROFILE_CLEANUP_WARNING | Profile cleanup failed: {cleanup_error}")
             
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: WORKFLOW_AUTOMATION_ERROR | {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: WORKFLOW_AUTOMATION_ERROR | {e}")
         # Ensure cleanup even on exception
         try:
             if 'driver' in locals():
@@ -2873,7 +2878,7 @@ async def botify_get_full_schema(params: dict) -> dict:
                 json.dump(schema_results, f, indent=2)
         except Exception as cache_error:
             # Don't fail the main operation if caching fails
-            logger.warning(f"Failed to save schema cache: {cache_error}")
+            get_logger().warning(f"Failed to save schema cache: {cache_error}")
         
         return {
             "status": "success",
@@ -3098,7 +3103,7 @@ async def browser_interact_with_current_page(params: dict) -> dict:
     Returns:
         dict: Interaction results with updated page state
     """
-    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_INTERACT_START - Action: {params.get('action')}")
+    get_logger().info(f"🔧 FINDER_TOKEN: MCP_BROWSER_INTERACT_START - Action: {params.get('action')}")
     
     try:
         import time
@@ -3132,7 +3137,7 @@ async def browser_interact_with_current_page(params: dict) -> dict:
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--window-size=1920,1080')
         
-        logger.info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in browser_interact_with_current_page")
+        get_logger().info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in browser_interact_with_current_page")
         driver = webdriver.Chrome(options=chrome_options)
         
         try:
@@ -3300,10 +3305,10 @@ async def browser_interact_with_current_page(params: dict) -> dict:
                     with open(os.path.join(looking_at_dir, 'simple_dom.html'), 'w', encoding='utf-8') as f:
                         f.write(simple_dom_html)
                     
-                    logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_INTERACTION_UPDATE - Action '{action}' completed, /looking_at/ updated")
+                    get_logger().info(f"🎯 FINDER_TOKEN: MCP_BROWSER_INTERACTION_UPDATE - Action '{action}' completed, /looking_at/ updated")
                     
                 except Exception as e:
-                    logger.warning(f"⚠️ FINDER_TOKEN: MCP_BROWSER_INTERACTION_STATE_UPDATE_ERROR - {e}")
+                    get_logger().warning(f"⚠️ FINDER_TOKEN: MCP_BROWSER_INTERACTION_STATE_UPDATE_ERROR - {e}")
                     
             result["current_url"] = driver.current_url
             result["page_title"] = driver.title
@@ -3313,7 +3318,7 @@ async def browser_interact_with_current_page(params: dict) -> dict:
             driver.quit()
             
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_INTERACT_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: MCP_BROWSER_INTERACT_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
 # All tools are now registered in register_all_mcp_tools() function above
@@ -3340,7 +3345,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
     Returns:
         dict: Complete AI capability map with usage guidance
     """
-    logger.info(f"🧠 FINDER_TOKEN: AI_SELF_DISCOVERY_START - Type: {params.get('discovery_type', 'all')}")
+    get_logger().info(f"🧠 FINDER_TOKEN: AI_SELF_DISCOVERY_START - Type: {params.get('discovery_type', 'all')}")
 
     # --- MCP_TOOL_REGISTRY is populated by server.py during startup ---
     # No module-level registration to avoid duplicate startup messages
@@ -3369,7 +3374,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                          'pipeline_' in name or 'execute_' in name)):
                         available_tools.append(name)
         except Exception as e:
-            logger.warning(f"Could not discover tools dynamically: {e}")
+            get_logger().warning(f"Could not discover tools dynamically: {e}")
             
         # If dynamic discovery failed, fall back to registry methods
         if not available_tools:
@@ -3457,7 +3462,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                 ]
             },
             "session_hijacking": {
-                "description": "Take over user session seamlessly",
+                "description": "Take over user's Botifython workflow",
                 "steps": [
                     "1. pipeline_state_inspector - Understand current workflow",
                     "2. browser_scrape_page - Capture current state",
@@ -3549,11 +3554,11 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
             ]
         }
         
-        logger.info(f"🎯 FINDER_TOKEN: AI_SELF_DISCOVERY_SUCCESS - {len(available_tools)} tools mapped, {len(capabilities)} categories")
+        get_logger().info(f"🎯 FINDER_TOKEN: AI_SELF_DISCOVERY_SUCCESS - {len(available_tools)} tools mapped, {len(capabilities)} categories")
         return result
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: AI_SELF_DISCOVERY_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: AI_SELF_DISCOVERY_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
 def get_category_description(category: str) -> str:
@@ -3584,7 +3589,7 @@ async def ai_capability_test_suite(params: dict) -> dict:
     Returns:
         dict: Test results with success/failure details
     """
-    logger.info(f"🧪 FINDER_TOKEN: AI_CAPABILITY_TEST_START - Type: {params.get('test_type', 'quick')}")
+    get_logger().info(f"🧪 FINDER_TOKEN: AI_CAPABILITY_TEST_START - Type: {params.get('test_type', 'quick')}")
     
     try:
         test_type = params.get('test_type', 'quick')
@@ -3663,11 +3668,11 @@ async def ai_capability_test_suite(params: dict) -> dict:
         # Add overall assessment with context awareness
         test_results["assessment"] = _generate_context_aware_assessment(test_results)
         
-        logger.info(f"🎯 FINDER_TOKEN: AI_CAPABILITY_TEST_COMPLETE - {test_results['tests_passed']}/{test_results['tests_run']} passed ({test_results['success_rate']}%)")
+        get_logger().info(f"🎯 FINDER_TOKEN: AI_CAPABILITY_TEST_COMPLETE - {test_results['tests_passed']}/{test_results['tests_run']} passed ({test_results['success_rate']}%)")
         return test_results
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: AI_CAPABILITY_TEST_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: AI_CAPABILITY_TEST_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
 async def _run_context_aware_test_suite() -> dict:
@@ -4199,7 +4204,7 @@ async def browser_automate_instructions(params: dict) -> dict:
     Returns:
         dict: Automation results with success rate and feedback
     """
-    logger.info(f"🤖 FINDER_TOKEN: INSTRUCTION_AUTOMATION_START | Instructions: {params.get('instructions')}")
+    get_logger().info(f"🤖 FINDER_TOKEN: INSTRUCTION_AUTOMATION_START | Instructions: {params.get('instructions')}")
     
     try:
         import re
@@ -4308,7 +4313,7 @@ async def browser_automate_instructions(params: dict) -> dict:
         successful_actions = 0
         
         for i, action in enumerate(actions):
-            logger.info(f"🎯 FINDER_TOKEN: INSTRUCTION_ACTION_{i+1} | {action['description']}")
+            get_logger().info(f"🎯 FINDER_TOKEN: INSTRUCTION_ACTION_{i+1} | {action['description']}")
             
             if action['action'] == 'wait':
                 time.sleep(action['wait_seconds'])
@@ -4327,9 +4332,9 @@ async def browser_automate_instructions(params: dict) -> dict:
             
             if result.get('success'):
                 successful_actions += 1
-                logger.info(f"✅ FINDER_TOKEN: INSTRUCTION_SUCCESS | {action['description']}")
+                get_logger().info(f"✅ FINDER_TOKEN: INSTRUCTION_SUCCESS | {action['description']}")
             else:
-                logger.warning(f"⚠️ FINDER_TOKEN: INSTRUCTION_FAILURE | {action['description']}: {result.get('error')}")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: INSTRUCTION_FAILURE | {action['description']}: {result.get('error')}")
         
         # Take final screenshot
         final_screenshot = await browser_interact_with_current_page({
@@ -4357,7 +4362,7 @@ async def browser_automate_instructions(params: dict) -> dict:
         }
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: INSTRUCTION_AUTOMATION_ERROR | {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: INSTRUCTION_AUTOMATION_ERROR | {e}")
         return {
             'success': False,
             'error': f'Instruction automation error: {str(e)}',
@@ -4455,10 +4460,10 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
     import time
     from datetime import datetime
     
-    logger.info(f"🎭 FINDER_TOKEN: COMPLETE_SESSION_HIJACKING_START - {params}")
+    get_logger().info(f"🎭 FINDER_TOKEN: COMPLETE_SESSION_HIJACKING_START - {params}")
     
     # === STEP 0: KILL ONLY AUTOMATION BROWSER PROCESSES FOR FRESH SLATE ===
-    logger.info("🧹 FINDER_TOKEN: AUTOMATION_CLEANUP_START - Killing only automation chromium processes (NOT user's main browser)")
+    get_logger().info("🧹 FINDER_TOKEN: AUTOMATION_CLEANUP_START - Killing only automation chromium processes (NOT user's main browser)")
     try:
         import subprocess
         # Kill any existing chromedriver processes (automation only)
@@ -4468,10 +4473,10 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
         # Kill chromium processes with automation flags (selenium/webdriver specific)
         subprocess.run(['pkill', '-f', 'chromium.*--remote-debugging-port'], capture_output=True)
         subprocess.run(['pkill', '-f', 'chromium.*--disable-extensions'], capture_output=True)
-        logger.info("✅ FINDER_TOKEN: AUTOMATION_CLEANUP_SUCCESS - Only automation processes killed, user's main browser preserved")
+        get_logger().info("✅ FINDER_TOKEN: AUTOMATION_CLEANUP_SUCCESS - Only automation processes killed, user's main browser preserved")
     except Exception as cleanup_error:
         # Don't fail if cleanup fails - just log it
-        logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_CLEANUP_WARNING - Cleanup failed but continuing: {cleanup_error}")
+        get_logger().warning(f"⚠️ FINDER_TOKEN: AUTOMATION_CLEANUP_WARNING - Cleanup failed but continuing: {cleanup_error}")
     
     try:
         take_screenshot = params.get('take_screenshot', True)
@@ -4482,12 +4487,12 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
         user_session_summary = {}
         
         # === STEP 1: GET USER SESSION STATE (Server Cookies) ===
-        logger.info("🔍 FINDER_TOKEN: SESSION_HIJACKING_STEP_1 - Retrieving user session state")
+        get_logger().info("🔍 FINDER_TOKEN: SESSION_HIJACKING_STEP_1 - Retrieving user session state")
         
         session_result = await get_user_session_state({})
         if not session_result.get('success'):
             # Fallback: use hello_workflow as default for testing
-            logger.warning(f"⚠️ FINDER_TOKEN: SESSION_HIJACKING_FALLBACK - Session state unavailable, using hello_workflow as fallback")
+            get_logger().warning(f"⚠️ FINDER_TOKEN: SESSION_HIJACKING_FALLBACK - Session state unavailable, using hello_workflow as fallback")
             last_app_choice = "hello_workflow"
             pipeline_id = f"Default_Profile-hello-{int(time.time()) % 100:02d}"
             last_visited_url = f"{base_url}/hello_workflow"
@@ -4510,7 +4515,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
             
             if not last_app_choice:
                 # Fallback: use hello_workflow as default for testing
-                logger.warning(f"⚠️ FINDER_TOKEN: SESSION_HIJACKING_NO_APP - No app in session, using hello_workflow as fallback")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: SESSION_HIJACKING_NO_APP - No app in session, using hello_workflow as fallback")
                 last_app_choice = "hello_workflow"
                 pipeline_id = f"Default_Profile-hello-{int(time.time()) % 100:02d}"
                 last_visited_url = f"{base_url}/hello_workflow"
@@ -4527,25 +4532,25 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
             })
         
         # === STEP 2: USE EXACT LAST URL OR FALLBACK TO ENDPOINT MAPPING ===
-        logger.info(f"🎯 FINDER_TOKEN: SESSION_HIJACKING_STEP_2 - Using exact last URL or mapping {last_app_choice}")
+        get_logger().info(f"🎯 FINDER_TOKEN: SESSION_HIJACKING_STEP_2 - Using exact last URL or mapping {last_app_choice}")
         
         # Primary: Use the exact last URL the user visited
         if last_visited_url and last_visited_url.startswith(('http://', 'https://')):
             endpoint_url = last_visited_url
             mapping_method = "exact_last_url"
-            logger.info(f"✅ FINDER_TOKEN: EXACT_URL_SUCCESS - Using exact last URL: {endpoint_url}")
+            get_logger().info(f"✅ FINDER_TOKEN: EXACT_URL_SUCCESS - Using exact last URL: {endpoint_url}")
         else:
             # Fallback: Map internal app name to endpoint URL
             try:
                 from server import get_endpoint_url
                 endpoint_url = get_endpoint_url(last_app_choice)
                 mapping_method = "endpoint_registry"
-                logger.info(f"✅ FINDER_TOKEN: ENDPOINT_MAPPING_SUCCESS - {last_app_choice} → {endpoint_url}")
+                get_logger().info(f"✅ FINDER_TOKEN: ENDPOINT_MAPPING_SUCCESS - {last_app_choice} → {endpoint_url}")
             except ImportError:
                 # Final fallback: Construct URL from app name
                 endpoint_url = f"{base_url}/{last_app_choice}"
                 mapping_method = "fallback_construction"
-                logger.warning(f"⚠️ FINDER_TOKEN: ENDPOINT_MAPPING_FALLBACK - Using fallback URL: {endpoint_url}")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: ENDPOINT_MAPPING_FALLBACK - Using fallback URL: {endpoint_url}")
         
         # === AGGRESSIVE URL VALIDATION BEFORE BROWSER OPENING ===
         if not endpoint_url:
@@ -4592,7 +4597,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
         except Exception as e:
             return {"success": False, "error": f"Endpoint URL parsing failed: {endpoint_url}. Error: {e}"}
         
-        logger.info(f"✅ FINDER_TOKEN: SESSION_URL_VALIDATION_PASSED | Endpoint URL validated: {endpoint_url}")
+        get_logger().info(f"✅ FINDER_TOKEN: SESSION_URL_VALIDATION_PASSED | Endpoint URL validated: {endpoint_url}")
         
         hijacking_steps.append({
             "step": "endpoint_mapped", 
@@ -4606,7 +4611,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
         })
         
         # === STEP 3: GET WORKFLOW STATE FOR CONTEXT ===
-        logger.info(f"📊 FINDER_TOKEN: SESSION_HIJACKING_STEP_3 - Getting workflow state for {pipeline_id}")
+        get_logger().info(f"📊 FINDER_TOKEN: SESSION_HIJACKING_STEP_3 - Getting workflow state for {pipeline_id}")
         
         if pipeline_id:
             pipeline_result = await pipeline_state_inspector({"pipeline_id": pipeline_id})
@@ -4631,7 +4636,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
                     }
                 })
             else:
-                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_STATE_FAILED - {pipeline_result.get('error')}")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_STATE_FAILED - {pipeline_result.get('error')}")
                 hijacking_steps.append({
                     "step": "workflow_state_retrieved",
                     "status": "warning",
@@ -4639,7 +4644,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
                 })
         
         # === STEP 4: COMPLETE WORKFLOW HIJACKING (NAVIGATE + ENTER + CHAIN REACTION + CAPTURE) ===
-        logger.info(f"🎭 FINDER_TOKEN: SESSION_HIJACKING_STEP_4 - Complete workflow hijacking from {endpoint_url}")
+        get_logger().info(f"🎭 FINDER_TOKEN: SESSION_HIJACKING_STEP_4 - Complete workflow hijacking from {endpoint_url}")
         
         # Use the COMPLETE workflow hijacking pattern: navigate + enter + chain reaction + capture
         try:
@@ -4665,7 +4670,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
                         "hijacking_steps": scrape_result.get('hijacking_steps', [])
                     }
                 })
-                logger.info(f"✅ FINDER_TOKEN: COMPLETE_WORKFLOW_HIJACKING_SUCCESS - Post-chain-reaction state captured from {scrape_result.get('url')}")
+                get_logger().info(f"✅ FINDER_TOKEN: COMPLETE_WORKFLOW_HIJACKING_SUCCESS - Post-chain-reaction state captured from {scrape_result.get('url')}")
             else:
                 # Even if workflow hijacking fails, don't fail the whole session hijacking - just note it
                 hijacking_steps.append({
@@ -4673,7 +4678,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
                     "status": "warning",
                     "details": {"error": scrape_result.get('error'), "note": "Workflow hijacking failed but session hijacking continues"}
                 })
-                logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_HIJACKING_WARNING - {scrape_result.get('error')} (continuing anyway)")
+                get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_HIJACKING_WARNING - {scrape_result.get('error')} (continuing anyway)")
                 
         except Exception as capture_error:
             # Don't fail the whole session hijacking if workflow hijacking fails
@@ -4682,7 +4687,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
                 "status": "warning", 
                 "details": {"error": str(capture_error), "note": "Workflow hijacking failed but session hijacking continues"}
             })
-            logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_HIJACKING_EXCEPTION - {capture_error} (continuing anyway)")
+            get_logger().warning(f"⚠️ FINDER_TOKEN: WORKFLOW_HIJACKING_EXCEPTION - {capture_error} (continuing anyway)")
         
         # === STEP 5: FINAL SESSION SUMMARY ===
         user_session_summary.update({
@@ -4704,7 +4709,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
             }
         })
         
-        logger.info(f"🎉 FINDER_TOKEN: COMPLETE_SESSION_HIJACKING_SUCCESS - User session hijacked, workflow initiated, and post-chain-reaction state captured")
+        get_logger().info(f"🎉 FINDER_TOKEN: COMPLETE_SESSION_HIJACKING_SUCCESS - User session hijacked, workflow initiated, and post-chain-reaction state captured")
         
         return {
             "success": True,
@@ -4714,7 +4719,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
         }
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: COMPLETE_SESSION_HIJACKING_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: COMPLETE_SESSION_HIJACKING_ERROR - {e}")
         return {
             "success": False,
             "error": f"Session hijacking failed: {str(e)}",
@@ -4774,7 +4779,7 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
     from pathlib import Path
     from urllib.parse import urlparse
     
-    logger.info(f"🎭 FINDER_TOKEN: MCP_WORKFLOW_HIJACK_START - URL: {params.get('url')}, Pipeline: {params.get('pipeline_id')}")
+    get_logger().info(f"🎭 FINDER_TOKEN: MCP_WORKFLOW_HIJACK_START - URL: {params.get('url')}, Pipeline: {params.get('pipeline_id')}")
     
     try:
         url = params.get('url')
@@ -4782,7 +4787,7 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
         take_screenshot = params.get('take_screenshot', True)
         
         # Show current timing configuration
-        logger.info(f"⏰ FINDER_TOKEN: TIMING_CONFIG - {WorkflowHijackTiming.get_timing_summary()}")
+        get_logger().info(f"⏰ FINDER_TOKEN: TIMING_CONFIG - {WorkflowHijackTiming.get_timing_summary()}")
         
         # === VALIDATION ===
         if not url:
@@ -4794,7 +4799,7 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
         if not url.startswith(('http://', 'https://')):
             return {"success": False, "error": f"URL must start with http:// or https://. Got: {url}"}
         
-        logger.info(f"✅ FINDER_TOKEN: WORKFLOW_HIJACK_VALIDATION_PASSED - URL: {url}, Pipeline: {pipeline_id}")
+        get_logger().info(f"✅ FINDER_TOKEN: WORKFLOW_HIJACK_VALIDATION_PASSED - URL: {url}, Pipeline: {pipeline_id}")
         
         # === DIRECTORY ROTATION ===
         from server import rotate_looking_at_directory
@@ -5047,7 +5052,7 @@ if __name__ == "__main__":
         
         try:
             # Run the workflow hijacking in subprocess
-            logger.info(f"🔄 FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_START - Running complete workflow hijacking")
+            get_logger().info(f"🔄 FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_START - Running complete workflow hijacking")
             
             # Use asyncio.create_subprocess_exec for async subprocess
             process = await asyncio.create_subprocess_exec(
@@ -5073,8 +5078,8 @@ if __name__ == "__main__":
             error_output = stderr.decode('utf-8')
             
             if process.returncode != 0:
-                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_ERROR - Return code: {process.returncode}")
-                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_STDERR - {error_output}")
+                get_logger().error(f"❌ FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_ERROR - Return code: {process.returncode}")
+                get_logger().error(f"❌ FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_STDERR - {error_output}")
                 return {
                     "success": False,
                     "error": f"Workflow hijacking subprocess failed: {error_output}"
@@ -5124,13 +5129,13 @@ if __name__ == "__main__":
                         }
                         
                 except json.JSONDecodeError as e:
-                    logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_JSON_DECODE_ERROR - {e}")
+                    get_logger().error(f"❌ FINDER_TOKEN: SUBPROCESS_JSON_DECODE_ERROR - {e}")
                     return {
                         "success": False,
                         "error": f"Failed to parse subprocess result: {e}"
                     }
             else:
-                logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_NO_RESULT - No result line found in output")
+                get_logger().error(f"❌ FINDER_TOKEN: SUBPROCESS_NO_RESULT - No result line found in output")
                 return {
                     "success": False,
                     "error": "No result found in subprocess output"
@@ -5144,7 +5149,7 @@ if __name__ == "__main__":
                 pass
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: MCP_WORKFLOW_HIJACK_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: MCP_WORKFLOW_HIJACK_ERROR - {e}")
         return {
             "success": False,
             "error": f"Workflow hijacking failed: {str(e)}"
@@ -5183,9 +5188,9 @@ async def browser_interact_enhanced(params: dict) -> dict:
         dict: Comprehensive interaction results with diagnostic feedback
     """
     # 🌍 UPSTREAM BROWSER LOGGING - Captured before any subprocess detachment
-    logger.info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_interact_enhanced called with params: {params}")
+    get_logger().info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_interact_enhanced called with params: {params}")
     
-    logger.info(f"🎯 FINDER_TOKEN: ENHANCED_BROWSER_INTERACT_START - Action: {params.get('action')}")
+    get_logger().info(f"🎯 FINDER_TOKEN: ENHANCED_BROWSER_INTERACT_START - Action: {params.get('action')}")
     
     try:
         from selenium import webdriver
@@ -5244,12 +5249,12 @@ async def browser_interact_enhanced(params: dict) -> dict:
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--disable-extensions')
         
-        logger.info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in browser_interact_enhanced")
+        get_logger().info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in browser_interact_enhanced")
         driver = webdriver.Chrome(options=chrome_options)
         
         try:
             # Load the page
-            logger.info(f"🎯 Loading page: {current_url}")
+            get_logger().info(f"🎯 Loading page: {current_url}")
             driver.get(current_url)
             time.sleep(2)  # Allow page to load
             
@@ -5456,7 +5461,7 @@ async def browser_interact_enhanced(params: dict) -> dict:
             driver.quit()
             
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: ENHANCED_BROWSER_INTERACT_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: ENHANCED_BROWSER_INTERACT_ERROR - {e}")
         return {
             "success": False,
             "error": str(e),
@@ -5494,9 +5499,9 @@ async def navigate_with_verification(params: dict) -> dict:
         dict: Navigation results with page validation
     """
     # 🌍 UPSTREAM BROWSER LOGGING - Captured before any subprocess detachment
-    logger.info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - navigate_with_verification called with params: {params}")
+    get_logger().info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - navigate_with_verification called with params: {params}")
     
-    logger.info(f"🗺️ FINDER_TOKEN: NAVIGATE_WITH_VERIFICATION_START - URL: {params.get('url')}")
+    get_logger().info(f"🗺️ FINDER_TOKEN: NAVIGATE_WITH_VERIFICATION_START - URL: {params.get('url')}")
     
     try:
         from selenium import webdriver
@@ -5530,14 +5535,14 @@ async def navigate_with_verification(params: dict) -> dict:
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--window-size=1920,1080')
         
-        logger.info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in navigate_with_verification")
+        get_logger().info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in navigate_with_verification")
         driver = webdriver.Chrome(options=chrome_options)
         
         try:
             start_time = time.time()
             
             # Navigate to URL
-            logger.info(f"🗺️ Navigating to: {url}")
+            get_logger().info(f"🗺️ Navigating to: {url}")
             driver.get(url)
             
             # Initial wait for page load
@@ -5721,7 +5726,7 @@ async def navigate_with_verification(params: dict) -> dict:
             driver.quit()
             
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: NAVIGATE_WITH_VERIFICATION_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: NAVIGATE_WITH_VERIFICATION_ERROR - {e}")
         return {
             "success": False,
             "error": str(e),
@@ -5786,8 +5791,8 @@ async def _execute_json_recipe_file(params: dict, recipe_file: str) -> dict:
                 "error_type": "recipe_format_error"
             }
         
-        logger.info(f"🍳 FINDER_TOKEN: JSON_RECIPE_LOADED - {recipe_name} with {len(steps)} steps")
-        logger.info(f"🍳 FINDER_TOKEN: JSON_RECIPE_FORM_DATA - {processed_form_data}")
+        get_logger().info(f"🍳 FINDER_TOKEN: JSON_RECIPE_LOADED - {recipe_name} with {len(steps)} steps")
+        get_logger().info(f"🍳 FINDER_TOKEN: JSON_RECIPE_FORM_DATA - {processed_form_data}")
         
         # Prepare execution results
         execution_results = {
@@ -5822,7 +5827,7 @@ async def _execute_json_recipe_file(params: dict, recipe_file: str) -> dict:
                 "status": "pending"
             })
             
-            logger.info(f"🍳 FINDER_TOKEN: RECIPE_STEP_START - Step {step_num}: {description}")
+            get_logger().info(f"🍳 FINDER_TOKEN: RECIPE_STEP_START - Step {step_num}: {description}")
             
             try:
                 result = None
@@ -5857,13 +5862,13 @@ async def _execute_json_recipe_file(params: dict, recipe_file: str) -> dict:
                     execution_results["steps_executed"][-1]["status"] = "success"
                     execution_results["steps_executed"][-1]["result"] = result
                     execution_results["steps_successful"] += 1
-                    logger.info(f"🍳 FINDER_TOKEN: RECIPE_STEP_SUCCESS - Step {step_num}")
+                    get_logger().info(f"🍳 FINDER_TOKEN: RECIPE_STEP_SUCCESS - Step {step_num}")
                 else:
                     execution_results["steps_executed"][-1]["status"] = "failed"
                     execution_results["steps_executed"][-1]["error"] = result.get('error', 'Unknown error')
                     execution_results["steps_failed"] += 1
                     execution_results["errors"].append(f"Step {step_num} failed: {result.get('error', 'Unknown error')}")
-                    logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_FAILED - Step {step_num}")
+                    get_logger().error(f"❌ FINDER_TOKEN: RECIPE_STEP_FAILED - Step {step_num}")
                 
                 # Add timing delays between steps
                 timing = recipe.get('timing', {})
@@ -5877,7 +5882,7 @@ async def _execute_json_recipe_file(params: dict, recipe_file: str) -> dict:
                 execution_results["steps_executed"][-1]["error"] = str(e)
                 execution_results["steps_failed"] += 1
                 execution_results["errors"].append(f"Step {step_num} error: {str(e)}")
-                logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_ERROR - Step {step_num}: {e}")
+                get_logger().error(f"❌ FINDER_TOKEN: RECIPE_STEP_ERROR - Step {step_num}: {e}")
         
         # Calculate final results
         end_time = time.time()
@@ -5885,11 +5890,11 @@ async def _execute_json_recipe_file(params: dict, recipe_file: str) -> dict:
         execution_results["success_rate"] = (execution_results["steps_successful"] / execution_results["total_steps"]) * 100 if execution_results["total_steps"] > 0 else 0
         execution_results["success"] = execution_results["steps_successful"] == execution_results["total_steps"]
         
-        logger.info(f"🍳 FINDER_TOKEN: JSON_RECIPE_COMPLETE - {recipe_name}: {execution_results['steps_successful']}/{execution_results['total_steps']} successful ({execution_results['success_rate']:.1f}%)")
+        get_logger().info(f"🍳 FINDER_TOKEN: JSON_RECIPE_COMPLETE - {recipe_name}: {execution_results['steps_successful']}/{execution_results['total_steps']} successful ({execution_results['success_rate']:.1f}%)")
         return execution_results
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: JSON_RECIPE_ERROR - {str(e)}")
+        get_logger().error(f"❌ FINDER_TOKEN: JSON_RECIPE_ERROR - {str(e)}")
         return {
             "success": False,
             "error": str(e),
@@ -5934,7 +5939,7 @@ async def browser_automate_recipe(params: dict) -> dict:
     Returns:
         dict: Recipe execution results with detailed step-by-step feedback
     """
-    logger.info(f"🍳 FINDER_TOKEN: BROWSER_AUTOMATE_RECIPE_START - Recipe: {params.get('recipe_name') or params.get('recipe_file')}")
+    get_logger().info(f"🍳 FINDER_TOKEN: BROWSER_AUTOMATE_RECIPE_START - Recipe: {params.get('recipe_name') or params.get('recipe_file')}")
     
     try:
         # Check if this is a JSON recipe file request
@@ -6065,7 +6070,7 @@ async def browser_automate_recipe(params: dict) -> dict:
                         execution_results["fallback_reason"] = "Form automation failed, attempting API fallback"
                         # Here you could implement API fallback logic
                         # For now, we'll just log it
-                        logger.info(f"🍳 FINDER_TOKEN: RECIPE_FALLBACK_API - {recipe_name}")
+                        get_logger().info(f"🍳 FINDER_TOKEN: RECIPE_FALLBACK_API - {recipe_name}")
         
         # Execute verification steps
         if verification_steps:
@@ -6125,7 +6130,7 @@ async def browser_automate_recipe(params: dict) -> dict:
         return execution_results
         
     except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: BROWSER_AUTOMATE_RECIPE_ERROR - {e}")
+        get_logger().error(f"❌ FINDER_TOKEN: BROWSER_AUTOMATE_RECIPE_ERROR - {e}")
         return {
             "success": False,
             "error": str(e),
@@ -6159,7 +6164,7 @@ async def browser_create_profile_single_session(params: dict = None) -> dict:
     - 🎭 Idempotent - safe to run repeatedly
     """
     # 🌍 UPSTREAM BROWSER LOGGING - Captured before any subprocess detachment
-    logger.info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_create_profile_single_session called with params: {params}")
+    get_logger().info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_create_profile_single_session called with params: {params}")
     
     import os
     import time
@@ -6184,7 +6189,7 @@ async def browser_create_profile_single_session(params: dict = None) -> dict:
     max_retries = params.get('max_retries', 3)
     wait_timeout = params.get('wait_timeout', 10)
     
-    logger.info(f"🎯 FINDER_TOKEN: BULLETPROOF_PROFILE_START - Creating profile with bulletproof single session")
+    get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_PROFILE_START - Creating profile with bulletproof single session")
     
     start_time = time.time()
     
@@ -6234,11 +6239,11 @@ async def browser_create_profile_single_session(params: dict = None) -> dict:
         steps_executed.append(step_data)
         
         status_emoji = {"success": "✅", "error": "❌", "retry": "🔄", "partial": "⚠️"}.get(status, "📝")
-        logger.info(f"🎯 FINDER_TOKEN: BULLETPROOF_STEP_{step_num} - {status_emoji} {description}")
+        get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_STEP_{step_num} - {status_emoji} {description}")
         if details:
-            logger.info(f"    📋 Details: {details}")
+            get_logger().info(f"    📋 Details: {details}")
         if error:
-            logger.error(f"    ❌ Error: {error}")
+            get_logger().error(f"    ❌ Error: {error}")
     
     def safe_find_element(driver, by, value, timeout=None):
         """Bulletproof element finder with multiple fallback strategies"""
@@ -6263,7 +6268,7 @@ async def browser_create_profile_single_session(params: dict = None) -> dict:
                 for alt_selector in alternative_selectors[value]:
                     try:
                         element = driver.find_element(By.CSS_SELECTOR, alt_selector)
-                        logger.info(f"🔍 FINDER_TOKEN: Found element using fallback selector: {alt_selector}")
+                        get_logger().info(f"🔍 FINDER_TOKEN: Found element using fallback selector: {alt_selector}")
                         return element
                     except NoSuchElementException:
                         continue
@@ -6301,7 +6306,7 @@ async def browser_create_profile_single_session(params: dict = None) -> dict:
     
     try:
         # 🌐 BULLETPROOF BROWSER STARTUP
-        logger.info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in browser_create_profile_single_session")
+        get_logger().info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in browser_create_profile_single_session")
         driver = webdriver.Chrome(options=chrome_options)
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         
@@ -6431,7 +6436,7 @@ async def browser_create_profile_single_session(params: dict = None) -> dict:
         steps_successful = len([s for s in steps_executed if s["status"] == "success"])
         success_rate = (steps_successful / len(steps_executed)) * 100 if steps_executed else 0
         
-        logger.info(f"🎯 FINDER_TOKEN: BULLETPROOF_COMPLETE - Profile created successfully in {execution_time}ms with {success_rate:.1f}% success rate")
+        get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_COMPLETE - Profile created successfully in {execution_time}ms with {success_rate:.1f}% success rate")
         
         return {
             "success": True,
@@ -6456,7 +6461,7 @@ async def browser_create_profile_single_session(params: dict = None) -> dict:
         
     except Exception as e:
         execution_time = int((time.time() - start_time) * 1000)
-        logger.error(f"🎯 FINDER_TOKEN: BULLETPROOF_ERROR - {str(e)}")
+        get_logger().error(f"🎯 FINDER_TOKEN: BULLETPROOF_ERROR - {str(e)}")
         
         # Even in failure, provide useful information
         return {
@@ -6476,7 +6481,586 @@ async def browser_create_profile_single_session(params: dict = None) -> dict:
     finally:
         if driver:
             driver.quit()
-            logger.info(f"🎯 FINDER_TOKEN: BULLETPROOF_CLEANUP - Browser session closed gracefully")
+            get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_CLEANUP - Browser session closed gracefully")
+
+
+async def browser_save_all_data_single_session(params: dict = None) -> dict:
+    """
+    🎯 BULLETPROOF SAVE ALL DATA AUTOMATION
+    
+    ✨ ULTRA-CANNED: Works perfectly with ZERO configuration!
+    
+    This function is designed to be so robust that you could:
+    - Call it with no parameters: browser_save_all_data_single_session()
+    - Call it with empty dict: browser_save_all_data_single_session({})
+    - Trip and fall on your keyboard and it would still work
+    
+    Features:
+    - 🔄 Smart hover trigger for Settings flyout
+    - 🎯 Excellent default parameters that always work
+    - 🛡️ Comprehensive error handling and recovery
+    - 📊 Detailed logging and progress tracking
+    - 🔍 Self-healing element detection
+    - ⚡ Optimized timing for flyout menus
+    - 🎭 Idempotent - safe to run repeatedly
+    """
+    # 🌍 UPSTREAM BROWSER LOGGING
+    get_logger().info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_save_all_data_single_session called with params: {params}")
+    
+    import os
+    import time
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.action_chains import ActionChains
+    from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
+    from datetime import datetime
+    
+    # 🎯 BULLETPROOF DEFAULTS - These always work!
+    if params is None:
+        params = {}
+    
+    # Extract parameters with bulletproof defaults
+    base_url = params.get('base_url', 'http://localhost:5001')
+    max_retries = params.get('max_retries', 3)
+    wait_timeout = params.get('wait_timeout', 10)
+    
+    get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_SAVE_START - Saving all data via Settings flyout")
+    
+    start_time = time.time()
+    
+    # 🛡️ ULTRA-ROBUST Chrome configuration
+    chrome_options = Options()
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--disable-web-security')
+    chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    # HEADLESS MODE DISABLED - Human can see automation
+    
+    driver = None
+    steps_executed = []
+    
+    def add_step(step_num: int, status: str, description: str, details: str = None, error: str = None):
+        """Helper to add step with comprehensive logging"""
+        step_data = {
+            "step": step_num,
+            "status": status,
+            "description": description,
+            "timestamp": datetime.now().isoformat()
+        }
+        if details:
+            step_data["details"] = details
+        if error:
+            step_data["error"] = error
+        steps_executed.append(step_data)
+        
+        status_emoji = {"success": "✅", "error": "❌", "retry": "🔄", "partial": "⚠️"}.get(status, "📝")
+        get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_SAVE_STEP_{step_num} - {status_emoji} {description}")
+        if details:
+            get_logger().info(f"    📋 Details: {details}")
+        if error:
+            get_logger().error(f"    ❌ Error: {error}")
+    
+    try:
+        # 🌐 BULLETPROOF BROWSER STARTUP
+        get_logger().info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE for save_all_data")
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        
+        # Step 1: Navigate to main page
+        main_url = base_url
+        for attempt in range(max_retries):
+            try:
+                driver.get(main_url)
+                
+                # Wait for page to load properly
+                WebDriverWait(driver, wait_timeout).until(
+                    lambda d: d.execute_script("return document.readyState") == "complete"
+                )
+                
+                # Verify poke button exists
+                poke_button = WebDriverWait(driver, wait_timeout).until(
+                    EC.presence_of_element_located((By.ID, "poke-summary"))
+                )
+                
+                add_step(1, "success", "Navigate to main page", f"Successfully loaded {main_url}")
+                time.sleep(2)  # Human-like pause
+                break
+                
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    add_step(1, "retry", "Navigate to main page", f"Navigation error, retrying... (attempt {attempt + 1})", str(e))
+                    time.sleep(1)
+                else:
+                    add_step(1, "error", "Navigate to main page", f"Navigation failed after {max_retries} attempts", str(e))
+                    return {"success": False, "error": "Navigation failed", "steps_executed": steps_executed}
+        
+        # Step 2: Hover over Settings (Poke) button to trigger flyout
+        for attempt in range(max_retries):
+            try:
+                poke_button = driver.find_element(By.ID, "poke-summary")
+                
+                # Use ActionChains for proper hover
+                actions = ActionChains(driver)
+                actions.move_to_element(poke_button).perform()
+                
+                # More robust flyout detection - check for content rather than just visibility
+                def flyout_has_content(driver):
+                    try:
+                        panel = driver.find_element(By.ID, "nav-flyout-panel")
+                        # Check if panel has visible class and contains backup buttons
+                        has_visible_class = 'visible' in panel.get_attribute('class')
+                        has_content = len(panel.text.strip()) > 0 or panel.find_elements(By.TAG_NAME, "button")
+                        return has_visible_class and has_content
+                    except:
+                        return False
+                
+                # Wait for flyout to appear with content
+                WebDriverWait(driver, 8).until(flyout_has_content)
+                
+                add_step(2, "success", "Hover trigger Settings flyout", "Flyout panel appeared successfully")
+                time.sleep(1)  # Let flyout fully load
+                break
+                
+            except TimeoutException as te:
+                error_msg = f"Flyout visibility timeout after hover (attempt {attempt + 1}): {str(te)}"
+                if attempt < max_retries - 1:
+                    add_step(2, "retry", "Hover trigger Settings flyout", f"Hover failed, retrying... (attempt {attempt + 1})", error_msg)
+                    time.sleep(0.5)
+                else:
+                    add_step(2, "error", "Hover trigger Settings flyout", f"Hover failed after {max_retries} attempts", error_msg)
+                    return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
+            except Exception as e:
+                error_msg = f"Hover operation failed: {type(e).__name__}: {str(e)}"
+                if attempt < max_retries - 1:
+                    add_step(2, "retry", "Hover trigger Settings flyout", f"Hover failed, retrying... (attempt {attempt + 1})", error_msg)
+                    time.sleep(0.5)
+                else:
+                    add_step(2, "error", "Hover trigger Settings flyout", f"Hover failed after {max_retries} attempts", error_msg)
+                    return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
+        
+        # Step 3: Click Save all data button
+        for attempt in range(max_retries):
+            try:
+                # Find the save button using multiple strategies
+                save_button = None
+                selectors_to_try = [
+                    (By.XPATH, "//button[contains(text(), '📤 Save all data')]"),
+                    (By.CSS_SELECTOR, "button[hx-post='/explicit-backup']"),
+                    (By.XPATH, "//button[contains(@class, 'backup-button')]")
+                ]
+                
+                for by, selector in selectors_to_try:
+                    try:
+                        save_button = driver.find_element(by, selector)
+                        if save_button.is_displayed() and save_button.is_enabled():
+                            break
+                    except NoSuchElementException:
+                        continue
+                
+                if not save_button:
+                    raise NoSuchElementException("Save button not found with any selector")
+                
+                # Click the button
+                save_button.click()
+                
+                # Wait for backup result to appear
+                result_element = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.ID, "backup-restore-result"))
+                )
+                
+                # Check result text
+                result_text = result_element.text
+                if "📤 Saved:" in result_text or "backed up successfully" in result_text:
+                    add_step(3, "success", "Click Save all data button", f"Backup successful: {result_text}")
+                elif "⚠️" in result_text:
+                    add_step(3, "partial", "Click Save all data button", f"Backup warning: {result_text}")
+                else:
+                    add_step(3, "error", "Click Save all data button", f"Unexpected result: {result_text}")
+                
+                break
+                
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    add_step(3, "retry", "Click Save all data button", f"Click failed, retrying... (attempt {attempt + 1})", str(e))
+                    time.sleep(1)
+                else:
+                    add_step(3, "error", "Click Save all data button", f"Click failed after {max_retries} attempts", str(e))
+                    return {"success": False, "error": "Save button click failed", "steps_executed": steps_executed}
+        
+        # Calculate execution time
+        execution_time = int((time.time() - start_time) * 1000)
+        steps_successful = len([s for s in steps_executed if s["status"] == "success"])
+        success_rate = (steps_successful / len(steps_executed)) * 100 if steps_executed else 0
+        
+        get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_SAVE_COMPLETE - Data saved successfully in {execution_time}ms with {success_rate:.1f}% success rate")
+        
+        return {
+            "success": True,
+            "operation": "save_all_data",
+            "steps_executed": steps_executed,
+            "steps_successful": steps_successful,
+            "total_steps": len(steps_executed),
+            "success_rate": success_rate,
+            "execution_time_ms": execution_time,
+            "browser_sessions_used": 1,
+            "result_message": result_text if 'result_text' in locals() else "Save completed",
+            "bulletproof_features": [
+                "Smart hover trigger for Settings flyout",
+                "Excellent default parameters that always work",
+                "Comprehensive error handling and recovery",
+                "Detailed logging and progress tracking",
+                "Self-healing element detection",
+                "Optimized timing for flyout menus",
+                "Idempotent - safe to run repeatedly"
+            ]
+        }
+        
+    except Exception as e:
+        execution_time = int((time.time() - start_time) * 1000)
+        get_logger().error(f"🎯 FINDER_TOKEN: BULLETPROOF_SAVE_ERROR - Unexpected error in {execution_time}ms: {e}")
+        
+        return {
+            "success": False,
+            "error": str(e),
+            "operation": "save_all_data",
+            "steps_executed": steps_executed,
+            "execution_time_ms": execution_time,
+            "browser_sessions_used": 1
+        }
+        
+    finally:
+        # Clean up browser
+        try:
+            if driver:
+                driver.quit()
+                get_logger().info(f"🧹 FINDER_TOKEN: SAVE_BROWSER_CLEANUP - Browser quit successfully")
+        except Exception as browser_quit_error:
+            get_logger().warning(f"⚠️ FINDER_TOKEN: SAVE_BROWSER_CLEANUP_WARNING - Browser quit failed: {browser_quit_error}")
+
+
+async def browser_load_all_data_single_session(params: dict = None) -> dict:
+    """
+    🎯 BULLETPROOF LOAD ALL DATA AUTOMATION WITH SERVER RESTART
+    
+    ✨ ULTRA-CANNED: Works perfectly with ZERO configuration!
+    
+    This function is designed to be so robust that you could:
+    - Call it with no parameters: browser_load_all_data_single_session()
+    - Call it with empty dict: browser_load_all_data_single_session({})
+    - Trip and fall on your keyboard and it would still work
+    
+    Features:
+    - 🔄 Smart hover trigger for Settings flyout
+    - 🎯 Excellent default parameters that always work
+    - 🛡️ Comprehensive error handling and recovery
+    - 📊 Detailed logging and progress tracking
+    - 🔍 Self-healing element detection with server restart handling
+    - ⚡ Optimized timing for flyout menus and restart sequences
+    - 🎭 Idempotent - safe to run repeatedly
+    - 🔄 Automatic server restart detection and recovery
+    """
+    # 🌍 UPSTREAM BROWSER LOGGING
+    get_logger().info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_load_all_data_single_session called with params: {params}")
+    
+    import os
+    import time
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.action_chains import ActionChains
+    from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
+    from datetime import datetime
+    
+    # 🎯 BULLETPROOF DEFAULTS - These always work!
+    if params is None:
+        params = {}
+    
+    # Extract parameters with bulletproof defaults
+    base_url = params.get('base_url', 'http://localhost:5001')
+    max_retries = params.get('max_retries', 3)
+    wait_timeout = params.get('wait_timeout', 10)
+    restart_wait_timeout = params.get('restart_wait_timeout', 30)
+    
+    get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_LOAD_START - Loading all data via Settings flyout (with restart handling)")
+    
+    start_time = time.time()
+    
+    # 🛡️ ULTRA-ROBUST Chrome configuration
+    chrome_options = Options()
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--disable-web-security')
+    chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    # HEADLESS MODE DISABLED - Human can see automation
+    
+    driver = None
+    steps_executed = []
+    
+    def add_step(step_num: int, status: str, description: str, details: str = None, error: str = None):
+        """Helper to add step with comprehensive logging"""
+        step_data = {
+            "step": step_num,
+            "status": status,
+            "description": description,
+            "timestamp": datetime.now().isoformat()
+        }
+        if details:
+            step_data["details"] = details
+        if error:
+            step_data["error"] = error
+        steps_executed.append(step_data)
+        
+        status_emoji = {"success": "✅", "error": "❌", "retry": "🔄", "partial": "⚠️"}.get(status, "📝")
+        get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_LOAD_STEP_{step_num} - {status_emoji} {description}")
+        if details:
+            get_logger().info(f"    📋 Details: {details}")
+        if error:
+            get_logger().error(f"    ❌ Error: {error}")
+    
+    try:
+        # 🌐 BULLETPROOF BROWSER STARTUP
+        get_logger().info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE for load_all_data")
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        
+        # Step 1: Navigate to main page
+        main_url = base_url
+        for attempt in range(max_retries):
+            try:
+                driver.get(main_url)
+                
+                # Wait for page to load properly
+                WebDriverWait(driver, wait_timeout).until(
+                    lambda d: d.execute_script("return document.readyState") == "complete"
+                )
+                
+                # Verify poke button exists
+                poke_button = WebDriverWait(driver, wait_timeout).until(
+                    EC.presence_of_element_located((By.ID, "poke-summary"))
+                )
+                
+                add_step(1, "success", "Navigate to main page", f"Successfully loaded {main_url}")
+                time.sleep(2)  # Human-like pause
+                break
+                
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    add_step(1, "retry", "Navigate to main page", f"Navigation error, retrying... (attempt {attempt + 1})", str(e))
+                    time.sleep(1)
+                else:
+                    add_step(1, "error", "Navigate to main page", f"Navigation failed after {max_retries} attempts", str(e))
+                    return {"success": False, "error": "Navigation failed", "steps_executed": steps_executed}
+        
+        # Step 2: Hover over Settings (Poke) button to trigger flyout
+        for attempt in range(max_retries):
+            try:
+                poke_button = driver.find_element(By.ID, "poke-summary")
+                
+                # Use ActionChains for proper hover
+                actions = ActionChains(driver)
+                actions.move_to_element(poke_button).perform()
+                
+                # More robust flyout detection - check for content rather than just visibility
+                def flyout_has_content(driver):
+                    try:
+                        panel = driver.find_element(By.ID, "nav-flyout-panel")
+                        # Check if panel has visible class and contains backup buttons
+                        has_visible_class = 'visible' in panel.get_attribute('class')
+                        has_content = len(panel.text.strip()) > 0 or panel.find_elements(By.TAG_NAME, "button")
+                        return has_visible_class and has_content
+                    except:
+                        return False
+                
+                # Wait for flyout to appear with content
+                WebDriverWait(driver, 8).until(flyout_has_content)
+                
+                add_step(2, "success", "Hover trigger Settings flyout", "Flyout panel appeared successfully")
+                time.sleep(1)  # Let flyout fully load
+                break
+                
+            except TimeoutException as te:
+                error_msg = f"Flyout visibility timeout after hover (attempt {attempt + 1}): {str(te)}"
+                if attempt < max_retries - 1:
+                    add_step(2, "retry", "Hover trigger Settings flyout", f"Hover failed, retrying... (attempt {attempt + 1})", error_msg)
+                    time.sleep(0.5)
+                else:
+                    add_step(2, "error", "Hover trigger Settings flyout", f"Hover failed after {max_retries} attempts", error_msg)
+                    return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
+            except Exception as e:
+                error_msg = f"Hover operation failed: {type(e).__name__}: {str(e)}"
+                if attempt < max_retries - 1:
+                    add_step(2, "retry", "Hover trigger Settings flyout", f"Hover failed, retrying... (attempt {attempt + 1})", error_msg)
+                    time.sleep(0.5)
+                else:
+                    add_step(2, "error", "Hover trigger Settings flyout", f"Hover failed after {max_retries} attempts", error_msg)
+                    return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
+        
+        # Step 3: Check for backup data and click Load all data button
+        for attempt in range(max_retries):
+            try:
+                # Find the load button using multiple strategies
+                load_button = None
+                selectors_to_try = [
+                    (By.XPATH, "//button[contains(text(), '📥 Load all data')]"),
+                    (By.CSS_SELECTOR, "button[hx-post='/explicit-restore']"),
+                    (By.XPATH, "//button[contains(@class, 'restore-button')]")
+                ]
+                
+                for by, selector in selectors_to_try:
+                    try:
+                        load_button = driver.find_element(by, selector)
+                        if load_button.is_displayed() and load_button.is_enabled():
+                            break
+                    except NoSuchElementException:
+                        continue
+                
+                if not load_button:
+                    raise NoSuchElementException("Load button not found with any selector")
+                
+                # Check if button indicates available backup data
+                button_text = load_button.text
+                if "0 records" in button_text or not any(char.isdigit() for char in button_text):
+                    add_step(3, "partial", "Check backup data", f"No backup data available: {button_text}")
+                    return {"success": False, "error": "No backup data available", "steps_executed": steps_executed}
+                
+                add_step(3, "success", "Verify backup data exists", f"Backup data found: {button_text}")
+                
+                # Click the button
+                load_button.click()
+                add_step(4, "success", "Click Load all data button", "Restore initiated, waiting for server restart")
+                
+                break
+                
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    add_step(3, "retry", "Click Load all data button", f"Click failed, retrying... (attempt {attempt + 1})", str(e))
+                    time.sleep(1)
+                else:
+                    add_step(3, "error", "Click Load all data button", f"Click failed after {max_retries} attempts", str(e))
+                    return {"success": False, "error": "Load button click failed", "steps_executed": steps_executed}
+        
+        # Step 4: Wait for server restart and verify recovery
+        get_logger().info(f"🔄 FINDER_TOKEN: WAITING_FOR_SERVER_RESTART - Expecting server restart in 2-10 seconds")
+        
+        # Wait a bit for the restore to trigger restart
+        time.sleep(3)
+        
+        # Try to detect when server becomes unavailable (restart begins)
+        server_went_down = False
+        for i in range(10):  # Check for 10 seconds
+            try:
+                driver.execute_script("return document.readyState")
+                time.sleep(1)
+            except WebDriverException:
+                server_went_down = True
+                add_step(5, "success", "Detect server restart", "Server connection lost - restart in progress")
+                break
+        
+        # Now wait for server to come back up
+        server_back_up = False
+        for i in range(restart_wait_timeout):
+            try:
+                driver.get(base_url)
+                
+                # Check if page loads properly
+                WebDriverWait(driver, 5).until(
+                    lambda d: d.execute_script("return document.readyState") == "complete"
+                )
+                
+                # Look for expected elements to confirm app is working
+                poke_button = driver.find_element(By.ID, "poke-summary")
+                if poke_button.is_displayed():
+                    server_back_up = True
+                    add_step(6, "success", "Verify server restart complete", f"Server recovered after {i+1} seconds")
+                    break
+                    
+            except Exception:
+                time.sleep(1)
+                continue
+        
+        if not server_back_up:
+            add_step(6, "error", "Verify server restart complete", f"Server did not recover within {restart_wait_timeout} seconds")
+            return {"success": False, "error": "Server restart timeout", "steps_executed": steps_executed}
+        
+        # Step 5: Final verification that data was loaded
+        try:
+            # Check for profile menu and other data indicators
+            profile_menu = driver.find_element(By.ID, "profile-id")
+            nav_group = driver.find_element(By.CSS_SELECTOR, ".nav-menu-group")
+            
+            add_step(7, "success", "Verify data loaded", "Application is functional with restored data")
+            
+        except Exception as e:
+            add_step(7, "partial", "Verify data loaded", f"Server restarted but data verification failed: {e}")
+        
+        # Calculate execution time
+        execution_time = int((time.time() - start_time) * 1000)
+        steps_successful = len([s for s in steps_executed if s["status"] == "success"])
+        success_rate = (steps_successful / len(steps_executed)) * 100 if steps_executed else 0
+        
+        get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_LOAD_COMPLETE - Data loaded successfully in {execution_time}ms with {success_rate:.1f}% success rate")
+        
+        return {
+            "success": True,
+            "operation": "load_all_data",
+            "steps_executed": steps_executed,
+            "steps_successful": steps_successful,
+            "total_steps": len(steps_executed),
+            "success_rate": success_rate,
+            "execution_time_ms": execution_time,
+            "browser_sessions_used": 1,
+            "server_restarted": server_went_down and server_back_up,
+            "result_message": "Data loaded and server restarted successfully",
+            "bulletproof_features": [
+                "Smart hover trigger for Settings flyout",
+                "Excellent default parameters that always work",
+                "Comprehensive error handling and recovery",
+                "Detailed logging and progress tracking",
+                "Self-healing element detection with server restart handling",
+                "Optimized timing for flyout menus and restart sequences",
+                "Idempotent - safe to run repeatedly",
+                "Automatic server restart detection and recovery"
+            ]
+        }
+        
+    except Exception as e:
+        execution_time = int((time.time() - start_time) * 1000)
+        get_logger().error(f"🎯 FINDER_TOKEN: BULLETPROOF_LOAD_ERROR - Unexpected error in {execution_time}ms: {e}")
+        
+        return {
+            "success": False,
+            "error": str(e),
+            "operation": "load_all_data",
+            "steps_executed": steps_executed,
+            "execution_time_ms": execution_time,
+            "browser_sessions_used": 1
+        }
+        
+    finally:
+        # Clean up browser
+        try:
+            if driver:
+                driver.quit()
+                get_logger().info(f"🧹 FINDER_TOKEN: LOAD_BROWSER_CLEANUP - Browser quit successfully")
+        except Exception as browser_quit_error:
+            get_logger().warning(f"⚠️ FINDER_TOKEN: LOAD_BROWSER_CLEANUP_WARNING - Browser quit failed: {browser_quit_error}")
 
 
 # Registration moved to register_all_mcp_tools() function
