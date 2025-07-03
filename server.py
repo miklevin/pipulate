@@ -421,16 +421,15 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
         logger.error(f'❌ FINDER_TOKEN: DIRECTORY_ROTATION_ERROR - Failed to rotate directories: {e}')
         return False
 
+# Show startup banner only when running as main script, not on watchdog restarts or imports
+if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
+    figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
+
 # Initialize logger BEFORE any functions that need it
 logger = setup_logging()
 
 # Pass our configured logger to mcp_tools so they use the same logging configuration
 mcp_tools.logger = logger
-
-# Show startup banner only when running as main script, not on watchdog restarts or imports
-if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
-    figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
-
 
 # Log early startup phase
 logger.info('🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence')
