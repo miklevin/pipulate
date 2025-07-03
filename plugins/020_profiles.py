@@ -116,7 +116,11 @@ class ProfilesPlugin(ProfilesPluginIdentity):
 
     async def landing(self, request=None):
         profiles = list(self.table())
-        ordered_profiles = sorted(profiles, key=lambda x: getattr(x, 'priority', 0))
+        # Safe sorting: handle None priority values to avoid TypeError
+        def get_sort_priority(profile):
+            priority = getattr(profile, 'priority', 0)
+            return priority if priority is not None else 0
+        ordered_profiles = sorted(profiles, key=get_sort_priority)
         profile_list = Ul(*[render_profile(p, self) for p in ordered_profiles], id='profile-list-ul', cls='sortable list-unstyled', data_sortable_group=self.name)
         add_profile_form = Form(Group(Input(placeholder='Nickname', name='profile_name', id='profile-name-input-add', autofocus=True), Input(placeholder='Real Name (Optional)', name='profile_real_name', id='profile-real-name-input-add'), Input(placeholder=PLACEHOLDER_ADDRESS, name='profile_address', id='profile-address-input-add'), Input(placeholder=PLACEHOLDER_CODE, name='profile_code', id='profile-code-input-add'), Button('Add', type='submit', id='add-profile-button')), hx_post=f'/{self.name}', hx_target='#profile-list-ul', hx_swap='beforeend', hx_on_htmx_after_request="this.reset(); this.querySelector('input[name=profile_name]').focus();")
         container = Div(H2('Profiles'), add_profile_form, profile_list, cls='container-centered')
