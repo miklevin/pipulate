@@ -261,7 +261,7 @@ class DurableBackupManager:
         """
         🔄 Merge table data with conflict resolution, return record count.
         
-        Only called for tables that have backup fields.
+        Only called for BACKUP operations - merges source into backup.
         """
         source_conn = sqlite3.connect(source_db)
         backup_conn = sqlite3.connect(str(backup_db))
@@ -294,9 +294,9 @@ class DurableBackupManager:
                 if timestamp_index is not None:
                     # Conflict resolution: check if backup has newer data
                     backup_cursor.execute(
-                    f"SELECT {timestamp_field} FROM {table_name} WHERE {pk_field} = ?", 
-                    (pk_value,)
-                )
+                        f"SELECT {timestamp_field} FROM {table_name} WHERE {pk_field} = ?", 
+                        (pk_value,)
+                    )
                     backup_row = backup_cursor.fetchone()
                 
                     if backup_row and backup_row[0] > row[timestamp_index]:
@@ -304,11 +304,11 @@ class DurableBackupManager:
                         continue
                 
                 # Insert or replace record
-                    placeholders = ', '.join(['?' for _ in columns])
-                    backup_cursor.execute(
+                placeholders = ', '.join(['?' for _ in columns])
+                backup_cursor.execute(
                     f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})",
-                        row
-                    )
+                    row
+                )
                 records_processed += 1
             
             backup_conn.commit()
@@ -325,7 +325,77 @@ class DurableBackupManager:
         finally:
             source_conn.close()
             backup_conn.close()
-    
+
+    def _merge_table_data_restore(self, backup_db_path: str, target_db_path: str, table_name: str) -> int:
+        """
+        📥 Merge table data during RESTORE operations, return record count.
+        
+        Merges backup data into target database with conflict resolution.
+        """
+        backup_conn = sqlite3.connect(backup_db_path)
+        target_conn = sqlite3.connect(target_db_path)
+        
+        try:
+            table_config = self.backup_tables.get(table_name, {})
+            pk_field = table_config.get('primary_key', 'id')
+            timestamp_field = table_config.get('timestamp_field', 'updated_at')
+            
+            # Get all backup data
+            backup_cursor = backup_conn.cursor()
+            backup_cursor.execute(f"SELECT * FROM {table_name}")
+            backup_rows = backup_cursor.fetchall()
+            
+            # Get column names
+            backup_cursor.execute(f"PRAGMA table_info({table_name})")
+            column_info = backup_cursor.fetchall()
+            columns = [col[1] for col in column_info]
+            
+            # Build column mapping
+            pk_index = columns.index(pk_field) if pk_field in columns else 0
+            timestamp_index = columns.index(timestamp_field) if timestamp_field in columns else None
+            
+            target_cursor = target_conn.cursor()
+            records_processed = 0
+            
+            for row in backup_rows:
+                pk_value = row[pk_index]
+                
+                if timestamp_index is not None:
+                    # Conflict resolution: check if target has newer data
+                    target_cursor.execute(
+                        f"SELECT {timestamp_field} FROM {table_name} WHERE {pk_field} = ?", 
+                        (pk_value,)
+                    )
+                    target_row = target_cursor.fetchone()
+                
+                    if target_row and target_row[0] > row[timestamp_index]:
+                        # Target has newer data, skip this record
+                        continue
+                
+                # Insert or replace record
+                placeholders = ', '.join(['?' for _ in columns])
+                target_cursor.execute(
+                    f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})",
+                    row
+                )
+                records_processed += 1
+            
+            target_conn.commit()
+            
+            # Get final count
+            final_count = self._count_table_records(target_db_path, table_name)
+            backup_path = Path(backup_db_path)
+            relative_backup_path = backup_path.relative_to(self.backup_root)
+            logger.info(f"📥 Advanced restore: {relative_backup_path} → target (processed {records_processed}, total {final_count})")
+            return final_count
+            
+        except Exception as e:
+            logger.error(f"❌ Advanced restore failed for {table_name}: {e}")
+            return 0
+        finally:
+            backup_conn.close()
+            target_conn.close()
+
     def restore_table(self, target_db_path: str, table_name: str) -> int:
         """
         📥 Restore table from most recent backup, return record count.
@@ -341,7 +411,7 @@ class DurableBackupManager:
             
             # Check if table has backup fields for advanced merge
             if self._table_has_backup_fields(target_db_path, table_name):
-                return self._merge_table_data(str(latest_backup), Path(target_db_path), table_name)
+                return self._merge_table_data_restore(str(latest_backup), target_db_path, table_name)
             else:
                 return self._basic_table_restore(str(latest_backup), target_db_path, table_name)
             
