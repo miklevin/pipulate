@@ -29,11 +29,23 @@ import tempfile
 import shutil
 import socket
 
-# Get logger from server context
-logger = logging.getLogger(__name__)
+# Get logger from server context - will be set by server.py after logging is configured
+logger = None  # Will be set by server.py after logging is configured
 
 # MCP_TOOL_REGISTRY will be set by server.py when it imports this module
 MCP_TOOL_REGISTRY = None
+
+def get_logger():
+    """Get the configured logger from server context"""
+    if logger is None:
+        # Try to get the logger from the server module
+        import sys
+        server_module = sys.modules.get('server') or sys.modules.get('__main__')
+        if server_module and hasattr(server_module, 'logger'):
+            return server_module.logger
+        else:
+            raise RuntimeError("Logger not available - mcp_tools must be imported through server.py")
+    return logger
 
 # Import AI Keychain for persistent memory
 try:
@@ -41,7 +53,7 @@ try:
     KEYCHAIN_AVAILABLE = True
 except ImportError:
     KEYCHAIN_AVAILABLE = False
-    logger.warning("⚠️ FINDER_TOKEN: KEYCHAIN_IMPORT_FAILED - AI Keychain not available")
+    get_logger().warning("⚠️ FINDER_TOKEN: KEYCHAIN_IMPORT_FAILED - AI Keychain not available")
 
 # ================================================================
 # 🔧 GLOBAL WORKFLOW HIJACKING TIMING CONFIGURATION
@@ -104,9 +116,9 @@ def apply_timing_preset(preset_name: str):
         preset = TIMING_PRESETS[preset_name]
         for attr, value in preset.items():
             setattr(WorkflowHijackTiming, attr, value)
-        logger.info(f"⏰ Applied '{preset_name}' timing preset - Total: {WorkflowHijackTiming.total_browser_time()}s")
+        get_logger().info(f"⏰ Applied '{preset_name}' timing preset - Total: {WorkflowHijackTiming.total_browser_time()}s")
     else:
-        logger.warning(f"⚠️ Unknown timing preset: {preset_name}")
+        get_logger().warning(f"⚠️ Unknown timing preset: {preset_name}")
 
 # 🎯 Apply default timing preset (change this to tune global speed)
 apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
@@ -666,17 +678,17 @@ MCP_TOOL_REGISTRY = {}
 
 def register_mcp_tool(tool_name: str, handler_func):
     """Register an MCP tool with the global registry."""
-    logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
+    get_logger().info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
     
     # Use the registry that was passed from server.py
     if MCP_TOOL_REGISTRY is not None:
         MCP_TOOL_REGISTRY[tool_name] = handler_func
     else:
-        logger.error(f"🔧 MCP REGISTRY: ERROR - Registry not initialized for '{tool_name}'")
+        get_logger().error(f"🔧 MCP REGISTRY: ERROR - Registry not initialized for '{tool_name}'")
 
 def register_all_mcp_tools():
     """Register all MCP tools with the server."""
-    logger.info("🔧 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_START")
+    get_logger().info("🔧 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_START")
     # Debug logging removed - registry working correctly
     
     # Core tools
@@ -727,9 +739,9 @@ def register_all_mcp_tools():
         register_mcp_tool("keychain_delete", keychain_delete)
         register_mcp_tool("keychain_list_keys", keychain_list_keys)
         register_mcp_tool("keychain_get_all", keychain_get_all)
-        logger.info("🧠 FINDER_TOKEN: KEYCHAIN_TOOLS_REGISTERED - 5 persistent memory tools available")
+        get_logger().info("🧠 FINDER_TOKEN: KEYCHAIN_TOOLS_REGISTERED - 5 persistent memory tools available")
     else:
-        logger.warning("⚠️ FINDER_TOKEN: KEYCHAIN_TOOLS_SKIPPED - AI Keychain not available")
+        get_logger().warning("⚠️ FINDER_TOKEN: KEYCHAIN_TOOLS_SKIPPED - AI Keychain not available")
     
     # 🧠 AI SELF-DISCOVERY TOOLS - ELIMINATE UNCERTAINTY
     register_mcp_tool("ai_self_discovery_assistant", ai_self_discovery_assistant)
@@ -745,7 +757,7 @@ def register_all_mcp_tools():
     else:
         tool_count = len(MCP_TOOL_REGISTRY)
     
-    logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {tool_count} tools registered")
+    get_logger().info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {tool_count} tools registered")
 
 # Additional Botify tools from server.py
 async def botify_simple_query(params: dict) -> dict:
@@ -850,7 +862,7 @@ async def botify_simple_query(params: dict) -> dict:
 # Local LLM tools for file system operations
 async def local_llm_read_file(params: dict) -> dict:
     """Read file contents for AI analysis."""
-    logger.info(f"🔧 FINDER_TOKEN: MCP_READ_FILE_START - {params.get('file_path')}")
+    get_logger().info(f"🔧 FINDER_TOKEN: MCP_READ_FILE_START - {params.get('file_path')}")
     
     try:
         file_path = params.get('file_path')
@@ -1844,7 +1856,8 @@ async def browser_scrape_page(params: dict) -> dict:
         }
     """
     # 🌍 UPSTREAM BROWSER LOGGING - Captured before any subprocess detachment
-    logger.info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_scrape_page called with params: {params}")
+    get_logger().info(f"🌍 FINDER_TOKEN: BROWSER_AUTOMATION_START - browser_scrape_page called with params: {params}")
+    print(f"🌍 DEBUG: browser_scrape_page function called with params: {params}")
     
     import json
     import os
@@ -1854,7 +1867,7 @@ async def browser_scrape_page(params: dict) -> dict:
     from datetime import datetime
     from pathlib import Path
     
-    logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_SCRAPE_START - URL: {params.get('url')} (subprocess mode)")
+    get_logger().info(f"🔧 FINDER_TOKEN: MCP_BROWSER_SCRAPE_START - URL: {params.get('url')} (subprocess mode)")
     
     try:
         url = params.get('url')

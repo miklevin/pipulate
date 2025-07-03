@@ -47,10 +47,11 @@ from watchdog.observers import Observer
 # Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
 MCP_TOOL_REGISTRY = {}
 
-from mcp_tools import register_all_mcp_tools
-# Pass our registry to mcp_tools so they use the same instance
+# Import mcp_tools but don't assign logger yet (it's not configured)
 import mcp_tools
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
+
+from mcp_tools import register_all_mcp_tools
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
@@ -422,6 +423,9 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
 
 # Initialize logger BEFORE any functions that need it
 logger = setup_logging()
+
+# Pass our configured logger to mcp_tools so they use the same logging configuration
+mcp_tools.logger = logger
 
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
