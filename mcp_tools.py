@@ -53,7 +53,12 @@ try:
     KEYCHAIN_AVAILABLE = True
 except ImportError:
     KEYCHAIN_AVAILABLE = False
-    get_logger().warning("⚠️ FINDER_TOKEN: KEYCHAIN_IMPORT_FAILED - AI Keychain not available")
+    # Only log warning when logger is available (i.e., when imported through server.py)
+    try:
+        get_logger().warning("⚠️ FINDER_TOKEN: KEYCHAIN_IMPORT_FAILED - AI Keychain not available")
+    except RuntimeError:
+        # Logger not available yet - will be logged when server.py sets up logging
+        pass
 
 # ================================================================
 # 🔧 GLOBAL WORKFLOW HIJACKING TIMING CONFIGURATION
@@ -121,7 +126,12 @@ def apply_timing_preset(preset_name: str):
         get_logger().warning(f"⚠️ Unknown timing preset: {preset_name}")
 
 # 🎯 Apply default timing preset (change this to tune global speed)
-apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
+# Only apply when logger is available (i.e., when imported through server.py)
+try:
+    apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
+except RuntimeError:
+    # Logger not available yet - will be applied when server.py sets up logging
+    pass
 
 # ================================================================
 # HELPER FUNCTIONS

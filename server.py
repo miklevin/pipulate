@@ -6977,6 +6977,7 @@ async def prepare_local_llm_context():
         
         logger.info(f"LOCAL LLM CONTEXT: Pre-seeded context package ready at {context_file}")
         server_whisper("Local LLM context prepared - the AI assistant is ready for collaboration", "🤖")
+
         
         # Initialize local LLM with pointer to training materials for self-discovery
         try:
