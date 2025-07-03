@@ -2356,6 +2356,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         
         # Create browser with enhanced error handling
         try:
+            logger.info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(options)} in browser_automate_workflow_walkthrough")
             driver = webdriver.Chrome(options=options)
             logger.info(f"✅ FINDER_TOKEN: WORKFLOW_BROWSER_CREATED - Chrome instance created successfully")
         except Exception as browser_error:
@@ -3105,6 +3106,7 @@ async def browser_interact_with_current_page(params: dict) -> dict:
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--window-size=1920,1080')
         
+        logger.info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in browser_interact_with_current_page")
         driver = webdriver.Chrome(options=chrome_options)
         
         try:
@@ -5222,6 +5224,7 @@ async def browser_interact_enhanced(params: dict) -> dict:
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--disable-extensions')
         
+        logger.info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in browser_interact_enhanced")
         driver = webdriver.Chrome(options=chrome_options)
         
         try:
@@ -5504,6 +5507,7 @@ async def navigate_with_verification(params: dict) -> dict:
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--window-size=1920,1080')
         
+        logger.info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in navigate_with_verification")
         driver = webdriver.Chrome(options=chrome_options)
         
         try:
@@ -5708,13 +5712,16 @@ async def navigate_with_verification(params: dict) -> dict:
 
 async def _execute_json_recipe_file(params: dict, recipe_file: str) -> dict:
     """
-    🍳 JSON RECIPE EXECUTOR - Loads and executes JSON recipe files
+    🍳 JSON RECIPE EXECUTOR - Single-Session Recipe Execution
     
-    This helper function loads comprehensive automation recipes from JSON files
-    and executes them step-by-step with enhanced diagnostic feedback.
+    This executor loads JSON recipes and executes them in a SINGLE browser session,
+    maintaining state throughout all steps for true workflow automation.
     """
     import json
+    import asyncio
+    import time
     from pathlib import Path
+    from datetime import datetime
     
     try:
         # Load the JSON recipe file
@@ -5723,169 +5730,139 @@ async def _execute_json_recipe_file(params: dict, recipe_file: str) -> dict:
             return {
                 "success": False,
                 "error": f"Recipe file not found: {recipe_path}",
-                "error_type": "file_not_found",
-                "suggested_fixes": [
-                    "verify_recipe_file_exists",
-                    "check_recipe_file_name_spelling",
-                    "ensure_ai_discovery_directory_exists"
-                ]
+                "error_type": "file_not_found"
             }
         
         with open(recipe_path, 'r') as f:
             recipe = json.load(f)
         
         recipe_name = recipe.get('recipe_name', recipe_file)
-        # Extract form data from JSON recipe file or use passed parameters  
-        form_data = recipe.get('form_data', params.get('form_data', {}))
         
-        # Handle both old and new recipe structures
+        # Handle timestamp template replacement
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        timestamp_short = datetime.now().strftime("%H%M")
+        
+        # Extract and process form data with template replacement
+        form_data = recipe.get('form_data', {})
+        processed_form_data = {}
+        
+        for key, value in form_data.items():
+            if isinstance(value, str):
+                processed_value = value.replace('{{ timestamp }}', timestamp)
+                processed_value = processed_value.replace('{{ timestamp_short }}', timestamp_short)
+                processed_form_data[key] = processed_value
+            else:
+                processed_form_data[key] = value
+        
+        # Get steps from recipe
         steps = recipe.get('steps', [])
         if not steps:
-            # Convert old structure to steps if present
-            all_steps = []
-            
-            # Add navigation steps
-            navigation_path = recipe.get('navigation_path', [])
-            all_steps.extend(navigation_path)
-            
-            # Add form interaction steps
-            form_sequence = recipe.get('form_interaction_sequence', [])
-            all_steps.extend(form_sequence)
-            
-            # Add form submission step
-            form_submission = recipe.get('form_submission', {})
-            if form_submission:
-                all_steps.append(form_submission)
-            
-            # Add verification steps
-            verification_steps = recipe.get('verification_steps', [])
-            all_steps.extend(verification_steps)
-            
-            steps = all_steps
-        
-        # Set default form data if not provided
-        if not form_data:
-            form_data = {
-                'profile_name': 'AI Test Profile',
-                'profile_real_name': 'AI Assistant Testing',
-                'profile_address': 'www.test-automation.com',
-                'profile_code': 'AI'
+            return {
+                "success": False,
+                "error": "No steps found in recipe",
+                "error_type": "recipe_format_error"
             }
         
         logger.info(f"🍳 FINDER_TOKEN: JSON_RECIPE_LOADED - {recipe_name} with {len(steps)} steps")
+        logger.info(f"🍳 FINDER_TOKEN: JSON_RECIPE_FORM_DATA - {processed_form_data}")
         
         # Prepare execution results
         execution_results = {
             "success": False,
             "recipe_name": recipe_name,
             "recipe_file": recipe_file,
-            "recipe_version": recipe.get('recipe_version', 'unknown'),
-            "confidence_level": recipe.get('confidence_level', 'unknown'),
-            "timestamp": datetime.now().isoformat(),
+            "recipe_version": recipe.get('version', 'unknown'),
+            "timestamp": timestamp,
+            "form_data_used": processed_form_data,
             "steps_executed": [],
-            "total_steps": 0,
+            "total_steps": len(steps),
             "steps_successful": 0,
             "steps_failed": 0,
             "execution_time_ms": 0,
-            "errors": [],
-            "recipe_metadata": recipe.get('recipe_metadata', {})
+            "errors": []
         }
         
         start_time = time.time()
-        execution_results["total_steps"] = len(steps)
         
-        # Execute steps from the recipe
+        # Execute steps sequentially in single session
         for step in steps:
-            step_num = step.get('step_number', 0)
-            step_name = step.get('step_name', f"step_{step_num}")
+            step_num = step.get('step', 0)
+            step_type = step.get('type', 'unknown')
+            description = step.get('description', '')
             action = step.get('action')
             
             execution_results["steps_executed"].append({
-                "step_name": step_name,
                 "step_number": step_num,
-                "description": step.get('description', ''),
+                "step_type": step_type,
+                "description": description,
                 "action": action,
                 "status": "pending"
             })
             
+            logger.info(f"🍳 FINDER_TOKEN: RECIPE_STEP_START - Step {step_num}: {description}")
+            
             try:
                 result = None
+                step_params = step.get('params', {}).copy()
                 
+                # Handle template replacement in step params
+                if 'text' in step_params and isinstance(step_params['text'], str):
+                    text_template = step_params['text']
+                    # Replace form data template variables
+                    for field_key, field_value in processed_form_data.items():
+                        text_template = text_template.replace(f'{{ {field_key} }}', str(field_value))
+                    step_params['text'] = text_template
+                
+                # Execute step based on action type
                 if action == 'navigate_with_verification':
-                    # Handle both 'parameters' (new) and 'params' (old) structures
-                    nav_params = step.get('parameters', step.get('params', {}))
-                    result = await navigate_with_verification(nav_params)
+                    result = await navigate_with_verification(step_params)
                     
                 elif action == 'browser_interact_enhanced':
-                    # Handle both 'parameters' (new) and 'params' (old) structures
-                    step_params = step.get('parameters', step.get('params', {})).copy()
-                    
-                    # If this is a form field step, get the text from form_data
-                    field_name = step.get('field')
-                    if field_name and step_params.get('action') == 'type':
-                        text_value = form_data.get(field_name)
-                        if text_value:
-                            step_params['text_to_type'] = text_value
-                        else:
-                            execution_results["steps_executed"][-1]["status"] = "skipped"
-                            execution_results["steps_executed"][-1]["reason"] = f"No form data provided for field '{field_name}'"
-                            continue
-                    
-                    # Add fallback selectors from step-level fallback_selectors
-                    if 'fallback_selectors' in step:
-                        fallback_list = []
-                        for fallback in step['fallback_selectors']:
-                            fallback_list.append(fallback)
-                        step_params['fallback_selectors'] = fallback_list
-                    
                     result = await browser_interact_enhanced(step_params)
+                    
+                elif action == 'browser_scrape_page':
+                    result = await browser_scrape_page(step_params)
+                    
+                else:
+                    result = {
+                        'success': False,
+                        'error': f'Unknown action: {action}'
+                    }
                 
                 # Handle result
                 if result and result.get('success'):
                     execution_results["steps_executed"][-1]["status"] = "success"
                     execution_results["steps_executed"][-1]["result"] = result
                     execution_results["steps_successful"] += 1
-                    logger.info(f"🍳 FINDER_TOKEN: RECIPE_STEP_SUCCESS - {step_name}")
-                elif result:
-                    execution_results["steps_executed"][-1]["status"] = "failed"
-                    execution_results["steps_executed"][-1]["error"] = result.get('error')
-                    execution_results["steps_failed"] += 1
-                    execution_results["errors"].append(f"Step {step_num} ({step_name}) failed: {result.get('error')}")
-                    logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_FAILED - {step_name}")
+                    logger.info(f"🍳 FINDER_TOKEN: RECIPE_STEP_SUCCESS - Step {step_num}")
                 else:
                     execution_results["steps_executed"][-1]["status"] = "failed"
-                    execution_results["steps_executed"][-1]["error"] = "No result returned"
+                    execution_results["steps_executed"][-1]["error"] = result.get('error', 'Unknown error')
                     execution_results["steps_failed"] += 1
-                    execution_results["errors"].append(f"Step {step_num} ({step_name}) failed: No result returned")
-                    
+                    execution_results["errors"].append(f"Step {step_num} failed: {result.get('error', 'Unknown error')}")
+                    logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_FAILED - Step {step_num}")
+                
+                # Add timing delays between steps
+                timing = recipe.get('timing', {})
+                if step_num < len(steps):  # Not the last step
+                    delay = timing.get('between_fields_delay', 0.3)
+                    if delay > 0:
+                        await asyncio.sleep(delay)
+                        
             except Exception as e:
                 execution_results["steps_executed"][-1]["status"] = "error"
                 execution_results["steps_executed"][-1]["error"] = str(e)
                 execution_results["steps_failed"] += 1
-                execution_results["errors"].append(f"Step {step_num} ({step_name}) error: {str(e)}")
-                logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_ERROR - {step_name}: {e}")
+                execution_results["errors"].append(f"Step {step_num} error: {str(e)}")
+                logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_ERROR - Step {step_num}: {e}")
         
         # Calculate final results
         end_time = time.time()
         execution_results["execution_time_ms"] = int((end_time - start_time) * 1000)
-        execution_results["success_rate"] = execution_results["steps_successful"] / execution_results["total_steps"] if execution_results["total_steps"] > 0 else 0
+        execution_results["success_rate"] = (execution_results["steps_successful"] / execution_results["total_steps"]) * 100 if execution_results["total_steps"] > 0 else 0
+        execution_results["success"] = execution_results["steps_successful"] == execution_results["total_steps"]
         
-        # Determine overall success
-        success_criteria = recipe.get('success_criteria', {})
-        min_success = success_criteria.get('min_steps_successful', execution_results["total_steps"])
-        execution_results["success"] = execution_results["steps_successful"] >= min_success
-        
-        # Add recommendations
-        if not execution_results["success"]:
-            execution_results["recommendations"] = [
-                "Review step-by-step execution results",
-                "Check element selectors in failed steps",
-                "Verify page load timing",
-                "Consider increasing retry counts",
-                "Check for JavaScript errors on page"
-            ]
-        
-        logger.info(f"🍳 FINDER_TOKEN: JSON_RECIPE_COMPLETE - {recipe_name}: {execution_results['steps_successful']}/{execution_results['total_steps']} successful")
+        logger.info(f"🍳 FINDER_TOKEN: JSON_RECIPE_COMPLETE - {recipe_name}: {execution_results['steps_successful']}/{execution_results['total_steps']} successful ({execution_results['success_rate']:.1f}%)")
         return execution_results
         
     except Exception as e:
@@ -6137,5 +6114,200 @@ async def browser_automate_recipe(params: dict) -> dict:
                 "validate_form_data_structure"
             ]
         }
+
+async def browser_create_profile_single_session(params: dict) -> dict:
+    """
+    🎯 SINGLE-SESSION PROFILE CREATION - No Multiple Browser Flashing!
+    
+    Creates a profile using ONE browser session that stays open throughout
+    the entire workflow. No subprocess, no multiple sessions.
+    """
+    import os
+    import time
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from datetime import datetime
+    
+    logger.info(f"🎯 FINDER_TOKEN: SINGLE_SESSION_PROFILE_START - Creating profile with one browser session")
+    
+    # Generate timestamped form data
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp_short = datetime.now().strftime("%H%M")
+    
+    form_data = {
+        'profile_name': f'AI_Test_Run_{timestamp}',
+        'profile_real_name': 'AI Automation Test Session',
+        'profile_address': f'test-automation-{timestamp}.example.com',
+        'profile_code': f'AI{timestamp_short}'
+    }
+    
+    # Browser setup
+    chrome_options = Options()
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--disable-extensions')
+    # HEADLESS MODE DISABLED - Human can see browser automation
+    # chrome_options.add_argument('--headless')
+    
+    logger.info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CREATED - NEW CHROME INSTANCE #{hash(chrome_options)} in browser_create_profile_single_session")
+    driver = webdriver.Chrome(options=chrome_options)
+    
+    try:
+        execution_results = {
+            "success": False,
+            "timestamp": timestamp,
+            "form_data_used": form_data,
+            "steps_executed": [],
+            "total_steps": 7,
+            "steps_successful": 0,
+            "steps_failed": 0,
+            "execution_time_ms": 0,
+            "errors": []
+        }
+        
+        start_time = time.time()
+        
+        # Step 1: Navigate to profiles page
+        logger.info(f"🎯 SINGLE_SESSION_STEP_1 - Navigating to profiles page")
+        execution_results["steps_executed"].append({"step": 1, "description": "Navigate to profiles page", "status": "pending"})
+        
+        driver.get("http://localhost:5001/profiles")
+        time.sleep(2)  # Allow page to load
+        
+        execution_results["steps_executed"][-1]["status"] = "success"
+        execution_results["steps_successful"] += 1
+        logger.info(f"✅ SINGLE_SESSION_STEP_1 - Navigation successful")
+        
+        # Step 2: Fill profile name field
+        logger.info(f"🎯 SINGLE_SESSION_STEP_2 - Filling profile name field")
+        execution_results["steps_executed"].append({"step": 2, "description": "Fill profile name field", "status": "pending"})
+        
+        name_input = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "profile-name-input-add"))
+        )
+        name_input.clear()
+        name_input.send_keys(form_data['profile_name'])
+        time.sleep(0.5)
+        
+        execution_results["steps_executed"][-1]["status"] = "success"
+        execution_results["steps_successful"] += 1
+        logger.info(f"✅ SINGLE_SESSION_STEP_2 - Profile name filled: {form_data['profile_name']}")
+        
+        # Step 3: Fill real name field
+        logger.info(f"🎯 SINGLE_SESSION_STEP_3 - Filling real name field")
+        execution_results["steps_executed"].append({"step": 3, "description": "Fill real name field", "status": "pending"})
+        
+        real_name_input = driver.find_element(By.ID, "profile-real-name-input-add")
+        real_name_input.clear()
+        real_name_input.send_keys(form_data['profile_real_name'])
+        time.sleep(0.5)
+        
+        execution_results["steps_executed"][-1]["status"] = "success"
+        execution_results["steps_successful"] += 1
+        logger.info(f"✅ SINGLE_SESSION_STEP_3 - Real name filled: {form_data['profile_real_name']}")
+        
+        # Step 4: Fill address field
+        logger.info(f"🎯 SINGLE_SESSION_STEP_4 - Filling address field")
+        execution_results["steps_executed"].append({"step": 4, "description": "Fill address field", "status": "pending"})
+        
+        address_input = driver.find_element(By.ID, "profile-address-input-add")
+        address_input.clear()
+        address_input.send_keys(form_data['profile_address'])
+        time.sleep(0.5)
+        
+        execution_results["steps_executed"][-1]["status"] = "success"
+        execution_results["steps_successful"] += 1
+        logger.info(f"✅ SINGLE_SESSION_STEP_4 - Address filled: {form_data['profile_address']}")
+        
+        # Step 5: Fill code field
+        logger.info(f"🎯 SINGLE_SESSION_STEP_5 - Filling code field")
+        execution_results["steps_executed"].append({"step": 5, "description": "Fill code field", "status": "pending"})
+        
+        code_input = driver.find_element(By.ID, "profile-code-input-add")
+        code_input.clear()
+        code_input.send_keys(form_data['profile_code'])
+        time.sleep(0.5)
+        
+        execution_results["steps_executed"][-1]["status"] = "success"
+        execution_results["steps_successful"] += 1
+        logger.info(f"✅ SINGLE_SESSION_STEP_5 - Code filled: {form_data['profile_code']}")
+        
+        # Step 6: Submit the form
+        logger.info(f"🎯 SINGLE_SESSION_STEP_6 - Submitting form")
+        execution_results["steps_executed"].append({"step": 6, "description": "Submit the completed form", "status": "pending"})
+        
+        add_button = driver.find_element(By.ID, "add-profile-button")
+        add_button.click()
+        time.sleep(3)  # Wait for form submission and page update
+        
+        execution_results["steps_executed"][-1]["status"] = "success"
+        execution_results["steps_successful"] += 1
+        logger.info(f"✅ SINGLE_SESSION_STEP_6 - Form submitted successfully")
+        
+        # Step 7: Verify profile was created
+        logger.info(f"🎯 SINGLE_SESSION_STEP_7 - Verifying profile creation")
+        execution_results["steps_executed"].append({"step": 7, "description": "Verify profile was created successfully", "status": "pending"})
+        
+        # Check if profile appears in the list
+        try:
+            profile_list = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.ID, "profile-list-ul"))
+            )
+            profile_items = profile_list.find_elements(By.CLASS_NAME, "profile-item")
+            
+            # Look for our created profile name in the list
+            profile_found = False
+            for item in profile_items:
+                if form_data['profile_name'] in item.text:
+                    profile_found = True
+                    break
+            
+            if profile_found:
+                execution_results["steps_executed"][-1]["status"] = "success"
+                execution_results["steps_successful"] += 1
+                logger.info(f"✅ SINGLE_SESSION_STEP_7 - Profile verification successful")
+            else:
+                execution_results["steps_executed"][-1]["status"] = "failed"
+                execution_results["steps_executed"][-1]["error"] = "Profile not found in list"
+                execution_results["steps_failed"] += 1
+                execution_results["errors"].append("Profile not found in list after creation")
+                logger.error(f"❌ SINGLE_SESSION_STEP_7 - Profile not found in list")
+                
+        except Exception as e:
+            execution_results["steps_executed"][-1]["status"] = "error"
+            execution_results["steps_executed"][-1]["error"] = str(e)
+            execution_results["steps_failed"] += 1
+            execution_results["errors"].append(f"Profile verification failed: {str(e)}")
+            logger.error(f"❌ SINGLE_SESSION_STEP_7 - Verification error: {e}")
+        
+        # Calculate final results
+        end_time = time.time()
+        execution_results["execution_time_ms"] = int((end_time - start_time) * 1000)
+        execution_results["success_rate"] = (execution_results["steps_successful"] / execution_results["total_steps"]) * 100
+        execution_results["success"] = execution_results["steps_successful"] == execution_results["total_steps"]
+        
+        logger.info(f"🎯 FINDER_TOKEN: SINGLE_SESSION_COMPLETE - {execution_results['steps_successful']}/{execution_results['total_steps']} steps successful ({execution_results['success_rate']:.1f}%)")
+        
+        return execution_results
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: SINGLE_SESSION_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": "single_session_error"
+        }
+    finally:
+        logger.info(f"🌐 FINDER_TOKEN: BROWSER_SESSION_CLOSING - Closing single browser session")
+        driver.quit()
+
+
+# Register the new single-session tool
+register_mcp_tool("browser_create_profile_single_session", browser_create_profile_single_session)
 
 
