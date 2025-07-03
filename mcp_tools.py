@@ -709,6 +709,11 @@ def register_all_mcp_tools():
     register_mcp_tool("browser_interact_with_current_page", browser_interact_with_current_page)
     register_mcp_tool("browser_hijack_workflow_complete", browser_hijack_workflow_complete)
     
+    # 🚀 ENHANCED BROWSER AUTOMATION TOOLS - PHASE 1 AI AUTOMATION GPS
+    register_mcp_tool("browser_interact_enhanced", browser_interact_enhanced)
+    register_mcp_tool("navigate_with_verification", navigate_with_verification)
+    register_mcp_tool("browser_automate_recipe", browser_automate_recipe)
+    
     # Additional Botify tools
     register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
     register_mcp_tool("botify_list_available_analyses", botify_list_available_analyses)
@@ -5123,6 +5128,811 @@ if __name__ == "__main__":
         return {
             "success": False,
             "error": f"Workflow hijacking failed: {str(e)}"
+        }
+
+
+# ================================================================
+# ENHANCED BROWSER AUTOMATION TOOLS - PHASE 1 AI AUTOMATION GPS
+# ================================================================
+
+async def browser_interact_enhanced(params: dict) -> dict:
+    """
+    🎯 ENHANCED BROWSER INTERACTION - The Smart Probe with Detailed Feedback
+    
+    This tool replaces the "fire and pray" approach with transparency-first automation.
+    Every interaction returns comprehensive diagnostic feedback, turning failures into
+    actionable intelligence.
+    
+    Args:
+        params: {
+            "action": "type" | "click" | "submit" | "focus" | "clear" | "scroll",
+            "selector": {
+                "type": "id" | "data-testid" | "xpath" | "css" | "name",
+                "value": "element-id" | "[data-testid='button']" | "//button[@id='submit']"
+            },
+            "text_to_type": "text for type action",
+            "pre_checks": ["visible", "enabled", "clickable"],
+            "wait_after_ms": 250,
+            "verify_text": True,
+            "fallback_selectors": [{"type": "name", "value": "alt_selector"}],
+            "capture_screenshot": True,
+            "max_retries": 3
+        }
+    
+    Returns:
+        dict: Comprehensive interaction results with diagnostic feedback
+    """
+    logger.info(f"🎯 FINDER_TOKEN: ENHANCED_BROWSER_INTERACT_START - Action: {params.get('action')}")
+    
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.common.keys import Keys
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.common.action_chains import ActionChains
+        from selenium.common.exceptions import TimeoutException, ElementNotInteractableException
+        import time
+        import json
+        import os
+        from datetime import datetime
+        
+        # Extract parameters
+        action = params.get('action')
+        selector = params.get('selector', {})
+        text_to_type = params.get('text_to_type', '')
+        pre_checks = params.get('pre_checks', ['visible', 'enabled'])
+        wait_after_ms = params.get('wait_after_ms', 250)
+        verify_text = params.get('verify_text', False)
+        fallback_selectors = params.get('fallback_selectors', [])
+        capture_screenshot = params.get('capture_screenshot', True)
+        max_retries = params.get('max_retries', 3)
+        
+        if not action:
+            return {"success": False, "error": "action parameter is required"}
+        
+        if not selector.get('value'):
+            return {"success": False, "error": "selector.value is required"}
+        
+        # Get current URL from /looking_at/ state
+        headers_file = 'browser_automation/looking_at/headers.json'
+        current_url = None
+        
+        if os.path.exists(headers_file):
+            with open(headers_file, 'r') as f:
+                headers_data = json.load(f)
+                current_url = headers_data.get('url')
+        
+        if not current_url:
+            return {
+                "success": False,
+                "error": "No current URL found. Use browser_scrape_page first to establish page state.",
+                "recovery_suggestion": "Call browser_scrape_page({\"url\": \"target_url\"}) first"
+            }
+        
+        # Set up Chrome driver with enhanced options
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-extensions')
+        
+        driver = webdriver.Chrome(options=chrome_options)
+        
+        try:
+            # Load the page
+            logger.info(f"🎯 Loading page: {current_url}")
+            driver.get(current_url)
+            time.sleep(2)  # Allow page to load
+            
+            # Prepare detailed response structure
+            response = {
+                "success": False,
+                "action_performed": action,
+                "selector_used": selector,
+                "page_url": current_url,
+                "page_title": driver.title,
+                "timestamp": datetime.now().isoformat(),
+                "pre_checks": {},
+                "interaction_details": {},
+                "diagnostic_info": {}
+            }
+            
+            # Try main selector first, then fallbacks
+            selectors_to_try = [selector] + fallback_selectors
+            element = None
+            selector_used = None
+            
+            for retry_count in range(max_retries):
+                for selector_attempt in selectors_to_try:
+                    try:
+                        # Map selector types to Selenium By types
+                        selector_type = selector_attempt.get('type', 'id')
+                        selector_value = selector_attempt.get('value')
+                        
+                        by_mapping = {
+                            'id': By.ID,
+                            'data-testid': By.CSS_SELECTOR,
+                            'css': By.CSS_SELECTOR,
+                            'xpath': By.XPATH,
+                            'name': By.NAME,
+                            'class': By.CLASS_NAME,
+                            'tag': By.TAG_NAME
+                        }
+                        
+                        if selector_type == 'data-testid':
+                            selector_value = f'[data-testid="{selector_value}"]'
+                            by_type = By.CSS_SELECTOR
+                        else:
+                            by_type = by_mapping.get(selector_type, By.ID)
+                        
+                        # Find element
+                        element = WebDriverWait(driver, 5).until(
+                            EC.presence_of_element_located((by_type, selector_value))
+                        )
+                        selector_used = selector_attempt
+                        break
+                        
+                    except TimeoutException:
+                        continue
+                
+                if element:
+                    break
+                    
+                # If element not found, wait and retry
+                if retry_count < max_retries - 1:
+                    time.sleep(1)
+            
+            if not element:
+                # Capture screenshot for debugging
+                if capture_screenshot:
+                    screenshot_path = f'browser_automation/looking_at/debug_element_not_found_{int(time.time())}.png'
+                    driver.save_screenshot(screenshot_path)
+                    response["debug_screenshot"] = screenshot_path
+                
+                return {
+                    **response,
+                    "error": "Element not found after all retries",
+                    "selectors_tried": selectors_to_try,
+                    "suggested_fixes": [
+                        "Verify element exists in DOM",
+                        "Check if element is in iframe",
+                        "Try different selector types",
+                        "Wait for page to fully load"
+                    ]
+                }
+            
+            # Perform pre-checks
+            response["pre_checks"]["element_found"] = True
+            response["pre_checks"]["element_visible"] = element.is_displayed()
+            response["pre_checks"]["element_enabled"] = element.is_enabled()
+            response["pre_checks"]["element_tag"] = element.tag_name
+            response["pre_checks"]["element_text"] = element.text[:100] if element.text else ""
+            
+            # Check if element passes pre-checks
+            if "visible" in pre_checks and not element.is_displayed():
+                # Try to scroll into view
+                driver.execute_script("arguments[0].scrollIntoView(true);", element)
+                time.sleep(0.5)
+                
+                if not element.is_displayed():
+                    if capture_screenshot:
+                        screenshot_path = f'browser_automation/looking_at/debug_element_not_visible_{int(time.time())}.png'
+                        driver.save_screenshot(screenshot_path)
+                        response["debug_screenshot"] = screenshot_path
+                    
+                    return {
+                        **response,
+                        "error": "Element not visible after scroll into view",
+                        "error_stage": "pre_checks",
+                        "suggested_fixes": [
+                            "scroll_into_view",
+                            "wait_for_visibility",
+                            "check_for_overlapping_elements"
+                        ]
+                    }
+            
+            if "enabled" in pre_checks and not element.is_enabled():
+                return {
+                    **response,
+                    "error": "Element not enabled",
+                    "error_stage": "pre_checks",
+                    "suggested_fixes": [
+                        "wait_for_element_to_be_enabled",
+                        "check_form_validation",
+                        "verify_prerequisites_met"
+                    ]
+                }
+            
+            # Perform the action
+            try:
+                if action == "click":
+                    element.click()
+                    response["interaction_details"]["click_performed"] = True
+                    
+                elif action == "type":
+                    element.clear()
+                    element.send_keys(text_to_type)
+                    response["interaction_details"]["text_entered"] = text_to_type
+                    
+                    # Verify text was entered if requested
+                    if verify_text:
+                        actual_value = element.get_attribute('value')
+                        if actual_value != text_to_type:
+                            return {
+                                **response,
+                                "error": "Text verification failed",
+                                "error_stage": "verification",
+                                "expected_text": text_to_type,
+                                "actual_text": actual_value,
+                                "suggested_fixes": [
+                                    "check_for_input_restrictions",
+                                    "try_typing_slower",
+                                    "verify_element_accepts_text"
+                                ]
+                            }
+                    
+                elif action == "submit":
+                    element.submit()
+                    response["interaction_details"]["submit_performed"] = True
+                    
+                elif action == "focus":
+                    element.click()  # Focus by clicking
+                    response["interaction_details"]["focus_performed"] = True
+                    
+                elif action == "clear":
+                    element.clear()
+                    response["interaction_details"]["clear_performed"] = True
+                    
+                elif action == "scroll":
+                    driver.execute_script("arguments[0].scrollIntoView(true);", element)
+                    response["interaction_details"]["scroll_performed"] = True
+                    
+                else:
+                    return {
+                        **response,
+                        "error": f"Unknown action: {action}",
+                        "supported_actions": ["click", "type", "submit", "focus", "clear", "scroll"]
+                    }
+                
+                # Wait after action if specified
+                if wait_after_ms > 0:
+                    time.sleep(wait_after_ms / 1000.0)
+                
+                # Capture success screenshot
+                if capture_screenshot:
+                    screenshot_path = f'browser_automation/looking_at/success_{action}_{int(time.time())}.png'
+                    driver.save_screenshot(screenshot_path)
+                    response["success_screenshot"] = screenshot_path
+                
+                response["success"] = True
+                response["selector_used"] = selector_used
+                response["duration_ms"] = int(time.time() * 1000) - int(datetime.fromisoformat(response["timestamp"]).timestamp() * 1000)
+                
+                return response
+                
+            except ElementNotInteractableException as e:
+                return {
+                    **response,
+                    "error": f"Element not interactable: {str(e)}",
+                    "error_stage": "interaction",
+                    "suggested_fixes": [
+                        "wait_for_element_to_be_clickable",
+                        "check_for_overlapping_elements",
+                        "scroll_into_view",
+                        "use_javascript_click"
+                    ]
+                }
+            
+        finally:
+            driver.quit()
+            
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: ENHANCED_BROWSER_INTERACT_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "suggested_fixes": [
+                "check_selenium_setup",
+                "verify_chrome_driver",
+                "ensure_page_loaded_first"
+            ]
+        }
+
+async def navigate_with_verification(params: dict) -> dict:
+    """
+    🗺️ NAVIGATE WITH VERIFICATION - The GPS Lock for Perfect Navigation
+    
+    This tool combines navigation with validation, ensuring the page has loaded
+    correctly before handing control back to the AI. No more guessing if you're
+    on the right page!
+    
+    Args:
+        params: {
+            "url": "http://localhost:5001/profiles",
+            "wait_for_element": {"type": "id", "value": "profile-name-input-add"},
+            "page_title_should_contain": "Profiles",
+            "timeout_seconds": 15,
+            "wait_for_multiple_elements": [
+                {"type": "id", "value": "element1"},
+                {"type": "css", "value": ".important-class"}
+            ],
+            "capture_screenshot": True,
+            "update_looking_at": True
+        }
+    
+    Returns:
+        dict: Navigation results with page validation
+    """
+    logger.info(f"🗺️ FINDER_TOKEN: NAVIGATE_WITH_VERIFICATION_START - URL: {params.get('url')}")
+    
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.common.exceptions import TimeoutException
+        import time
+        import json
+        import os
+        from datetime import datetime
+        
+        # Extract parameters
+        url = params.get('url')
+        wait_for_element = params.get('wait_for_element', {})
+        page_title_should_contain = params.get('page_title_should_contain', '')
+        timeout_seconds = params.get('timeout_seconds', 15)
+        wait_for_multiple_elements = params.get('wait_for_multiple_elements', [])
+        capture_screenshot = params.get('capture_screenshot', True)
+        update_looking_at = params.get('update_looking_at', True)
+        
+        if not url:
+            return {"success": False, "error": "url parameter is required"}
+        
+        # Set up Chrome driver
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--window-size=1920,1080')
+        
+        driver = webdriver.Chrome(options=chrome_options)
+        
+        try:
+            start_time = time.time()
+            
+            # Navigate to URL
+            logger.info(f"🗺️ Navigating to: {url}")
+            driver.get(url)
+            
+            # Initial wait for page load
+            time.sleep(2)
+            
+            # Prepare response
+            response = {
+                "success": False,
+                "url_requested": url,
+                "url_loaded": driver.current_url,
+                "page_title": driver.title,
+                "load_time_ms": 0,
+                "timestamp": datetime.now().isoformat(),
+                "validation_results": {}
+            }
+            
+            # Check if URL loaded correctly
+            if driver.current_url != url:
+                response["validation_results"]["url_match"] = False
+                response["warning"] = f"URL mismatch: requested {url}, got {driver.current_url}"
+            else:
+                response["validation_results"]["url_match"] = True
+            
+            # Check page title if specified
+            if page_title_should_contain:
+                title_contains = page_title_should_contain.lower() in driver.title.lower()
+                response["validation_results"]["title_contains"] = title_contains
+                if not title_contains:
+                    response["validation_results"]["title_error"] = f"Expected title to contain '{page_title_should_contain}', got '{driver.title}'"
+            
+            # Wait for specific element if specified
+            if wait_for_element.get('value'):
+                try:
+                    selector_type = wait_for_element.get('type', 'id')
+                    selector_value = wait_for_element.get('value')
+                    
+                    by_mapping = {
+                        'id': By.ID,
+                        'data-testid': By.CSS_SELECTOR,
+                        'css': By.CSS_SELECTOR,
+                        'xpath': By.XPATH,
+                        'name': By.NAME
+                    }
+                    
+                    if selector_type == 'data-testid':
+                        selector_value = f'[data-testid="{selector_value}"]'
+                        by_type = By.CSS_SELECTOR
+                    else:
+                        by_type = by_mapping.get(selector_type, By.ID)
+                    
+                    element = WebDriverWait(driver, timeout_seconds).until(
+                        EC.presence_of_element_located((by_type, selector_value))
+                    )
+                    
+                    response["validation_results"]["element_found"] = True
+                    response["validation_results"]["element_visible"] = element.is_displayed()
+                    response["validation_results"]["element_enabled"] = element.is_enabled()
+                    
+                except TimeoutException:
+                    response["validation_results"]["element_found"] = False
+                    response["validation_results"]["element_error"] = f"Element not found within {timeout_seconds} seconds"
+            
+            # Wait for multiple elements if specified
+            if wait_for_multiple_elements:
+                response["validation_results"]["multiple_elements"] = {}
+                for i, elem_spec in enumerate(wait_for_multiple_elements):
+                    try:
+                        selector_type = elem_spec.get('type', 'id')
+                        selector_value = elem_spec.get('value')
+                        
+                        by_mapping = {
+                            'id': By.ID,
+                            'data-testid': By.CSS_SELECTOR,
+                            'css': By.CSS_SELECTOR,
+                            'xpath': By.XPATH,
+                            'name': By.NAME
+                        }
+                        
+                        if selector_type == 'data-testid':
+                            selector_value = f'[data-testid="{selector_value}"]'
+                            by_type = By.CSS_SELECTOR
+                        else:
+                            by_type = by_mapping.get(selector_type, By.ID)
+                        
+                        element = WebDriverWait(driver, 5).until(
+                            EC.presence_of_element_located((by_type, selector_value))
+                        )
+                        
+                        response["validation_results"]["multiple_elements"][f"element_{i}"] = {
+                            "found": True,
+                            "visible": element.is_displayed(),
+                            "enabled": element.is_enabled()
+                        }
+                        
+                    except TimeoutException:
+                        response["validation_results"]["multiple_elements"][f"element_{i}"] = {
+                            "found": False,
+                            "error": f"Element {elem_spec} not found"
+                        }
+            
+            # Capture screenshot if requested
+            if capture_screenshot:
+                screenshot_path = f'browser_automation/looking_at/navigation_{int(time.time())}.png'
+                driver.save_screenshot(screenshot_path)
+                response["screenshot_path"] = screenshot_path
+            
+            # Update /looking_at/ state if requested
+            if update_looking_at:
+                try:
+                    looking_at_dir = 'browser_automation/looking_at'
+                    os.makedirs(looking_at_dir, exist_ok=True)
+                    
+                    # Get page source and create simplified DOM
+                    page_source = driver.page_source
+                    dom_html = driver.execute_script("return document.documentElement.outerHTML;")
+                    
+                    # Save state
+                    state_data = {
+                        'action_performed': 'navigate',
+                        'url': driver.current_url,
+                        'title': driver.title,
+                        'timestamp': datetime.now().isoformat()
+                    }
+                    
+                    with open(os.path.join(looking_at_dir, 'headers.json'), 'w') as f:
+                        json.dump(state_data, f, indent=2)
+                    
+                    with open(os.path.join(looking_at_dir, 'source.html'), 'w', encoding='utf-8') as f:
+                        f.write(page_source)
+                    
+                    with open(os.path.join(looking_at_dir, 'dom.html'), 'w', encoding='utf-8') as f:
+                        f.write(dom_html)
+                    
+                    # Create simple DOM
+                    try:
+                        from bs4 import BeautifulSoup
+                        soup = BeautifulSoup(dom_html, 'html.parser')
+                        for tag in soup(['script', 'style', 'noscript', 'meta', 'link']):
+                            tag.decompose()
+                        for element in soup.find_all():
+                            attrs_to_keep = {}
+                            for attr, value in element.attrs.items():
+                                if attr in ['id', 'role', 'data-testid', 'name', 'type', 'href', 'src'] or attr.startswith('aria-'):
+                                    attrs_to_keep[attr] = value
+                            element.attrs = attrs_to_keep
+                        simple_dom_html = str(soup)
+                    except:
+                        simple_dom_html = dom_html
+                    
+                    with open(os.path.join(looking_at_dir, 'simple_dom.html'), 'w', encoding='utf-8') as f:
+                        f.write(simple_dom_html)
+                    
+                    response["looking_at_updated"] = True
+                    
+                except Exception as e:
+                    response["looking_at_update_error"] = str(e)
+            
+            # Calculate load time
+            response["load_time_ms"] = int((time.time() - start_time) * 1000)
+            
+            # Determine overall success
+            validation_passed = True
+            if wait_for_element.get('value') and not response["validation_results"].get("element_found"):
+                validation_passed = False
+            if page_title_should_contain and not response["validation_results"].get("title_contains"):
+                validation_passed = False
+            
+            response["success"] = validation_passed
+            
+            if not validation_passed:
+                response["suggested_fixes"] = [
+                    "increase_timeout_seconds",
+                    "verify_element_selectors",
+                    "check_page_load_dependencies",
+                    "verify_url_accessibility"
+                ]
+            
+            return response
+            
+        finally:
+            driver.quit()
+            
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: NAVIGATE_WITH_VERIFICATION_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "suggested_fixes": [
+                "check_selenium_setup",
+                "verify_chrome_driver",
+                "check_url_accessibility"
+            ]
+        }
+
+async def browser_automate_recipe(params: dict) -> dict:
+    """
+    🍳 BROWSER AUTOMATE RECIPE - The High-Level Recipe Executor
+    
+    This tool orchestrates complex browser automation workflows using the enhanced
+    interaction tools. It follows step-by-step recipes with comprehensive error
+    handling and retry logic.
+    
+    Args:
+        params: {
+            "recipe_name": "Create New Profile",
+            "recipe_type": "form_submission" | "navigation" | "data_extraction" | "custom",
+            "form_data": {
+                "profile-name-input-add": "Test Profile (Automated)",
+                "profile-real-name-input-add": "AI Assistant",
+                "profile-address-input-add": "www.example.com",
+                "profile-code-input-add": "ai"
+            },
+            "navigation_sequence": [
+                {"action": "navigate", "url": "http://localhost:5001/profiles"}
+            ],
+            "verification_steps": [
+                {"check_type": "element_exists", "selector": {"type": "id", "value": "profile-list-ul"}}
+            ],
+            "error_handling": {
+                "max_retries": 3,
+                "retry_delay_seconds": 2,
+                "fallback_to_api": True
+            }
+        }
+    
+    Returns:
+        dict: Recipe execution results with detailed step-by-step feedback
+    """
+    logger.info(f"🍳 FINDER_TOKEN: BROWSER_AUTOMATE_RECIPE_START - Recipe: {params.get('recipe_name')}")
+    
+    try:
+        recipe_name = params.get('recipe_name', 'Unnamed Recipe')
+        recipe_type = params.get('recipe_type', 'custom')
+        form_data = params.get('form_data', {})
+        navigation_sequence = params.get('navigation_sequence', [])
+        verification_steps = params.get('verification_steps', [])
+        error_handling = params.get('error_handling', {})
+        
+        max_retries = error_handling.get('max_retries', 3)
+        retry_delay = error_handling.get('retry_delay_seconds', 2)
+        fallback_to_api = error_handling.get('fallback_to_api', False)
+        
+        # Prepare execution results
+        execution_results = {
+            "success": False,
+            "recipe_name": recipe_name,
+            "recipe_type": recipe_type,
+            "timestamp": datetime.now().isoformat(),
+            "steps_executed": [],
+            "total_steps": 0,
+            "steps_successful": 0,
+            "steps_failed": 0,
+            "execution_time_ms": 0,
+            "errors": []
+        }
+        
+        start_time = time.time()
+        
+        # Execute navigation sequence
+        if navigation_sequence:
+            for i, nav_step in enumerate(navigation_sequence):
+                step_name = f"navigation_step_{i+1}"
+                execution_results["steps_executed"].append({
+                    "step_name": step_name,
+                    "action": nav_step.get('action'),
+                    "status": "pending"
+                })
+                
+                try:
+                    if nav_step.get('action') == 'navigate':
+                        result = await navigate_with_verification({
+                            "url": nav_step.get('url'),
+                            "wait_for_element": nav_step.get('wait_for_element', {}),
+                            "page_title_should_contain": nav_step.get('page_title_should_contain', ''),
+                            "timeout_seconds": nav_step.get('timeout_seconds', 15)
+                        })
+                        
+                        if result.get('success'):
+                            execution_results["steps_executed"][-1]["status"] = "success"
+                            execution_results["steps_executed"][-1]["result"] = result
+                            execution_results["steps_successful"] += 1
+                        else:
+                            execution_results["steps_executed"][-1]["status"] = "failed"
+                            execution_results["steps_executed"][-1]["error"] = result.get('error')
+                            execution_results["steps_failed"] += 1
+                            execution_results["errors"].append(f"Navigation failed: {result.get('error')}")
+                    
+                except Exception as e:
+                    execution_results["steps_executed"][-1]["status"] = "error"
+                    execution_results["steps_executed"][-1]["error"] = str(e)
+                    execution_results["steps_failed"] += 1
+                    execution_results["errors"].append(f"Navigation error: {str(e)}")
+        
+        # Execute form filling if form_data provided
+        if form_data:
+            for field_id, field_value in form_data.items():
+                step_name = f"form_field_{field_id}"
+                execution_results["steps_executed"].append({
+                    "step_name": step_name,
+                    "action": "type",
+                    "field_id": field_id,
+                    "field_value": field_value,
+                    "status": "pending"
+                })
+                
+                # Try with retries
+                success = False
+                for retry in range(max_retries):
+                    try:
+                        result = await browser_interact_enhanced({
+                            "action": "type",
+                            "selector": {"type": "id", "value": field_id},
+                            "text_to_type": field_value,
+                            "pre_checks": ["visible", "enabled"],
+                            "verify_text": True,
+                            "fallback_selectors": [
+                                {"type": "name", "value": field_id.replace('-', '_')},
+                                {"type": "css", "value": f"input[name='{field_id}']"}
+                            ],
+                            "capture_screenshot": True
+                        })
+                        
+                        if result.get('success'):
+                            execution_results["steps_executed"][-1]["status"] = "success"
+                            execution_results["steps_executed"][-1]["result"] = result
+                            execution_results["steps_successful"] += 1
+                            success = True
+                            break
+                        else:
+                            if retry == max_retries - 1:  # Last retry
+                                execution_results["steps_executed"][-1]["status"] = "failed"
+                                execution_results["steps_executed"][-1]["error"] = result.get('error')
+                                execution_results["steps_failed"] += 1
+                                execution_results["errors"].append(f"Form field {field_id} failed: {result.get('error')}")
+                            else:
+                                time.sleep(retry_delay)  # Wait before retry
+                    
+                    except Exception as e:
+                        if retry == max_retries - 1:  # Last retry
+                            execution_results["steps_executed"][-1]["status"] = "error"
+                            execution_results["steps_executed"][-1]["error"] = str(e)
+                            execution_results["steps_failed"] += 1
+                            execution_results["errors"].append(f"Form field {field_id} error: {str(e)}")
+                        else:
+                            time.sleep(retry_delay)  # Wait before retry
+                
+                if not success:
+                    # If form filling failed and we have fallback to API
+                    if fallback_to_api and recipe_type == "form_submission":
+                        execution_results["fallback_attempted"] = True
+                        execution_results["fallback_reason"] = "Form automation failed, attempting API fallback"
+                        # Here you could implement API fallback logic
+                        # For now, we'll just log it
+                        logger.info(f"🍳 FINDER_TOKEN: RECIPE_FALLBACK_API - {recipe_name}")
+        
+        # Execute verification steps
+        if verification_steps:
+            for i, verification in enumerate(verification_steps):
+                step_name = f"verification_step_{i+1}"
+                execution_results["steps_executed"].append({
+                    "step_name": step_name,
+                    "action": "verify",
+                    "status": "pending"
+                })
+                
+                try:
+                    if verification.get('check_type') == 'element_exists':
+                        result = await browser_interact_enhanced({
+                            "action": "scroll",  # Just scroll to element to verify it exists
+                            "selector": verification.get('selector', {}),
+                            "capture_screenshot": True
+                        })
+                        
+                        if result.get('success'):
+                            execution_results["steps_executed"][-1]["status"] = "success"
+                            execution_results["steps_executed"][-1]["result"] = result
+                            execution_results["steps_successful"] += 1
+                        else:
+                            execution_results["steps_executed"][-1]["status"] = "failed"
+                            execution_results["steps_executed"][-1]["error"] = result.get('error')
+                            execution_results["steps_failed"] += 1
+                            execution_results["errors"].append(f"Verification failed: {result.get('error')}")
+                
+                except Exception as e:
+                    execution_results["steps_executed"][-1]["status"] = "error"
+                    execution_results["steps_executed"][-1]["error"] = str(e)
+                    execution_results["steps_failed"] += 1
+                    execution_results["errors"].append(f"Verification error: {str(e)}")
+        
+        # Calculate totals
+        execution_results["total_steps"] = len(execution_results["steps_executed"])
+        execution_results["execution_time_ms"] = int((time.time() - start_time) * 1000)
+        
+        # Determine overall success
+        if execution_results["steps_failed"] == 0 and execution_results["steps_successful"] > 0:
+            execution_results["success"] = True
+        else:
+            execution_results["success"] = False
+            execution_results["success_rate"] = execution_results["steps_successful"] / execution_results["total_steps"] if execution_results["total_steps"] > 0 else 0
+        
+        # Add recommendations
+        if not execution_results["success"]:
+            execution_results["recommendations"] = [
+                "Review step-by-step execution results",
+                "Check element selectors in failed steps",
+                "Verify page load timing",
+                "Consider increasing retry counts",
+                "Check for JavaScript errors on page"
+            ]
+        
+        return execution_results
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: BROWSER_AUTOMATE_RECIPE_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "recipe_name": params.get('recipe_name', 'Unknown'),
+            "suggested_fixes": [
+                "check_recipe_parameters",
+                "verify_navigation_sequence",
+                "validate_form_data_structure"
+            ]
         }
 
 
