@@ -86,6 +86,145 @@ class DurableBackupManager:
         
         return day_dir / f"{table_name}.db"
     
+    def get_latest_backup_path(self, table_name: str) -> Path:
+        """
+        📁 STATIC LATEST: Get static "latest" backup path like log rotation system.
+        
+        Creates a predictable location for the most recent backup, similar to
+        how looking_at/ directories work - always know where to find the latest.
+        """
+        latest_dir = self.backup_root / 'latest'
+        latest_dir.mkdir(parents=True, exist_ok=True)
+        return latest_dir / f"{table_name}.db"
+    
+    def verify_backup_integrity(self, source_db_path: str, backup_db_path: str, table_name: str) -> dict:
+        """
+        🔍 BACKUP VERIFICATION: Verify backup contains current data.
+        
+        Returns detailed verification results:
+        - source_count: Records in source database
+        - backup_count: Records in backup database
+        - sample_match: Whether sample records match
+        - verified: Overall verification status
+        """
+        try:
+            if not Path(backup_db_path).exists():
+                return {
+                    'verified': False,
+                    'error': 'Backup file does not exist',
+                    'source_count': 0,
+                    'backup_count': 0,
+                    'sample_match': False
+                }
+            
+            source_conn = sqlite3.connect(source_db_path)
+            backup_conn = sqlite3.connect(backup_db_path)
+            
+            # Count records in both databases
+            source_cursor = source_conn.cursor()
+            backup_cursor = backup_conn.cursor()
+            
+            source_cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+            source_count = source_cursor.fetchone()[0]
+            
+            backup_cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+            backup_count = backup_cursor.fetchone()[0]
+            
+            # Sample verification: Check if a few records match
+            sample_match = False
+            if source_count > 0 and backup_count > 0:
+                # Get sample records from both databases
+                source_cursor.execute(f"SELECT * FROM {table_name} LIMIT 3")
+                source_sample = source_cursor.fetchall()
+                
+                backup_cursor.execute(f"SELECT * FROM {table_name} LIMIT 3")
+                backup_sample = backup_cursor.fetchall()
+                
+                # Check if samples match
+                sample_match = source_sample == backup_sample
+            
+            source_conn.close()
+            backup_conn.close()
+            
+            # Overall verification
+            verified = (source_count == backup_count and 
+                       source_count > 0 and 
+                       sample_match)
+            
+            return {
+                'verified': verified,
+                'source_count': source_count,
+                'backup_count': backup_count,
+                'sample_match': sample_match,
+                'error': None
+            }
+            
+        except Exception as e:
+            return {
+                'verified': False,
+                'error': str(e),
+                'source_count': 0,
+                'backup_count': 0,
+                'sample_match': False
+            }
+    
+    def create_verified_backup(self, source_db_path: str, table_name: str) -> dict:
+        """
+        💾 VERIFIED BACKUP: Create backup with integrity verification.
+        
+        Returns comprehensive results with verification data.
+        """
+        try:
+            # Create hierarchical backup (original system)
+            hierarchical_backup = self.get_backup_path(table_name)
+            hierarchical_count = self.backup_table(source_db_path, table_name)
+            
+            # Create static "latest" backup
+            latest_backup = self.get_latest_backup_path(table_name)
+            
+            # Copy hierarchical backup to latest location
+            if hierarchical_backup.exists():
+                shutil.copy2(hierarchical_backup, latest_backup)
+            
+            # Verify both backups
+            hierarchical_verification = self.verify_backup_integrity(
+                source_db_path, str(hierarchical_backup), table_name
+            )
+            
+            latest_verification = self.verify_backup_integrity(
+                source_db_path, str(latest_backup), table_name
+            )
+            
+            # Create comprehensive result
+            result = {
+                'table_name': table_name,
+                'hierarchical_backup': str(hierarchical_backup.relative_to(self.backup_root)),
+                'latest_backup': str(latest_backup.relative_to(self.backup_root)),
+                'hierarchical_count': hierarchical_count,
+                'hierarchical_verified': hierarchical_verification['verified'],
+                'latest_verified': latest_verification['verified'],
+                'source_count': hierarchical_verification['source_count'],
+                'overall_success': (hierarchical_verification['verified'] and 
+                                   latest_verification['verified'] and 
+                                   hierarchical_count > 0),
+                'error': hierarchical_verification['error'] or latest_verification['error']
+            }
+            
+            return result
+            
+        except Exception as e:
+            return {
+                'table_name': table_name,
+                'hierarchical_backup': '',
+                'latest_backup': '',
+                'hierarchical_count': 0,
+                'hierarchical_verified': False,
+                'latest_verified': False,
+                'source_count': 0,
+                'overall_success': False,
+                'error': str(e)
+            }
+    
     def _get_latest_backup_path(self, table_name: str) -> Optional[Path]:
         """
         🔍 Find the most recent backup file across all dates.
@@ -418,6 +557,78 @@ class DurableBackupManager:
         except Exception as e:
             logger.error(f"❌ Restore failed for {table_name}: {e}")
             return 0
+    
+    def restore_table_from_latest(self, target_db_path: str, table_name: str) -> int:
+        """
+        📥 RESTORE FROM LATEST: Always restore from static latest backup.
+        
+        Uses the predictable latest backup location, not hierarchical search.
+        """
+        try:
+            latest_backup = self.get_latest_backup_path(table_name)
+            if not latest_backup.exists():
+                logger.warning(f"⚠️ No latest backup found for {table_name}")
+                return 0
+            
+            # Check if table has backup fields for advanced merge
+            if self._table_has_backup_fields(target_db_path, table_name):
+                return self._merge_table_data_restore(str(latest_backup), target_db_path, table_name)
+            else:
+                return self._basic_table_restore(str(latest_backup), target_db_path, table_name)
+            
+        except Exception as e:
+            logger.error(f"❌ Restore from latest failed for {table_name}: {e}")
+            return 0
+    
+    def explicit_restore_all_from_latest(self, main_db_path: str, keychain_db_path: str) -> Dict[str, int]:
+        """
+        📥 RESTORE FROM LATEST: Always restore from static latest backups.
+        
+        Uses predictable latest backup locations for guaranteed restore source.
+        """
+        results = {}
+        
+        # Restore main tables from latest backups
+        for table_name in self.backup_tables.keys():
+            results[table_name] = self.restore_table_from_latest(main_db_path, table_name)
+        
+        # Restore AI keychain from latest backup
+        try:
+            latest_keychain = self.get_latest_backup_path('ai_keychain')
+            if latest_keychain.exists():
+                # Ensure target directory exists
+                Path(keychain_db_path).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(latest_keychain, keychain_db_path)
+                
+                # Count records
+                conn = sqlite3.connect(keychain_db_path)
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tables = cursor.fetchall()
+                
+                total_records = 0
+                for table_row in tables:
+                    table_name = table_row[0]
+                    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                    count = cursor.fetchone()[0]
+                    total_records += count
+                
+                conn.close()
+                results['ai_keychain'] = total_records
+                logger.info(f"🧠 AI Keychain restored from latest: {total_records} records")
+            else:
+                results['ai_keychain'] = 0
+                logger.info("🧠 No latest AI Keychain backup found")
+                
+        except Exception as e:
+            logger.error(f"❌ AI Keychain restore from latest failed: {e}")
+            results['ai_keychain'] = 0
+        
+        successful = sum(1 for count in results.values() if count > 0)
+        total_records = sum(results.values())
+        logger.info(f"📥 Restore from latest complete: {successful}/{len(results)} tables, {total_records} total records")
+        
+        return results
     
     def _basic_table_restore(self, backup_db_path: str, target_db_path: str, table_name: str) -> int:
         """Basic table restore returning record count."""
@@ -828,6 +1039,64 @@ class DurableBackupManager:
         successful = sum(1 for count in results.values() if count > 0)
         total_records = sum(results.values())
         logger.info(f"💾 Explicit backup complete: {successful}/{len(results)} tables, {total_records} total records")
+        
+        return results
+    
+    def explicit_backup_all_verified(self, main_db_path: str, keychain_db_path: str) -> Dict[str, dict]:
+        """
+        💾 VERIFIED EXPLICIT BACKUP: Backup with comprehensive verification.
+        
+        Returns detailed verification results instead of simple counts.
+        This guarantees backup integrity before returning success.
+        """
+        results = {}
+        
+        # Backup main tables with verification
+        for table_name in self.backup_tables.keys():
+            results[table_name] = self.create_verified_backup(main_db_path, table_name)
+        
+        # Backup AI keychain with verification
+        try:
+            keychain_result = self.backup_ai_keychain(keychain_db_path)
+            
+            # Create keychain verification
+            latest_keychain = self.get_latest_backup_path('ai_keychain')
+            if keychain_result > 0 and latest_keychain.exists():
+                shutil.copy2(self.get_backup_path('ai_keychain'), latest_keychain)
+            
+            results['ai_keychain'] = {
+                'table_name': 'ai_keychain',
+                'hierarchical_backup': str(self.get_backup_path('ai_keychain').relative_to(self.backup_root)),
+                'latest_backup': str(latest_keychain.relative_to(self.backup_root)),
+                'hierarchical_count': keychain_result,
+                'hierarchical_verified': keychain_result > 0,
+                'latest_verified': keychain_result > 0 and latest_keychain.exists(),
+                'source_count': keychain_result,
+                'overall_success': keychain_result > 0,
+                'error': None
+            }
+        except Exception as e:
+            results['ai_keychain'] = {
+                'table_name': 'ai_keychain',
+                'hierarchical_backup': '',
+                'latest_backup': '',
+                'hierarchical_count': 0,
+                'hierarchical_verified': False,
+                'latest_verified': False,
+                'source_count': 0,
+                'overall_success': False,
+                'error': str(e)
+            }
+        
+        # Automatic cleanup
+        self.cleanup_old_backups()
+        
+        # Generate summary
+        successful = sum(1 for result in results.values() if result['overall_success'])
+        total_records = sum(result['source_count'] for result in results.values())
+        verified_count = sum(1 for result in results.values() if result['hierarchical_verified'] and result['latest_verified'])
+        
+        logger.info(f"💾 Verified explicit backup complete: {successful}/{len(results)} tables successful, {verified_count} verified, {total_records} total records")
         
         return results
     

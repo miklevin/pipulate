@@ -1439,6 +1439,1447 @@ def log_pipeline_summary(title_prefix: str=''):
             logger.error(f"❌ FINDER_TOKEN: PIPELINE_FALLBACK_ERROR - Both summary and fallback failed: {fallback_error}")
 
 class LogManager:
+import argparse
+import ast
+import asyncio
+import functools
+import importlib
+import inspect
+import json
+import os
+import platform
+import re
+import socket
+import sqlite3
+import subprocess
+import sys
+import time
+import traceback
+import urllib.parse
+# Suppress deprecation warnings from third-party packages
+import warnings
+from collections import deque
+from datetime import datetime
+from pathlib import Path
+from typing import AsyncGenerator, Optional
+
+import aiohttp
+import uvicorn
+from fasthtml.common import *
+from loguru import logger
+from pyfiglet import Figlet
+from rich.align import Align
+from rich.box import ASCII, DOUBLE, HEAVY, ROUNDED
+from rich.console import Console
+from rich.json import JSON
+from rich.panel import Panel
+from rich.style import Style as RichStyle
+from rich.table import Table, Text
+from rich.theme import Theme
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import FileResponse
+from starlette.routing import Route
+from starlette.websockets import WebSocket, WebSocketDisconnect
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+
+# Import MCP tools module for enhanced AI assistant capabilities
+# Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
+MCP_TOOL_REGISTRY = {}
+
+# Import mcp_tools but don't assign logger yet (it's not configured)
+import mcp_tools
+mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
+
+from mcp_tools import register_all_mcp_tools
+
+warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
+
+# Various debug settings
+DEBUG_MODE = False
+STATE_TABLES = False
+TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
+
+# 🧪 TESTING MODE: Revolutionary testing philosophy
+TESTING_MODE = False      # Light testing on every server startup
+DEEP_TESTING = False      # Comprehensive testing mode
+BROWSER_TESTING = False   # Browser automation testing
+# 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
+# These control different aspects of logging and debugging
+
+# 🎨 BANNER COLOR CONFIGURATION
+# Centralized color control for all storytelling banners and messages
+BANNER_COLORS = {
+    # Main banner colors
+    'figlet_primary': 'bright_cyan',
+    'figlet_subtitle': 'dim white',
+    
+    # ASCII banner colors  
+    'ascii_title': 'bright_cyan',
+    'ascii_subtitle': 'dim cyan',
+    
+    # Section headers
+    'section_header': 'bright_yellow',
+    
+    # Story moments and messages
+    'chip_narrator': 'bold cyan',
+    'story_moment': 'bright_magenta', 
+    'server_whisper': 'dim italic',
+    
+    # Startup sequence colors
+    'server_awakening': 'bright_cyan',
+    'mcp_arsenal': 'bright_blue',
+    'plugin_registry_success': 'bright_green',
+    'plugin_registry_warning': 'bright_yellow',
+    'workshop_ready': 'bright_blue',
+    'server_restart': 'yellow',
+    
+    # Special banners
+    'white_rabbit': 'white on default',
+    'transparency_banner': 'bright_cyan',
+    'system_diagram': 'bright_blue',
+    'status_banner': 'bright_green',
+    
+    # Box styles (Rich box drawing)
+    'heavy_box': 'HEAVY',
+    'rounded_box': 'ROUNDED', 
+    'double_box': 'DOUBLE',
+    'ascii_box': 'ASCII'
+}
+
+custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
+
+class DebugConsole(Console):
+
+    def print(self, *args, **kwargs):
+        # Filter out AI Creative Vision messages from console (they're for log files only)
+        # Convert args to string to check for AI markers
+        message_str = ' '.join(str(arg) for arg in args)
+        
+        # Skip console output for AI-specific messages (they go to logs only)
+        if '🎭 AI_CREATIVE_VISION' in message_str:
+            return
+            
+        super().print(*args, **kwargs)
+console = DebugConsole(theme=custom_theme)
+
+
+def rich_json_display(data, title=None, console_output=True, log_output=True, ai_log_output=True, log_prefix=""):
+    """🎨 RICH JSON DISPLAY: Beautiful syntax-highlighted JSON for dicts and JSON data
+    
+    DUAL LOGGING SYSTEM:
+    - Humans see Rich JSON syntax highlighting in console  
+    - AI assistants see JSON data in log files for debugging assistance
+    
+    Args:
+        data: Dict, list, or JSON-serializable data to display
+        title: Optional title for the JSON display
+        console_output: Whether to display Rich JSON to console for humans (default: True)
+        log_output: Whether to log plain JSON for general logging (default: True)
+        ai_log_output: Whether to log JSON for AI assistant visibility (default: True)
+        log_prefix: Prefix for log messages (default: "")
+    
+    Returns:
+        str: The formatted JSON string for logging
+    """
+    try:
+        # Convert data to JSON string if it's not already
+        if isinstance(data, str):
+            # Try to parse and re-format for consistency
+            try:
+                parsed_data = json.loads(data)
+                # Use Rich JSON for syntax highlighting
+                rich_json = JSON(json.dumps(parsed_data, indent=2, default=str))
+                json_str = json.dumps(parsed_data, indent=2, default=str)
+            except json.JSONDecodeError:
+                json_str = data
+                rich_json = data
+        else:
+            # Use Rich JSON for syntax highlighting
+            rich_json = JSON(json.dumps(data, indent=2, default=str))
+            json_str = json.dumps(data, indent=2, default=str)
+        
+        # Console output with Rich syntax highlighting (for humans)
+        if console_output:
+            if title:
+                console.print(f"\n🎨 {title}", style="bold cyan")
+            
+            # Use Rich's JSON class for beautiful syntax highlighting
+            rich_json = JSON(json_str)
+            console.print(rich_json)
+            console.print()  # Add spacing
+        
+        # AI assistant logging - always log JSON data for AI visibility using WARNING level
+        if ai_log_output:
+            ai_title = f"AI_JSON_DATA: {title}" if title else "AI_JSON_DATA"
+            # Use WARNING level so AI assistants can easily grep for "WARNING.*AI_JSON_DATA"
+            logger.warning(f"🤖 {ai_title}:\n{json_str}")
+        
+        # Standard log output 
+        if log_output and json_str:
+            return json_str
+            
+        return json_str
+        
+    except Exception as e:
+        error_msg = f"[Error formatting JSON for display: {e}] Data: {str(data)}"
+        if console_output:
+            console.print(f"❌ {error_msg}", style="red")
+        if ai_log_output:
+            logger.warning(f"🤖 AI_JSON_ERROR: {error_msg}")
+        return error_msg
+
+
+def rich_dict_display(data, title=None, console_output=True):
+    """🎨 RICH DICT DISPLAY: Beautiful syntax-highlighted display for dictionaries
+    
+    Simplified version for when you just want to show dict data beautifully
+    """
+    return rich_json_display(data, title=title, console_output=console_output, log_output=False)
+
+
+def strip_rich_formatting(text):
+    """🎭 STRIP RICH FORMATTING: Remove Rich square-bracket color codes for AI transparency"""
+    import re
+
+    # Remove Rich color formatting like [bold], [/bold], [white on default], etc.
+    clean_text = re.sub(r'\[/?[^\]]*\]', '', text)
+    return clean_text
+
+
+def share_ascii_with_ai(ascii_art, context_message, emoji="🎭"):
+    """🎭 AI ASCII SHARING: Automatically share cleaned ASCII art with AI assistants"""
+    clean_ascii = strip_rich_formatting(ascii_art)
+    # Preserve actual newlines for proper ASCII art display in logs
+    logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message} | ASCII_DATA:\n```\n{clean_ascii}\n```")
+
+
+# Import ASCII art functions from externalized module (avoiding logger conflict)
+from helpers.ascii_displays import (
+    falling_alice, white_rabbit, system_diagram, figlet_banner, 
+    ascii_banner, radical_transparency_banner, status_banner, 
+    fig, chip_says, story_moment, server_whisper, section_header,
+    log_reading_legend
+)
+
+# Initialize logging as early as possible in the startup process
+def setup_logging():
+    """
+    🔧 UNIFIED LOGGING SYSTEM
+    
+    Single source of truth logging with rolling server logs.
+    Designed for optimal debugging experience with surgical search capabilities.
+    
+    Features:
+    - server.log (current run, live tail-able)
+    - server-1.log, server-2.log, etc. (previous runs for context across restarts)
+    - Unified log stream with clear categorization and finder tokens
+    - No more fragmented api.log/lifecycle.log confusion
+    """
+    logger.remove()
+    logs_dir = Path('logs')
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    
+    # === ROLLING LOG ROTATION SYSTEM ===
+    # This preserves debugging context across server restarts
+    server_log_path = logs_dir / 'server.log'
+    MAX_ROLLED_LOGS = 10  # Keep last 10 server runs
+    MAX_ROLLED_LOOKING_AT_DIRS = 10  # Keep last 10 AI perception states
+    
+    # Clean up old numbered logs beyond our limit
+    for i in range(MAX_ROLLED_LOGS + 1, 100):
+        old_log = logs_dir / f'server-{i}.log'
+        if old_log.exists():
+            try:
+                old_log.unlink()
+                print(f'🧹 Cleaned up old server log: {old_log}')
+            except Exception as e:
+                print(f'⚠️ Failed to delete old server log {old_log}: {e}')
+    
+    # Rotate existing logs: server-1.log → server-2.log, etc.
+    if server_log_path.exists():
+        for i in range(MAX_ROLLED_LOGS - 1, 0, -1):
+            old_path = logs_dir / f'server-{i}.log'
+            new_path = logs_dir / f'server-{i + 1}.log'
+            if old_path.exists():
+                try:
+                    old_path.rename(new_path)
+                    logger.info(f'📁 Rotated: {old_path.name} → {new_path.name}')
+                except Exception as e:
+                    logger.warning(f'⚠️ Failed to rotate {old_path}: {e}')
+        
+        # Move current server.log to server-1.log
+        try:
+            server_log_path.rename(logs_dir / 'server-1.log')
+            logger.info(f'📁 Archived current run: server.log → server-1.log')
+        except Exception as e:
+            logger.warning(f'⚠️ Failed to archive current server.log: {e}')
+    
+    # === CLEAN UP LEGACY LOG FILES ===
+    # Remove the old fragmented log system
+    legacy_files = ['api.log', 'lifecycle.log', 'table_lifecycle.log'] + [f'api-{i}.log' for i in range(1, 20)]
+    for legacy_file in legacy_files:
+        legacy_path = logs_dir / legacy_file
+        if legacy_path.exists():
+            try:
+                legacy_path.unlink()
+                print(f'🧹 Removed legacy log: {legacy_file}')
+            except Exception as e:
+                print(f'⚠️ Failed to remove legacy log {legacy_file}: {e}')
+    
+    # === UNIFIED LOG FORMAT ===
+    log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
+    time_format = '{time:HH:mm:ss}'
+    
+    # File logging - comprehensive for debugging
+    file_format = f'{time_format} | {{level: <8}} | {{name: <15}} | {{message}}'
+    logger.add(
+        server_log_path, 
+        level=log_level, 
+        format=file_format, 
+        enqueue=True,
+        backtrace=True,
+        diagnose=True
+    )
+    
+    # Console logging - clean for live monitoring (exclude AI JSON data)
+    console_format = '<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}'
+    logger.add(
+        sys.stderr, 
+        level=log_level, 
+        format=console_format, 
+        colorize=True, 
+        filter=lambda record: (
+            # Exclude AI JSON data from console (humans see Rich display instead)
+            '🤖 AI_JSON' not in record['message'] and
+            # Exclude AI Creative Vision from console (humans see Rich display instead)
+            'AI_CREATIVE_VISION' not in record['message'] and
+            (
+                record['level'].name != 'DEBUG' or 
+                any(key in record['message'] for key in [
+                    'FINDER_TOKEN', 'MCP', 'BOTIFY', 'API', 'Pipeline ID:', 
+                    'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'
+                ])
+            )
+        )
+    )
+    # === STARTUP MESSAGES ===
+    if STATE_TABLES:
+        logger.info('🔍 FINDER_TOKEN: STATE_TABLES_ENABLED - Console will show 🍪 and ➡️ table snapshots')
+    
+    # Welcome message for the new unified system
+    logger.info('🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized')
+    logger.info(f'📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last {MAX_ROLLED_LOGS} server runs for debugging context')
+    logger.info("🍞 FINDER_TOKEN: MCP_DISCOVERY_SCRIPT - For a full list of all MCP tools, run: .venv/bin/python discover_mcp_tools.py")
+    
+    return logger
+
+
+def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: int = None) -> bool:
+    """
+    🔄 DIRECTORY ROTATION SYSTEM
+    
+    Rotates the browser_automation/looking_at directory before each new browser scrape.
+    This preserves AI perception history across multiple look-at operations.
+    
+    Similar to log rotation but for entire directories:
+    - looking_at becomes looking_at-1  
+    - looking_at-1 becomes looking_at-2
+    - etc. up to max_rolled_dirs
+    - Oldest directories beyond limit are deleted
+    
+    Args:
+        looking_at_path: Path to the looking_at directory (default: browser_automation/looking_at)
+        max_rolled_dirs: Maximum number of historical directories to keep
+        
+    Returns:
+        bool: True if rotation successful, False if failed
+        
+    This prevents AI assistants from losing sight of previously captured states
+    and allows them to review their automation history for better decisions.
+    """
+    import shutil
+    from pathlib import Path
+    
+    if looking_at_path is None:
+        looking_at_path = Path('browser_automation') / 'looking_at'
+    else:
+        looking_at_path = Path(looking_at_path)
+    
+    if max_rolled_dirs is None:
+        max_rolled_dirs = MAX_ROLLED_LOOKING_AT_DIRS
+    
+    try:
+        # Ensure the parent directory exists
+        looking_at_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Clean up old numbered directories beyond our limit
+        for i in range(max_rolled_dirs + 1, 100):
+            old_dir = looking_at_path.parent / f'{looking_at_path.name}-{i}'
+            if old_dir.exists():
+                try:
+                    shutil.rmtree(old_dir)
+                    logger.info(f'🧹 FINDER_TOKEN: DIRECTORY_CLEANUP - Removed old directory: {old_dir.name}')
+                except Exception as e:
+                    logger.warning(f'⚠️ Failed to delete old directory {old_dir}: {e}')
+        
+        # Rotate existing directories: looking_at-1 → looking_at-2, etc.
+        if looking_at_path.exists() and any(looking_at_path.iterdir()):  # Only rotate if directory exists and has contents
+            for i in range(max_rolled_dirs - 1, 0, -1):
+                old_path = looking_at_path.parent / f'{looking_at_path.name}-{i}'
+                new_path = looking_at_path.parent / f'{looking_at_path.name}-{i + 1}'
+                if old_path.exists():
+                    try:
+                        # Use shutil.move() instead of rename() to handle non-empty directories
+                        if new_path.exists():
+                            # If target exists, remove it first
+                            shutil.rmtree(new_path)
+                        shutil.move(str(old_path), str(new_path))
+                        logger.info(f'📁 FINDER_TOKEN: DIRECTORY_ROTATION - Rotated: {old_path.name} → {new_path.name}')
+                    except Exception as e:
+                        logger.warning(f'⚠️ Failed to rotate directory {old_path}: {e}')
+            
+            # Move current looking_at to looking_at-1
+            try:
+                archived_path = looking_at_path.parent / f'{looking_at_path.name}-1'
+                if archived_path.exists():
+                    # If target exists, remove it first
+                    shutil.rmtree(archived_path)
+                shutil.move(str(looking_at_path), str(archived_path))
+                logger.info(f'🎯 FINDER_TOKEN: DIRECTORY_ARCHIVE - Archived current perception: {looking_at_path.name} → {archived_path.name}')
+            except Exception as e:
+                logger.warning(f'⚠️ Failed to archive current {looking_at_path}: {e}')
+                return False
+        
+        # Create fresh looking_at directory
+        looking_at_path.mkdir(parents=True, exist_ok=True)
+        logger.info(f'✨ FINDER_TOKEN: DIRECTORY_REFRESH - Fresh perception directory ready: {looking_at_path}')
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f'❌ FINDER_TOKEN: DIRECTORY_ROTATION_ERROR - Failed to rotate directories: {e}')
+        return False
+
+# Show startup banner only when running as main script, not on watchdog restarts or imports
+if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
+    figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
+
+# Initialize logger BEFORE any functions that need it
+logger = setup_logging()
+
+# Pass our configured logger to mcp_tools so they use the same logging configuration
+mcp_tools.logger = logger
+
+# Log early startup phase
+logger.info('🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence')
+
+if __name__ == '__main__':
+    if DEBUG_MODE:
+        logger.info('🔍 Running in DEBUG mode (verbose logging enabled)')
+    else:
+        logger.info('🚀 Running in INFO mode (edit server.py and set DEBUG_MODE=True for verbose logging)')
+
+shared_app_state = {'critical_operation_in_progress': False}
+
+# Global message coordination to prevent race conditions between multiple message-sending systems
+message_coordination = {
+    'endpoint_messages_sent': set(),  # Track sent endpoint messages
+    'last_endpoint_message_time': {},  # Track timing to prevent duplicates
+    'startup_in_progress': False,     # Flag to coordinate startup vs page load
+}
+
+class GracefulRestartException(SystemExit):
+    """Custom exception to signal a restart requested by Watchdog."""
+    pass
+
+def is_critical_operation_in_progress():
+    """Check if a critical operation is in progress via file flag."""
+    return os.path.exists('.critical_operation_lock')
+
+def set_critical_operation_flag():
+    """Set the critical operation flag via file."""
+    with open('.critical_operation_lock', 'w') as f:
+        f.write('critical operation in progress')
+
+def clear_critical_operation_flag():
+    """Clear the critical operation flag."""
+    try:
+        os.remove('.critical_operation_lock')
+    except FileNotFoundError:
+        pass
+
+def get_app_name(force_app_name=None):
+    """Get the name of the app from the app_name.txt file, or the parent directory name."""
+    name = force_app_name
+    if not name:
+        app_name_file = 'app_name.txt'
+        if Path(app_name_file).exists():
+            try:
+                name = Path(app_name_file).read_text().strip()
+            except:
+                pass
+        if not name:
+            name = Path(__file__).parent.name
+            name = name[:-5] if name.endswith('-main') else name
+    return name.capitalize()
+
+def get_db_filename():
+    current_env = get_current_environment()
+    if current_env == 'Development':
+        return f'data/{APP_NAME.lower()}_dev.db'
+    else:
+        return f'data/{APP_NAME.lower()}.db'
+
+def get_current_environment():
+    if ENV_FILE.exists():
+        return ENV_FILE.read_text().strip()
+    else:
+        # Ensure the data directory exists before writing the file
+        ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
+        ENV_FILE.write_text('Development')
+        return 'Development'
+
+def get_nix_version():
+    """Get the version and description from the single source of truth: pipulate.__version__ and __version_description__"""
+    import os
+    
+    # Get version and description from single source of truth
+    try:
+        # Import the version and description from our package
+        from pipulate import __version__, __version_description__
+        return f"{__version__} ({__version_description__})"
+    except ImportError:
+        # Fallback to parsing __init__.py directly
+        try:
+            import re
+            from pathlib import Path
+            init_file = Path(__file__).parent / '__init__.py'
+            if init_file.exists():
+                content = init_file.read_text()
+                version_match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
+                description_match = re.search(r'__version_description__\s*=\s*["\']([^"\']+)["\']', content)
+                
+                if version_match and description_match:
+                    return f"{version_match.group(1)} ({description_match.group(1)})"
+                elif version_match:
+                    # Fallback to Nix environment context for backwards compatibility
+                    if not (os.environ.get('IN_NIX_SHELL') or 'nix' in os.environ.get('PS1', '')):
+                        env_context = " (Not in Nix environment)"
+                    else:
+                        env_context = " (Nix Environment)"
+                    return f"{version_match.group(1)}{env_context}"
+        except Exception as e:
+            logger.debug(f"Could not parse version from __init__.py: {e}")
+    
+    return "Unknown version"
+
+def get_backup_status() -> dict:
+    """Get backup system status for display in settings."""
+    try:
+        # Import backup manager
+        from helpers.durable_backup_system import backup_manager
+        
+        # Get backup directory info
+        backup_root = str(backup_manager.backup_root)
+        
+        # Check if backup directory exists and get basic info
+        backup_exists = backup_manager.backup_root.exists()
+        
+        if backup_exists:
+            # Get list of backup files
+            backup_files = list(backup_manager.backup_root.glob("*.db"))
+            table_status = {}
+            
+            for file in backup_files:
+                # Parse filename to get table name and date
+                name_parts = file.stem.split('_')
+                if len(name_parts) >= 2:
+                    table_name = '_'.join(name_parts[:-1])
+                    date_str = name_parts[-1]
+                    
+                    # Get file info
+                    file_size = file.stat().st_size
+                    mod_time = file.stat().st_mtime
+                    
+                    if table_name not in table_status or mod_time > table_status[table_name]['last_backup']:
+                        table_status[table_name] = {
+                            'last_backup': mod_time,
+                            'date_str': date_str,
+                            'size': file_size
+                        }
+        else:
+            table_status = {}
+        
+        return {
+            'available': True,
+            'backup_root': backup_root,
+            'backup_exists': backup_exists,
+            'table_status': table_status,
+            'total_files': len(backup_files) if backup_exists else 0
+        }
+        
+    except ImportError:
+        return {
+            'available': False,
+            'error': 'Backup system not available'
+        }
+    except Exception as e:
+        return {
+            'available': False,
+            'error': str(e)
+        }
+
+ENV_FILE = Path('data/current_environment.txt')
+
+APP_NAME = get_app_name()
+logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
+
+DB_FILENAME = get_db_filename()
+logger.info(f'🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: {DB_FILENAME}')
+
+
+TONE = 'neutral'
+MODEL = 'gemma3'
+MAX_LLM_RESPONSE_WORDS = 80
+MAX_CONVERSATION_LENGTH = 10000
+HOME_MENU_ITEM = 'Roles️ 👥'
+DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
+
+logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}')
+
+# Centralized SVG definitions for reuse across the application
+INFO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'''
+
+EXTERNAL_LINK_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-external-link"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>'''
+
+SETTINGS_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'''
+
+# ================================================================
+# INSTANCE-SPECIFIC CONFIGURATION - "The Crucible"
+# ================================================================
+# This dictionary holds settings that customize this particular Pipulate instance.
+# Moving configuration here allows for easy white-labeling and configuration management.
+# Over time, more instance-specific "slag" will be skimmed from plugins to here.
+
+PCONFIG = {
+    # UI & Navigation
+    'HOME_MENU_ITEM': HOME_MENU_ITEM,
+    'DEFAULT_ACTIVE_ROLES': DEFAULT_ACTIVE_ROLES,
+    
+    # Role System Configuration
+    'ROLES_CONFIG': {
+        'Botify Employee': {
+            'priority': 0, 
+            'description': 'Connect with Botify to use Parameter Buster and Link Graph Visualizer.',
+            'emoji': '👔'
+        },
+        'Core': {
+            'priority': 1, 
+            'description': 'Essential plugins available to all users.',
+            'emoji': '⚙️'
+        },
+        'Tutorial': {
+            'priority': 2, 
+            'description': 'Guided workflows and introductory examples for learning the system.',
+            'emoji': '📚'
+        },
+        'Developer': {
+            'priority': 3, 
+            'description': 'Tools for creating, debugging, and managing workflows and plugins.',
+            'emoji': '⚡'
+        },
+        'Workshop': {
+            'priority': 4, 
+            'description': 'This is where we put works in progress, proof of concepts and crazy stuff not ready for release. Consider it the sausage factory.',
+            'emoji': '🔬'
+        },
+        'Components': {
+            'priority': 5, 
+            'description': 'UI and data widgets for building rich workflow interfaces.',
+            'emoji': '🧩'
+        }
+    },
+    
+    # Role Color Configuration
+    'ROLE_COLORS': {
+        'menu-role-core': {
+            'border': '#22c55e',            # GREEN
+            'background': 'rgba(34, 197, 94, 0.1)',
+            'background_light': 'rgba(34, 197, 94, 0.05)'
+        },
+        'menu-role-botify-employee': {
+            'border': '#a855f7',            # PURPLE
+            'background': 'rgba(168, 85, 247, 0.1)',
+            'background_light': 'rgba(168, 85, 247, 0.05)'
+        },
+        'menu-role-tutorial': {
+            'border': '#f97316',            # ORANGE
+            'background': 'rgba(249, 115, 22, 0.1)',
+            'background_light': 'rgba(249, 115, 22, 0.05)'
+        },
+        'menu-role-developer': {
+            'border': '#3b82f6',            # BLUE
+            'background': 'rgba(59, 130, 246, 0.1)',
+            'background_light': 'rgba(59, 130, 246, 0.05)'
+        },
+        'menu-role-components': {
+            'border': '#6b7280',            # GRAY
+            'background': 'rgba(107, 114, 128, 0.1)',
+            'background_light': 'rgba(107, 114, 128, 0.05)'
+        },
+        'menu-role-workshop': {
+            'border': '#eab308',            # YELLOW
+            'background': 'rgba(234, 179, 8, 0.1)',
+            'background_light': 'rgba(234, 179, 8, 0.05)'
+        }
+    },
+    
+    # Botify API Configuration
+    'BOTIFY_API': {
+        'MAX_EXPORT_SIZE': 1000000,  # Botify's maximum export size limit (1M rows)
+        'DEFAULT_EXPORT_SIZE': 1000000,  # Conservative default for testing/development
+        'GSC_EXPORT_SIZE': 1000000,  # GSC can handle full export size
+        'WEBLOG_EXPORT_SIZE': 1000000,  # Web logs can handle full export size
+        'CRAWL_EXPORT_SIZE': 1000000,  # Crawl exports can handle full export size
+    },
+    
+    # Chat & Streaming Configuration
+    'CHAT_CONFIG': {
+        'TYPING_DELAY': 0.0125,  # Delay between words in typing simulation (seconds)
+        'MAX_CONVERSATION_LENGTH': 100,  # Maximum number of conversation messages to keep
+    },
+    
+    # UI Constants for Workflows - Centralized button labels, emojis, and styles
+    'UI_CONSTANTS': {
+        'BUTTON_LABELS': {
+            'ENTER_KEY': '🔑 Enter Key',
+            'NEW_KEY': '🆕',
+            'NEXT_STEP': 'Next Step ▸',
+            'FINALIZE': '🔒 Finalize',
+            'UNLOCK': '🔓 Unlock',
+            'PROCEED': 'Proceed ▸',
+            'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
+            'VIEW_FOLDER': '📂 View Folder',
+            'DOWNLOAD_CSV': '⬇️ Copy to Downloads',
+            'VISUALIZE_GRAPH': '🌐 Visualize Graph',
+            'SKIP_STEP': 'Skip️'
+        },
+        'BUTTON_STYLES': {
+            'PRIMARY': 'primary',
+            'SECONDARY': 'secondary',
+            'OUTLINE': 'secondary outline',
+            'STANDARD': 'secondary outline',
+                    'FLEX_CONTAINER': 'display: flex; gap: var(--pipulate-gap-sm); flex-wrap: wrap; align-items: center;',
+        'BUTTON_ROW': 'display: flex; gap: var(--pipulate-gap-sm); align-items: center;',
+            'SKIP_BUTTON': 'secondary outline',
+            'SKIP_BUTTON_STYLE': 'padding: 0.5rem 1rem; width: 10%; min-width: 80px; white-space: nowrap;',
+            'BORDER_RADIUS': 'var(--pico-border-radius)'  # Global button roundedness control
+        },
+        'EMOJIS': {
+            # Process Status Indicators
+            'KEY': '🔑',
+            'SUCCESS': '🎯',
+            'WARNING': '⚠️',
+            'ERROR': '❌',
+            'COMPLETION': '✅',
+            'LOCKED': '🔒',
+            'UNLOCKED': '🔓',
+            
+            # Data Type Indicators  
+            'USER_INPUT': '👤',
+            'GREETING': '💬',
+            'WORKFLOW': '🔄',
+            'INPUT_FORM': '📝',
+            
+            # Code and Development Indicators
+            'PYTHON_CODE': '🐍',           # Python code snippets and headers
+            'CODE_SNIPPET': '✂️',         # Code snippet indicator
+            'JUPYTER_NOTEBOOK': '📓',     # Jupyter notebook related
+            'API_CALL': '🔌',             # API endpoint calls
+            'DEBUG_CODE': '🐛',           # Debugging code sections
+            
+            # File and Data Operations
+            'DOWNLOAD': '⬇️',             # Download operations
+            'UPLOAD': '⬆️',               # Upload operations
+            'FILE_FOLDER': '📂',          # File/folder operations
+            'CSV_FILE': '📊',             # CSV and data files
+            'JSON_DATA': '📄',            # JSON and structured data
+            
+            # Analysis and Processing
+            'ANALYSIS': '🔍',             # Data analysis and discovery
+            'PROCESSING': '⚙️',          # Background processing
+            'OPTIMIZATION': '🎯',        # Optimization results
+            'GRAPH_NETWORK': '🌐',       # Network/graph visualization
+            'VISUALIZATION': '📈',       # Charts and visualizations
+            
+            # Search Console and SEO
+            'SEARCH_CONSOLE': '🔍',      # Google Search Console
+            'SEO_DATA': '📊',            # SEO metrics and data
+            'CRAWL_DATA': '🕷️',         # Website crawling
+            'WEB_LOGS': '📝',            # Web server logs
+            
+            # Workflow Status
+            'STEP_COMPLETE': '✅',       # Step completion
+            'STEP_PROGRESS': '🔄',      # Step in progress
+            'STEP_ERROR': '❌',          # Step error
+            'STEP_WARNING': '⚠️',       # Step warning
+            'REVERT': '↩️',              # Revert action
+            'FINALIZE': '🔒',           # Finalize workflow
+            'UNFINALIZE': '🔓'          # Unfinalize workflow
+        },
+        'CONSOLE_MESSAGES': {
+            # Server console log messages - centralized for consistency
+            'PYTHON_SNIPPET_INTRO': '# {python_emoji} Python (httpx) Snippet BEGIN {snippet_emoji}:',
+            'PYTHON_SNIPPET_END': '# {python_emoji} Python (httpx) Snippet END {snippet_emoji}',
+            'API_CALL_LOG': 'API Call: {method} {url}',
+            'FILE_GENERATED': 'Generated file: {filename}',
+            'PROCESSING_COMPLETE': 'Processing complete for: {operation}',
+            'ERROR_OCCURRED': 'Error in {context}: {error_message}'
+        },
+        'CODE_FORMATTING': {
+            # Visual dividers and separators for generated code
+            'COMMENT_DIVIDER': '# ============================================================================='
+        },
+        'MESSAGES': {
+            'WORKFLOW_UNLOCKED': 'Workflow unfinalized! You can now revert to any step and make changes.',
+            'ALL_STEPS_COMPLETE': 'All steps complete. Ready to finalize workflow.',
+            'FINALIZE_QUESTION': 'All steps complete. Finalize?',
+            'FINALIZE_HELP': 'You can revert to any step and make changes.',
+            'WORKFLOW_LOCKED': 'Workflow is locked.'
+        },
+        'LANDING_PAGE': {
+            'INPUT_PLACEHOLDER': 'Existing or new 🗝 here (Enter for auto)',
+            'INIT_MESSAGE_WORKFLOW_ID': 'Workflow ID: {pipeline_id}',
+            'INIT_MESSAGE_RETURN_HINT': "Return later by selecting '{pipeline_id}' from the dropdown."
+        }
+    }
+}
+
+# Update references to use the centralized config
+HOME_MENU_ITEM = PCONFIG['HOME_MENU_ITEM']
+DEFAULT_ACTIVE_ROLES = PCONFIG['DEFAULT_ACTIVE_ROLES']
+
+# ================================================================
+# MCP TOOL REGISTRY - Generic Tool Dispatch System
+# ================================================================
+# This registry allows plugins to register MCP tools that can be called
+# via the /mcp-tool-executor endpoint. Tools are simple async functions
+# that take parameters and return structured responses.
+
+# Global registry for MCP tools - populated by plugins during startup
+def register_mcp_tool(tool_name: str, handler_func):
+    """Register an MCP tool handler function.
+    
+    Args:
+        tool_name: Name of the tool (e.g., 'get_cat_fact', 'botify_query')
+        handler_func: Async function that takes (params: dict) -> dict
+    """
+    logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
+    MCP_TOOL_REGISTRY[tool_name] = handler_func
+    # Debug logging removed - registry working correctly
+
+# MCP tools are now consolidated in mcp_tools.py - see register_all_mcp_tools()
+
+# 🎨 MCP TOOLS BANNER - Now displayed in startup_event() after tools are registered
+
+# Tools now registered via register_all_mcp_tools() from mcp_tools.py
+
+# ================================================================
+# 🔧 FINDER_TOKEN: MCP_TOOLS_CONSOLIDATED
+# All MCP tools (including _botify_ping, _botify_list_projects, _botify_simple_query, 
+# _pipeline_state_inspector, etc.) have been moved to mcp_tools.py for better organization.
+# See register_all_mcp_tools() in mcp_tools.py for complete tool registration.
+
+def _read_botify_api_token() -> str:
+    """Read Botify API token from the standard token file location.
+    
+    Returns the token string or None if file doesn't exist or can't be read.
+    This follows the same pattern used by all other Botify integrations.
+    """
+    try:
+        token_file = "helpers/botify/botify_token.txt"
+        if not os.path.exists(token_file):
+            return None
+        with open(token_file) as f:
+            content = f.read().strip()
+            token = content.split('\n')[0].strip()
+        return token
+    except Exception:
+        return None
+
+# 🔧 FINDER_TOKEN: BOTIFY_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY
+# All Botify MCP tools moved to mcp_tools.py for better maintainability:
+# - _botify_get_full_schema (125 lines) - The 4,449 field discovery revolution
+# - _botify_list_available_analyses (65 lines) - Local analyses.json reading  
+# - _botify_execute_custom_bql_query (120 lines) - Core query wizard tool
+# This removes 310 lines of duplicate code from server.py
+
+# 🔧 FINDER_TOKEN: ALL_BOTIFY_TOOLS_MOVED_TO_MCP_TOOLS_PY
+# ALL Botify tools are now registered via register_all_mcp_tools() in mcp_tools.py:
+# - botify_ping, botify_list_projects, botify_simple_query  
+# - botify_get_full_schema, botify_list_available_analyses, botify_execute_custom_bql_query
+
+# Register Local LLM Helper Tools (Limited file access for local LLMs)
+async def _local_llm_read_file(params: dict) -> dict:
+    """Local LLM helper: Read specific file contents (limited to safe files)"""
+    try:
+        file_path = params.get('file_path', '')
+        max_lines = params.get('max_lines', 100)  # Limit for context window
+        
+        # Security: Only allow specific safe directories/files
+        safe_paths = [
+            'training/', 'plugins/', 'helpers/', 'logs/server.log', 
+            'README.md', 'requirements.txt', 'pyproject.toml'
+        ]
+        
+        if not any(file_path.startswith(safe) for safe in safe_paths):
+            return {
+                "success": False,
+                "error": f"File access restricted. Allowed paths: {', '.join(safe_paths)}",
+                "file_path": file_path
+            }
+        
+        file_obj = Path(file_path)
+        if not file_obj.exists():
+            return {
+                "success": False,
+                "error": "File not found",
+                "file_path": file_path
+            }
+        
+        # Read file with line limit
+        lines = file_obj.read_text().splitlines()
+        if len(lines) > max_lines:
+            content = '\n'.join(lines[:max_lines])
+            content += f"\n\n... [File truncated at {max_lines} lines. Total lines: {len(lines)}]"
+        else:
+            content = '\n'.join(lines)
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_FILE_READ - {file_path} ({len(lines)} lines)")
+        
+        return {
+            "success": True,
+            "content": content,
+            "file_path": file_path,
+            "total_lines": len(lines),
+            "displayed_lines": min(len(lines), max_lines)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_FILE_READ_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "file_path": params.get('file_path', 'unknown')
+        }
+
+async def _local_llm_grep_logs(params: dict) -> dict:
+    """Local LLM helper: Search recent server logs for patterns"""
+    try:
+        pattern = params.get('pattern', '')
+        max_results = params.get('max_results', 20)
+        
+        if not pattern:
+            return {
+                "success": False,
+                "error": "Pattern parameter required"
+            }
+        
+        log_file = Path('logs/server.log')
+        if not log_file.exists():
+            return {
+                "success": False,
+                "error": "Server log file not found"
+            }
+        
+        # Read recent log entries and search
+        lines = log_file.read_text().splitlines()
+        matches = []
+        
+        for i, line in enumerate(lines):
+            if pattern.lower() in line.lower():
+                matches.append({
+                    "line_number": i + 1,
+                    "content": line.strip()
+                })
+                
+                if len(matches) >= max_results:
+                    break
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_GREP - Pattern '{pattern}' found {len(matches)} matches")
+        
+        return {
+            "success": True,
+            "pattern": pattern,
+            "matches": matches,
+            "total_matches": len(matches),
+            "log_file": str(log_file)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_GREP_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "pattern": params.get('pattern', 'unknown')
+        }
+
+async def _local_llm_list_files(params: dict) -> dict:
+    """Local LLM helper: List files in safe directories"""
+    try:
+        directory = params.get('directory', '.')
+        
+        # Security: Only allow specific safe directories
+        safe_dirs = ['training', 'plugins', 'helpers', 'logs', '.']
+        
+        if directory not in safe_dirs:
+            return {
+                "success": False,
+                "error": f"Directory access restricted. Allowed directories: {', '.join(safe_dirs)}",
+                "directory": directory
+            }
+        
+        dir_path = Path(directory)
+        if not dir_path.exists():
+            return {
+                "success": False,
+                "error": "Directory not found",
+                "directory": directory
+            }
+        
+        files = []
+        for item in dir_path.iterdir():
+            if item.is_file():
+                files.append({
+                    "name": item.name,
+                    "type": "file",
+                    "size": item.stat().st_size
+                })
+            elif item.is_dir():
+                files.append({
+                    "name": item.name,
+                    "type": "directory"
+                })
+        
+        # Sort files by name
+        files.sort(key=lambda x: x['name'])
+        
+        logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_LIST_FILES - Directory '{directory}' has {len(files)} items")
+        
+        return {
+            "success": True,
+            "directory": directory,
+            "files": files,
+            "count": len(files)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_LIST_FILES_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "directory": params.get('directory', 'unknown')
+        }
+
+# 🔧 FINDER_TOKEN: LOCAL_LLM_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY  
+# ALL local_llm tools (read_file, grep_logs, list_files, get_context)
+# are now registered via register_all_mcp_tools() in mcp_tools.py
+
+# 🔧 FINDER_TOKEN: UI_TOOLS_MOVED_TO_MCP_TOOLS_PY
+# UI interaction tools (ui_flash_element, ui_list_elements) 
+# are now registered via register_all_mcp_tools() in mcp_tools.py
+
+# 🌐 FINDER_TOKEN: BROWSER_MCP_TOOLS_CORE - AI EYES AND HANDS
+# 🎯 FINDER_TOKEN: AI_CURRENT_PAGE_INTERACTION
+def print_and_log_table(table, title_prefix=""):
+    """Print rich table to console AND log structured data to server.log for radical transparency.
+    
+    This single function ensures both console display and log transparency happen together,
+    preventing the mistake of using one without the other.
+    
+    Args:
+        table: Rich Table object to display and log
+        title_prefix: Optional prefix for the log entry
+    """
+    # First, display the rich table in console with full formatting
+    console.print(table)
+    
+    # Then, extract and log the table data for server.log transparency
+    try:
+        # Extract table data for logging
+        table_title = getattr(table, 'title', 'Table')
+        if table_title:
+            table_title = str(table_title)
+        
+        # Start with title and add extra line for visibility
+        log_lines = [f"\n📊 {title_prefix}RICH TABLE: {table_title}"]
+        
+        # Add column headers if available
+        if hasattr(table, 'columns') and table.columns:
+            headers = []
+            for col in table.columns:
+                if hasattr(col, 'header'):
+                    headers.append(str(col.header))
+                elif hasattr(col, '_header'):
+                    headers.append(str(col._header))
+            if headers:
+                log_lines.append(f"Headers: {' | '.join(headers)}")
+        
+        # Add rows if available
+        if hasattr(table, '_rows') and table._rows:
+            for i, row in enumerate(table._rows):
+                if hasattr(row, '_cells'):
+                    cells = [str(cell) if cell else '' for cell in row._cells]
+                    log_lines.append(f"Row {i+1}: {' | '.join(cells)}")
+                else:
+                    log_lines.append(f"Row {i+1}: {str(row)}")
+        
+        # Log the complete table representation with extra spacing
+        logger.info('\n'.join(log_lines) + '\n')
+        
+    except Exception as e:
+        logger.error(f"Error logging rich table: {e}")
+        logger.info(f"📊 {title_prefix}RICH TABLE: [Unable to extract table data]")
+
+def set_current_environment(environment):
+    ENV_FILE.write_text(environment)
+    logger.info(f'Environment set to: {environment}')
+
+def _recursively_parse_json_strings(obj):
+    """
+    🔧 RECURSIVE JSON PARSER: Recursively parse JSON strings in nested data structures.
+    This makes deeply nested workflow data much more readable in logs.
+    
+    Handles:
+    - Dict values that are JSON strings
+    - List items that are JSON strings  
+    - Nested dicts and lists
+    - Graceful fallback if parsing fails
+    """
+    if isinstance(obj, dict):
+        result = {}
+        for key, value in obj.items():
+            if isinstance(value, str):
+                # Try to parse JSON strings
+                try:
+                    # Quick heuristic: if it starts with { or [ and ends with } or ], try parsing
+                    if (value.startswith('{') and value.endswith('}')) or \
+                       (value.startswith('[') and value.endswith(']')):
+                        parsed_value = json.loads(value)
+                        # Recursively process the parsed result
+                        result[key] = _recursively_parse_json_strings(parsed_value)
+                    else:
+                        result[key] = value
+                except (json.JSONDecodeError, TypeError):
+                    # If parsing fails, keep the original string
+                    result[key] = value
+            elif isinstance(value, (dict, list)):
+                # Recursively process nested structures
+                result[key] = _recursively_parse_json_strings(value)
+            else:
+                result[key] = value
+        return result
+    elif isinstance(obj, list):
+        result = []
+        for item in obj:
+            if isinstance(item, str):
+                # Try to parse JSON strings in lists
+                try:
+                    if (item.startswith('{') and item.endswith('}')) or \
+                       (item.startswith('[') and item.endswith(']')):
+                        parsed_item = json.loads(item)
+                        result.append(_recursively_parse_json_strings(parsed_item))
+                    else:
+                        result.append(item)
+                except (json.JSONDecodeError, TypeError):
+                    result.append(item)
+            elif isinstance(item, (dict, list)):
+                # Recursively process nested structures
+                result.append(_recursively_parse_json_strings(item))
+            else:
+                result.append(item)
+        return result
+    else:
+        # For non-dict/list objects, return as-is
+        return obj
+
+def _format_records_for_lifecycle_log(records_iterable):
+    """Format records (list of dicts or objects) into a readable JSON string for logging.
+    Handles empty records, dataclass-like objects, dictionaries, and attempts to convert SQLite rows to dicts.
+    Excludes private attributes for cleaner logs. 
+    SMART FEATURE: Automatically parses JSON strings in 'data' fields to prevent ugly escaping."""
+    if not records_iterable:
+        return '[] # Empty'
+    processed_records = []
+    for r in records_iterable:
+        record_dict = None
+        if hasattr(r, '_asdict'):
+            record_dict = r._asdict()
+        elif hasattr(r, '__dict__') and (not isinstance(r, type)):
+            record_dict = {k: v for k, v in r.__dict__.items() if not k.startswith('_sa_')}
+        elif isinstance(r, dict):
+            record_dict = r
+        elif hasattr(r, 'keys'):
+            try:
+                record_dict = dict(r)
+            except:
+                record_dict = dict(zip(r.keys(), r))
+        else:
+            processed_records.append(str(r))
+            continue
+            
+        # 🔧 SMART JSON PARSING: Recursively parse JSON strings for maximum readability
+        if record_dict and isinstance(record_dict, dict):
+            record_dict = _recursively_parse_json_strings(record_dict)
+                
+        processed_records.append(record_dict)
+    
+    try:
+        # Use Rich JSON display for formatted records
+        return rich_json_display(processed_records, title="Formatted Records", console_output=False, log_output=True)
+    except Exception as e:
+        return f'[Error formatting records for JSON: {e}] Processed: {str(processed_records)}'
+
+def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str=''):
+    """
+    🔧 CLAUDE'S UNIFIED LOGGING: Logs table state to unified server.log
+    Simplified from the old lifecycle logging system.
+    """
+    try:
+        records = list(data_source_callable())
+        # Convert records to list of dicts for Rich JSON display
+        records_data = []
+        for record in records:
+            if hasattr(record, '_asdict'):
+                # Named tuple
+                records_data.append(record._asdict())
+            elif hasattr(record, '__dict__'):
+                # Object with attributes
+                records_data.append(record.__dict__)
+            elif isinstance(record, dict):
+                # Already a dict
+                records_data.append(record)
+            else:
+                # SQLite Row or other - try to convert to dict
+                try:
+                    records_data.append(dict(record))
+                except:
+                    records_data.append(str(record))
+        
+        # Use Rich JSON display for table data - show in console with beautiful formatting  
+        # Enable AI logging so AI assistants can see the JSON data
+        rich_json_display(records_data, title=f"Table State: {table_name}", console_output=True, log_output=False, ai_log_output=True)
+        
+        # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
+        logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_{table_name.upper()} - {title_prefix} Snapshot: [Rich JSON displayed to console]")
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: TABLE_STATE_ERROR - Failed to log '{table_name}' ({title_prefix}): {e}")
+
+def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''):
+    """
+    🔧 CLAUDE'S UNIFIED LOGGING: Logs DictLikeDB state to unified server.log
+    Enhanced with semantic meaning for AI assistant understanding.
+    """
+    # 🍪 SESSION HIJACKING NEXUS: Load from training file and add to both logs AND conversation history
+    session_hijacking_msg = read_training("ai_session_hijacking_message.md")
+    server_whisper(session_hijacking_msg, "🎯")
+    
+    # 🚨 CRITICAL: Also add to conversation history for immediate LLM context
+    try:
+        append_to_conversation(session_hijacking_msg, role='system')
+    except Exception as e:
+        logger.debug(f"Could not add session hijacking message to conversation: {e}")
+    
+    # 🎬 DEMONSTRATION: Trigger "I control the horizontal, I control the vertical" moment
+    try:
+        from pathlib import Path
+        browser_automation_active = Path('browser_automation/looking_at').exists()
+        if browser_automation_active:
+            demo_trigger_msg = read_training("ai_embodiment_demonstration.md")
+            server_whisper(demo_trigger_msg, "🎬")
+            append_to_conversation(demo_trigger_msg, role='system')
+            
+    except Exception as e:
+        logger.debug(f"Could not trigger AI embodiment demonstration: {e}")
+    try:
+        items = dict(db_instance.items())
+        # Use Rich JSON display for database items - show in console with beautiful formatting
+        # Enable AI logging so AI assistants can see the JSON data
+        rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=False, ai_log_output=True)
+        
+        # Add semantic context for AI assistants
+        semantic_info = []
+        for key, value in items.items():
+            if key == "last_profile_id":
+                semantic_info.append(f"🧑 Active user profile: {value}")
+            elif key == "last_app_choice":
+                semantic_info.append(f"📱 Current app/workflow: {value or 'None (Home page)'}")
+            elif key == "current_environment":
+                semantic_info.append(f"🌍 Environment mode: {value}")
+            elif key == "profile_locked":
+                lock_status = "🔒 LOCKED" if value == "1" else "🔓 Unlocked"
+                semantic_info.append(f"👤 Profile editing: {lock_status}")
+            elif key == "theme_preference":
+                semantic_info.append(f"🎨 UI theme: {value}")
+            elif key == "split-sizes":
+                semantic_info.append(f"📐 UI layout split: {value}")
+            elif key == "last_visited_url":
+                semantic_info.append(f"🔗 Last page visited: {value}")
+            elif key.startswith("endpoint_message_sent"):
+                env = key.replace("endpoint_message_sent__", "")
+                semantic_info.append(f"📨 Startup message sent for {env}: {value}")
+            elif key == "temp_message":
+                semantic_info.append(f"💬 Temporary UI message: {value}")
+        
+        # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
+        logger.info(f"🔍 FINDER_TOKEN: DB_STATE_{db_name.upper()} - {title_prefix} Key-Value Store: [Rich JSON displayed to console]")
+        
+        if semantic_info:
+            semantic_summary = "\n".join(f"    {info}" for info in semantic_info)
+            logger.info(f"🔍 SEMANTIC_DB_{db_name.upper()}: {title_prefix} Human-readable state:\n{semantic_summary}")
+            
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: DB_STATE_ERROR - Failed to log DictLikeDB '{db_name}' ({title_prefix}): {e}")
+
+def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str=''):
+    """
+    🔧 CLAUDE'S UNIFIED LOGGING: Logs raw SQL table state to unified server.log
+    Simplified from the old lifecycle logging system.
+    """
+    original_row_factory = db_conn.row_factory
+    db_conn.row_factory = sqlite3.Row
+    try:
+        cursor = db_conn.cursor()
+        cursor.execute(f'SELECT * FROM {table_name}')
+        rows = cursor.fetchall()
+        content = _format_records_for_lifecycle_log(rows)
+        logger.info(f"🔍 FINDER_TOKEN: SQL_TABLE_{table_name.upper()} - {title_prefix} Raw SQL:\n{content}")
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: SQL_TABLE_ERROR - Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}")
+    finally:
+        db_conn.row_factory = original_row_factory
+
+def log_pipeline_summary(title_prefix: str=''):
+    """
+    🔧 PIPELINE SUMMARY: User-friendly summary of pipeline state for startup logging.
+    Provides just enough information to be super useful without terrifying newbs.
+    """
+    try:
+        records = list(pipeline())
+        
+        if not records:
+            logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} No active workflows")
+            return
+            
+        total_workflows = len(records)
+        
+        # Group by app_name for summary
+        app_counts = {}
+        finalized_count = 0
+        recent_activity = []
+        
+        for record in records:
+            # SQLite Row objects support direct attribute access
+            try:
+                app_name = getattr(record, 'app_name', 'unknown')
+                app_counts[app_name] = app_counts.get(app_name, 0) + 1
+                
+                # Check if finalized
+                data_str = getattr(record, 'data', '{}')
+                if isinstance(data_str, str):
+                    # Handle case where data is JSON string
+                    try:
+                        import json
+                        data = json.loads(data_str)
+                    except:
+                        data = {}
+                else:
+                    data = data_str
+                
+                if data.get('finalize', {}).get('finalized'):
+                    finalized_count += 1
+                    
+                # Track recent activity (last 24 hours)
+                updated = getattr(record, 'updated', '')
+                if updated:
+                    try:
+                        from datetime import datetime, timedelta
+                        updated_time = datetime.fromisoformat(updated.replace('Z', '+00:00'))
+                        if datetime.now().replace(tzinfo=updated_time.tzinfo) - updated_time < timedelta(hours=24):
+                            recent_activity.append({
+                                'pkey': getattr(record, 'pkey', ''),
+                                'app': app_name,
+                                'updated': updated
+                            })
+                    except:
+                        pass
+            except Exception as e:
+                logger.debug(f"Error processing pipeline record: {e}")
+                continue
+        
+        # Create friendly summary
+        summary_lines = [
+            f"📊 Total workflows: {total_workflows}",
+            f"🔒 Finalized: {finalized_count}",
+            f"⚡ Active: {total_workflows - finalized_count}"
+        ]
+        
+        # Add app breakdown
+        if app_counts:
+            app_summary = ", ".join([f"{app}({count})" for app, count in sorted(app_counts.items())])
+            summary_lines.append(f"📱 Apps: {app_summary}")
+        
+        # 📚 LOG LEGEND: Quick crash course in reading Pipulate logs
+        legend_content = log_reading_legend()
+
+        legend_panel = Panel(
+            legend_content,
+            title="📖 [bold bright_blue]Log Reading Guide[/bold bright_blue]",
+            subtitle="[dim]Understanding what you're seeing in the logs[/dim]",
+            box=ROUNDED,
+            style="bright_blue",
+            padding=(1, 2)
+        )
+        print()
+        console.print(legend_panel)
+        print()
+        
+        # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
+        share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
+        print()
+
+        # Add recent activity
+        if recent_activity:
+            recent_count = len(recent_activity)
+            summary_lines.append(f"🕒 Recent activity (24h): {recent_count} workflows")
+            
+        summary = "\n    ".join(summary_lines)
+        logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} Workflow Overview:\n    {summary}")
+        
+        # For AI assistants: log a few recent workflow keys for context
+        if records:
+            recent_keys = []
+            for record in records[-3:]:
+                try:
+                    pkey = getattr(record, 'pkey', 'unknown')
+                    recent_keys.append(pkey)
+                except:
+                    recent_keys.append('unknown')
+            logger.info(f"🔍 SEMANTIC_PIPELINE_CONTEXT: {title_prefix} Recent workflow keys: {', '.join(recent_keys)}")
+            
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: PIPELINE_SUMMARY_ERROR - Failed to create pipeline summary ({title_prefix}): {e}")
+        # Fallback to original detailed logging if summary fails
+        try:
+            records = list(pipeline())
+            content = _format_records_for_lifecycle_log(records)
+            logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_PIPELINE - {title_prefix} Fallback Snapshot:\n{content}")
+        except Exception as fallback_error:
+            logger.error(f"❌ FINDER_TOKEN: PIPELINE_FALLBACK_ERROR - Both summary and fallback failed: {fallback_error}")
+
+class LogManager:
     """Central logging coordinator for artistic control of console and file output.
 
     This class provides methods that encourage a consistent, carefully curated
@@ -5735,7 +7176,7 @@ async def backup_now(request):
 
 @rt('/explicit-backup', methods=['POST'])
 async def explicit_backup(request):
-    """📤 EXPLICIT BACKUP: Save current data TO backup files."""
+    """📤 VERIFIED EXPLICIT BACKUP: Save current data with integrity verification."""
     try:
         from helpers.durable_backup_system import backup_manager
         
@@ -5743,49 +7184,62 @@ async def explicit_backup(request):
         main_db_path = DB_FILENAME
         keychain_db_path = 'data/ai_keychain.db'
         
-        # Get counts for status messages
-        current_counts = backup_manager.get_current_db_counts(main_db_path)
-        current_total = sum(current_counts.values())
+        # Perform verified backup
+        results = backup_manager.explicit_backup_all_verified(main_db_path, keychain_db_path)
         
-        # Perform explicit backup
-        results = backup_manager.explicit_backup_all(main_db_path, keychain_db_path)
-        
-        # Count successes
-        successful = sum(1 for success in results.values() if success)
+        # Analyze results
+        successful = sum(1 for result in results.values() if result['overall_success'])
         total = len(results)
+        verified = sum(1 for result in results.values() if result['hierarchical_verified'] and result['latest_verified'])
+        total_records = sum(result['source_count'] for result in results.values())
         
-        # Create detailed response message
-        current_breakdown = []
-        # Include all tables that were actually counted, not just backup_tables
-        for table_name in ['profile', 'tasks', 'ai_keychain']:
-            count = current_counts.get(table_name, 0)
-            if count > 0:
+        # Create detailed breakdown
+        breakdown_parts = []
+        verification_parts = []
+        
+        for table_name, result in results.items():
+            if result['source_count'] > 0:
                 table_display = table_name if table_name != 'ai_keychain' else 'keychain'
-                current_breakdown.append(f"{count} {table_display}")
+                breakdown_parts.append(f"{result['source_count']} {table_display}")
+                
+                if result['overall_success']:
+                    verification_parts.append(f"✅ {table_display}")
+                else:
+                    verification_parts.append(f"❌ {table_display}")
         
-        breakdown_text = " + ".join(current_breakdown) if current_breakdown else "no data"
+        breakdown_text = " + ".join(breakdown_parts) if breakdown_parts else "no data"
+        verification_text = " ".join(verification_parts) if verification_parts else "no verification"
         
         # Create response message
-        if successful == total:
-            status_msg = f"📤 Saved: {breakdown_text} backed up successfully"
+        if successful == total and verified == total and total_records > 0:
+            status_msg = f"📤 Verified Save: {breakdown_text} backed up and verified"
             status_class = "text-success"
-        else:
-            status_msg = f"⚠️ Partial Save: {successful}/{total} tables backed up ({breakdown_text})"
+        elif successful > 0:
+            status_msg = f"⚠️ Partial Save: {successful}/{total} tables backed up, {verified} verified ({breakdown_text})"
             status_class = "text-warning"
+        else:
+            status_msg = f"❌ Save Failed: No tables backed up successfully"
+            status_class = "text-invalid"
         
-        # Add location info
+        # Add detailed verification info
         backup_location = str(backup_manager.backup_root)
-        details = f"📁 Location: {backup_location}"
+        latest_location = str(backup_manager.backup_root / 'latest')
+        
+        details = [
+            f"📁 Hierarchical: {backup_location}",
+            f"📁 Latest: {latest_location}",
+            f"🔍 Verification: {verification_text}"
+        ]
         
         return Div(
             P(status_msg, cls=status_class),
-            P(details, cls='text-secondary'),
+            *[P(detail, cls='text-secondary') for detail in details],
             id='backup-restore-result'
         )
         
     except Exception as e:
         return Div(
-            P(f"❌ Backup error: {str(e)}", cls='text-invalid'),
+            P(f"❌ Verified backup error: {str(e)}", cls='text-invalid'),
             id='backup-restore-result'
         )
 
@@ -5803,8 +7257,8 @@ async def explicit_restore(request):
         backup_counts = backup_manager.get_backup_counts()
         backup_total = sum(backup_counts.values())
         
-        # Perform explicit restore
-        results = backup_manager.explicit_restore_all(main_db_path, keychain_db_path)
+        # Perform explicit restore from latest backups
+        results = backup_manager.explicit_restore_all_from_latest(main_db_path, keychain_db_path)
         
         # Count successes
         successful = sum(1 for success in results.values() if success)
