@@ -1,0 +1,130 @@
+{
+  "recipe_name": "Create New Profile via Web UI",
+  "recipe_version": "1.0",
+  "confidence_level": "HIGH",
+  "description": "Step-by-step automation recipe for creating a new profile through the web interface",
+  "prerequisites": [
+    "Server running on localhost:5001",
+    "Browser automation tools available"
+  ],
+  "navigation_path": [
+    {
+      "step": 1,
+      "description": "Navigate to profiles page",
+      "action": "navigate_with_verification",
+      "params": {
+        "url": "http://localhost:5001/profiles",
+        "wait_for_element": { "type": "id", "value": "profile-name-input-add" },
+        "page_title_should_contain": "Profiles",
+        "timeout_seconds": 15,
+        "capture_screenshot": true,
+        "update_looking_at": true
+      }
+    }
+  ],
+  "form_interaction_sequence": [
+    {
+      "step": 2,
+      "field": "profile_name",
+      "description": "Fill in the profile name field",
+      "action": "browser_interact_enhanced",
+      "params": {
+        "action": "type",
+        "selector": { "type": "id", "value": "profile-name-input-add" },
+        "pre_checks": ["visible", "enabled"],
+        "verify_text": true,
+        "capture_screenshot": true,
+        "max_retries": 3
+      },
+      "fallback_selectors": [
+        { "type": "name", "value": "profile_name" }
+      ]
+    },
+    {
+      "step": 3,
+      "field": "profile_real_name",
+      "description": "Fill in the real name field",
+      "action": "browser_interact_enhanced",
+      "params": {
+        "action": "type",
+        "selector": { "type": "id", "value": "profile-real-name-input-add" },
+        "pre_checks": ["visible", "enabled"],
+        "verify_text": true,
+        "capture_screenshot": true,
+        "max_retries": 3
+      },
+      "fallback_selectors": [
+        { "type": "name", "value": "profile_real_name" }
+      ]
+    },
+    {
+      "step": 4,
+      "field": "profile_address",
+      "description": "Fill in the address field",
+      "action": "browser_interact_enhanced",
+      "params": {
+        "action": "type",
+        "selector": { "type": "id", "value": "profile-address-input-add" },
+        "pre_checks": ["visible", "enabled"],
+        "verify_text": true,
+        "capture_screenshot": true,
+        "max_retries": 3
+      }
+    },
+    {
+      "step": 5,
+      "field": "profile_code",
+      "description": "Fill in the code field",
+      "action": "browser_interact_enhanced",
+      "params": {
+        "action": "type",
+        "selector": { "type": "id", "value": "profile-code-input-add" },
+        "pre_checks": ["visible", "enabled"],
+        "verify_text": true,
+        "capture_screenshot": true,
+        "max_retries": 3
+      }
+    }
+  ],
+  "form_submission": {
+    "step": 6,
+    "description": "Submit the completed form",
+    "action": "browser_interact_enhanced",
+    "params": {
+      "action": "click",
+      "selector": { "type": "id", "value": "add-profile-button" },
+      "pre_checks": ["visible", "enabled", "clickable"],
+      "capture_screenshot": true,
+      "max_retries": 3
+    },
+    "post_submit_wait_ms": 3000
+  },
+  "verification_steps": [
+    {
+      "step": 7,
+      "description": "Verify profile was created successfully",
+      "action": "navigate_with_verification",
+      "params": {
+        "url": "http://localhost:5001/profiles",
+        "wait_for_element": { "type": "css", "value": "#profile-list-ul li:last-child" },
+        "timeout_seconds": 10,
+        "capture_screenshot": true
+      }
+    }
+  ],
+  "error_handling": {
+    "common_failures": [
+      {
+        "issue": "Element not found",
+        "symptoms": ["selector_not_found", "element_not_in_dom"],
+        "solutions": ["try_fallback_selectors", "wait_longer", "refresh_page"],
+        "max_retries": 3
+      }
+    ],
+    "retry_strategy": {
+      "type": "progressive_backoff",
+      "initial_delay_ms": 1000,
+      "max_delay_ms": 5000
+    }
+  }
+}

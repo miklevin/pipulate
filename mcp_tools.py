@@ -5703,24 +5703,322 @@ async def navigate_with_verification(params: dict) -> dict:
             ]
         }
 
+async def _execute_json_recipe_file(params: dict, recipe_file: str) -> dict:
+    """
+    🍳 JSON RECIPE EXECUTOR - Loads and executes JSON recipe files
+    
+    This helper function loads comprehensive automation recipes from JSON files
+    and executes them step-by-step with enhanced diagnostic feedback.
+    """
+    import json
+    from pathlib import Path
+    
+    try:
+        # Load the JSON recipe file
+        recipe_path = Path(f"ai_discovery/automation_recipes/{recipe_file}")
+        if not recipe_path.exists():
+            return {
+                "success": False,
+                "error": f"Recipe file not found: {recipe_path}",
+                "error_type": "file_not_found",
+                "suggested_fixes": [
+                    "verify_recipe_file_exists",
+                    "check_recipe_file_name_spelling",
+                    "ensure_ai_discovery_directory_exists"
+                ]
+            }
+        
+        with open(recipe_path, 'r') as f:
+            recipe = json.load(f)
+        
+        recipe_name = recipe.get('recipe_name', recipe_file)
+        form_data = params.get('form_data', {})
+        
+        logger.info(f"🍳 FINDER_TOKEN: JSON_RECIPE_LOADED - {recipe_name}")
+        
+        # Prepare execution results
+        execution_results = {
+            "success": False,
+            "recipe_name": recipe_name,
+            "recipe_file": recipe_file,
+            "recipe_version": recipe.get('recipe_version', 'unknown'),
+            "confidence_level": recipe.get('confidence_level', 'unknown'),
+            "timestamp": datetime.now().isoformat(),
+            "steps_executed": [],
+            "total_steps": 0,
+            "steps_successful": 0,
+            "steps_failed": 0,
+            "execution_time_ms": 0,
+            "errors": [],
+            "recipe_metadata": recipe.get('recipe_metadata', {})
+        }
+        
+        start_time = time.time()
+        
+        # Execute navigation path
+        navigation_path = recipe.get('navigation_path', [])
+        for nav_step in navigation_path:
+            step_num = nav_step.get('step', 0)
+            step_name = f"navigation_step_{step_num}"
+            
+            execution_results["steps_executed"].append({
+                "step_name": step_name,
+                "step_number": step_num,
+                "description": nav_step.get('description', ''),
+                "action": nav_step.get('action'),
+                "status": "pending"
+            })
+            
+            try:
+                if nav_step.get('action') == 'navigate_with_verification':
+                    result = await navigate_with_verification(nav_step.get('params', {}))
+                    
+                    if result.get('success'):
+                        execution_results["steps_executed"][-1]["status"] = "success"
+                        execution_results["steps_executed"][-1]["result"] = result
+                        execution_results["steps_successful"] += 1
+                        logger.info(f"🍳 FINDER_TOKEN: RECIPE_STEP_SUCCESS - {step_name}")
+                    else:
+                        execution_results["steps_executed"][-1]["status"] = "failed"
+                        execution_results["steps_executed"][-1]["error"] = result.get('error')
+                        execution_results["steps_failed"] += 1
+                        execution_results["errors"].append(f"Navigation step {step_num} failed: {result.get('error')}")
+                        logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_FAILED - {step_name}")
+                        
+                        # Check if we should continue or abort
+                        if not recipe.get('error_handling', {}).get('continue_on_navigation_failure', False):
+                            break
+                            
+            except Exception as e:
+                execution_results["steps_executed"][-1]["status"] = "error"
+                execution_results["steps_executed"][-1]["error"] = str(e)
+                execution_results["steps_failed"] += 1
+                execution_results["errors"].append(f"Navigation step {step_num} error: {str(e)}")
+                logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_ERROR - {step_name}: {e}")
+        
+        # Execute form interaction sequence
+        form_sequence = recipe.get('form_interaction_sequence', [])
+        for form_step in form_sequence:
+            step_num = form_step.get('step', 0)
+            field_name = form_step.get('field', 'unknown_field')
+            step_name = f"form_step_{step_num}_{field_name}"
+            
+            execution_results["steps_executed"].append({
+                "step_name": step_name,
+                "step_number": step_num,
+                "description": form_step.get('description', ''),
+                "field": field_name,
+                "action": form_step.get('action'),
+                "status": "pending"
+            })
+            
+            try:
+                # Get the text to type from form_data
+                field_selector = form_step.get('params', {}).get('selector', {}).get('value', '')
+                text_to_type = form_data.get(field_selector, '')
+                
+                if not text_to_type:
+                    execution_results["steps_executed"][-1]["status"] = "skipped"
+                    execution_results["steps_executed"][-1]["reason"] = "No form data provided for this field"
+                    continue
+                
+                # Prepare enhanced parameters
+                enhanced_params = form_step.get('params', {}).copy()
+                enhanced_params['text_to_type'] = text_to_type
+                
+                # Add fallback selectors if specified in recipe
+                if 'fallback_selectors' in form_step:
+                    enhanced_params['fallback_selectors'] = form_step['fallback_selectors']
+                
+                # Execute the interaction with retries
+                max_retries = recipe.get('error_handling', {}).get('common_failures', [{}])[0].get('max_retries', 3)
+                success = False
+                
+                for retry in range(max_retries):
+                    result = await browser_interact_enhanced(enhanced_params)
+                    
+                    if result.get('success'):
+                        execution_results["steps_executed"][-1]["status"] = "success"
+                        execution_results["steps_executed"][-1]["result"] = result
+                        execution_results["steps_successful"] += 1
+                        success = True
+                        logger.info(f"🍳 FINDER_TOKEN: RECIPE_STEP_SUCCESS - {step_name}")
+                        
+                        # Apply wait_after_ms if specified
+                        wait_after = form_step.get('wait_after_ms', 0)
+                        if wait_after > 0:
+                            time.sleep(wait_after / 1000)
+                        break
+                    else:
+                        if retry == max_retries - 1:  # Last retry
+                            execution_results["steps_executed"][-1]["status"] = "failed"
+                            execution_results["steps_executed"][-1]["error"] = result.get('error')
+                            execution_results["steps_failed"] += 1
+                            execution_results["errors"].append(f"Form step {step_num} ({field_name}) failed: {result.get('error')}")
+                            logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_FAILED - {step_name}")
+                        else:
+                            # Wait before retry
+                            retry_delay = recipe.get('error_handling', {}).get('retry_strategy', {}).get('initial_delay_ms', 1000)
+                            time.sleep(retry_delay / 1000)
+                
+            except Exception as e:
+                execution_results["steps_executed"][-1]["status"] = "error"
+                execution_results["steps_executed"][-1]["error"] = str(e)
+                execution_results["steps_failed"] += 1
+                execution_results["errors"].append(f"Form step {step_num} ({field_name}) error: {str(e)}")
+                logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_ERROR - {step_name}: {e}")
+        
+        # Execute form submission
+        form_submission = recipe.get('form_submission', {})
+        if form_submission:
+            step_num = form_submission.get('step', 0)
+            step_name = f"submission_step_{step_num}"
+            
+            execution_results["steps_executed"].append({
+                "step_name": step_name,
+                "step_number": step_num,
+                "description": form_submission.get('description', ''),
+                "action": form_submission.get('action'),
+                "status": "pending"
+            })
+            
+            try:
+                # Execute form submission
+                submission_params = form_submission.get('params', {}).copy()
+                if 'fallback_selectors' in form_submission:
+                    submission_params['fallback_selectors'] = form_submission['fallback_selectors']
+                
+                result = await browser_interact_enhanced(submission_params)
+                
+                if result.get('success'):
+                    execution_results["steps_executed"][-1]["status"] = "success"
+                    execution_results["steps_executed"][-1]["result"] = result
+                    execution_results["steps_successful"] += 1
+                    logger.info(f"🍳 FINDER_TOKEN: RECIPE_STEP_SUCCESS - {step_name}")
+                    
+                    # Wait for post-submit processing
+                    post_submit_wait = form_submission.get('post_submit_wait_ms', 3000)
+                    time.sleep(post_submit_wait / 1000)
+                else:
+                    execution_results["steps_executed"][-1]["status"] = "failed"
+                    execution_results["steps_executed"][-1]["error"] = result.get('error')
+                    execution_results["steps_failed"] += 1
+                    execution_results["errors"].append(f"Form submission failed: {result.get('error')}")
+                    logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_FAILED - {step_name}")
+                    
+            except Exception as e:
+                execution_results["steps_executed"][-1]["status"] = "error"
+                execution_results["steps_executed"][-1]["error"] = str(e)
+                execution_results["steps_failed"] += 1
+                execution_results["errors"].append(f"Form submission error: {str(e)}")
+                logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_ERROR - {step_name}: {e}")
+        
+        # Execute verification steps
+        verification_steps = recipe.get('verification_steps', [])
+        for verification in verification_steps:
+            step_num = verification.get('step', 0)
+            step_name = f"verification_step_{step_num}"
+            
+            execution_results["steps_executed"].append({
+                "step_name": step_name,
+                "step_number": step_num,
+                "description": verification.get('description', ''),
+                "action": verification.get('action'),
+                "status": "pending"
+            })
+            
+            try:
+                verification_params = verification.get('params', {})
+                
+                if verification.get('action') == 'navigate_with_verification':
+                    result = await navigate_with_verification(verification_params)
+                else:
+                    result = await browser_interact_enhanced(verification_params)
+                
+                if result.get('success'):
+                    execution_results["steps_executed"][-1]["status"] = "success"
+                    execution_results["steps_executed"][-1]["result"] = result
+                    execution_results["steps_successful"] += 1
+                    logger.info(f"🍳 FINDER_TOKEN: RECIPE_STEP_SUCCESS - {step_name}")
+                else:
+                    execution_results["steps_executed"][-1]["status"] = "failed"
+                    execution_results["steps_executed"][-1]["error"] = result.get('error')
+                    execution_results["steps_failed"] += 1
+                    execution_results["errors"].append(f"Verification step {step_num} failed: {result.get('error')}")
+                    logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_FAILED - {step_name}")
+                    
+            except Exception as e:
+                execution_results["steps_executed"][-1]["status"] = "error"
+                execution_results["steps_executed"][-1]["error"] = str(e)
+                execution_results["steps_failed"] += 1
+                execution_results["errors"].append(f"Verification step {step_num} error: {str(e)}")
+                logger.error(f"❌ FINDER_TOKEN: RECIPE_STEP_ERROR - {step_name}: {e}")
+        
+        # Calculate final results
+        execution_results["total_steps"] = len(execution_results["steps_executed"])
+        execution_results["execution_time_ms"] = int((time.time() - start_time) * 1000)
+        
+        # Determine overall success
+        if execution_results["steps_failed"] == 0 and execution_results["steps_successful"] > 0:
+            execution_results["success"] = True
+        else:
+            execution_results["success"] = False
+            execution_results["success_rate"] = execution_results["steps_successful"] / execution_results["total_steps"] if execution_results["total_steps"] > 0 else 0
+        
+        # Add recommendations based on recipe error handling
+        if not execution_results["success"]:
+            error_handling = recipe.get('error_handling', {})
+            recommendations = []
+            
+            for failure in error_handling.get('common_failures', []):
+                for error in execution_results["errors"]:
+                    if any(symptom in error.lower() for symptom in failure.get('symptoms', [])):
+                        recommendations.extend(failure.get('solutions', []))
+            
+            execution_results["recommendations"] = list(set(recommendations)) if recommendations else [
+                "review_step_by_step_execution_results",
+                "check_element_selectors_in_failed_steps",
+                "verify_page_load_timing"
+            ]
+        
+        return execution_results
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: JSON_RECIPE_EXECUTOR_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "recipe_file": recipe_file,
+            "suggested_fixes": [
+                "check_json_recipe_syntax",
+                "verify_recipe_file_permissions",
+                "validate_recipe_structure"
+            ]
+        }
+
+
 async def browser_automate_recipe(params: dict) -> dict:
     """
     🍳 BROWSER AUTOMATE RECIPE - The High-Level Recipe Executor
     
-    This tool orchestrates complex browser automation workflows using the enhanced
-    interaction tools. It follows step-by-step recipes with comprehensive error
-    handling and retry logic.
+    This tool orchestrates complex browser automation workflows using enhanced
+    interaction tools. It supports both parameter-based recipes and JSON recipe files.
     
     Args:
         params: {
-            "recipe_name": "Create New Profile",
-            "recipe_type": "form_submission" | "navigation" | "data_extraction" | "custom",
-            "form_data": {
+            # === JSON RECIPE FILE APPROACH (New & Preferred) ===
+            "recipe_file": "profile_creation_recipe.json",  # Load from ai_discovery/automation_recipes/
+            "form_data": {  # Values to populate in the recipe
                 "profile-name-input-add": "Test Profile (Automated)",
                 "profile-real-name-input-add": "AI Assistant",
                 "profile-address-input-add": "www.example.com",
                 "profile-code-input-add": "ai"
             },
+            
+            # === PARAMETER-BASED APPROACH (Legacy Support) ===
+            "recipe_name": "Create New Profile",
+            "recipe_type": "form_submission" | "navigation" | "data_extraction" | "custom",
             "navigation_sequence": [
                 {"action": "navigate", "url": "http://localhost:5001/profiles"}
             ],
@@ -5737,9 +6035,15 @@ async def browser_automate_recipe(params: dict) -> dict:
     Returns:
         dict: Recipe execution results with detailed step-by-step feedback
     """
-    logger.info(f"🍳 FINDER_TOKEN: BROWSER_AUTOMATE_RECIPE_START - Recipe: {params.get('recipe_name')}")
+    logger.info(f"🍳 FINDER_TOKEN: BROWSER_AUTOMATE_RECIPE_START - Recipe: {params.get('recipe_name') or params.get('recipe_file')}")
     
     try:
+        # Check if this is a JSON recipe file request
+        recipe_file = params.get('recipe_file')
+        if recipe_file:
+            return await _execute_json_recipe_file(params, recipe_file)
+        
+        # Legacy parameter-based approach
         recipe_name = params.get('recipe_name', 'Unnamed Recipe')
         recipe_type = params.get('recipe_type', 'custom')
         form_data = params.get('form_data', {})
