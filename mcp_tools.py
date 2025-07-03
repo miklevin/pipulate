@@ -741,7 +741,6 @@ def register_all_mcp_tools():
     register_mcp_tool("browser_create_profile_single_session", browser_create_profile_single_session)
     register_mcp_tool("browser_save_all_data_single_session", browser_save_all_data_single_session)
     register_mcp_tool("browser_load_all_data_single_session", browser_load_all_data_single_session)
-    register_mcp_tool("browser_complete_backup_restore_test", browser_complete_backup_restore_test)
     
     # Additional Botify tools
     register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
@@ -3463,7 +3462,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                 ]
             },
             "session_hijacking": {
-                "description": "Take over user's Botifython workflow",
+                "description": "Take over user session seamlessly",
                 "steps": [
                     "1. pipeline_state_inspector - Understand current workflow",
                     "2. browser_scrape_page - Capture current state",
@@ -6519,30 +6518,31 @@ async def browser_save_all_data_single_session(params: dict = None) -> dict:
     from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
     from datetime import datetime
     
-    # 🎯 BULLETPROOF DEFAULTS - Read from recipe file if not provided
+    # 🎯 BULLETPROOF DEFAULTS - These always work!
     if params is None:
         params = {}
     
-    # Read recipe defaults if no parameters provided
-    recipe_defaults = {}
-    try:
-        import json
-        recipe_path = "ai_discovery/automation_recipes/save_all_data_recipe.json"
-        with open(recipe_path, 'r') as f:
-            recipe_data = json.load(f)
-            recipe_defaults = {
-                'base_url': recipe_data.get('url', 'http://localhost:5001'),
-                'max_retries': recipe_data.get('max_retries', 3),
-                'wait_timeout': recipe_data.get('wait_timeout', 10)
-            }
-    except Exception as e:
-        get_logger().warning(f"📋 Could not load save recipe defaults: {e}")
-        recipe_defaults = {'base_url': 'http://localhost:5001', 'max_retries': 3, 'wait_timeout': 10}
+    # 📄 READ URL FROM RECIPE FILE - Like the working profile creation function
+    import json
+    from pathlib import Path
     
-    # Extract parameters with recipe defaults
-    base_url = params.get('base_url', recipe_defaults.get('base_url', 'http://localhost:5001'))
-    max_retries = params.get('max_retries', recipe_defaults.get('max_retries', 3))
-    wait_timeout = params.get('wait_timeout', recipe_defaults.get('wait_timeout', 10))
+    recipe_file = Path("ai_discovery/automation_recipes/save_all_data_recipe.json")
+    base_url = 'http://localhost:5001/profiles'  # Safe fallback
+    
+    if recipe_file.exists():
+        try:
+            with open(recipe_file, 'r') as f:
+                recipe_data = json.load(f)
+                base_url = recipe_data.get('url', 'http://localhost:5001/profiles')
+                get_logger().info(f"🎯 FINDER_TOKEN: RECIPE_URL_READ - Using URL from recipe: {base_url}")
+        except Exception as e:
+            get_logger().warning(f"🎯 FINDER_TOKEN: RECIPE_READ_ERROR - Using fallback URL: {e}")
+    else:
+        get_logger().warning(f"🎯 FINDER_TOKEN: RECIPE_NOT_FOUND - Using fallback URL: {base_url}")
+    
+    # Extract parameters with bulletproof defaults
+    max_retries = params.get('max_retries', 3)
+    wait_timeout = params.get('wait_timeout', 10)
     
     get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_SAVE_START - Saving all data via Settings flyout")
     
@@ -6592,8 +6592,8 @@ async def browser_save_all_data_single_session(params: dict = None) -> dict:
         driver = webdriver.Chrome(options=chrome_options)
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         
-        # Step 1: Navigate to main page
-        main_url = base_url
+        # Step 1: Navigate to profiles page (from recipe URL)
+        main_url = base_url  # This now contains the correct URL from recipe
         for attempt in range(max_retries):
             try:
                 driver.get(main_url)
@@ -6608,7 +6608,7 @@ async def browser_save_all_data_single_session(params: dict = None) -> dict:
                     EC.presence_of_element_located((By.ID, "poke-summary"))
                 )
                 
-                add_step(1, "success", "Navigate to main page", f"Successfully loaded {main_url}")
+                add_step(1, "success", "Navigate to profiles page", f"Successfully loaded {main_url}")
                 time.sleep(2)  # Human-like pause
                 break
                 
@@ -6620,47 +6620,29 @@ async def browser_save_all_data_single_session(params: dict = None) -> dict:
                     add_step(1, "error", "Navigate to main page", f"Navigation failed after {max_retries} attempts", str(e))
                     return {"success": False, "error": "Navigation failed", "steps_executed": steps_executed}
         
-        # Step 2: Click Settings (Poke) button to trigger flyout
+        # Step 2: CLICK Settings (Poke) button to trigger flyout (NOT hover!)
         for attempt in range(max_retries):
             try:
                 poke_button = driver.find_element(By.ID, "poke-summary")
                 
-                # Click the settings button to trigger flyout
+                # Use CLICK not hover - this was the critical fix!
                 poke_button.click()
                 
-                # More robust flyout detection - check for content rather than just visibility
-                def flyout_has_content(driver):
-                    try:
-                        panel = driver.find_element(By.ID, "nav-flyout-panel")
-                        # Check if panel has visible class and contains backup buttons
-                        has_visible_class = 'visible' in panel.get_attribute('class')
-                        has_content = len(panel.text.strip()) > 0 or panel.find_elements(By.TAG_NAME, "button")
-                        return has_visible_class and has_content
-                    except:
-                        return False
-                
-                # Wait for flyout to appear with content
-                WebDriverWait(driver, 8).until(flyout_has_content)
+                # Wait for flyout to appear
+                flyout_panel = WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.ID, "nav-flyout-panel"))
+                )
                 
                 add_step(2, "success", "Click trigger Settings flyout", "Flyout panel appeared successfully")
                 time.sleep(1)  # Let flyout fully load
                 break
                 
-            except TimeoutException as te:
-                error_msg = f"Flyout visibility timeout after click (attempt {attempt + 1}): {str(te)}"
-                if attempt < max_retries - 1:
-                    add_step(2, "retry", "Click trigger Settings flyout", f"Click failed, retrying... (attempt {attempt + 1})", error_msg)
-                    time.sleep(0.5)
-                else:
-                    add_step(2, "error", "Click trigger Settings flyout", f"Click failed after {max_retries} attempts", error_msg)
-                    return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
             except Exception as e:
-                error_msg = f"Click operation failed: {type(e).__name__}: {str(e)}"
                 if attempt < max_retries - 1:
-                    add_step(2, "retry", "Click trigger Settings flyout", f"Click failed, retrying... (attempt {attempt + 1})", error_msg)
+                    add_step(2, "retry", "Click trigger Settings flyout", f"Click failed, retrying... (attempt {attempt + 1})", str(e))
                     time.sleep(0.5)
                 else:
-                    add_step(2, "error", "Click trigger Settings flyout", f"Click failed after {max_retries} attempts", error_msg)
+                    add_step(2, "error", "Click trigger Settings flyout", f"Click failed after {max_retries} attempts", str(e))
                     return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
         
         # Step 3: Click Save all data button
@@ -6718,10 +6700,6 @@ async def browser_save_all_data_single_session(params: dict = None) -> dict:
         success_rate = (steps_successful / len(steps_executed)) * 100 if steps_executed else 0
         
         get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_SAVE_COMPLETE - Data saved successfully in {execution_time}ms with {success_rate:.1f}% success rate")
-        
-        # Give user time to observe the save result
-        get_logger().info(f"🕐 FINDER_TOKEN: SAVE_SETTLE_WAIT - Allowing 10 seconds for save result observation")
-        time.sleep(10)
         
         return {
             "success": True,
@@ -6802,32 +6780,32 @@ async def browser_load_all_data_single_session(params: dict = None) -> dict:
     from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
     from datetime import datetime
     
-    # 🎯 BULLETPROOF DEFAULTS - Read from recipe file if not provided
+    # 🎯 BULLETPROOF DEFAULTS - These always work!
     if params is None:
         params = {}
     
-    # Read recipe defaults if no parameters provided
-    recipe_defaults = {}
-    try:
-        import json
-        recipe_path = "ai_discovery/automation_recipes/load_all_data_recipe.json"
-        with open(recipe_path, 'r') as f:
-            recipe_data = json.load(f)
-            recipe_defaults = {
-                'base_url': recipe_data.get('url', 'http://localhost:5001'),
-                'max_retries': recipe_data.get('max_retries', 3),
-                'wait_timeout': recipe_data.get('wait_timeout', 10),
-                'restart_wait_timeout': recipe_data.get('restart_wait_timeout', 30)
-            }
-    except Exception as e:
-        get_logger().warning(f"📋 Could not load load recipe defaults: {e}")
-        recipe_defaults = {'base_url': 'http://localhost:5001', 'max_retries': 3, 'wait_timeout': 10, 'restart_wait_timeout': 30}
+    # 📄 READ URL FROM RECIPE FILE - Like the working profile creation function
+    import json
+    from pathlib import Path
     
-    # Extract parameters with recipe defaults
-    base_url = params.get('base_url', recipe_defaults.get('base_url', 'http://localhost:5001'))
-    max_retries = params.get('max_retries', recipe_defaults.get('max_retries', 3))
-    wait_timeout = params.get('wait_timeout', recipe_defaults.get('wait_timeout', 10))
-    restart_wait_timeout = params.get('restart_wait_timeout', recipe_defaults.get('restart_wait_timeout', 30))
+    recipe_file = Path("ai_discovery/automation_recipes/load_all_data_recipe.json")
+    base_url = 'http://localhost:5001/profiles'  # Safe fallback
+    
+    if recipe_file.exists():
+        try:
+            with open(recipe_file, 'r') as f:
+                recipe_data = json.load(f)
+                base_url = recipe_data.get('url', 'http://localhost:5001/profiles')
+                get_logger().info(f"🎯 FINDER_TOKEN: RECIPE_URL_READ - Using URL from recipe: {base_url}")
+        except Exception as e:
+            get_logger().warning(f"🎯 FINDER_TOKEN: RECIPE_READ_ERROR - Using fallback URL: {e}")
+    else:
+        get_logger().warning(f"🎯 FINDER_TOKEN: RECIPE_NOT_FOUND - Using fallback URL: {base_url}")
+    
+    # Extract parameters with bulletproof defaults
+    max_retries = params.get('max_retries', 3)
+    wait_timeout = params.get('wait_timeout', 10)
+    restart_wait_timeout = params.get('restart_wait_timeout', 30)
     
     get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_LOAD_START - Loading all data via Settings flyout (with restart handling)")
     
@@ -6877,8 +6855,8 @@ async def browser_load_all_data_single_session(params: dict = None) -> dict:
         driver = webdriver.Chrome(options=chrome_options)
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         
-        # Step 1: Navigate to main page
-        main_url = base_url
+        # Step 1: Navigate to profiles page (from recipe URL)
+        main_url = base_url  # This now contains the correct URL from recipe
         for attempt in range(max_retries):
             try:
                 driver.get(main_url)
@@ -6893,7 +6871,7 @@ async def browser_load_all_data_single_session(params: dict = None) -> dict:
                     EC.presence_of_element_located((By.ID, "poke-summary"))
                 )
                 
-                add_step(1, "success", "Navigate to main page", f"Successfully loaded {main_url}")
+                add_step(1, "success", "Navigate to profiles page", f"Successfully loaded {main_url}")
                 time.sleep(2)  # Human-like pause
                 break
                 
@@ -6905,47 +6883,29 @@ async def browser_load_all_data_single_session(params: dict = None) -> dict:
                     add_step(1, "error", "Navigate to main page", f"Navigation failed after {max_retries} attempts", str(e))
                     return {"success": False, "error": "Navigation failed", "steps_executed": steps_executed}
         
-        # Step 2: Click Settings (Poke) button to trigger flyout
+        # Step 2: CLICK Settings (Poke) button to trigger flyout (NOT hover!)
         for attempt in range(max_retries):
             try:
                 poke_button = driver.find_element(By.ID, "poke-summary")
                 
-                # Click the settings button to trigger flyout
+                # Use CLICK not hover - this was the critical fix!
                 poke_button.click()
                 
-                # More robust flyout detection - check for content rather than just visibility
-                def flyout_has_content(driver):
-                    try:
-                        panel = driver.find_element(By.ID, "nav-flyout-panel")
-                        # Check if panel has visible class and contains backup buttons
-                        has_visible_class = 'visible' in panel.get_attribute('class')
-                        has_content = len(panel.text.strip()) > 0 or panel.find_elements(By.TAG_NAME, "button")
-                        return has_visible_class and has_content
-                    except:
-                        return False
-                
-                # Wait for flyout to appear with content
-                WebDriverWait(driver, 8).until(flyout_has_content)
+                # Wait for flyout to appear
+                flyout_panel = WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.ID, "nav-flyout-panel"))
+                )
                 
                 add_step(2, "success", "Click trigger Settings flyout", "Flyout panel appeared successfully")
                 time.sleep(1)  # Let flyout fully load
                 break
                 
-            except TimeoutException as te:
-                error_msg = f"Flyout visibility timeout after click (attempt {attempt + 1}): {str(te)}"
-                if attempt < max_retries - 1:
-                    add_step(2, "retry", "Click trigger Settings flyout", f"Click failed, retrying... (attempt {attempt + 1})", error_msg)
-                    time.sleep(0.5)
-                else:
-                    add_step(2, "error", "Click trigger Settings flyout", f"Click failed after {max_retries} attempts", error_msg)
-                    return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
             except Exception as e:
-                error_msg = f"Click operation failed: {type(e).__name__}: {str(e)}"
                 if attempt < max_retries - 1:
-                    add_step(2, "retry", "Click trigger Settings flyout", f"Click failed, retrying... (attempt {attempt + 1})", error_msg)
+                    add_step(2, "retry", "Click trigger Settings flyout", f"Click failed, retrying... (attempt {attempt + 1})", str(e))
                     time.sleep(0.5)
                 else:
-                    add_step(2, "error", "Click trigger Settings flyout", f"Click failed after {max_retries} attempts", error_msg)
+                    add_step(2, "error", "Click trigger Settings flyout", f"Click failed after {max_retries} attempts", str(e))
                     return {"success": False, "error": "Flyout trigger failed", "steps_executed": steps_executed}
         
         # Step 3: Check for backup data and click Load all data button
@@ -7053,10 +7013,6 @@ async def browser_load_all_data_single_session(params: dict = None) -> dict:
         
         get_logger().info(f"🎯 FINDER_TOKEN: BULLETPROOF_LOAD_COMPLETE - Data loaded successfully in {execution_time}ms with {success_rate:.1f}% success rate")
         
-        # Give user time to observe the load result
-        get_logger().info(f"🕐 FINDER_TOKEN: LOAD_SETTLE_WAIT - Allowing 10 seconds for load result observation")
-        time.sleep(10)
-        
         return {
             "success": True,
             "operation": "load_all_data",
@@ -7101,160 +7057,6 @@ async def browser_load_all_data_single_session(params: dict = None) -> dict:
                 get_logger().info(f"🧹 FINDER_TOKEN: LOAD_BROWSER_CLEANUP - Browser quit successfully")
         except Exception as browser_quit_error:
             get_logger().warning(f"⚠️ FINDER_TOKEN: LOAD_BROWSER_CLEANUP_WARNING - Browser quit failed: {browser_quit_error}")
-
-
-async def browser_complete_backup_restore_test(params: dict = None) -> dict:
-    """
-    🎯 COMPREHENSIVE BACKUP & RESTORE TEST SUITE
-    
-    ✨ COMPLETE ROUND-TRIP VALIDATION: Creates profile → Saves data → Loads data → Verifies profile exists
-    
-    This function orchestrates all three browser automation functions:
-    1. Creates a new profile with unique name
-    2. Saves all data via Settings flyout  
-    3. Loads all data via Settings flyout (with server restart)
-    4. Verifies the original profile still exists after restore
-    
-    Features:
-    - 🎯 End-to-end validation of backup/restore functionality
-    - 🔍 Profile name verification and tracking
-    - 📊 Comprehensive result reporting with timing
-    - 🛡️ Error handling and detailed logging
-    - ⚡ Uses correct URLs from recipe files
-    - 🕐 10-second settle waits after save/load operations
-    """
-    # 🌍 UPSTREAM BROWSER LOGGING
-    get_logger().info(f"🌍 FINDER_TOKEN: COMPREHENSIVE_TEST_START - browser_complete_backup_restore_test called with params: {params}")
-    
-    import time
-    from datetime import datetime
-    
-    # 🎯 BULLETPROOF DEFAULTS
-    if params is None:
-        params = {}
-    
-    start_time = time.time()
-    test_results = {
-        "success": False,
-        "test_started": datetime.now().isoformat(),
-        "operations_completed": [],
-        "profile_name_created": None,
-        "profile_verified_after_restore": False,
-        "timing": {},
-        "errors": []
-    }
-    
-    try:
-        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_1 - Creating new profile")
-        
-        # Phase 1: Create Profile
-        phase1_start = time.time()
-        create_result = await browser_create_profile_single_session(params)
-        phase1_time = int((time.time() - phase1_start) * 1000)
-        
-        if not create_result.get("success"):
-            test_results["errors"].append(f"Profile creation failed: {create_result.get('error', 'Unknown error')}")
-            return test_results
-        
-        profile_name = create_result.get("profile_name")
-        if not profile_name:
-            test_results["errors"].append("Profile creation succeeded but no profile name returned")
-            return test_results
-        
-        test_results["profile_name_created"] = profile_name
-        test_results["operations_completed"].append("create_profile")
-        test_results["timing"]["create_profile_ms"] = phase1_time
-        
-        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_1_SUCCESS - Profile created: {profile_name}")
-        
-        # Phase 2: Save All Data
-        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_2 - Saving all data")
-        phase2_start = time.time()
-        save_result = await browser_save_all_data_single_session(params)
-        phase2_time = int((time.time() - phase2_start) * 1000)
-        
-        if not save_result.get("success"):
-            test_results["errors"].append(f"Save operation failed: {save_result.get('error', 'Unknown error')}")
-            return test_results
-        
-        test_results["operations_completed"].append("save_all_data")
-        test_results["timing"]["save_all_data_ms"] = phase2_time
-        
-        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_2_SUCCESS - Data saved successfully")
-        
-        # Phase 3: Load All Data (with server restart)
-        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_3 - Loading all data")
-        phase3_start = time.time()
-        load_result = await browser_load_all_data_single_session(params)
-        phase3_time = int((time.time() - phase3_start) * 1000)
-        
-        if not load_result.get("success"):
-            test_results["errors"].append(f"Load operation failed: {load_result.get('error', 'Unknown error')}")
-            return test_results
-        
-        test_results["operations_completed"].append("load_all_data")
-        test_results["timing"]["load_all_data_ms"] = phase3_time
-        test_results["server_restarted"] = load_result.get("server_restarted", False)
-        
-        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_3_SUCCESS - Data loaded successfully")
-        
-        # Phase 4: Verify Profile Still Exists
-        get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_4 - Verifying profile exists after restore")
-        phase4_start = time.time()
-        
-        # Use browser_scrape_page to check if profile still exists
-        verification_result = await browser_scrape_page({
-            'url': 'http://localhost:5001/profiles',
-            'take_screenshot': False
-        })
-        
-        if verification_result.get("success"):
-            # Check if our profile name appears in the scraped content
-            scraped_content = verification_result.get("text_content", "")
-            if profile_name in scraped_content:
-                test_results["profile_verified_after_restore"] = True
-                get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_4_SUCCESS - Profile {profile_name} verified after restore")
-            else:
-                test_results["errors"].append(f"Profile {profile_name} not found after restore")
-                get_logger().warning(f"⚠️ FINDER_TOKEN: COMPREHENSIVE_TEST_PHASE_4_WARNING - Profile {profile_name} not found in content")
-        else:
-            test_results["errors"].append(f"Failed to verify profiles page: {verification_result.get('error', 'Unknown error')}")
-        
-        phase4_time = int((time.time() - phase4_start) * 1000)
-        test_results["timing"]["verification_ms"] = phase4_time
-        test_results["operations_completed"].append("verify_profile")
-        
-        # Calculate total execution time
-        total_time = int((time.time() - start_time) * 1000)
-        test_results["timing"]["total_test_ms"] = total_time
-        
-        # Determine overall success
-        expected_operations = ["create_profile", "save_all_data", "load_all_data", "verify_profile"]
-        operations_successful = len(test_results["operations_completed"])
-        test_results["success"] = (
-            operations_successful == len(expected_operations) and 
-            test_results["profile_verified_after_restore"] and
-            len(test_results["errors"]) == 0
-        )
-        
-        if test_results["success"]:
-            get_logger().info(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_COMPLETE - ALL TESTS PASSED in {total_time}ms")
-            test_results["result_message"] = f"Complete backup/restore cycle successful. Profile '{profile_name}' created, saved, restored, and verified."
-        else:
-            get_logger().warning(f"⚠️ FINDER_TOKEN: COMPREHENSIVE_TEST_PARTIAL - Some tests failed in {total_time}ms")
-            test_results["result_message"] = f"Partial success: {operations_successful}/{len(expected_operations)} operations completed"
-        
-        return test_results
-        
-    except Exception as e:
-        execution_time = int((time.time() - start_time) * 1000)
-        get_logger().error(f"🎯 FINDER_TOKEN: COMPREHENSIVE_TEST_ERROR - Unexpected error in {execution_time}ms: {e}")
-        
-        test_results["errors"].append(f"Unexpected error: {str(e)}")
-        test_results["timing"]["total_test_ms"] = execution_time
-        test_results["result_message"] = f"Test suite failed with error: {str(e)}"
-        
-        return test_results
 
 
 # Registration moved to register_all_mcp_tools() function
