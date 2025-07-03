@@ -713,6 +713,7 @@ def register_all_mcp_tools():
     register_mcp_tool("browser_interact_enhanced", browser_interact_enhanced)
     register_mcp_tool("navigate_with_verification", navigate_with_verification)
     register_mcp_tool("browser_automate_recipe", browser_automate_recipe)
+    register_mcp_tool("browser_create_profile_single_session", browser_create_profile_single_session)
     
     # Additional Botify tools
     register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
@@ -6468,7 +6469,6 @@ async def browser_create_profile_single_session(params: dict = None) -> dict:
             logger.info(f"🎯 FINDER_TOKEN: BULLETPROOF_CLEANUP - Browser session closed gracefully")
 
 
-# Register the new single-session tool
-register_mcp_tool("browser_create_profile_single_session", browser_create_profile_single_session)
+# Registration moved to register_all_mcp_tools() function
 
 
