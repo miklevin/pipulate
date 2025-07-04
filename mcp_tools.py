@@ -5132,15 +5132,15 @@ async def execute_automation_recipe(params: dict = None) -> dict:
     """🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM
     
     Progressive disclosure pattern for managing automation recipes:
-    - Level 1: No params → Show available hosts + quick actions
-    - Level 2: host only → Show recipes for that host  
-    - Level 3: host + recipe → Execute the specific recipe
+    - Level 1: No params → Show available origins + quick actions
+    - Level 2: origin only → Show recipes for that origin  
+    - Level 3: origin + recipe → Execute the specific recipe
     
     Args:
         params: Optional parameters for progressive disclosure
-                - No params: List hosts and quick actions
-                - {"host": "localhost:5001"}: List recipes for host
-                - {"host": "X", "recipe": "Y", ...}: Execute recipe
+                - No params: List origins and quick actions
+                - {"origin": "http://localhost:5001"}: List recipes for origin
+                - {"origin": "X", "recipe": "Y", ...}: Execute recipe
     
     Returns:
         dict: Progressive disclosure results or execution results
@@ -5152,46 +5152,54 @@ async def execute_automation_recipe(params: dict = None) -> dict:
     logger.info(f"🎯 FINDER_TOKEN: AUTOMATION_RECIPE_START - execute_automation_recipe called with params: {params}")
     
     try:
-        # Level 1: No parameters - show available hosts and quick actions
+        # Level 1: No parameters - show available origins and quick actions
         if not params:
             recipes_dir = Path("ai_discovery/automation_recipes")
-            available_hosts = []
+            available_origins = []
             
             if recipes_dir.exists():
-                # Find all host directories
+                # Find all origin directories
                 for item in recipes_dir.iterdir():
                     if item.is_dir() and not item.name.startswith('.'):
-                        # Convert directory name back to host format
-                        host_name = item.name.replace('_', ':')
-                        available_hosts.append(host_name)
+                        # Convert directory name back to origin format
+                        origin_name = item.name.replace('_', '://', 1).replace('_', '.')
+                        available_origins.append(origin_name)
             
             return {
                 "success": True,
                 "level": 1,
-                "available_hosts": available_hosts,
+                "available_origins": available_origins,
                 "quick_actions": [
                     "list_all_recipes",
                     "test_localhost_cycle",
                     "backup_test",
                     "profile_creation_test"
                 ],
-                "usage": "Call with {'host': 'localhost:5001'} to see recipes for that host",
-                "example": "await execute_automation_recipe({'host': 'localhost:5001'})",
-                "total_hosts": len(available_hosts)
+                "usage": "Call with {'origin': 'http://localhost:5001'} to see recipes for that origin",
+                "example": "await execute_automation_recipe({'origin': 'http://localhost:5001'})",
+                "total_origins": len(available_origins)
             }
         
-        # Level 2: Host specified but no recipe - show available recipes
-        if "host" in params and "recipe" not in params:
-            host = params["host"]
-            # Convert host to directory name format
-            host_dir = host.replace(':', '_')
-            recipes_path = Path(f"ai_discovery/automation_recipes/{host_dir}")
+        # Level 2: Origin specified but no recipe - show available recipes
+        if "origin" in params and "recipe" not in params:
+            origin = params["origin"]
+            # Convert origin to directory name format
+            origin_dir = origin.replace('://', '_', 1).replace('.', '_').replace(':', '_')
+            recipes_path = Path(f"ai_discovery/automation_recipes/{origin_dir}")
             
             if not recipes_path.exists():
+                available_origins = []
+                recipes_dir = Path("ai_discovery/automation_recipes")
+                if recipes_dir.exists():
+                    for d in recipes_dir.iterdir():
+                        if d.is_dir() and not d.name.startswith('.'):
+                            origin_name = d.name.replace('_', '://', 1).replace('_', '.')
+                            available_origins.append(origin_name)
+                
                 return {
                     "success": False,
-                    "error": f"No recipes found for host: {host}",
-                    "available_hosts": [d.name.replace('_', ':') for d in Path("ai_discovery/automation_recipes").iterdir() if d.is_dir()]
+                    "error": f"No recipes found for origin: {origin}",
+                    "available_origins": available_origins
                 }
             
             # Find all recipe files
@@ -5217,29 +5225,29 @@ async def execute_automation_recipe(params: dict = None) -> dict:
             return {
                 "success": True,
                 "level": 2,
-                "host": host,
+                "origin": origin,
                 "available_recipes": available_recipes,
                 "recipe_details": recipe_details,
-                "usage": f"Call with {{'host': '{host}', 'recipe': 'RECIPE_NAME'}} to execute",
-                "example": f"await execute_automation_recipe({{'host': '{host}', 'recipe': '{available_recipes[0] if available_recipes else 'profile_creation'}'}})",
+                "usage": f"Call with {{'origin': '{origin}', 'recipe': 'RECIPE_NAME'}} to execute",
+                "example": f"await execute_automation_recipe({{'origin': '{origin}', 'recipe': '{available_recipes[0] if available_recipes else 'profile_creation'}'}})",
                 "total_recipes": len(available_recipes)
             }
         
-        # Level 3: Host and recipe specified - execute the recipe
-        if "host" in params and "recipe" in params:
-            host = params["host"]
+        # Level 3: Origin and recipe specified - execute the recipe
+        if "origin" in params and "recipe" in params:
+            origin = params["origin"]
             recipe_name = params["recipe"]
             
-            # Convert host to directory name format
-            host_dir = host.replace(':', '_')
-            recipe_path = Path(f"ai_discovery/automation_recipes/{host_dir}/{recipe_name}.json")
+            # Convert origin to directory name format
+            origin_dir = origin.replace('://', '_', 1).replace('.', '_').replace(':', '_')
+            recipe_path = Path(f"ai_discovery/automation_recipes/{origin_dir}/{recipe_name}.json")
             
             if not recipe_path.exists():
                 return {
                     "success": False,
-                    "error": f"Recipe '{recipe_name}' not found for host '{host}'",
+                    "error": f"Recipe '{recipe_name}' not found for origin '{origin}'",
                     "recipe_path": str(recipe_path),
-                    "suggestion": f"Call with {{'host': '{host}'}} to see available recipes"
+                    "suggestion": f"Call with {{'origin': '{origin}'}} to see available recipes"
                 }
             
             # Load and execute the recipe
@@ -5259,7 +5267,7 @@ async def execute_automation_recipe(params: dict = None) -> dict:
                 automation_params = {
                     "instructions": f"Execute {recipe_name} recipe",
                     "recipe_data": recipe_data,
-                    "target_url": execution_params.get("url", f"http://{host}"),
+                    "target_url": execution_params.get("url", origin),
                     "headless_mode": execution_params.get("headless_mode", False),
                     "custom_params": params.get("execution_params", {})
                 }
@@ -5270,7 +5278,7 @@ async def execute_automation_recipe(params: dict = None) -> dict:
                 # Add recipe metadata to result
                 result.update({
                     "recipe_name": recipe_name,
-                    "host": host,
+                    "origin": origin,
                     "recipe_path": str(recipe_path),
                     "recipe_version": recipe_data.get("version", "Unknown")
                 })
@@ -5284,7 +5292,7 @@ async def execute_automation_recipe(params: dict = None) -> dict:
                     "success": False,
                     "error": f"Failed to execute recipe '{recipe_name}': {str(e)}",
                     "recipe_path": str(recipe_path),
-                    "host": host,
+                    "origin": origin,
                     "recipe_name": recipe_name
                 }
         
@@ -5293,9 +5301,9 @@ async def execute_automation_recipe(params: dict = None) -> dict:
             "success": False,
             "error": "Invalid parameter combination",
             "valid_patterns": [
-                "No params: List hosts",
-                "{'host': 'X'}: List recipes for host",
-                "{'host': 'X', 'recipe': 'Y'}: Execute recipe"
+                "No params: List origins",
+                "{'origin': 'X'}: List recipes for origin",
+                "{'origin': 'X', 'recipe': 'Y'}: Execute recipe"
             ],
             "received_params": params
         }
