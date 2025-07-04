@@ -174,7 +174,7 @@ class BaseCrud:
             current_status = getattr(item, self.toggle_field)
             new_status = not current_status
             setattr(item, self.toggle_field, new_status)
-            updated_item = self.table.update(item)
+            updated_item = self.table.update(id=item_id, **{self.toggle_field: new_status})
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             status_text = 'checked' if new_status else 'unchecked'
             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
@@ -317,7 +317,7 @@ class BaseCrud:
             old_values = {field: getattr(original_item, field, None) for field in update_data.keys()}
             
             # Update the item
-            updated_item = self.table.update(item_id, **update_data)
+            updated_item = self.table.update(id=item_id, **update_data)
             
             # 🎯 TRIGGER BACKUP after successful update
             self._trigger_backup()
