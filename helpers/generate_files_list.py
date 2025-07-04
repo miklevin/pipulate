@@ -10,11 +10,37 @@ Usage:
 
 import os
 import re
+import tiktoken
 from pathlib import Path
 from collections import namedtuple
 
 # Named tuple for file entries with explicit labels
 FileEntry = namedtuple('FileEntry', ['filename', 'double_comment', 'description'])
+
+def count_tokens(text: str, model: str = "gpt-4") -> int:
+    """Count the number of tokens in a text string."""
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+        return len(encoding.encode(text))
+    except Exception as e:
+        print(f"Warning: Could not count tokens for text: {e}")
+        return 0
+
+def get_file_token_count(file_path: str) -> int:
+    """Get token count for a specific file."""
+    try:
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                return count_tokens(content)
+        return 0
+    except Exception as e:
+        print(f"Warning: Could not count tokens for {file_path}: {e}")
+        return 0
+
+def format_token_count(token_count: int) -> str:
+    """Format token count with commas."""
+    return f"{token_count:,}"
 
 def parse_gitignore(repo_root):
     """Parse .gitignore file and return patterns to exclude."""
@@ -150,10 +176,14 @@ def enumerate_directory(path, comment_prefix="# ", description="", defaults_unco
                         if should_exclude_file(rel_path, ignore_patterns):
                             continue
                             
+                        # Get token count for the file
+                        token_count = get_file_token_count(file_path)
+                        token_info = f"[{format_token_count(token_count)}]"
+                        
                         # Check if this file should be uncommented by default
                         should_comment = file not in defaults_uncommented
                         prefix = comment_prefix if should_comment else ""
-                        lines.append(f"{prefix}{file_path}")
+                        lines.append(f"{prefix}{file_path}  # {token_info}")
             else:
                 # Non-recursive: only files in the immediate directory
                 files = sorted(os.listdir(path))
@@ -166,10 +196,14 @@ def enumerate_directory(path, comment_prefix="# ", description="", defaults_unco
                         if should_exclude_file(rel_path, ignore_patterns):
                             continue
                             
+                        # Get token count for the file
+                        token_count = get_file_token_count(file_path)
+                        token_info = f"[{format_token_count(token_count)}]"
+                        
                         # Check if this file should be uncommented by default
                         should_comment = file not in defaults_uncommented
                         prefix = comment_prefix if should_comment else ""
-                        lines.append(f"{prefix}{file_path}")
+                        lines.append(f"{prefix}{file_path}  # {token_info}")
         else:
             lines.append(f"{comment_prefix}# Directory not found: {path}")
     except Exception as e:
@@ -189,7 +223,10 @@ def enumerate_specific_files(file_list, comment_prefix="# ", description="", ign
             continue
             
         if os.path.exists(file_path):
-            lines.append(f"{comment_prefix}{file_path}")
+            # Get token count for the file
+            token_count = get_file_token_count(file_path)
+            token_info = f"[{format_token_count(token_count)}]"
+            lines.append(f"{comment_prefix}{file_path}  # {token_info}")
         else:
             lines.append(f"{comment_prefix}{file_path}  # <-- NOT FOUND")
     
@@ -240,12 +277,17 @@ def generate_files_list():
     ]
     for entry in core_files:
         full_path = f"{base_paths['pipulate']}/{entry.filename}"
+        
+        # Get token count for the file
+        token_count = get_file_token_count(full_path)
+        token_info = f"[{format_token_count(token_count)}]"
+        
         if entry.double_comment:
             # Double comments for emphasized files
-            lines.append(f"# {full_path}  # <-- {entry.description}")
+            lines.append(f"# {full_path}  # <-- {entry.description} {token_info}")
         else:
             # Single comment with description
-            lines.append(f"{full_path}  # {entry.description}")
+            lines.append(f"{full_path}  # {entry.description} {token_info}")
     
     # PyPI release system files - commented out by default
     lines.append("\n## PYPI RELEASE SYSTEM FILES")
@@ -261,12 +303,17 @@ def generate_files_list():
     ]
     for entry in pypi_files:
         full_path = f"{base_paths['pipulate']}/{entry.filename}"
+        
+        # Get token count for the file
+        token_count = get_file_token_count(full_path)
+        token_info = f"[{format_token_count(token_count)}]"
+        
         if entry.double_comment:
             # Double comments for emphasized files
-            lines.append(f"# {full_path}  # <-- {entry.description}")
+            lines.append(f"# {full_path}  # <-- {entry.description} {token_info}")
         else:
             # Single comment with description (uncommented since these are active)
-            lines.append(f"{full_path}  # {entry.description}")
+            lines.append(f"{full_path}  # {entry.description} {token_info}")
     
     # Common/shared files
     lines.extend(enumerate_specific_files([
