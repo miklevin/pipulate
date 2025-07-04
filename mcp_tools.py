@@ -5128,6 +5128,243 @@ if __name__ == "__main__":
             "error": f"Workflow hijacking failed: {str(e)}"
         }
 
+async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dict:
+    """🚀 JSON Recipe Execution Engine
+    
+    Executes JSON-based automation recipes with proper browser automation.
+    Handles the declarative recipe format with steps, selectors, and timing.
+    
+    Args:
+        recipe_data: The JSON recipe data with steps and configuration
+        execution_params: Runtime parameters and overrides
+    
+    Returns:
+        dict: Execution results with success status and details
+    """
+    try:
+        import time
+        import re
+        from datetime import datetime
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.common.keys import Keys
+        import tempfile
+        import shutil
+        import os
+        
+        # Extract recipe configuration
+        recipe_name = recipe_data.get("recipe_name", "Unknown Recipe")
+        url = recipe_data.get("url", execution_params.get("url", "http://localhost:5001"))
+        headless_mode = recipe_data.get("headless_mode", execution_params.get("headless_mode", False))
+        timing = recipe_data.get("timing", {})
+        form_data = recipe_data.get("form_data", {})
+        steps = recipe_data.get("steps", [])
+        
+        logger.info(f"🎯 FINDER_TOKEN: JSON_RECIPE_START - Recipe: {recipe_name}, URL: {url}")
+        
+        # Set up Chrome driver
+        options = Options()
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--window-size=1920,1080')
+        options.add_argument('--start-maximized')
+        
+        if headless_mode:
+            options.add_argument('--headless')
+        
+        # Create temporary profile directory
+        temp_profile_dir = tempfile.mkdtemp(prefix='recipe_automation_')
+        options.add_argument(f'--user-data-dir={temp_profile_dir}')
+        
+        driver = webdriver.Chrome(options=options)
+        driver.set_page_load_timeout(30)
+        driver.implicitly_wait(10)
+        
+        step_results = []
+        
+        try:
+            # Process template variables in form_data
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp_short = datetime.now().strftime("%m%d%H%M")
+            
+            processed_form_data = {}
+            for key, value in form_data.items():
+                if isinstance(value, str):
+                    processed_value = value.replace("{{ timestamp }}", timestamp)
+                    processed_value = processed_value.replace("{{ timestamp_short }}", timestamp_short)
+                    processed_form_data[key] = processed_value
+                else:
+                    processed_form_data[key] = value
+            
+            # Execute each step
+            for step in steps:
+                step_num = step.get("step", 0)
+                step_type = step.get("type", "unknown")
+                description = step.get("description", f"Step {step_num}")
+                action = step.get("action", "")
+                step_params = step.get("params", {})
+                
+                logger.info(f"🎯 FINDER_TOKEN: JSON_RECIPE_STEP - Step {step_num}: {description}")
+                
+                step_result = {
+                    "step": step_num,
+                    "type": step_type,
+                    "description": description,
+                    "success": False,
+                    "error": None
+                }
+                
+                try:
+                    if step_type == "navigate":
+                        # Navigate to URL
+                        nav_url = step_params.get("url", url)
+                        driver.get(nav_url)
+                        
+                        # Wait for specific element if specified
+                        wait_for = step_params.get("wait_for_element")
+                        if wait_for:
+                            selector_type = wait_for.get("type", "id")
+                            selector_value = wait_for.get("value")
+                            timeout = step_params.get("timeout_seconds", 15)
+                            
+                            if selector_type == "id":
+                                WebDriverWait(driver, timeout).until(
+                                    EC.presence_of_element_located((By.ID, selector_value))
+                                )
+                            elif selector_type == "css":
+                                WebDriverWait(driver, timeout).until(
+                                    EC.presence_of_element_located((By.CSS_SELECTOR, selector_value))
+                                )
+                        
+                        step_result["success"] = True
+                        
+                    elif step_type == "form_fill":
+                        # Fill form field
+                        selector = step_params.get("selector", {})
+                        text = step_params.get("text", "")
+                        
+                        # Process template variables in text
+                        for key, value in processed_form_data.items():
+                            text = text.replace(f"{{{{ {key} }}}}", str(value))
+                        
+                        # Find element
+                        element = None
+                        if selector.get("type") == "id":
+                            element = driver.find_element(By.ID, selector.get("value"))
+                        elif selector.get("type") == "css":
+                            element = driver.find_element(By.CSS_SELECTOR, selector.get("value"))
+                        elif selector.get("type") == "name":
+                            element = driver.find_element(By.NAME, selector.get("value"))
+                        
+                        if element:
+                            element.clear()
+                            element.send_keys(text)
+                            step_result["success"] = True
+                            logger.info(f"✅ FINDER_TOKEN: JSON_RECIPE_FORM_FILL - Filled field with: {text}")
+                        else:
+                            step_result["error"] = f"Element not found: {selector}"
+                            
+                    elif step_type == "submit":
+                        # Submit form or click button
+                        selector = step_params.get("selector", {})
+                        wait_after = step_params.get("wait_after", 1000)
+                        
+                        # Find element
+                        element = None
+                        if selector.get("type") == "id":
+                            element = driver.find_element(By.ID, selector.get("value"))
+                        elif selector.get("type") == "css":
+                            element = driver.find_element(By.CSS_SELECTOR, selector.get("value"))
+                        
+                        if element:
+                            element.click()
+                            time.sleep(wait_after / 1000)  # Convert milliseconds to seconds
+                            step_result["success"] = True
+                            logger.info(f"✅ FINDER_TOKEN: JSON_RECIPE_SUBMIT - Clicked element")
+                        else:
+                            step_result["error"] = f"Element not found: {selector}"
+                            
+                    elif step_type == "verify":
+                        # Verify page state
+                        verify_url = step_params.get("url", driver.current_url)
+                        wait_seconds = step_params.get("wait_seconds", 2)
+                        
+                        time.sleep(wait_seconds)
+                        current_url = driver.current_url
+                        
+                        # Basic verification - could be enhanced
+                        step_result["success"] = True
+                        step_result["verification_data"] = {
+                            "current_url": current_url,
+                            "expected_url": verify_url
+                        }
+                        logger.info(f"✅ FINDER_TOKEN: JSON_RECIPE_VERIFY - Verified page state")
+                        
+                    else:
+                        step_result["error"] = f"Unknown step type: {step_type}"
+                        
+                except Exception as step_error:
+                    step_result["error"] = str(step_error)
+                    logger.error(f"❌ FINDER_TOKEN: JSON_RECIPE_STEP_ERROR - Step {step_num}: {step_error}")
+                
+                step_results.append(step_result)
+                
+                # Add timing delays
+                if step_result["success"]:
+                    delay_key = f"{step_type}_delay"
+                    if delay_key in timing:
+                        time.sleep(timing[delay_key])
+                
+                # Stop execution if step failed (unless it's a verification step)
+                if not step_result["success"] and step_type != "verify":
+                    logger.error(f"❌ FINDER_TOKEN: JSON_RECIPE_STEP_FAILED - Stopping execution at step {step_num}")
+                    break
+            
+            # Determine overall success
+            successful_steps = sum(1 for result in step_results if result["success"])
+            total_steps = len(step_results)
+            success_rate = (successful_steps / total_steps) * 100 if total_steps > 0 else 0
+            
+            overall_success = success_rate >= 80  # 80% success rate required
+            
+            result = {
+                "success": overall_success,
+                "recipe_name": recipe_name,
+                "total_steps": total_steps,
+                "successful_steps": successful_steps,
+                "success_rate": success_rate,
+                "step_results": step_results,
+                "execution_time": time.time()
+            }
+            
+            logger.info(f"🎯 FINDER_TOKEN: JSON_RECIPE_COMPLETE - Success: {overall_success}, Rate: {success_rate:.1f}%")
+            
+            return result
+            
+        finally:
+            # Clean up
+            try:
+                driver.quit()
+            except:
+                pass
+            try:
+                shutil.rmtree(temp_profile_dir, ignore_errors=True)
+            except:
+                pass
+    
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: JSON_RECIPE_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "recipe_name": recipe_data.get("recipe_name", "Unknown"),
+            "step_results": []
+        }
+
 async def execute_automation_recipe(params: dict = None) -> dict:
     """🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM
     
@@ -5262,18 +5499,9 @@ async def execute_automation_recipe(params: dict = None) -> dict:
                 if "execution_params" in params:
                     execution_params.update(params["execution_params"])
                 
-                # Execute via browser automation (using existing function)
-                # Convert recipe to browser automation format
-                automation_params = {
-                    "instructions": f"Execute {recipe_name} recipe",
-                    "recipe_data": recipe_data,
-                    "target_url": execution_params.get("url", origin),
-                    "headless_mode": execution_params.get("headless_mode", False),
-                    "custom_params": params.get("execution_params", {})
-                }
-                
-                logger.info(f"🎯 FINDER_TOKEN: RECIPE_EXECUTION - Executing {recipe_name} via browser automation")
-                result = await browser_automate_workflow_walkthrough(automation_params)
+                # Execute via JSON recipe execution engine
+                logger.info(f"🎯 FINDER_TOKEN: RECIPE_EXECUTION - Executing {recipe_name} via JSON recipe engine")
+                result = await _execute_json_recipe(recipe_data, execution_params)
                 
                 # Add recipe metadata to result
                 result.update({

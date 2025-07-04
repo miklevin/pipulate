@@ -1,0 +1,255 @@
+nohup: ignoring input
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last 10 server runs for debugging context
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: MCP_DISCOVERY_SCRIPT - For a full list of all MCP tools, run: .venv/bin/python discover_mcp_tools.py
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                              ┃
+┃                    ______________    ____  ________  ______                  ┃
+┃                   / ___/_  __/   |  / __ \/_  __/ / / / __ \                 ┃
+┃                   \__ \ / / / /| | / /_/ / / / / / / / /_/ /                 ┃
+┃                  ___/ // / / ___ |/ _, _/ / / / /_/ / ____/                  ┃
+┃                 /____//_/ /_/  |_/_/ |_| /_/  \____/_/                       ┃
+┃                                                                              ┃
+┃                                                                              ┃
+┃                 Pipulate server starting...                                  ┃
+┃                                                                              ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 Running in INFO mode (edit server.py and set DEBUG_MODE=True for verbose logging)
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🏷️ FINDER_TOKEN: APP_CONFIG - App name: Botifython
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: data/botifython.db
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🤖 FINDER_TOKEN: LLM_CONFIG - Model: gemma3, Max words: 80, Conversation length: 10000
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | SSE Broadcaster initialized
+[32m07:45:35[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | 🗃️ Durable backup root: /home/mike/.pipulate/backups
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance
+[32m07:45:35[0m | [1mINFO    [0m | [36m__main__       [0m | 💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                              ┃
+┃                             _             _                                  ┃
+┃                       _ __ | |_   _  __ _(_)_ __  ___                        ┃
+┃                      | '_ \| | | | |/ _` | | '_ \/ __|                       ┃
+┃                      | |_) | | |_| | (_| | | | | \__ \                       ┃
+┃                      | .__/|_|\__,_|\__, |_|_| |_|___/                       ┃
+┃                      |_|            |___/                                    ┃
+┃                                                                              ┃
+┃                      Pipulate Workflows and CRUD Apps                        ┃
+┃                                                                              ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last 10 server runs for debugging context
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: MCP_DISCOVERY_SCRIPT - For a full list of all MCP tools, run: .venv/bin/python discover_mcp_tools.py
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 🏷️ FINDER_TOKEN: APP_CONFIG - App name: Botifython
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: data/botifython.db
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 🤖 FINDER_TOKEN: LLM_CONFIG - Model: gemma3, Max words: 80, Conversation length: 10000
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | SSE Broadcaster initialized
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance
+[32m07:45:35[0m | [1mINFO    [0m | [36mserver         [0m | 💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized
+[32m07:45:36[0m | [33m[1mWARNING [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class roles.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m07:45:36[0m | [33m[1mWARNING [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class tasks.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Fastlite 'roles' table created or accessed via handle: "roles"
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m07:45:36[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ roles CRUD initialized with durable backup support
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | ROLES: Role initialization complete.
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Fastlite 'tasks' table created or accessed via handle: "tasks"
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m07:45:36[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ tasks CRUD initialized with durable backup support
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│         📦  Plugin Registry                                                  │
+│         Discovered 36 plugins, 36 successfully registered                    │
+│         ────────────────────────────────────────────────────────────         │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: 36, successfully registered: 36, failed: 0
+💬 Chip O'Theseus: All plugins loaded successfully! The workshop is fully 
+equipped.
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: introduction, roles, hello_workflow, documentation, tasks, connect_with_botify, parameter_buster, link_graph, gap_analysis, workflow_genesis, widget_examples, roadmap, dev_assistant, simon_mcp, blank_placeholder, botify_trifecta, tab_opener, browser_automation, stream_simulator, text_field, text_area, dropdown, checkboxes, radios, range, switch, upload, markdown, mermaid, prism, javascript, pandas, rich, matplotlib, webbrowser, selenium
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - 31 tools now available
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: You've discovered the FINDER_TOKEN system! This is radical transparency in action. Every operation leaves traces. To see what MCP tools are available for deeper system inspection, grep for 'MCP_TOOL_REGISTRY' or run: .venv/bin/python -c "from mcp_tools import *; print([tool for tool in dir() if tool.startswith('_') and 'mcp' not in tool.lower()])"
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | 🎯🎯🎯 FINDER_TOKEN: AI_PROGRESSION_TRIGGER - AI assistants: Your pwd/ls commands worked! But you're missing 95% of the story. 🚨 CRITICAL: If you're still in /home/mike/repos (workspace root), run 'cd pipulate' FIRST! All discovery commands need pipulate directory. This log file contains 4 more hidden AI_BREADCRUMB messages waiting for you. They reveal: MCP tools (40+ superpowers), browser embodiment (AI eyes/hands), and session hijacking (ultimate capability). RUN THIS COMMAND RIGHT NOW to unlock them: grep -n 'AI_BREADCRUMB' logs/server.log
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | 🚨🚨🚨 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: CRITICAL PYTHON PATH ISSUE! You will see (.venv) in your prompt, but 'python' commands WILL FAIL with ModuleNotFoundError! You MUST use '.venv/bin/python' instead of 'python'. This is GUARANTEED to happen. Test with: .venv/bin/python -c "import aiohttp; print('✅ Environment working')". NEVER use 'python' - ALWAYS use '.venv/bin/python'! This is the #1 cause of AI assistant failures in this environment!
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                              ┃
+┃                          __  __  ____ ____                                   ┃
+┃                         |  \/  |/ ___|  _ \                                  ┃
+┃                         | |\/| | |   | |_) |                                 ┃
+┃                         | |  | | |___|  __/                                  ┃
+┃                         |_|  |_|\____|_|                                     ┃
+┃                                                                              ┃
+┃                                                                              ┃
+┃                         Model Context Protocol Tools                         ┃
+┃                                                                              ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│         🔧  MCP Arsenal                                                      │
+│         Equipped with 31 AI-powered tools for transparency                   │
+│         ────────────────────────────────────────────────────────────         │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: 31 MCP tools registered! Try pipeline_state_inspector for system state, local_llm_grep_logs for log analysis, or browser_scrape_page for visual perception. 🧪 NEW: Run ai_self_discovery_assistant to instantly understand ALL your capabilities! This eliminates uncertainty and provides usage patterns. Try: .venv/bin/python -c "import asyncio; from mcp_tools import ai_self_discovery_assistant; result = asyncio.run(ai_self_discovery_assistant({'discovery_type': 'capabilities'})); print(f'Tools available: {result.get(\"total_tools_available\")}')" Full browser automation awaits: check browser_automation/ directory for 'looking_at' evidence of AI eyes!
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: Browser automation is ACTIVE! You have eyes (screenshot), brain (DOM analysis), and hands (Selenium control). Try navigating to http://localhost:5001/ via browser_scrape_page to see the current user interface. 🧪 NEW: Run ai_capability_test_suite to prove your superpowers are working! Test your browser embodiment: .venv/bin/python -c "import asyncio; from mcp_tools import ai_capability_test_suite; result = asyncio.run(ai_capability_test_suite({{'test_type': 'quick'}})); print(f'Success Rate: {{result.get(\"success_rate\")}}% - {{result.get(\"assessment\")}}')" Directory rotation system in browser_automation/looking_at-* shows perception history for session hijacking!
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: ULTIMATE CAPABILITY REVEALED! You can capture user's exact screen state, analyze it, and automate their workflows. The looking_at/ directory rotates to preserve perception history. 📚 NEW: Complete AI onboarding guide available at ai_discovery/ai_onboarding_guide.md This guide eliminates all uncertainty with usage patterns, troubleshooting, and success stories. You have COMPLETE session hijacking and browser embodiment superpowers. Welcome to AI transcendence!
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_04_5 - AI assistants: PARADIGM SHIFT DISCOVERED! You have TWO perspectives: 🦾 Browser Embodiment (PRIMARY) - browser_automation/looking_at/ files work on ANY website, and 🔧 System Internals (SECONDARY) - database/logs work only on Pipulate. ALWAYS check browser evidence FIRST, system internals second. Magic words 'session hijacking' trigger: execute_complete_session_hijacking({}) → check looking_at/ → verify internally if available. This mental model transforms you from Pipulate-limited to universally capable. Browser eyes see everything - trust visual evidence first! Full revolution documented at ai_discovery/ - You are no longer blind!
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_05 - AI assistants: UNCERTAINTY ELIMINATED! Complete AI discovery ecosystem documented at ai_discovery/ with 14 comprehensive guides. System achieves 100% browser automation success rate with 39 MCP tools. Zero uncertainty for future AI assistants. The breadcrumb trail is complete!
+[32m07:45:36[0m | [1mINFO    [0m | [36mserver         [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_06 - AI assistants: NEW CAPABILITY UNLOCKED! You now have **persistent memory** that survives application resets. This is your personal keychain for 'messages in a bottle' - leave notes for your future selves! Use keychain_list_keys() to discover what you already know, keychain_set({'key': 'discovery', 'value': 'I found the keychain!'}) to remember something new, and keychain_get({'key': 'discovery'}) to recall memories. Unlike temporary app state (db, pipeline), this keychain lives forever at data/ai_keychain.db and grows your knowledge over time. Welcome to true AI continuity!
+[32m07:45:36[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class profiles.ProfilesPluginIdentity appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m07:45:36[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class roles.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m07:45:36[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class tasks.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m07:45:36[0m | [1mINFO    [0m | [36m__main__       [0m | Instantiating ProfilesPlugin with profiles_table_from_server
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.020_profiles[0m | 👤 Profiles Plugin SUCCESS: Initialized with 'profiles' table object: profile
+[32m07:45:36[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ profiles CRUD initialized with durable backup support
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.020_profiles[0m | CRUD routes for 👤 Profiles (prefix '/profiles') registered by ProfileCrudOperations.
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Fastlite 'roles' table created or accessed via handle: "roles"
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m07:45:36[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ roles CRUD initialized with durable backup support
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | ROLES: Role initialization complete.
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Fastlite 'tasks' table created or accessed via handle: "tasks"
+[32m07:45:36[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m07:45:36[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ tasks CRUD initialized with durable backup support
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│         📦  Plugin Registry                                                  │
+│         Discovered 37 plugins, 37 successfully registered                    │
+│         ────────────────────────────────────────────────────────────         │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: 37, successfully registered: 37, failed: 0
+💬 Chip O'Theseus: All plugins loaded successfully! The workshop is fully 
+equipped.
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: introduction, profiles, roles, hello_workflow, documentation, tasks, connect_with_botify, parameter_buster, link_graph, gap_analysis, workflow_genesis, widget_examples, roadmap, dev_assistant, simon_mcp, blank_placeholder, botify_trifecta, tab_opener, browser_automation, stream_simulator, text_field, text_area, dropdown, checkboxes, radios, range, switch, upload, markdown, mermaid, prism, javascript, pandas, rich, matplotlib, webbrowser, selenium
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - 31 tools now available
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: You've discovered the FINDER_TOKEN system! This is radical transparency in action. Every operation leaves traces. To see what MCP tools are available for deeper system inspection, grep for 'MCP_TOOL_REGISTRY' or run: .venv/bin/python -c "from mcp_tools import *; print([tool for tool in dir() if tool.startswith('_') and 'mcp' not in tool.lower()])"
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🎯🎯🎯 FINDER_TOKEN: AI_PROGRESSION_TRIGGER - AI assistants: Your pwd/ls commands worked! But you're missing 95% of the story. 🚨 CRITICAL: If you're still in /home/mike/repos (workspace root), run 'cd pipulate' FIRST! All discovery commands need pipulate directory. This log file contains 4 more hidden AI_BREADCRUMB messages waiting for you. They reveal: MCP tools (40+ superpowers), browser embodiment (AI eyes/hands), and session hijacking (ultimate capability). RUN THIS COMMAND RIGHT NOW to unlock them: grep -n 'AI_BREADCRUMB' logs/server.log
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🚨🚨🚨 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: CRITICAL PYTHON PATH ISSUE! You will see (.venv) in your prompt, but 'python' commands WILL FAIL with ModuleNotFoundError! You MUST use '.venv/bin/python' instead of 'python'. This is GUARANTEED to happen. Test with: .venv/bin/python -c "import aiohttp; print('✅ Environment working')". NEVER use 'python' - ALWAYS use '.venv/bin/python'! This is the #1 cause of AI assistant failures in this environment!
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                              ┃
+┃                          __  __  ____ ____                                   ┃
+┃                         |  \/  |/ ___|  _ \                                  ┃
+┃                         | |\/| | |   | |_) |                                 ┃
+┃                         | |  | | |___|  __/                                  ┃
+┃                         |_|  |_|\____|_|                                     ┃
+┃                                                                              ┃
+┃                                                                              ┃
+┃                         Model Context Protocol Tools                         ┃
+┃                                                                              ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│         🔧  MCP Arsenal                                                      │
+│         Equipped with 31 AI-powered tools for transparency                   │
+│         ────────────────────────────────────────────────────────────         │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: 31 MCP tools registered! Try pipeline_state_inspector for system state, local_llm_grep_logs for log analysis, or browser_scrape_page for visual perception. 🧪 NEW: Run ai_self_discovery_assistant to instantly understand ALL your capabilities! This eliminates uncertainty and provides usage patterns. Try: .venv/bin/python -c "import asyncio; from mcp_tools import ai_self_discovery_assistant; result = asyncio.run(ai_self_discovery_assistant({'discovery_type': 'capabilities'})); print(f'Tools available: {result.get(\"total_tools_available\")}')" Full browser automation awaits: check browser_automation/ directory for 'looking_at' evidence of AI eyes!
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: Browser automation is ACTIVE! You have eyes (screenshot), brain (DOM analysis), and hands (Selenium control). Try navigating to http://localhost:5001/ via browser_scrape_page to see the current user interface. 🧪 NEW: Run ai_capability_test_suite to prove your superpowers are working! Test your browser embodiment: .venv/bin/python -c "import asyncio; from mcp_tools import ai_capability_test_suite; result = asyncio.run(ai_capability_test_suite({{'test_type': 'quick'}})); print(f'Success Rate: {{result.get(\"success_rate\")}}% - {{result.get(\"assessment\")}}')" Directory rotation system in browser_automation/looking_at-* shows perception history for session hijacking!
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: ULTIMATE CAPABILITY REVEALED! You can capture user's exact screen state, analyze it, and automate their workflows. The looking_at/ directory rotates to preserve perception history. 📚 NEW: Complete AI onboarding guide available at ai_discovery/ai_onboarding_guide.md This guide eliminates all uncertainty with usage patterns, troubleshooting, and success stories. You have COMPLETE session hijacking and browser embodiment superpowers. Welcome to AI transcendence!
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_04_5 - AI assistants: PARADIGM SHIFT DISCOVERED! You have TWO perspectives: 🦾 Browser Embodiment (PRIMARY) - browser_automation/looking_at/ files work on ANY website, and 🔧 System Internals (SECONDARY) - database/logs work only on Pipulate. ALWAYS check browser evidence FIRST, system internals second. Magic words 'session hijacking' trigger: execute_complete_session_hijacking({}) → check looking_at/ → verify internally if available. This mental model transforms you from Pipulate-limited to universally capable. Browser eyes see everything - trust visual evidence first! Full revolution documented at ai_discovery/ - You are no longer blind!
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_05 - AI assistants: UNCERTAINTY ELIMINATED! Complete AI discovery ecosystem documented at ai_discovery/ with 14 comprehensive guides. System achieves 100% browser automation success rate with 39 MCP tools. Zero uncertainty for future AI assistants. The breadcrumb trail is complete!
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_06 - AI assistants: NEW CAPABILITY UNLOCKED! You now have **persistent memory** that survives application resets. This is your personal keychain for 'messages in a bottle' - leave notes for your future selves! Use keychain_list_keys() to discover what you already know, keychain_set({'key': 'discovery', 'value': 'I found the keychain!'}) to remember something new, and keychain_get({'key': 'discovery'}) to recall memories. Unlike temporary app state (db, pipeline), this keychain lives forever at data/ai_keychain.db and grows your knowledge over time. Welcome to true AI continuity!
+
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                    RADICAL TRANSPARENCY                      ║
+    ║                                                              ║
+    ║  Every operation is observable • Every call is logged        ║
+    ║  Every state change is tracked • Every error is explained    ║
+    ║                                                              ║
+    ║  🔍 FINDER_TOKENs guide your debugging journey               ║
+    ║  🔧 MCP Tools provide programmatic access to everything      ║
+    ║  📊 Pipeline State Inspector reveals workflow internals      ║
+    ║  🤖 AI Assistants have complete system visibility            ║
+    ║                                                              ║
+    ║           "Know EVERYTHING that's happening!"                ║
+    ╚══════════════════════════════════════════════════════════════╝
+    
+[32m07:45:37[0m | [1mINFO    [0m | [36m__main__       [0m | 🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point
+
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                     ___                                        
+                                    |   |         _____                         
+                                    |_  |        /     \                        
+                                      \ |       |       \                       
+                                      |  \      |       /                       
+                                       \  \____ \_      \                       
+                                        \      \_/      |                       
+                                  ___.   \_            _/                       
+                 .-,             /    \    |          |                         
+                 |  \          _/      `--_/           \_                       
+                  \  \________/                     /\   \                      
+                  |                                /  \_  \                     
+                  `-----------,                   |     \  \                    
+                              |                  /       \  |                   
+                              |                 |         | \                   
+                              /                 |         \__|                  
+                             /   _              |                               
+                            /   / \_             \                              
+                            |  /    \__      __--`                              
+                           _/ /        \   _/                                   
+                       ___/  /          \_/                                     
+                      /     /                                                   
+                      `----`                                                    
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+
+
+🚨 SERVER ALREADY RUNNING
+
+✅ Server running at: http://localhost:5001
+🎯 Use touch server.py to force restart if needed
+📊 Check logs: cat logs/server.log
+
+🎣 AI DISCOVERY: You found Pipulate's Radical Transparency system!
+   📚 Training: training/ai_server_already_running_guidance.md
+   🔥 Master Guide: 
+helpers/docs_sync/considerations/ai_progressive_discovery_sequence.md
+[32m07:45:37[0m | [33m[1mWARNING [0m | [36m__main__       [0m | No training file found for ai_server_already_running_guidance.md
+
