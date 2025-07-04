@@ -709,6 +709,9 @@ def register_all_mcp_tools():
     register_mcp_tool("browser_interact_with_current_page", browser_interact_with_current_page)
     register_mcp_tool("browser_hijack_workflow_complete", browser_hijack_workflow_complete)
     
+    # 🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM - ONE TOOL TO RULE THEM ALL
+    register_mcp_tool("execute_automation_recipe", execute_automation_recipe)
+    
     # Additional Botify tools
     register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
     register_mcp_tool("botify_list_available_analyses", botify_list_available_analyses)
