@@ -5391,7 +5391,7 @@ async def execute_automation_recipe(params: dict = None) -> dict:
     try:
         # Level 1: No parameters - show available origins and quick actions
         if not params:
-            recipes_dir = Path("ai_discovery/automation_recipes")
+            recipes_dir = Path("browser_automation/automation_recipes")
             available_origins = []
             
             if recipes_dir.exists():
@@ -5422,11 +5422,11 @@ async def execute_automation_recipe(params: dict = None) -> dict:
             origin = params["origin"]
             # Convert origin to directory name format
             origin_dir = origin.replace('://', '_', 1).replace('.', '_').replace(':', '_')
-            recipes_path = Path(f"ai_discovery/automation_recipes/{origin_dir}")
+            recipes_path = Path(f"browser_automation/automation_recipes/{origin_dir}")
             
             if not recipes_path.exists():
                 available_origins = []
-                recipes_dir = Path("ai_discovery/automation_recipes")
+                recipes_dir = Path("browser_automation/automation_recipes")
                 if recipes_dir.exists():
                     for d in recipes_dir.iterdir():
                         if d.is_dir() and not d.name.startswith('.'):
@@ -5477,7 +5477,7 @@ async def execute_automation_recipe(params: dict = None) -> dict:
             
             # Convert origin to directory name format
             origin_dir = origin.replace('://', '_', 1).replace('.', '_').replace(':', '_')
-            recipe_path = Path(f"ai_discovery/automation_recipes/{origin_dir}/{recipe_name}.json")
+            recipe_path = Path(f"browser_automation/automation_recipes/{origin_dir}/{recipe_name}.json")
             
             if not recipe_path.exists():
                 return {
