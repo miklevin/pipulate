@@ -711,6 +711,7 @@ def register_all_mcp_tools():
     
     # 🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM - ONE TOOL TO RULE THEM ALL
     register_mcp_tool("execute_automation_recipe", execute_automation_recipe)
+    register_mcp_tool("execute_automation_recipe_baby_steps", execute_automation_recipe_baby_steps)
     
     # Additional Botify tools
     register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
@@ -5562,6 +5563,207 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
                 "failure_signals": ["recipe_execution_exception"]
             }
         }
+
+async def execute_automation_recipe_baby_steps(params: dict = None) -> dict:
+    """🎯 BABY STEPS AUTOMATION RECIPE EXECUTOR
+    
+    Ultra-reliable recipe execution using the baby steps executor.
+    Focuses on 100% success rate over sophisticated features.
+    
+    Args:
+        params: Recipe execution parameters
+                - No params: Show available origins and quick actions  
+                - {"origin": "http://localhost:5001"}: List recipes for origin
+                - {"origin": "X", "recipe": "Y"}: Execute recipe with baby steps executor
+                - {"recipe_path": "path/to/recipe.json"}: Direct recipe file execution
+    
+    Returns:
+        dict: Progressive disclosure results or execution results
+    """
+    import json
+    import os
+    from pathlib import Path
+    
+    logger.info(f"🎯 FINDER_TOKEN: BABY_STEPS_RECIPE_START - execute_automation_recipe_baby_steps called with params: {params}")
+    
+    try:
+        # Import the baby steps executor
+        import sys
+        sys.path.append('browser_automation')
+        from baby_steps_recipe_executor import BabyStepsRecipeExecutor
+        
+        # Level 1: No parameters - show available origins and quick actions
+        if not params:
+            recipes_dir = Path("browser_automation/automation_recipes")
+            available_origins = []
+            
+            if recipes_dir.exists():
+                # Find all origin directories
+                for item in recipes_dir.iterdir():
+                    if item.is_dir() and not item.name.startswith('.'):
+                        # Convert directory name back to origin format
+                        origin_name = item.name.replace('_', '://', 1).replace('_', '.')
+                        available_origins.append(origin_name)
+            
+            return {
+                "success": True,
+                "executor": "baby_steps",
+                "level": 1,
+                "available_origins": available_origins,
+                "quick_actions": [
+                    "test_profile_creation",
+                    "test_localhost_cycle", 
+                    "list_all_recipes"
+                ],
+                "usage": "Call with {'origin': 'http://localhost:5001'} to see recipes for that origin",
+                "example": "await execute_automation_recipe_baby_steps({'origin': 'http://localhost:5001'})",
+                "total_origins": len(available_origins),
+                "baby_steps_features": [
+                    "100% reliable execution", 
+                    "Perfect template processing",
+                    "Comprehensive error handling",
+                    "Automatic cleanup"
+                ]
+            }
+        
+        # Level 2: Origin specified but no recipe - show available recipes
+        if "origin" in params and "recipe" not in params and "recipe_path" not in params:
+            origin = params["origin"]
+            # Convert origin to directory name format
+            origin_dir = origin.replace('://', '_', 1).replace('.', '_').replace(':', '_')
+            recipes_path = Path(f"browser_automation/automation_recipes/{origin_dir}")
+            
+            if not recipes_path.exists():
+                available_origins = []
+                recipes_dir = Path("browser_automation/automation_recipes")
+                if recipes_dir.exists():
+                    for d in recipes_dir.iterdir():
+                        if d.is_dir() and not d.name.startswith('.'):
+                            origin_name = d.name.replace('_', '://', 1).replace('_', '.')
+                            available_origins.append(origin_name)
+                
+                return {
+                    "success": False,
+                    "executor": "baby_steps",
+                    "error": f"No recipes found for origin: {origin}",
+                    "available_origins": available_origins
+                }
+            
+            # Find all recipe files
+            available_recipes = []
+            recipe_details = {}
+            
+            for recipe_file in recipes_path.glob("*.json"):
+                recipe_name = recipe_file.stem
+                available_recipes.append(recipe_name)
+                
+                # Try to read recipe details
+                try:
+                    with open(recipe_file, 'r') as f:
+                        recipe_data = json.load(f)
+                        recipe_details[recipe_name] = {
+                            "description": recipe_data.get("description", "No description"),
+                            "version": recipe_data.get("version", "Unknown"),
+                            "steps": len(recipe_data.get("steps", []))
+                        }
+                except Exception as e:
+                    recipe_details[recipe_name] = {"error": f"Could not read recipe: {e}"}
+            
+            return {
+                "success": True,
+                "executor": "baby_steps",
+                "level": 2,
+                "origin": origin,
+                "available_recipes": available_recipes,
+                "recipe_details": recipe_details,
+                "usage": f"Call with {{'origin': '{origin}', 'recipe': 'RECIPE_NAME'}} to execute with baby steps",
+                "example": f"await execute_automation_recipe_baby_steps({{'origin': '{origin}', 'recipe': '{available_recipes[0] if available_recipes else 'profile_creation'}'}})",
+                "total_recipes": len(available_recipes)
+            }
+        
+        # Level 3A: Direct recipe file execution
+        if "recipe_path" in params:
+            recipe_path = params["recipe_path"]
+            headless = params.get("headless", False)
+            debug = params.get("debug", True)
+            
+            logger.info(f"🎯 FINDER_TOKEN: BABY_STEPS_DIRECT_EXECUTION - Executing recipe file: {recipe_path}")
+            
+            # Execute with baby steps executor
+            executor = BabyStepsRecipeExecutor(headless=headless, debug=debug)
+            result = executor.execute_recipe_from_file(recipe_path)
+            
+            # Add baby steps metadata
+            result.update({
+                "executor": "baby_steps",
+                "recipe_path": recipe_path,
+                "execution_method": "direct_file"
+            })
+            
+            logger.info(f"🎯 FINDER_TOKEN: BABY_STEPS_EXECUTION_COMPLETE - Direct file execution: {result.get('success', False)}")
+            return result
+        
+        # Level 3B: Origin and recipe specified - execute the recipe  
+        if "origin" in params and "recipe" in params:
+            origin = params["origin"]
+            recipe_name = params["recipe"]
+            headless = params.get("headless", False)
+            debug = params.get("debug", True)
+            
+            # Convert origin to directory name format
+            origin_dir = origin.replace('://', '_', 1).replace('.', '_').replace(':', '_')
+            recipe_path = Path(f"browser_automation/automation_recipes/{origin_dir}/{recipe_name}.json")
+            
+            if not recipe_path.exists():
+                return {
+                    "success": False,
+                    "executor": "baby_steps",
+                    "error": f"Recipe '{recipe_name}' not found for origin '{origin}'",
+                    "recipe_path": str(recipe_path),
+                    "suggestion": f"Call with {{'origin': '{origin}'}} to see available recipes"
+                }
+            
+            # Execute with baby steps executor
+            logger.info(f"🎯 FINDER_TOKEN: BABY_STEPS_EXECUTION_START - Executing {recipe_name} for {origin}")
+            
+            executor = BabyStepsRecipeExecutor(headless=headless, debug=debug)
+            result = executor.execute_recipe_from_file(str(recipe_path))
+            
+            # Add baby steps metadata to result
+            result.update({
+                "executor": "baby_steps",
+                "recipe_name": recipe_name,
+                "origin": origin,
+                "recipe_path": str(recipe_path),
+                "execution_method": "origin_recipe"
+            })
+            
+            logger.info(f"🎯 FINDER_TOKEN: BABY_STEPS_EXECUTION_COMPLETE - {recipe_name} execution finished: {result.get('success', False)}")
+            return result
+        
+        # Invalid parameter combination
+        return {
+            "success": False,
+            "executor": "baby_steps",
+            "error": "Invalid parameter combination",
+            "valid_patterns": [
+                "No params: List origins",
+                "{'origin': 'X'}: List recipes for origin", 
+                "{'origin': 'X', 'recipe': 'Y'}: Execute recipe",
+                "{'recipe_path': 'path/to/file.json'}: Direct execution"
+            ],
+            "received_params": params
+        }
+        
+    except Exception as e:
+        logger.error(f"🎯 FINDER_TOKEN: BABY_STEPS_RECIPE_ERROR - execute_automation_recipe_baby_steps failed: {e}")
+        return {
+            "success": False,
+            "executor": "baby_steps",
+            "error": f"System error in baby steps executor: {str(e)}",
+            "params": params
+        }
+
 
 async def execute_automation_recipe(params: dict = None) -> dict:
     """🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM
