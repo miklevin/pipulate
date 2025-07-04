@@ -2221,3 +2221,54 @@ span[data-tooltip] {
     position: relative;
 }
 
+/* ============================================================================
+   ENTER KEY BUTTON STYLING - Global Rounded Corners
+   ============================================================================
+   
+   🎯 PURPOSE: Apply consistent slightly rounded corners to all Enter Key buttons
+   
+   This styling targets buttons with the "Enter Key" text and applies
+   consistent rounded corners across the entire system.
+   
+   USAGE: Automatically applies to all Enter Key buttons
+   ============================================================================ */
+
+/* Global Enter Key button styling - slightly rounded corners */
+button[title*="Enter Key"],
+button[aria-label*="Enter"],
+button:contains("🔑 Enter Key"),
+button.secondary.inline-button-submit {
+    border-radius: 8px !important;
+    border-top-left-radius: 8px !important;
+    border-top-right-radius: 8px !important;
+    border-bottom-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+}
+
+/* Ensure the styling works across all themes */
+[data-theme="light"] button[title*="Enter Key"],
+[data-theme="light"] button[aria-label*="Enter"],
+[data-theme="light"] button.secondary.inline-button-submit,
+[data-theme="dark"] button[title*="Enter Key"],
+[data-theme="dark"] button[aria-label*="Enter"],
+[data-theme="dark"] button.secondary.inline-button-submit {
+    border-radius: 8px !important;
+}
+
+/* Dark mode system preference */
+@media only screen and (prefers-color-scheme: dark) {
+    :root:not([data-theme]) button[title*="Enter Key"],
+    :root:not([data-theme]) button[aria-label*="Enter"],
+    :root:not([data-theme]) button.secondary.inline-button-submit {
+        border-radius: 8px !important;
+    }
+}
+
+@media only screen and (prefers-color-scheme: light) {
+    :root:not([data-theme]) button[title*="Enter Key"],
+    :root:not([data-theme]) button[aria-label*="Enter"],
+    :root:not([data-theme]) button.secondary.inline-button-submit {
+        border-radius: 8px !important;
+    }
+}
+
