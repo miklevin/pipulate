@@ -5129,21 +5129,22 @@ if __name__ == "__main__":
         }
 
 async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dict:
-    """🚀 JSON Recipe Execution Engine
+    """🎯 BOURBON VANILLA JSON Recipe Execution Engine
     
-    Executes JSON-based automation recipes with proper browser automation.
-    Handles the declarative recipe format with steps, selectors, and timing.
+    Executes JSON-based automation recipes with continuous feedback streaming.
+    Progressive reveals provide immediate validation and AI-consumable insights.
     
     Args:
         recipe_data: The JSON recipe data with steps and configuration
         execution_params: Runtime parameters and overrides
     
     Returns:
-        dict: Execution results with success status and details
+        dict: Execution results with continuous feedback and looking_at analysis
     """
     try:
         import time
         import re
+        import json
         from datetime import datetime
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options
@@ -5154,6 +5155,7 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
         import tempfile
         import shutil
         import os
+        from pathlib import Path
         
         # Extract recipe configuration
         recipe_name = recipe_data.get("recipe_name", "Unknown Recipe")
@@ -5163,9 +5165,120 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
         form_data = recipe_data.get("form_data", {})
         steps = recipe_data.get("steps", [])
         
+        # Progressive feedback configuration
+        progressive_feedback = recipe_data.get("progressive_feedback", {})
+        capture_strategy = progressive_feedback.get("capture_strategy", "continuous")
+        
         logger.info(f"🎯 FINDER_TOKEN: JSON_RECIPE_START - Recipe: {recipe_name}, URL: {url}")
         
+        # Initialize continuous feedback tracking
+        continuous_feedback = {
+            "live_status": "initializing",
+            "current_step": 0,
+            "progress_indicators": [],
+            "immediate_observations": [],
+            "success_signals": [],
+            "failure_signals": [],
+            "looking_at_snapshots": []
+        }
+        
+        def capture_progressive_feedback(step_num: int, action: str, status: str, details: dict = None):
+            """Capture immediate feedback for AI consumption"""
+            feedback_entry = {
+                "step": step_num,
+                "action": action,
+                "status": status,
+                "timestamp": datetime.now().isoformat(),
+                "details": details or {}
+            }
+            continuous_feedback["progress_indicators"].append(feedback_entry)
+            continuous_feedback["current_step"] = step_num
+            continuous_feedback["live_status"] = f"{action}_{status}"
+            
+            logger.info(f"🎯 FINDER_TOKEN: PROGRESSIVE_FEEDBACK - Step {step_num}: {action} → {status}")
+            if details:
+                logger.info(f"🎯 FINDER_TOKEN: FEEDBACK_DETAILS - {json.dumps(details, indent=2)}")
+        
+        def capture_looking_at_state(step_num: int, step_type: str, driver):
+            """Capture browser state for immediate AI analysis"""
+            try:
+                # Ensure looking_at directory exists
+                looking_at_dir = Path("browser_automation/looking_at")
+                looking_at_dir.mkdir(exist_ok=True)
+                
+                # Take screenshot
+                screenshot_path = f"browser_automation/looking_at/recipe_step_{step_num}_{step_type}.png"
+                driver.save_screenshot(screenshot_path)
+                
+                # Capture DOM snapshot
+                dom_content = driver.page_source
+                dom_path = f"browser_automation/looking_at/recipe_step_{step_num}_{step_type}_dom.html"
+                with open(dom_path, 'w', encoding='utf-8') as f:
+                    f.write(dom_content)
+                
+                # Create simplified DOM for AI analysis
+                simple_dom_path = f"browser_automation/looking_at/recipe_step_{step_num}_{step_type}_simple.html"
+                simple_dom = f"""
+                <html>
+                <head><title>Recipe Step {step_num} Analysis</title></head>
+                <body>
+                <h1>Browser State: Step {step_num} - {step_type}</h1>
+                <p><strong>URL:</strong> {driver.current_url}</p>
+                <p><strong>Title:</strong> {driver.title}</p>
+                <p><strong>Forms:</strong> {len(driver.find_elements(By.TAG_NAME, "form"))}</p>
+                <p><strong>Inputs:</strong> {len(driver.find_elements(By.TAG_NAME, "input"))}</p>
+                <p><strong>Buttons:</strong> {len(driver.find_elements(By.TAG_NAME, "button"))}</p>
+                </body>
+                </html>
+                """
+                with open(simple_dom_path, 'w', encoding='utf-8') as f:
+                    f.write(simple_dom)
+                
+                # Analyze for success/failure indicators
+                success_indicators = []
+                failure_indicators = []
+                
+                # Check for common patterns
+                if "success" in dom_content.lower() or "created" in dom_content.lower():
+                    success_indicators.append("success_message_found")
+                if "error" in dom_content.lower() or "failed" in dom_content.lower():
+                    failure_indicators.append("error_message_found")
+                
+                # Page state analysis
+                page_analysis = {
+                    "step": step_num,
+                    "type": step_type,
+                    "timestamp": datetime.now().isoformat(),
+                    "current_url": driver.current_url,
+                    "page_title": driver.title,
+                    "screenshot": screenshot_path,
+                    "dom_snapshot": dom_path,
+                    "simple_dom": simple_dom_path,
+                    "form_count": len(driver.find_elements(By.TAG_NAME, "form")),
+                    "input_count": len(driver.find_elements(By.TAG_NAME, "input")),
+                    "button_count": len(driver.find_elements(By.TAG_NAME, "button")),
+                    "success_indicators": success_indicators,
+                    "failure_indicators": failure_indicators
+                }
+                
+                continuous_feedback["looking_at_snapshots"].append(page_analysis)
+                continuous_feedback["immediate_observations"].append(page_analysis)
+                
+                if success_indicators:
+                    continuous_feedback["success_signals"].extend(success_indicators)
+                if failure_indicators:
+                    continuous_feedback["failure_signals"].extend(failure_indicators)
+                
+                logger.info(f"🎯 FINDER_TOKEN: LOOKING_AT_CAPTURE - Step {step_num} state captured and analyzed")
+                return page_analysis
+                
+            except Exception as e:
+                logger.error(f"🎯 FINDER_TOKEN: LOOKING_AT_ERROR - Step {step_num} capture failed: {e}")
+                return {"error": str(e)}
+        
         # Set up Chrome driver
+        capture_progressive_feedback(0, "browser_setup", "starting")
+        
         options = Options()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
@@ -5184,10 +5297,14 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
         driver.set_page_load_timeout(30)
         driver.implicitly_wait(10)
         
+        capture_progressive_feedback(0, "browser_setup", "completed", {"temp_profile": temp_profile_dir})
+        
         step_results = []
         
         try:
             # Process template variables in form_data
+            capture_progressive_feedback(0, "template_processing", "starting")
+            
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             timestamp_short = datetime.now().strftime("%m%d%H%M")
             
@@ -5200,14 +5317,18 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
                 else:
                     processed_form_data[key] = value
             
-            # Execute each step
+            capture_progressive_feedback(0, "template_processing", "completed", {"processed_data": processed_form_data})
+            
+            # Execute each step with continuous feedback
             for step in steps:
                 step_num = step.get("step", 0)
                 step_type = step.get("type", "unknown")
                 description = step.get("description", f"Step {step_num}")
                 action = step.get("action", "")
                 step_params = step.get("params", {})
+                immediate_feedback = step.get("immediate_feedback", {})
                 
+                capture_progressive_feedback(step_num, "step_execution", "starting", {"description": description})
                 logger.info(f"🎯 FINDER_TOKEN: JSON_RECIPE_STEP - Step {step_num}: {description}")
                 
                 step_result = {
@@ -5215,13 +5336,17 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
                     "type": step_type,
                     "description": description,
                     "success": False,
-                    "error": None
+                    "error": None,
+                    "immediate_feedback": immediate_feedback,
+                    "looking_at_analysis": None
                 }
                 
                 try:
                     if step_type == "navigate":
                         # Navigate to URL
                         nav_url = step_params.get("url", url)
+                        capture_progressive_feedback(step_num, "navigation", "navigating", {"url": nav_url})
+                        
                         driver.get(nav_url)
                         
                         # Wait for specific element if specified
@@ -5230,6 +5355,8 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
                             selector_type = wait_for.get("type", "id")
                             selector_value = wait_for.get("value")
                             timeout = step_params.get("timeout_seconds", 15)
+                            
+                            capture_progressive_feedback(step_num, "wait_for_element", "waiting", {"selector": f"{selector_type}:{selector_value}"})
                             
                             if selector_type == "id":
                                 WebDriverWait(driver, timeout).until(
@@ -5240,7 +5367,13 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
                                     EC.presence_of_element_located((By.CSS_SELECTOR, selector_value))
                                 )
                         
+                        # Immediate feedback capture
+                        if capture_strategy == "continuous":
+                            analysis = capture_looking_at_state(step_num, step_type, driver)
+                            step_result["looking_at_analysis"] = analysis
+                        
                         step_result["success"] = True
+                        capture_progressive_feedback(step_num, "navigation", "completed", {"final_url": driver.current_url})
                         
                     elif step_type == "form_fill":
                         # Fill form field
@@ -5250,6 +5383,8 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
                         # Process template variables in text
                         for key, value in processed_form_data.items():
                             text = text.replace(f"{{{{ {key} }}}}", str(value))
+                        
+                        capture_progressive_feedback(step_num, "form_fill", "filling", {"selector": selector, "text": text})
                         
                         # Find element
                         element = None
@@ -5263,15 +5398,25 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
                         if element:
                             element.clear()
                             element.send_keys(text)
+                            
+                            # Immediate feedback capture
+                            if capture_strategy == "continuous":
+                                analysis = capture_looking_at_state(step_num, step_type, driver)
+                                step_result["looking_at_analysis"] = analysis
+                            
                             step_result["success"] = True
+                            capture_progressive_feedback(step_num, "form_fill", "completed", {"field_value": text})
                             logger.info(f"✅ FINDER_TOKEN: JSON_RECIPE_FORM_FILL - Filled field with: {text}")
                         else:
                             step_result["error"] = f"Element not found: {selector}"
+                            capture_progressive_feedback(step_num, "form_fill", "failed", {"error": step_result["error"]})
                             
                     elif step_type == "submit":
                         # Submit form or click button
                         selector = step_params.get("selector", {})
                         wait_after = step_params.get("wait_after", 1000)
+                        
+                        capture_progressive_feedback(step_num, "submit", "clicking", {"selector": selector})
                         
                         # Find element
                         element = None
@@ -5283,35 +5428,69 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
                         if element:
                             element.click()
                             time.sleep(wait_after / 1000)  # Convert milliseconds to seconds
+                            
+                            # Immediate feedback capture
+                            if capture_strategy == "continuous":
+                                analysis = capture_looking_at_state(step_num, step_type, driver)
+                                step_result["looking_at_analysis"] = analysis
+                            
                             step_result["success"] = True
+                            capture_progressive_feedback(step_num, "submit", "completed", {"wait_after": wait_after})
                             logger.info(f"✅ FINDER_TOKEN: JSON_RECIPE_SUBMIT - Clicked element")
                         else:
                             step_result["error"] = f"Element not found: {selector}"
+                            capture_progressive_feedback(step_num, "submit", "failed", {"error": step_result["error"]})
                             
                     elif step_type == "verify":
                         # Verify page state
                         verify_url = step_params.get("url", driver.current_url)
                         wait_seconds = step_params.get("wait_seconds", 2)
                         
+                        capture_progressive_feedback(step_num, "verify", "verifying", {"url": verify_url})
+                        
+                        # Navigate if needed
+                        if verify_url != driver.current_url:
+                            driver.get(verify_url)
+                        
                         time.sleep(wait_seconds)
-                        current_url = driver.current_url
+                        
+                        # Enhanced verification with immediate feedback
+                        if capture_strategy == "continuous":
+                            analysis = capture_looking_at_state(step_num, step_type, driver)
+                            step_result["looking_at_analysis"] = analysis
+                            
+                            # Use analysis for verification
+                            if analysis.get("success_indicators"):
+                                continuous_feedback["success_signals"].extend(analysis["success_indicators"])
+                            if analysis.get("failure_indicators"):
+                                continuous_feedback["failure_signals"].extend(analysis["failure_indicators"])
                         
                         # Basic verification - could be enhanced
                         step_result["success"] = True
                         step_result["verification_data"] = {
-                            "current_url": current_url,
+                            "current_url": driver.current_url,
                             "expected_url": verify_url
                         }
+                        capture_progressive_feedback(step_num, "verify", "completed", {"verified_url": driver.current_url})
                         logger.info(f"✅ FINDER_TOKEN: JSON_RECIPE_VERIFY - Verified page state")
                         
                     else:
                         step_result["error"] = f"Unknown step type: {step_type}"
+                        capture_progressive_feedback(step_num, "error", "failed", {"error": step_result["error"]})
                         
                 except Exception as step_error:
                     step_result["error"] = str(step_error)
+                    capture_progressive_feedback(step_num, "error", "failed", {"error": str(step_error)})
+                    continuous_feedback["failure_signals"].append(f"step_{step_num}_exception")
                     logger.error(f"❌ FINDER_TOKEN: JSON_RECIPE_STEP_ERROR - Step {step_num}: {step_error}")
                 
                 step_results.append(step_result)
+                
+                # Track success/failure signals
+                if step_result["success"]:
+                    continuous_feedback["success_signals"].append(f"step_{step_num}_success")
+                else:
+                    continuous_feedback["failure_signals"].append(f"step_{step_num}_failed")
                 
                 # Add timing delays
                 if step_result["success"]:
@@ -5319,10 +5498,16 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
                     if delay_key in timing:
                         time.sleep(timing[delay_key])
                 
+                capture_progressive_feedback(step_num, "step_execution", "completed", {"success": step_result["success"]})
+                
                 # Stop execution if step failed (unless it's a verification step)
                 if not step_result["success"] and step_type != "verify":
                     logger.error(f"❌ FINDER_TOKEN: JSON_RECIPE_STEP_FAILED - Stopping execution at step {step_num}")
                     break
+            
+            # Final state capture
+            if capture_strategy == "continuous":
+                final_analysis = capture_looking_at_state(999, "final_verification", driver)
             
             # Determine overall success
             successful_steps = sum(1 for result in step_results if result["success"])
@@ -5331,6 +5516,9 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
             
             overall_success = success_rate >= 80  # 80% success rate required
             
+            # Final feedback
+            continuous_feedback["live_status"] = "completed" if overall_success else "failed"
+            
             result = {
                 "success": overall_success,
                 "recipe_name": recipe_name,
@@ -5338,10 +5526,16 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
                 "successful_steps": successful_steps,
                 "success_rate": success_rate,
                 "step_results": step_results,
-                "execution_time": time.time()
+                "continuous_feedback": continuous_feedback,
+                "execution_time": time.time(),
+                "looking_at_files": {
+                    "directory": "browser_automation/looking_at/",
+                    "snapshots_captured": len(continuous_feedback["looking_at_snapshots"])
+                }
             }
             
             logger.info(f"🎯 FINDER_TOKEN: JSON_RECIPE_COMPLETE - Success: {overall_success}, Rate: {success_rate:.1f}%")
+            logger.info(f"🎯 FINDER_TOKEN: CONTINUOUS_FEEDBACK_SUMMARY - Success signals: {len(continuous_feedback['success_signals'])}, Failure signals: {len(continuous_feedback['failure_signals'])}")
             
             return result
             
@@ -5362,7 +5556,11 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
             "success": False,
             "error": str(e),
             "recipe_name": recipe_data.get("recipe_name", "Unknown"),
-            "step_results": []
+            "step_results": [],
+            "continuous_feedback": {
+                "live_status": "error",
+                "failure_signals": ["recipe_execution_exception"]
+            }
         }
 
 async def execute_automation_recipe(params: dict = None) -> dict:
