@@ -438,9 +438,11 @@ class DurableBackupManager:
                     )
                     backup_row = backup_cursor.fetchone()
                 
-                    if backup_row and backup_row[0] > row[timestamp_index]:
-                        # Backup has newer data, skip this record
-                        continue
+                    # Safe timestamp comparison - handle None values
+                    if backup_row and backup_row[0] is not None and row[timestamp_index] is not None:
+                        if backup_row[0] > row[timestamp_index]:
+                            # Backup has newer data, skip this record
+                            continue
                 
                 # Insert or replace record
                     placeholders = ', '.join(['?' for _ in columns])
@@ -507,9 +509,11 @@ class DurableBackupManager:
                     )
                     target_row = target_cursor.fetchone()
                 
-                    if target_row and target_row[0] > row[timestamp_index]:
-                        # Target has newer data, skip this record
-                        continue
+                    # Safe timestamp comparison - handle None values
+                    if target_row and target_row[0] is not None and row[timestamp_index] is not None:
+                        if target_row[0] > row[timestamp_index]:
+                            # Target has newer data, skip this record
+                            continue
                 
                 # Insert or replace record
                 placeholders = ', '.join(['?' for _ in columns])
