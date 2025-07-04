@@ -5128,4 +5128,184 @@ if __name__ == "__main__":
             "error": f"Workflow hijacking failed: {str(e)}"
         }
 
+async def execute_automation_recipe(params: dict = None) -> dict:
+    """🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM
+    
+    Progressive disclosure pattern for managing automation recipes:
+    - Level 1: No params → Show available hosts + quick actions
+    - Level 2: host only → Show recipes for that host  
+    - Level 3: host + recipe → Execute the specific recipe
+    
+    Args:
+        params: Optional parameters for progressive disclosure
+                - No params: List hosts and quick actions
+                - {"host": "localhost:5001"}: List recipes for host
+                - {"host": "X", "recipe": "Y", ...}: Execute recipe
+    
+    Returns:
+        dict: Progressive disclosure results or execution results
+    """
+    import json
+    import os
+    from pathlib import Path
+    
+    logger.info(f"🎯 FINDER_TOKEN: AUTOMATION_RECIPE_START - execute_automation_recipe called with params: {params}")
+    
+    try:
+        # Level 1: No parameters - show available hosts and quick actions
+        if not params:
+            recipes_dir = Path("ai_discovery/automation_recipes")
+            available_hosts = []
+            
+            if recipes_dir.exists():
+                # Find all host directories
+                for item in recipes_dir.iterdir():
+                    if item.is_dir() and not item.name.startswith('.'):
+                        # Convert directory name back to host format
+                        host_name = item.name.replace('_', ':')
+                        available_hosts.append(host_name)
+            
+            return {
+                "success": True,
+                "level": 1,
+                "available_hosts": available_hosts,
+                "quick_actions": [
+                    "list_all_recipes",
+                    "test_localhost_cycle",
+                    "backup_test",
+                    "profile_creation_test"
+                ],
+                "usage": "Call with {'host': 'localhost:5001'} to see recipes for that host",
+                "example": "await execute_automation_recipe({'host': 'localhost:5001'})",
+                "total_hosts": len(available_hosts)
+            }
+        
+        # Level 2: Host specified but no recipe - show available recipes
+        if "host" in params and "recipe" not in params:
+            host = params["host"]
+            # Convert host to directory name format
+            host_dir = host.replace(':', '_')
+            recipes_path = Path(f"ai_discovery/automation_recipes/{host_dir}")
+            
+            if not recipes_path.exists():
+                return {
+                    "success": False,
+                    "error": f"No recipes found for host: {host}",
+                    "available_hosts": [d.name.replace('_', ':') for d in Path("ai_discovery/automation_recipes").iterdir() if d.is_dir()]
+                }
+            
+            # Find all recipe files
+            available_recipes = []
+            recipe_details = {}
+            
+            for recipe_file in recipes_path.glob("*.json"):
+                recipe_name = recipe_file.stem
+                available_recipes.append(recipe_name)
+                
+                # Try to read recipe details
+                try:
+                    with open(recipe_file, 'r') as f:
+                        recipe_data = json.load(f)
+                        recipe_details[recipe_name] = {
+                            "description": recipe_data.get("description", "No description"),
+                            "version": recipe_data.get("version", "Unknown"),
+                            "steps": len(recipe_data.get("steps", []))
+                        }
+                except Exception as e:
+                    recipe_details[recipe_name] = {"error": f"Could not read recipe: {e}"}
+            
+            return {
+                "success": True,
+                "level": 2,
+                "host": host,
+                "available_recipes": available_recipes,
+                "recipe_details": recipe_details,
+                "usage": f"Call with {{'host': '{host}', 'recipe': 'RECIPE_NAME'}} to execute",
+                "example": f"await execute_automation_recipe({{'host': '{host}', 'recipe': '{available_recipes[0] if available_recipes else 'profile_creation'}'}})",
+                "total_recipes": len(available_recipes)
+            }
+        
+        # Level 3: Host and recipe specified - execute the recipe
+        if "host" in params and "recipe" in params:
+            host = params["host"]
+            recipe_name = params["recipe"]
+            
+            # Convert host to directory name format
+            host_dir = host.replace(':', '_')
+            recipe_path = Path(f"ai_discovery/automation_recipes/{host_dir}/{recipe_name}.json")
+            
+            if not recipe_path.exists():
+                return {
+                    "success": False,
+                    "error": f"Recipe '{recipe_name}' not found for host '{host}'",
+                    "recipe_path": str(recipe_path),
+                    "suggestion": f"Call with {{'host': '{host}'}} to see available recipes"
+                }
+            
+            # Load and execute the recipe
+            logger.info(f"🎯 FINDER_TOKEN: RECIPE_EXECUTION_START - Loading recipe: {recipe_path}")
+            
+            try:
+                with open(recipe_path, 'r') as f:
+                    recipe_data = json.load(f)
+                
+                # Merge user params with recipe defaults
+                execution_params = recipe_data.copy()
+                if "execution_params" in params:
+                    execution_params.update(params["execution_params"])
+                
+                # Execute via browser automation (using existing function)
+                # Convert recipe to browser automation format
+                automation_params = {
+                    "instructions": f"Execute {recipe_name} recipe",
+                    "recipe_data": recipe_data,
+                    "target_url": execution_params.get("url", f"http://{host}"),
+                    "headless_mode": execution_params.get("headless_mode", False),
+                    "custom_params": params.get("execution_params", {})
+                }
+                
+                logger.info(f"🎯 FINDER_TOKEN: RECIPE_EXECUTION - Executing {recipe_name} via browser automation")
+                result = await browser_automate_workflow_walkthrough(automation_params)
+                
+                # Add recipe metadata to result
+                result.update({
+                    "recipe_name": recipe_name,
+                    "host": host,
+                    "recipe_path": str(recipe_path),
+                    "recipe_version": recipe_data.get("version", "Unknown")
+                })
+                
+                logger.info(f"🎯 FINDER_TOKEN: RECIPE_EXECUTION_COMPLETE - {recipe_name} execution finished: {result.get('success', False)}")
+                return result
+                
+            except Exception as e:
+                logger.error(f"🎯 FINDER_TOKEN: RECIPE_EXECUTION_ERROR - Failed to execute {recipe_name}: {e}")
+                return {
+                    "success": False,
+                    "error": f"Failed to execute recipe '{recipe_name}': {str(e)}",
+                    "recipe_path": str(recipe_path),
+                    "host": host,
+                    "recipe_name": recipe_name
+                }
+        
+        # Invalid parameter combination
+        return {
+            "success": False,
+            "error": "Invalid parameter combination",
+            "valid_patterns": [
+                "No params: List hosts",
+                "{'host': 'X'}: List recipes for host",
+                "{'host': 'X', 'recipe': 'Y'}: Execute recipe"
+            ],
+            "received_params": params
+        }
+        
+    except Exception as e:
+        logger.error(f"🎯 FINDER_TOKEN: AUTOMATION_RECIPE_ERROR - execute_automation_recipe failed: {e}")
+        return {
+            "success": False,
+            "error": f"System error in execute_automation_recipe: {str(e)}",
+            "params": params
+        }
+
 
