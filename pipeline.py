@@ -8,17 +8,30 @@ import asyncio
 import functools
 import importlib
 import inspect
+import json
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 # Import required dependencies from server module (avoid circular imports by being selective)
 from loguru import logger
-from fasthtml.common import Card, Div, H1, H2, H3, H4, P, A, Input, Button, Form
+from fasthtml.common import Card, Div, H1, H2, H3, H4, P, A, Input, Button, Form, Container, Small, Option, Datalist, HTMLResponse, to_xml
 import re
 
 # Import centralized configuration
 from config import PCONFIG, friendly_names
+
+# Import logging utilities
+from logging_utils import rich_json_display
+
+# Import database exceptions
+try:
+    from database import NotFoundError
+except ImportError:
+    # Fallback if database module not available
+    class NotFoundError(Exception):
+        pass
 
 # Temporary title_name function to avoid circular imports
 def title_name(word: str) -> str:

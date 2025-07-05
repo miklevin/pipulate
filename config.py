@@ -215,13 +215,6 @@ PCONFIG = {
             'PROCESSING': 'Processing...',
             'PLEASE_WAIT': 'Please wait while processing...'
         },
-        'BUTTON_LABELS': {
-            'UNLOCK': 'Unlock',
-            'LOCK': 'Lock', 
-            'SUBMIT': 'Submit',
-            'CANCEL': 'Cancel',
-            'RESET': 'Reset'
-        },
         'LANDING_PAGE': {
             'INPUT_PLACEHOLDER': 'Existing or new 🗝 here (Enter for auto)',
             'INIT_MESSAGE_WORKFLOW_ID': 'Workflow ID: {pipeline_id}',
