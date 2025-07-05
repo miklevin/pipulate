@@ -8,3 +8,4 @@ SUCCESS: 1e8b0f4 feat: Use dynamic database filename based on app name and envir
 SUCCESS: 1e8b0f4 feat: Use dynamic database filename based on app name and environment
 SUCCESS: ab9e70d feat: Implement Radical Conversation History Transparency System
 SUCCESS: ae0ea58 feat: Implement independent discussion database for persistent conversation history
+SUCCESS: a277716 feat: Implement directory rotation for AI perception history
