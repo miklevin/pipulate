@@ -121,7 +121,7 @@ def main():
     print("Analyzing server.py for the exact vulnerabilities you identified...\n")
     
     detector = OrderDependencyDetector()
-    vulnerabilities = detector.analyze_server_vulnerabilities('../../server.py')
+    vulnerabilities = detector.analyze_server_vulnerabilities('server.py')
     
     # Show the exact vulnerabilities the user is concerned about
     print("🚨 CRITICAL VULNERABILITIES DETECTED:")
