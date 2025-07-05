@@ -2272,3 +2272,83 @@ button.secondary.inline-button-submit {
     }
 }
 
+
+
+
+
+
+
+
+
+/* --- Base Chat Message Spacing --- */
+#msg-list .message {
+  margin-top: 5px; /* Adjust space between message bubbles */
+  margin-bottom: 5px; /* Adjust space between message bubbles */
+  padding: 8px 12px; /* Keep internal padding within the message bubble */
+  line-height: normal; /* Ensure normal line height for the container */
+}
+
+/* --- Resetting Default List and Paragraph Spacing within Messages --- */
+
+/* Remove default margins and padding from paragraphs */
+#msg-list p {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Adjust spacing for all UL elements within msg-list */
+#msg-list ul {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 20px; /* Keep some indentation for lists */
+}
+
+/* Adjust spacing for all LI elements within msg-list */
+#msg-list li {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: normal; /* Use normal line height */
+}
+
+/* Specifically target ULs that are direct children of LIs (nested lists) */
+#msg-list li > ul {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+   padding-left: 20px; /* Keep indentation for nested ULs */
+}
+
+/* Target P elements immediately following a UL (less likely the issue now, but good to include defensively) */
+#msg-list ul + p {
+  margin-top: 0;
+}
+
+/* --- CRITICAL RULE FOR SPACING BETWEEN LIST ITEMS --- */
+/* Target LI elements that immediately follow another LI to remove top margin */
+#msg-list li + li {
+  margin-top: 0;
+}
+
+/* --- Optional: Attempt to collapse space from empty text nodes using font-size 0 --- */
+/* Use this only if the above rules don't fully fix the space. Test thoroughly. */
+/*
+#msg-list .message > * {
+   font-size: 0;
+   line-height: 0;
+}
+#msg-list .message > p,
+#msg-list .message > ul,
+#msg-list .message > ul li {
+   font-size: initial;
+   line-height: normal;
+}
+*/
+
+
