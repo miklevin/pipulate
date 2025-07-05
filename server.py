@@ -6752,6 +6752,7 @@ async def warm_up_botify_schema_cache():
     
     try:
         # Check if we have Botify token available
+        from mcp_tools import _read_botify_api_token, botify_get_full_schema
         api_token = _read_botify_api_token()
         if not api_token:
             logger.debug("No Botify API token found - skipping schema cache warmup")
@@ -6783,7 +6784,7 @@ async def warm_up_botify_schema_cache():
                         project_info["analysis"] = latest_analysis.get("slug", project_info["analysis"])
                 
                 # Attempt to warm cache (will use existing cache if available)
-                cache_result = await _botify_get_full_schema({
+                cache_result = await botify_get_full_schema({
                     "org": project_info["org"],
                     "project": project_info["project"], 
                     "analysis": project_info["analysis"]
