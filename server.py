@@ -4338,7 +4338,7 @@ def populate_initial_data():
 populate_initial_data()
 
 async def synchronize_roles_to_db():
-    """Ensure all roles defined in plugin ROLES constants exist in the 'roles' database table."""
+    """Ensure all roles defined in plugin ROLES constants and ROLES_CONFIG exist in the 'roles' database table."""
     logger.info('SYNC_ROLES: Starting role synchronization to database...')
     if not plugin_instances:
         logger.warning('SYNC_ROLES: plugin_instances is empty. Skipping role synchronization.')
@@ -4358,6 +4358,14 @@ async def synchronize_roles_to_db():
         log_dynamic_table_state('roles', lambda: roles_table_handler(), title_prefix='SYNC_ROLES: Global BEFORE')
     logger.debug('SYNC_ROLES: Synchronizing roles globally')
     discovered_roles_set = set()
+    
+    # FIRST: Get roles from ROLES_CONFIG (this is the primary source of truth)
+    roles_config = PCONFIG.get('ROLES_CONFIG', {})
+    if roles_config:
+        logger.debug(f"SYNC_ROLES: Found {len(roles_config)} roles in ROLES_CONFIG: {list(roles_config.keys())}")
+        discovered_roles_set.update(roles_config.keys())
+    
+    # SECOND: Get roles from plugin ROLES constants (for backward compatibility)
     for plugin_key, plugin_instance_obj in plugin_instances.items():
         plugin_module = sys.modules.get(plugin_instance_obj.__module__)
         roles_to_add_from_plugin = None
@@ -4371,10 +4379,11 @@ async def synchronize_roles_to_db():
             for role_name in roles_to_add_from_plugin:
                 if isinstance(role_name, str) and role_name.strip():
                     discovered_roles_set.add(role_name.strip())
+    
     if not discovered_roles_set:
-        logger.info('SYNC_ROLES: No roles were discovered in any plugin ROLES constants. Role table will not be modified.')
+        logger.info('SYNC_ROLES: No roles were discovered in ROLES_CONFIG or plugin ROLES constants. Role table will not be modified.')
     else:
-        logger.info(f'SYNC_ROLES: Total unique role names discovered across all plugins: {discovered_roles_set}')
+        logger.info(f'SYNC_ROLES: Total unique role names discovered from all sources: {discovered_roles_set}')
     try:
         logger.debug("SYNC_ROLES: Attempting to fetch all existing roles globally")
         existing_role_objects = list(roles_table_handler())
