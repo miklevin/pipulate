@@ -373,6 +373,37 @@ class ASTWorkflowReconstructor:
             print(f"❌ Error generating Python code: {e}")
             raise Exception(f"Failed to generate Python code from AST: {e}")
     
+    def copy_template_imports(self, template_tree: ast.AST, target_tree: ast.AST) -> ast.AST:
+        """Copy all imports from template to target, preserving template imports."""
+        print("📦 Copying template imports...")
+        
+        # Extract all import statements from template
+        template_imports = []
+        for node in template_tree.body:
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                template_imports.append(node)
+                import_str = ast.unparse(node)
+                print(f"  📋 Template import: {import_str}")
+        
+        # Find where imports end in target (before class definition)
+        insertion_point = 0
+        for i, node in enumerate(target_tree.body):
+            if isinstance(node, ast.ClassDef):
+                insertion_point = i
+                break
+            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                insertion_point = i + 1
+        
+        # Insert template imports at the beginning, after existing imports
+        print(f"  🔧 Inserting {len(template_imports)} template imports at position {insertion_point}")
+        target_tree.body = (
+            target_tree.body[:insertion_point] + 
+            template_imports + 
+            target_tree.body[insertion_point:]
+        )
+        
+        return target_tree
+
     def reconstruct_workflow(self, template_name: str, source_name: str, target_name: str, 
                            transformations: Optional[Dict[str, str]] = None,
                            new_class_name: Optional[str] = None) -> bool:
@@ -462,6 +493,10 @@ class ASTWorkflowReconstructor:
             # Insert Chunk 2 components
             print("📦 Inserting Chunk 2 components...")
             target_tree = self.insert_chunk2_steps_and_methods(template_tree, chunk2_step_definitions, chunk2_methods)
+            
+            # Copy template imports to ensure all dependencies are available
+            print("📦 Ensuring template imports are available...")
+            target_tree = self.copy_template_imports(template_tree, target_tree)
             
             # Insert route registrations
             print("🔗 Inserting route registrations...")
