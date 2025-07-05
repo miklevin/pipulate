@@ -263,27 +263,25 @@ def generate_files_list():
         ""
     ])
     
-    # Core files (in pipulate root) - some uncommented by default
+        # Core files (in pipulate root) - some uncommented by default
     lines.append("# CORE FILES & DOCS (Setting the stage)")
     core_files = [
-        FileEntry("README.md", False, "Single source of truth"),
+        FileEntry("README.md", True, "Single source of truth"),
         FileEntry(".gitignore", False, "Lets data stay in the repo"),
         FileEntry("flake.nix", False, "IaC - Infrastructure as Code"),
         FileEntry("requirements.txt", False, "Python dependencies"),
         FileEntry("config.py", False, "Centralized configuration - single source of truth"),
         FileEntry("server.py", False, "Server entrypoint"),
+        FileEntry("config.py", False, "Centralized configuration - \"The Crucible\""),
         FileEntry("common.py", False, "CRUD base class"),
         FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
         FileEntry("helpers/ascii_displays.py", True, "Externalized ASCII art functions"),
     ]
-    
-    # Add extracted files from server.py refactoring (if they exist)
-    extracted_files = [
-        FileEntry("pipeline.py", False, "Pipulate class and workflow coordination"),
-        FileEntry("database.py", False, "Database operations and DictLikeDB"),
-        FileEntry("logging_utils.py", False, "Logging and display utilities"),
-        FileEntry("plugin_system.py", False, "Plugin discovery and management"),
-        FileEntry("routes.py", False, "HTTP endpoint handlers"),
+
+    # Not core but also important files
+    important_files = [
+        FileEntry("keychain.py", True, "AI Keychain - secure credential management"),
+        FileEntry("discover_mcp_tools.py", True, "MCP tool discovery and validation"),
     ]
     
     for entry in core_files:
@@ -300,19 +298,20 @@ def generate_files_list():
             # Single comment with description
             lines.append(f"{full_path}  # {entry.description} {token_info}")
     
-    # Add extracted files section
-    lines.append("\n# EXTRACTED FILES (From server.py refactoring)")
-    for entry in extracted_files:
+    # Add important files section
+    for entry in important_files:
         full_path = f"{base_paths['pipulate']}/{entry.filename}"
         
         # Get token count for the file
         token_count = get_file_token_count(full_path)
         token_info = f"[{format_token_count(token_count)}]"
         
-        if token_count > 0:  # File exists
+        if entry.double_comment:
+            # Double comments for emphasized files
+            lines.append(f"# {full_path}  # <-- {entry.description} {token_info}")
+        else:
+            # Single comment with description
             lines.append(f"{full_path}  # {entry.description} {token_info}")
-        else:  # File doesn't exist yet
-            lines.append(f"# {full_path}  # {entry.description} (not yet created)")
     
     # PyPI release system files - commented out by default
     lines.append("\n## PYPI RELEASE SYSTEM FILES")
@@ -340,10 +339,7 @@ def generate_files_list():
             # Single comment with description (uncommented since these are active)
             lines.append(f"{full_path}  # {entry.description} {token_info}")
     
-    # Common/shared files
-    lines.extend(enumerate_specific_files([
-        f"{base_paths['pipulate_com']}/install.sh"
-    ], description="COMMON/SHARED FILES", ignore_patterns=ignore_patterns))
+
     
     # Current prompt necessities (placeholder - user fills this in)
     lines.append("\n## NECESSARY FOR CURRENT PROMPT")
