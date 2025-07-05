@@ -4785,6 +4785,9 @@ tool_count = len(MCP_TOOL_REGISTRY)
 if __name__ == '__main__' and tool_count > 0:
     figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
     section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
+    # Half-second delay so humans can notice this major feature before it scrolls away
+    import time
+    time.sleep(0.5)
 
 
 # 🍞 AI DISCOVERY BREADCRUMB #2: MCP Tools → Browser Automation Discovery
