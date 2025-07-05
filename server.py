@@ -52,6 +52,9 @@ from mcp_tools import register_all_mcp_tools, register_mcp_tool
 import mcp_tools
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
+# Import centralized configuration
+from config import PCONFIG
+
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
 # Various debug settings
@@ -516,8 +519,6 @@ TONE = 'neutral'
 MODEL = 'gemma3'
 MAX_LLM_RESPONSE_WORDS = 80
 MAX_CONVERSATION_LENGTH = 10000
-HOME_MENU_ITEM = 'Roles️ 👥'
-DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
 
 logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}')
 
@@ -528,210 +529,7 @@ EXTERNAL_LINK_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="14" height
 
 SETTINGS_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'''
 
-# ================================================================
-# INSTANCE-SPECIFIC CONFIGURATION - "The Crucible"
-# ================================================================
-# This dictionary holds settings that customize this particular Pipulate instance.
-# Moving configuration here allows for easy white-labeling and configuration management.
-# Over time, more instance-specific "slag" will be skimmed from plugins to here.
 
-PCONFIG = {
-    # UI & Navigation
-    'HOME_MENU_ITEM': HOME_MENU_ITEM,
-    'DEFAULT_ACTIVE_ROLES': DEFAULT_ACTIVE_ROLES,
-    
-    # Role System Configuration
-    'ROLES_CONFIG': {
-        'Botify Employee': {
-            'priority': 0, 
-            'description': 'Connect with Botify to use Parameter Buster and Link Graph Visualizer.',
-            'emoji': '👔'
-        },
-        'Core': {
-            'priority': 1, 
-            'description': 'Essential plugins available to all users.',
-            'emoji': '⚙️'
-        },
-        'Tutorial': {
-            'priority': 2, 
-            'description': 'Guided workflows and introductory examples for learning the system.',
-            'emoji': '📚'
-        },
-        'Developer': {
-            'priority': 3, 
-            'description': 'Tools for creating, debugging, and managing workflows and plugins.',
-            'emoji': '⚡'
-        },
-        'Workshop': {
-            'priority': 4, 
-            'description': 'This is where we put works in progress, proof of concepts and crazy stuff not ready for release. Consider it the sausage factory.',
-            'emoji': '🔬'
-        },
-        'Components': {
-            'priority': 5, 
-            'description': 'UI and data widgets for building rich workflow interfaces.',
-            'emoji': '🧩'
-        }
-    },
-    
-    # Role Color Configuration
-    'ROLE_COLORS': {
-        'menu-role-core': {
-            'border': '#22c55e',            # GREEN
-            'background': 'rgba(34, 197, 94, 0.1)',
-            'background_light': 'rgba(34, 197, 94, 0.05)'
-        },
-        'menu-role-botify-employee': {
-            'border': '#a855f7',            # PURPLE
-            'background': 'rgba(168, 85, 247, 0.1)',
-            'background_light': 'rgba(168, 85, 247, 0.05)'
-        },
-        'menu-role-tutorial': {
-            'border': '#f97316',            # ORANGE
-            'background': 'rgba(249, 115, 22, 0.1)',
-            'background_light': 'rgba(249, 115, 22, 0.05)'
-        },
-        'menu-role-developer': {
-            'border': '#3b82f6',            # BLUE
-            'background': 'rgba(59, 130, 246, 0.1)',
-            'background_light': 'rgba(59, 130, 246, 0.05)'
-        },
-        'menu-role-components': {
-            'border': '#6b7280',            # GRAY
-            'background': 'rgba(107, 114, 128, 0.1)',
-            'background_light': 'rgba(107, 114, 128, 0.05)'
-        },
-        'menu-role-workshop': {
-            'border': '#eab308',            # YELLOW
-            'background': 'rgba(234, 179, 8, 0.1)',
-            'background_light': 'rgba(234, 179, 8, 0.05)'
-        }
-    },
-    
-    # Botify API Configuration
-    'BOTIFY_API': {
-        'MAX_EXPORT_SIZE': 1000000,  # Botify's maximum export size limit (1M rows)
-        'DEFAULT_EXPORT_SIZE': 1000000,  # Conservative default for testing/development
-        'GSC_EXPORT_SIZE': 1000000,  # GSC can handle full export size
-        'WEBLOG_EXPORT_SIZE': 1000000,  # Web logs can handle full export size
-        'CRAWL_EXPORT_SIZE': 1000000,  # Crawl exports can handle full export size
-    },
-    
-    # Chat & Streaming Configuration
-    'CHAT_CONFIG': {
-        'TYPING_DELAY': 0.0125,  # Delay between words in typing simulation (seconds)
-        'MAX_CONVERSATION_LENGTH': 100,  # Maximum number of conversation messages to keep
-    },
-    
-    # UI Constants for Workflows - Centralized button labels, emojis, and styles
-    'UI_CONSTANTS': {
-        'BUTTON_LABELS': {
-            'ENTER_KEY': '🔑 Enter Key',
-            'NEW_KEY': '🆕',
-            'NEXT_STEP': 'Next Step ▸',
-            'FINALIZE': '🔒 Finalize',
-            'UNLOCK': '🔓 Unlock',
-            'PROCEED': 'Proceed ▸',
-            'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
-            'VIEW_FOLDER': '📂 View Folder',
-            'DOWNLOAD_CSV': '⬇️ Copy to Downloads',
-            'VISUALIZE_GRAPH': '🌐 Visualize Graph',
-            'SKIP_STEP': 'Skip️'
-        },
-        'BUTTON_STYLES': {
-            'PRIMARY': 'primary',
-            'SECONDARY': 'secondary',
-            'OUTLINE': 'secondary outline',
-            'STANDARD': 'secondary outline',
-                    'FLEX_CONTAINER': 'display: flex; gap: var(--pipulate-gap-sm); flex-wrap: wrap; align-items: center;',
-        'BUTTON_ROW': 'display: flex; gap: var(--pipulate-gap-sm); align-items: center;',
-            'SKIP_BUTTON': 'secondary outline',
-            'SKIP_BUTTON_STYLE': 'padding: 0.5rem 1rem; width: 10%; min-width: 80px; white-space: nowrap;',
-            'BORDER_RADIUS': 'var(--pico-border-radius)'  # Global button roundedness control
-        },
-        'EMOJIS': {
-            # Process Status Indicators
-            'KEY': '🔑',
-            'SUCCESS': '🎯',
-            'WARNING': '⚠️',
-            'ERROR': '❌',
-            'COMPLETION': '✅',
-            'LOCKED': '🔒',
-            'UNLOCKED': '🔓',
-            
-            # Data Type Indicators  
-            'USER_INPUT': '👤',
-            'GREETING': '💬',
-            'WORKFLOW': '🔄',
-            'INPUT_FORM': '📝',
-            
-            # Code and Development Indicators
-            'PYTHON_CODE': '🐍',           # Python code snippets and headers
-            'CODE_SNIPPET': '✂️',         # Code snippet indicator
-            'JUPYTER_NOTEBOOK': '📓',     # Jupyter notebook related
-            'API_CALL': '🔌',             # API endpoint calls
-            'DEBUG_CODE': '🐛',           # Debugging code sections
-            
-            # File and Data Operations
-            'DOWNLOAD': '⬇️',             # Download operations
-            'UPLOAD': '⬆️',               # Upload operations
-            'FILE_FOLDER': '📂',          # File/folder operations
-            'CSV_FILE': '📊',             # CSV and data files
-            'JSON_DATA': '📄',            # JSON and structured data
-            
-            # Analysis and Processing
-            'ANALYSIS': '🔍',             # Data analysis and discovery
-            'PROCESSING': '⚙️',          # Background processing
-            'OPTIMIZATION': '🎯',        # Optimization results
-            'GRAPH_NETWORK': '🌐',       # Network/graph visualization
-            'VISUALIZATION': '📈',       # Charts and visualizations
-            
-            # Search Console and SEO
-            'SEARCH_CONSOLE': '🔍',      # Google Search Console
-            'SEO_DATA': '📊',            # SEO metrics and data
-            'CRAWL_DATA': '🕷️',         # Website crawling
-            'WEB_LOGS': '📝',            # Web server logs
-            
-            # Workflow Status
-            'STEP_COMPLETE': '✅',       # Step completion
-            'STEP_PROGRESS': '🔄',      # Step in progress
-            'STEP_ERROR': '❌',          # Step error
-            'STEP_WARNING': '⚠️',       # Step warning
-            'REVERT': '↩️',              # Revert action
-            'FINALIZE': '🔒',           # Finalize workflow
-            'UNFINALIZE': '🔓'          # Unfinalize workflow
-        },
-        'CONSOLE_MESSAGES': {
-            # Server console log messages - centralized for consistency
-            'PYTHON_SNIPPET_INTRO': '# {python_emoji} Python (httpx) Snippet BEGIN {snippet_emoji}:',
-            'PYTHON_SNIPPET_END': '# {python_emoji} Python (httpx) Snippet END {snippet_emoji}',
-            'API_CALL_LOG': 'API Call: {method} {url}',
-            'FILE_GENERATED': 'Generated file: {filename}',
-            'PROCESSING_COMPLETE': 'Processing complete for: {operation}',
-            'ERROR_OCCURRED': 'Error in {context}: {error_message}'
-        },
-        'CODE_FORMATTING': {
-            # Visual dividers and separators for generated code
-            'COMMENT_DIVIDER': '# ============================================================================='
-        },
-        'MESSAGES': {
-            'WORKFLOW_UNLOCKED': 'Workflow unfinalized! You can now revert to any step and make changes.',
-            'ALL_STEPS_COMPLETE': 'All steps complete. Ready to finalize workflow.',
-            'FINALIZE_QUESTION': 'All steps complete. Finalize?',
-            'FINALIZE_HELP': 'You can revert to any step and make changes.',
-            'WORKFLOW_LOCKED': 'Workflow is locked.'
-        },
-        'LANDING_PAGE': {
-            'INPUT_PLACEHOLDER': 'Existing or new 🗝 here (Enter for auto)',
-            'INIT_MESSAGE_WORKFLOW_ID': 'Workflow ID: {pipeline_id}',
-            'INIT_MESSAGE_RETURN_HINT': "Return later by selecting '{pipeline_id}' from the dropdown."
-        }
-    }
-}
-
-# Update references to use the centralized config
-HOME_MENU_ITEM = PCONFIG['HOME_MENU_ITEM']
-DEFAULT_ACTIVE_ROLES = PCONFIG['DEFAULT_ACTIVE_ROLES']
 
 # ================================================================
 # MCP TOOL REGISTRY - Generic Tool Dispatch System
@@ -1378,7 +1176,7 @@ def title_name(word: str) -> str:
 
 def endpoint_name(endpoint: str) -> str:
     if not endpoint:
-        return HOME_MENU_ITEM
+        return PCONFIG['HOME_MENU_ITEM']
     if endpoint in friendly_names:
         return friendly_names[endpoint]
     return title_name(endpoint)
@@ -3492,7 +3290,7 @@ def build_endpoint_messages(endpoint):
                 class_name = roles_instance.__class__.__name__
                 endpoint_messages[''] = f'{class_name} app is where you manage your roles.'
         else:
-            endpoint_messages[''] = f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. Select an app from the menu to get started.'
+            endpoint_messages[''] = f'Welcome to {APP_NAME}. You are on the {PCONFIG["HOME_MENU_ITEM"].lower()} page. Select an app from the menu to get started.'
     
     if endpoint in plugin_instances:
         plugin_instance = plugin_instances[endpoint]
@@ -3735,7 +3533,7 @@ async def synchronize_roles_to_db():
                 simulated_form_for_crud = {crud_customizer.plugin.FORM_FIELD_NAME: role_name}
                 data_for_insertion = crud_customizer.prepare_insert_data(simulated_form_for_crud)
                 if data_for_insertion:
-                    if role_name in DEFAULT_ACTIVE_ROLES:
+                    if role_name in PCONFIG['DEFAULT_ACTIVE_ROLES']:
                         data_for_insertion['done'] = True
                         logger.debug(f"SYNC_ROLES: Role '{role_name}' is a default active role. Setting done=True.")
                     elif 'done' not in data_for_insertion:
@@ -3748,7 +3546,7 @@ async def synchronize_roles_to_db():
                 else:
                     logger.error(f"SYNC_ROLES: FAILED to prepare insert data for role '{role_name}' via CrudCustomizer.")
             else:
-                if role_name in DEFAULT_ACTIVE_ROLES:
+                if role_name in PCONFIG['DEFAULT_ACTIVE_ROLES']:
                     existing_role = next((r for r in existing_role_objects if r.text == role_name), None)
                     if existing_role and (not existing_role.done):
                         logger.debug(f"SYNC_ROLES: Setting default active role '{role_name}' to done=True while preserving other roles.")
@@ -3876,7 +3674,7 @@ if __name__ == '__main__':
 plugin_instances = {}
 discovered_modules = discover_plugin_files()
 discovered_classes = find_plugin_classes(discovered_modules, discovered_modules)
-friendly_names = {'': HOME_MENU_ITEM}
+friendly_names = {'': PCONFIG['HOME_MENU_ITEM']}
 endpoint_training = {}
 
 # 🎯 ENDPOINT REGISTRY: Central mapping for app_name → endpoint URLs  
@@ -4266,7 +4064,7 @@ async def home(request):
     menux = db.get('last_app_choice', 'App')
     response = await create_outer_container(current_profile_id, menux, request)
     last_profile_name = get_profile_name()
-    page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
+    page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else PCONFIG["HOME_MENU_ITEM"])}'
     
     # Backup mechanism: send endpoint message if not yet sent for this session
     current_env = get_current_environment()
@@ -4396,10 +4194,10 @@ def create_nav_menu():
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for menu creation")
         return Div(H1('Error: Profiles plugin not found', cls='text-invalid'), cls='nav-breadcrumb')
-    home_link = A(APP_NAME, href='/redirect/', title=f'Go to {HOME_MENU_ITEM.lower()}', cls='nav-link-hover')
+    home_link = A(APP_NAME, href='/redirect/', title=f'Go to {PCONFIG["HOME_MENU_ITEM"].lower()}', cls='nav-link-hover')
     separator = Span(' / ', cls='breadcrumb-separator')
     profile_text = Span(title_name(selected_profile_name))
-    endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM)
+    endpoint_text = Span(endpoint_name(menux) if menux else PCONFIG["HOME_MENU_ITEM"])
     breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text, role='banner', aria_label='Current location breadcrumb')
     # Create navigation poke button for the nav area
     # Use external SVG file for poke button settings icon
@@ -4609,7 +4407,7 @@ def create_home_menu_item(menux):
         home_css_classes += ' app-menu-item-selected'
     home_label = Label(
         home_radio, 
-        HOME_MENU_ITEM,
+        PCONFIG['HOME_MENU_ITEM'],
         Span(
             NotStr(INFO_SVG),
             data_tooltip='Customize by adding and sorting groups of Plugins (Roles)',
