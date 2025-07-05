@@ -1,0 +1,443 @@
+# Systematic Cherry-Pick Progress Log
+# Total commits to process: 109
+
+ERROR: a277716 ``` feat: Implement directory rotation for AI perception history - Git error: error: could not apply a277716... ```
+hint: After resolving the conflicts, mark them with
+hint: "git add/rm <pathspec>", then run
+hint: "git cherry-pick --continue".
+hint: You can instead skip this commit with "git cherry-pick --skip".
+hint: To abort and get back to the state before "git cherry-pick",
+hint: run "git cherry-pick --abort".
+hint: Disable this message with "git config set advice.mergeConflict false"
+ERROR: f81a3e0 refactor(server): Remove duplicate local LLM helper functions - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 676c104 refactor: Move register_mcp_tool to mcp_tools.py - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 78f358a ``` feat: Generate BQLv2 and BQLv1 Python code with detailed API call logging - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 2a4d811 ``` feat: Enhance AI Assistant Onboarding and Tool Discovery - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: eef65b9 feat: Centralize UI constants and configuration settings - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 5a6e7e7 fix(server): Schedule server restart using centralized system - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 802f5fd ``` feat: Add MCP tool aliases for CLI - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: a01f74c ``` feat: Extract workflow-specific steps from dynamic step building methods - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: c4bbfb2 feat(storytelling): Conditionally display MCP tools in main script - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 5ad76a4 feat(docs): Add browser automation recipes documentation - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 1c6b0bf feat(server): Add delay for AI discovery feature reveal - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 8894e8d feat: Deterministic Trifecta template inheritance system with AST-based reconstruction - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f2379d0 ``` feat: Delegate qualifier logic to code generators - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 818fe60 Update ai_discovery docs for simplified automation recipe naming - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: d160831 🎯 MAJOR UPDATE: Documentation aligned with working reality - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f68047c ``` feat: Implement iterative execution magic words and breadcrumb trail discovery - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 8cc91fa 🎯 BREAKTHROUGH: Fix conversation persistence across server restarts - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 8b29883 feat: Establish golden path for immediate AI assistant operation - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f152e09 🚨 Anti-discovery: Cut off environmental exploration at the pass - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: e82c0c9 fix(helpers): Remove redundant "NOT CORE BUT ALSO IMPORTANT" heading - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f74b00e 🔧 CRITICAL FIX: Correct backup system database paths - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: b63508a Fix breadcrumb trail discovery shell command issues - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 1e8b0f4 feat: Use dynamic database filename based on app name and environment - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 21b8f34 ``` 🚀 **MAGIC FORMULA ACTIVATION!** - Introducing iterative LLM execution with explicit XML format and anti-simulation commands. - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f77690c ``` feat: Implement Golden Path - Prioritize Operational Use - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: ab9e70d feat: Implement Radical Conversation History Transparency System - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: ae0ea58 ``` feat: Implement independent discussion database for persistent conversation history - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: e44ec28 docs(cursor): Clarify AI assistant usage guidelines - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 7261ac0 feat: Add chat automation test script - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 54e7288 ``` feat: Remove backup/restore interface - focus on automated rolling backups - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 0d06f65 ``` feat(docs): Introduce LOCAL LLM TOOL CALLING TRAINER - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 1a8c88e 🎭 BREAKTHROUGH: Chip O'Theseus Personality & Memory Curation System - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 0b32037 🧹 CLEANUP: Remove test artifacts from repo - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: b09b4b8 Add breadcrumb trail discovery system for local LLMs - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 5b20442 feat(mcp_tools): Add server reboot tool - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 0bcf016 ``` feat: Implement fastlite-based conversation persistence - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 81bea5f ``` feat: Enhance system prompt with detailed Chip O'Theseus personality and keychain usage guidance - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: b3c5830 fix(ai_discovery): Implement persistent conversation history - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 9152474 feat: Enhance system prompt with clearer instructions and tool usage guidance - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: a88b5cb feat: Improve system prompt with parameter clarification - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 42c2d47 feat: Integrate AI commit with append-only conversation system - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 2c4e8c6 ``` feat: Implement durable backup system for AI keychain and discussion database - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f61b25c ``` 🧹 LEGACY PURGED: Remove save_conversation_to_db() and related logic - migrate to append-only conversation history. - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 228d122 fix(server): Implement diagnostic logging during conversation restoration - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: e286358 fix: Update assistant button styling - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 5f44879 ``` feat: Filter out noise messages from conversation history - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 5b4eef6 ``` feat: Implement multi-cycle conversation persistence test - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 00cd84d Fix: Add missing SVG icons and update tooltips - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 2816266 fix: Update version and description in __init__.py and pyproject.toml - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 8a97bbf ``` feat: Enhance system prompt with expanded tool descriptions - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: e140af7 fix: Optimize conversation length for 128K token window - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f00c388 ``` feat: Gracefully reboot Pipulate server using watchdog - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: ebc8448 chore: Remove complex backup controls and related code - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: d76e878 fix: Remove message truncation in history viewer - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: ee8e1b0 ``` feat: Implement "Now or Never" rule and refine tool calling behavior - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: d1082a7 ``` feat: Improve conversation statistics retrieval - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 92e4e1a fix: Update version and description in __init__.py - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f7fafb6 ``` feat: Implement copy to clipboard functionality for conversation history - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 973c0d4 feat: Enhance MCP client to handle diverse bracket formats - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 575717e feat: Support square bracket notation and XML tool calls - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 4dbe99b ``` feat: Improve conversation persistence test logic - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f752a04 feat: Improve server reboot wait times - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 07e37a4 ``` feat: Implement file upload widget with detailed feedback and download links - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: a12ee5e fix: Add clipboard SVG icon to config.py - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 118b357 ``` feat: Migrate to append-only message database - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: b04ec69 feat: Implement comprehensive behavioral reinforcement system for local LLMs - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: d2d67da feat: Enhance MCP client to support square bracket notation and XML tool calls - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 0b9ec13 ``` feat: Introduce MCP Training Protocol for AI Capability Discovery - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 91eec6f feat: Reverse conversation history to display newest messages first - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 7b7d121 feat: Improve FINDER_TOKEN parameter handling in grep logs - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 91cd216 feat: Implement critical MCP tool calling instructions and examples - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 4daba40 ``` feat: 🔧 CONVERSATION PERSISTENCE FIX: Startup restoration message handling - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 785a38d ``` Fix: Preserve conversation history across restarts and system prompts - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 73a0806 chore: Remove debug logging statements from backup system - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 6f7dcca Implement profile lock privacy feature for client meetings - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 6dc9725 Improve profile highlighting with better PicoCSS variables - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 5bd19ba feat: Enhance history viewer with Chip O'Theseus branding and role-specific styling - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: b5c9118 fix(server): Re-initialize splitter on HTMX body swaps - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f1ed6b2 fix: Update Discussion History 📜 display name - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: a8f54ad fix: Restore working CRUD implementation from ae02752 - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: b10b6c1 ``` feat: Update discussion history display name and icons - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: aa22405 fix: Remove splitter initialization script - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 06e9796 Turning off backup temporarily - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: a89c4fe fix: Reduce typing delay and implement restart notification overlay - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 93a5129 chore: Remove redundant backup functions and docstrings\n\nThis commit removes the `explicit_backup_all` and `explicit_restore_all` functions, along with their associated docstrings and related logic. These functions were overly complex and not currently utilized, contributing to unnecessary code duplication. The removal simplifies the codebase and streamlines the backup/restore process. - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: e579862 fix: Update profile lock icon hx_swap target - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: bba9d23 ``` 🗃️ STARTUP_BACKUP: Automatic backup completed - 12345 records secured across 5 tables - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 511a9fa feat: Handle profile ID type conversion for highlighting - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 453529a ``` feat: Initialize main splitter with localStorage persistence - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: e3da262 ``` feat: Implement simple file backup for main database - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 4602e15 ``` feat: Implement message deletion functionality for conversation history - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f5b410d ``` feat: Preserve endpoint context during server restart - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 87812ea fix: Correctly handle insert data in common.py - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 6568854 feat: Add task link to profile display - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 20e9860 Make profile name clickable in headline breadcrumb - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 491f1d9 fix(conversation): Prevent writing noise to conversation history - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: f24c616 feat: Introduce configurable render throttle delay - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: e53bbee feat: Robust endpoint detection from server logs - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: d2e9f3e ``` feat: Add theme management scripts and sync functionality - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 707755a ``` 🚀 Simple file backup complete: 1/1 successful - Files can be manually dragged back to restore 📁 BACKUP LOCATION: /backup - Files can be manually dragged back to restore ``` - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 1639c35 Add one-click profile lock for instant client meeting setup - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: ae3ba00 chore: Remove redundant explicit backup/restore logic and related code. - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 8913c34 🎯 Implement son/father/grandfather backup system - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 2d3f30c ``` feat: Initialize Pipulate with database persistence and profile navigation - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 9ac8a7a feat: Implement profile update route with full page refresh and breadcrumb handling - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 9438c31 ✨ Add unchecked task count to profile task links - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 45e36ab Highlight currently selected profile in profiles app - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed
+ERROR: 0b278d4 🔧 Fix task counting logic - use direct SQL - Git error: error: Cherry-picking is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: cherry-pick failed

@@ -279,6 +279,7 @@ def generate_files_list():
     ]
 
     # Not core but also important files
+    lines.append("\n## NOT CORE BUT ALSO IMPORTANT")
     important_files = [
         FileEntry("keychain.py", True, "AI Keychain - Persistent memory for Chip O'Theseus"),
         FileEntry("discover_mcp_tools.py", True, "MCP tool discovery and validation"),
@@ -405,6 +406,14 @@ def generate_files_list():
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/browser_automation",
         description="BROWSER AUTOMATION (Selenium Scripts & Templates)",
+        ignore_patterns=ignore_patterns
+    ))
+    
+    # Browser automation recipes - deliberately included
+    lines.extend(enumerate_directory(
+        f"{base_paths['pipulate']}/browser_automation/automation_recipes",
+        description="BROWSER AUTOMATION RECIPES",
+        recursive=True,
         ignore_patterns=ignore_patterns
     ))
     

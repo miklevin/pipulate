@@ -1,0 +1,3 @@
+CONFLICT: f81a3e0 refactor(server): Remove duplicate local LLM helper functions - Files: server.py
+CONFLICT: 676c104 refactor: Move register_mcp_tool to mcp_tools.py - Files: server.py
+CONFLICT: 78f358a ``` feat: Generate BQLv2 and BQLv1 Python code with detailed API call logging - Files: plugins/110_parameter_buster.py, plugins/120_link_graph.py, server.py
