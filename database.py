@@ -9,6 +9,14 @@ import functools
 from typing import Any, Dict, Optional
 from loguru import logger
 
+# Import the actual NotFoundError from apswutils
+try:
+    from apswutils.db import NotFoundError
+except ImportError:
+    # Fallback for development/testing
+    class NotFoundError(Exception):
+        pass
+
 # Temporary imports and stubs to avoid circular imports
 APP_NAME = "Botifython"
 COLOR_MAP = {'key': 'cyan', 'value': 'green'}
@@ -21,10 +29,6 @@ class LogStub:
     def warning(self, msg): logger.warning(msg)
 
 log = LogStub()
-
-# Stub for NotFoundError
-class NotFoundError(Exception):
-    pass
 
 # Stub for get_current_environment
 def get_current_environment():

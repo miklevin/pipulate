@@ -15,6 +15,9 @@ from loguru import logger
 from fasthtml.common import Card, Div, H1, H2, H3, H4, P, A, Input, Button, Form
 import re
 
+# Import centralized configuration
+from config import PCONFIG, friendly_names
+
 # Temporary title_name function to avoid circular imports
 def title_name(word: str) -> str:
     """Convert a word to title case with some basic clean-up for display."""
@@ -28,62 +31,7 @@ def title_name(word: str) -> str:
     # Basic title case
     return word.title()
 
-# Temporary friendly_names to avoid circular imports - TODO: refactor into shared config
-friendly_names = {
-    'step_01': 'Step 1',
-    'step_02': 'Step 2', 
-    'step_03': 'Step 3',
-    'step_04': 'Step 4',
-    'step_05': 'Step 5',
-    'step_06': 'Step 6',
-    'step_07': 'Step 7',
-    'step_08': 'Step 8',
-    'step_09': 'Step 9',
-    'step_10': 'Step 10',
-    'step_analysis': 'Analysis',
-    'step_visualization': 'Visualization',
-    'step_configuration': 'Configuration',
-    'step_download': 'Download',
-    'step_processing': 'Processing'
-}
-
-# Temporary configuration to avoid circular imports - TODO: refactor into shared config module
-PCONFIG = {
-    'UI_CONSTANTS': {
-        'BUTTON_STYLES': {'BORDER_RADIUS': '0.25rem'},
-        'EMOJIS': {
-            'PYTHON_CODE': '🐍', 
-            'CODE_SNIPPET': '📃',
-            'SUCCESS': '✅',
-            'ERROR': '❌',
-            'WARNING': '⚠️',
-            'INFO': 'ℹ️',
-            'COMPLETION': '🎯',
-            'INPUT_FORM': '📝'
-        },
-        'CODE_FORMATTING': {'COMMENT_DIVIDER': '#' * 50},
-        'CONSOLE_MESSAGES': {
-            'PYTHON_SNIPPET_INTRO': '{emoji} {divider}\n# Python code generated from step: {step_id}\n{divider}',
-            'PYTHON_SNIPPET_END': '{divider}\n# End Python code for step: {step_id}\n{emoji} {divider}'
-        },
-        'MESSAGES': {
-            'ALL_STEPS_COMPLETE': 'All steps complete. Ready to finalize workflow.',
-            'STEP_COMPLETE': 'Step complete. Continue to next step.',
-            'WORKFLOW_FINALIZED': 'Workflow finalized successfully.',
-            'PROCESSING': 'Processing...',
-            'PLEASE_WAIT': 'Please wait while processing...'
-        },
-        'BUTTON_LABELS': {
-            'UNLOCK': 'Unlock',
-            'LOCK': 'Lock', 
-            'SUBMIT': 'Submit',
-            'CANCEL': 'Cancel',
-            'RESET': 'Reset'
-        },
-        'LANDING_PAGE': {}
-    },
-    'CHAT_CONFIG': {'TYPING_DELAY': 0.02}
-}
+# Configuration now imported from centralized config module
 
 # Import append_to_conversation function with late import to avoid circular dependency
 def append_to_conversation(message: str, role: str = 'system') -> None:

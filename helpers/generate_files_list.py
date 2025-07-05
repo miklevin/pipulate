@@ -270,6 +270,7 @@ def generate_files_list():
         FileEntry(".gitignore", False, "Lets data stay in the repo"),
         FileEntry("flake.nix", False, "IaC - Infrastructure as Code"),
         FileEntry("requirements.txt", False, "Python dependencies"),
+        FileEntry("config.py", False, "Centralized configuration - single source of truth"),
         FileEntry("server.py", False, "Server entrypoint"),
         FileEntry("common.py", False, "CRUD base class"),
         FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
