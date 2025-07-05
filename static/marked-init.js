@@ -18,9 +18,9 @@ window.initializeMarked = function() {
     
     // Configure marked with GFM and sensible defaults for chat
     marked.use({
-        // Disable automatic line breaks - use standard Markdown behavior
-        // Two spaces + newline OR double newline for breaks
-        breaks: false,
+        // Disable automatic line breaks within paragraphs
+        // Two spaces + newline OR double newline for line breaks/paragraphs
+        breaks: false, // Keep this as false for standard markdown paragraph/line break handling
         
         // Enable GitHub Flavored Markdown features
         gfm: true,
@@ -44,7 +44,7 @@ window.initializeMarked = function() {
         }
     });
     
-    console.log('✅ Marked.js configured with GFM and breaks enabled');
+    console.log('✅ Marked.js configured with GFM and breaks disabled');
 };
 
 // Auto-initialize if marked is already available
