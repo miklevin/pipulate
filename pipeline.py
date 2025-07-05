@@ -58,7 +58,8 @@ PCONFIG = {
             'ERROR': '❌',
             'WARNING': '⚠️',
             'INFO': 'ℹ️',
-            'COMPLETION': '🎯'
+            'COMPLETION': '🎯',
+            'INPUT_FORM': '📝'
         },
         'CODE_FORMATTING': {'COMMENT_DIVIDER': '#' * 50},
         'CONSOLE_MESSAGES': {
