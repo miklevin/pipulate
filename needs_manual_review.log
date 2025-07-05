@@ -890,3 +890,5 @@ MANUAL_REVIEW: f77690c feat: Implement Golden Path - Prioritize Operational Use 
 2a4d811 feat: Enhance AI Assistant Onboarding and Tool Discovery - DEFERRED: 3 conflicts in 2 files (ai_discovery/ai_mcp_tools_discovery_guide.md, flake.nix)
 eef65b9 feat: Centralize UI constants and configuration settings - DEFERRED: 8 conflicts in 2 files (config.py, server.py)
 5a6e7e7 fix(server): Schedule server restart using centralized system - DEFERRED: Large conflict (172 lines) in server.py
+802f5fd feat: Add MCP tool aliases for CLI - DEFERRED: 3 conflicts across cli.py (lines 59, 273, 340)
+a01f74c feat: Extract workflow-specific steps from dynamic step building methods - DEFERRED: Large conflicts (53 lines each) in 2 files (plugins/110_parameter_buster.py, plugins/120_link_graph.py)

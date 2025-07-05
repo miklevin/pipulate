@@ -12,3 +12,4 @@ SUCCESS: a277716 feat: Implement directory rotation for AI perception history
 SUCCESS: a277716 ``` feat: Implement directory rotation for AI perception history
 SUCCESS: f81a3e0 refactor(server): Remove duplicate local LLM helper functions
 SUCCESS: 676c104 refactor: Move register_mcp_tool to mcp_tools.py
+SUCCESS: c4bbfb2 feat(storytelling): Conditionally display MCP tools in main script

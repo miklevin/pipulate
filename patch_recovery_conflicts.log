@@ -21,3 +21,6 @@ CONFLICT: 78f358a ``` feat: Generate BQLv2 and BQLv1 Python code with detailed A
 CONFLICT: 2a4d811 ``` feat: Enhance AI Assistant Onboarding and Tool Discovery - Files: ai_discovery/ai_mcp_tools_discovery_guide.md, flake.nix
 CONFLICT: eef65b9 feat: Centralize UI constants and configuration settings - Files: config.py, server.py
 CONFLICT: 5a6e7e7 fix(server): Schedule server restart using centralized system - Files: server.py
+CONFLICT: 802f5fd ``` feat: Add MCP tool aliases for CLI - Files: cli.py
+CONFLICT: a01f74c ``` feat: Extract workflow-specific steps from dynamic step building methods - Files: plugins/110_parameter_buster.py, plugins/120_link_graph.py
+CONFLICT: c4bbfb2 feat(storytelling): Conditionally display MCP tools in main script - Files: server.py
