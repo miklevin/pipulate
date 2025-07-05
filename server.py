@@ -5501,7 +5501,18 @@ async def poke_flyout(request):
         cls='theme-switch-container'
     )
     delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
-    reset_db_button = Button('🔄 Reset Entire DEV Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
+    reset_db_button = Button('🔄 Reset Entire DEV Database', 
+                            hx_post='/clear-db', 
+                            hx_target='body', 
+                            hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', 
+                            hx_swap='none',  # No immediate swap - let server restart handle the reload
+                            cls='secondary outline',
+                            **{'hx-on:click': '''
+                                this.setAttribute("aria-busy", "true"); 
+                                this.textContent = "Restarting server..."; 
+                                document.body.style.pointerEvents = "none";
+                                document.getElementById("poke-summary").innerHTML = '<div aria-busy="true" style="width: 22px; height: 22px; display: inline-block;"></div>';
+                            '''}) if is_dev_mode else None
     reset_python_button = Button('🐍 Reset Python Environment', 
                                 hx_post='/reset-python-env', 
                                 hx_target='#msg-list', 
@@ -6163,9 +6174,13 @@ async def clear_db(request):
     if TABLE_LIFECYCLE_LOGGING:
         log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB FINAL (post key restoration)')
         logger.bind(lifecycle=True).info('CLEAR_DB: Operation fully complete.')
-    html_response = HTMLResponse('<div>Database reset complete</div>')
-    html_response.headers['HX-Refresh'] = 'true'
-    return html_response
+    
+    # Schedule server restart after database reset to ensure fresh state
+    logger.info('CLEAR_DB: Scheduling server restart to ensure fresh application state')
+    asyncio.create_task(delayed_restart(2))
+    
+    # Return empty response - server restart will handle the reload
+    return HTMLResponse('')
 
 @rt('/update-pipulate', methods=['POST'])
 async def update_pipulate(request):
