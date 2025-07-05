@@ -17,9 +17,6 @@ from loguru import logger
 from fasthtml.common import Card, Div, H1, H2, H3, H4, P, A, Input, Button, Form
 import re
 
-# Import functions from server module
-from server import get_current_profile_id, get_profile_name
-
 # Import centralized configuration
 from config import PCONFIG, friendly_names
 
@@ -699,6 +696,8 @@ class Pipulate:
         Returns:
             dict: Contains plugin_name, profile_id, and profile_name
         """
+        # Use lazy imports to avoid circular dependency
+        from server import get_current_profile_id, get_profile_name
         profile_id = get_current_profile_id()
         profile_name = get_profile_name()
         plugin_name = None
