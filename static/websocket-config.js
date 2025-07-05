@@ -138,8 +138,41 @@ sidebarWs.onmessage = function(event) {
                 sidebarCurrentMessage.innerHTML = formattedLines.join('<br>');
             } else {
                 // Safe to parse complete markdown using pre-configured marked
-                const renderedHtml = marked.parse(rawText);
-                sidebarCurrentMessage.innerHTML = renderedHtml;
+                // PREPROCESSING: Clean up markdown to prevent extra spacing
+                let cleanedText = rawText;
+                
+                // Remove extra whitespace between list items while preserving structure
+                cleanedText = cleanedText
+                    // Remove empty lines between list items in the same list
+                    .replace(/(\n\s*[-*+]\s+[^\n]+)\n\s*\n(\s*[-*+]\s+)/g, '$1\n$2')
+                    // Remove extra whitespace around nested lists
+                    .replace(/(\n\s*[-*+]\s+[^\n]+)\n\s*\n(\s+[-*+]\s+)/g, '$1\n$2')
+                    // Clean up multiple consecutive newlines (but preserve intentional paragraph breaks)
+                    .replace(/\n\s*\n\s*\n/g, '\n\n')
+                    // Remove trailing whitespace from lines
+                    .replace(/[ \t]+$/gm, '')
+                    // Normalize line endings
+                    .replace(/\r\n/g, '\n');
+                
+                const renderedHtml = marked.parse(cleanedText);
+                
+                // POST-PROCESSING: Clean up HTML whitespace between elements
+                let cleanedHtml = renderedHtml
+                    // Remove whitespace between closing and opening list item tags
+                    .replace(/(<\/li>)\s+(<li>)/g, '$1$2')
+                    // Remove whitespace between closing list item and opening nested list
+                    .replace(/(<\/li>)\s+(<ul>|<ol>)/g, '$1$2')
+                    // Remove whitespace between closing nested list and opening list item
+                    .replace(/(<\/ul>|<\/ol>)\s+(<li>)/g, '$1$2')
+                    // Remove whitespace between opening list and first list item
+                    .replace(/(<ul>|<ol>)\s+(<li>)/g, '$1$2')
+                    // Remove whitespace between last list item and closing list
+                    .replace(/(<\/li>)\s+(<\/ul>|<\/ol>)/g, '$1$2')
+                    // Remove extra whitespace between paragraphs and lists
+                    .replace(/(<\/p>)\s+(<ul>|<ol>)/g, '$1$2')
+                    .replace(/(<\/ul>|<\/ol>)\s+(<p>)/g, '$1$2');
+                
+                sidebarCurrentMessage.innerHTML = cleanedHtml;
                 
                 // Apply syntax highlighting if Prism is available
                 if (typeof Prism !== 'undefined') {
