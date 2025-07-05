@@ -261,7 +261,7 @@ class ParameterBuster:
         steps = [Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {analysis_template}', refill=False)]
         if self._should_include_crawler_step(analysis_template):
             steps.append(Step(id='step_crawler', done='crawler_basic', show=f'Download Crawl: {crawler_template}', refill=False))
-        steps.extend([Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False), Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False), Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)])
+        steps.extend([Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False), Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False), Step(id='step_parameters', done='placeholder', show='Count Parameters Per Source', refill=True), Step(id='step_optimization', done='parameter_optimization', show='Parameter Optimization', refill=True), Step(id='step_robots', done='robots_txt', show='Instructions & robots.txt', refill=False), Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)])
         return steps
 
     def get_export_type_for_template_config(self, template_config_key):
