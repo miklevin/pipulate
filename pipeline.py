@@ -17,6 +17,9 @@ from loguru import logger
 from fasthtml.common import Card, Div, H1, H2, H3, H4, P, A, Input, Button, Form
 import re
 
+# Import functions from server module
+from server import get_current_profile_id, get_profile_name
+
 # Import centralized configuration
 from config import PCONFIG, friendly_names
 
