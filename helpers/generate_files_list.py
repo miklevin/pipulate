@@ -372,7 +372,7 @@ def generate_files_list():
     # Botify API documentation
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/training", 
-        description="BOTIFY API DOCUMENTATION",
+        description="IN-APP TRAINING FILES",
         ignore_patterns=ignore_patterns
     ))
     
@@ -402,13 +402,6 @@ def generate_files_list():
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/.cursor/rules",
         description="DA RULES",
-        ignore_patterns=ignore_patterns
-    ))
-    
-    # Training files
-    lines.extend(enumerate_directory(
-        f"{base_paths['pipulate']}/training",
-        description="TRAINING FILES",
         ignore_patterns=ignore_patterns
     ))
     
