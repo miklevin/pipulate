@@ -1785,9 +1785,7 @@ class Chat:
         except Exception as e:
             self.logger.error(f'Error in broadcast: {e}')
 
-# Create the pipulate instance now that pipeline table is defined
-pipulate = Pipulate(pipeline)
-logger.info('🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized')
+# This will be created later after db is defined
 
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], allow_credentials=True)
 logger.info('🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app')
@@ -1798,12 +1796,7 @@ if not os.path.exists('plugins'):
 else:
     logger.info('📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists')
 
-chat = Chat(app, id_suffix='', pipulate_instance=pipulate)
-logger.info('💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized')
-
-# Critical: Set the chat reference back to pipulate so stream() method works
-pipulate.set_chat(chat)
-logger.info('🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance')
+# Chat will be created later after pipulate is defined
 
 def build_endpoint_messages(endpoint):
     endpoint_messages = {}
@@ -1869,6 +1862,18 @@ COLOR_MAP = {'key': 'yellow', 'value': 'white', 'error': 'red', 'warning': 'yell
 
 db = DictLikeDB(store, Store)
 logger.info('💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized')
+
+# Create the pipulate instance now that both pipeline table and db are defined
+pipulate = Pipulate(pipeline, db=db)
+logger.info('🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized')
+
+# Create chat instance now that pipulate is defined
+chat = Chat(app, id_suffix='', pipulate_instance=pipulate)
+logger.info('💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized')
+
+# Critical: Set the chat reference back to pipulate so stream() method works
+pipulate.set_chat(chat)
+logger.info('🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance')
 
 # This will be created later after fast_app call defines the pipeline table
 
