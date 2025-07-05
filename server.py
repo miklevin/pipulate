@@ -968,22 +968,7 @@ def register_mcp_tool(tool_name: str, handler_func):
 # _pipeline_state_inspector, etc.) have been moved to mcp_tools.py for better organization.
 # See register_all_mcp_tools() in mcp_tools.py for complete tool registration.
 
-def _read_botify_api_token() -> str:
-    """Read Botify API token from the standard token file location.
-    
-    Returns the token string or None if file doesn't exist or can't be read.
-    This follows the same pattern used by all other Botify integrations.
-    """
-    try:
-        token_file = "helpers/botify/botify_token.txt"
-        if not os.path.exists(token_file):
-            return None
-        with open(token_file) as f:
-            content = f.read().strip()
-            token = content.split('\n')[0].strip()
-        return token
-    except Exception:
-        return None
+# 🔧 FINDER_TOKEN: _read_botify_api_token moved to mcp_tools.py to eliminate duplication
 
 # 🔧 FINDER_TOKEN: BOTIFY_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY
 # All Botify MCP tools moved to mcp_tools.py for better maintainability:
