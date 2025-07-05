@@ -80,15 +80,17 @@ class Pipulate:
     PRESERVE_REFILL = True
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
 
-    def __init__(self, pipeline_table, chat_instance=None):
+    def __init__(self, pipeline_table, chat_instance=None, db=None):
         """Initialize Pipulate with required dependencies.
 
         Args:
             pipeline_table: The database table for storing pipeline state
             chat_instance: Optional chat coordinator instance
+            db: The key-value database instance (DictLikeDB)
         """
         self.pipeline_table = pipeline_table
         self.chat = chat_instance
+        self.db = db
         self.message_queue = self.OrderedMessageQueue()
 
     def append_to_history(self, message: str, role: str='system') -> None:
@@ -976,7 +978,7 @@ class Pipulate:
         Returns:
             Card: A FastHTML Card component with revert functionality, or None if finalized and show_when_finalized=False
         """
-        pipeline_id = db.get('pipeline_id', '')
+        pipeline_id = self.db.get('pipeline_id', '') if self.db else ''
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
         if pipeline_id and finalize_step and not show_when_finalized:
             final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
@@ -1032,7 +1034,7 @@ class Pipulate:
             Div: FastHTML container with revert control and widget content, or locked Card when finalized
         """
         # Check if workflow is finalized
-        pipeline_id = db.get('pipeline_id', '')
+        pipeline_id = self.db.get('pipeline_id', '') if self.db else ''
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
         is_finalized = False
         if pipeline_id and finalize_step:
