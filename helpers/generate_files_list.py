@@ -275,6 +275,16 @@ def generate_files_list():
         FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
         FileEntry("helpers/ascii_displays.py", True, "Externalized ASCII art functions"),
     ]
+    
+    # Add extracted files from server.py refactoring (if they exist)
+    extracted_files = [
+        FileEntry("pipeline.py", False, "Pipulate class and workflow coordination"),
+        FileEntry("database.py", False, "Database operations and DictLikeDB"),
+        FileEntry("logging_utils.py", False, "Logging and display utilities"),
+        FileEntry("plugin_system.py", False, "Plugin discovery and management"),
+        FileEntry("routes.py", False, "HTTP endpoint handlers"),
+    ]
+    
     for entry in core_files:
         full_path = f"{base_paths['pipulate']}/{entry.filename}"
         
@@ -288,6 +298,20 @@ def generate_files_list():
         else:
             # Single comment with description
             lines.append(f"{full_path}  # {entry.description} {token_info}")
+    
+    # Add extracted files section
+    lines.append("\n# EXTRACTED FILES (From server.py refactoring)")
+    for entry in extracted_files:
+        full_path = f"{base_paths['pipulate']}/{entry.filename}"
+        
+        # Get token count for the file
+        token_count = get_file_token_count(full_path)
+        token_info = f"[{format_token_count(token_count)}]"
+        
+        if token_count > 0:  # File exists
+            lines.append(f"{full_path}  # {entry.description} {token_info}")
+        else:  # File doesn't exist yet
+            lines.append(f"# {full_path}  # {entry.description} (not yet created)")
     
     # PyPI release system files - commented out by default
     lines.append("\n## PYPI RELEASE SYSTEM FILES")
