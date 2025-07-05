@@ -5301,8 +5301,8 @@ async def explicit_restore(request):
         
         # Schedule server restart for successful restores to reload database state
         if successful > 0 and backup_total > 0:
-            # Schedule server restart after a brief delay to allow restore completion
-            asyncio.create_task(delayed_restart(2))
+            # Schedule server restart using centralized system
+            schedule_restart_after_operation("EXPLICIT_RESTORE", 2)
         
         # For successful restores, just schedule restart and return simple response
         # The button's hx-on:click handles the loading state display
@@ -5757,9 +5757,8 @@ async def clear_db(request):
         log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB FINAL (post key restoration)')
         logger.bind(lifecycle=True).info('CLEAR_DB: Operation fully complete.')
     
-    # Schedule server restart after database reset to ensure fresh state
-    logger.info('CLEAR_DB: Scheduling server restart to ensure fresh application state')
-    asyncio.create_task(delayed_restart(2))
+    # Schedule server restart using centralized system
+    schedule_restart_after_operation("CLEAR_DB", 2)
     
     # Return empty response - server restart will handle the reload
     return HTMLResponse('')
@@ -5829,8 +5828,8 @@ async def update_pipulate(request):
         
         await pipulate.stream('✅ Update complete! Restarting server...', verbatim=True, role='system')
         
-        # Restart the server to apply updates
-        asyncio.create_task(delayed_restart(2))
+        # Restart the server to apply updates using centralized system
+        schedule_restart_after_operation("UPDATE_PIPULATE", 2)
         
         return ""
         
@@ -6168,24 +6167,11 @@ async def switch_environment(request):
         
 
         
-        # Schedule server restart after a delay to allow HTMX to swap in the spinner
-        asyncio.create_task(delayed_restart(2))
+        # Schedule server restart using centralized system
+        schedule_restart_after_operation("ENV_SWITCH", 2)
         
-        # Return PicoCSS spinner that will be swapped in via HTMX
-        return HTMLResponse(f"""
-            <div 
-                aria-busy='true'
-                class="loading-spinner"
-            >
-                Switching
-            </div>
-            <style>
-                body {{
-                    pointer-events: none;
-                    user-select: none;
-                }}
-            </style>
-            """)
+        # Return standardized restart response with spinner
+        return HTMLResponse(create_restart_response("ENV_SWITCH", "Switching"))
     except Exception as e:
         logger.error(f'Error switching environment: {e}')
         return HTMLResponse(f'Error: {str(e)}', status_code=500)
@@ -6199,6 +6185,42 @@ async def delayed_restart(delay_seconds):
         restart_server()
     except Exception as e:
         logger.error(f'Error during restart: {e}')
+
+def create_restart_response(operation_name: str, spinner_text: str = "Restarting server...") -> str:
+    """Create a standardized server restart response with PicoCSS spinner.
+    
+    Args:
+        operation_name: Name of the operation for logging
+        spinner_text: Text to show in the spinner
+        
+    Returns:
+        HTML string with spinner and body interaction blocking
+    """
+    logger.info(f'{operation_name}: Returning restart response with spinner')
+    return f"""
+        <div 
+            aria-busy='true'
+            class="loading-spinner"
+        >
+            {spinner_text}
+        </div>
+        <style>
+            body {{
+                pointer-events: none;
+                user-select: none;
+            }}
+        </style>
+        """
+
+def schedule_restart_after_operation(operation_name: str, delay_seconds: int = 2):
+    """Schedule a server restart after an operation completes.
+    
+    Args:
+        operation_name: Name of the operation for logging
+        delay_seconds: Delay before restart (default: 2 seconds)
+    """
+    logger.info(f'{operation_name}: Scheduling server restart in {delay_seconds} seconds')
+    asyncio.create_task(delayed_restart(delay_seconds))
 
 async def send_delayed_endpoint_message(message, session_key):
     """Send an endpoint message after a delay to ensure chat system is ready."""
