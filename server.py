@@ -1781,7 +1781,9 @@ class Pipulate:
         """Lazy load Botify code generators to avoid import issues"""
         if not hasattr(self, '_botify_generators'):
             from helpers.botify.code_generators import BotifyCodeGenerators
-            self._botify_generators = BotifyCodeGenerators(self.ui_constants)
+            # Use default UI constants if not available on Pipulate class
+            ui_constants = getattr(self, 'ui_constants', None)
+            self._botify_generators = BotifyCodeGenerators(ui_constants)
         return self._botify_generators
     
     def generate_botify_code_header(self, *args, **kwargs):
@@ -1810,15 +1812,11 @@ class Pipulate:
     
     def generate_botify_bqlv2_python_code(self, *args, **kwargs):
         """Delegate to externalized Botify code generators"""
-        # Note: This function is missing from the externalized module but is complex
-        # For now, delegate to a simplified version or handle the missing BQLv2/BQLv1 functions
-        # TODO: Add the complex BQLv2/BQLv1 generators to the externalized module
-        raise NotImplementedError("BQLv2 code generation needs to be added to externalized module")
+        return self.botify_generators.generate_botify_bqlv2_python_code(*args, **kwargs)
 
     def generate_botify_bqlv1_python_code(self, *args, **kwargs):
         """Delegate to externalized Botify code generators"""
-        # TODO: Add the complex BQLv1 generator to the externalized module
-        raise NotImplementedError("BQLv1 code generation needs to be added to externalized module")
+        return self.botify_generators.generate_botify_bqlv1_python_code(*args, **kwargs)
 
     def get_botify_analysis_path(self, *args, **kwargs):
         """Delegate to externalized Botify code generators"""
