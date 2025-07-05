@@ -12,7 +12,7 @@ import zipfile
 from collections import Counter, namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse, quote
+from urllib.parse import parse_qs, urlparse
 from typing import Optional
 import httpx
 import pandas as pd
@@ -248,22 +248,22 @@ class LinkGraphVisualizer:
         return analysis_template == 'Link Graph Edges'
 
     def _build_dynamic_steps(self):
+        """Build the steps list dynamically based on template configuration.
+        
+        Returns:
+            list: List of Step namedtuples for the workflow
+            
+        CRITICAL: This method maintains compatibility with helper scripts by appending
+        a static dummy step at the end. The helper scripts can target this dummy step
+        for splicing operations without breaking the dynamic functionality.
+        """
         analysis_template = self.get_configured_template('analysis')
         crawler_template = self.get_configured_template('crawler')
         gsc_template = self.get_configured_template('gsc')
-        steps = [
-            Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True),
-            Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {analysis_template}', refill=False)
-        ]
+        steps = [Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {analysis_template}', refill=False)]
         if self._should_include_crawler_step(analysis_template):
             steps.append(Step(id='step_crawler', done='crawler_basic', show=f'Download Crawl: {crawler_template}', refill=False))
-        steps.append(Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False))
-        steps.append(Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False))
-        # Insert Link Graph–specific steps before finalize
-        steps.append(Step(id='step_02b', done='node_attributes', show='Download: Node Attributes', refill=False))
-        steps.append(Step(id='step_05', done='visualization_ready', show='Prepare & Visualize Graph', refill=True))
-        steps.append(Step(id='step_06', done='visualization_complete', show='Visualization Complete', refill=False))
-        steps.append(Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False))
+        steps.extend([Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False), Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False), Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)])
         return steps
 
     def get_export_type_for_template_config(self, template_config_key):
@@ -1524,9 +1524,7 @@ class LinkGraphVisualizer:
             dict: {'parameter_value': determined_value, 'metric_at_parameter': metric_value}
         """
         from helpers.botify.code_generators import execute_qualifier_logic
-        optimal_param_value, final_metric_value = await execute_qualifier_logic(
-            self, username, project_name, analysis_slug, api_token, qualifier_config
-        )
+        optimal_param_value, final_metric_value = await execute_qualifier_logic(self, username, project_name, analysis_slug, api_token, qualifier_config)
         return {'parameter_value': optimal_param_value, 'metric_at_parameter': final_metric_value}
 
     def get_filename_for_export_type(self, export_type):
@@ -2908,6 +2906,311 @@ class LinkGraphVisualizer:
             standardized_data['download_complete'] = raw_step_data and raw_step_data.get('has_crawler', False) or raw_step_data.get('has_file', False)
         return standardized_data
     '\n    # --- CHUNK 2: WORKFLOW-SPECIFIC METHODS (TRANSPLANTED FROM ORIGINAL) ---\n'
+
+    def get_available_templates_for_data_type(self, data_type):
+        """Get available query templates for a specific data type."""
+        if data_type == 'crawl':
+            return ['Crawl Basic', 'Not Compliant']
+        elif data_type == 'gsc':
+            return ['GSC Performance']
+        else:
+            return []
+
+    def get_configured_template(self, data_type):
+        """Get the configured template for a specific data type."""
+        return self.TEMPLATE_CONFIG.get(data_type)
+
+    def get_export_type_for_template_config(self, template_config_key):
+        """Get the export type for a given template configuration key.
+        
+        This method resolves the template configuration to the actual export type
+        that should be used for file naming and caching.
+        
+        Args:
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'analysis', 'crawler')
+            
+        Returns:
+            String export type that can be used with get_filename_for_export_type()
+        """
+        template_name = self.get_configured_template(template_config_key)
+        if not template_name:
+            raise ValueError(f'No template configured for: {template_config_key}')
+        template_details = self.QUERY_TEMPLATES.get(template_name, {})
+        export_type = template_details.get('export_type')
+        if not export_type:
+            raise ValueError(f'Template "{template_name}" has no export_type defined')
+        return export_type
+
+    def apply_template(self, template_key, collection=None):
+        """Apply a query template with collection substitution."""
+        if template_key not in self.QUERY_TEMPLATES:
+            raise ValueError(f'Unknown template: {template_key}')
+        template = self.QUERY_TEMPLATES[template_key].copy()
+        query = template['query'].copy()
+        if collection and '{collection}' in str(query):
+            query_str = json.dumps(query)
+            query_str = query_str.replace('{collection}', collection)
+            query = json.loads(query_str)
+        return query
+
+    def list_available_templates(self):
+        """List all available query templates with descriptions."""
+        return {key: {'name': template['name'], 'description': template['description']} for key, template in self.QUERY_TEMPLATES.items()}
+
+    async def save_analyses_to_json(self, username, project_name, api_token):
+        """
+        Fetch and save the complete analyses data to a local JSON file.
+        
+        This method fetches the full analyses data from the Botify API endpoint:
+        /analyses/{username}/{project_name}
+        
+        And saves it to a deterministic local path:
+        downloads/{APP_NAME}/{username}/{project_name}/analyses.json
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug  
+            api_token: Botify API token
+            
+        Returns:
+            tuple: (success: bool, message: str, filepath: str|None)
+        """
+        try:
+            base_dir = f'downloads/{self.app_name}/{username}/{project_name}'
+            analyses_filepath = f'{base_dir}/analyses.json'
+            await self.ensure_directory_exists(analyses_filepath)
+            exists, file_info = await self.check_file_exists(analyses_filepath)
+            if exists:
+                return (True, f"📄 Analyses data already cached: {file_info['size']}", analyses_filepath)
+            url = f'https://api.botify.com/v1/analyses/{username}/{project_name}/light'
+            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+            all_analyses = []
+            next_url = url
+            page_count = 0
+            while next_url:
+                page_count += 1
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(next_url, headers=headers, timeout=60.0)
+                if response.status_code != 200:
+                    return (False, f'API error: Status {response.status_code} - {response.text}', None)
+                data = response.json()
+                if 'results' not in data:
+                    return (False, f"No 'results' key in API response", None)
+                analyses = data['results']
+                all_analyses.extend(analyses)
+                next_url = data.get('next')
+                if page_count > 1:
+                    await self.message_queue.add(self.pipulate, f'📄 Fetched page {page_count} of analyses data...', verbatim=True)
+            analyses_data = {'metadata': {'organization': username, 'project': project_name, 'fetch_timestamp': time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime()), 'total_analyses': len(all_analyses), 'pages_fetched': page_count, 'api_endpoint': f'/analyses/{username}/{project_name}'}, 'analyses': all_analyses}
+            with open(analyses_filepath, 'w', encoding='utf-8') as f:
+                json.dump(analyses_data, f, indent=2, ensure_ascii=False)
+            exists, file_info = await self.check_file_exists(analyses_filepath)
+            if not exists:
+                return (False, 'Failed to save analyses data to file', None)
+            return (True, f"📄 Analyses data saved: {len(all_analyses)} analyses ({file_info['size']})", analyses_filepath)
+        except Exception as e:
+            logger.error(f'Error saving analyses data: {str(e)}')
+            return (False, f'Error saving analyses data: {str(e)}', None)
+
+    async def save_advanced_export_to_json(self, username, project_name, analysis_slug, api_token):
+        """
+        Fetch and save the advanced export data for a specific analysis to a local JSON file.
+        
+        This method fetches the advanced export data from the Botify API endpoint:
+        /api/v1/analyses/{username}/{project_name}/{analysis_slug}/advanced_export
+        
+        And saves it to a deterministic local path:
+        downloads/{APP_NAME}/{username}/{project_name}/{analysis_slug}/analysis_advanced.json
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug
+            analysis_slug: Analysis slug
+            api_token: Botify API token
+            
+        Returns:
+            tuple: (success: bool, message: str, filepath: str|None)
+        """
+        try:
+            base_dir = f'downloads/{self.app_name}/{username}/{project_name}/{analysis_slug}'
+            advanced_export_filepath = f'{base_dir}/analysis_advanced.json'
+            await self.ensure_directory_exists(advanced_export_filepath)
+            exists, file_info = await self.check_file_exists(advanced_export_filepath)
+            if exists:
+                return (True, f"📊 Advanced export data already cached: {file_info['size']}", advanced_export_filepath)
+            url = f'https://api.botify.com/v1/analyses/{username}/{project_name}/{analysis_slug}/advanced_export'
+            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers, timeout=60.0)
+            if response.status_code != 200:
+                return (False, f'API error: Status {response.status_code} - {response.text}', None)
+            advanced_export_data = response.json()
+            export_data = {'metadata': {'organization': username, 'project': project_name, 'analysis_slug': analysis_slug, 'fetch_timestamp': time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime()), 'api_endpoint': f'/api/v1/analyses/{username}/{project_name}/{analysis_slug}/advanced_export'}, 'advanced_export': advanced_export_data}
+            with open(advanced_export_filepath, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, indent=2, ensure_ascii=False)
+            exists, file_info = await self.check_file_exists(advanced_export_filepath)
+            if not exists:
+                return (False, 'Failed to save advanced export data to file', None)
+            return (True, f"📊 Advanced export data saved: {file_info['size']}", advanced_export_filepath)
+        except Exception as e:
+            logger.error(f'Error saving advanced export data: {str(e)}')
+            return (False, f'Error saving advanced export data: {str(e)}', None)
+
+    async def extract_available_fields_from_advanced_export(self, username, project_name, analysis_slug, export_group='urls'):
+        """
+        Extract available fields from the analysis_advanced.json file for use in query metrics.
+        
+        This function reads the cached advanced export data and extracts the field lists
+        from specific export types, making them available for use in QUERY_TEMPLATES metrics.
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug
+            analysis_slug: Analysis slug
+            export_group: Filter by export group ('urls', 'links', or None for all)
+            
+        Returns:
+            dict: {
+                'success': bool,
+                'message': str,
+                'fields': list,
+                'available_exports': list  # List of export IDs that were found
+            }
+        """
+        try:
+            advanced_export_filepath = f'downloads/{self.app_name}/{username}/{project_name}/{analysis_slug}/analysis_advanced.json'
+            exists, file_info = await self.check_file_exists(advanced_export_filepath)
+            if not exists:
+                return {'success': False, 'message': f'Advanced export file not found: {advanced_export_filepath}', 'fields': [], 'available_exports': []}
+            with open(advanced_export_filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            advanced_exports = data.get('advanced_export', [])
+            if not advanced_exports:
+                return {'success': False, 'message': 'No advanced export data found in file', 'fields': [], 'available_exports': []}
+            all_fields = set()
+            available_exports = []
+            for export in advanced_exports:
+                export_id = export.get('id', '')
+                export_name = export.get('name', '')
+                export_group_name = export.get('group', '')
+                fields = export.get('fields', [])
+                if export_group and export_group_name != export_group:
+                    continue
+                available_exports.append({'id': export_id, 'name': export_name, 'group': export_group_name, 'field_count': len(fields), 'fields': fields})
+                all_fields.update(fields)
+            sorted_fields = sorted(list(all_fields))
+            total_exports = len(available_exports)
+            total_fields = len(sorted_fields)
+            group_filter_msg = f' (filtered by group: {export_group})' if export_group else ''
+            message = f'Found {total_fields} unique fields from {total_exports} exports{group_filter_msg}'
+            return {'success': True, 'message': message, 'fields': sorted_fields, 'available_exports': available_exports}
+        except json.JSONDecodeError as e:
+            return {'success': False, 'message': f'Invalid JSON in advanced export file: {str(e)}', 'fields': [], 'available_exports': []}
+        except Exception as e:
+            logger.error(f'Error extracting fields from advanced export: {str(e)}')
+            return {'success': False, 'message': f'Error extracting fields: {str(e)}', 'fields': [], 'available_exports': []}
+
+    async def test_extract_available_fields(self, username, project_name, analysis_slug):
+        """
+        Test function to verify extract_available_fields_from_advanced_export works correctly.
+        
+        This function tests the field extraction and provides detailed output for verification.
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug
+            analysis_slug: Analysis slug
+            
+        Returns:
+            str: Formatted test results for display
+        """
+        try:
+            url_result = await self.extract_available_fields_from_advanced_export(username, project_name, analysis_slug, export_group='urls')
+            links_result = await self.extract_available_fields_from_advanced_export(username, project_name, analysis_slug, export_group='links')
+            all_result = await self.extract_available_fields_from_advanced_export(username, project_name, analysis_slug, export_group=None)
+            test_results = []
+            test_results.append('=== Field Extraction Test Results ===\n')
+            test_results.append('📊 URLs Group Fields:')
+            test_results.append(f"Status: {('✅ Success' if url_result['success'] else '❌ Failed')}")
+            test_results.append(f"Message: {url_result['message']}")
+            if url_result['success']:
+                test_results.append(f"Available Exports: {len(url_result['available_exports'])}")
+                for export in url_result['available_exports']:
+                    test_results.append(f"  - {export['id']}: {export['field_count']} fields")
+                test_results.append(f"Sample Fields: {', '.join(url_result['fields'][:10])}...")
+            test_results.append('')
+            test_results.append('🔗 Links Group Fields:')
+            test_results.append(f"Status: {('✅ Success' if links_result['success'] else '❌ Failed')}")
+            test_results.append(f"Message: {links_result['message']}")
+            if links_result['success']:
+                test_results.append(f"Available Exports: {len(links_result['available_exports'])}")
+                test_results.append(f"Sample Fields: {', '.join(links_result['fields'][:10])}...")
+            test_results.append('')
+            test_results.append('🌐 All Groups Combined:')
+            test_results.append(f"Status: {('✅ Success' if all_result['success'] else '❌ Failed')}")
+            test_results.append(f"Message: {all_result['message']}")
+            if all_result['success']:
+                test_results.append(f"Total Available Exports: {len(all_result['available_exports'])}")
+                test_results.append(f"Total Unique Fields: {len(all_result['fields'])}")
+            return '\n'.join(test_results)
+        except Exception as e:
+            return f'❌ Test failed with error: {str(e)}'
+
+    def get_filename_for_export_type(self, export_type):
+        """Get the filename for a given export type.
+        
+        This method centralizes filename mapping and can be extended for template-specific naming.
+        
+        Args:
+            export_type: The export type from template configuration
+            
+        Returns:
+            String filename for the export type
+        """
+        filename_map = {'crawl': 'crawl.csv', 'weblog': 'weblog.csv', 'gsc': 'gsc.csv', 'crawl_attributes': 'crawl.csv', 'link_graph_edges': 'link_graph.csv', 'gsc_data': 'gsc.csv'}
+        if export_type not in filename_map:
+            raise ValueError(f'Unknown export type: {export_type}')
+        return filename_map[export_type]
+
+    async def get_deterministic_filepath_for_template_config(self, username, project_name, analysis_slug, template_config_key):
+        """Generate a deterministic file path based on template configuration.
+        
+        This method resolves the template configuration to determine the appropriate
+        export type and filename for caching.
+        
+        Args:
+            username: Organization username
+            project_name: Project name
+            analysis_slug: Analysis slug
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'analysis', 'crawler')
+            
+        Returns:
+            String path to the file location
+        """
+        export_type = self.get_export_type_for_template_config(template_config_key)
+        return await self.get_deterministic_filepath(username, project_name, analysis_slug, export_type)
+
+    async def check_cached_file_for_template_config(self, username, project_name, analysis_slug, template_config_key):
+        """Check if a cached file exists based on template configuration.
+        
+        This method resolves the template configuration to determine the appropriate
+        export type and check for cached files.
+        
+        Args:
+            username: Organization username
+            project_name: Project name
+            analysis_slug: Analysis slug
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'analysis', 'crawler')
+            
+        Returns:
+            tuple: (exists: bool, file_info: dict|None)
+        """
+        try:
+            filepath = await self.get_deterministic_filepath_for_template_config(username, project_name, analysis_slug, template_config_key)
+            exists, file_info = await self.check_file_exists(filepath)
+            return (exists, file_info if exists else None)
+        except Exception:
+            return (False, None)
 
     def get_available_templates_for_data_type(self, data_type):
         """Get available query templates for a specific data type."""

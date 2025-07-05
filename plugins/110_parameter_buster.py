@@ -24,7 +24,7 @@ Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], default
 
 class ParameterBuster:
     """
-    Botify Parameter Buster Workflow - Multi-Export Data Collection
+    Botify Trifecta Workflow - Multi-Export Data Collection
 
     A comprehensive workflow that downloads three types of Botify data (link
     graph/crawl analysis, web logs, and Search Console) and
@@ -78,7 +78,7 @@ class ParameterBuster:
     ## Workflow Modularity & Flexibility
     ===================================
 
-    While this is called the "Botify Parameter Buster" and downloads from four main data sources,
+    While this is called the "Botify Trifecta" and downloads from four main data sources,
     the workflow is highly modular:
 
     **REQUIRED STEP**: Only Step 2 (crawl data) is actually required because it:
@@ -91,7 +91,7 @@ class ParameterBuster:
     - Step 5 (finalize) will still work correctly with just crawl data
 
     **PRACTICAL USAGE**: Many users only need crawl data, making this essentially a
-    "Crawl Analysis Downloader" that can optionally become a full Parameter Buster when needed.
+    "Crawl Analysis Downloader" that can optionally become a full trifecta when needed.
 
     This modularity makes the workflow perfect as a template for various Botify data
     collection needs - from simple crawl analysis to comprehensive multi-source exports.
@@ -176,10 +176,10 @@ class ParameterBuster:
     """
     APP_NAME = 'parameterbuster'
     DISPLAY_NAME = 'Parameter Buster 🔨'
-    ENDPOINT_MESSAGE = """Optimize crawl budget by identifying wasteful URL parameters. Analyzes your site's parameter usage patterns to massage URLs into more productive shape for search engine crawling efficiency through a PageWorkers optimization."""
-    TRAINING_PROMPT = """This workflow helps users analyze URL parameters and tracking codes. It uses the widget_container pattern to display parameter breakdowns and provides insights into URL structure and tracking mechanisms."""
+    ENDPOINT_MESSAGE = "Optimize crawl budget by identifying wasteful URL parameters. Analyzes your site's parameter usage patterns to massage URLs into more productive shape for search engine crawling efficiency through a PageWorkers optimization."
+    TRAINING_PROMPT = 'This workflow helps users analyze URL parameters and tracking codes. It uses the widget_container pattern to display parameter breakdowns and provides insights into URL structure and tracking mechanisms.'
     QUERY_TEMPLATES = {'Crawl Basic': {'name': 'Basic Crawl Data', 'description': 'URL, HTTP status, and page title', 'export_type': 'crawl_attributes', 'user_message': 'This will download basic crawl data including URLs, HTTP status codes, and page titles.', 'button_label_suffix': 'Basic Attributes', 'query': {'dimensions': ['{collection}.url', '{collection}.http_code', '{collection}.metadata.title.content', '{collection}.segments.pagetype.value', '{collection}.compliant.is_compliant', '{collection}.canonical.to.equal', '{collection}.sitemaps.present'], 'metrics': [], 'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}}}, 'Not Compliant': {'name': 'Non-Compliant Pages', 'description': 'URLs with compliance issues and their reasons', 'export_type': 'crawl_attributes', 'user_message': 'This will download a list of non-compliant URLs with their compliance reasons.', 'button_label_suffix': 'Non-Compliant Attributes', 'query': {'dimensions': ['{collection}.url', '{collection}.compliant.main_reason', '{collection}.compliant.detailed_reason'], 'metrics': [{'function': 'count', 'args': ['{collection}.url']}], 'filters': {'field': '{collection}.compliant.is_compliant', 'predicate': 'eq', 'value': False}}, 'qualifier_config': {'enabled': True, 'qualifier_bql_template': {'dimensions': [], 'metrics': [{'function': 'count', 'args': ['{collection}.url']}], 'filters': {'field': '{collection}.compliant.is_compliant', 'predicate': 'eq', 'value': False}}, 'parameter_placeholder_in_main_query': None, 'iterative_parameter_name': 'non_compliant_url_count', 'target_metric_path': ['results', 0, 'metrics', 0], 'max_value_threshold': 5000000, 'iteration_range': (1, 1, 1), 'user_message_running': 'Estimating size of Non-Compliant Pages export...', 'user_message_found': 'Non-Compliant Pages export estimated at {metric_value:,} URLs. Proceeding.', 'user_message_threshold_exceeded': 'Warning: Non-Compliant Pages export is very large ({metric_value:,} URLs). Proceeding with caution.'}}, 'Link Graph Edges': {'name': 'Link Graph Edges', 'description': 'Exports internal link graph (source URL -> target URL). Automatically finds optimal depth for ~1M edges.', 'export_type': 'link_graph_edges', 'user_message': "This will download the site's internal link graph (source-target pairs). An optimal depth will be found first.", 'button_label_suffix': 'Link Graph', 'query': {'dimensions': ['{collection}.url', '{collection}.outlinks_internal.graph.url'], 'metrics': [], 'filters': {'field': '{collection}.depth', 'predicate': 'lte', 'value': '{OPTIMAL_DEPTH}'}}, 'qualifier_config': {'enabled': True, 'qualifier_bql_template': {'dimensions': [], 'metrics': [{'function': 'sum', 'args': ['{collection}.outlinks_internal.nb.total']}], 'filters': {'field': '{collection}.depth', 'predicate': 'lte', 'value': '{ITERATION_VALUE}'}}, 'parameter_placeholder_in_main_query': '{OPTIMAL_DEPTH}', 'iterative_parameter_name': 'depth', 'target_metric_path': ['results', 0, 'metrics', 0], 'max_value_threshold': 1000000, 'iteration_range': (1, 10, 1), 'user_message_running': '🔍 Finding optimal depth for Link Graph Edges...', 'user_message_found': '🎯 Optimal depth for Link Graph: {param_value} (for {metric_value:,} edges).', 'user_message_threshold_exceeded': 'Edge count exceeds threshold even at shallowest depth. Proceeding with depth 1.'}}, 'GSC Performance': {'name': 'GSC Performance', 'description': 'Impressions, clicks, CTR, and position', 'export_type': 'gsc_data', 'user_message': 'This will download Search Console performance data including impressions, clicks, CTR, and average position.', 'button_label_suffix': 'GSC Performance', 'query': {'dimensions': ['url'], 'metrics': [{'field': 'search_console.period_0.count_impressions', 'name': 'Impressions'}, {'field': 'search_console.period_0.count_clicks', 'name': 'Clicks'}, {'field': 'search_console.period_0.ctr', 'name': 'CTR'}, {'field': 'search_console.period_0.avg_position', 'name': 'Avg. Position'}], 'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]}}}
-    TEMPLATE_CONFIG = {'analysis': 'Link Graph Edges', 'crawler': 'Crawl Basic', 'gsc': 'GSC Performance'}
+    TEMPLATE_CONFIG = {'analysis': 'Not Compliant', 'crawler': 'Crawl Basic', 'gsc': 'GSC Performance'}
     FEATURES_CONFIG = {'enable_skip_buttons': True}
     TOGGLE_CONFIG = {'step_analysis': {'data_key': 'analysis_selection', 'status_field': 'download_complete', 'success_text': 'HAS crawl analysis', 'failure_text': 'does NOT have crawl analysis', 'error_prefix': 'FAILED to download crawl analysis', 'status_prefix': 'Analysis '}, 'step_crawler': {'data_key': 'crawler_basic', 'status_field': 'download_complete', 'success_text': 'HAS basic crawl attributes', 'failure_text': 'does NOT have basic crawl attributes', 'error_prefix': 'FAILED to download basic crawl attributes', 'status_prefix': 'Crawler '}, 'step_webogs': {'data_key': 'weblogs_check', 'status_field': 'has_logs', 'success_text': 'HAS web logs', 'failure_text': 'does NOT have web logs', 'error_prefix': 'FAILED to download web logs', 'status_prefix': 'Project '}, 'step_gsc': {'data_key': 'search_console_check', 'status_field': 'has_search_console', 'success_text': 'HAS Search Console data', 'failure_text': 'does NOT have Search Console data', 'error_prefix': 'FAILED to download Search Console data', 'status_prefix': 'Project '}}
 
@@ -261,7 +261,7 @@ class ParameterBuster:
         steps = [Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {analysis_template}', refill=False)]
         if self._should_include_crawler_step(analysis_template):
             steps.append(Step(id='step_crawler', done='crawler_basic', show=f'Download Crawl: {crawler_template}', refill=False))
-        steps.extend([Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False), Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False), Step(id='step_parameters', done='placeholder', show='Count Parameters Per Source', refill=True), Step(id='step_optimization', done='parameter_optimization', show='Parameter Optimization', refill=True), Step(id='step_robots', done='robots_txt', show='Instructions & robots.txt', refill=False), Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)])
+        steps.extend([Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False), Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False), Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)])
         return steps
 
     def get_export_type_for_template_config(self, template_config_key):
@@ -347,12 +347,12 @@ class ParameterBuster:
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
             if finalize_step.done in finalize_data:
-                return Card(H3(self.ui['MESSAGES']['WORKFLOW_LOCKED']), Form(Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE'], id='parameterbuster-unlock-button', aria_label='Unlock workflow to make changes', data_testid='parameterbuster-unlock-button'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                return Card(H3(self.ui['MESSAGES']['WORKFLOW_LOCKED']), Form(Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE'], id='trifecta-unlock-button', aria_label='Unlock workflow to make changes', data_testid='trifecta-unlock-button'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
                     await self.message_queue.add(pip, 'All steps are complete. You can now finalize the workflow or revert to any step to make changes.', verbatim=True)
-                    return Card(H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), Form(Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY'], id='parameterbuster-finalize-button', aria_label='Finalize workflow and lock all steps', data_testid='parameterbuster-finalize-button'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                    return Card(H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), Form(Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY'], id='trifecta-finalize-button', aria_label='Finalize workflow and lock all steps', data_testid='trifecta-finalize-button'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -427,7 +427,7 @@ class ParameterBuster:
         else:
             display_value = project_url if step.refill and project_url else ''
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            return Div(Card(H3(f'{step.show}'), P('Enter a Botify project URL:'), Small('Example: ', Span('https://app.botify.com/uhnd-com/uhnd.com-demo-account/ <--click for example', id='copy-example-url', style='cursor: pointer; color: #888; text-decoration: none;', hx_on_click='document.querySelector(\'input[name="botify_url"]\').value = this.innerText.split(" <--")[0]; this.style.color = \'#28a745\'; setTimeout(() => this.style.color = \'#888\', 1000)', title='Click to use this example URL'), style='display: block; margin-bottom: 10px; color: #666; font-style: italic;'), Form(Input(type='url', name='botify_url', placeholder='https://app.botify.com/org/project/', value=display_value, required=True, pattern='https://(app|analyze)\\.botify\\.com/[^/]+/[^/]+/[^/]+.*', cls='w-full', id='parameterbuster-botify-url-input', aria_label='Enter Botify project URL', data_testid='parameterbuster-botify-url-input'), Div(Button('Use this URL ▸', type='submit', cls='primary', id='parameterbuster-url-submit-button', aria_label='Submit Botify project URL', data_testid='parameterbuster-url-submit-button'), cls='mt-vh text-end'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P('Enter a Botify project URL:'), Small('Example: ', Span('https://app.botify.com/uhnd-com/uhnd.com-demo-account/ <--click for example', id='copy-example-url', style='cursor: pointer; color: #888; text-decoration: none;', hx_on_click='document.querySelector(\'input[name="botify_url"]\').value = this.innerText.split(" <--")[0]; this.style.color = \'#28a745\'; setTimeout(() => this.style.color = \'#888\', 1000)', title='Click to use this example URL'), style='display: block; margin-bottom: 10px; color: #666; font-style: italic;'), Form(Input(type='url', name='botify_url', placeholder='https://app.botify.com/org/project/', value=display_value, required=True, pattern='https://(app|analyze)\\.botify\\.com/[^/]+/[^/]+/[^/]+.*', cls='w-full', id='trifecta-botify-url-input', aria_label='Enter Botify project URL', data_testid='trifecta-botify-url-input'), Div(Button('Use this URL ▸', type='submit', cls='primary', id='trifecta-url-submit-button', aria_label='Submit Botify project URL', data_testid='trifecta-url-submit-button'), cls='mt-vh text-end'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_project_submit(self, request):
         """Process the submission for Botify URL input widget.
@@ -589,7 +589,7 @@ class ParameterBuster:
                 button_text = f"Use Cached {button_suffix} ({file_info['size']}) ▸"
             else:
                 button_text = f'Download {button_suffix} ▸'
-            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted font-italic progress-spaced'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True, id='parameterbuster-analysis-select', aria_label='Select analysis for data download', data_testid='parameterbuster-analysis-select', hx_post=f'/{app_name}/update_button_text', hx_target='#submit-button', hx_trigger='change', hx_include='closest form', hx_swap='outerHTML'), Input(type='hidden', name='username', value=username, data_testid='parameterbuster-hidden-username'), Input(type='hidden', name='project_name', value=project_name, data_testid='parameterbuster-hidden-project-name'), Input(type='hidden', name='step_context', value='step_analysis', data_testid='parameterbuster-hidden-step-context'), Button(button_text, type='submit', cls='mt-10px primary', id='submit-button', aria_label='Download selected analysis data', data_testid='parameterbuster-analysis-submit-button', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted font-italic progress-spaced'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True, id='trifecta-analysis-select', aria_label='Select analysis for data download', data_testid='trifecta-analysis-select', hx_post=f'/{app_name}/update_button_text', hx_target='#submit-button', hx_trigger='change', hx_include='closest form', hx_swap='outerHTML'), Input(type='hidden', name='username', value=username, data_testid='trifecta-hidden-username'), Input(type='hidden', name='project_name', value=project_name, data_testid='trifecta-hidden-project-name'), Input(type='hidden', name='step_context', value='step_analysis', data_testid='trifecta-hidden-step-context'), Button(button_text, type='submit', cls='mt-10px primary', id='submit-button', aria_label='Download selected analysis data', data_testid='trifecta-analysis-submit-button', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
         except Exception as e:
             logger.error(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', cls='text-invalid')
@@ -1522,9 +1522,7 @@ class ParameterBuster:
             dict: {'parameter_value': determined_value, 'metric_at_parameter': metric_value}
         """
         from helpers.botify.code_generators import execute_qualifier_logic
-        optimal_param_value, final_metric_value = await execute_qualifier_logic(
-            self, username, project_name, analysis_slug, api_token, qualifier_config
-        )
+        optimal_param_value, final_metric_value = await execute_qualifier_logic(self, username, project_name, analysis_slug, api_token, qualifier_config)
         return {'parameter_value': optimal_param_value, 'metric_at_parameter': final_metric_value}
 
     def get_filename_for_export_type(self, export_type):
@@ -2920,6 +2918,311 @@ class ParameterBuster:
         """Get the configured template for a specific data type."""
         return self.TEMPLATE_CONFIG.get(data_type)
 
+    def get_export_type_for_template_config(self, template_config_key):
+        """Get the export type for a given template configuration key.
+        
+        This method resolves the template configuration to the actual export type
+        that should be used for file naming and caching.
+        
+        Args:
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'analysis', 'crawler')
+            
+        Returns:
+            String export type that can be used with get_filename_for_export_type()
+        """
+        template_name = self.get_configured_template(template_config_key)
+        if not template_name:
+            raise ValueError(f'No template configured for: {template_config_key}')
+        template_details = self.QUERY_TEMPLATES.get(template_name, {})
+        export_type = template_details.get('export_type')
+        if not export_type:
+            raise ValueError(f'Template "{template_name}" has no export_type defined')
+        return export_type
+
+    def apply_template(self, template_key, collection=None):
+        """Apply a query template with collection substitution."""
+        if template_key not in self.QUERY_TEMPLATES:
+            raise ValueError(f'Unknown template: {template_key}')
+        template = self.QUERY_TEMPLATES[template_key].copy()
+        query = template['query'].copy()
+        if collection and '{collection}' in str(query):
+            query_str = json.dumps(query)
+            query_str = query_str.replace('{collection}', collection)
+            query = json.loads(query_str)
+        return query
+
+    def list_available_templates(self):
+        """List all available query templates with descriptions."""
+        return {key: {'name': template['name'], 'description': template['description']} for key, template in self.QUERY_TEMPLATES.items()}
+
+    async def save_analyses_to_json(self, username, project_name, api_token):
+        """
+        Fetch and save the complete analyses data to a local JSON file.
+        
+        This method fetches the full analyses data from the Botify API endpoint:
+        /analyses/{username}/{project_name}
+        
+        And saves it to a deterministic local path:
+        downloads/{APP_NAME}/{username}/{project_name}/analyses.json
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug  
+            api_token: Botify API token
+            
+        Returns:
+            tuple: (success: bool, message: str, filepath: str|None)
+        """
+        try:
+            base_dir = f'downloads/{self.app_name}/{username}/{project_name}'
+            analyses_filepath = f'{base_dir}/analyses.json'
+            await self.ensure_directory_exists(analyses_filepath)
+            exists, file_info = await self.check_file_exists(analyses_filepath)
+            if exists:
+                return (True, f"📄 Analyses data already cached: {file_info['size']}", analyses_filepath)
+            url = f'https://api.botify.com/v1/analyses/{username}/{project_name}/light'
+            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+            all_analyses = []
+            next_url = url
+            page_count = 0
+            while next_url:
+                page_count += 1
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(next_url, headers=headers, timeout=60.0)
+                if response.status_code != 200:
+                    return (False, f'API error: Status {response.status_code} - {response.text}', None)
+                data = response.json()
+                if 'results' not in data:
+                    return (False, f"No 'results' key in API response", None)
+                analyses = data['results']
+                all_analyses.extend(analyses)
+                next_url = data.get('next')
+                if page_count > 1:
+                    await self.message_queue.add(self.pipulate, f'📄 Fetched page {page_count} of analyses data...', verbatim=True)
+            analyses_data = {'metadata': {'organization': username, 'project': project_name, 'fetch_timestamp': time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime()), 'total_analyses': len(all_analyses), 'pages_fetched': page_count, 'api_endpoint': f'/analyses/{username}/{project_name}'}, 'analyses': all_analyses}
+            with open(analyses_filepath, 'w', encoding='utf-8') as f:
+                json.dump(analyses_data, f, indent=2, ensure_ascii=False)
+            exists, file_info = await self.check_file_exists(analyses_filepath)
+            if not exists:
+                return (False, 'Failed to save analyses data to file', None)
+            return (True, f"📄 Analyses data saved: {len(all_analyses)} analyses ({file_info['size']})", analyses_filepath)
+        except Exception as e:
+            logger.error(f'Error saving analyses data: {str(e)}')
+            return (False, f'Error saving analyses data: {str(e)}', None)
+
+    async def save_advanced_export_to_json(self, username, project_name, analysis_slug, api_token):
+        """
+        Fetch and save the advanced export data for a specific analysis to a local JSON file.
+        
+        This method fetches the advanced export data from the Botify API endpoint:
+        /api/v1/analyses/{username}/{project_name}/{analysis_slug}/advanced_export
+        
+        And saves it to a deterministic local path:
+        downloads/{APP_NAME}/{username}/{project_name}/{analysis_slug}/analysis_advanced.json
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug
+            analysis_slug: Analysis slug
+            api_token: Botify API token
+            
+        Returns:
+            tuple: (success: bool, message: str, filepath: str|None)
+        """
+        try:
+            base_dir = f'downloads/{self.app_name}/{username}/{project_name}/{analysis_slug}'
+            advanced_export_filepath = f'{base_dir}/analysis_advanced.json'
+            await self.ensure_directory_exists(advanced_export_filepath)
+            exists, file_info = await self.check_file_exists(advanced_export_filepath)
+            if exists:
+                return (True, f"📊 Advanced export data already cached: {file_info['size']}", advanced_export_filepath)
+            url = f'https://api.botify.com/v1/analyses/{username}/{project_name}/{analysis_slug}/advanced_export'
+            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers, timeout=60.0)
+            if response.status_code != 200:
+                return (False, f'API error: Status {response.status_code} - {response.text}', None)
+            advanced_export_data = response.json()
+            export_data = {'metadata': {'organization': username, 'project': project_name, 'analysis_slug': analysis_slug, 'fetch_timestamp': time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime()), 'api_endpoint': f'/api/v1/analyses/{username}/{project_name}/{analysis_slug}/advanced_export'}, 'advanced_export': advanced_export_data}
+            with open(advanced_export_filepath, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, indent=2, ensure_ascii=False)
+            exists, file_info = await self.check_file_exists(advanced_export_filepath)
+            if not exists:
+                return (False, 'Failed to save advanced export data to file', None)
+            return (True, f"📊 Advanced export data saved: {file_info['size']}", advanced_export_filepath)
+        except Exception as e:
+            logger.error(f'Error saving advanced export data: {str(e)}')
+            return (False, f'Error saving advanced export data: {str(e)}', None)
+
+    async def extract_available_fields_from_advanced_export(self, username, project_name, analysis_slug, export_group='urls'):
+        """
+        Extract available fields from the analysis_advanced.json file for use in query metrics.
+        
+        This function reads the cached advanced export data and extracts the field lists
+        from specific export types, making them available for use in QUERY_TEMPLATES metrics.
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug
+            analysis_slug: Analysis slug
+            export_group: Filter by export group ('urls', 'links', or None for all)
+            
+        Returns:
+            dict: {
+                'success': bool,
+                'message': str,
+                'fields': list,
+                'available_exports': list  # List of export IDs that were found
+            }
+        """
+        try:
+            advanced_export_filepath = f'downloads/{self.app_name}/{username}/{project_name}/{analysis_slug}/analysis_advanced.json'
+            exists, file_info = await self.check_file_exists(advanced_export_filepath)
+            if not exists:
+                return {'success': False, 'message': f'Advanced export file not found: {advanced_export_filepath}', 'fields': [], 'available_exports': []}
+            with open(advanced_export_filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            advanced_exports = data.get('advanced_export', [])
+            if not advanced_exports:
+                return {'success': False, 'message': 'No advanced export data found in file', 'fields': [], 'available_exports': []}
+            all_fields = set()
+            available_exports = []
+            for export in advanced_exports:
+                export_id = export.get('id', '')
+                export_name = export.get('name', '')
+                export_group_name = export.get('group', '')
+                fields = export.get('fields', [])
+                if export_group and export_group_name != export_group:
+                    continue
+                available_exports.append({'id': export_id, 'name': export_name, 'group': export_group_name, 'field_count': len(fields), 'fields': fields})
+                all_fields.update(fields)
+            sorted_fields = sorted(list(all_fields))
+            total_exports = len(available_exports)
+            total_fields = len(sorted_fields)
+            group_filter_msg = f' (filtered by group: {export_group})' if export_group else ''
+            message = f'Found {total_fields} unique fields from {total_exports} exports{group_filter_msg}'
+            return {'success': True, 'message': message, 'fields': sorted_fields, 'available_exports': available_exports}
+        except json.JSONDecodeError as e:
+            return {'success': False, 'message': f'Invalid JSON in advanced export file: {str(e)}', 'fields': [], 'available_exports': []}
+        except Exception as e:
+            logger.error(f'Error extracting fields from advanced export: {str(e)}')
+            return {'success': False, 'message': f'Error extracting fields: {str(e)}', 'fields': [], 'available_exports': []}
+
+    async def test_extract_available_fields(self, username, project_name, analysis_slug):
+        """
+        Test function to verify extract_available_fields_from_advanced_export works correctly.
+        
+        This function tests the field extraction and provides detailed output for verification.
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug
+            analysis_slug: Analysis slug
+            
+        Returns:
+            str: Formatted test results for display
+        """
+        try:
+            url_result = await self.extract_available_fields_from_advanced_export(username, project_name, analysis_slug, export_group='urls')
+            links_result = await self.extract_available_fields_from_advanced_export(username, project_name, analysis_slug, export_group='links')
+            all_result = await self.extract_available_fields_from_advanced_export(username, project_name, analysis_slug, export_group=None)
+            test_results = []
+            test_results.append('=== Field Extraction Test Results ===\n')
+            test_results.append('📊 URLs Group Fields:')
+            test_results.append(f"Status: {('✅ Success' if url_result['success'] else '❌ Failed')}")
+            test_results.append(f"Message: {url_result['message']}")
+            if url_result['success']:
+                test_results.append(f"Available Exports: {len(url_result['available_exports'])}")
+                for export in url_result['available_exports']:
+                    test_results.append(f"  - {export['id']}: {export['field_count']} fields")
+                test_results.append(f"Sample Fields: {', '.join(url_result['fields'][:10])}...")
+            test_results.append('')
+            test_results.append('🔗 Links Group Fields:')
+            test_results.append(f"Status: {('✅ Success' if links_result['success'] else '❌ Failed')}")
+            test_results.append(f"Message: {links_result['message']}")
+            if links_result['success']:
+                test_results.append(f"Available Exports: {len(links_result['available_exports'])}")
+                test_results.append(f"Sample Fields: {', '.join(links_result['fields'][:10])}...")
+            test_results.append('')
+            test_results.append('🌐 All Groups Combined:')
+            test_results.append(f"Status: {('✅ Success' if all_result['success'] else '❌ Failed')}")
+            test_results.append(f"Message: {all_result['message']}")
+            if all_result['success']:
+                test_results.append(f"Total Available Exports: {len(all_result['available_exports'])}")
+                test_results.append(f"Total Unique Fields: {len(all_result['fields'])}")
+            return '\n'.join(test_results)
+        except Exception as e:
+            return f'❌ Test failed with error: {str(e)}'
+
+    def get_filename_for_export_type(self, export_type):
+        """Get the filename for a given export type.
+        
+        This method centralizes filename mapping and can be extended for template-specific naming.
+        
+        Args:
+            export_type: The export type from template configuration
+            
+        Returns:
+            String filename for the export type
+        """
+        filename_map = {'crawl': 'crawl.csv', 'weblog': 'weblog.csv', 'gsc': 'gsc.csv', 'crawl_attributes': 'crawl.csv', 'link_graph_edges': 'link_graph.csv', 'gsc_data': 'gsc.csv'}
+        if export_type not in filename_map:
+            raise ValueError(f'Unknown export type: {export_type}')
+        return filename_map[export_type]
+
+    async def get_deterministic_filepath_for_template_config(self, username, project_name, analysis_slug, template_config_key):
+        """Generate a deterministic file path based on template configuration.
+        
+        This method resolves the template configuration to determine the appropriate
+        export type and filename for caching.
+        
+        Args:
+            username: Organization username
+            project_name: Project name
+            analysis_slug: Analysis slug
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'analysis', 'crawler')
+            
+        Returns:
+            String path to the file location
+        """
+        export_type = self.get_export_type_for_template_config(template_config_key)
+        return await self.get_deterministic_filepath(username, project_name, analysis_slug, export_type)
+
+    async def check_cached_file_for_template_config(self, username, project_name, analysis_slug, template_config_key):
+        """Check if a cached file exists based on template configuration.
+        
+        This method resolves the template configuration to determine the appropriate
+        export type and check for cached files.
+        
+        Args:
+            username: Organization username
+            project_name: Project name
+            analysis_slug: Analysis slug
+            template_config_key: Key from TEMPLATE_CONFIG (e.g., 'analysis', 'crawler')
+            
+        Returns:
+            tuple: (exists: bool, file_info: dict|None)
+        """
+        try:
+            filepath = await self.get_deterministic_filepath_for_template_config(username, project_name, analysis_slug, template_config_key)
+            exists, file_info = await self.check_file_exists(filepath)
+            return (exists, file_info if exists else None)
+        except Exception:
+            return (False, None)
+
+    def get_available_templates_for_data_type(self, data_type):
+        """Get available query templates for a specific data type."""
+        if data_type == 'crawl':
+            return ['Crawl Basic', 'Not Compliant']
+        elif data_type == 'gsc':
+            return ['GSC Performance']
+        else:
+            return []
+
+    def get_configured_template(self, data_type):
+        """Get the configured template for a specific data type."""
+        return self.TEMPLATE_CONFIG.get(data_type)
+
     def apply_template(self, template_key, collection=None):
         """Apply a query template with collection substitution."""
         if template_key not in self.QUERY_TEMPLATES:
@@ -3931,11 +4234,11 @@ class ParameterBuster:
         🔍 FIELD DISCOVERY ENDPOINT
         
         Simple endpoint to discover available fields for a Botify project analysis.
-        Call via: /parameterbuster/discover-fields/username/project/analysis
+        Call via: /trifecta/discover-fields/username/project/analysis
         
         Returns JSON with all available dimensions and metrics.
         If cached analysis_advanced.json file doesn't exist, it will be automatically 
-        generated using the same method as the Parameter Buster workflow.
+        generated using the same method as the Trifecta workflow.
         """
         username = request.path_params['username']
         project = request.path_params['project']
