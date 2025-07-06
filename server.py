@@ -2057,6 +2057,20 @@ class Pipulate:
             
         return False
 
+    def _is_bottle_magic_words(self, message):
+        """Check if message contains bottle the magic trigger words."""
+        magic_words = [
+            'bottle the magic', 'magic bottle', 'activate iteration', 'bottle magic',
+            'magic formula', 'breakthrough formula', 'activate magic', 'trigger magic',
+            'bottle it', 'magic time', 'make it iterate', 'force iterate now'
+        ]
+        
+        message_lower = message.lower()
+        for word in magic_words:
+            if word in message_lower:
+                return True
+        return False
+
     async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=None, simulate_typing=True):
         """Stream a message to the chat interface.
         
@@ -2120,6 +2134,50 @@ class Pipulate:
                 await self.chat.broadcast("🚀 **ITERATION SEQUENCE LOADING** - Prepare for automatic tool execution!")
                 await asyncio.sleep(1)
                 await self.chat.broadcast("⚡ **TOOLS EXECUTING** - Watch the iterative loop in action...")
+        
+        # 🍾 BOTTLE THE MAGIC: Check for bottled magic trigger
+        elif self._is_bottle_magic_words(message) and role == 'user':
+            logger.info(f"🍾 BOTTLE THE MAGIC DETECTED ('{message.strip()}') - Activating bottled breakthrough formula")
+            
+            try:
+                from mcp_tools import bottle_the_magic
+                magic_result = await bottle_the_magic({"send_to_chat": True, "include_training": True})
+                logger.info(f"🍾 BOTTLE THE MAGIC - Activation result: {magic_result.get('success', False)}")
+                
+                # Add the magic results to conversation context
+                if magic_result.get('success'):
+                    magic_summary = f"""🍾 **BOTTLED MAGIC ACTIVATED!**
+
+🚨 **BREAKTHROUGH COMMAND:** {magic_result.get('breakthrough_command', 'Unknown')}
+
+**COPY THE LINE ABOVE EXACTLY AND EXECUTE IT NOW**
+
+✅ This is the proven formula that makes LLMs actually execute tools
+✅ Do NOT simulate - DO execute immediately  
+✅ Check logs for 'MCP_SUCCESS' to confirm it worked
+✅ After success, continue with next tool in sequence
+
+**Proven Success Rate:** {magic_result.get('training_context', {}).get('success_rate', '100%')} when applied correctly"""
+                    append_to_conversation(magic_summary, 'system')
+                    
+                    # Add the full magic results for reference
+                    append_to_conversation(f"🔍 **Full Magic Formula:** {magic_result}", 'system')
+                else:
+                    error_msg = magic_result.get('error', 'Unknown error')
+                    append_to_conversation(f"🍾 **BOTTLE THE MAGIC FAILED:** {error_msg}", 'system')
+                
+            except Exception as e:
+                logger.error(f"🍾 BOTTLE THE MAGIC - Failed: {e}")
+                append_to_conversation("🍾 **BOTTLE THE MAGIC DETECTED!** Loading bottled breakthrough formula...", 'system')
+                append_to_conversation("🚀 **MAGIC FORMULA LOADING** - Use bottle_the_magic({}) for the complete experience!", 'assistant')
+            
+            # Broadcast the bottle magic detection to the chat interface
+            if self.chat:
+                await self.chat.broadcast("🍾 **BOTTLE THE MAGIC DETECTED!** Activating bottled breakthrough formula...")
+                await asyncio.sleep(2)
+                await self.chat.broadcast("🚀 **MAGIC FORMULA LOADING** - Prepare for instant LLM iteration activation!")
+                await asyncio.sleep(1)
+                await self.chat.broadcast("⚡ **BREAKTHROUGH FORMULA READY** - The exact sequence that makes LLMs execute tools!")
         
         # 🍞 BREADCRUMB TRAIL MAGIC WORDS: Check for breadcrumb discovery trigger
         elif self._is_breadcrumb_trail_magic_words(message) and role == 'user':
@@ -5183,7 +5241,8 @@ async def sse_endpoint(request):
 
 @app.post('/chat')
 async def chat_endpoint(request, message: str):
-    await pipulate.stream(f'Let the user know {limiter} {message}')
+    # await pipulate.stream(f'Let the user know {limiter} {message}')
+    await pipulate.stream(message)
     return ''
 
 @rt('/redirect/{path:path}')
