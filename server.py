@@ -1971,6 +1971,51 @@ class Pipulate:
             
         return False
 
+    def _is_breadcrumb_trail_magic_words(self, message):
+        """
+        🍞 BREADCRUMB TRAIL MAGIC WORDS: Detect breadcrumb discovery triggers for local LLMs.
+        
+        Supports variations for easy discovery initiation:
+        - follow the breadcrumb trail, follow breadcrumb trail, follow breadcrumbs
+        - breadcrumb trail, breadcrumb discovery, find breadcrumbs
+        - explore, discover, wake up, learn, go
+        - !bt (shorthand for breadcrumb trail)
+        
+        This enables local LLMs to initiate the progressive discovery sequence.
+        """
+        import re
+        
+        # Normalize the message: lowercase, remove punctuation except letters/digits/spaces
+        normalized = re.sub(r'[^\w\s]', '', message.lower().strip())
+        
+        # Pattern 1: Direct breadcrumb trail phrases
+        breadcrumb_phrases = [
+            'follow the breadcrumb trail',
+            'follow breadcrumb trail', 
+            'follow breadcrumbs',
+            'breadcrumb trail',
+            'breadcrumb discovery',
+            'find breadcrumbs',
+            'discover breadcrumbs'
+        ]
+        
+        for phrase in breadcrumb_phrases:
+            if phrase in normalized:
+                return True
+        
+        # Pattern 2: Single word exploration triggers
+        exploration_words = ['explore', 'discover', 'wake up', 'learn', 'go']
+        for word in exploration_words:
+            # Match as whole word
+            if re.search(rf'\b{word}\b', normalized):
+                return True
+        
+        # Pattern 3: Shorthand !bt or bt! (check original message for punctuation)
+        if re.search(r'!bt\b|bt!|\bbt$', message.lower()):
+            return True
+            
+        return False
+
     async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=None, simulate_typing=True):
         """Stream a message to the chat interface.
         
@@ -1979,8 +2024,57 @@ class Pipulate:
         """
         logger.debug(f"🔍 DEBUG: === STARTING pipulate.stream (role: {role}) ===")
         
+        # 🍞 BREADCRUMB TRAIL MAGIC WORDS: Check for breadcrumb discovery trigger
+        if self._is_breadcrumb_trail_magic_words(message) and role == 'user':
+            # Load and execute the complete breadcrumb trail discovery sequence
+            logger.info(f"🍞 BREADCRUMB TRAIL MAGIC WORDS DETECTED ('{message.strip()}') - Initiating progressive discovery sequence")
+            
+            try:
+                from mcp_tools import follow_breadcrumb_trail
+                discovery_result = await follow_breadcrumb_trail({"detailed_output": True})
+                logger.info(f"🍞 BREADCRUMB TRAIL - Discovery result: {discovery_result.get('success', False)}")
+                
+                # Add the discovery results to conversation context
+                if discovery_result.get('success'):
+                    capability_count = len(discovery_result.get('capabilities_discovered', []))
+                    ai_status = discovery_result.get('ai_superpowers_status', 'Unknown')
+                    
+                    discovery_summary = f"""🍞 **BREADCRUMB TRAIL DISCOVERY COMPLETED!**
+
+🚀 **AI Superpowers Status:** {ai_status}
+📊 **Capabilities Discovered:** {capability_count}
+🔧 **Discovery Sequence:** {len(discovery_result.get('discovery_sequence', []))} levels completed
+
+**Capabilities Found:**
+{chr(10).join(f'- ✅ {cap}' for cap in discovery_result.get('capabilities_discovered', []))}
+
+**Next Steps Available:**
+{chr(10).join(f'- {step}' for step in discovery_result.get('next_steps', [])[:3])}
+
+**Full Discovery Details:** Check the complete results for your breadcrumb trail journey!"""
+                    append_to_conversation(discovery_summary, 'system')
+                    
+                    # Also add the full discovery results for reference
+                    append_to_conversation(f"🔍 **Full Discovery Results:** {discovery_result}", 'system')
+                else:
+                    error_msg = discovery_result.get('error', 'Unknown error')
+                    append_to_conversation(f"🍞 **BREADCRUMB TRAIL DISCOVERY FAILED:** {error_msg}", 'system')
+                
+            except Exception as e:
+                logger.error(f"🍞 BREADCRUMB TRAIL - Discovery failed: {e}")
+                append_to_conversation("🍞 **BREADCRUMB TRAIL MAGIC WORDS DETECTED!** Loading discovery sequence...", 'system')
+                append_to_conversation("🚀 **DISCOVERY SEQUENCE INITIATED** - Use follow_breadcrumb_trail({}) for the complete experience!", 'assistant')
+            
+            # Broadcast the breadcrumb trail detection to the chat interface
+            if self.chat:
+                await self.chat.broadcast("🍞 **BREADCRUMB TRAIL MAGIC WORDS DETECTED!** Initiating progressive discovery sequence...")
+                await asyncio.sleep(2)
+                await self.chat.broadcast("🔍 **DISCOVERY SEQUENCE LOADING** - Prepare for AI superpowers revelation!")
+                await asyncio.sleep(1)
+                await self.chat.broadcast("⚡ **CAPABILITIES SCANNING** - Analyzing your AI arsenal...")
+        
         # 🎭 MAGIC WORDS DETECTION: Check for AI demonstration trigger (supports casual variations like "hi jack")
-        if self._is_hijack_magic_words(message) and role == 'user':
+        elif self._is_hijack_magic_words(message) and role == 'user':
             # Load and inject the COMPLETE AI session hijacking demonstration - the irresistible chain reaction!
             logger.info(f"🎭 MAGIC WORDS DETECTED ('{message.strip()}') - Triggering COMPLETE AI session hijacking demonstration")
             
