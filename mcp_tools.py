@@ -712,6 +712,9 @@ def register_all_mcp_tools():
     # 🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM - ONE TOOL TO RULE THEM ALL
     register_mcp_tool("execute_automation_recipe", execute_automation_recipe)
     
+    # 🔧 UNIFIED CLI INTERFACE FOR LOCAL LLM
+    register_mcp_tool("execute_mcp_cli_command", execute_mcp_cli_command)
+    
     # Additional Botify tools
     register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
     register_mcp_tool("botify_list_available_analyses", botify_list_available_analyses)
@@ -6071,6 +6074,86 @@ async def execute_automation_recipe(params: dict = None) -> dict:
             "executor": "baby_steps",
             "error": f"System error in recipe automation executor: {str(e)}",
             "params": params
+        }
+
+async def execute_mcp_cli_command(params: dict) -> dict:
+    """
+    Execute MCP CLI commands for local LLM access to the unified interface.
+    
+    This enables the local LLM to use the same CLI interface as external AI assistants.
+    The local LLM can execute commands like: mcp execute_automation_recipe --recipe_path ...
+    
+    Args:
+        params (dict): Parameters for CLI command execution
+            - tool_name (str): Name of the MCP tool to execute
+            - arguments (dict, optional): Key-value pairs for CLI arguments
+            - raw_command (str, optional): Raw CLI command to execute
+    
+    Returns:
+        dict: Results of CLI command execution
+    """
+    import subprocess
+    import os
+    import asyncio
+    
+    try:
+        # Get parameters
+        tool_name = params.get('tool_name')
+        arguments = params.get('arguments', {})
+        raw_command = params.get('raw_command')
+        
+        # Build the CLI command
+        if raw_command:
+            # Use raw command directly
+            cmd_parts = raw_command.split()
+        elif tool_name:
+            # Build command from tool name and arguments
+            cmd_parts = [".venv/bin/python", "cli.py", "call", tool_name]
+            
+            # Add arguments
+            for key, value in arguments.items():
+                cmd_parts.extend([f"--{key}", str(value)])
+        else:
+            # Discovery mode - list available tools
+            cmd_parts = [".venv/bin/python", "helpers/ai_tool_discovery.py", "list"]
+        
+        # Execute the command safely with timeout
+        process = await asyncio.create_subprocess_exec(
+            *cmd_parts,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=os.getcwd()
+        )
+        
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30.0)
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.wait()
+            raise Exception("Command execution timed out after 30 seconds")
+        
+        # Process results
+        stdout_text = stdout.decode('utf-8') if stdout else ""
+        stderr_text = stderr.decode('utf-8') if stderr else ""
+        
+        return {
+            "success": process.returncode == 0,
+            "command": " ".join(cmd_parts),
+            "stdout": stdout_text,
+            "stderr": stderr_text,
+            "return_code": process.returncode,
+            "tool_name": tool_name or "discovery",
+            "interface_type": "cli_unified",
+            "description": "Local LLM executed CLI command via unified interface"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "tool_name": params.get('tool_name', 'unknown'),
+            "interface_type": "cli_unified",
+            "description": "CLI command execution failed"
         }
 
 
