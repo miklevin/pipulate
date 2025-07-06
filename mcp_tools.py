@@ -7511,4 +7511,162 @@ register_mcp_tool("conversation_history_clear", conversation_history_clear)
 register_mcp_tool("conversation_history_restore", conversation_history_restore)
 register_mcp_tool("conversation_history_stats", conversation_history_stats)
 
+async def conversation_history_transparency(params: dict) -> dict:
+    """Provide complete transparency about conversation history storage, access, and verification."""
+    try:
+        import sys
+        import sqlite3
+        from pathlib import Path
+        
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {'success': False, 'error': 'Server module not available'}
+        
+        # Get current environment and database info
+        current_env = get_current_environment()
+        db_filename = get_db_filename()
+        db_path = Path(db_filename)
+        
+        # Check if database file exists
+        db_exists = db_path.exists()
+        db_size = db_path.stat().st_size if db_exists else 0
+        
+        # Get in-memory conversation info
+        memory_count = len(server_module.global_conversation_history)
+        memory_preview = []
+        if memory_count > 0:
+            recent_messages = list(server_module.global_conversation_history)[-3:]
+            for i, msg in enumerate(recent_messages):
+                memory_preview.append({
+                    'role': msg.get('role'),
+                    'content_preview': msg.get('content', '')[:100] + ('...' if len(msg.get('content', '')) > 100 else ''),
+                    'content_length': len(msg.get('content', ''))
+                })
+        
+        # Check database storage
+        db_storage_info = {}
+        try:
+            if db_exists:
+                with sqlite3.connect(db_filename) as conn:
+                    cursor = conn.cursor()
+                    
+                    # Check if store table exists and has conversation history
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='store'")
+                    store_exists = cursor.fetchone() is not None
+                    
+                    if store_exists:
+                        cursor.execute("SELECT value FROM store WHERE key='llm_conversation_history'")
+                        result = cursor.fetchone()
+                        
+                        if result:
+                            import json
+                            try:
+                                stored_messages = json.loads(result[0])
+                                db_storage_info = {
+                                    'has_stored_history': True,
+                                    'stored_message_count': len(stored_messages),
+                                    'storage_size_bytes': len(result[0]),
+                                    'storage_size_kb': round(len(result[0]) / 1024, 2),
+                                    'last_stored_message': {
+                                        'role': stored_messages[-1].get('role') if stored_messages else None,
+                                        'content_preview': stored_messages[-1].get('content', '')[:100] + '...' if stored_messages and len(stored_messages[-1].get('content', '')) > 100 else stored_messages[-1].get('content', '') if stored_messages else None
+                                    } if stored_messages else None
+                                }
+                            except json.JSONDecodeError:
+                                db_storage_info = {
+                                    'has_stored_history': True,
+                                    'error': 'Invalid JSON in stored conversation history'
+                                }
+                        else:
+                            db_storage_info = {'has_stored_history': False}
+                    else:
+                        db_storage_info = {'has_stored_history': False, 'error': 'Store table does not exist'}
+        except Exception as e:
+            db_storage_info = {'has_stored_history': False, 'error': f'Database access error: {str(e)}'}
+        
+        # Generate transparency report
+        transparency_info = {
+            'system_info': {
+                'current_environment': current_env,
+                'database_file': db_filename,
+                'database_exists': db_exists,
+                'database_size_bytes': db_size,
+                'database_size_kb': round(db_size / 1024, 2) if db_size > 0 else 0
+            },
+            'memory_storage': {
+                'message_count': memory_count,
+                'max_capacity': getattr(server_module, 'MAX_CONVERSATION_LENGTH', 10000),
+                'usage_percentage': round((memory_count / getattr(server_module, 'MAX_CONVERSATION_LENGTH', 10000)) * 100, 2),
+                'recent_messages_preview': memory_preview
+            },
+            'database_storage': db_storage_info,
+            'verification_commands': {
+                'check_memory_conversation': {
+                    'command': '.venv/bin/python -c "from server import global_conversation_history; print(f\'Memory: {len(global_conversation_history)} messages\')"',
+                    'description': 'Check in-memory conversation count'
+                },
+                'check_database_conversation': {
+                    'command': f'.venv/bin/python -c "import sqlite3, json; conn = sqlite3.connect(\'{db_filename}\'); cursor = conn.cursor(); cursor.execute(\'SELECT value FROM store WHERE key=\\\"llm_conversation_history\\\"\'); result = cursor.fetchone(); print(f\'Database: {{len(json.loads(result[0])) if result else 0}} messages\'); conn.close()"',
+                    'description': 'Check database-stored conversation count'
+                },
+                'view_recent_messages': {
+                    'command': '.venv/bin/python cli.py call conversation_history_view --limit 5',
+                    'description': 'View last 5 conversation messages via MCP tool'
+                },
+                'get_conversation_stats': {
+                    'command': '.venv/bin/python cli.py call conversation_history_stats',
+                    'description': 'Get comprehensive conversation statistics'
+                },
+                'monitor_conversation_persistence': {
+                    'command': 'grep -E "(CONVERSATION_SAVED|CONVERSATION_RESTORED)" logs/server.log | tail -10',
+                    'description': 'Monitor conversation save/restore events in logs'
+                }
+            },
+            'file_locations': {
+                'database_file': str(db_path.absolute()),
+                'server_log': 'logs/server.log',
+                'environment_file': 'data/current_environment.txt',
+                'conversation_key_in_db': 'llm_conversation_history'
+            },
+            'transparency_features': {
+                'automatic_persistence': 'Every message automatically saved to database',
+                'startup_restoration': 'Conversation restored on server startup',
+                'environment_switching': 'Conversation persists across DEV/PROD switches',
+                'database_reset_protection': 'Conversation backed up and restored during database resets',
+                'graceful_shutdown': 'Conversation saved before server stops',
+                'finder_token_logging': 'All operations logged with FINDER_TOKEN for debugging',
+                'mcp_tools_access': 'Four MCP tools for programmatic conversation management'
+            }
+        }
+        
+        # Check consistency between memory and database
+        consistency_check = {}
+        if db_storage_info.get('has_stored_history') and memory_count > 0:
+            stored_count = db_storage_info.get('stored_message_count', 0)
+            consistency_check = {
+                'memory_vs_database': {
+                    'memory_count': memory_count,
+                    'database_count': stored_count,
+                    'consistent': memory_count == stored_count,
+                    'difference': abs(memory_count - stored_count)
+                }
+            }
+        
+        transparency_info['consistency_check'] = consistency_check
+        
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_TRANSPARENCY - Generated transparency report for {current_env} environment")
+        
+        return {
+            'success': True,
+            'transparency_info': transparency_info,
+            'message': f'Conversation history transparency report for {current_env} environment'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in conversation_history_transparency: {e}")
+        return {'success': False, 'error': str(e)}
+
+# Register the conversation history transparency tool
+register_mcp_tool("conversation_history_transparency", conversation_history_transparency)
+
 
