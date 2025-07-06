@@ -112,6 +112,42 @@ def apply_timing_preset(preset_name: str):
 apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
 
 # ================================================================
+# DATABASE FILENAME UTILITIES - Match server.py logic exactly
+# ================================================================
+
+def get_app_name():
+    """Get the name of the app from the app_name.txt file, or the parent directory name."""
+    app_name_file = 'app_name.txt'
+    if Path(app_name_file).exists():
+        try:
+            return Path(app_name_file).read_text().strip().capitalize()
+        except:
+            pass
+    # Fallback to directory name
+    name = Path(__file__).parent.name
+    name = name[:-5] if name.endswith('-main') else name
+    return name.capitalize()
+
+def get_current_environment():
+    """Get current environment from file, defaulting to Development."""
+    env_file = Path('data/current_environment.txt')
+    if env_file.exists():
+        try:
+            return env_file.read_text().strip()
+        except:
+            pass
+    return 'Development'
+
+def get_db_filename():
+    """Get the database filename using the same logic as server.py."""
+    app_name = get_app_name()
+    current_env = get_current_environment()
+    if current_env == 'Development':
+        return f'data/{app_name.lower()}_dev.db'
+    else:
+        return f'data/{app_name.lower()}.db'
+
+# ================================================================
 # BROWSER AUTOMATION UTILITIES
 # ================================================================
 
@@ -262,7 +298,7 @@ async def get_user_session_state(params: dict) -> dict:
                 from fastlite import database
                 from pathlib import Path
                 Path('data').mkdir(parents=True, exist_ok=True)
-                db_file = 'data/data.db'
+                db_file = get_db_filename()  # Use dynamic database filename
                 
                 # Check if the database file exists
                 if not Path(db_file).exists():
@@ -455,7 +491,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
             try:
                 from fastlite import database
                 from pathlib import Path
-                db_file = 'data/data.db'
+                db_file = get_db_filename()  # Use dynamic database filename
                 Path('data').mkdir(parents=True, exist_ok=True)
                 
                 # Check if the database file exists
@@ -468,15 +504,17 @@ async def pipeline_state_inspector(params: dict) -> dict:
                     }
                 
                 db = database(db_file)
-                if not hasattr(db, 'pipeline'):
-                    logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database missing 'pipeline' table")
+                try:
+                    pipeline_table = db.t.pipeline
+                    # Test access to ensure table exists and is accessible
+                    list(pipeline_table())
+                except Exception as table_error:
+                    logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Cannot access pipeline table: {table_error}")
                     return {
                         "success": False,
-                        "error": "Database structure is incorrect - missing 'pipeline' table",
-                        "recovery_suggestion": "Server may need to be restarted to create the proper database structure"
+                        "error": f"Cannot access pipeline table: {str(table_error)}",
+                        "recovery_suggestion": "Database may be corrupted or server needs restart"
                     }
-                
-                pipeline_table = db.pipeline
                 logger.info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ACCESS - Fallback: accessed pipeline table directly from database")
             except Exception as e:
                 logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database access failed: {e}")
