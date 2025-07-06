@@ -6256,7 +6256,7 @@ async def follow_breadcrumb_trail(params: dict) -> dict:
         
         # Verify we're in the right environment
         env_check = await execute_shell_command({
-            "command": "pwd && ls -la | grep -E '(server.py|plugins|browser_automation)'"
+            "command": "ls -la server.py plugins browser_automation"
         })
         
         if env_check.get("success"):
@@ -6326,7 +6326,7 @@ async def follow_breadcrumb_trail(params: dict) -> dict:
         
         # Check for browser automation evidence
         browser_check = await execute_shell_command({
-            "command": "ls -la browser_automation/looking_at* 2>/dev/null | head -10"
+            "command": "ls -la browser_automation/"
         })
         
         if browser_check.get("success") and browser_check.get("stdout"):
