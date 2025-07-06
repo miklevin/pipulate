@@ -874,6 +874,9 @@ def register_all_mcp_tools():
     register_mcp_tool("execute_shell_command", execute_shell_command)
     register_mcp_tool("follow_breadcrumb_trail", follow_breadcrumb_trail)
     
+    # 🎓 LOCAL LLM TOOL CALLING TRAINER
+    register_mcp_tool("local_llm_tool_calling_trainer", local_llm_tool_calling_trainer)
+    
     # Get final count from server's registry
     import sys
     server_module = sys.modules.get('server')
@@ -6417,5 +6420,229 @@ async def follow_breadcrumb_trail(params: dict) -> dict:
             "description": "Breadcrumb trail discovery failed",
             "suggestion": "Try individual discovery steps manually"
         }
+
+
+async def local_llm_tool_calling_trainer(params: dict) -> dict:
+    """
+    🎓 LOCAL LLM TOOL CALLING TRAINER - Teaches proper iterative patterns.
+    
+    This tool demonstrates and trains local LLMs on proper tool calling patterns,
+    iterative loops, and self-prompting techniques that enable advanced AI capabilities.
+    
+    Args:
+        params (dict): Training parameters
+            - training_type (str): "basic" | "iterative" | "advanced" | "demonstration"
+            - include_examples (bool): Include concrete examples (default: True)
+            - show_patterns (bool): Show common patterns (default: True)
+            - next_action_embedding (bool): Demonstrate next action embedding (default: True)
+            
+    Returns:
+        dict: Training materials and next action recommendations with embedded tool call
+    """
+    try:
+        training_type = params.get("training_type", "demonstration")
+        include_examples = params.get("include_examples", True)
+        show_patterns = params.get("show_patterns", True)
+        embed_next_action = params.get("next_action_embedding", True)
+        
+        training_results = {
+            "success": True,
+            "training_type": training_type,
+            "core_concepts": [],
+            "example_patterns": [],
+            "next_actions": [],
+            "iterative_loop_demo": None,
+            "embedded_next_action": None,
+            "proper_format_examples": []
+        }
+        
+        # Core concepts for tool calling
+        training_results["core_concepts"] = [
+            {
+                "concept": "Proper Tool Call Format",
+                "description": "Use XML tags with tool name and parameters - NEVER simulate",
+                "correct_format": '<tool name="pipeline_state_inspector"><params>{}</params></tool>',
+                "wrong_format": "I'm simulating a browser experience...",
+                "critical_rule": "ALWAYS use actual tool calls, NEVER simulate or describe actions"
+            },
+            {
+                "concept": "Iterative TAO Loop",
+                "description": "Thought-Action-Observation cycle for autonomous operation",
+                "stages": [
+                    "THINK: Analyze current state and determine next action",
+                    "ACT: Execute actual tool call (not simulation)",
+                    "OBSERVE: Process tool results",
+                    "CONTINUE: Chain to next tool call or conclude"
+                ]
+            },
+            {
+                "concept": "Next Action Embedding",
+                "description": "Embed the next tool call directly in response",
+                "benefit": "Creates seamless iterative workflows without waiting for user input",
+                "example": "After analysis, immediately call the next appropriate tool"
+            },
+            {
+                "concept": "Anti-Simulation Rules",
+                "description": "NEVER simulate tool usage - always use real tools",
+                "forbidden_phrases": [
+                    "I'm simulating...",
+                    "Let me pretend to...",
+                    "I'm visualizing...",
+                    "I'll imagine that..."
+                ]
+            }
+        ]
+        
+        # Proper format examples
+        training_results["proper_format_examples"] = [
+            {
+                "situation": "System inspection",
+                "correct_approach": '<tool name="pipeline_state_inspector"><params>{}</params></tool>',
+                "explanation": "Actually check system state, don't describe or simulate"
+            },
+            {
+                "situation": "Log searching", 
+                "correct_approach": '<tool name="local_llm_grep_logs"><params>{"search_term": "FINDER_TOKEN"}</params></tool>',
+                "explanation": "Actually search logs, don't pretend to find results"
+            },
+            {
+                "situation": "Browser automation",
+                "correct_approach": '<tool name="browser_scrape_page"><params>{"url": "http://localhost:5001"}</params></tool>',
+                "explanation": "Actually scrape pages, don't simulate browser interactions"
+            }
+        ]
+        
+        if include_examples:
+            training_results["example_patterns"] = [
+                {
+                    "pattern": "Discovery Chain",
+                    "description": "Start with system inspection, then explore capabilities",
+                    "sequence": [
+                        "Step 1: pipeline_state_inspector → Check system status",
+                        "Step 2: ai_self_discovery_assistant → Map available tools", 
+                        "Step 3: browser_scrape_page → Activate digital eyes",
+                        "Step 4: local_llm_grep_logs → Search for evidence"
+                    ],
+                    "critical_note": "Each step must use ACTUAL tool calls, not simulations"
+                },
+                {
+                    "pattern": "Iterative Problem Solving", 
+                    "description": "Keep working until goal is achieved",
+                    "example": "If first tool fails, automatically try alternative approach",
+                    "key_principle": "Never give up - use tools until goal is reached"
+                },
+                {
+                    "pattern": "Evidence-Based Decisions",
+                    "description": "Use tool results to determine next actions",
+                    "example": "If logs show errors, use grep to find more details",
+                    "automation": "Chain tool calls based on previous results"
+                }
+            ]
+        
+        # Demonstrate proper iterative loop
+        if training_type in ["iterative", "advanced", "demonstration"]:
+            training_results["iterative_loop_demo"] = {
+                "step_1": {
+                    "thought": "I need to understand the current system state",
+                    "action": '<tool name="pipeline_state_inspector"><params>{}</params></tool>',
+                    "expected_observation": "System status and workflow information"
+                },
+                "step_2": {
+                    "thought": "Based on system state, I should explore available tools",
+                    "action": '<tool name="ai_self_discovery_assistant"><params>{"discovery_type": "capabilities"}</params></tool>',
+                    "expected_observation": "Complete tool inventory and capabilities"
+                },
+                "step_3": {
+                    "thought": "Now I can choose the most appropriate tool for the user's goal",
+                    "action": "Context-appropriate tool selection with proper XML format",
+                    "expected_observation": "Goal-specific results"
+                },
+                "loop_continuation": "Continue until goal is achieved or user is satisfied"
+            }
+        
+        # Generate next recommended actions
+        training_results["next_actions"] = [
+            {
+                "action": "pipeline_state_inspector",
+                "reason": "Always start by understanding current system state",
+                "proper_format": '<tool name="pipeline_state_inspector"><params>{}</params></tool>'
+            },
+            {
+                "action": "ai_self_discovery_assistant",
+                "reason": "Map available capabilities for informed decision making", 
+                "proper_format": '<tool name="ai_self_discovery_assistant"><params>{"discovery_type": "capabilities"}</params></tool>'
+            },
+            {
+                "action": "local_llm_grep_logs",
+                "reason": "Search for system evidence and operational status",
+                "proper_format": '<tool name="local_llm_grep_logs"><params>{"search_term": "FINDER_TOKEN"}</params></tool>'
+            }
+        ]
+        
+        # Embed next action if requested
+        if embed_next_action:
+            training_results["embedded_next_action"] = {
+                "tool_name": "pipeline_state_inspector",
+                "parameters": {},
+                "reason": "Demonstrate immediate tool usage after training",
+                "xml_format": '<tool name="pipeline_state_inspector"><params>{}</params></tool>',
+                "instruction": "Copy this exact format to make actual tool calls"
+            }
+        
+        # Advanced training for iterative patterns
+        if training_type == "advanced":
+            training_results["advanced_patterns"] = {
+                "self_prompting": {
+                    "technique": "Embed follow-up tool calls in responses",
+                    "example": "After getting results, immediately call next appropriate tool",
+                    "format": "Use proper XML tool call format, not descriptions"
+                },
+                "recursive_improvement": {
+                    "technique": "Use tool results to refine subsequent tool calls",
+                    "example": "If search returns too many results, narrow the search terms",
+                    "automation": "Chain tool calls automatically based on results"
+                },
+                "goal_persistence": {
+                    "technique": "Keep working until user goal is achieved",
+                    "example": "If one approach fails, automatically try alternative methods",
+                    "rule": "Never stop until goal is reached or explicitly told to stop"
+                },
+                "context_awareness": {
+                    "technique": "Use conversation history to inform tool selection",
+                    "example": "Remember what user asked for and stay focused on that goal",
+                    "memory": "Build on previous tool results for cumulative progress"
+                }
+            }
+        
+        logger.info(f"🎓 FINDER_TOKEN: TOOL_CALLING_TRAINING_COMPLETE - Type: {training_type}")
+        
+        # Return training results 
+        return training_results
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: TOOL_CALLING_TRAINING_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "recovery_suggestion": "Try basic training first, then progress to advanced patterns"
+        }
+
+
+# 🔄 LOCAL LLM ITERATIVE TRAINING TOOL
+register_mcp_tool("execute_shell_command", execute_shell_command)
+register_mcp_tool("follow_breadcrumb_trail", follow_breadcrumb_trail)
+
+# 🎓 LOCAL LLM TOOL CALLING TRAINER
+register_mcp_tool("local_llm_tool_calling_trainer", local_llm_tool_calling_trainer)
+
+# Get final count from server's registry
+import sys
+server_module = sys.modules.get('server')
+if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
+    tool_count = len(server_module.MCP_TOOL_REGISTRY)
+else:
+    tool_count = len(MCP_TOOL_REGISTRY)
+
+logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {tool_count} tools registered")
 
 
