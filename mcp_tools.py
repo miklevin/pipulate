@@ -798,6 +798,7 @@ def register_all_mcp_tools():
     register_mcp_tool("browser_automate_workflow_walkthrough", browser_automate_workflow_walkthrough)
     register_mcp_tool("browser_interact_with_current_page", browser_interact_with_current_page)
     register_mcp_tool("browser_hijack_workflow_complete", browser_hijack_workflow_complete)
+    register_mcp_tool("persist_perception_state", persist_perception_state)
     
     # 🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM - ONE TOOL TO RULE THEM ALL
     register_mcp_tool("execute_automation_recipe", execute_automation_recipe)
@@ -5928,5 +5929,57 @@ async def execute_mcp_cli_command(params: dict) -> dict:
             "interface_type": "cli_unified",
             "description": "CLI command execution failed"
         }
+
+async def persist_perception_state(params: dict) -> dict:
+    """Save looking_at state to permanent scrapes directory (the 'snag-a-scrape' tool)"""
+    from_dir_num = params.get("from_dir_num", "current")
+    
+    # Source directory logic
+    if from_dir_num == "current":
+        source_dir = Path("browser_automation/looking_at")
+    else:
+        source_dir = Path(f"browser_automation/looking_at-{from_dir_num}")
+    
+    if not source_dir.exists():
+        return {
+            "success": False,
+            "error": f"Source directory {source_dir} does not exist",
+            "available_dirs": [p.name for p in Path("browser_automation").glob("looking_at*")]
+        }
+    
+    # Create timestamped destination in scrapes/
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    dest_dir = Path(f"scrapes/perception_state_{timestamp}")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Copy all files from source to destination
+    copied_files = []
+    for file_path in source_dir.glob("*"):
+        if file_path.is_file():
+            dest_path = dest_dir / file_path.name
+            shutil.copy2(file_path, dest_path)
+            copied_files.append(file_path.name)
+    
+    # Create a metadata file
+    metadata = {
+        "timestamp": timestamp,
+        "source_directory": str(source_dir),
+        "copied_files": copied_files,
+        "file_count": len(copied_files),
+        "description": "Persistent perception state capture"
+    }
+    
+    metadata_path = dest_dir / "metadata.json"
+    with open(metadata_path, 'w') as f:
+        json.dump(metadata, f, indent=2)
+    
+    return {
+        "success": True,
+        "destination_directory": str(dest_dir),
+        "files_copied": len(copied_files),
+        "file_list": copied_files,
+        "metadata_file": str(metadata_path),
+        "message": f"Perception state persisted to {dest_dir}"
+    }
 
 

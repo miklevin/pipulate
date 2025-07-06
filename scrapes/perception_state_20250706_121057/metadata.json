@@ -1,0 +1,15 @@
+{
+  "timestamp": "20250706_121057",
+  "source_directory": "browser_automation/looking_at",
+  "copied_files": [
+    "screenshot.png",
+    "simple_dom.html",
+    "headers.json",
+    "automation_ready_summary.txt",
+    "simple_dom_cleaned.html",
+    "source.html",
+    "dom.html"
+  ],
+  "file_count": 7,
+  "description": "Persistent perception state capture"
+}
