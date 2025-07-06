@@ -866,6 +866,9 @@ def register_all_mcp_tools():
     register_mcp_tool("browser_automate_instructions", browser_automate_instructions)
     register_mcp_tool("execute_complete_session_hijacking", execute_complete_session_hijacking)
     
+    # 🔄 SERVER MANAGEMENT TOOLS
+    register_mcp_tool("server_reboot", server_reboot)
+    
     # Get final count from server's registry
     import sys
     server_module = sys.modules.get('server')
@@ -6019,5 +6022,97 @@ async def persist_perception_state(params: dict) -> dict:
         "metadata_file": str(metadata_path),
         "message": f"Perception state persisted to {dest_dir}"
     }
+
+async def server_reboot(params: dict) -> dict:
+    """
+    Reboot the Pipulate server by killing the current process and starting a new one.
+    
+    This tool performs a complete server restart by:
+    1. Killing any existing "python server.py" processes
+    2. Starting a new server instance
+    3. Verifying the server is responding at http://localhost:5001/
+    
+    Args:
+        params: Dictionary (no parameters required)
+        
+    Returns:
+        dict: Result of the reboot operation with server verification
+    """
+    try:
+        import subprocess
+        import asyncio
+        import os
+        import aiohttp
+        
+        # Kill existing server processes
+        kill_result = subprocess.run(
+            ['pkill', '-f', 'python server.py'],
+            capture_output=True,
+            text=True
+        )
+        
+        # Wait a moment for processes to terminate
+        await asyncio.sleep(1)
+        
+        # Start new server process in background
+        # Use nohup to ensure it continues running after this process ends
+        start_result = subprocess.Popen(
+            ['.venv/bin/python', 'server.py'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            cwd=os.getcwd(),
+            start_new_session=True  # Detach from parent process
+        )
+        
+        # Give it a moment to start
+        await asyncio.sleep(3)
+        
+        # Verify server is responding
+        server_responding = False
+        response_status = None
+        response_error = None
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get('http://localhost:5001/', timeout=aiohttp.ClientTimeout(total=5)) as response:
+                    response_status = response.status
+                    if response.status == 200:
+                        server_responding = True
+        except Exception as e:
+            response_error = str(e)
+        
+        # If server not responding, try a few more times with longer waits
+        if not server_responding:
+            for attempt in range(3):
+                await asyncio.sleep(2)
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get('http://localhost:5001/', timeout=aiohttp.ClientTimeout(total=5)) as response:
+                            response_status = response.status
+                            if response.status == 200:
+                                server_responding = True
+                                break
+                except Exception as e:
+                    response_error = str(e)
+        
+        return {
+            "success": server_responding,
+            "message": "Server reboot completed successfully" if server_responding else "Server reboot failed - server not responding",
+            "kill_returncode": kill_result.returncode,
+            "kill_output": kill_result.stdout,
+            "kill_error": kill_result.stderr,
+            "new_process_pid": start_result.pid,
+            "server_responding": server_responding,
+            "response_status": response_status,
+            "response_error": response_error,
+            "status": "Server killed and restarted - verified responding" if server_responding else "Server killed and restarted - but not responding"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to reboot server"
+        }
 
 
