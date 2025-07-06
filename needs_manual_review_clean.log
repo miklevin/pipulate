@@ -10,3 +10,6 @@ d160831 🎯 MAJOR UPDATE: Documentation aligned with working reality - DEFERRED
 f68047c feat: Implement iterative execution magic words and breadcrumb trail discovery - DEFERRED: Multiple files (mcp_tools.py:7, server.py:2 conflicts), large patch (44KB), core system files
 8cc91fa 🎯 BREAKTHROUGH: Fix conversation persistence across server restarts - DEFERRED: server.py (10 conflicts), large patch (50KB), core system file
 8b29883 feat: Establish golden path for immediate AI assistant operation - DEFERRED: Multiple files with conflicts (.cursor/rules/WORKSPACE_RULZ.md:1, ai_discovery/ai_mcp_tools_discovery_guide.md:1)
+21b8f34 🚀 **MAGIC FORMULA ACTIVATIONcheckout HEAD -- server.py* - Introducing iterative LLM execution with explicit XML format and anti-simulation commands - DEFERRED: server.py (2 conflicts), core system file
+f77690c feat: Implement Golden Path - Prioritize Operational Use - DEFERRED: Patch failed - missing .cursor/rules/WORKSPACE_RULZ.md dependency, conflicts in BREADCRUMB_TRAIL_DVCS.mdc
+ab9e70d feat: Implement Radical Conversation History Transparency System - DEFERRED: Multiple files (mcp_tools.py:1, server.py:1 conflicts), large patch (26KB), core system files
