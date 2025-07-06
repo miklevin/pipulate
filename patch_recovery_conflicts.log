@@ -9,3 +9,5 @@ CONFLICT: d160831 🎯 MAJOR UPDATE: Documentation aligned with working reality 
 CONFLICT: f68047c ``` feat: Implement iterative execution magic words and breadcrumb trail discovery - Files: mcp_tools.py, server.py
 CONFLICT: 8cc91fa 🎯 BREAKTHROUGH: Fix conversation persistence across server restarts - Files: server.py
 CONFLICT: f152e09 🚨 Anti-discovery: Cut off environmental exploration at the pass - Files: server.py
+CONFLICT: f74b00e 🔧 CRITICAL FIX: Correct backup system database paths - Files: helpers/durable_backup_system.py
+CONFLICT: b63508a Fix breadcrumb trail discovery shell command issues - Files: mcp_tools.py
