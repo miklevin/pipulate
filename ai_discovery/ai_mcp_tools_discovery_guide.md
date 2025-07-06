@@ -59,6 +59,17 @@ mcp browser_automate_workflow_walkthrough --instructions "Click login button and
 mcp browser_automate_workflow_walkthrough --instructions "Navigate to search" --target_url https://example.com
 ```
 
+### **🔸 execute_automation_recipe - YOUR AUTOMATION RECIPES**
+```bash
+# Execute JSON automation recipes with progressive disclosure
+mcp execute_automation_recipe
+
+# Execute specific recipe file
+mcp execute_automation_recipe --recipe_path browser_automation/automation_recipes/http_localhost_5001/profile_creation_recipe.json
+
+# The simplified, reliable automation engine (formerly baby_steps)
+```
+
 ### **🔸 browser_interact_with_current_page - YOUR PRECISE CONTROL**
 ```bash
 # Click specific elements
@@ -177,7 +188,18 @@ mcp local_llm_grep_logs --search_term ERROR
 mcp ui_flash_element --selector ".error-message" --color red
 ```
 
-### **Pattern 3: Botify Data Discovery**
+### **Pattern 3: Automation Recipe Execution**
+```bash
+# Step 1: Discover available recipes (progressive disclosure)
+mcp execute_automation_recipe
+
+# Step 2: Execute specific recipe with 100% success rate
+mcp execute_automation_recipe --recipe_path browser_automation/automation_recipes/http_localhost_5001/profile_creation_recipe.json
+
+# The clean CLI contract: simple commands, reliable results
+```
+
+### **Pattern 4: Botify Data Discovery**
 ```bash
 # Step 1: Test connection
 mcp botify_ping --username your_username

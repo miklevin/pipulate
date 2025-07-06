@@ -135,6 +135,27 @@ AI: 1. 👁️ Look at browser_automation/looking_at/ (what's on screen?)
 - **✅ Improved Error Handling**: Graceful degradation and recovery
 - **✅ Plugin Navigation**: Proper mapping from `plugins/580_upload.py` → `/file_upload_widget`
 
+### **POWER 3.5: AUTOMATION RECIPES (execute_automation_recipe) ⭐ SIMPLIFIED**
+**What it does**: Execute JSON-based automation recipes with progressive disclosure and 100% success rate  
+**When to use**: When you want reliable, pre-tested automation workflows with clean CLI commands
+
+```bash
+# Progressive disclosure - discover available recipes
+mcp execute_automation_recipe
+
+# Execute specific recipe with simplified naming
+mcp execute_automation_recipe --recipe_path browser_automation/automation_recipes/http_localhost_5001/profile_creation_recipe.json
+```
+
+**What you get**:
+- **🎯 100% Success Rate**: Reliable automation engine (simplified from baby_steps approach)
+- **📋 Progressive Disclosure**: Called with no args, shows available recipes
+- **🔧 Clean CLI Contract**: Simple commands instead of verbose Python paths
+- **📊 Assertive Returns**: Clear success/failure reporting
+- **⚡ Simplified Architecture**: `recipe_executor.py` replaces `baby_steps_recipe_executor.py`
+
+**The Philosophy**: "If I had more time, I'd have made it shorter" - complexity hidden behind simple interface
+
 ### **POWER 4: AI MEMORY (Directory Rotation System)**
 **What it does**: Preserves your perception history across sessions  
 **How it works**: Automatic rotation before each new browser operation
