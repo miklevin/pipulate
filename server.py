@@ -526,231 +526,38 @@ logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LL
 # 💬 PERSISTENT CONVERSATION HISTORY - SURVIVES SERVER RESTARTS
 # ================================================================
 
-# 🎯 IMPROVED ARCHITECTURE: Independent Discussion Database
-# Conversation history is now stored in data/discussion.db (environment-independent)
-# This solves the problem of split conversation history across DEV/PROD environments
-
-DISCUSSION_DB_PATH = 'data/discussion.db'
-
-def get_discussion_db():
-    """Get dedicated discussion database using standalone fastlite (independent of FastHTML)."""
-    try:
-        from fastlite import database
-        # Use standalone fastlite database connection (no FastHTML coupling)
-        Path('data').mkdir(parents=True, exist_ok=True)
-        db = database('data/discussion.db')
-        return db
-    except Exception as e:
-        logger.error(f"💬 DISCUSSION_DB_ERROR - Failed to create discussion database: {e}")
-        return None
-
-def get_discussion_store():
-    """Get conversation store table from dedicated discussion database using MicroDataAPI."""
-    try:
-        from dataclasses import dataclass
-        db = get_discussion_db()
-        if db:
-            # Get reference to the store table using MicroDataAPI pattern
-            store_table = db.t.store
-            
-            # Ensure table exists with simple key-value structure
-            try:
-                # Try to access the table to see if it exists
-                store_table()
-            except:
-                # Table doesn't exist, create it using MicroDataAPI
-                @dataclass
-                class StoreEntry:
-                    key: str
-                    value: str
-                
-                store_table.create(StoreEntry, pk="key")
-            
-            return store_table
-        return None
-    except Exception as e:
-        logger.error(f"💬 DISCUSSION_STORE_ERROR - Failed to get discussion store: {e}")
-        return None
-
-def migrate_existing_conversations():
-    """Migrate existing conversation history from environment-specific databases to discussion.db.
-    
-    CRITICAL: Only migrate if discussion.db is empty or doesn't exist.
-    This prevents overwriting current conversation history.
-    """
-    try:
-        # First, check if discussion.db already has conversation history
-        store_table = get_discussion_store()
-        if store_table:
-            try:
-                # Use MicroDataAPI to check for existing conversation
-                all_entries = store_table()
-                existing_entry = None
-                for entry in all_entries:
-                    if entry.get('key') == 'llm_conversation_history':
-                        existing_entry = entry
-                        break
-                
-                if existing_entry and existing_entry.get('value'):
-                    existing_data = json.loads(existing_entry['value'])
-                    if existing_data:  # If there's already conversation history, don't migrate
-                        logger.info(f"💬 MIGRATION_SKIPPED - discussion.db already contains {len(existing_data)} messages, migration not needed")
-                        return 0
-            except (KeyError, AttributeError, TypeError):
-                # No existing conversation history, proceed with migration
-                pass
-        
-        # Check both environment databases for existing conversations
-        existing_conversations = []
-        migrated_from = []
-        
-        for db_file in [f'data/{APP_NAME.lower()}.db', f'data/{APP_NAME.lower()}_dev.db']:
-            if Path(db_file).exists():
-                try:
-                    conn = sqlite3.connect(db_file)
-                    cursor = conn.cursor()
-                    cursor.execute('SELECT value FROM store WHERE key = "llm_conversation_history"')
-                    result = cursor.fetchone()
-                    if result:
-                        messages = json.loads(result[0])
-                        existing_conversations.extend(messages)
-                        migrated_from.append(db_file)
-                        logger.info(f"💬 MIGRATION_FOUND - {len(messages)} messages found in {db_file}")
-                    conn.close()
-                except Exception as e:
-                    logger.warning(f"💬 MIGRATION_WARNING - Could not read {db_file}: {e}")
-        
-        if existing_conversations:
-            # Remove duplicates while preserving order
-            seen = set()
-            unique_conversations = []
-            for msg in existing_conversations:
-                msg_key = (msg.get('role'), msg.get('content'))
-                if msg_key not in seen:
-                    seen.add(msg_key)
-                    unique_conversations.append(msg)
-            
-            # Save to discussion.db using MicroDataAPI (only if it was empty)
-            store_table = get_discussion_store()
-            if store_table:
-                from dataclasses import dataclass
-                conversation_data = json.dumps(unique_conversations, default=str)
-                
-                # Use MicroDataAPI insert/update pattern
-                @dataclass
-                class StoreEntry:
-                    key: str
-                    value: str
-                
-                entry = StoreEntry(key='llm_conversation_history', value=conversation_data)
-                
-                try:
-                    # Try to insert new entry
-                    store_table.insert(entry)
-                except:
-                    # If insert fails (key exists), update instead
-                    store_table.update(entry)
-            else:
-                logger.error("💬 MIGRATION_ERROR - Discussion store is not available")
-            logger.info(f"💬 MIGRATION_SUCCESS - {len(unique_conversations)} unique messages migrated to discussion.db from {', '.join(migrated_from)}")
-            return len(unique_conversations)
-        else:
-            logger.info("💬 MIGRATION_NONE - No existing conversation history found to migrate")
-            return 0
-            
-    except Exception as e:
-        logger.error(f"💬 MIGRATION_ERROR - Failed to migrate conversations: {e}")
-        return 0
-
 def save_conversation_to_db():
-    """Save the current conversation history to the independent discussion database using fastlite."""
+    """Save the current conversation history to the database for persistence across server restarts."""
     try:
         if global_conversation_history:
             # Convert deque to list and serialize to JSON
             conversation_data = json.dumps(list(global_conversation_history), default=str)
-            store_table = get_discussion_store()
-            if store_table:
-                from dataclasses import dataclass
-                
-                # Use MicroDataAPI pattern for insert/update
-                @dataclass
-                class StoreEntry:
-                    key: str
-                    value: str
-                
-                entry = StoreEntry(key='llm_conversation_history', value=conversation_data)
-                
-                try:
-                    # Try to insert new entry
-                    store_table.insert(entry)
-                except:
-                    # If insert fails (key exists), update instead
-                    store_table.update(entry)
-                
-                logger.info(f"💬 FINDER_TOKEN: CONVERSATION_SAVED - {len(global_conversation_history)} messages saved to discussion.db")
-            else:
-                logger.error("💬 CONVERSATION_SAVE_ERROR - Discussion store is not available")
+            db['llm_conversation_history'] = conversation_data
+            logger.info(f"💾 FINDER_TOKEN: CONVERSATION_SAVED - {len(global_conversation_history)} messages saved to database")
         else:
             # Clear the database entry if no conversation history
-            try:
-                store_table = get_discussion_store()
-                if store_table:
-                    try:
-                        # Use MicroDataAPI to delete entry
-                        all_entries = store_table()
-                        for entry in all_entries:
-                            if entry.get('key') == 'llm_conversation_history':
-                                store_table.delete(entry['key'])
-                                break
-                    except (KeyError, AttributeError, TypeError):
-                        pass  # Entry doesn't exist, nothing to delete
-                    logger.debug("💬 CONVERSATION_SAVED - No conversation history to save, cleared discussion.db")
-            except Exception as e:
-                logger.debug(f"💬 CONVERSATION_CLEAR_WARNING - Could not clear empty conversation: {e}")
+            if 'llm_conversation_history' in db:
+                del db['llm_conversation_history']
+            logger.debug("💾 CONVERSATION_SAVED - No conversation history to save")
     except Exception as e:
-        logger.error(f"💬 CONVERSATION_SAVE_ERROR - Failed to save conversation history to discussion.db: {e}")
+        logger.error(f"💾 CONVERSATION_SAVE_ERROR - Failed to save conversation history: {e}")
 
 def load_conversation_from_db():
-    """Load conversation history from the independent discussion database using fastlite."""
+    """Load conversation history from the database on server startup."""
     try:
-        # First, attempt migration from old environment-specific databases
-        migrated_count = migrate_existing_conversations()
-        
-        # Load from discussion.db using MicroDataAPI
-        store_table = get_discussion_store()
-        if not store_table:
-            logger.error("💬 CONVERSATION_RESTORE_ERROR - Discussion store is not available")
-            return False
-        
-        try:
-            # Use MicroDataAPI to get conversation history
-            all_entries = store_table()
-            conversation_entry = None
-            for entry in all_entries:
-                if entry.get('key') == 'llm_conversation_history':
-                    conversation_entry = entry
-                    break
-            
-            if conversation_entry and conversation_entry.get('value'):
-                conversation_data = json.loads(conversation_entry['value'])
+        if 'llm_conversation_history' in db:
+            conversation_data = db['llm_conversation_history']
+            if conversation_data:
+                # Deserialize from JSON and restore to deque
+                restored_messages = json.loads(conversation_data)
                 global_conversation_history.clear()
-                global_conversation_history.extend(conversation_data)
-                logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORED - {len(conversation_data)} messages restored from discussion.db")
-                
-                if migrated_count > 0:
-                    logger.info(f"💬 FINDER_TOKEN: CONVERSATION_MIGRATION_SUCCESS - Migrated {migrated_count} messages from environment-specific databases")
-                
+                global_conversation_history.extend(restored_messages)
+                logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED - {len(global_conversation_history)} messages restored from database")
                 return True
-        except (KeyError, AttributeError, TypeError):
-            # No conversation history found
-            if migrated_count > 0:
-                logger.info(f"💬 FINDER_TOKEN: CONVERSATION_MIGRATION_ONLY - Migrated {migrated_count} messages, but no discussion.db history yet")
-            else:
-                logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_NONE - No conversation history found in discussion.db")
-            return False
-            
+        logger.debug("💾 CONVERSATION_RESTORED - No saved conversation history found")
+        return False
     except Exception as e:
-        logger.error(f"💬 CONVERSATION_RESTORE_ERROR - Failed to load conversation history from discussion.db: {e}")
+        logger.error(f"💾 CONVERSATION_RESTORE_ERROR - Failed to restore conversation history: {e}")
         return False
 
 # Centralized SVG definitions for reuse across the application
@@ -4369,14 +4176,6 @@ async def startup_event():
     the full spectrum of content curation, archive surfing, and
     progressive distillation workflows that define the Pipulate vision.
     """
-    
-    # 💬 RESTORE CONVERSATION HISTORY - Load persistent conversation from database IMMEDIATELY
-    logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_STARTUP - Attempting to restore conversation history from database")
-    conversation_restored = load_conversation_from_db()
-    if conversation_restored:
-        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORE_SUCCESS - LLM conversation history restored from previous session")
-    else:
-        logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_NONE - Starting with fresh conversation history")
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.')
     server_whisper("Synchronizing roles and permissions", "🔐")
     await synchronize_roles_to_db()
@@ -4394,7 +4193,13 @@ async def startup_event():
     message_coordination['startup_in_progress'] = False
     logger.debug("Cleared message coordination state on startup")
     
-
+    # 💬 RESTORE CONVERSATION HISTORY - Load persistent conversation from database
+    logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_STARTUP - Attempting to restore conversation history from database")
+    conversation_restored = load_conversation_from_db()
+    if conversation_restored:
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORE_SUCCESS - LLM conversation history restored from previous session")
+    else:
+        logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_NONE - Starting with fresh conversation history")
     
     # Send environment mode message after a short delay to let UI initialize
     asyncio.create_task(send_startup_environment_message())
@@ -6168,14 +5973,6 @@ async def clear_db(request):
     last_app_choice = db.get('last_app_choice')
     last_visited_url = db.get('last_visited_url')
     temp_message = db.get('temp_message')
-    
-    # 💬 PRESERVE CONVERSATION HISTORY - Backup conversation before database reset
-    conversation_backup = None
-    if 'llm_conversation_history' in db:
-        conversation_backup = db.get('llm_conversation_history')
-        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_BACKUP_DB_RESET - Backing up conversation history before database reset")
-    else:
-        logger.info("💬 FINDER_TOKEN: CONVERSATION_BACKUP_DB_RESET - No conversation history to backup")
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('CLEAR_DB: Table states BEFORE plugin table wipe:')
         try:
@@ -6255,22 +6052,6 @@ async def clear_db(request):
         db['last_visited_url'] = last_visited_url
     if temp_message:
         db['temp_message'] = temp_message
-    
-    # 💬 RESTORE CONVERSATION HISTORY - Restore conversation after database reset
-    if conversation_backup:
-        db['llm_conversation_history'] = conversation_backup
-        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORED_DB_RESET - Restored conversation history after database reset")
-        # Also restore to in-memory conversation history
-        try:
-            import json
-            restored_messages = json.loads(conversation_backup)
-            global_conversation_history.clear()
-            global_conversation_history.extend(restored_messages)
-            logger.info(f"💬 FINDER_TOKEN: CONVERSATION_MEMORY_RESTORED_DB_RESET - Restored {len(restored_messages)} messages to in-memory conversation")
-        except Exception as e:
-            logger.error(f"💬 CONVERSATION_MEMORY_RESTORE_ERROR - Failed to restore in-memory conversation: {e}")
-    else:
-        logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORED_DB_RESET - No conversation history to restore")
     if TABLE_LIFECYCLE_LOGGING:
         log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB FINAL (post key restoration)')
         logger.bind(lifecycle=True).info('CLEAR_DB: Operation fully complete.')
@@ -6680,14 +6461,10 @@ async def switch_environment(request):
     try:
         form = await request.form()
         environment = form.get('environment', 'Development')
-        previous_env = get_current_environment()
-        
-        # 💬 SAVE CONVERSATION BEFORE ENVIRONMENT SWITCH - Ensure persistence across environment changes
-        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_SAVE_ENV_SWITCH - Saving conversation history before switching from {previous_env} to {environment}")
-        save_conversation_to_db()
-        
         set_current_environment(environment)
-        logger.info(f'💬 FINDER_TOKEN: ENVIRONMENT_SWITCHED - Environment switched from {previous_env} to {environment}')
+        logger.info(f'Environment switched to: {environment}')
+        
+
         
         # Schedule server restart using centralized system
         schedule_restart_after_operation("ENV_SWITCH", 2)
