@@ -711,7 +711,6 @@ def register_all_mcp_tools():
     
     # 🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM - ONE TOOL TO RULE THEM ALL
     register_mcp_tool("execute_automation_recipe", execute_automation_recipe)
-    register_mcp_tool("execute_automation_recipe_baby_steps", execute_automation_recipe_baby_steps)
     
     # Additional Botify tools
     register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
@@ -5874,17 +5873,17 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
             }
         }
 
-async def execute_automation_recipe_baby_steps(params: dict = None) -> dict:
+async def execute_automation_recipe(params: dict = None) -> dict:
     """🎯 BABY STEPS AUTOMATION RECIPE EXECUTOR
     
-    Ultra-reliable recipe execution using the baby steps executor.
+    Ultra-reliable recipe execution using the recipe automation executor.
     Focuses on 100% success rate over sophisticated features.
     
     Args:
         params: Recipe execution parameters
                 - No params: Show available origins and quick actions  
                 - {"origin": "http://localhost:5001"}: List recipes for origin
-                - {"origin": "X", "recipe": "Y"}: Execute recipe with baby steps executor
+                - {"origin": "X", "recipe": "Y"}: Execute recipe with recipe automation executor
                 - {"recipe_path": "path/to/recipe.json"}: Direct recipe file execution
     
     Returns:
@@ -5894,13 +5893,13 @@ async def execute_automation_recipe_baby_steps(params: dict = None) -> dict:
     import os
     from pathlib import Path
     
-    logger.info(f"🎯 FINDER_TOKEN: BABY_STEPS_RECIPE_START - execute_automation_recipe_baby_steps called with params: {params}")
+    logger.info(f"🎯 FINDER_TOKEN: RECIPE_AUTOMATION_START - execute_automation_recipe called with params: {params}")
     
     try:
-        # Import the baby steps executor
+        # Import the recipe automation executor
         import sys
         sys.path.append('browser_automation')
-        from baby_steps_recipe_executor import BabyStepsRecipeExecutor
+        from recipe_executor import RecipeExecutor
         
         # Level 1: No parameters - show available origins and quick actions
         if not params:
@@ -5926,7 +5925,7 @@ async def execute_automation_recipe_baby_steps(params: dict = None) -> dict:
                     "list_all_recipes"
                 ],
                 "usage": "Call with {'origin': 'http://localhost:5001'} to see recipes for that origin",
-                "example": "await execute_automation_recipe_baby_steps({'origin': 'http://localhost:5001'})",
+                "example": "await execute_automation_recipe({'origin': 'http://localhost:5001'})",
                 "total_origins": len(available_origins),
                 "baby_steps_features": [
                     "100% reliable execution", 
@@ -5986,8 +5985,8 @@ async def execute_automation_recipe_baby_steps(params: dict = None) -> dict:
                 "origin": origin,
                 "available_recipes": available_recipes,
                 "recipe_details": recipe_details,
-                "usage": f"Call with {{'origin': '{origin}', 'recipe': 'RECIPE_NAME'}} to execute with baby steps",
-                "example": f"await execute_automation_recipe_baby_steps({{'origin': '{origin}', 'recipe': '{available_recipes[0] if available_recipes else 'profile_creation'}'}})",
+                "usage": f"Call with {{'origin': '{origin}', 'recipe': 'RECIPE_NAME'}} to execute with recipe automation",
+                "example": f"await execute_automation_recipe({{'origin': '{origin}', 'recipe': '{available_recipes[0] if available_recipes else 'profile_creation'}'}})",
                 "total_recipes": len(available_recipes)
             }
         
@@ -5999,11 +5998,11 @@ async def execute_automation_recipe_baby_steps(params: dict = None) -> dict:
             
             logger.info(f"🎯 FINDER_TOKEN: BABY_STEPS_DIRECT_EXECUTION - Executing recipe file: {recipe_path}")
             
-            # Execute with baby steps executor
-            executor = BabyStepsRecipeExecutor(headless=headless, debug=debug)
+            # Execute with recipe automation executor
+            executor = RecipeExecutor(headless=headless, debug=debug)
             result = executor.execute_recipe_from_file(recipe_path)
             
-            # Add baby steps metadata
+            # Add recipe automation metadata
             result.update({
                 "executor": "baby_steps",
                 "recipe_path": recipe_path,
@@ -6033,13 +6032,13 @@ async def execute_automation_recipe_baby_steps(params: dict = None) -> dict:
                     "suggestion": f"Call with {{'origin': '{origin}'}} to see available recipes"
                 }
             
-            # Execute with baby steps executor
+            # Execute with recipe automation executor
             logger.info(f"🎯 FINDER_TOKEN: BABY_STEPS_EXECUTION_START - Executing {recipe_name} for {origin}")
             
-            executor = BabyStepsRecipeExecutor(headless=headless, debug=debug)
+            executor = RecipeExecutor(headless=headless, debug=debug)
             result = executor.execute_recipe_from_file(str(recipe_path))
             
-            # Add baby steps metadata to result
+            # Add recipe automation metadata to result
             result.update({
                 "executor": "baby_steps",
                 "recipe_name": recipe_name,
@@ -6066,191 +6065,11 @@ async def execute_automation_recipe_baby_steps(params: dict = None) -> dict:
         }
         
     except Exception as e:
-        logger.error(f"🎯 FINDER_TOKEN: BABY_STEPS_RECIPE_ERROR - execute_automation_recipe_baby_steps failed: {e}")
+        logger.error(f"🎯 FINDER_TOKEN: RECIPE_AUTOMATION_ERROR - execute_automation_recipe failed: {e}")
         return {
             "success": False,
             "executor": "baby_steps",
-            "error": f"System error in baby steps executor: {str(e)}",
-            "params": params
-        }
-
-
-async def execute_automation_recipe(params: dict = None) -> dict:
-    """🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM
-    
-    Progressive disclosure pattern for managing automation recipes:
-    - Level 1: No params → Show available origins + quick actions
-    - Level 2: origin only → Show recipes for that origin  
-    - Level 3: origin + recipe → Execute the specific recipe
-    
-    Args:
-        params: Optional parameters for progressive disclosure
-                - No params: List origins and quick actions
-                - {"origin": "http://localhost:5001"}: List recipes for origin
-                - {"origin": "X", "recipe": "Y", ...}: Execute recipe
-    
-    Returns:
-        dict: Progressive disclosure results or execution results
-    """
-    import json
-    import os
-    from pathlib import Path
-    
-    logger.info(f"🎯 FINDER_TOKEN: AUTOMATION_RECIPE_START - execute_automation_recipe called with params: {params}")
-    
-    try:
-        # Level 1: No parameters - show available origins and quick actions
-        if not params:
-            recipes_dir = Path("browser_automation/automation_recipes")
-            available_origins = []
-            
-            if recipes_dir.exists():
-                # Find all origin directories
-                for item in recipes_dir.iterdir():
-                    if item.is_dir() and not item.name.startswith('.'):
-                        # Convert directory name back to origin format
-                        origin_name = item.name.replace('_', '://', 1).replace('_', '.')
-                        available_origins.append(origin_name)
-            
-            return {
-                "success": True,
-                "level": 1,
-                "available_origins": available_origins,
-                "quick_actions": [
-                    "list_all_recipes",
-                    "test_localhost_cycle",
-                    "backup_test",
-                    "profile_creation_test"
-                ],
-                "usage": "Call with {'origin': 'http://localhost:5001'} to see recipes for that origin",
-                "example": "await execute_automation_recipe({'origin': 'http://localhost:5001'})",
-                "total_origins": len(available_origins)
-            }
-        
-        # Level 2: Origin specified but no recipe - show available recipes
-        if "origin" in params and "recipe" not in params:
-            origin = params["origin"]
-            # Convert origin to directory name format
-            origin_dir = origin.replace('://', '_', 1).replace('.', '_').replace(':', '_')
-            recipes_path = Path(f"browser_automation/automation_recipes/{origin_dir}")
-            
-            if not recipes_path.exists():
-                available_origins = []
-                recipes_dir = Path("browser_automation/automation_recipes")
-                if recipes_dir.exists():
-                    for d in recipes_dir.iterdir():
-                        if d.is_dir() and not d.name.startswith('.'):
-                            origin_name = d.name.replace('_', '://', 1).replace('_', '.')
-                            available_origins.append(origin_name)
-                
-                return {
-                    "success": False,
-                    "error": f"No recipes found for origin: {origin}",
-                    "available_origins": available_origins
-                }
-            
-            # Find all recipe files
-            available_recipes = []
-            recipe_details = {}
-            
-            for recipe_file in recipes_path.glob("*.json"):
-                recipe_name = recipe_file.stem
-                available_recipes.append(recipe_name)
-                
-                # Try to read recipe details
-                try:
-                    with open(recipe_file, 'r') as f:
-                        recipe_data = json.load(f)
-                        recipe_details[recipe_name] = {
-                            "description": recipe_data.get("description", "No description"),
-                            "version": recipe_data.get("version", "Unknown"),
-                            "steps": len(recipe_data.get("steps", []))
-                        }
-                except Exception as e:
-                    recipe_details[recipe_name] = {"error": f"Could not read recipe: {e}"}
-            
-            return {
-                "success": True,
-                "level": 2,
-                "origin": origin,
-                "available_recipes": available_recipes,
-                "recipe_details": recipe_details,
-                "usage": f"Call with {{'origin': '{origin}', 'recipe': 'RECIPE_NAME'}} to execute",
-                "example": f"await execute_automation_recipe({{'origin': '{origin}', 'recipe': '{available_recipes[0] if available_recipes else 'profile_creation'}'}})",
-                "total_recipes": len(available_recipes)
-            }
-        
-        # Level 3: Origin and recipe specified - execute the recipe
-        if "origin" in params and "recipe" in params:
-            origin = params["origin"]
-            recipe_name = params["recipe"]
-            
-            # Convert origin to directory name format
-            origin_dir = origin.replace('://', '_', 1).replace('.', '_').replace(':', '_')
-            recipe_path = Path(f"browser_automation/automation_recipes/{origin_dir}/{recipe_name}.json")
-            
-            if not recipe_path.exists():
-                return {
-                    "success": False,
-                    "error": f"Recipe '{recipe_name}' not found for origin '{origin}'",
-                    "recipe_path": str(recipe_path),
-                    "suggestion": f"Call with {{'origin': '{origin}'}} to see available recipes"
-                }
-            
-            # Load and execute the recipe
-            logger.info(f"🎯 FINDER_TOKEN: RECIPE_EXECUTION_START - Loading recipe: {recipe_path}")
-            
-            try:
-                with open(recipe_path, 'r') as f:
-                    recipe_data = json.load(f)
-                
-                # Merge user params with recipe defaults
-                execution_params = recipe_data.copy()
-                if "execution_params" in params:
-                    execution_params.update(params["execution_params"])
-                
-                # Execute via JSON recipe execution engine
-                logger.info(f"🎯 FINDER_TOKEN: RECIPE_EXECUTION - Executing {recipe_name} via JSON recipe engine")
-                result = await _execute_json_recipe(recipe_data, execution_params)
-                
-                # Add recipe metadata to result
-                result.update({
-                    "recipe_name": recipe_name,
-                    "origin": origin,
-                    "recipe_path": str(recipe_path),
-                    "recipe_version": recipe_data.get("version", "Unknown")
-                })
-                
-                logger.info(f"🎯 FINDER_TOKEN: RECIPE_EXECUTION_COMPLETE - {recipe_name} execution finished: {result.get('success', False)}")
-                return result
-                
-            except Exception as e:
-                logger.error(f"🎯 FINDER_TOKEN: RECIPE_EXECUTION_ERROR - Failed to execute {recipe_name}: {e}")
-                return {
-                    "success": False,
-                    "error": f"Failed to execute recipe '{recipe_name}': {str(e)}",
-                    "recipe_path": str(recipe_path),
-                    "origin": origin,
-                    "recipe_name": recipe_name
-                }
-        
-        # Invalid parameter combination
-        return {
-            "success": False,
-            "error": "Invalid parameter combination",
-            "valid_patterns": [
-                "No params: List origins",
-                "{'origin': 'X'}: List recipes for origin",
-                "{'origin': 'X', 'recipe': 'Y'}: Execute recipe"
-            ],
-            "received_params": params
-        }
-        
-    except Exception as e:
-        logger.error(f"🎯 FINDER_TOKEN: AUTOMATION_RECIPE_ERROR - execute_automation_recipe failed: {e}")
-        return {
-            "success": False,
-            "error": f"System error in execute_automation_recipe: {str(e)}",
+            "error": f"System error in recipe automation executor: {str(e)}",
             "params": params
         }
 
