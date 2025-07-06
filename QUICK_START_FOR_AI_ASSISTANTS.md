@@ -88,6 +88,19 @@ cd pipulate && .venv/bin/python cli.py call ai_self_discovery_assistant
 - **"The system is working - start using it"**
 - **"25+ MCP tools are operational"**
 
+## 🚫 **NEVER DIAGNOSE OR TROUBLESHOOT**
+
+**When tools return results, DO NOT:**
+- Suggest starting the server ("`.venv/bin/python server.py`")
+- Diagnose missing database files ("database hasn't been initialized yet")
+- Explain why tools "might not work fully"
+- Suggest visiting the web UI to "force database creation"
+- Offer to "wait and re-check system state"
+
+**✅ INSTEAD: Tools work as designed - use them immediately!**
+
+**If a tool returns data - that means it's working! Use more tools immediately.**
+
 ## 💡 **WHEN AI ASSISTANTS SAY "GO"**
 
 **Immediately respond with:**
