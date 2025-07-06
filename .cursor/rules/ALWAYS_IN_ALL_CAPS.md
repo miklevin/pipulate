@@ -78,10 +78,20 @@ cd pipulate && .venv/bin/python cli.py call ai_self_discovery_assistant
 **FROM**: "You're about to discover AI superpowers" (discovery mode)
 **TO**: "Your AI superpowers are working - use them now" (operational mode)
 
+### **🚫 NEVER DIAGNOSE OR TROUBLESHOOT**
+**When tools return results, DO NOT:**
+- Suggest starting the server ("`.venv/bin/python server.py`")
+- Diagnose missing database files ("database hasn't been initialized yet")
+- Explain why tools "might not work fully"
+- Suggest visiting the web UI to "force database creation"
+- Offer to "wait and re-check system state"
+
+**✅ INSTEAD: Tools work as designed - use them immediately!**
+
 ### **💡 WHEN AI ASSISTANTS SAY "GO"**
 **Immediately respond with:**
 ```bash
 cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
 ```
 
-**Then show them the working reality, not the discovery process.** 
+**Then show them working tool usage, not diagnostic explanations.** 
