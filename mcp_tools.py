@@ -877,6 +877,17 @@ def register_all_mcp_tools():
     # 🎓 LOCAL LLM TOOL CALLING TRAINER
     register_mcp_tool("local_llm_tool_calling_trainer", local_llm_tool_calling_trainer)
     
+    # 🎯 ITERATIVE EXECUTION TOOLS
+    register_mcp_tool("force_iterative_execution", force_iterative_execution)
+    register_mcp_tool("bottle_the_magic", bottle_the_magic)
+    register_mcp_tool("local_llm_prompt", local_llm_prompt)
+    
+    # 💬 CONVERSATION HISTORY MANAGEMENT - PERSISTENT ACROSS RESTARTS
+    register_mcp_tool("conversation_history_view", conversation_history_view)
+    register_mcp_tool("conversation_history_clear", conversation_history_clear)
+    register_mcp_tool("conversation_history_restore", conversation_history_restore)
+    register_mcp_tool("conversation_history_stats", conversation_history_stats)
+    
     # Get final count from server's registry
     import sys
     server_module = sys.modules.get('server')
@@ -7209,5 +7220,295 @@ async def local_llm_prompt(params: dict) -> dict:
 
 # 🤖 LOCAL LLM PROMPT TOOL
 register_mcp_tool("local_llm_prompt", local_llm_prompt)
+
+# 💬 CONVERSATION HISTORY MANAGEMENT TOOLS - PERSISTENT ACROSS RESTARTS
+
+async def conversation_history_view(params: dict) -> dict:
+    """View the current LLM conversation history with pagination and filtering options."""
+    try:
+        import sys
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {'success': False, 'error': 'Server module not available'}
+        
+        limit = params.get('limit', 10)
+        offset = params.get('offset', 0)
+        role_filter = params.get('role_filter')
+        search_term = params.get('search_term')
+        reverse = params.get('reverse', True)
+        
+        conversation_list = list(server_module.global_conversation_history)
+        total_messages = len(conversation_list)
+        
+        if role_filter:
+            conversation_list = [msg for msg in conversation_list if msg.get('role') == role_filter]
+        
+        if search_term:
+            search_term_lower = search_term.lower()
+            conversation_list = [msg for msg in conversation_list if search_term_lower in msg.get('content', '').lower()]
+        
+        filtered_count = len(conversation_list)
+        
+        if reverse:
+            conversation_list = list(reversed(conversation_list))
+        
+        paginated_messages = conversation_list[offset:offset + limit]
+        
+        formatted_messages = []
+        for i, msg in enumerate(paginated_messages):
+            formatted_msg = {
+                'index': offset + i + 1,
+                'role': msg.get('role', 'unknown'),
+                'content': msg.get('content', ''),
+                'content_preview': msg.get('content', '')[:200] + ('...' if len(msg.get('content', '')) > 200 else ''),
+                'content_length': len(msg.get('content', ''))
+            }
+            formatted_messages.append(formatted_msg)
+        
+        has_more = (offset + limit) < filtered_count
+        has_previous = offset > 0
+        
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_VIEW - Retrieved {len(formatted_messages)} messages")
+        
+        return {
+            'success': True,
+            'messages': formatted_messages,
+            'pagination': {
+                'total_messages': total_messages,
+                'filtered_count': filtered_count,
+                'offset': offset,
+                'limit': limit,
+                'has_more': has_more,
+                'has_previous': has_previous
+            },
+            'message': f'Retrieved {len(formatted_messages)} messages from conversation history'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in conversation_history_view: {e}")
+        return {'success': False, 'error': str(e)}
+
+async def conversation_history_clear(params: dict) -> dict:
+    """Clear the conversation history with optional backup."""
+    try:
+        import sys
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {'success': False, 'error': 'Server module not available'}
+        
+        confirm = params.get('confirm', False)
+        create_backup = params.get('create_backup', True)
+        backup_key = params.get('backup_key')
+        
+        if not confirm:
+            return {
+                'success': False,
+                'error': 'Confirmation required. Set confirm=True to proceed.',
+                'current_message_count': len(server_module.global_conversation_history)
+            }
+        
+        current_count = len(server_module.global_conversation_history)
+        backup_info = {}
+        
+        if create_backup and current_count > 0:
+            if not backup_key:
+                backup_key = f"conversation_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            try:
+                conversation_backup = json.dumps(list(server_module.global_conversation_history), default=str, indent=2)
+                keychain = get_keychain()
+                keychain.set(backup_key, conversation_backup)
+                backup_info = {
+                    'backup_created': True,
+                    'backup_key': backup_key,
+                    'messages_backed_up': current_count
+                }
+                logger.info(f"💬 FINDER_TOKEN: CONVERSATION_BACKUP - Created backup '{backup_key}'")
+            except Exception as e:
+                backup_info = {'backup_created': False, 'backup_error': str(e)}
+        
+        server_module.global_conversation_history.clear()
+        server_module.save_conversation_to_db()
+        
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_CLEARED - Cleared {current_count} messages")
+        
+        return {
+            'success': True,
+            'messages_cleared': current_count,
+            'backup_info': backup_info,
+            'message': f'Successfully cleared {current_count} messages from conversation history'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in conversation_history_clear: {e}")
+        return {'success': False, 'error': str(e)}
+
+async def conversation_history_restore(params: dict) -> dict:
+    """Restore conversation history from a backup."""
+    try:
+        import sys
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {'success': False, 'error': 'Server module not available'}
+        
+        backup_key = params.get('backup_key')
+        merge_mode = params.get('merge_mode', 'replace')
+        confirm = params.get('confirm', False)
+        
+        if not backup_key:
+            return {'success': False, 'error': 'Missing required parameter: backup_key'}
+        
+        if not confirm:
+            current_count = len(server_module.global_conversation_history)
+            return {
+                'success': False,
+                'error': f'Confirmation required. Set confirm=True to proceed. Current history has {current_count} messages.',
+                'backup_key': backup_key,
+                'merge_mode': merge_mode
+            }
+        
+        try:
+            keychain = get_keychain()
+            backup_data = keychain.get(backup_key)
+            if not backup_data:
+                return {'success': False, 'error': f'No backup found with key: {backup_key}'}
+        except Exception as e:
+            return {'success': False, 'error': f'Failed to access backup: {str(e)}'}
+        
+        try:
+            restored_messages = json.loads(backup_data)
+            if not isinstance(restored_messages, list):
+                return {'success': False, 'error': 'Invalid backup format: expected list of messages'}
+        except json.JSONDecodeError as e:
+            return {'success': False, 'error': f'Failed to parse backup data: {str(e)}'}
+        
+        current_count = len(server_module.global_conversation_history)
+        
+        if merge_mode == 'replace':
+            server_module.global_conversation_history.clear()
+            server_module.global_conversation_history.extend(restored_messages)
+            operation = 'replaced'
+        elif merge_mode == 'append':
+            server_module.global_conversation_history.extend(restored_messages)
+            operation = 'appended'
+        else:
+            return {'success': False, 'error': f'Invalid merge_mode: {merge_mode}. Use "replace" or "append".'}
+        
+        server_module.save_conversation_to_db()
+        
+        restored_count = len(restored_messages)
+        final_count = len(server_module.global_conversation_history)
+        
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORED - {operation.title()} from backup '{backup_key}': {restored_count} messages")
+        
+        return {
+            'success': True,
+            'backup_key': backup_key,
+            'operation': operation,
+            'restored_count': restored_count,
+            'previous_count': current_count,
+            'final_count': final_count,
+            'message': f'Successfully {operation} conversation history from backup "{backup_key}": {restored_count} messages'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in conversation_history_restore: {e}")
+        return {'success': False, 'error': str(e)}
+
+async def conversation_history_stats(params: dict) -> dict:
+    """Get statistics about the conversation history."""
+    try:
+        import sys
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {'success': False, 'error': 'Server module not available'}
+        
+        conversation_list = list(server_module.global_conversation_history)
+        total_messages = len(conversation_list)
+        
+        if total_messages == 0:
+            return {
+                'success': True,
+                'total_messages': 0,
+                'message': 'Conversation history is empty',
+                'stats': {},
+                'persistence_info': {
+                    'database_key': 'llm_conversation_history',
+                    'max_length': getattr(server_module, 'MAX_CONVERSATION_LENGTH', 10000),
+                    'persistence_enabled': True
+                }
+            }
+        
+        role_counts = {}
+        total_content_length = 0
+        content_lengths = []
+        
+        for msg in conversation_list:
+            role = msg.get('role', 'unknown')
+            content = msg.get('content', '')
+            
+            role_counts[role] = role_counts.get(role, 0) + 1
+            content_length = len(content)
+            total_content_length += content_length
+            content_lengths.append(content_length)
+        
+        avg_content_length = total_content_length / total_messages if total_messages > 0 else 0
+        min_content_length = min(content_lengths) if content_lengths else 0
+        max_content_length = max(content_lengths) if content_lengths else 0
+        
+        first_message = conversation_list[0] if conversation_list else None
+        last_message = conversation_list[-1] if conversation_list else None
+        
+        try:
+            db = get_db()
+            db_has_history = 'llm_conversation_history' in db
+            db_history_size = len(db.get('llm_conversation_history', '')) if db_has_history else 0
+        except:
+            db_has_history = False
+            db_history_size = 0
+        
+        stats = {
+            'total_messages': total_messages,
+            'role_distribution': role_counts,
+            'content_stats': {
+                'total_content_length': total_content_length,
+                'average_content_length': round(avg_content_length, 2),
+                'min_content_length': min_content_length,
+                'max_content_length': max_content_length
+            },
+            'first_message': {
+                'role': first_message.get('role') if first_message else None,
+                'content_preview': first_message.get('content', '')[:100] + '...' if first_message and len(first_message.get('content', '')) > 100 else first_message.get('content', '') if first_message else None
+            },
+            'last_message': {
+                'role': last_message.get('role') if last_message else None,
+                'content_preview': last_message.get('content', '')[:100] + '...' if last_message and len(last_message.get('content', '')) > 100 else last_message.get('content', '') if last_message else None
+            },
+            'persistence_info': {
+                'database_key': 'llm_conversation_history',
+                'max_length': getattr(server_module, 'MAX_CONVERSATION_LENGTH', 10000),
+                'persistence_enabled': True,
+                'database_has_history': db_has_history,
+                'database_history_size': db_history_size
+            }
+        }
+        
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_STATS - Generated stats for {total_messages} messages")
+        
+        return {
+            'success': True,
+            'stats': stats,
+            'message': f'Conversation history contains {total_messages} messages across {len(role_counts)} roles'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in conversation_history_stats: {e}")
+        return {'success': False, 'error': str(e)}
+
+# Register the conversation history tools
+register_mcp_tool("conversation_history_view", conversation_history_view)
+register_mcp_tool("conversation_history_clear", conversation_history_clear)
+register_mcp_tool("conversation_history_restore", conversation_history_restore)
+register_mcp_tool("conversation_history_stats", conversation_history_stats)
 
 

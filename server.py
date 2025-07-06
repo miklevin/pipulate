@@ -522,6 +522,44 @@ MAX_CONVERSATION_LENGTH = 10000
 
 logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}')
 
+# ================================================================
+# 💬 PERSISTENT CONVERSATION HISTORY - SURVIVES SERVER RESTARTS
+# ================================================================
+
+def save_conversation_to_db():
+    """Save the current conversation history to the database for persistence across server restarts."""
+    try:
+        if global_conversation_history:
+            # Convert deque to list and serialize to JSON
+            conversation_data = json.dumps(list(global_conversation_history), default=str)
+            db['llm_conversation_history'] = conversation_data
+            logger.info(f"💾 FINDER_TOKEN: CONVERSATION_SAVED - {len(global_conversation_history)} messages saved to database")
+        else:
+            # Clear the database entry if no conversation history
+            if 'llm_conversation_history' in db:
+                del db['llm_conversation_history']
+            logger.debug("💾 CONVERSATION_SAVED - No conversation history to save")
+    except Exception as e:
+        logger.error(f"💾 CONVERSATION_SAVE_ERROR - Failed to save conversation history: {e}")
+
+def load_conversation_from_db():
+    """Load conversation history from the database on server startup."""
+    try:
+        if 'llm_conversation_history' in db:
+            conversation_data = db['llm_conversation_history']
+            if conversation_data:
+                # Deserialize from JSON and restore to deque
+                restored_messages = json.loads(conversation_data)
+                global_conversation_history.clear()
+                global_conversation_history.extend(restored_messages)
+                logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED - {len(global_conversation_history)} messages restored from database")
+                return True
+        logger.debug("💾 CONVERSATION_RESTORED - No saved conversation history found")
+        return False
+    except Exception as e:
+        logger.error(f"💾 CONVERSATION_RESTORE_ERROR - Failed to restore conversation history: {e}")
+        return False
+
 # Centralized SVG definitions for reuse across the application
 INFO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'''
 
@@ -1147,6 +1185,9 @@ def append_to_conversation(message=None, role='user'):
     logger.debug(f"🔍 DEBUG: \1")
     global_conversation_history.append({'role': role, 'content': message})
     logger.debug(f"🔍 DEBUG: \1")
+    
+    # Save to database for persistence across server restarts
+    save_conversation_to_db()
     
     # Log the last few messages for verification
     history_list = list(global_conversation_history)
@@ -4152,6 +4193,14 @@ async def startup_event():
     message_coordination['startup_in_progress'] = False
     logger.debug("Cleared message coordination state on startup")
     
+    # 💬 RESTORE CONVERSATION HISTORY - Load persistent conversation from database
+    logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_STARTUP - Attempting to restore conversation history from database")
+    conversation_restored = load_conversation_from_db()
+    if conversation_restored:
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORE_SUCCESS - LLM conversation history restored from previous session")
+    else:
+        logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_NONE - Starting with fresh conversation history")
+    
     # Send environment mode message after a short delay to let UI initialize
     asyncio.create_task(send_startup_environment_message())
     
@@ -6818,6 +6867,10 @@ def restart_server():
             # 🤖 AI RAPID RESTART: Watchdog restart with complete log transparency for AI assistants
             logger.info("🤖 AI_RAPID_RESTART: Watchdog-triggered restart - logs capture all events for AI transparency")
             
+            # 💬 SAVE CONVERSATION BEFORE RESTART - Ensure persistence across server restarts
+            logger.info("💬 FINDER_TOKEN: CONVERSATION_SAVE_RESTART - Saving conversation history before restart")
+            save_conversation_to_db()
+            
             # Set environment variable to indicate this is a watchdog restart
             os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
             # Show restart banner once per watchdog restart
@@ -6904,6 +6957,9 @@ def run_server_with_watchdog():
         uvicorn.run(app, host='0.0.0.0', port=5001, log_level=log_level, access_log=DEBUG_MODE, log_config=log_config)
     except KeyboardInterrupt:
         log.event('server', 'Server shutdown requested by user')
+        # 💬 SAVE CONVERSATION ON SHUTDOWN - Ensure persistence when user stops server
+        logger.info("💬 FINDER_TOKEN: CONVERSATION_SAVE_SHUTDOWN - Saving conversation history on user shutdown")
+        save_conversation_to_db()
         observer.stop()
     except Exception as e:
         log.error('Server error', e)
