@@ -24,3 +24,5 @@ CONFLICT: 5a6e7e7 fix(server): Schedule server restart using centralized system 
 CONFLICT: 802f5fd ``` feat: Add MCP tool aliases for CLI - Files: cli.py
 CONFLICT: a01f74c ``` feat: Extract workflow-specific steps from dynamic step building methods - Files: plugins/110_parameter_buster.py, plugins/120_link_graph.py
 CONFLICT: c4bbfb2 feat(storytelling): Conditionally display MCP tools in main script - Files: server.py
+CONFLICT: 21b8f34 ``` 🚀 **MAGIC FORMULA ACTIVATION!** - Introducing iterative LLM execution with explicit XML format and anti-simulation commands. - Files: server.py
+CONFLICT: ab9e70d feat: Implement Radical Conversation History Transparency System - Files: mcp_tools.py, server.py
