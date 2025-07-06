@@ -28,7 +28,7 @@ Instead of showing all capabilities at once, this sequence creates **natural pro
 ### **The Bulletproof Command Structure**
 ```bash
 # The Golden Path: cd pipulate && .venv/bin/python cli.py call
-cd pipulate && .venv/bin/python --version
+cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
 cd pipulate && .venv/bin/python -c "import sys; print('Python path:', sys.executable)"
 ```
 

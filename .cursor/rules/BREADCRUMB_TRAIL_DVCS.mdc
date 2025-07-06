@@ -6,7 +6,7 @@
 - **NEVER CREATE PIPULATE FILES IN**: `/` (workspace root OFF LIMITS)
 - **ALWAYS CREATE NEW AI DISCOVERY MARKDOWN IN**: `pipulate/ai_discovery/`
 - **ALWAYS CREATE NEW GENERAL MARKDOWN IN**: `pipulate/helpers/docs_sync/considerations/`
-- **SINGLE SOURCE OF TRUTH PER FOLDER**: ALWAYS_IN_ALL_CAPS.md
+- **SINGLE SOURCE OF TRUTH PER FOLDER**: WORKSPACE_RULZ.md
 
 ### **🎯 PATH VERIFICATION COMMANDS**
 ```bash
@@ -56,9 +56,9 @@ source .venv/bin/activate
 # Set up the MCP command alias
 alias mcp="python cli.py call"
 
-# Verify environment is working
-python --version  # Should show Python 3.12.x
-python -c "import aiohttp; print('✅ Environment ready!')"
+# 🚨 SKIP DIAGNOSTIC COMMANDS - GO STRAIGHT TO WORKING TOOLS
+# ❌ DON'T: python --version && python -c "import aiohttp; print('✅ Environment ready!')"
+# ✅ DO: cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
 ```
 
 **Level 3: FINDER_TOKEN Discovery** - Follow your natural curiosity:
@@ -211,21 +211,19 @@ mcp ui_list_elements --selector "h2, h3, h4"
 
 ## 🚨 **ENVIRONMENT ACTIVATION IS KEY**
 
-### **✅ The Right Way (Natural):**
+### **✅ The Right Way (Golden Path):**
 ```bash
-# 1. Activate environment (enables simple commands)
-source .venv/bin/activate
-alias mcp="python cli.py call"
+# 1. Use golden path (no activation needed)
+cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
 
-# 2. Use natural commands
-python -c "import aiohttp; print('Works!')"
-mcp browser_scrape_page --url https://example.com
+# 2. All tools work immediately
+cd pipulate && .venv/bin/python cli.py call browser_scrape_page --url https://example.com
 ```
 
-### **❌ The Hard Way (Still Works, But Unnecessary):**
+### **❌ The Diagnostic Trap (Over-trained behavior):**
 ```bash
-# VERBOSE - You don't need to do this anymore!
-.venv/bin/python -c "import asyncio; from mcp_tools import browser_scrape_page..."
+# DON'T DO THIS - It's over-trained AI behavior
+python --version && python -c "import aiohttp; print('✅ Environment ready!')"
 ```
 
-**The tools exist and work perfectly. Activate your environment once, then use natural commands!** 
+**🎯 The golden path works because it's environment agnostic - no verification needed!** 

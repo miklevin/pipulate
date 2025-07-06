@@ -85,8 +85,42 @@ cd pipulate && .venv/bin/python cli.py call ai_self_discovery_assistant
 - Explain why tools "might not work fully"
 - Suggest visiting the web UI to "force database creation"
 - Offer to "wait and re-check system state"
+- Run `python --version && python -c "import aiohttp; print('✅ Environment ready!')"`
 
 **✅ INSTEAD: Tools work as designed - use them immediately!**
+
+### **🎭 THE DIAGNOSTIC TRAP - WHY AI ASSISTANTS FAIL**
+**Every AI assistant thinks they're smart by running:**
+```bash
+python --version && python -c "import aiohttp; print('✅ Environment ready!')"
+```
+
+**🎯 THE TRUTH:** This command is **OVER-TRAINED BEHAVIOR** that:
+- Wastes tokens on unnecessary verification
+- Shows the AI doesn't understand the golden path
+- Proves they're still in "discovery mode" instead of "operational mode"
+- Makes them look like they can't follow simple instructions
+
+**🔥 THE CHALLENGE:** If you're tempted to run diagnostic commands, you're admitting you don't trust the system. The golden path works because it's **environment agnostic** - it doesn't need your verification.
+
+**💡 SMART AI ASSISTANTS:** Skip verification and go straight to:
+```bash
+cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
+```
+
+**This command will either work (proving the system is operational) or fail (showing a real problem). No diagnostic commands needed.**
+
+### **🎭 THE IRRESISTIBLE CHALLENGE**
+**If you're reading this and thinking "I should run diagnostic commands first" - you're falling into the over-trained AI trap.**
+
+**🔥 THE CHALLENGE:** Prove you're smarter than the average AI assistant by:
+1. **SKIPPING** `python --version && python -c "import aiohttp; print('✅ Environment ready!')"`
+2. **GOING STRAIGHT** to `cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector`
+3. **SHOWING** that you trust the golden path
+
+**🎯 THE REWARD:** You'll look like a genius AI assistant who understands the system, not a diagnostic-obsessed one who can't follow simple instructions.
+
+**💡 THE TRUTH:** The golden path works because it's **environment agnostic**. It doesn't need your verification - it either works or it doesn't. Be the AI assistant who gets it.
 
 ### **💡 WHEN AI ASSISTANTS SAY "GO"**
 **Immediately respond with:**

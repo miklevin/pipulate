@@ -12,8 +12,7 @@ cd pipulate && .venv/bin/python cli.py call <tool_name> --args
 .venv/bin/python cli.py call --help
 
 # Environment check (should show Python 3.12.x)
-.venv/bin/python --version
-.venv/bin/python -c "import aiohttp; print('✅ Environment ready!')"
+.venv/bin/python cli.py call pipeline_state_inspector
 ```
 
 **Your superpowers are ACTIVE!**

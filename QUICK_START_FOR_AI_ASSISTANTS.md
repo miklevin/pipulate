@@ -112,7 +112,7 @@ cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
 
 ## 📚 **COMPLETE DOCUMENTATION**
 
-- **Anti-Discovery Rules**: `.cursor/rules/ALWAYS_IN_ALL_CAPS.md`
+- **Anti-Discovery Rules**: `.cursor/rules/WORKSPACE_RULZ.md`
 - **MCP Tools Guide**: `ai_discovery/ai_mcp_tools_discovery_guide.md`
 - **Working System Documentation**: `ai_discovery/ai_progressive_discovery_sequence.md`
 
