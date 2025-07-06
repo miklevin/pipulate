@@ -2016,6 +2016,47 @@ class Pipulate:
             
         return False
 
+    def _is_iterative_execution_magic_words(self, message):
+        """
+        🔄 ITERATIVE EXECUTION MAGIC WORDS: Detect iterative loop triggers for local LLMs.
+        
+        Supports variations for forcing iterative execution:
+        - iterate, loop, chain, auto execute, run until done
+        - keep going, continue until complete, iterative execution
+        - !iterate, !loop, !chain, !auto (shorthand)
+        
+        This enables local LLMs to start iterative loops that automatically execute
+        tools in sequence until completion, rather than just simulating actions.
+        """
+        import re
+        
+        # Normalize the message: lowercase, remove punctuation except letters/digits/spaces
+        normalized = re.sub(r'[^\w\s]', '', message.lower().strip())
+        
+        # Pattern 1: Iterative execution phrases
+        iterative_phrases = [
+            'iterate',
+            'loop',
+            'chain',
+            'auto execute',
+            'run until done',
+            'keep going',
+            'continue until complete',
+            'iterative execution',
+            'force iteration',
+            'make it iterate'
+        ]
+        
+        for phrase in iterative_phrases:
+            if phrase in normalized:
+                return True
+        
+        # Pattern 2: Shorthand triggers (check original message for punctuation)
+        if re.search(r'!iterate\b|!loop\b|!chain\b|!auto\b', message.lower()):
+            return True
+            
+        return False
+
     async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=None, simulate_typing=True):
         """Stream a message to the chat interface.
         
@@ -2024,8 +2065,64 @@ class Pipulate:
         """
         logger.debug(f"🔍 DEBUG: === STARTING pipulate.stream (role: {role}) ===")
         
+        # 🔄 ITERATIVE EXECUTION MAGIC WORDS: Check for iterative loop trigger
+        if self._is_iterative_execution_magic_words(message) and role == 'user':
+            # Load and execute the iterative execution sequence
+            logger.info(f"🔄 ITERATIVE EXECUTION MAGIC WORDS DETECTED ('{message.strip()}') - Initiating forced iterative loop")
+            
+            try:
+                from mcp_tools import force_iterative_execution
+                iteration_result = await force_iterative_execution({"max_iterations": 3})
+                logger.info(f"🔄 ITERATIVE EXECUTION - First iteration result: {iteration_result.get('success', False)}")
+                
+                # Add the iteration results to conversation context
+                if iteration_result.get('success'):
+                    next_action = iteration_result.get('next_action')
+                    if next_action and next_action.get('tool') != 'complete':
+                        iteration_summary = f"""🔄 **ITERATIVE EXECUTION INITIATED!**
+
+🚀 **Iteration {iteration_result.get('iteration', 0)}/{iteration_result.get('max_iterations', 3)}**
+📊 **Tool Executed:** {iteration_result.get('execution_log', [{}])[0].get('tool', 'Unknown')}
+🔧 **Next Action:** {next_action.get('tool', 'Unknown')}
+
+**🚨 LOCAL LLM INSTRUCTION:**
+{iteration_result.get('local_llm_instruction', {}).get('message', 'Execute next action')}
+
+**Next Tool Call:**
+```
+{iteration_result.get('local_llm_instruction', {}).get('example', 'python cli.py call complete')}
+```
+
+**Critical Rule:** {iteration_result.get('local_llm_instruction', {}).get('critical_rule', 'DO NOT SIMULATE - EXECUTE')}"""
+                        append_to_conversation(iteration_summary, 'system')
+                        
+                        # Automatically trigger the next iteration
+                        if next_action.get('tool') == 'force_iterative_execution':
+                            logger.info("🔄 ITERATIVE EXECUTION - Automatically triggering next iteration")
+                            next_result = await force_iterative_execution(next_action.get('params', {}))
+                            if next_result.get('success'):
+                                append_to_conversation(f"🔄 **ITERATION {next_result.get('iteration', 1)} COMPLETED** - Tool: {next_result.get('execution_log', [{}])[0].get('tool', 'Unknown')}", 'system')
+                    else:
+                        append_to_conversation(f"🔄 **ITERATIVE EXECUTION COMPLETED!** - Total iterations: {iteration_result.get('iteration', 0) + 1}", 'system')
+                else:
+                    error_msg = iteration_result.get('error', 'Unknown error')
+                    append_to_conversation(f"🔄 **ITERATIVE EXECUTION FAILED:** {error_msg}", 'system')
+                
+            except Exception as e:
+                logger.error(f"🔄 ITERATIVE EXECUTION - Failed: {e}")
+                append_to_conversation("🔄 **ITERATIVE EXECUTION MAGIC WORDS DETECTED!** Loading forced iteration sequence...", 'system')
+                append_to_conversation("🚀 **ITERATION SEQUENCE INITIATED** - Use force_iterative_execution({}) for the complete experience!", 'assistant')
+            
+            # Broadcast the iterative execution detection to the chat interface
+            if self.chat:
+                await self.chat.broadcast("🔄 **ITERATIVE EXECUTION MAGIC WORDS DETECTED!** Initiating forced iteration loop...")
+                await asyncio.sleep(2)
+                await self.chat.broadcast("🚀 **ITERATION SEQUENCE LOADING** - Prepare for automatic tool execution!")
+                await asyncio.sleep(1)
+                await self.chat.broadcast("⚡ **TOOLS EXECUTING** - Watch the iterative loop in action...")
+        
         # 🍞 BREADCRUMB TRAIL MAGIC WORDS: Check for breadcrumb discovery trigger
-        if self._is_breadcrumb_trail_magic_words(message) and role == 'user':
+        elif self._is_breadcrumb_trail_magic_words(message) and role == 'user':
             # Load and execute the complete breadcrumb trail discovery sequence
             logger.info(f"🍞 BREADCRUMB TRAIL MAGIC WORDS DETECTED ('{message.strip()}') - Initiating progressive discovery sequence")
             

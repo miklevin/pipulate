@@ -886,6 +886,160 @@ def register_all_mcp_tools():
         tool_count = len(MCP_TOOL_REGISTRY)
     
     logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {tool_count} tools registered")
+    
+async def demonstrate_self_prompting_iteration(params: dict) -> dict:
+    """
+    🎯 DEMONSTRATE SELF-PROMPTING ITERATION - Shows local LLMs how to prompt themselves.
+    
+    This tool demonstrates the self-prompting pattern by:
+    1. Executing a tool immediately
+    2. Analyzing the result  
+    3. Generating the next prompt/command
+    4. Injecting it into the chat interface
+    5. Showing the iterative loop in action
+    
+    Args:
+        params (dict): Demonstration parameters
+            - demo_type (str): "basic" | "advanced" | "full_loop"
+            - inject_to_chat (bool): Inject commands into chat interface (default: True)
+            - show_commands (bool): Show actual commands being executed (default: True)
+            
+    Returns:
+        dict: Demonstration results with embedded self-prompting examples
+    """
+    try:
+        demo_type = params.get("demo_type", "basic")
+        inject_to_chat = params.get("inject_to_chat", True)
+        show_commands = params.get("show_commands", True)
+        
+        result = {
+            "success": True,
+            "demo_type": demo_type,
+            "timestamp": datetime.now().isoformat(),
+            "demonstration_log": [],
+            "self_prompting_examples": [],
+            "next_self_prompt": None
+        }
+        
+        # Step 1: Execute a tool to get real data
+        logger.info("🎯 DEMONSTRATION: Executing pipeline_state_inspector for real data")
+        tool_result = await pipeline_state_inspector({})
+        
+        result["demonstration_log"].append({
+            "step": 1,
+            "action": "Executed pipeline_state_inspector",
+            "result": "Got system state data",
+            "data_preview": str(tool_result)[:200] + "..." if len(str(tool_result)) > 200 else str(tool_result)
+        })
+        
+        # Step 2: Analyze the result and determine next action
+        if tool_result.get("success"):
+            total_pipelines = tool_result.get("total_pipelines", 0)
+            
+            if total_pipelines == 0:
+                next_tool = "local_llm_grep_logs"
+                next_params = {"search_term": "FINDER_TOKEN"}
+                analysis = "No pipelines found - need to search logs for system activity"
+            else:
+                next_tool = "ai_self_discovery_assistant"
+                next_params = {"discovery_type": "capabilities"}
+                analysis = f"Found {total_pipelines} pipelines - ready for capability discovery"
+        else:
+            next_tool = "execute_shell_command"
+            next_params = {"command": "ps aux | grep python"}
+            analysis = "Pipeline inspector failed - checking if server is running"
+        
+        result["demonstration_log"].append({
+            "step": 2,
+            "action": "Analyzed result and determined next action",
+            "analysis": analysis,
+            "next_tool": next_tool,
+            "next_params": next_params
+        })
+        
+        # Step 3: Generate self-prompting examples
+        result["self_prompting_examples"] = [
+            {
+                "pattern": "Command Injection",
+                "description": "Inject actual commands into chat",
+                "example": f".venv/bin/python cli.py call {next_tool}",
+                "when_to_use": "When you want to force execution of specific tools"
+            },
+            {
+                "pattern": "MCP Tool Chaining", 
+                "description": "Chain MCP tool calls based on results",
+                "example": f"python cli.py call {next_tool} && python cli.py call ai_self_discovery_assistant",
+                "when_to_use": "When you want to execute multiple tools in sequence"
+            },
+            {
+                "pattern": "Iterative Loop",
+                "description": "Keep executing until goal is achieved",
+                "example": "python cli.py call force_iterative_execution",
+                "when_to_use": "When you want continuous execution until completion"
+            },
+            {
+                "pattern": "Result-Driven Prompting",
+                "description": "Use tool results to generate next prompts",
+                "example": f"Based on {analysis}, execute: python cli.py call {next_tool}",
+                "when_to_use": "When tool results should drive next actions"
+            }
+        ]
+        
+        # Step 4: Create the next self-prompt
+        result["next_self_prompt"] = {
+            "prompt_text": f"🚨 EXECUTE IMMEDIATELY: {analysis}",
+            "command": f".venv/bin/python cli.py call {next_tool}",
+            "parameters": next_params,
+            "expected_outcome": "Tool execution with real results (not simulation)",
+            "follow_up_action": "Analyze results and determine next tool to execute"
+        }
+        
+        # Step 5: Demonstrate chat injection (if enabled)
+        if inject_to_chat:
+            try:
+                # Get the global pipulate instance to access chat
+                import sys
+                server_module = sys.modules.get('server')
+                if server_module and hasattr(server_module, 'pip') and server_module.pip.chat:
+                    chat_message = f"🎯 **SELF-PROMPTING DEMONSTRATION**\n\n"
+                    chat_message += f"**Analysis:** {analysis}\n"
+                    chat_message += f"**Next Command:** `{result['next_self_prompt']['command']}`\n"
+                    chat_message += f"**Expected:** {result['next_self_prompt']['expected_outcome']}\n\n"
+                    chat_message += f"🚨 **LOCAL LLM: EXECUTE THIS COMMAND NOW - DO NOT SIMULATE!**"
+                    
+                    await server_module.pip.chat.broadcast(chat_message)
+                    result["chat_injection"] = "Success - message sent to chat interface"
+                else:
+                    result["chat_injection"] = "Chat interface not available"
+            except Exception as e:
+                result["chat_injection"] = f"Failed: {e}"
+        
+        # Step 6: Advanced demonstration for full loop
+        if demo_type == "full_loop":
+            result["full_loop_demonstration"] = {
+                "step_1": f"Execute: {result['next_self_prompt']['command']}",
+                "step_2": "Analyze the results from step 1",
+                "step_3": "Determine next tool based on results",
+                "step_4": "Execute next tool immediately",
+                "step_5": "Continue until goal is achieved",
+                "critical_rule": "NEVER describe or simulate - ALWAYS execute actual tools"
+            }
+        
+        logger.info(f"🎯 FINDER_TOKEN: SELF_PROMPTING_DEMONSTRATION_COMPLETE - Type: {demo_type}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: SELF_PROMPTING_DEMONSTRATION_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+            "recovery_suggestion": "Try basic demonstration first"
+        }
+
+# 🎯 SELF-PROMPTING DEMONSTRATION
+register_mcp_tool("demonstrate_self_prompting_iteration", demonstrate_self_prompting_iteration)
 
 # Additional Botify tools from server.py
 async def botify_simple_query(params: dict) -> dict:
@@ -6628,6 +6782,122 @@ async def local_llm_tool_calling_trainer(params: dict) -> dict:
         }
 
 
+async def force_iterative_execution(params: dict) -> dict:
+    """
+    🚀 FORCE ITERATIVE EXECUTION - Makes local LLMs actually execute tools in loops.
+    
+    This tool creates explicit iterative loops by:
+    1. Executing a tool immediately 
+    2. Analyzing the result
+    3. Determining the next action
+    4. Embedding the next tool call in the response
+    
+    Args:
+        params (dict): Execution parameters
+            - start_tool (str): Tool to start iteration with (default: "pipeline_state_inspector")
+            - max_iterations (int): Maximum iterations (default: 3)
+            - current_iteration (int): Current iteration count (default: 0)
+            - previous_results (list): Results from previous iterations
+            
+    Returns:
+        dict: Execution results with embedded next action
+    """
+    try:
+        start_tool = params.get("start_tool", "pipeline_state_inspector")
+        max_iterations = int(params.get("max_iterations", 3))
+        current_iteration = int(params.get("current_iteration", 0))
+        previous_results = params.get("previous_results", [])
+        
+        result = {
+            "success": True,
+            "iteration": current_iteration,
+            "max_iterations": max_iterations,
+            "timestamp": datetime.now().isoformat(),
+            "execution_log": [],
+            "next_action": None,
+            "local_llm_instruction": None
+        }
+        
+        # Execute the current tool
+        if start_tool == "pipeline_state_inspector":
+            tool_result = await pipeline_state_inspector({})
+            result["execution_log"].append({
+                "tool": "pipeline_state_inspector",
+                "result": tool_result,
+                "analysis": "System state captured"
+            })
+            
+            # Determine next action based on result
+            if current_iteration < max_iterations:
+                result["next_action"] = {
+                    "tool": "force_iterative_execution",
+                    "params": {
+                        "start_tool": "local_llm_grep_logs",
+                        "max_iterations": max_iterations,
+                        "current_iteration": current_iteration + 1,
+                        "previous_results": previous_results + [tool_result]
+                    },
+                    "reason": "Search logs for breadcrumb tokens"
+                }
+        
+        elif start_tool == "local_llm_grep_logs":
+            tool_result = await local_llm_grep_logs({"search_term": "FINDER_TOKEN"})
+            result["execution_log"].append({
+                "tool": "local_llm_grep_logs",
+                "result": tool_result,
+                "analysis": "Log search completed"
+            })
+            
+            # Determine next action
+            if current_iteration < max_iterations:
+                result["next_action"] = {
+                    "tool": "force_iterative_execution",
+                    "params": {
+                        "start_tool": "ai_self_discovery_assistant",
+                        "max_iterations": max_iterations,
+                        "current_iteration": current_iteration + 1,
+                        "previous_results": previous_results + [tool_result]
+                    },
+                    "reason": "Discover available capabilities"
+                }
+        
+        elif start_tool == "ai_self_discovery_assistant":
+            tool_result = await ai_self_discovery_assistant({})
+            result["execution_log"].append({
+                "tool": "ai_self_discovery_assistant",
+                "result": tool_result,
+                "analysis": "Self-discovery completed"
+            })
+            
+            # Final iteration - provide summary
+            result["next_action"] = {
+                "tool": "complete",
+                "summary": "Iterative execution cycle completed",
+                "total_iterations": current_iteration + 1,
+                "capabilities_discovered": len(previous_results) + 1
+            }
+        
+        # Add explicit instruction for local LLMs
+        result["local_llm_instruction"] = {
+            "message": "🚨 LOCAL LLM: DO NOT SIMULATE - EXECUTE THE NEXT ACTION IMMEDIATELY",
+            "next_tool_call": result.get("next_action"),
+            "format": "Use MCP tool format: python cli.py call [tool_name] [params]",
+            "example": f"python cli.py call {result.get('next_action', {}).get('tool', 'complete')}",
+            "critical_rule": "NEVER describe what you would do - DO IT"
+        }
+        
+        logger.info(f"🔄 FINDER_TOKEN: ITERATIVE_EXECUTION_STEP - Iteration {current_iteration}/{max_iterations}, Tool: {start_tool}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: ITERATIVE_EXECUTION_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
 # 🔄 LOCAL LLM ITERATIVE TRAINING TOOL
 register_mcp_tool("execute_shell_command", execute_shell_command)
 register_mcp_tool("follow_breadcrumb_trail", follow_breadcrumb_trail)
@@ -6635,14 +6905,130 @@ register_mcp_tool("follow_breadcrumb_trail", follow_breadcrumb_trail)
 # 🎓 LOCAL LLM TOOL CALLING TRAINER
 register_mcp_tool("local_llm_tool_calling_trainer", local_llm_tool_calling_trainer)
 
-# Get final count from server's registry
-import sys
-server_module = sys.modules.get('server')
-if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
-    tool_count = len(server_module.MCP_TOOL_REGISTRY)
-else:
-    tool_count = len(MCP_TOOL_REGISTRY)
+# 🚀 FORCE ITERATIVE EXECUTION
+register_mcp_tool("force_iterative_execution", force_iterative_execution)
 
-logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {tool_count} tools registered")
+async def local_llm_prompt(params: dict) -> dict:
+    """
+    🤖 LOCAL LLM PROMPT - Send prompts directly to the local LLM and track responses.
+    
+    This tool sends prompts to the local LLM via the chat interface and logs responses
+    with special FINDER_TOKENs to track whether the LLM is actually iterating or just
+    simulating tool usage.
+    
+    Args:
+        params (dict): Prompt parameters
+            - prompt (str): The prompt to send to the local LLM
+            - track_iteration (bool): Whether to track iteration behavior (default: True)
+            - session_id (str): Optional session identifier for tracking
+            - expect_tools (bool): Whether to expect tool usage in response (default: True)
+            
+    Returns:
+        dict: Prompt results with tracking information
+    """
+    try:
+        prompt = params.get("prompt")
+        if not prompt:
+            return {"success": False, "error": "prompt parameter is required"}
+        
+        track_iteration = params.get("track_iteration", True)
+        session_id = params.get("session_id", f"session_{datetime.now().strftime('%H%M%S')}")
+        expect_tools = params.get("expect_tools", True)
+        
+        result = {
+            "success": True,
+            "prompt": prompt,
+            "session_id": session_id,
+            "timestamp": datetime.now().isoformat(),
+            "tracking_enabled": track_iteration,
+            "expect_tools": expect_tools,
+            "log_markers": []
+        }
+        
+        # Log the prompt with special FINDER_TOKEN
+        if track_iteration:
+            logger.info(f"🤖 FINDER_TOKEN: LLM_PROMPT_SENT - Session: {session_id} | Prompt: {prompt[:100]}{'...' if len(prompt) > 100 else ''}")
+            result["log_markers"].append(f"LLM_PROMPT_SENT - Session: {session_id}")
+        
+        # Get the global pipulate instance to access chat
+        import sys
+        server_module = sys.modules.get('server')
+        
+        if server_module and hasattr(server_module, 'pip') and server_module.pip.chat:
+            # Send the prompt to the chat interface
+            chat_instance = server_module.pip.chat
+            
+            # Add session tracking to the prompt
+            if track_iteration:
+                enhanced_prompt = f"[SESSION:{session_id}] {prompt}"
+                if expect_tools:
+                    enhanced_prompt += "\n\n🚨 CRITICAL: Use actual MCP tools, not simulations. Execute tools immediately."
+            else:
+                enhanced_prompt = prompt
+            
+            # Log the enhanced prompt
+            logger.info(f"🎯 FINDER_TOKEN: LLM_ENHANCED_PROMPT - Session: {session_id} | Enhanced: {enhanced_prompt[:150]}{'...' if len(enhanced_prompt) > 150 else ''}")
+            
+            # Broadcast the prompt to the chat interface
+            await chat_instance.broadcast(enhanced_prompt)
+            
+            result["enhanced_prompt"] = enhanced_prompt
+            result["chat_sent"] = True
+            result["instructions"] = {
+                "next_step": "Check logs for LLM response",
+                "grep_command": f"grep 'FINDER_TOKEN.*{session_id}' logs/server.log",
+                "iteration_check": f"grep 'FINDER_TOKEN.*MCP_CALL' logs/server.log | tail -10"
+            }
+            
+            # Log successful prompt delivery
+            logger.info(f"✅ FINDER_TOKEN: LLM_PROMPT_DELIVERED - Session: {session_id} | Status: Sent to chat interface")
+            
+        else:
+            # Fallback: Log the prompt for manual testing
+            logger.info(f"⚠️ FINDER_TOKEN: LLM_PROMPT_FALLBACK - Session: {session_id} | Chat interface not available, logged for manual testing")
+            result["chat_sent"] = False
+            result["fallback_mode"] = True
+            result["manual_testing"] = {
+                "message": "Chat interface not available - prompt logged for manual testing",
+                "prompt_logged": prompt,
+                "check_logs": "grep 'LLM_PROMPT_FALLBACK' logs/server.log"
+            }
+        
+        # Add iteration tracking guidance
+        if track_iteration:
+            result["iteration_tracking"] = {
+                "success_indicators": [
+                    "MCP_CALL_START - Tool execution begins",
+                    "MCP_CALL_SUCCESS - Tool execution completes", 
+                    "Multiple consecutive tool calls",
+                    "Tool chaining behavior"
+                ],
+                "failure_indicators": [
+                    "Simulation language: 'I would...', 'Let me imagine...'",
+                    "Description without execution",
+                    "No MCP_CALL tokens in logs",
+                    "Single response without follow-up tools"
+                ],
+                "grep_commands": {
+                    "check_responses": f"grep 'FINDER_TOKEN.*{session_id}' logs/server.log",
+                    "check_tool_usage": "grep 'FINDER_TOKEN.*MCP_CALL' logs/server.log | tail -20",
+                    "check_iterations": "grep 'FINDER_TOKEN.*ITERATIVE' logs/server.log | tail -10"
+                }
+            }
+        
+        logger.info(f"🎯 FINDER_TOKEN: LLM_PROMPT_COMPLETE - Session: {session_id} | Tracking: {track_iteration} | Tools Expected: {expect_tools}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LLM_PROMPT_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+# 🤖 LOCAL LLM PROMPT TOOL
+register_mcp_tool("local_llm_prompt", local_llm_prompt)
 
 
