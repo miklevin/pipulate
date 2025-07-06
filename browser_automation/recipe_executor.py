@@ -30,7 +30,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from loguru import logger
 
 
-class BabyStepsRecipeExecutor:
+class RecipeExecutor:
     """
     🎯 Ultra-simple recipe executor that focuses on reliability.
     
@@ -346,7 +346,7 @@ class BabyStepsRecipeExecutor:
 # 🎯 BABY STEPS TEST FUNCTION
 async def test_baby_steps_executor():
     """Test the baby steps executor with the profile creation recipe."""
-    executor = BabyStepsRecipeExecutor(headless=False, debug=True)
+    executor = RecipeExecutor(headless=False, debug=True)
     
     # Test with existing profile creation recipe
     recipe_path = "browser_automation/automation_recipes/http_localhost_5001/profile_creation_recipe.json"
