@@ -3234,7 +3234,8 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     mcp_detected = False
     chunk_count = 0
     # Match both full MCP requests, standalone tool tags, AND square bracket notation
-    mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>|\[(?:Executing|Running|Calling):\s*([^\]]+)\])', re.DOTALL)
+    # Support both prefixed ([Executing: tool]) and simple ([tool]) bracket formats
+    mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>|\[(?:Executing|Running|Calling):\s*([^\]]+)\]|\[([a-zA-Z_][a-zA-Z0-9_]*(?:\s+[^\]]+)?)\])', re.DOTALL)
     
 
     logger.debug("🔍 DEBUG: === STARTING process_llm_interaction ===")
@@ -3286,9 +3287,9 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                             # Use regex to find a complete MCP block
                             match = mcp_pattern.search(full_content_buffer)
                             if match:
-                                # Check if this is square bracket notation (group 2) or XML (group 1)
-                                if match.group(2):  # Square bracket notation detected
-                                    bracket_content = match.group(2)  # Content inside brackets
+                                # Check if this is square bracket notation (group 2 or 3) or XML (group 1)
+                                if match.group(2) or match.group(3):  # Square bracket notation detected
+                                    bracket_content = match.group(2) or match.group(3)  # Content inside brackets
                                     mcp_detected = True
                                     
                                     logger.info(f"🔧 MCP CLIENT: Square bracket notation detected: [{bracket_content}]")
