@@ -79,13 +79,13 @@ class RollingBackupManager:
                 'cross_cutting': True
             },
             'app_prod': {
-                'source_path': 'data/app.db',
+                'source_path': 'data/botifython.db',
                 'description': 'Production Profiles/Tasks',
                 'critical': True,
                 'cross_cutting': False
             },
             'app_dev': {
-                'source_path': 'data/pipulate_dev.db',
+                'source_path': 'data/botifython_dev.db',
                 'description': 'Development Profiles/Tasks',
                 'critical': False,
                 'cross_cutting': False
