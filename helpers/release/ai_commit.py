@@ -12,6 +12,7 @@ import subprocess
 import requests
 import json
 import sys
+import os
 
 # Configuration for the local LLM
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
@@ -26,19 +27,67 @@ Analyze the following git diff and generate a commit message in the format:
 
 <body>
 
+CRITICAL INSTRUCTIONS:
+- BE VERY CAREFUL to distinguish between ADDITIONS (+) and DELETIONS (-) in the diff
+- DO NOT credit deletions or removed files as "added" features
+- For deletions/cleanups, use terms like "remove", "delete", "clean up", "drop"
+- For additions, use terms like "add", "implement", "introduce", "create"
+- For housekeeping operations, use "chore:" prefix and focus on cleanup nature
+
+CHANGE ANALYSIS:
+{change_analysis}
+
+Git diff context:
+- Primary action: {primary_action}
+- Is housekeeping/cleanup: {is_housekeeping}
+- Change summary: {change_summary}
+
+Based on this analysis, choose the appropriate commit type:
+- "chore" for housekeeping, cleanup, deletions of test/temp files
+- "feat" for genuine new features or capabilities  
+- "fix" for bug fixes
+- "docs" for documentation changes
+- "refactor" for code restructuring
+- "perf" for performance improvements
+- "test" for test-related changes
+- "style" for formatting changes
+
 The commit message should:
-- Use a valid conventional commit type (e.g., feat, fix, docs, style, refactor, perf, test, chore, build).
-- Have a brief, imperative subject line (max 50 chars).
-- Provide a more detailed body explaining the "what" and "why" of the changes, if necessary.
-- The entire response should be ONLY the commit message, with no extra text or explanations.
+- Use a valid conventional commit type based on the ACTUAL nature of changes
+- Have a brief, imperative subject line (max 50 chars)
+- Accurately reflect whether content was ADDED, REMOVED, or MODIFIED
+- Provide a more detailed body explaining the "what" and "why" of the changes, if necessary
+- The entire response should be ONLY the commit message, with no extra text or explanations
 
 Here is the git diff of staged changes:
 --- GIT DIFF START ---
 {git_diff}
 --- GIT DIFF END ---
 
-Generate the commit message now.
+Generate the commit message now, being especially careful to accurately represent additions vs deletions.
 """
+
+def get_change_analysis():
+    """Get change analysis from environment variable if available."""
+    analysis_json = os.environ.get('PIPULATE_CHANGE_ANALYSIS')
+    if analysis_json:
+        try:
+            return json.loads(analysis_json)
+        except:
+            pass
+    
+    # Fallback default analysis
+    return {
+        'added_files': [],
+        'deleted_files': [],
+        'modified_files': [],
+        'renamed_files': [],
+        'lines_added': 0,
+        'lines_deleted': 0,
+        'is_housekeeping': False,
+        'change_summary': 'Files modified',
+        'primary_action': 'modified'
+    }
 
 def get_staged_diff():
     """Gets the diff of currently staged files."""
@@ -65,9 +114,26 @@ def get_staged_diff():
         print(f"Error getting git diff: {e.stderr}", file=sys.stderr)
         sys.exit(1)
 
-def generate_commit_message(diff_content):
-    """Sends the diff to a local LLM to generate a commit message."""
-    prompt = COMMIT_PROMPT_TEMPLATE.format(git_diff=diff_content)
+def generate_commit_message(diff_content, change_analysis):
+    """Sends the diff to a local LLM to generate a commit message with change analysis context."""
+    
+    # Format the change analysis for the prompt
+    analysis_text = f"""
+- Files added: {len(change_analysis['added_files'])} ({', '.join(change_analysis['added_files'][:3])}{'...' if len(change_analysis['added_files']) > 3 else ''})
+- Files deleted: {len(change_analysis['deleted_files'])} ({', '.join(change_analysis['deleted_files'][:3])}{'...' if len(change_analysis['deleted_files']) > 3 else ''})
+- Files modified: {len(change_analysis['modified_files'])} ({', '.join(change_analysis['modified_files'][:3])}{'...' if len(change_analysis['modified_files']) > 3 else ''})
+- Lines added: +{change_analysis['lines_added']}
+- Lines deleted: -{change_analysis['lines_deleted']}
+"""
+
+    prompt = COMMIT_PROMPT_TEMPLATE.format(
+        git_diff=diff_content,
+        change_analysis=analysis_text,
+        primary_action=change_analysis['primary_action'],
+        is_housekeeping=change_analysis['is_housekeeping'],
+        change_summary=change_analysis['change_summary']
+    )
+    
     payload = {
         "model": OLLAMA_MODEL,
         "prompt": prompt,
@@ -89,7 +155,8 @@ def generate_commit_message(diff_content):
         sys.exit(1)
 
 if __name__ == "__main__":
+    change_analysis = get_change_analysis()
     staged_diff = get_staged_diff()
-    commit_message = generate_commit_message(staged_diff)
+    commit_message = generate_commit_message(staged_diff, change_analysis)
     # Print only the commit message to stdout so it can be captured
     print(commit_message) 

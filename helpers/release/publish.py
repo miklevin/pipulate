@@ -535,8 +535,123 @@ def get_ai_model_name():
     except Exception:
         return "AI Model"
 
+def analyze_git_changes():
+    """Intelligently analyze git changes to categorize additions, deletions, modifications, etc."""
+    print("🔍 Analyzing git changes for intelligent commit generation...")
+    
+    analysis = {
+        'added_files': [],
+        'deleted_files': [],
+        'modified_files': [],
+        'renamed_files': [],
+        'lines_added': 0,
+        'lines_deleted': 0,
+        'is_housekeeping': False,
+        'change_summary': '',
+        'primary_action': 'modified'  # added, deleted, modified, renamed, housekeeping
+    }
+    
+    try:
+        # Get file status changes
+        status_result = run_command(['git', 'status', '--porcelain'], capture=True)
+        status_lines = status_result.stdout.strip().split('\n') if status_result.stdout.strip() else []
+        
+        for line in status_lines:
+            if len(line) < 3:
+                continue
+            status = line[:2]
+            filename = line[3:].strip()  # Remove any extra whitespace
+            
+            if status.startswith('A'):
+                analysis['added_files'].append(filename)
+            elif status.startswith('D'):
+                analysis['deleted_files'].append(filename)
+            elif status.startswith('M'):
+                analysis['modified_files'].append(filename)
+            elif status.startswith('R'):
+                analysis['renamed_files'].append(filename)
+        
+        # Get line-level statistics using git diff --stat
+        diff_stat_result = run_command(['git', 'diff', '--stat'], capture=True)
+        if not diff_stat_result.stdout.strip():
+            # Try staged changes
+            diff_stat_result = run_command(['git', 'diff', '--staged', '--stat'], capture=True)
+        
+        stat_output = diff_stat_result.stdout.strip()
+        if stat_output:
+            # Parse the summary line (e.g., "3 files changed, 45 insertions(+), 12 deletions(-)")
+            import re
+            insertions_match = re.search(r'(\d+) insertions?\(\+\)', stat_output)
+            deletions_match = re.search(r'(\d+) deletions?\(\-\)', stat_output)
+            
+            if insertions_match:
+                analysis['lines_added'] = int(insertions_match.group(1))
+            if deletions_match:
+                analysis['lines_deleted'] = int(deletions_match.group(1))
+        
+        # Determine primary action and housekeeping nature
+        total_files = len(analysis['added_files']) + len(analysis['deleted_files']) + len(analysis['modified_files']) + len(analysis['renamed_files'])
+        
+        # Check for housekeeping patterns
+        housekeeping_indicators = [
+            # File patterns that suggest cleanup
+            any('test' in f.lower() for f in analysis['deleted_files']),
+            any('.log' in f or '.tmp' in f or '.cache' in f for f in analysis['deleted_files']),
+            any('backup' in f.lower() for f in analysis['deleted_files']),
+            # High deletion-to-addition ratio
+            analysis['lines_deleted'] > analysis['lines_added'] * 2 and analysis['lines_deleted'] > 50,
+            # Mostly deletions with few/no additions
+            len(analysis['deleted_files']) > len(analysis['added_files']) * 2 and len(analysis['deleted_files']) > 3
+        ]
+        
+        analysis['is_housekeeping'] = any(housekeeping_indicators)
+        
+        # Determine primary action
+        if len(analysis['deleted_files']) > len(analysis['added_files']) and len(analysis['deleted_files']) > len(analysis['modified_files']):
+            analysis['primary_action'] = 'deleted'
+        elif len(analysis['added_files']) > len(analysis['deleted_files']) and len(analysis['added_files']) > len(analysis['modified_files']):
+            analysis['primary_action'] = 'added'
+        elif len(analysis['renamed_files']) > 0:
+            analysis['primary_action'] = 'renamed'
+        elif analysis['is_housekeeping']:
+            analysis['primary_action'] = 'housekeeping'
+        else:
+            analysis['primary_action'] = 'modified'
+        
+        # Create change summary
+        parts = []
+        if analysis['added_files']:
+            parts.append(f"{len(analysis['added_files'])} files added")
+        if analysis['deleted_files']:
+            parts.append(f"{len(analysis['deleted_files'])} files deleted")
+        if analysis['modified_files']:
+            parts.append(f"{len(analysis['modified_files'])} files modified")
+        if analysis['renamed_files']:
+            parts.append(f"{len(analysis['renamed_files'])} files renamed")
+        
+        line_parts = []
+        if analysis['lines_added']:
+            line_parts.append(f"+{analysis['lines_added']} lines")
+        if analysis['lines_deleted']:
+            line_parts.append(f"-{analysis['lines_deleted']} lines")
+        
+        analysis['change_summary'] = ', '.join(parts)
+        if line_parts:
+            analysis['change_summary'] += f" ({', '.join(line_parts)})"
+        
+        print(f"📊 Change analysis: {analysis['change_summary']}")
+        if analysis['is_housekeeping']:
+            print("🧹 Detected housekeeping/cleanup operations")
+        print(f"🎯 Primary action: {analysis['primary_action']}")
+        
+        return analysis
+        
+    except Exception as e:
+        print(f"⚠️  Error analyzing git changes: {e}")
+        return analysis
+
 def get_ai_commit_message():
-    """Gets an AI-generated commit message from local LLM."""
+    """Gets an AI-generated commit message from local LLM with intelligent change analysis."""
     print("🤖 Analyzing changes for AI commit message...")
     
     # Check if there are any changes (staged or unstaged)
@@ -550,24 +665,49 @@ def get_ai_commit_message():
         print(f"❌ Error checking git changes: {e}")
         return None, None
     
+    # Analyze changes intelligently
+    change_analysis = analyze_git_changes()
+    
     # Get the model name
     model_name = get_ai_model_name()
     
-    # Try to get AI commit message
+    # Try to get AI commit message with enhanced context
     ai_commit_script = PIPULATE_ROOT / "helpers" / "release" / "ai_commit.py"
     if not ai_commit_script.exists():
         print("❌ ai_commit.py not found, skipping AI commit generation")
         return None, None
     
     try:
-        result = run_command(["python", str(ai_commit_script)], capture=True)
-        ai_message = result.stdout.strip()
-        if ai_message:
-            print(f"🤖 AI generated commit message:")
-            print(f"   {ai_message}")
-            return ai_message, model_name
+        # Create enhanced environment variables to pass analysis to ai_commit.py
+        import os
+        import json
+        
+        # Pass the analysis as environment variable
+        enhanced_env = os.environ.copy()
+        enhanced_env['PIPULATE_CHANGE_ANALYSIS'] = json.dumps(change_analysis)
+        
+        # Use subprocess directly to pass environment variables
+        import subprocess
+        result = subprocess.run(
+            ["python", str(ai_commit_script)], 
+            cwd=str(PIPULATE_ROOT),
+            capture_output=True,
+            text=True,
+            env=enhanced_env,
+            check=False  # Don't raise exception on error
+        )
+        
+        if result.returncode == 0:
+            ai_message = result.stdout.strip()
+            if ai_message:
+                print(f"🤖 AI generated commit message:")
+                print(f"   {ai_message}")
+                return ai_message, model_name
+            else:
+                print("⚠️  AI commit script returned empty message")
+                return None, None
         else:
-            print("⚠️  AI commit script returned empty message")
+            print(f"⚠️  AI commit script failed with error: {result.stderr}")
             return None, None
     except Exception as e:
         print(f"⚠️  AI commit generation failed: {e}")
