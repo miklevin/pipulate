@@ -4324,23 +4324,35 @@ async def startup_event():
     
     white_rabbit()
     
-    # 🗃️ AUTOMATIC STARTUP BACKUP - Ensure data protection on every server start
+    # 🗃️ ENHANCED ROLLING STARTUP BACKUP - Son/Father/Grandfather protection
     try:
         from helpers.durable_backup_system import backup_manager
-        main_db_path = DB_FILENAME
-        keychain_db_path = 'data/ai_keychain.db'
-        backup_results = backup_manager.auto_backup_all(main_db_path, keychain_db_path)
         
-        total_records = sum(backup_results.values())
-        logger.bind(lifecycle=True).info(f'🗃️ STARTUP_BACKUP: Automatic backup completed - {total_records} records secured across {len(backup_results)} tables')
-        logger.info(f'FINDER_TOKEN: STARTUP_BACKUP_SUMMARY - Tables backed up: {", ".join(backup_results.keys())}, Total records: {total_records}')
+        # 🎯 BULLETPROOF STARTUP BACKUP - All critical databases protected
+        backup_results = backup_manager.startup_backup_all()
         
-        # Log individual table backup counts
-        for table_name, count in backup_results.items():
-            if count > 0:
-                logger.debug(f'🗃️ STARTUP_BACKUP: {table_name} - {count} records backed up')
+        successful_backups = sum(1 for success in backup_results.values() if success)
+        total_databases = len(backup_results)
+        
+        logger.bind(lifecycle=True).info(f'🗃️ ROLLING_BACKUP: Startup backup completed - {successful_backups}/{total_databases} critical databases secured')
+        logger.info(f'FINDER_TOKEN: STARTUP_BACKUP_SUMMARY - Databases: {", ".join(backup_results.keys())}, Success: {successful_backups}/{total_databases}')
+        
+        # Log individual database backup status
+        for db_name, success in backup_results.items():
+            if success:
+                logger.debug(f'🗃️ STARTUP_BACKUP: ✅ {db_name} backed up successfully')
+            else:
+                logger.warning(f'🗃️ STARTUP_BACKUP: ⚠️ {db_name} backup failed')
+                
+        # Display backup status for transparency
+        backup_status = backup_manager.get_backup_status()
+        daily_count = backup_status['retention_counts']['daily']
+        weekly_count = backup_status['retention_counts']['weekly']
+        monthly_count = backup_status['retention_counts']['monthly']
+        logger.info(f'🗃️ RETENTION_STATUS: Daily: {daily_count}, Weekly: {weekly_count}, Monthly: {monthly_count} backups')
+        
     except Exception as e:
-        logger.error(f'🗃️ STARTUP_BACKUP: Failed to create automatic backup - {str(e)}')
+        logger.error(f'🗃️ STARTUP_BACKUP: Failed to create rolling backup - {str(e)}')
     
 ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
@@ -5247,74 +5259,7 @@ async def poke_flyout(request):
     # Add Update button
     update_button = Button(f'🔄 Update {APP_NAME}', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
-    # Add Backup controls (Prod mode only)
-    backup_status = None
-    backup_button = None
-    restore_button = None
-    if not is_dev_mode:  # Only show backup controls in Prod mode
-        try:
-            from helpers.durable_backup_system import backup_manager
-            
-            # Get current database and backup counts
-            main_db_path = DB_FILENAME
-            current_counts = backup_manager.get_current_db_counts(main_db_path)
-            backup_counts = backup_manager.get_backup_counts()
-            
-            # Calculate totals for clear labeling
-            current_total = sum(current_counts.values())
-            backup_total = sum(backup_counts.values())
-            
-            # Create detailed breakdown for clarity
-            current_breakdown = []
-            backup_breakdown = []
-            
-            for table in ['profile', 'tasks']:  # Only show user-relevant tables
-                current_count = current_counts.get(table, 0)
-                backup_count = backup_counts.get(table, 0)
-                
-                if current_count > 0:
-                    current_breakdown.append(f"{current_count} {table}")
-                    
-                if backup_count > 0:
-                    backup_breakdown.append(f"{backup_count} {table}")
-            
-            current_text = " + ".join(current_breakdown) if current_breakdown else "0 records"
-            backup_text = " + ".join(backup_breakdown) if backup_breakdown else "0 records"
-            
-            # Status display with compact formatting
-            backup_status = Div(
-                Small(f"💾 Current: {current_text}", cls='text-secondary', style='font-size: 0.75em; line-height: 1.2;'),
-                Small(f"📥 Backup:\n{backup_text}", cls='text-secondary', style='font-size: 0.75em; line-height: 1.2; white-space: pre-line;'),
-                Small(f"📁 {backup_manager.backup_root}", cls='text-muted', style='font-size: 0.7em; word-break: break-all; line-height: 1.1;'),
-                Div(id='backup-restore-result', style='font-size: 0.8em; line-height: 1.3; word-wrap: break-word;'),  # Target for operation results
-                cls='backup-status-display'
-            )
-            
-            # Separate explicit buttons with clear labeling
-            backup_button = Button(
-                f'📤 Save all data ({current_total} records)', 
-                hx_post='/explicit-backup', 
-                hx_target='#backup-restore-result', 
-                hx_swap='innerHTML',
-                cls='secondary outline backup-button',
-                **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Saving..."'}
-            )
-            
-            restore_button = Button(
-                f'📥 Load all data ({backup_total} records)', 
-                hx_post='/explicit-restore', 
-                hx_swap='none',  # No immediate swap - let server restart handle the reload
-                cls='secondary outline restore-button',
-                **{'hx-on:click': '''
-                    this.setAttribute("aria-busy", "true"); 
-                    this.textContent = "Restarting server..."; 
-                    document.body.style.pointerEvents = "none";
-                    document.getElementById("poke-summary").innerHTML = '<div aria-busy="true" style="width: 22px; height: 22px; display: inline-block;"></div>';
-                '''}
-            )
-            
-        except Exception as e:
-            backup_status = Small(f"❌ Backup error: {str(e)}", cls='text-invalid')
+    # NOTE: Backup/restore interface removed - focus on automated rolling backups instead
     
     # Add version info display with AI SEO Software SVG
     nix_version = get_nix_version()
@@ -5333,20 +5278,12 @@ async def poke_flyout(request):
         cls='version-info-container'
     )
     
-    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Backup (Prod only), Clear Workflows, Reset Database, MCP Test
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, MCP Test
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
         Li(lock_button, cls='flyout-list-item'),
         Li(update_button, cls='flyout-list-item')
     ]
-    
-    # Add backup controls (Prod mode only)
-    if not is_dev_mode and backup_button:
-        list_items.append(Li(backup_button, cls='flyout-list-item'))
-    if not is_dev_mode and restore_button:
-        list_items.append(Li(restore_button, cls='flyout-list-item'))
-    if not is_dev_mode and backup_status:
-        list_items.append(Li(backup_status, cls='flyout-list-item backup-status-item'))
     
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
