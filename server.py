@@ -1333,6 +1333,9 @@ def append_to_conversation(message=None, role='user'):
     Returns:
         list: The complete conversation history after appending.
     """
+    # 🔧 CONVERSATION PERSISTENCE FIX: Access global flag at function start
+    global startup_restoration_in_progress
+    
     if message is None:
         return list(global_conversation_history)
     
@@ -1344,7 +1347,12 @@ def append_to_conversation(message=None, role='user'):
                 logger.warning(f"🔍 DUPLICATE DETECTED! Skipping append. Message: '{message[:50]}...'")
                 return list(global_conversation_history)
         
-    needs_system_message = len(global_conversation_history) == 0 or global_conversation_history[0]['role'] != 'system'
+    # 🔧 CONVERSATION PERSISTENCE FIX: Don't inject system prompt during startup restoration
+    needs_system_message = (
+        len(global_conversation_history) == 0 or 
+        global_conversation_history[0]['role'] != 'system'
+    ) and not startup_restoration_in_progress
+    
     if needs_system_message:
         global_conversation_history.appendleft(conversation[0])
     
@@ -2319,6 +2327,9 @@ class Pipulate:
         This is now the single source of truth for conversation history management.
         All messages entering the chat system must go through this method.
         """
+        # 🔧 CONVERSATION PERSISTENCE FIX: Access global flag at function start
+        global startup_restoration_in_progress
+        
         logger.debug(f"🔍 DEBUG: === STARTING pipulate.stream (role: {role}) ===")
         
         # 🔄 ITERATIVE EXECUTION MAGIC WORDS: Check for iterative loop trigger
@@ -2512,7 +2523,11 @@ class Pipulate:
                 await self.chat.broadcast("👁️ **AI EYES ACTIVATING** - Browser embodiment initializing...")
         
         # CENTRALIZED: All messages entering the stream are now appended here
-        append_to_conversation(message, role)
+        # 🔧 CONVERSATION PERSISTENCE FIX: Don't overwrite restored conversation during startup
+        if not startup_restoration_in_progress:
+            append_to_conversation(message, role)
+        else:
+            logger.debug(f"💾 SKIP_STARTUP_MESSAGE - Skipping stream message during conversation restoration: {message[:50]}...")
         
         if verbatim:
             try:
@@ -3836,6 +3851,9 @@ def build_endpoint_messages(endpoint):
     return endpoint_messages.get(endpoint, None)
 
 def build_endpoint_training(endpoint):
+    # 🔧 CONVERSATION PERSISTENCE FIX: Access global flag at function start
+    global startup_restoration_in_progress
+    
     endpoint_training = {}
     for workflow_name, workflow_instance in plugin_instances.items():
         if workflow_name not in endpoint_training:
@@ -3859,7 +3877,11 @@ def build_endpoint_training(endpoint):
         else:
             endpoint_training[''] = 'You were just switched to the home page.'
     
-    append_to_conversation(endpoint_training.get(endpoint, ''), 'system')
+    # 🔧 CONVERSATION PERSISTENCE FIX: Don't overwrite restored conversation during startup
+    if not startup_restoration_in_progress:
+        append_to_conversation(endpoint_training.get(endpoint, ''), 'system')
+    else:
+        logger.debug("💾 SKIP_STARTUP_MESSAGE - Skipping endpoint training message during conversation restoration")
     return
 COLOR_MAP = {'key': 'yellow', 'value': 'white', 'error': 'red', 'warning': 'yellow', 'success': 'green', 'debug': 'blue'}
 
@@ -6850,6 +6872,9 @@ async def warm_up_botify_schema_cache():
     AI assistants have instant access to complete Botify API schema without waiting
     for live API calls during development sessions.
     """
+    # 🔧 CONVERSATION PERSISTENCE FIX: Access global flag at function start
+    global startup_restoration_in_progress
+    
     await asyncio.sleep(7)  # Let startup complete first (staggered from startup message)
     
     try:
@@ -6918,7 +6943,11 @@ async def warm_up_botify_schema_cache():
                 try:
                     cache_msg = f"🔍 Botify Schema Cache Ready - {total_projects} projects with {total_fields:,} fields available for instant AI queries"
                     # Add to conversation history silently (not to visible chat)
-                    append_to_conversation(cache_msg, role='system')
+                    # 🔧 CONVERSATION PERSISTENCE FIX: Don't overwrite restored conversation during startup
+                    if not startup_restoration_in_progress:
+                        append_to_conversation(cache_msg, role='system')
+                    else:
+                        logger.debug("💾 SKIP_STARTUP_MESSAGE - Skipping Botify cache message during conversation restoration")
                 except Exception as msg_error:
                     logger.debug(f"Could not add cache warmup to conversation: {msg_error}")
         
@@ -6933,6 +6962,9 @@ async def prepare_local_llm_context():
     immediate capability awareness without overwhelming their smaller context windows.
     Unlike advanced AIs who can explore the system, local LLMs need pre-computed context.
     """
+    # 🔧 CONVERSATION PERSISTENCE FIX: Access global flag at function start
+    global startup_restoration_in_progress
+    
     await asyncio.sleep(10)  # Let startup and cache warmup complete first (fully staggered)
     
     try:
@@ -6992,7 +7024,11 @@ Your training materials are ready. Start your discovery sequence:
 Use your MCP tools to read training materials and discover your full capabilities."""
             
             # Add to conversation history silently (not to visible chat)
-            append_to_conversation(context_msg, role='system')
+            # 🔧 CONVERSATION PERSISTENCE FIX: Don't overwrite restored conversation during startup
+            if not startup_restoration_in_progress:
+                append_to_conversation(context_msg, role='system')
+            else:
+                logger.debug("💾 SKIP_STARTUP_MESSAGE - Skipping local LLM context message during conversation restoration")
             
         except Exception as msg_error:
             logger.debug(f"Could not add local LLM context to conversation: {msg_error}")
