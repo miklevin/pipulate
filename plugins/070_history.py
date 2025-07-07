@@ -375,8 +375,8 @@ class HistoryViewer:
                         margin-top: 0.5rem;
                         padding: 0.25rem 0.5rem;
                         font-size: 0.8rem;
-                        background-color: {role_style['color']};
-                        border: 1px solid {role_style['border_color']};
+                        background-color: {self.UI_CONSTANTS['assistant_color']};
+                        border: 1px solid {self.UI_CONSTANTS['assistant_color']};
                         color: white;
                         border-radius: {self.UI_CONSTANTS['border_radius']};
                     """
