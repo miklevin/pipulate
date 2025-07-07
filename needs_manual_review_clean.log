@@ -29,3 +29,6 @@ ebc8448 chore: Remove complex backup controls and related code - DEFERRED: serve
 d76e878 fix: Remove message truncation in history viewer - DEFERRED: plugins/070_history.py (1 conflict), potential variable reference error if resolved automatically
 ee8e1b0 feat: Implement "Now or Never" rule and refine tool calling behavior - DEFERRED: training/system_prompt.md conflicts, large patch (21KB)
 d1082a7 feat: Improve conversation statistics retrieval - DEFERRED: plugins/070_history.py conflicts
+973c0d4 feat: Enhance MCP client to handle diverse bracket formats - DEFERRED: Multiple files (server.py, training/system_prompt.md conflicts)
+575717e feat: Support square bracket notation and XML tool calls - DEFERRED: training/system_prompt.md conflicts
+4dbe99b feat: Improve conversation persistence test logic - DEFERRED: tests/conversation_persistence_test_final.py conflicts

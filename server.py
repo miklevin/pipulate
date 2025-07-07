@@ -3705,8 +3705,8 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     word_buffer = ""  # Buffer for word-boundary detection
     mcp_detected = False
     chunk_count = 0
-    # Match both full MCP requests and standalone tool tags
-    mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>)', re.DOTALL)
+    # Match both full MCP requests, standalone tool tags, AND square bracket notation
+    mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>|\[(?:Executing|Running|Calling):\s*([^\]]+)\])', re.DOTALL)
     
 
     logger.debug("🔍 DEBUG: === STARTING process_llm_interaction ===")
@@ -3758,8 +3758,41 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                             # Use regex to find a complete MCP block
                             match = mcp_pattern.search(full_content_buffer)
                             if match:
-                                mcp_block = match.group(1)
+                                mcp_block = match.group(1) if match.group(1) else match.group(0)
                                 mcp_detected = True # Flag that we've found our tool call
+                                
+                                # Check if this is square bracket notation and convert to XML format
+                                if mcp_block.startswith('[') and mcp_block.endswith(']'):
+                                    # Extract tool name and parameters from bracket notation
+                                    bracket_content = mcp_block[1:-1]  # Remove brackets
+                                    if ':' in bracket_content:
+                                        action_part, tool_part = bracket_content.split(':', 1)
+                                        tool_name = tool_part.strip()
+                                        
+                                        # Parse parameters if they exist (simple heuristic)
+                                        if ' ' in tool_name and not tool_name.startswith('"'):
+                                            # Likely has parameters: "tool_name param1 param2"
+                                            parts = tool_name.split(' ', 1)
+                                            tool_name = parts[0]
+                                            params_str = parts[1]
+                                            
+                                            # Convert to JSON-like format
+                                            mcp_block = f'''<mcp-request>
+  <tool name="{tool_name}">
+    <params>
+    {{"params": "{params_str}"}}
+    </params>
+  </tool>
+</mcp-request>'''
+                                        else:
+                                            # Simple tool call without parameters
+                                            mcp_block = f'''<mcp-request>
+  <tool name="{tool_name}" />
+</mcp-request>'''
+                                        
+                                        logger.info(f"🔧 MCP CLIENT: Square bracket notation detected and converted.")
+                                        logger.debug(f"🔧 ORIGINAL BRACKET: {match.group(0)}")
+                                        logger.debug(f"🔧 CONVERTED TO XML:\n{mcp_block}")
                                 
                                 logger.info(f"🔧 MCP CLIENT: Complete MCP tool call extracted.")
                                 logger.debug(f"🔧 MCP BLOCK:\n{mcp_block}")
