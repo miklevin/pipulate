@@ -3246,13 +3246,14 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                             # Use regex to find a complete MCP block
                             match = mcp_pattern.search(full_content_buffer)
                             if match:
-                                mcp_block = match.group(1) if match.group(1) else match.group(0)
-                                mcp_detected = True # Flag that we've found our tool call
-                                
-                                # Check if this is square bracket notation and convert to XML format
-                                if mcp_block.startswith('[') and mcp_block.endswith(']'):
-                                    # Extract tool name and parameters from bracket notation
-                                    bracket_content = mcp_block[1:-1]  # Remove brackets
+                                # Check if this is square bracket notation (group 2) or XML (group 1)
+                                if match.group(2):  # Square bracket notation detected
+                                    bracket_content = match.group(2)  # Content inside brackets
+                                    mcp_detected = True
+                                    
+                                    logger.info(f"🔧 MCP CLIENT: Square bracket notation detected: [{bracket_content}]")
+                                    
+                                    # Parse bracket content: "Executing: tool_name" or "Running: tool_name params"
                                     if ':' in bracket_content:
                                         action_part, tool_part = bracket_content.split(':', 1)
                                         tool_name = tool_part.strip()
@@ -3264,11 +3265,11 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                                             tool_name = parts[0]
                                             params_str = parts[1]
                                             
-                                            # Convert to JSON-like format
+                                            # Convert to JSON-like format for complex parameters
                                             mcp_block = f'''<mcp-request>
   <tool name="{tool_name}">
     <params>
-    {{"params": "{params_str}"}}
+    {{"search_term": "{params_str}"}}
     </params>
   </tool>
 </mcp-request>'''
@@ -3278,9 +3279,16 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
   <tool name="{tool_name}" />
 </mcp-request>'''
                                         
-                                        logger.info(f"🔧 MCP CLIENT: Square bracket notation detected and converted.")
+                                        logger.info(f"🔧 MCP CLIENT: Square bracket converted to XML.")
                                         logger.debug(f"🔧 ORIGINAL BRACKET: {match.group(0)}")
                                         logger.debug(f"🔧 CONVERTED TO XML:\n{mcp_block}")
+                                    else:
+                                        logger.error(f"🔧 MCP CLIENT: Invalid bracket format: {bracket_content}")
+                                        continue
+                                        
+                                else:  # XML format (group 1)
+                                    mcp_block = match.group(1) if match.group(1) else match.group(0)
+                                    mcp_detected = True
                                 
                                 logger.info(f"🔧 MCP CLIENT: Complete MCP tool call extracted.")
                                 logger.debug(f"🔧 MCP BLOCK:\n{mcp_block}")
