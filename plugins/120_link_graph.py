@@ -283,7 +283,7 @@ class LinkGraphVisualizer:
         steps = [Step(id='step_project', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_analysis', done='analysis_selection', show=f'Download Crawl: {analysis_template}', refill=False)]
         if self._should_include_crawler_step(analysis_template):
             steps.append(Step(id='step_crawler', done='crawler_basic', show=f'Download Crawl: {crawler_template}', refill=False))
-        steps.extend([Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False), Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False), Step(id='step_02b', done='node_attributes', show='Download: Node Attributes', refill=False), Step(id='step_05', done='visualization_ready', show='Prepare & Visualize Graph', refill=True), Step(id='step_06', done='visualization_complete', show='Visualization Complete', refill=False), Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)])
+        steps.extend([Step(id='step_webogs', done='webogs', show='Download Web Logs', refill=False), Step(id='step_gsc', done='gsc', show=f'Download Search Console: {gsc_template}', refill=False), Step(id='step_05', done='visualization_ready', show='Prepare & Visualize Graph', refill=True), Step(id='step_06', done='visualization_complete', show='Visualization Complete', refill=False), Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)])
         return steps
 
     def get_export_type_for_template_config(self, template_config_key):
