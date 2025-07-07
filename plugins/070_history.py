@@ -23,10 +23,7 @@ logger = logging.getLogger(__name__)
 
 # Import the append-only conversation system
 try:
-    from helpers.append_only_conversation import (
-        get_conversation_history, 
-        get_conversation_stats
-    )
+    from helpers.append_only_conversation import get_conversation_system
     CONVERSATION_SYSTEM_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Append-only conversation system not available: {e}")
@@ -84,13 +81,14 @@ class HistoryViewer:
         try:
             # Get conversation data
             messages = []
-            stats = {'total_messages': 0, 'role_distribution': {}, 'avg_length': 0}
+            stats = {'total_messages': 0, 'role_distribution': {}, 'average_message_length': 0}
             
             logger.debug(f"Conversation system available: {CONVERSATION_SYSTEM_AVAILABLE}")
             
             if CONVERSATION_SYSTEM_AVAILABLE:
-                messages = await get_conversation_history()
-                stats = await get_conversation_stats()
+                conv_system = get_conversation_system()
+                messages = conv_system.get_conversation_list()
+                stats = conv_system.get_conversation_stats()
                 logger.debug(f"Retrieved {len(messages)} messages from conversation system")
                 logger.debug(f"Stats: {stats}")
             else:
@@ -119,8 +117,9 @@ class HistoryViewer:
             if not CONVERSATION_SYSTEM_AVAILABLE:
                 return self.render_error_page("Conversation system not available")
             
-            messages = await get_conversation_history()
-            stats = await get_conversation_stats()
+            conv_system = get_conversation_system()
+            messages = conv_system.get_conversation_list()
+            stats = conv_system.get_conversation_stats()
             
             # Filter messages if needed
             if role_filter != 'all':
@@ -142,7 +141,8 @@ class HistoryViewer:
                 if not CONVERSATION_SYSTEM_AVAILABLE:
                     return self.render_copy_error("Conversation system not available")
                 
-                messages = await get_conversation_history()
+                conv_system = get_conversation_system()
+                messages = conv_system.get_conversation_list()
                 content = self.format_conversation_for_clipboard(messages)
                 return self.render_copy_success("Entire conversation copied to clipboard!", content)
             
@@ -151,7 +151,8 @@ class HistoryViewer:
                 if not CONVERSATION_SYSTEM_AVAILABLE:
                     return self.render_copy_error("Conversation system not available")
                 
-                messages = await get_conversation_history()
+                conv_system = get_conversation_system()
+                messages = conv_system.get_conversation_list()
                 if 0 <= message_index < len(messages):
                     message = messages[message_index]
                     content = self.format_message_for_clipboard(message)
@@ -205,7 +206,7 @@ class HistoryViewer:
             H3("📊 Conversation Statistics", style=f"color: {self.UI_CONSTANTS['text_color']}; margin-bottom: 1rem;"),
             Div(
                 Div(f"📈 Total Messages: {stats.get('total_messages', 0)}", style="margin-bottom: 0.5rem;"),
-                Div(f"📏 Average Length: {stats.get('avg_length', 0):.0f} characters", style="margin-bottom: 0.5rem;"),
+                Div(f"📏 Average Length: {stats.get('average_message_length', 0):.0f} characters", style="margin-bottom: 0.5rem;"),
                 Div(*role_badges, style="margin-top: 1rem;"),
                 style=f"color: {self.UI_CONSTANTS['text_color']};"
             ),
