@@ -8,7 +8,8 @@ import sys
 import fastlite
 from fasthtml.common import *
 from loguru import logger
-from server import DB_FILENAME, title_name, EXTERNAL_LINK_SVG
+from server import DB_FILENAME, title_name
+from config import PCONFIG
 from common import BaseCrud
 
 # ROLES constant is now used for discovery, not for defining the roles themselves.
@@ -348,7 +349,7 @@ class CrudUI(PluginIdentityManager):
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
                     ". Chat not working? Optionally install ",
                     A("Ollama", 
-                      NotStr(EXTERNAL_LINK_SVG),
+                      NotStr(PCONFIG['SVG_ICONS']['EXTERNAL_LINK']),
                       href="https://ollama.com/", target="_blank",
                       cls="link-primary-bold",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",

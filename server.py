@@ -599,14 +599,6 @@ def restore_conversation_on_startup():
         logger.error(f"💾 CONVERSATION_RESTORE_ERROR - Failed to restore conversation history: {e}")
         return False
 
-# Centralized SVG definitions for reuse across the application
-INFO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'''
-
-EXTERNAL_LINK_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-external-link"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>'''
-
-SETTINGS_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'''
-
-
 
 # ================================================================
 # MCP TOOL REGISTRY - Generic Tool Dispatch System
@@ -4594,7 +4586,7 @@ def create_env_menu():
         Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Development environment', data_testid='env-dev-radio'), 
         'DEV',
         Span(
-            NotStr(INFO_SVG),
+            NotStr(PCONFIG['SVG_ICONS']['INFO']),
             data_tooltip='Development mode: Experiment and play! Freely reset database.',
             data_placement='left',
             aria_label='Development environment information',
@@ -4611,7 +4603,7 @@ def create_env_menu():
         Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Production environment', data_testid='env-prod-radio'), 
         'Prod',
         Span(
-            NotStr(INFO_SVG),
+            NotStr(PCONFIG['SVG_ICONS']['INFO']),
             data_tooltip='Production mode: Automatically backs up Profile and Tasks data.',
             data_placement='left',
             aria_label='Production environment information',
@@ -4660,7 +4652,7 @@ def create_nav_menu():
     # Use external SVG file for poke button settings icon
     nav_flyout_panel = Div(id='nav-flyout-panel', cls='nav-flyout-panel hidden')
     poke_section = Details(
-        Summary(NotStr(SETTINGS_SVG), cls='inline-nowrap nav-poke-button', id='poke-summary', hx_get='/poke-flyout', hx_target='#nav-flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML'),
+                        Summary(NotStr(PCONFIG['SVG_ICONS']['SETTINGS']), cls='inline-nowrap nav-poke-button', id='poke-summary', hx_get='/poke-flyout', hx_target='#nav-flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML'),
         nav_flyout_panel,
         cls='dropdown nav-poke-section',
         id='poke-dropdown-menu'
@@ -4704,7 +4696,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     menu_items = []
     profile_locked = db.get('profile_locked', '0') == '1'
     menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', aria_label='Lock or unlock profile editing'), 'Lock Profile',         Span(
-            NotStr(INFO_SVG),
+            NotStr(PCONFIG['SVG_ICONS']['INFO']),
             data_tooltip='Prevent accidental profile changes. When locked, only selected profile is shown.',
             data_placement='left',
             aria_label='Profile lock information',
@@ -4721,7 +4713,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
             menu_items.append(Li(Label(
                 f'Edit {plugin_display_name}',
                 Span(
-                    NotStr(INFO_SVG),
+                    NotStr(PCONFIG['SVG_ICONS']['INFO']),
                     data_tooltip='Create, modify, and organize Customer profiles. Each profile has its own set of Tasks.',
                     data_placement='left',
                     aria_label='Edit profiles information',
@@ -4866,7 +4858,7 @@ def create_home_menu_item(menux):
         home_radio, 
         PCONFIG['HOME_MENU_ITEM'],
         Span(
-            NotStr(INFO_SVG),
+            NotStr(PCONFIG['SVG_ICONS']['INFO']),
             data_tooltip='Customize by adding and sorting groups of Plugins (Roles)',
             data_placement='left',
             aria_label='Roles information',
