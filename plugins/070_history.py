@@ -88,6 +88,8 @@ class HistoryViewer:
             if CONVERSATION_SYSTEM_AVAILABLE:
                 conv_system = get_conversation_system()
                 messages = conv_system.get_conversation_list()
+                # Reverse order to show newest messages first
+                messages = list(reversed(messages))
                 stats = conv_system.get_conversation_stats()
                 logger.debug(f"Retrieved {len(messages)} messages from conversation system")
                 logger.debug(f"Stats: {stats}")
@@ -119,6 +121,8 @@ class HistoryViewer:
             
             conv_system = get_conversation_system()
             messages = conv_system.get_conversation_list()
+            # Reverse order to show newest messages first
+            messages = list(reversed(messages))
             stats = conv_system.get_conversation_stats()
             
             # Filter messages if needed
@@ -143,6 +147,8 @@ class HistoryViewer:
                 
                 conv_system = get_conversation_system()
                 messages = conv_system.get_conversation_list()
+                # Reverse order to show newest messages first
+                messages = list(reversed(messages))
                 content = self.format_conversation_for_clipboard(messages)
                 return self.render_copy_success("Entire conversation copied to clipboard!", content)
             
@@ -153,6 +159,8 @@ class HistoryViewer:
                 
                 conv_system = get_conversation_system()
                 messages = conv_system.get_conversation_list()
+                # Reverse order to show newest messages first
+                messages = list(reversed(messages))
                 if 0 <= message_index < len(messages):
                     message = messages[message_index]
                     content = self.format_message_for_clipboard(message)
@@ -259,7 +267,7 @@ class HistoryViewer:
                     ),
                     Button(
                         "📋 Copy All",
-                        onclick="copyConversation()",
+                        onclick="copyConversation(event)",
                         style=f"""
                             background-color: {self.UI_CONSTANTS['assistant_color']};
                             border: 1px solid {self.UI_CONSTANTS['border_color']};
@@ -370,7 +378,7 @@ class HistoryViewer:
                 ),
                 Button(
                     "📋 Copy",
-                    onclick=f"copyMessage({index})",
+                    onclick=f"copyMessage({index}, event)",
                     style=f"""
                         margin-top: 0.5rem;
                         padding: 0.25rem 0.5rem;
@@ -398,7 +406,13 @@ class HistoryViewer:
         """Render JavaScript for copy functionality"""
         return Script(f"""
             // Copy individual message
-            function copyMessage(index) {{
+            function copyMessage(index, event) {{
+                // Prevent event bubbling to avoid navigation interference
+                if (event) {{
+                    event.preventDefault();
+                    event.stopPropagation();
+                }}
+                
                 const messageDiv = document.querySelector(`[data-message-index="${{index}}"]`);
                 if (messageDiv) {{
                     const content = messageDiv.getAttribute('data-message-content');
@@ -414,7 +428,13 @@ class HistoryViewer:
             }}
             
             // Copy entire conversation
-            function copyConversation() {{
+            function copyConversation(event) {{
+                // Prevent event bubbling to avoid navigation interference
+                if (event) {{
+                    event.preventDefault();
+                    event.stopPropagation();
+                }}
+                
                 fetch('/history/copy', {{
                     method: 'POST',
                     headers: {{
