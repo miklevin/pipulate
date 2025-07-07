@@ -24,8 +24,8 @@ CONVERSATION_DATABASE = "data/discussion.db"
 SERVER_URL = "http://localhost:5001"
 CHAT_TEXTAREA = 'textarea[name="msg"]'
 CHAT_SUBMIT_BUTTON = 'button[type="submit"]'
-TEST_MESSAGE_PHASE_1 = "My name is Mike. Please remember this for our conversation."
-TEST_MESSAGE_PHASE_3 = "What is my name?"
+TEST_MESSAGE_PHASE_1 = "The test word is flibbertigibbet. Please remember this for our conversation."
+TEST_MESSAGE_PHASE_3 = "What is the test word I mentioned?"
 
 # Critical timing constants for LLM streaming
 LLM_RESPONSE_INITIAL_WAIT = 3     # Wait for response to start
@@ -239,32 +239,32 @@ class ConversationPersistenceTestFinal:
             import json
             conversation_data = json.loads(result[0])
             
-            # Look for messages containing "Mike"
-            mike_messages = []
+            # Look for messages containing "flibbertigibbet"
+            test_word_messages = []
             user_message_found = False
             ai_response_found = False
             
             for msg in conversation_data:
                 if isinstance(msg, dict) and 'content' in msg and 'role' in msg:
-                    if 'Mike' in msg['content']:
-                        mike_messages.append(msg)
-                        if msg['role'] == 'user' and 'My name is Mike' in msg['content']:
+                    if 'flibbertigibbet' in msg['content']:
+                        test_word_messages.append(msg)
+                        if msg['role'] == 'user' and 'test word is flibbertigibbet' in msg['content']:
                             user_message_found = True
-                        elif msg['role'] == 'assistant' and 'Mike' in msg['content']:
+                        elif msg['role'] == 'assistant' and 'flibbertigibbet' in msg['content']:
                             ai_response_found = True
             
             success = user_message_found and ai_response_found
             
             print(f"   🧠 User message found: {user_message_found}")
             print(f"   🤖 AI response found: {ai_response_found}")
-            print(f"   📊 Total Mike messages: {len(mike_messages)}")
+            print(f"   📊 Total test word messages: {len(test_word_messages)}")
             print(f"   📊 Total conversation messages: {len(conversation_data)}")
             
             return {
                 'success': success,
                 'user_message_found': user_message_found,
                 'ai_response_found': ai_response_found,
-                'total_mike_messages': len(mike_messages),
+                'total_test_word_messages': len(test_word_messages),
                 'total_conversation_messages': len(conversation_data)
             }
             
