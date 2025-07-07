@@ -530,11 +530,19 @@ def save_conversation_to_db():
     """Save the current conversation history to the database for persistence across server restarts.
     
     USING RAW SQLITE3: Direct database operations to ensure actual persistence.
+    BACKUP PROTECTION: Creates backup before save operation.
     """
     import sqlite3
     import json
     
     try:
+        # Create backup before save operation
+        try:
+            from helpers.conversation_backup_system import create_conversation_backup
+            create_conversation_backup("before_conversation_save")
+        except Exception as backup_error:
+            logger.warning(f"💾 BACKUP WARNING: Could not create conversation backup: {backup_error}")
+        
         if global_conversation_history:
             # Convert deque to list and serialize to JSON
             conversation_data = json.dumps(list(global_conversation_history), default=str)
@@ -563,9 +571,22 @@ def save_conversation_to_db():
                 logger.info(f"💾 FINDER_TOKEN: CONVERSATION_SAVED_RAW_SQL - {saved_count} messages VERIFIED in database")
                 
                 # ASSERT: Verify the count matches
-                if saved_count != len(global_conversation_history):
-                    raise Exception(f"RAW SQL WRITE FAILED: Expected {len(global_conversation_history)} messages, database has {saved_count}")
+                count_before_save = len(global_conversation_history)
+                if saved_count != count_before_save:
+                    # Create emergency backup before failing
+                    try:
+                        from helpers.conversation_backup_system import create_conversation_backup
+                        create_conversation_backup("emergency_save_mismatch")
+                    except:
+                        pass
+                    raise Exception(f"RAW SQL WRITE FAILED: Expected {count_before_save} messages, database has {saved_count}")
             else:
+                # Create emergency backup before failing
+                try:
+                    from helpers.conversation_backup_system import create_conversation_backup
+                    create_conversation_backup("emergency_no_data_after_insert")
+                except:
+                    pass
                 raise Exception("RAW SQL WRITE FAILED: No data found after INSERT")
                 
         else:
@@ -622,8 +643,8 @@ Continue the conversation with immediate tool usage, not promises."""
 def load_conversation_from_db():
     """Load conversation history from the database on server startup.
     
-    SMART LOADING: Only loads if current conversation is empty or database has more messages.
-    This prevents overwriting newer conversation data during startup.
+    SMART MERGING: Merges database content with current conversation instead of replacing.
+    This preserves system prompts added during startup while restoring user conversation.
     
     USING RAW SQLITE3: Direct database operations to ensure actual reads.
     """
@@ -632,6 +653,13 @@ def load_conversation_from_db():
     global global_conversation_history
     
     try:
+        # Create backup before any conversation operations
+        try:
+            from helpers.conversation_backup_system import create_conversation_backup
+            create_conversation_backup("before_conversation_load")
+        except Exception as backup_error:
+            logger.warning(f"💾 BACKUP WARNING: Could not create conversation backup: {backup_error}")
+        
         # RAW SQLITE3: Direct database connection and read
         conn = sqlite3.connect('data/discussion.db')
         cursor = conn.cursor()
@@ -648,9 +676,9 @@ def load_conversation_from_db():
                 current_count = len(global_conversation_history)
                 db_count = len(restored_messages)
                 
-                # SMART LOADING: Only load if current conversation is empty or database has more messages
+                # SMART MERGING: Merge database content with current conversation
                 if current_count == 0:
-                    # Empty conversation - safe to load
+                    # Empty conversation - safe to load completely
                     global_conversation_history.clear()
                     global_conversation_history.extend(restored_messages)
                     logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED_RAW_SQL - {db_count} messages restored from database (empty conversation)")
@@ -661,22 +689,34 @@ def load_conversation_from_db():
                         logger.info("🧠 FINDER_TOKEN: BEHAVIORAL_REINFORCEMENT_STARTUP - 'Do It Now' protocol activated after restoration")
                     
                     return True
-                elif db_count > current_count:
-                    # Database has more messages - load it
-                    global_conversation_history.clear()
-                    global_conversation_history.extend(restored_messages)
-                    logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED_RAW_SQL - {db_count} messages restored from database (database newer)")
+                else:
+                    # Current conversation has messages (likely system prompts added during startup)
+                    # APPEND-ONLY STRATEGY: Only append new messages from database that aren't already present
                     
-                    # 🧠 BEHAVIORAL REINFORCEMENT: Inject behavioral reminders after restoration
-                    behavioral_injected = inject_behavioral_reinforcement()
-                    if behavioral_injected:
-                        logger.info("🧠 FINDER_TOKEN: BEHAVIORAL_REINFORCEMENT_STARTUP - 'Do It Now' protocol activated after restoration")
+                    # Convert current conversation to list for comparison
+                    current_messages = list(global_conversation_history)
+                    
+                    # Find messages in database that aren't in current conversation
+                    new_messages_to_add = []
+                    for db_msg in restored_messages:
+                        # Check if this message already exists in current conversation
+                        message_exists = any(
+                            current_msg.get('content') == db_msg.get('content') and 
+                            current_msg.get('role') == db_msg.get('role') 
+                            for current_msg in current_messages
+                        )
+                        if not message_exists:
+                            new_messages_to_add.append(db_msg)
+                    
+                    # Append new messages without clearing existing ones
+                    for new_msg in new_messages_to_add:
+                        global_conversation_history.append(new_msg)
+                    
+                    final_count = len(global_conversation_history)
+                    logger.info(f"💾 FINDER_TOKEN: CONVERSATION_MERGED_RAW_SQL - Started with {current_count}, DB had {db_count}, added {len(new_messages_to_add)} new messages, final count: {final_count}")
                     
                     return True
-                else:
-                    # Current conversation has same or more messages - don't overwrite
-                    logger.info(f"💾 FINDER_TOKEN: CONVERSATION_PRESERVE_RAW_SQL - Keeping current {current_count} messages, database has {db_count}")
-                    return False
+        
         logger.debug("💾 CONVERSATION_RESTORED_RAW_SQL - No saved conversation history found")
         return False
     except Exception as e:

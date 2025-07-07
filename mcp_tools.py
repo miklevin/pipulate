@@ -7511,6 +7511,117 @@ register_mcp_tool("conversation_history_clear", conversation_history_clear)
 register_mcp_tool("conversation_history_restore", conversation_history_restore)
 register_mcp_tool("conversation_history_stats", conversation_history_stats)
 
+# 💾 CONVERSATION BACKUP MANAGEMENT TOOLS
+
+async def conversation_backup_status(params: dict) -> dict:
+    """Get the status of conversation database backups."""
+    try:
+        from helpers.conversation_backup_system import backup_manager
+        
+        status = backup_manager.get_backup_status()
+        
+        return {
+            'success': True,
+            'backup_status': status,
+            'backup_dir': status['backup_dir'],
+            'source_exists': status['source_exists'],
+            'available_backups': list(status['backups'].keys()),
+            'backup_details': status['backups']
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting conversation backup status: {e}")
+        return {'success': False, 'error': str(e)}
+
+async def conversation_backup_create(params: dict) -> dict:
+    """Create a new conversation database backup."""
+    try:
+        from helpers.conversation_backup_system import create_conversation_backup
+        
+        reason = params.get('reason', 'manual_backup')
+        
+        success = create_conversation_backup(reason)
+        
+        if success:
+            return {
+                'success': True,
+                'message': f'Conversation backup created successfully: {reason}',
+                'backup_reason': reason
+            }
+        else:
+            return {
+                'success': False,
+                'error': 'Failed to create backup - check logs for details'
+            }
+        
+    except Exception as e:
+        logger.error(f"Error creating conversation backup: {e}")
+        return {'success': False, 'error': str(e)}
+
+async def conversation_backup_restore(params: dict) -> dict:
+    """Restore conversation database from backup."""
+    try:
+        from helpers.conversation_backup_system import restore_conversation_from_backup
+        
+        backup_type = params.get('backup_type', 'son')
+        
+        if backup_type not in ['son', 'father', 'grandfather']:
+            return {
+                'success': False,
+                'error': 'Invalid backup_type. Must be: son, father, or grandfather'
+            }
+        
+        success = restore_conversation_from_backup(backup_type)
+        
+        if success:
+            return {
+                'success': True,
+                'message': f'Conversation restored from {backup_type} backup successfully',
+                'backup_type': backup_type,
+                'note': 'Server restart recommended to reload conversation history'
+            }
+        else:
+            return {
+                'success': False,
+                'error': f'Failed to restore from {backup_type} backup - check logs for details'
+            }
+        
+    except Exception as e:
+        logger.error(f"Error restoring conversation backup: {e}")
+        return {'success': False, 'error': str(e)}
+
+async def conversation_backup_verify(params: dict) -> dict:
+    """Verify the integrity of conversation database backups."""
+    try:
+        from helpers.conversation_backup_system import backup_manager
+        
+        backup_type = params.get('backup_type', 'son')
+        
+        if backup_type not in ['son', 'father', 'grandfather']:
+            return {
+                'success': False,
+                'error': 'Invalid backup_type. Must be: son, father, or grandfather'
+            }
+        
+        is_valid, message = backup_manager.verify_backup_integrity(backup_type)
+        
+        return {
+            'success': True,
+            'backup_type': backup_type,
+            'is_valid': is_valid,
+            'verification_message': message
+        }
+        
+    except Exception as e:
+        logger.error(f"Error verifying conversation backup: {e}")
+        return {'success': False, 'error': str(e)}
+
+# Register the conversation backup tools
+register_mcp_tool("conversation_backup_status", conversation_backup_status)
+register_mcp_tool("conversation_backup_create", conversation_backup_create)
+register_mcp_tool("conversation_backup_restore", conversation_backup_restore)
+register_mcp_tool("conversation_backup_verify", conversation_backup_verify)
+
 # 🧠 BEHAVIORAL REINFORCEMENT TOOL - Manual "Do It Now" Protocol Activation
 
 async def behavioral_reinforcement_inject(params: dict) -> dict:
