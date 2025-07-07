@@ -676,6 +676,13 @@ def load_conversation_from_db():
                 current_count = len(global_conversation_history)
                 db_count = len(restored_messages)
                 
+                # 🔍 DIAGNOSTIC: Log what messages were actually restored from database
+                logger.info(f"💾 FINDER_TOKEN: DB_RESTORATION_ANALYSIS - Found {db_count} messages in database:")
+                for i, msg in enumerate(restored_messages):
+                    content_preview = (msg.get('content', '')[:50] + '...') if len(msg.get('content', '')) > 50 else msg.get('content', '')
+                    role = msg.get('role', 'unknown')
+                    logger.info(f"💾 FINDER_TOKEN: DB_MESSAGE_{i} - Role: {role}, Content: '{content_preview}'")
+                
                 # SMART MERGING: Merge database content with current conversation
                 if current_count == 0:
                     # Empty conversation - safe to load completely
@@ -698,13 +705,19 @@ def load_conversation_from_db():
                     
                     # Find messages in database that aren't in current conversation
                     new_messages_to_add = []
-                    for db_msg in restored_messages:
+                    for i, db_msg in enumerate(restored_messages):
                         # Check if this message already exists in current conversation
                         message_exists = any(
                             current_msg.get('content') == db_msg.get('content') and 
                             current_msg.get('role') == db_msg.get('role') 
                             for current_msg in current_messages
                         )
+                        
+                        # 🔍 DIAGNOSTIC: Log each comparison decision
+                        content_preview = (db_msg.get('content', '')[:50] + '...') if len(db_msg.get('content', '')) > 50 else db_msg.get('content', '')
+                        role = db_msg.get('role', 'unknown')
+                        logger.info(f"💾 FINDER_TOKEN: MERGE_DECISION_{i} - Role: {role}, Content: '{content_preview}', Exists: {message_exists}")
+                        
                         if not message_exists:
                             new_messages_to_add.append(db_msg)
                     
@@ -1300,6 +1313,9 @@ else:
 global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}]
 
+# 🔧 CONVERSATION PERSISTENCE FIX: Prevent auto-save during startup restoration
+startup_restoration_in_progress = False  # Trigger watchdog restart
+
 def append_to_conversation(message=None, role='user'):
     """Append a message to the global conversation history.
 
@@ -1341,14 +1357,19 @@ def append_to_conversation(message=None, role='user'):
         count_before_save = len(global_conversation_history)
         
         # Save to database
-        save_conversation_to_db()
+        # 🔧 CONVERSATION PERSISTENCE FIX: Skip auto-save during startup restoration
+        if not startup_restoration_in_progress:
+            save_conversation_to_db()
+        else:
+            logger.debug("💾 SKIP_AUTO_SAVE - Startup restoration in progress, skipping auto-save")
         
         # ASSERT: Verify the database actually contains our data
+        # 🔧 CONVERSATION PERSISTENCE FIX: Skip verification during startup restoration
         import sqlite3
         import json
         import os
         
-        if os.path.exists('data/discussion.db'):
+        if not startup_restoration_in_progress and os.path.exists('data/discussion.db'):
             conn = sqlite3.connect('data/discussion.db')
             cursor = conn.cursor()
             cursor.execute('SELECT value FROM store WHERE key = "llm_conversation_history"')
@@ -4422,6 +4443,12 @@ async def startup_event():
     
     # 💬 RESTORE CONVERSATION HISTORY - Load persistent conversation from database
     logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_STARTUP - Attempting to restore conversation history from database")
+    
+    # 🔧 CONVERSATION PERSISTENCE FIX: Set flag to prevent auto-save during startup
+    global startup_restoration_in_progress
+    startup_restoration_in_progress = True
+    logger.debug("💾 STARTUP_RESTORATION_FLAG - Set to prevent auto-save during startup")
+    
     conversation_restored = load_conversation_from_db()
     if conversation_restored:
         logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORE_SUCCESS - LLM conversation history restored from previous session")
@@ -4429,13 +4456,24 @@ async def startup_event():
         logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_NONE - Starting with fresh conversation history")
     
     # Send environment mode message after a short delay to let UI initialize
-    asyncio.create_task(send_startup_environment_message())
+    startup_task1 = asyncio.create_task(send_startup_environment_message())
     
     # Warm up Botify schema cache for instant AI enlightenment
-    asyncio.create_task(warm_up_botify_schema_cache())
+    startup_task2 = asyncio.create_task(warm_up_botify_schema_cache())
     
     # Pre-seed local LLM context for immediate capability awareness
-    asyncio.create_task(prepare_local_llm_context())
+    startup_task3 = asyncio.create_task(prepare_local_llm_context())
+    
+    # 🔧 CONVERSATION PERSISTENCE FIX: Wait for startup tasks to complete before clearing flag
+    try:
+        await asyncio.gather(startup_task1, startup_task2, startup_task3)
+        logger.debug("💾 STARTUP_TASKS_COMPLETE - All startup async tasks finished")
+    except Exception as e:
+        logger.warning(f"💾 STARTUP_TASKS_WARNING - Some startup tasks failed: {e}")
+    
+    # 🔧 CONVERSATION PERSISTENCE FIX: NOW it's safe to clear the flag
+    startup_restoration_in_progress = False
+    logger.debug("💾 STARTUP_RESTORATION_FLAG - Cleared after startup tasks completed, auto-save now enabled")
     
     # 🏷️ ENVIRONMENT MODE BANNER - Show current operating mode
     current_env = get_current_environment()
