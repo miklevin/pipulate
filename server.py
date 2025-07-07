@@ -527,15 +527,7 @@ logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Conversation lengt
 # 💬 PERSISTENT CONVERSATION HISTORY - SURVIVES SERVER RESTARTS
 # ================================================================
 
-def save_conversation_to_db():
-    """DEPRECATED: Replaced by append-only architecture.
-    
-    This function is now a no-op since the new system saves each message
-    immediately upon append. Keeping for backward compatibility.
-    """
-    # No-op: New system auto-saves each message
-    logger.debug("💾 FINDER_TOKEN: CONVERSATION_SAVE_DEPRECATED - Using append-only system (auto-saves)")
-    pass
+# 🧹 LEGACY PURGED: save_conversation_to_db() removed - new system auto-saves on append
 
 def inject_behavioral_reinforcement():
     """Inject behavioral reinforcement reminders to prevent 'promise trap' behavior.
@@ -578,18 +570,12 @@ Continue the conversation with immediate tool usage, not promises."""
         logger.error(f"🧠 BEHAVIORAL_REINFORCEMENT_ERROR - Failed to inject behavioral reminder: {e}")
         return False
 
-def load_conversation_from_db():
-    """Load conversation history using the new append-only system.
-    
-    ARCHITECTURAL IMPROVEMENT: No merging complexity, no JSON blob vulnerability.
-    The new system maintains all messages as individual records.
-    """
+def restore_conversation_on_startup():
+    """Restore conversation history on server startup using append-only system."""
     global global_conversation_history
     
     try:
         conv_system = get_global_conversation_system()
-        
-        # Get conversation from new system
         conversation_list = conv_system.get_conversation_list()
         
         if conversation_list:
@@ -597,7 +583,7 @@ def load_conversation_from_db():
             global_conversation_history.clear()
             global_conversation_history.extend(conversation_list)
             
-            logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED_NEW_ARCHITECTURE - {len(conversation_list)} messages loaded from append-only system")
+            logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED - {len(conversation_list)} messages loaded from append-only system")
             
             # 🧠 BEHAVIORAL REINFORCEMENT: Inject behavioral reminders after restoration
             behavioral_injected = inject_behavioral_reinforcement()
@@ -606,11 +592,11 @@ def load_conversation_from_db():
             
             return True
         else:
-            logger.debug("💾 CONVERSATION_RESTORED_NEW_ARCHITECTURE - No saved conversation history found")
+            logger.debug("💾 CONVERSATION_RESTORED - No saved conversation history found")
             return False
             
     except Exception as e:
-        logger.error(f"💾 CONVERSATION_RESTORE_ERROR_NEW_ARCHITECTURE - Failed to restore conversation history: {e}")
+        logger.error(f"💾 CONVERSATION_RESTORE_ERROR - Failed to restore conversation history: {e}")
         return False
 
 # Centralized SVG definitions for reuse across the application
@@ -4337,7 +4323,7 @@ async def startup_event():
     startup_restoration_in_progress = True
     logger.debug("💾 STARTUP_RESTORATION_FLAG - Set to prevent auto-save during startup")
     
-    conversation_restored = load_conversation_from_db()
+    conversation_restored = restore_conversation_on_startup()
     if conversation_restored:
         logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORE_SUCCESS - LLM conversation history restored from previous session")
     else:
@@ -6976,9 +6962,8 @@ def restart_server():
             # 🤖 AI RAPID RESTART: Watchdog restart with complete log transparency for AI assistants
             logger.info("🤖 AI_RAPID_RESTART: Watchdog-triggered restart - logs capture all events for AI transparency")
             
-            # 💬 SAVE CONVERSATION BEFORE RESTART - Ensure persistence across server restarts
-            logger.info("💬 FINDER_TOKEN: CONVERSATION_SAVE_RESTART - Saving conversation history before restart")
-            save_conversation_to_db()
+            # 🧹 LEGACY PURGED: No manual save needed - append-only system auto-saves on each message
+            logger.info("💬 FINDER_TOKEN: CONVERSATION_AUTO_SAVE - Conversation persisted via append-only system")
             
             # Set environment variable to indicate this is a watchdog restart
             os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
@@ -7066,9 +7051,8 @@ def run_server_with_watchdog():
         uvicorn.run(app, host='0.0.0.0', port=5001, log_level=log_level, access_log=DEBUG_MODE, log_config=log_config)
     except KeyboardInterrupt:
         log.event('server', 'Server shutdown requested by user')
-        # 💬 SAVE CONVERSATION ON SHUTDOWN - Ensure persistence when user stops server
-        logger.info("💬 FINDER_TOKEN: CONVERSATION_SAVE_SHUTDOWN - Saving conversation history on user shutdown")
-        save_conversation_to_db()
+        # 🧹 LEGACY PURGED: No manual save needed - append-only system auto-saves on each message
+        logger.info("💬 FINDER_TOKEN: CONVERSATION_AUTO_SAVE - Conversation persisted via append-only system")
         observer.stop()
     except Exception as e:
         log.error('Server error', e)

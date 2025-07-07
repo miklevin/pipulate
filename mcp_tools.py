@@ -7341,7 +7341,7 @@ async def conversation_history_clear(params: dict) -> dict:
                 backup_info = {'backup_created': False, 'backup_error': str(e)}
         
         server_module.global_conversation_history.clear()
-        server_module.save_conversation_to_db()
+        # 🧹 LEGACY PURGED: No manual save needed - append-only system auto-saves on each message
         
         logger.info(f"💬 FINDER_TOKEN: CONVERSATION_CLEARED - Cleared {current_count} messages")
         
@@ -7407,7 +7407,7 @@ async def conversation_history_restore(params: dict) -> dict:
         else:
             return {'success': False, 'error': f'Invalid merge_mode: {merge_mode}. Use "replace" or "append".'}
         
-        server_module.save_conversation_to_db()
+        # 🧹 LEGACY PURGED: No manual save needed - append-only system auto-saves on each message
         
         restored_count = len(restored_messages)
         final_count = len(server_module.global_conversation_history)
