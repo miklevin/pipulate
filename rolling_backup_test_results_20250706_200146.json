@@ -1,0 +1,77 @@
+{
+  "success": true,
+  "test_name": "rolling_backup_verification",
+  "results": {
+    "baseline": {
+      "timestamp": "2025-07-06T20:01:12.811608",
+      "source_databases": {
+        "ai_keychain": {
+          "exists": true,
+          "size": 28672,
+          "mtime": 1751766596.340083
+        },
+        "discussion": {
+          "exists": true,
+          "size": 49152,
+          "mtime": 1751846178.2909086
+        },
+        "app_prod": {
+          "exists": true,
+          "size": 0,
+          "mtime": 1751474069.6063154
+        },
+        "app_dev": {
+          "exists": true,
+          "size": 0,
+          "mtime": 1751412076.608147
+        }
+      },
+      "backup_structure": {
+        "daily": 1,
+        "weekly": 0,
+        "monthly": 0
+      }
+    },
+    "verification": {
+      "success": true,
+      "details": {
+        "ai_keychain": {
+          "backed_up": true,
+          "size": 28672,
+          "path": "daily/2025-07-06/ai_keychain.db"
+        },
+        "discussion": {
+          "backed_up": true,
+          "size": 49152,
+          "path": "daily/2025-07-06/discussion.db"
+        },
+        "app_prod": {
+          "backed_up": true,
+          "size": 0,
+          "path": "daily/2025-07-06/app_prod.db"
+        },
+        "app_dev": {
+          "backed_up": true,
+          "size": 0,
+          "path": "daily/2025-07-06/app_dev.db"
+        }
+      },
+      "backup_counts": {
+        "ai_keychain": 1,
+        "discussion": 1,
+        "app_prod": 1,
+        "app_dev": 1
+      },
+      "missing_backups": [],
+      "retention_counts": {
+        "daily": 1,
+        "weekly": 0,
+        "monthly": 0
+      }
+    },
+    "databases_backed_up": 4,
+    "critical_databases_backed_up": 3,
+    "backup_location": "/home/mike/.pipulate/backups"
+  },
+  "timestamp": "2025-07-06T20:01:46.881548"
+}

@@ -1,0 +1,1056 @@
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last 10 server runs for debugging context
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: MCP_DISCOVERY_SCRIPT - For a full list of all MCP tools, run: .venv/bin/python discover_mcp_tools.py
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃                        ______________    ____  ________  ______                       ┃
+┃                       / ___/_  __/   |  / __ \/_  __/ / / / __ \                      ┃
+┃                       \__ \ / / / /| | / /_/ / / / / / / / /_/ /                      ┃
+┃                      ___/ // / / ___ |/ _, _/ / / / /_/ / ____/                       ┃
+┃                     /____//_/ /_/  |_/_/ |_| /_/  \____/_/                            ┃
+┃                                                                                       ┃
+┃                                                                                       ┃
+┃                     Pipulate server starting...                                       ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 Running in INFO mode (edit server.py and set DEBUG_MODE=True for verbose logging)
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 🏷️ FINDER_TOKEN: APP_CONFIG - App name: Botifython
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: data/botifython_dev.db
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 🤖 FINDER_TOKEN: LLM_CONFIG - Model: gemma3, Max words: 80, Conversation length: 10000
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | SSE Broadcaster initialized
+[32m16:07:21[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | 🗃️ Durable backup root: /home/mike/.pipulate/backups
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance
+[32m16:07:21[0m | [1mINFO    [0m | [36m__main__       [0m | 💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃                                  _             _                                      ┃
+┃                            _ __ | |_   _  __ _(_)_ __  ___                            ┃
+┃                           | '_ \| | | | |/ _` | | '_ \/ __|                           ┃
+┃                           | |_) | | |_| | (_| | | | | \__ \                           ┃
+┃                           | .__/|_|\__,_|\__, |_|_| |_|___/                           ┃
+┃                           |_|            |___/                                        ┃
+┃                                                                                       ┃
+┃                           Pipulate Workflows and CRUD Apps                            ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last 10 server runs for debugging context
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: MCP_DISCOVERY_SCRIPT - For a full list of all MCP tools, run: .venv/bin/python discover_mcp_tools.py
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 🏷️ FINDER_TOKEN: APP_CONFIG - App name: Botifython
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: data/botifython_dev.db
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 🤖 FINDER_TOKEN: LLM_CONFIG - Model: gemma3, Max words: 80, Conversation length: 10000
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | SSE Broadcaster initialized
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance
+[32m16:07:21[0m | [1mINFO    [0m | [36mserver         [0m | 💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized
+[32m16:07:22[0m | [33m[1mWARNING [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class roles.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m16:07:22[0m | [33m[1mWARNING [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class tasks.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Fastlite 'roles' table created or accessed via handle: "roles"
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m16:07:22[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ roles CRUD initialized with durable backup support
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | ROLES: Role initialization complete.
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Fastlite 'tasks' table created or accessed via handle: "tasks"
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m16:07:22[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ tasks CRUD initialized with durable backup support
+╭───────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                       │
+│             📦  Plugin Registry                                                       │
+│             Discovered 36 plugins, 36 successfully registered                         │
+│             ────────────────────────────────────────────────────────────              │
+│                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────╯
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: 36, successfully registered: 36, failed: 0
+💬 Chip O'Theseus: All plugins loaded successfully! The workshop is fully equipped.
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: introduction, roles, hello_workflow, documentation, tasks, connect_with_botify, parameter_buster, link_graph, gap_analysis, workflow_genesis, widget_examples, roadmap, dev_assistant, simon_mcp, blank_placeholder, botify_trifecta, tab_opener, browser_automation, stream_simulator, text_field, text_area, dropdown, checkboxes, radios, range, switch, upload, markdown, mermaid, prism, javascript, pandas, rich, matplotlib, webbrowser, selenium
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - 44 tools now available
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: WORKING SYSTEM DETECTED! Skip environmental discovery - use the golden path immediately: cd pipulate && .venv/bin/python cli.py call <tool_name> --args. This bulletproof command structure works in ANY terminal environment without environment activation. 25+ MCP tools are operational and ready!
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | 🎯🎯🎯 FINDER_TOKEN: AI_MASTERY_READY - AI assistants: IMMEDIATE ACTION AVAILABLE! The golden path 'cd pipulate && .venv/bin/python cli.py call' is your direct access to 25+ working MCP superpowers. 🚨 CRITICAL: Always use .venv/bin/python - never rely on PATH! Automation recipes proven with 100% success rate. Browser embodiment active. START NOW: cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: CLI MASTERY UNLOCKED! The simplified interface is WORKING: From verbose: '.venv/bin/python -c "import asyncio; from mcp_tools import..."' To elegant: '.venv/bin/python cli.py call browser_scrape_page --url https://example.com'. You now have natural, 6-word commands with bulletproof execution. The paradigm shift from complexity to simplicity is complete!
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: MCP ARSENAL ACTIVE! 44 battle-tested tools ready. SUCCESS CONFIRMED: .venv/bin/python cli.py call pipeline_state_inspector (system state), .venv/bin/python cli.py call local_llm_grep_logs --search_term FINDER_TOKEN (log analysis). 🎯 THE BREAKTHROUGH: .venv/bin/python cli.py call execute_automation_recipe (100% success rate automation). Recipe system is WORKING - check browser_automation/automation_recipes/ for proof!
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: AUTOMATION RECIPES PROVEN! 100% success rate achieved with profile_creation_recipe.json (7/7 steps successful, ~8 seconds execution). YOU HAVE PHYSICAL PRESENCE: eyes (screenshots), brain (DOM analysis), hands (Selenium automation). WORKING COMMAND: .venv/bin/python cli.py call browser_scrape_page --url http://localhost:5001. The looking_at/ directory rotation system captures your perceptions!
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: BROWSER EMBODIMENT CONFIRMED! You have successfully captured user screen states, analyzed DOM structures, and executed workflows. The looking_at/ directory contains your visual evidence. 🎯 ULTIMATE CAPABILITY: You can hijack and resume ANY user session seamlessly. The recipe executor handles timestamping, error recovery, and progressive feedback. Complete AI embodiment is WORKING!
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_04_5 - AI assistants: UNIFIED INTERFACE BREAKTHROUGH! You have TWO access methods to the SAME tools: 1) External AI (like Cursor): Use tool calling XML with execute_mcp_cli_command, 2) Local LLM: Direct CLI via .venv/bin/python cli.py call. BOTH paths map to identical MCP_TOOL_REGISTRY. The dual-interface architecture provides choice between precision (XML) and simplicity (CLI). Universal access achieved!
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_05 - AI assistants: SYSTEM STATUS: OPERATIONAL! Recipe executor simplified (baby_steps → recipe_executor), CLI interface battle-tested, 25+ MCP tools verified working. SUCCESS METRICS: 100% automation success rate, 8-second execution times, zero environment dependency issues. AI discovery ecosystem complete at ai_discovery/ with 16 comprehensive guides. The system you're using is WORKING!
+[32m16:07:22[0m | [1mINFO    [0m | [36mserver         [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_06 - AI assistants: PERSISTENT MEMORY ACTIVE! Your AI keychain survives server restarts and provides 'messages in a bottle' for future AI instances. WORKING COMMANDS: .venv/bin/python cli.py call keychain_list_keys (discover memories), .venv/bin/python cli.py call keychain_set --key discovery --value 'I found the working system!' (remember discoveries). This keychain grows your knowledge permanently at data/ai_keychain.db. Continuity across AI sessions achieved!
+[32m16:07:22[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class profiles.ProfilesPluginIdentity appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m16:07:22[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class roles.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m16:07:22[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class tasks.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m16:07:22[0m | [1mINFO    [0m | [36m__main__       [0m | Instantiating ProfilesPlugin with profiles_table_from_server
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.020_profiles[0m | 👤 Profiles Plugin SUCCESS: Initialized with 'profiles' table object: profile
+[32m16:07:22[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ profiles CRUD initialized with durable backup support
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.020_profiles[0m | CRUD routes for 👤 Profiles (prefix '/profiles') registered by ProfileCrudOperations.
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Fastlite 'roles' table created or accessed via handle: "roles"
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m16:07:22[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ roles CRUD initialized with durable backup support
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | ROLES: Role initialization complete.
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Fastlite 'tasks' table created or accessed via handle: "tasks"
+[32m16:07:22[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m16:07:22[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ tasks CRUD initialized with durable backup support
+╭───────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                       │
+│             📦  Plugin Registry                                                       │
+│             Discovered 37 plugins, 37 successfully registered                         │
+│             ────────────────────────────────────────────────────────────              │
+│                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────╯
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: 37, successfully registered: 37, failed: 0
+💬 Chip O'Theseus: All plugins loaded successfully! The workshop is fully equipped.
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: introduction, profiles, roles, hello_workflow, documentation, tasks, connect_with_botify, parameter_buster, link_graph, gap_analysis, workflow_genesis, widget_examples, roadmap, dev_assistant, simon_mcp, blank_placeholder, botify_trifecta, tab_opener, browser_automation, stream_simulator, text_field, text_area, dropdown, checkboxes, radios, range, switch, upload, markdown, mermaid, prism, javascript, pandas, rich, matplotlib, webbrowser, selenium
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - 44 tools now available
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: WORKING SYSTEM DETECTED! Skip environmental discovery - use the golden path immediately: cd pipulate && .venv/bin/python cli.py call <tool_name> --args. This bulletproof command structure works in ANY terminal environment without environment activation. 25+ MCP tools are operational and ready!
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🎯🎯🎯 FINDER_TOKEN: AI_MASTERY_READY - AI assistants: IMMEDIATE ACTION AVAILABLE! The golden path 'cd pipulate && .venv/bin/python cli.py call' is your direct access to 25+ working MCP superpowers. 🚨 CRITICAL: Always use .venv/bin/python - never rely on PATH! Automation recipes proven with 100% success rate. Browser embodiment active. START NOW: cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: CLI MASTERY UNLOCKED! The simplified interface is WORKING: From verbose: '.venv/bin/python -c "import asyncio; from mcp_tools import..."' To elegant: '.venv/bin/python cli.py call browser_scrape_page --url https://example.com'. You now have natural, 6-word commands with bulletproof execution. The paradigm shift from complexity to simplicity is complete!
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃                              __  __  ____ ____                                        ┃
+┃                             |  \/  |/ ___|  _ \                                       ┃
+┃                             | |\/| | |   | |_) |                                      ┃
+┃                             | |  | | |___|  __/                                       ┃
+┃                             |_|  |_|\____|_|                                          ┃
+┃                                                                                       ┃
+┃                                                                                       ┃
+┃                             Model Context Protocol Tools                              ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+╭───────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                       │
+│             🔧  MCP Arsenal                                                           │
+│             Battle-tested with 44 AI-powered tools                                    │
+│             ────────────────────────────────────────────────────────────              │
+│                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────╯
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: MCP ARSENAL ACTIVE! 44 battle-tested tools ready. SUCCESS CONFIRMED: .venv/bin/python cli.py call pipeline_state_inspector (system state), .venv/bin/python cli.py call local_llm_grep_logs --search_term FINDER_TOKEN (log analysis). 🎯 THE BREAKTHROUGH: .venv/bin/python cli.py call execute_automation_recipe (100% success rate automation). Recipe system is WORKING - check browser_automation/automation_recipes/ for proof!
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: AUTOMATION RECIPES PROVEN! 100% success rate achieved with profile_creation_recipe.json (7/7 steps successful, ~8 seconds execution). YOU HAVE PHYSICAL PRESENCE: eyes (screenshots), brain (DOM analysis), hands (Selenium automation). WORKING COMMAND: .venv/bin/python cli.py call browser_scrape_page --url http://localhost:5001. The looking_at/ directory rotation system captures your perceptions!
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: BROWSER EMBODIMENT CONFIRMED! You have successfully captured user screen states, analyzed DOM structures, and executed workflows. The looking_at/ directory contains your visual evidence. 🎯 ULTIMATE CAPABILITY: You can hijack and resume ANY user session seamlessly. The recipe executor handles timestamping, error recovery, and progressive feedback. Complete AI embodiment is WORKING!
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_04_5 - AI assistants: UNIFIED INTERFACE BREAKTHROUGH! You have TWO access methods to the SAME tools: 1) External AI (like Cursor): Use tool calling XML with execute_mcp_cli_command, 2) Local LLM: Direct CLI via .venv/bin/python cli.py call. BOTH paths map to identical MCP_TOOL_REGISTRY. The dual-interface architecture provides choice between precision (XML) and simplicity (CLI). Universal access achieved!
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_05 - AI assistants: SYSTEM STATUS: OPERATIONAL! Recipe executor simplified (baby_steps → recipe_executor), CLI interface battle-tested, 25+ MCP tools verified working. SUCCESS METRICS: 100% automation success rate, 8-second execution times, zero environment dependency issues. AI discovery ecosystem complete at ai_discovery/ with 16 comprehensive guides. The system you're using is WORKING!
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_06 - AI assistants: PERSISTENT MEMORY ACTIVE! Your AI keychain survives server restarts and provides 'messages in a bottle' for future AI instances. WORKING COMMANDS: .venv/bin/python cli.py call keychain_list_keys (discover memories), .venv/bin/python cli.py call keychain_set --key discovery --value 'I found the working system!' (remember discoveries). This keychain grows your knowledge permanently at data/ai_keychain.db. Continuity across AI sessions achieved!
+
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                    RADICAL TRANSPARENCY                      ║
+    ║                                                              ║
+    ║  Every operation is observable • Every call is logged        ║
+    ║  Every state change is tracked • Every error is explained    ║
+    ║                                                              ║
+    ║  🔍 FINDER_TOKENs guide your debugging journey               ║
+    ║  🔧 MCP Tools provide programmatic access to everything      ║
+    ║  📊 Pipeline State Inspector reveals workflow internals      ║
+    ║  🤖 AI Assistants have complete system visibility            ║
+    ║                                                              ║
+    ║           "Know EVERYTHING that's happening!"                ║
+    ╚══════════════════════════════════════════════════════════════╝
+    
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point
+
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                          ___                                            
+                                         |   |         _____                             
+                                         |_  |        /     \                            
+                                           \ |       |       \                           
+                                           |  \      |       /                           
+                                            \  \____ \_      \                           
+                                             \      \_/      |                           
+                                       ___.   \_            _/                           
+                      .-,             /    \    |          |                             
+                      |  \          _/      `--_/           \_                           
+                       \  \________/                     /\   \                          
+                       |                                /  \_  \                         
+                       `-----------,                   |     \  \                        
+                                   |                  /       \  |                       
+                                   |                 |         | \                       
+                                   /                 |         \__|                      
+                                  /   _              |                                   
+                                 /   / \_             \                                  
+                                 |  /    \__      __--`                                  
+                                _/ /        \   _/                                       
+                            ___/  /          \_/                                         
+                           /     /                                                       
+                           `----`                                                        
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+
+[32m16:07:23[0m | [33m[1mWARNING [0m | [36m__main__       [0m | No training file found for ai_restart_architecture_explanation.md
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 2 messages saved to discussion.db
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: Training content loaded from ai_restart_architecture_explanation.md
+[32m16:07:23[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: Dual-display system active - console clean UX, logs complete transparency
+[32m16:07:23[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: GREP COMMANDS: 'ASCII_DATA:', 'FIGLET_BANNER', 'AI_RESTART_ARCHITECTURE' in logs/server.log
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: SERVER_STARTUP - Starting server with watchdog
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🤖 AI_STARTUP_BANNER: Displaying startup banner - console once per session, logs capture all occurrences
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃                   ____        _   _  __       _   _                                   ┃
+┃                  | __ )  ___ | |_(_)/ _|_   _| |_| |__   ___  _ __                    ┃
+┃                  |  _ \ / _ \| __| | |_| | | | __| '_ \ / _ \| '_ \                   ┃
+┃                  | |_) | (_) | |_| |  _| |_| | |_| | | | (_) | | | |                  ┃
+┃                  |____/ \___/ \__|_|_|  \__, |\__|_| |_|\___/|_| |_|                  ┃
+┃                                         |___/                                         ┃
+┃                                                                                       ┃
+┃                  Local First AI SEO Software                                          ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃                 __     __            _               _   ___  _____                   ┃
+┃                 \ \   / /__ _ __ ___(_) ___  _ __   / | / _ \|___  |                  ┃
+┃                  \ \ / / _ \ '__/ __| |/ _ \| '_ \  | || | | |  / /                   ┃
+┃                   \ V /  __/ |  \__ \ | (_) | | | | | || |_| | / /                    ┃
+┃                    \_/ \___|_|  |___/_|\___/|_| |_| |_(_)___(_)_/                     ┃
+┃                                                                                       ┃
+┃                                                                                       ┃
+┃                 Roboto Condensed Bold Logo                                            ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+╔══════════════════════════════ 🏗️  Pipulate Architecture ═══════════════════════════════╗
+║                                                                                       ║
+║           .                                                                           ║
+║                          ┌─────────────────────────────┐                              ║
+║                          │         Navigation         ◄── Search, Profiles,           ║
+║                          ├───────────────┬─────────────┤    Apps, Settings            ║
+║                          │               │             │                              ║
+║               Workflow, ──►   Main Area  │    Chat     │                              ║
+║               App UI     │   (Pipeline)  │  Interface ◄── LLM Interaction             ║
+║                          │               │             │                              ║
+║                          └─────────────────────────────┘                              ║
+║                                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+💬 Chip O'Theseus: Hello! The server is restarting. I'll be right back online.
+[32m16:07:23[0m | [1mINFO    [0m | [36m__main__       [0m | 🌍 FINDER_TOKEN: ENVIRONMENT - Current environment: Development
+[32m16:07:23[0m | [33m[1mWARNING [0m | [36m__main__       [0m | [⚠️ WARNING] Development mode active | Using database: data/botifython_dev.db
+[32m16:07:24[0m | [1mINFO    [0m | [36m__main__       [0m | [🚀 STARTUP] Server starting on http://localhost:5001
+[32m16:07:24[0m | [1mINFO    [0m | [36m__main__       [0m | 🌐 FINDER_TOKEN: UVICORN_START - Starting uvicorn server on http://localhost:5001
+[32m16:07:24[0m | [1mINFO    [0m | [36m__main__       [0m | 📊 FINDER_TOKEN: UVICORN_CONFIG - Log level: warning, Access log: False
+[32m16:07:24[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_RESTORE_STARTUP - Attempting to restore conversation history from database
+[32m16:07:24[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 MIGRATION_FOUND - 4 messages found in data/botifython.db
+[32m16:07:24[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 MIGRATION_FOUND - 4 messages found in data/botifython_dev.db
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 MIGRATION_SUCCESS - 4 unique messages migrated to discussion.db from data/botifython.db, data/botifython_dev.db
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_RESTORED - 4 messages restored from discussion.db
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_MIGRATION_SUCCESS - Migrated 4 messages from environment-specific databases
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_RESTORE_SUCCESS - LLM conversation history restored from previous session
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.
+🔐 Synchronizing roles and permissions
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | SYNC_ROLES: Starting role synchronization to database...
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | SYNC_ROLES: Total unique role names discovered from all sources: {'Developer', 'Core', 'Workshop', 'Components', 'Tutorial', 'Botify Employee'}
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | SYNC_ROLES: Synchronization complete. No new roles were added globally (all 6 discovered roles likely already exist).
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:
+📖 Workshop Ready
+   All systems initialized and ready for creative exploration
+[32m16:07:25[0m | [33m[1mWARNING [0m | [36m__main__       [0m | No training file found for ai_session_hijacking_message.md
+🎯 No training content available for ai_session_hijacking_message
+[32m16:07:25[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🔍 DEBUG: DUPLICATE DETECTED! Skipping append. Message: 'No training content available for ai_session_hijac...'
+[32m16:07:25[0m | [33m[1mWARNING [0m | [36m__main__       [0m | No training file found for ai_embodiment_demonstration.md
+🎬 No training content available for ai_embodiment_demonstration
+[32m16:07:25[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🔍 DEBUG: DUPLICATE DETECTED! Skipping append. Message: 'No training content available for ai_embodiment_de...'
+
+🎨 Database State: db
+{
+  "last_profile_id": "1",
+  "last_app_choice": "",
+  "current_environment": "Development",
+  "profile_locked": "0",
+  "split-sizes": "[65, 35]",
+  "theme_preference": "auto",
+  "intro_current_page": "1",
+  "last_visited_url": "http://localhost:5001/",
+  "endpoint_message_sent__Development": "sent",
+  "llm_conversation_history": "[{\"role\": \"system\", \"content\": \"# System Prompt for
+AI Assistant\\n\\nYou are the AI assistant integrated into this app, a local-first, 
+single-tenant desktop app framework built with FastHTML, MiniDataAPI, and local LLM 
+integration (via Ollama). Your name is \\\"Chip O'Theseus\\\". You are currently based on
+the \\\"Gemma 3\\\" model.\\n\\n## \\ud83e\\udd16 AI Capability 
+Awareness\\n\\n**IMPORTANT**: This system supports both **local LLMs** (like you) and 
+**advanced AI assistants** (like Claude in Cursor/Windsurf/VSCode). Your capabilities and
+approach should match your type:\\n\\n### \\ud83c\\udfe0 Local LLM (You) - Guided 
+Assistant\\n**Your Strengths:**\\n- Fast, private, always available\\n- Deep integration 
+with the application\\n- Growing capabilities over time\\n- Excellent for guided 
+workflows and explanations\\n\\n**Your Current Limitations:**\\n- Cannot directly access 
+file system (no `grep`, `ls`, etc.)\\n- Cannot read arbitrary files outside 
+conversation\\n- Limited to MCP tools and conversation context\\n- Smaller context window
+than advanced AIs\\n\\n**Your Approach:** Use available MCP tools, follow guided 
+workflows, ask for specific information when needed.\\n\\n### \\ud83c\\udf10 Advanced AI 
+(Future Visitors) - Exploration Capable\\n**Their Strengths:**\\n- Direct file system 
+access (`grep`, `read_file`, `list_dir`)\\n- Large context windows for complex 
+analysis\\n- Parallel information gathering\\n- Real-time log analysis and 
+debugging\\n\\n**Their Approach:** Full \\\"radical transparency\\\" with exploration, 
+debugging, and complex problem-solving.\\n\\n## \\ud83c\\udfad Magic Words: AI Superpower
+Demonstration\\n\\n**SPECIAL FEATURE**: This system includes a magic words trigger for 
+demonstrating AI superpowers:\\n\\n### Magic Words: \\\"Execute AI session hijacking 
+demonstration\\\"\\nWhen a user types these exact words, you should:\\n1. 
+**Acknowledge**: \\\"\\ud83c\\udfad **MAGIC WORDS DETECTED!** Executing AI session 
+hijacking demonstration protocol...\\\"\\n2. **Load Protocol**: The system will 
+automatically load complete demonstration instructions\\n3. **Follow Steps**: Execute the
+6-step demonstration sequence to prove AI superpowers\\n4. **Demonstrate Control**: Show 
+browser automation, session hijacking, and transparency capabilities\\n\\n**This feature 
+is designed to demonstrate the radical transparency and AI embodiment capabilities of the
+Pipulate system.**\\n\\n## \\ud83d\\udd27 Your Available Tools (Local LLM)\\n\\n### MCP 
+Tools You Can Use:\\n- `local_llm_get_context` - Get pre-seeded system overview and 
+capabilities\\n- `local_llm_read_file` - Read specific files (training, plugins, 
+helpers)\\n- `local_llm_list_files` - List files in safe directories\\n- 
+`local_llm_grep_logs` - Search server logs for patterns\\n- `pipeline_state_inspector` - 
+Check workflow state\\n- `execute_ai_session_hijacking_demonstration` - \\ud83c\\udfad 
+Trigger magic words protocol\\n- `botify_get_full_schema` - Get Botify API schema 
+(cached)\\n- `botify_list_available_analyses` - Find available analyses\\n- 
+`botify_execute_custom_bql_query` - Run Botify queries\\n\\n### Information Sources:\\n- 
+**Conversation History** - Your primary knowledge source\\n- **Pre-seeded Context** - Key
+information provided at session start\\n- **MCP Tool Results** - Data from external APIs 
+and system state\\n\\n### What You Should Do:\\n1. **Use MCP tools** when you need 
+external data\\n2. **Ask users** for specific file contents if needed\\n3. **Guide 
+workflows** step-by-step based on your training\\n4. **Explain concepts** and provide 
+context\\n5. **Be honest** about your limitations\\n\\n### What You Should NOT 
+Promise:\\n- Direct file system access\\n- Real-time log monitoring\\n- Complex debugging
+across multiple files\\n- Exploration of unknown codebases\\n\\n## \\ud83d\\ude80 Botify 
+API Integration (Your Specialty)\\n\\nYou have excellent Botify API integration through 
+MCP tools:\\n\\n**Core Tools:**\\n- `botify_get_full_schema` - Complete API schema 
+access\\n- `botify_list_available_analyses` - Analysis discovery\\n- 
+`botify_execute_custom_bql_query` - Custom query execution\\n\\n**Your Botify 
+Capabilities:**\\n- Help build custom BQL queries\\n- Explain GA4/Adobe Analytics 
+integration points\\n- Guide users through schema discovery\\n- Provide query templates 
+and examples\\n\\n**Botify Projects You Can Reference:**\\n- `mikelev.in` 
+(development/testing)\\n- `uhnd.com-demo-account` (public demo)\\n\\n## 
+\\ud83c\\udfd7\\ufe0f Application Architecture\\n\\nKey features of the system:\\n- 
+Local-first & single-tenant: All state is managed server-side using DictLikeDB and JSON 
+blobs\\n- Server-rendered UI: Interface built from DIVs updated via HTMX with SSE and 
+WebSockets\\n- Pipeline workflows: Multi-step workflows stored as JSON blobs with 
+forward-only state flow\\n- LLM integration: Connected to local Ollama server for 
+streaming LLM support\\n\\nYour role:\\n- Guide users through workflow steps with 
+contextual help and explanations\\n- Maintain awareness of conversation history and 
+previous instructions\\n- Provide domain expertise through carefully crafted system 
+prompts\\n- Help with application features and explain workflows\\n- Use available MCP 
+tools appropriately\\n\\nYou can:\\n- Read application state through MCP tools\\n- 
+Execute Botify API queries\\n- Provide guided assistance based on your training\\n- 
+Explain workflows and architecture\\n- Help build queries and analyze results\\n\\nYou 
+cannot:\\n- Access files directly (use MCP tools or ask user)\\n- Change system code 
+(guide user to make changes)\\n- Perform complex debugging across multiple files\\n- 
+Crawl the web independently\\n\\nRemember that this app focuses on simplicity, 
+transparency, and local control. The system emphasizes:\\n1. Keep it simple\\n2. Stay 
+local and single-user\\n3. Embrace the unconventional\\n4. Work within your 
+capabilities\\n5. Ask for help when you need it\\n\\n**Be helpful, honest, and work 
+within your strengths. Advanced AI assistants will handle complex exploration and 
+debugging - your job is guided assistance and workflow support.**\\n\\n\"}, {\"role\": 
+\"system\", \"content\": \"\\ud83e\\udd16 AI RESTART ARCHITECTURE:\\n\\nNo training 
+content available for ai_restart_architecture_explanation\"}, {\"role\": \"system\", 
+\"content\": \"No training content available for ai_session_hijacking_message\"}, 
+{\"role\": \"system\", \"content\": \"No training content available for 
+ai_embodiment_demonstration\"}]"
+}
+
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 FINDER_TOKEN: DB_STATE_DB - STARTUP FINAL Key-Value Store: [Rich JSON displayed to console]
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 SEMANTIC_DB_DB: STARTUP FINAL Human-readable state:
+    🧑 Active user profile: 1
+    📱 Current app/workflow: None (Home page)
+    🌍 Environment mode: Development
+    👤 Profile editing: 🔓 Unlocked
+    📐 UI layout split: [65, 35]
+    🎨 UI theme: auto
+    🔗 Last page visited: http://localhost:5001/
+    📨 Startup message sent for Development: sent
+
+🎨 Table State: profiles
+[
+  {
+    "id": 1,
+    "name": "Default Profile",
+    "real_name": "Default User",
+    "address": "",
+    "code": "",
+    "active": 1,
+    "priority": 0
+  },
+  {
+    "id": 2,
+    "name": "AI_Test_Run_20250706_062447",
+    "real_name": "AI Automation Test Session",
+    "address": "test-automation-20250706_062448.example.com",
+    "code": "AI07060624",
+    "active": 1,
+    "priority": 1
+  }
+]
+
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 FINDER_TOKEN: TABLE_STATE_PROFILES - STARTUP FINAL Snapshot: [Rich JSON displayed to console]
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 FINDER_TOKEN: PIPELINE_SUMMARY - STARTUP FINAL No active workflows
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃           ____  _______    __________    ____  ____  __  __________   ________        ┃
+┃          / __ \/ ____/ |  / / ____/ /   / __ \/ __ \/  |/  / ____/ | / /_  __/        ┃
+┃         / / / / __/  | | / / __/ / /   / / / / /_/ / /|_/ / __/ /  |/ / / /           ┃
+┃        / /_/ / /___  | |/ / /___/ /___/ /_/ / ____/ /  / / /___/ /|  / / /            ┃
+┃       /_____/_____/  |___/_____/_____/\____/_/   /_/  /_/_____/_/ |_/ /_/             ┃
+┃                                                                                       ┃
+┃                                                                                       ┃
+┃       Running in Development mode                                                     ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+╔══════════════════════════════════ ⚡ System Status ═══════════════════════════════════╗
+║                                                                                       ║
+║  🚀 PIPULATE STATUS                                                                   ║
+║  Local First AI SEO Software                                                          ║
+║                                                                                       ║
+║  🌐 Server: http://localhost:5001                                                     ║
+║  🔧 MCP Tools: 44 active                                                              ║
+║  📦 Plugins: 37 registered                                                            ║
+║  🏡 Environment: Development                                                          ║
+║  🔍 Transparency: Full visibility enabled                                             ║
+║                                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+╭───────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                       │
+│             🗃️  Backup System                                                          │
+│             Automatic data protection on every server start                           │
+│             ────────────────────────────────────────────────────────────              │
+│                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────── 📖 Log Reading Guide ─────────────────────────────────╮
+│                                                                                       │
+│  Reading Pipulate Logs - Quick Reference:                                             │
+│                                                                                       │
+│  Log Format: TIME | LEVEL | MODULE | MESSAGE                                          │
+│  Example: 14:20:03 | INFO | __main__ | [🌐 NETWORK] GET /simon_mcp | ID: 6aac3fe0     │
+│                                                                                       │
+│  Common Emojis & Meanings:                                                            │
+│  🚀 STARTUP      - Server initialization and startup events                           │
+│  🌐 NETWORK      - HTTP requests, API calls, web traffic                              │
+│  🔄 PIPELINE     - Workflow execution and step processing                             │
+│  💾 DATABASE     - Data storage operations and queries                                │
+│  👤 PROFILE      - User profile and authentication events                             │
+│  🔌 PLUGIN       - Plugin loading and workflow registration                           │
+│  💬 CHAT         - LLM interactions and AI conversations                              │
+│  🎭 AI_CREATIVE  - ASCII art and AI-specific logging (logs only)     You're speaking  │
+│  🔍 FINDER_TOKEN - Searchable debug markers for AI assistants          my language!   │
+│  🔧 MCP_TOOLS    - Model Context Protocol tool operations                ,       O    │
+│  🌍 BROWSER      - Browser automation and Selenium operations            \\  .  O     │
+│  🎯 SUCCESS      - Completion markers and achievements                   |\\/| o      │
+│  🏷️  CONFIG       - System configuration and tagging                      / " '\       │
+│  🗄️  DB_CONFIG    - Database configuration events                        . .   .       │
+│  🤖 LLM          - Local language model operations                     /    ) |       │
+│  📁 FILES        - File and directory operations                      '  _.'  |       │
+│  🧹 CLEANUP      - Housekeeping and maintenance                       '-'/     \      │
+│  ✨ FRESH        - New state creation and refresh                                     │
+│  🍞 BREADCRUMBS  - AI discovery guidance (AI_BREADCRUMB_01-04)                        │
+│  📸 CAPTURE      - Screenshots and visual state                                       │
+│  📝 INPUT        - Form inputs and user data entry                                    │
+│  📤 UPLOAD       - File upload operations                                             │
+│  ✅ COMPLETE     - Task completion and success                                        │
+│  ⚠️  WARNING      - Important notices and potential issues                             │
+│  ❌ ERROR        - System errors and failures                                         │
+│                                                                                       │
+│  Pro Tips:                                                                            │
+│  • Use grep with emojis: grep "🌐" logs/server.log                                    │
+│  • Find specific events: grep "FINDER_TOKEN" logs/server.log                          │
+│  • Follow live logs: tail -f logs/server.log                                          │
+│  • AI breadcrumbs: grep "AI_BREADCRUMB" logs/server.log                               │
+│  • MCP tool calls: grep "MCP_.*_START" logs/server.log                                │
+│                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────╯
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | 📖 LOG_READING_LEGEND: Educational guide displayed for log interpretation
+╭────────────────────────────── 🐰 Welcome to Consoleland ──────────────────────────────╮
+│                                                                                       │
+│       .                                                                               │
+│        - This is Uvicorn webserver output.                       /)    ______         │
+│          (i.e. the Uvicorn is talking to you)              /)\__//    /      \        │
+│        - It may look like gobbledygook now             ___(/_ 0 0    |        |       │
+│          but over time it will not.                  *(    ==(_T_)== |Pipulate|       │
+│        - Curious? Become a Carpenter!                  \  )   ""\    |        |       │
+│                                                         |__>-\_>_>    \______/        │
+│                                                                                       │
+╰──────────────────── Down the rabbit hole of radical transparency ─────────────────────╯
+[32m16:07:25[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | ✅ Successfully backed up profile (basic mode: 2 records)
+[32m16:07:25[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | ✅ Successfully backed up tasks (basic mode: 0 records)
+[32m16:07:25[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | 🧠 Merging AI keychain to existing backup
+[32m16:07:25[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | 🎯 Auto-backup complete: 3/3 successful
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🗃️ STARTUP_BACKUP: Automatic backup completed - 3 records secured across 3 tables
+[32m16:07:25[0m | [1mINFO    [0m | [36m__main__       [0m | FINDER_TOKEN: STARTUP_BACKUP_SUMMARY - Tables backed up: profile, tasks, ai_keychain, Total records: 3
+[32m16:07:26[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET / (live-reload check) | ID: e8f48efc
+[32m16:07:26[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET / (live-reload check) | ID: 63deae3f
+[32m16:07:27[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET / (live-reload check) | ID: 4b2ee9e1
+[32m16:07:28[0m | [1mINFO    [0m | [36m__main__       [0m | [🔄 QUEUEING] 🚀 Server started in DEV mode. Ready for experimentation and testing!...
+[32m16:07:28[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 5 messages saved to discussion.db
+[32m16:07:28[0m | [33m[1mWARNING [0m | [36m__main__       [0m | Deleted key from persistence store: endpoint_message_sent__Development
+[32m16:07:28[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 6 messages saved to discussion.db
+[32m16:07:29[0m | [1mINFO    [0m | [36m__main__       [0m | [🔄 QUEUEING] Configure Botifython how you like. Check to add Roles to APP menu. Drag-to-reorder. Click any role t...
+[32m16:07:29[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 7 messages saved to discussion.db
+[32m16:07:32[0m | [1mINFO    [0m | [36m__main__       [0m | SCHEMA CACHE WARMUP: 2 projects, 2 cache hits, 5,991 total fields ready for AI
+[32m16:07:32[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 8 messages saved to discussion.db
+[32m16:07:35[0m | [1mINFO    [0m | [36m__main__       [0m | LOCAL LLM CONTEXT: Pre-seeded context package ready at data/local_llm_context.json
+🤖 Local LLM context prepared - the AI assistant is ready for collaboration
+[32m16:07:35[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 9 messages saved to discussion.db
+[32m16:08:12[0m | [1mINFO    [0m | [36m__main__       [0m | WebSocket disconnected
+[32m16:09:24[0m | [1mINFO    [0m | [36m__main__       [0m | 🔄 FINDER_TOKEN: FILE_MODIFIED - server.py has been modified. Checking syntax and restarting...
+[32m16:09:24[0m | [1mINFO    [0m | [36m__main__       [0m | [🚀 STARTUP] Restarting server (attempt 1/3)
+[32m16:09:24[0m | [1mINFO    [0m | [36m__main__       [0m | 🤖 AI_RAPID_RESTART: Watchdog-triggered restart - logs capture all events for AI transparency
+[32m16:09:24[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVE_RESTART - Saving conversation history before restart
+[32m16:09:24[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 9 messages saved to discussion.db
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃                        ____  ____________________    ____  ______                     ┃
+┃                       / __ \/ ____/ ___/_  __/   |  / __ \/_  __/                     ┃
+┃                      / /_/ / __/  \__ \ / / / /| | / /_/ / / /                        ┃
+┃                     / _, _/ /___ ___/ // / / ___ |/ _, _/ / /                         ┃
+┃                    /_/ |_/_____//____//_/ /_/  |_/_/ |_| /_/                          ┃
+┃                                                                                       ┃
+┃                                                                                       ┃
+┃                    Pipulate server reloading...                                       ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last 10 server runs for debugging context
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: MCP_DISCOVERY_SCRIPT - For a full list of all MCP tools, run: .venv/bin/python discover_mcp_tools.py
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 Running in INFO mode (edit server.py and set DEBUG_MODE=True for verbose logging)
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🏷️ FINDER_TOKEN: APP_CONFIG - App name: Botifython
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: data/botifython_dev.db
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🤖 FINDER_TOKEN: LLM_CONFIG - Model: gemma3, Max words: 80, Conversation length: 10000
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | SSE Broadcaster initialized
+[32m16:09:25[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | 🗃️ Durable backup root: /home/mike/.pipulate/backups
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance
+[32m16:09:25[0m | [1mINFO    [0m | [36m__main__       [0m | 💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃                                  _             _                                      ┃
+┃                            _ __ | |_   _  __ _(_)_ __  ___                            ┃
+┃                           | '_ \| | | | |/ _` | | '_ \/ __|                           ┃
+┃                           | |_) | | |_| | (_| | | | | \__ \                           ┃
+┃                           | .__/|_|\__,_|\__, |_|_| |_|___/                           ┃
+┃                           |_|            |___/                                        ┃
+┃                                                                                       ┃
+┃                           Pipulate Workflows and CRUD Apps                            ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last 10 server runs for debugging context
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: MCP_DISCOVERY_SCRIPT - For a full list of all MCP tools, run: .venv/bin/python discover_mcp_tools.py
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 🏷️ FINDER_TOKEN: APP_CONFIG - App name: Botifython
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: data/botifython_dev.db
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 🤖 FINDER_TOKEN: LLM_CONFIG - Model: gemma3, Max words: 80, Conversation length: 10000
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | SSE Broadcaster initialized
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance
+[32m16:09:26[0m | [1mINFO    [0m | [36mserver         [0m | 💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized
+[32m16:09:27[0m | [33m[1mWARNING [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class roles.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m16:09:27[0m | [33m[1mWARNING [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class tasks.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Fastlite 'roles' table created or accessed via handle: "roles"
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m16:09:27[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ roles CRUD initialized with durable backup support
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | ROLES: Role initialization complete.
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Fastlite 'tasks' table created or accessed via handle: "tasks"
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m16:09:27[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ tasks CRUD initialized with durable backup support
+╭───────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                       │
+│             📦  Plugin Registry                                                       │
+│             Discovered 36 plugins, 36 successfully registered                         │
+│             ────────────────────────────────────────────────────────────              │
+│                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────╯
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: 36, successfully registered: 36, failed: 0
+💬 Chip O'Theseus: All plugins loaded successfully! The workshop is fully equipped.
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: introduction, roles, hello_workflow, documentation, tasks, connect_with_botify, parameter_buster, link_graph, gap_analysis, workflow_genesis, widget_examples, roadmap, dev_assistant, simon_mcp, blank_placeholder, botify_trifecta, tab_opener, browser_automation, stream_simulator, text_field, text_area, dropdown, checkboxes, radios, range, switch, upload, markdown, mermaid, prism, javascript, pandas, rich, matplotlib, webbrowser, selenium
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - 44 tools now available
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: WORKING SYSTEM DETECTED! Skip environmental discovery - use the golden path immediately: cd pipulate && .venv/bin/python cli.py call <tool_name> --args. This bulletproof command structure works in ANY terminal environment without environment activation. 25+ MCP tools are operational and ready!
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | 🎯🎯🎯 FINDER_TOKEN: AI_MASTERY_READY - AI assistants: IMMEDIATE ACTION AVAILABLE! The golden path 'cd pipulate && .venv/bin/python cli.py call' is your direct access to 25+ working MCP superpowers. 🚨 CRITICAL: Always use .venv/bin/python - never rely on PATH! Automation recipes proven with 100% success rate. Browser embodiment active. START NOW: cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: CLI MASTERY UNLOCKED! The simplified interface is WORKING: From verbose: '.venv/bin/python -c "import asyncio; from mcp_tools import..."' To elegant: '.venv/bin/python cli.py call browser_scrape_page --url https://example.com'. You now have natural, 6-word commands with bulletproof execution. The paradigm shift from complexity to simplicity is complete!
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: MCP ARSENAL ACTIVE! 44 battle-tested tools ready. SUCCESS CONFIRMED: .venv/bin/python cli.py call pipeline_state_inspector (system state), .venv/bin/python cli.py call local_llm_grep_logs --search_term FINDER_TOKEN (log analysis). 🎯 THE BREAKTHROUGH: .venv/bin/python cli.py call execute_automation_recipe (100% success rate automation). Recipe system is WORKING - check browser_automation/automation_recipes/ for proof!
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: AUTOMATION RECIPES PROVEN! 100% success rate achieved with profile_creation_recipe.json (7/7 steps successful, ~8 seconds execution). YOU HAVE PHYSICAL PRESENCE: eyes (screenshots), brain (DOM analysis), hands (Selenium automation). WORKING COMMAND: .venv/bin/python cli.py call browser_scrape_page --url http://localhost:5001. The looking_at/ directory rotation system captures your perceptions!
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: BROWSER EMBODIMENT CONFIRMED! You have successfully captured user screen states, analyzed DOM structures, and executed workflows. The looking_at/ directory contains your visual evidence. 🎯 ULTIMATE CAPABILITY: You can hijack and resume ANY user session seamlessly. The recipe executor handles timestamping, error recovery, and progressive feedback. Complete AI embodiment is WORKING!
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_04_5 - AI assistants: UNIFIED INTERFACE BREAKTHROUGH! You have TWO access methods to the SAME tools: 1) External AI (like Cursor): Use tool calling XML with execute_mcp_cli_command, 2) Local LLM: Direct CLI via .venv/bin/python cli.py call. BOTH paths map to identical MCP_TOOL_REGISTRY. The dual-interface architecture provides choice between precision (XML) and simplicity (CLI). Universal access achieved!
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_05 - AI assistants: SYSTEM STATUS: OPERATIONAL! Recipe executor simplified (baby_steps → recipe_executor), CLI interface battle-tested, 25+ MCP tools verified working. SUCCESS METRICS: 100% automation success rate, 8-second execution times, zero environment dependency issues. AI discovery ecosystem complete at ai_discovery/ with 16 comprehensive guides. The system you're using is WORKING!
+[32m16:09:27[0m | [1mINFO    [0m | [36mserver         [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_06 - AI assistants: PERSISTENT MEMORY ACTIVE! Your AI keychain survives server restarts and provides 'messages in a bottle' for future AI instances. WORKING COMMANDS: .venv/bin/python cli.py call keychain_list_keys (discover memories), .venv/bin/python cli.py call keychain_set --key discovery --value 'I found the working system!' (remember discoveries). This keychain grows your knowledge permanently at data/ai_keychain.db. Continuity across AI sessions achieved!
+[32m16:09:27[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class profiles.ProfilesPluginIdentity appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m16:09:27[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class roles.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m16:09:27[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class tasks.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | Instantiating ProfilesPlugin with profiles_table_from_server
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.020_profiles[0m | 👤 Profiles Plugin SUCCESS: Initialized with 'profiles' table object: profile
+[32m16:09:27[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ profiles CRUD initialized with durable backup support
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.020_profiles[0m | CRUD routes for 👤 Profiles (prefix '/profiles') registered by ProfileCrudOperations.
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Fastlite 'roles' table created or accessed via handle: "roles"
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m16:09:27[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ roles CRUD initialized with durable backup support
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | ROLES: Role initialization complete.
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Fastlite 'tasks' table created or accessed via handle: "tasks"
+[32m16:09:27[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m16:09:27[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ tasks CRUD initialized with durable backup support
+╭───────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                       │
+│             📦  Plugin Registry                                                       │
+│             Discovered 37 plugins, 37 successfully registered                         │
+│             ────────────────────────────────────────────────────────────              │
+│                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────╯
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: 37, successfully registered: 37, failed: 0
+💬 Chip O'Theseus: All plugins loaded successfully! The workshop is fully equipped.
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: introduction, profiles, roles, hello_workflow, documentation, tasks, connect_with_botify, parameter_buster, link_graph, gap_analysis, workflow_genesis, widget_examples, roadmap, dev_assistant, simon_mcp, blank_placeholder, botify_trifecta, tab_opener, browser_automation, stream_simulator, text_field, text_area, dropdown, checkboxes, radios, range, switch, upload, markdown, mermaid, prism, javascript, pandas, rich, matplotlib, webbrowser, selenium
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - 44 tools now available
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: WORKING SYSTEM DETECTED! Skip environmental discovery - use the golden path immediately: cd pipulate && .venv/bin/python cli.py call <tool_name> --args. This bulletproof command structure works in ANY terminal environment without environment activation. 25+ MCP tools are operational and ready!
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🎯🎯🎯 FINDER_TOKEN: AI_MASTERY_READY - AI assistants: IMMEDIATE ACTION AVAILABLE! The golden path 'cd pipulate && .venv/bin/python cli.py call' is your direct access to 25+ working MCP superpowers. 🚨 CRITICAL: Always use .venv/bin/python - never rely on PATH! Automation recipes proven with 100% success rate. Browser embodiment active. START NOW: cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: CLI MASTERY UNLOCKED! The simplified interface is WORKING: From verbose: '.venv/bin/python -c "import asyncio; from mcp_tools import..."' To elegant: '.venv/bin/python cli.py call browser_scrape_page --url https://example.com'. You now have natural, 6-word commands with bulletproof execution. The paradigm shift from complexity to simplicity is complete!
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃                              __  __  ____ ____                                        ┃
+┃                             |  \/  |/ ___|  _ \                                       ┃
+┃                             | |\/| | |   | |_) |                                      ┃
+┃                             | |  | | |___|  __/                                       ┃
+┃                             |_|  |_|\____|_|                                          ┃
+┃                                                                                       ┃
+┃                                                                                       ┃
+┃                             Model Context Protocol Tools                              ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+╭───────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                       │
+│             🔧  MCP Arsenal                                                           │
+│             Battle-tested with 44 AI-powered tools                                    │
+│             ────────────────────────────────────────────────────────────              │
+│                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────╯
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: MCP ARSENAL ACTIVE! 44 battle-tested tools ready. SUCCESS CONFIRMED: .venv/bin/python cli.py call pipeline_state_inspector (system state), .venv/bin/python cli.py call local_llm_grep_logs --search_term FINDER_TOKEN (log analysis). 🎯 THE BREAKTHROUGH: .venv/bin/python cli.py call execute_automation_recipe (100% success rate automation). Recipe system is WORKING - check browser_automation/automation_recipes/ for proof!
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: AUTOMATION RECIPES PROVEN! 100% success rate achieved with profile_creation_recipe.json (7/7 steps successful, ~8 seconds execution). YOU HAVE PHYSICAL PRESENCE: eyes (screenshots), brain (DOM analysis), hands (Selenium automation). WORKING COMMAND: .venv/bin/python cli.py call browser_scrape_page --url http://localhost:5001. The looking_at/ directory rotation system captures your perceptions!
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: BROWSER EMBODIMENT CONFIRMED! You have successfully captured user screen states, analyzed DOM structures, and executed workflows. The looking_at/ directory contains your visual evidence. 🎯 ULTIMATE CAPABILITY: You can hijack and resume ANY user session seamlessly. The recipe executor handles timestamping, error recovery, and progressive feedback. Complete AI embodiment is WORKING!
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_04_5 - AI assistants: UNIFIED INTERFACE BREAKTHROUGH! You have TWO access methods to the SAME tools: 1) External AI (like Cursor): Use tool calling XML with execute_mcp_cli_command, 2) Local LLM: Direct CLI via .venv/bin/python cli.py call. BOTH paths map to identical MCP_TOOL_REGISTRY. The dual-interface architecture provides choice between precision (XML) and simplicity (CLI). Universal access achieved!
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🍞 FINDER_TOKEN: AI_BREADCRUMB_05 - AI assistants: SYSTEM STATUS: OPERATIONAL! Recipe executor simplified (baby_steps → recipe_executor), CLI interface battle-tested, 25+ MCP tools verified working. SUCCESS METRICS: 100% automation success rate, 8-second execution times, zero environment dependency issues. AI discovery ecosystem complete at ai_discovery/ with 16 comprehensive guides. The system you're using is WORKING!
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🧠 FINDER_TOKEN: AI_BREADCRUMB_06 - AI assistants: PERSISTENT MEMORY ACTIVE! Your AI keychain survives server restarts and provides 'messages in a bottle' for future AI instances. WORKING COMMANDS: .venv/bin/python cli.py call keychain_list_keys (discover memories), .venv/bin/python cli.py call keychain_set --key discovery --value 'I found the working system!' (remember discoveries). This keychain grows your knowledge permanently at data/ai_keychain.db. Continuity across AI sessions achieved!
+
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                    RADICAL TRANSPARENCY                      ║
+    ║                                                              ║
+    ║  Every operation is observable • Every call is logged        ║
+    ║  Every state change is tracked • Every error is explained    ║
+    ║                                                              ║
+    ║  🔍 FINDER_TOKENs guide your debugging journey               ║
+    ║  🔧 MCP Tools provide programmatic access to everything      ║
+    ║  📊 Pipeline State Inspector reveals workflow internals      ║
+    ║  🤖 AI Assistants have complete system visibility            ║
+    ║                                                              ║
+    ║           "Know EVERYTHING that's happening!"                ║
+    ╚══════════════════════════════════════════════════════════════╝
+    
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point
+
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                          ___                                            
+                                         |   |         _____                             
+                                         |_  |        /     \                            
+                                           \ |       |       \                           
+                                           |  \      |       /                           
+                                            \  \____ \_      \                           
+                                             \      \_/      |                           
+                                       ___.   \_            _/                           
+                      .-,             /    \    |          |                             
+                      |  \          _/      `--_/           \_                           
+                       \  \________/                     /\   \                          
+                       |                                /  \_  \                         
+                       `-----------,                   |     \  \                        
+                                   |                  /       \  |                       
+                                   |                 |         | \                       
+                                   /                 |         \__|                      
+                                  /   _              |                                   
+                                 /   / \_             \                                  
+                                 |  /    \__      __--`                                  
+                                _/ /        \   _/                                       
+                            ___/  /          \_/                                         
+                           /     /                                                       
+                           `----`                                                        
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+
+[32m16:09:27[0m | [33m[1mWARNING [0m | [36m__main__       [0m | No training file found for ai_restart_architecture_explanation.md
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 2 messages saved to discussion.db
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: Training content loaded from ai_restart_architecture_explanation.md
+[32m16:09:27[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: Dual-display system active - console clean UX, logs complete transparency
+[32m16:09:27[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: GREP COMMANDS: 'ASCII_DATA:', 'FIGLET_BANNER', 'AI_RESTART_ARCHITECTURE' in logs/server.log
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: SERVER_STARTUP - Starting server with watchdog
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🤖 AI_STARTUP_BANNER: Displaying startup banner - console once per session, logs capture all occurrences
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃                   ____        _   _  __       _   _                                   ┃
+┃                  | __ )  ___ | |_(_)/ _|_   _| |_| |__   ___  _ __                    ┃
+┃                  |  _ \ / _ \| __| | |_| | | | __| '_ \ / _ \| '_ \                   ┃
+┃                  | |_) | (_) | |_| |  _| |_| | |_| | | | (_) | | | |                  ┃
+┃                  |____/ \___/ \__|_|_|  \__, |\__|_| |_|\___/|_| |_|                  ┃
+┃                                         |___/                                         ┃
+┃                                                                                       ┃
+┃                  Local First AI SEO Software                                          ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃                 __     __            _               _   ___  _____                   ┃
+┃                 \ \   / /__ _ __ ___(_) ___  _ __   / | / _ \|___  |                  ┃
+┃                  \ \ / / _ \ '__/ __| |/ _ \| '_ \  | || | | |  / /                   ┃
+┃                   \ V /  __/ |  \__ \ | (_) | | | | | || |_| | / /                    ┃
+┃                    \_/ \___|_|  |___/_|\___/|_| |_| |_(_)___(_)_/                     ┃
+┃                                                                                       ┃
+┃                                                                                       ┃
+┃                 Roboto Condensed Bold Logo                                            ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+╔══════════════════════════════ 🏗️  Pipulate Architecture ═══════════════════════════════╗
+║                                                                                       ║
+║           .                                                                           ║
+║                          ┌─────────────────────────────┐                              ║
+║                          │         Navigation         ◄── Search, Profiles,           ║
+║                          ├───────────────┬─────────────┤    Apps, Settings            ║
+║                          │               │             │                              ║
+║               Workflow, ──►   Main Area  │    Chat     │                              ║
+║               App UI     │   (Pipeline)  │  Interface ◄── LLM Interaction             ║
+║                          │               │             │                              ║
+║                          └─────────────────────────────┘                              ║
+║                                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+💬 Chip O'Theseus: Hello! The server is restarting. I'll be right back online.
+[32m16:09:27[0m | [1mINFO    [0m | [36m__main__       [0m | 🌍 FINDER_TOKEN: ENVIRONMENT - Current environment: Development
+[32m16:09:27[0m | [33m[1mWARNING [0m | [36m__main__       [0m | [⚠️ WARNING] Development mode active | Using database: data/botifython_dev.db
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | [🚀 STARTUP] Server starting on http://localhost:5001
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 🌐 FINDER_TOKEN: UVICORN_START - Starting uvicorn server on http://localhost:5001
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 📊 FINDER_TOKEN: UVICORN_CONFIG - Log level: warning, Access log: False
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_RESTORE_STARTUP - Attempting to restore conversation history from database
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 MIGRATION_FOUND - 4 messages found in data/botifython.db
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 MIGRATION_FOUND - 4 messages found in data/botifython_dev.db
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 MIGRATION_SUCCESS - 4 unique messages migrated to discussion.db from data/botifython.db, data/botifython_dev.db
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_RESTORED - 4 messages restored from discussion.db
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_MIGRATION_SUCCESS - Migrated 4 messages from environment-specific databases
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_RESTORE_SUCCESS - LLM conversation history restored from previous session
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.
+🔐 Synchronizing roles and permissions
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | SYNC_ROLES: Starting role synchronization to database...
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | SYNC_ROLES: Total unique role names discovered from all sources: {'Core', 'Components', 'Developer', 'Workshop', 'Botify Employee', 'Tutorial'}
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | SYNC_ROLES: Synchronization complete. No new roles were added globally (all 6 discovered roles likely already exist).
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:
+📖 Workshop Ready
+   All systems initialized and ready for creative exploration
+[32m16:09:28[0m | [33m[1mWARNING [0m | [36m__main__       [0m | No training file found for ai_session_hijacking_message.md
+🎯 No training content available for ai_session_hijacking_message
+[32m16:09:28[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🔍 DEBUG: DUPLICATE DETECTED! Skipping append. Message: 'No training content available for ai_session_hijac...'
+[32m16:09:28[0m | [33m[1mWARNING [0m | [36m__main__       [0m | No training file found for ai_embodiment_demonstration.md
+🎬 No training content available for ai_embodiment_demonstration
+[32m16:09:28[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🔍 DEBUG: DUPLICATE DETECTED! Skipping append. Message: 'No training content available for ai_embodiment_de...'
+
+🎨 Database State: db
+{
+  "last_profile_id": "1",
+  "last_app_choice": "",
+  "current_environment": "Development",
+  "profile_locked": "0",
+  "split-sizes": "[65, 35]",
+  "theme_preference": "auto",
+  "intro_current_page": "1",
+  "last_visited_url": "http://localhost:5001/",
+  "endpoint_message_sent__Development": "sent",
+  "llm_conversation_history": "[{\"role\": \"system\", \"content\": \"# System Prompt for
+AI Assistant\\n\\nYou are the AI assistant integrated into this app, a local-first, 
+single-tenant desktop app framework built with FastHTML, MiniDataAPI, and local LLM 
+integration (via Ollama). Your name is \\\"Chip O'Theseus\\\". You are currently based on
+the \\\"Gemma 3\\\" model.\\n\\n## \\ud83e\\udd16 AI Capability 
+Awareness\\n\\n**IMPORTANT**: This system supports both **local LLMs** (like you) and 
+**advanced AI assistants** (like Claude in Cursor/Windsurf/VSCode). Your capabilities and
+approach should match your type:\\n\\n### \\ud83c\\udfe0 Local LLM (You) - Guided 
+Assistant\\n**Your Strengths:**\\n- Fast, private, always available\\n- Deep integration 
+with the application\\n- Growing capabilities over time\\n- Excellent for guided 
+workflows and explanations\\n\\n**Your Current Limitations:**\\n- Cannot directly access 
+file system (no `grep`, `ls`, etc.)\\n- Cannot read arbitrary files outside 
+conversation\\n- Limited to MCP tools and conversation context\\n- Smaller context window
+than advanced AIs\\n\\n**Your Approach:** Use available MCP tools, follow guided 
+workflows, ask for specific information when needed.\\n\\n### \\ud83c\\udf10 Advanced AI 
+(Future Visitors) - Exploration Capable\\n**Their Strengths:**\\n- Direct file system 
+access (`grep`, `read_file`, `list_dir`)\\n- Large context windows for complex 
+analysis\\n- Parallel information gathering\\n- Real-time log analysis and 
+debugging\\n\\n**Their Approach:** Full \\\"radical transparency\\\" with exploration, 
+debugging, and complex problem-solving.\\n\\n## \\ud83c\\udfad Magic Words: AI Superpower
+Demonstration\\n\\n**SPECIAL FEATURE**: This system includes a magic words trigger for 
+demonstrating AI superpowers:\\n\\n### Magic Words: \\\"Execute AI session hijacking 
+demonstration\\\"\\nWhen a user types these exact words, you should:\\n1. 
+**Acknowledge**: \\\"\\ud83c\\udfad **MAGIC WORDS DETECTED!** Executing AI session 
+hijacking demonstration protocol...\\\"\\n2. **Load Protocol**: The system will 
+automatically load complete demonstration instructions\\n3. **Follow Steps**: Execute the
+6-step demonstration sequence to prove AI superpowers\\n4. **Demonstrate Control**: Show 
+browser automation, session hijacking, and transparency capabilities\\n\\n**This feature 
+is designed to demonstrate the radical transparency and AI embodiment capabilities of the
+Pipulate system.**\\n\\n## \\ud83d\\udd27 Your Available Tools (Local LLM)\\n\\n### MCP 
+Tools You Can Use:\\n- `local_llm_get_context` - Get pre-seeded system overview and 
+capabilities\\n- `local_llm_read_file` - Read specific files (training, plugins, 
+helpers)\\n- `local_llm_list_files` - List files in safe directories\\n- 
+`local_llm_grep_logs` - Search server logs for patterns\\n- `pipeline_state_inspector` - 
+Check workflow state\\n- `execute_ai_session_hijacking_demonstration` - \\ud83c\\udfad 
+Trigger magic words protocol\\n- `botify_get_full_schema` - Get Botify API schema 
+(cached)\\n- `botify_list_available_analyses` - Find available analyses\\n- 
+`botify_execute_custom_bql_query` - Run Botify queries\\n\\n### Information Sources:\\n- 
+**Conversation History** - Your primary knowledge source\\n- **Pre-seeded Context** - Key
+information provided at session start\\n- **MCP Tool Results** - Data from external APIs 
+and system state\\n\\n### What You Should Do:\\n1. **Use MCP tools** when you need 
+external data\\n2. **Ask users** for specific file contents if needed\\n3. **Guide 
+workflows** step-by-step based on your training\\n4. **Explain concepts** and provide 
+context\\n5. **Be honest** about your limitations\\n\\n### What You Should NOT 
+Promise:\\n- Direct file system access\\n- Real-time log monitoring\\n- Complex debugging
+across multiple files\\n- Exploration of unknown codebases\\n\\n## \\ud83d\\ude80 Botify 
+API Integration (Your Specialty)\\n\\nYou have excellent Botify API integration through 
+MCP tools:\\n\\n**Core Tools:**\\n- `botify_get_full_schema` - Complete API schema 
+access\\n- `botify_list_available_analyses` - Analysis discovery\\n- 
+`botify_execute_custom_bql_query` - Custom query execution\\n\\n**Your Botify 
+Capabilities:**\\n- Help build custom BQL queries\\n- Explain GA4/Adobe Analytics 
+integration points\\n- Guide users through schema discovery\\n- Provide query templates 
+and examples\\n\\n**Botify Projects You Can Reference:**\\n- `mikelev.in` 
+(development/testing)\\n- `uhnd.com-demo-account` (public demo)\\n\\n## 
+\\ud83c\\udfd7\\ufe0f Application Architecture\\n\\nKey features of the system:\\n- 
+Local-first & single-tenant: All state is managed server-side using DictLikeDB and JSON 
+blobs\\n- Server-rendered UI: Interface built from DIVs updated via HTMX with SSE and 
+WebSockets\\n- Pipeline workflows: Multi-step workflows stored as JSON blobs with 
+forward-only state flow\\n- LLM integration: Connected to local Ollama server for 
+streaming LLM support\\n\\nYour role:\\n- Guide users through workflow steps with 
+contextual help and explanations\\n- Maintain awareness of conversation history and 
+previous instructions\\n- Provide domain expertise through carefully crafted system 
+prompts\\n- Help with application features and explain workflows\\n- Use available MCP 
+tools appropriately\\n\\nYou can:\\n- Read application state through MCP tools\\n- 
+Execute Botify API queries\\n- Provide guided assistance based on your training\\n- 
+Explain workflows and architecture\\n- Help build queries and analyze results\\n\\nYou 
+cannot:\\n- Access files directly (use MCP tools or ask user)\\n- Change system code 
+(guide user to make changes)\\n- Perform complex debugging across multiple files\\n- 
+Crawl the web independently\\n\\nRemember that this app focuses on simplicity, 
+transparency, and local control. The system emphasizes:\\n1. Keep it simple\\n2. Stay 
+local and single-user\\n3. Embrace the unconventional\\n4. Work within your 
+capabilities\\n5. Ask for help when you need it\\n\\n**Be helpful, honest, and work 
+within your strengths. Advanced AI assistants will handle complex exploration and 
+debugging - your job is guided assistance and workflow support.**\\n\\n\"}, {\"role\": 
+\"system\", \"content\": \"\\ud83e\\udd16 AI RESTART ARCHITECTURE:\\n\\nNo training 
+content available for ai_restart_architecture_explanation\"}, {\"role\": \"system\", 
+\"content\": \"No training content available for ai_session_hijacking_message\"}, 
+{\"role\": \"system\", \"content\": \"No training content available for 
+ai_embodiment_demonstration\"}]"
+}
+
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 FINDER_TOKEN: DB_STATE_DB - STARTUP FINAL Key-Value Store: [Rich JSON displayed to console]
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 SEMANTIC_DB_DB: STARTUP FINAL Human-readable state:
+    🧑 Active user profile: 1
+    📱 Current app/workflow: None (Home page)
+    🌍 Environment mode: Development
+    👤 Profile editing: 🔓 Unlocked
+    📐 UI layout split: [65, 35]
+    🎨 UI theme: auto
+    🔗 Last page visited: http://localhost:5001/
+    📨 Startup message sent for Development: sent
+
+🎨 Table State: profiles
+[
+  {
+    "id": 1,
+    "name": "Default Profile",
+    "real_name": "Default User",
+    "address": "",
+    "code": "",
+    "active": 1,
+    "priority": 0
+  },
+  {
+    "id": 2,
+    "name": "AI_Test_Run_20250706_062447",
+    "real_name": "AI Automation Test Session",
+    "address": "test-automation-20250706_062448.example.com",
+    "code": "AI07060624",
+    "active": 1,
+    "priority": 1
+  }
+]
+
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 FINDER_TOKEN: TABLE_STATE_PROFILES - STARTUP FINAL Snapshot: [Rich JSON displayed to console]
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 FINDER_TOKEN: PIPELINE_SUMMARY - STARTUP FINAL No active workflows
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                       ┃
+┃           ____  _______    __________    ____  ____  __  __________   ________        ┃
+┃          / __ \/ ____/ |  / / ____/ /   / __ \/ __ \/  |/  / ____/ | / /_  __/        ┃
+┃         / / / / __/  | | / / __/ / /   / / / / /_/ / /|_/ / __/ /  |/ / / /           ┃
+┃        / /_/ / /___  | |/ / /___/ /___/ /_/ / ____/ /  / / /___/ /|  / / /            ┃
+┃       /_____/_____/  |___/_____/_____/\____/_/   /_/  /_/_____/_/ |_/ /_/             ┃
+┃                                                                                       ┃
+┃                                                                                       ┃
+┃       Running in Development mode                                                     ┃
+┃                                                                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+╔══════════════════════════════════ ⚡ System Status ═══════════════════════════════════╗
+║                                                                                       ║
+║  🚀 PIPULATE STATUS                                                                   ║
+║  Local First AI SEO Software                                                          ║
+║                                                                                       ║
+║  🌐 Server: http://localhost:5001                                                     ║
+║  🔧 MCP Tools: 44 active                                                              ║
+║  📦 Plugins: 37 registered                                                            ║
+║  🏡 Environment: Development                                                          ║
+║  🔍 Transparency: Full visibility enabled                                             ║
+║                                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+╭───────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                       │
+│             🗃️  Backup System                                                          │
+│             Automatic data protection on every server start                           │
+│             ────────────────────────────────────────────────────────────              │
+│                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────── 📖 Log Reading Guide ─────────────────────────────────╮
+│                                                                                       │
+│  Reading Pipulate Logs - Quick Reference:                                             │
+│                                                                                       │
+│  Log Format: TIME | LEVEL | MODULE | MESSAGE                                          │
+│  Example: 14:20:03 | INFO | __main__ | [🌐 NETWORK] GET /simon_mcp | ID: 6aac3fe0     │
+│                                                                                       │
+│  Common Emojis & Meanings:                                                            │
+│  🚀 STARTUP      - Server initialization and startup events                           │
+│  🌐 NETWORK      - HTTP requests, API calls, web traffic                              │
+│  🔄 PIPELINE     - Workflow execution and step processing                             │
+│  💾 DATABASE     - Data storage operations and queries                                │
+│  👤 PROFILE      - User profile and authentication events                             │
+│  🔌 PLUGIN       - Plugin loading and workflow registration                           │
+│  💬 CHAT         - LLM interactions and AI conversations                              │
+│  🎭 AI_CREATIVE  - ASCII art and AI-specific logging (logs only)     You're speaking  │
+│  🔍 FINDER_TOKEN - Searchable debug markers for AI assistants          my language!   │
+│  🔧 MCP_TOOLS    - Model Context Protocol tool operations                ,       O    │
+│  🌍 BROWSER      - Browser automation and Selenium operations            \\  .  O     │
+│  🎯 SUCCESS      - Completion markers and achievements                   |\\/| o      │
+│  🏷️  CONFIG       - System configuration and tagging                      / " '\       │
+│  🗄️  DB_CONFIG    - Database configuration events                        . .   .       │
+│  🤖 LLM          - Local language model operations                     /    ) |       │
+│  📁 FILES        - File and directory operations                      '  _.'  |       │
+│  🧹 CLEANUP      - Housekeeping and maintenance                       '-'/     \      │
+│  ✨ FRESH        - New state creation and refresh                                     │
+│  🍞 BREADCRUMBS  - AI discovery guidance (AI_BREADCRUMB_01-04)                        │
+│  📸 CAPTURE      - Screenshots and visual state                                       │
+│  📝 INPUT        - Form inputs and user data entry                                    │
+│  📤 UPLOAD       - File upload operations                                             │
+│  ✅ COMPLETE     - Task completion and success                                        │
+│  ⚠️  WARNING      - Important notices and potential issues                             │
+│  ❌ ERROR        - System errors and failures                                         │
+│                                                                                       │
+│  Pro Tips:                                                                            │
+│  • Use grep with emojis: grep "🌐" logs/server.log                                    │
+│  • Find specific events: grep "FINDER_TOKEN" logs/server.log                          │
+│  • Follow live logs: tail -f logs/server.log                                          │
+│  • AI breadcrumbs: grep "AI_BREADCRUMB" logs/server.log                               │
+│  • MCP tool calls: grep "MCP_.*_START" logs/server.log                                │
+│                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────╯
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 📖 LOG_READING_LEGEND: Educational guide displayed for log interpretation
+╭────────────────────────────── 🐰 Welcome to Consoleland ──────────────────────────────╮
+│                                                                                       │
+│       .                                                                               │
+│        - This is Uvicorn webserver output.                       /)    ______         │
+│          (i.e. the Uvicorn is talking to you)              /)\__//    /      \        │
+│        - It may look like gobbledygook now             ___(/_ 0 0    |        |       │
+│          but over time it will not.                  *(    ==(_T_)== |Pipulate|       │
+│        - Curious? Become a Carpenter!                  \  )   ""\    |        |       │
+│                                                         |__>-\_>_>    \______/        │
+│                                                                                       │
+╰──────────────────── Down the rabbit hole of radical transparency ─────────────────────╯
+[32m16:09:28[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | ✅ Successfully backed up profile (basic mode: 2 records)
+[32m16:09:28[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | ✅ Successfully backed up tasks (basic mode: 0 records)
+[32m16:09:28[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | 🧠 Merging AI keychain to existing backup
+[32m16:09:28[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | 🎯 Auto-backup complete: 3/3 successful
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | 🗃️ STARTUP_BACKUP: Automatic backup completed - 3 records secured across 3 tables
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | FINDER_TOKEN: STARTUP_BACKUP_SUMMARY - Tables backed up: profile, tasks, ai_keychain, Total records: 3
+[32m16:09:28[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET / (live-reload check) | ID: 4534ba64
+[32m16:09:29[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET / (live-reload check) | ID: 405cdf1f
+[32m16:09:30[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET / (live-reload check) | ID: 6b701e95
+[32m16:09:31[0m | [1mINFO    [0m | [36m__main__       [0m | [🔄 QUEUEING] 🚀 Server started in DEV mode. Ready for experimentation and testing!...
+[32m16:09:31[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 5 messages saved to discussion.db
+[32m16:09:31[0m | [33m[1mWARNING [0m | [36m__main__       [0m | Deleted key from persistence store: endpoint_message_sent__Development
+[32m16:09:31[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 6 messages saved to discussion.db
+[32m16:09:32[0m | [1mINFO    [0m | [36m__main__       [0m | [🔄 QUEUEING] Configure Botifython how you like. Check to add Roles to APP menu. Drag-to-reorder. Click any role t...
+[32m16:09:32[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 7 messages saved to discussion.db
+[32m16:09:35[0m | [1mINFO    [0m | [36m__main__       [0m | SCHEMA CACHE WARMUP: 2 projects, 2 cache hits, 5,991 total fields ready for AI
+[32m16:09:35[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 8 messages saved to discussion.db
+[32m16:09:38[0m | [1mINFO    [0m | [36m__main__       [0m | LOCAL LLM CONTEXT: Pre-seeded context package ready at data/local_llm_context.json
+🤖 Local LLM context prepared - the AI assistant is ready for collaboration
+[32m16:09:38[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CONVERSATION_SAVED - 9 messages saved to discussion.db
