@@ -73,6 +73,28 @@ class HistoryViewer:
         app.route('/history/filter', methods=['POST'])(self.filter_messages)
         app.route('/history/copy', methods=['POST'])(self.copy_to_clipboard)
 
+    def filter_noise_messages(self, messages):
+        """Filter out noise messages from conversation history"""
+        noise_patterns = [
+            "No training content available",
+            "Training content for", 
+            "No endpoint message available",
+            "No training found",
+            "Training file not found"
+        ]
+        
+        filtered_messages = []
+        for message in messages:
+            content = message.get('content', '')
+            is_noise = any(content.startswith(pattern) for pattern in noise_patterns)
+            
+            if not is_noise:
+                filtered_messages.append(message)
+            else:
+                logger.debug(f"🧹 HISTORY_FILTER: Filtered noise message: '{content[:50]}...'")
+        
+        return filtered_messages
+
     async def landing(self, request):
         """
         Main landing page with proper navigation integration.
@@ -88,6 +110,8 @@ class HistoryViewer:
             if CONVERSATION_SYSTEM_AVAILABLE:
                 conv_system = get_conversation_system()
                 messages = conv_system.get_conversation_list()
+                # Filter out noise messages
+                messages = self.filter_noise_messages(messages)
                 # Reverse order to show newest messages first
                 messages = list(reversed(messages))
                 stats = conv_system.get_conversation_stats()
@@ -121,6 +145,8 @@ class HistoryViewer:
             
             conv_system = get_conversation_system()
             messages = conv_system.get_conversation_list()
+            # Filter out noise messages
+            messages = self.filter_noise_messages(messages)
             # Reverse order to show newest messages first
             messages = list(reversed(messages))
             stats = conv_system.get_conversation_stats()
@@ -147,6 +173,8 @@ class HistoryViewer:
                 
                 conv_system = get_conversation_system()
                 messages = conv_system.get_conversation_list()
+                # Filter out noise messages
+                messages = self.filter_noise_messages(messages)
                 # Reverse order to show newest messages first
                 messages = list(reversed(messages))
                 content = self.format_conversation_for_clipboard(messages)
@@ -159,6 +187,8 @@ class HistoryViewer:
                 
                 conv_system = get_conversation_system()
                 messages = conv_system.get_conversation_list()
+                # Filter out noise messages
+                messages = self.filter_noise_messages(messages)
                 # Reverse order to show newest messages first
                 messages = list(reversed(messages))
                 if 0 <= message_index < len(messages):

@@ -1239,9 +1239,19 @@ def append_to_conversation(message=None, role='user'):
     try:
         # Skip auto-save during startup restoration
         if not startup_restoration_in_progress:
-            # 🚫 FILTER: Skip saving "No training content available" noise messages
-            if message.startswith("No training content available"):
-                logger.debug(f"💾 CONVERSATION_FILTER_SKIP - Filtered out training content noise: '{message[:50]}...'")
+            # 🚫 FILTER: Skip saving noise messages
+            noise_patterns = [
+                "No training content available",
+                "Training content for", 
+                "No endpoint message available",
+                "No training found",
+                "Training file not found"
+            ]
+            
+            is_noise = any(message.startswith(pattern) for pattern in noise_patterns)
+            
+            if is_noise:
+                logger.debug(f"💾 CONVERSATION_FILTER_SKIP - Filtered out noise: '{message[:50]}...'")
             else:
                 conv_system = get_global_conversation_system()
                 message_id = conv_system.append_message(role, message)
