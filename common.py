@@ -232,7 +232,7 @@ class BaseCrud:
             for item in sorted(items, key=lambda x: int(x['priority'])):
                 item_id = int(item['id'])
                 priority = int(item['priority'])
-                self.table.update(id=item_id, **{self.sort_field: priority})
+                self.table.update({self.sort_field: priority}, item_id)
                 item_name = getattr(self.table[item_id], self.item_name_field, 'Item')
                 updated_items.append(item_name)
             
@@ -320,7 +320,7 @@ class BaseCrud:
             old_values = {field: getattr(original_item, field, None) for field in update_data.keys()}
             
             # Update the item
-            updated_item = self.table.update(item_id, **update_data)
+            updated_item = self.table.update(update_data, item_id)
             
             # 🎯 TRIGGER BACKUP after successful update
             self._trigger_backup()
