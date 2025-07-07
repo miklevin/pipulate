@@ -24,3 +24,8 @@ SUCCESS: f74b00e 🔧 CRITICAL FIX: Correct backup system database paths
 SUCCESS: b63508a Fix breadcrumb trail discovery shell command issues
 SUCCESS: 1e8b0f4 feat: Use dynamic database filename based on app name and environment
 SUCCESS: ae0ea58 ``` feat: Implement independent discussion database for persistent conversation history
+SUCCESS: e44ec28 docs(cursor): Clarify AI assistant usage guidelines
+SUCCESS: ae0ea58 feat: Implement independent discussion database for persistent conversation history
+SUCCESS: e44ec28 docs(cursor): Clarify AI assistant usage guidelines
+SUCCESS: 9152474 feat: Enhance system prompt with clearer instructions and tool usage guidance
+SUCCESS: a88b5cb feat: Improve system prompt with parameter clarification

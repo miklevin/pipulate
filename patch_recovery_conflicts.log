@@ -26,3 +26,14 @@ CONFLICT: a01f74c ``` feat: Extract workflow-specific steps from dynamic step bu
 CONFLICT: c4bbfb2 feat(storytelling): Conditionally display MCP tools in main script - Files: server.py
 CONFLICT: 21b8f34 ``` 🚀 **MAGIC FORMULA ACTIVATION!** - Introducing iterative LLM execution with explicit XML format and anti-simulation commands. - Files: server.py
 CONFLICT: ab9e70d feat: Implement Radical Conversation History Transparency System - Files: mcp_tools.py, server.py
+CONFLICT: 54e7288 ``` feat: Remove backup/restore interface - focus on automated rolling backups - Files: helpers/durable_backup_system.py, server.py
+CONFLICT: 0d06f65 ``` feat(docs): Introduce LOCAL LLM TOOL CALLING TRAINER - Files: mcp_tools.py
+CONFLICT: 1a8c88e 🎭 BREAKTHROUGH: Chip O'Theseus Personality & Memory Curation System - Files: server.py
+CONFLICT: 0b32037 🧹 CLEANUP: Remove test artifacts from repo - Files: .gitignore
+CONFLICT: b09b4b8 Add breadcrumb trail discovery system for local LLMs - Files: mcp_tools.py, server.py
+CONFLICT: 5b20442 feat(mcp_tools): Add server reboot tool - Files: mcp_tools.py
+CONFLICT: 0bcf016 ``` feat: Implement fastlite-based conversation persistence - Files: server.py
+CONFLICT: 81bea5f ``` feat: Enhance system prompt with detailed Chip O'Theseus personality and keychain usage guidance - Files: helpers/durable_backup_system.py, server.py
+CONFLICT: b3c5830 fix(ai_discovery): Implement persistent conversation history - Files: mcp_tools.py, server.py
+CONFLICT: 9152474 feat: Enhance system prompt with clearer instructions and tool usage guidance - Files: training/system_prompt.md
+CONFLICT: a88b5cb feat: Improve system prompt with parameter clarification - Files: training/system_prompt.md
