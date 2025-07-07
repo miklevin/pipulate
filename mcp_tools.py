@@ -6388,14 +6388,17 @@ async def server_reboot(params: dict) -> dict:
             restart_details = f"Server was not running, started directly (PID: {start_result.pid})"
         
         # Give the server time to restart/start
-        await asyncio.sleep(5 if server_was_running else 3)
+        # Watchdog restarts are more graceful but take longer
+        await asyncio.sleep(8 if server_was_running else 3)
         
         # Verify server is responding
         server_responding = False
         response_status = None
         response_error = None
         
-        for attempt in range(3):
+        # Give watchdog restarts more attempts since they're more variable in timing
+        max_attempts = 5 if server_was_running else 3
+        for attempt in range(max_attempts):
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get('http://localhost:5001/', timeout=aiohttp.ClientTimeout(total=5)) as response:
@@ -6405,8 +6408,9 @@ async def server_reboot(params: dict) -> dict:
                             break
             except Exception as e:
                 response_error = str(e)
-                if attempt < 2:  # Don't sleep after the last attempt
-                    await asyncio.sleep(2)
+                if attempt < max_attempts - 1:  # Don't sleep after the last attempt
+                    # Shorter intervals for more responsive watchdog detection
+                    await asyncio.sleep(1.5 if server_was_running else 2)
         
         return {
             "success": server_responding,

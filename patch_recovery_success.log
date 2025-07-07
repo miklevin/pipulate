@@ -30,3 +30,5 @@ SUCCESS: e44ec28 docs(cursor): Clarify AI assistant usage guidelines
 SUCCESS: 9152474 feat: Enhance system prompt with clearer instructions and tool usage guidance
 SUCCESS: a88b5cb feat: Improve system prompt with parameter clarification
 SUCCESS: 92e4e1a fix: Update version and description in __init__.py
+SUCCESS: f7fafb6 ``` feat: Implement copy to clipboard functionality for conversation history
+SUCCESS: f7fafb6 feat: Implement copy to clipboard functionality for conversation history
