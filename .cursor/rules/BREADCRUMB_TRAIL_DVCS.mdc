@@ -6,7 +6,8 @@
 - **NEVER CREATE PIPULATE FILES IN**: `/` (workspace root OFF LIMITS)
 - **ALWAYS CREATE NEW AI DISCOVERY MARKDOWN IN**: `pipulate/ai_discovery/`
 - **ALWAYS CREATE NEW GENERAL MARKDOWN IN**: `pipulate/helpers/docs_sync/considerations/`
-- **SINGLE SOURCE OF TRUTH PER FOLDER**: WORKSPACE_RULZ.md
+- **TEMP PYTHON SCRIPTS**: Have a ball in `pipulate/temp`
+- **SINGLE SOURCE OF TRUTH PER FOLDER**: ONE_ALL_CAPS_FILE_PER_FOLDER.md
 
 ### **🎯 PATH VERIFICATION COMMANDS**
 ```bash
