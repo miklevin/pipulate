@@ -20,12 +20,24 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 
 # Static constants - NEVER QUESTION THESE
-CONVERSATION_DATABASE = "../data/discussion.db"
+CONVERSATION_DATABASE = str(Path(__file__).parent.parent / "data" / "discussion.db")
 SERVER_URL = "http://localhost:5001"
 CHAT_TEXTAREA = 'textarea[name="msg"]'
 CHAT_SUBMIT_BUTTON = 'button[type="submit"]'
-TEST_MESSAGE_PHASE_1 = "The test word is flibbertigibbet. Please remember this for our conversation."
-TEST_MESSAGE_PHASE_3 = "What is the test word I mentioned?"
+
+# Multi-cycle test configuration
+TEST_WORDS = [
+    "flibbertigibbet",
+    "slartibartfast"
+]
+
+TEST_MESSAGES = [
+    f"The test word is {word}. Please remember this for our conversation."
+    for word in TEST_WORDS
+]
+
+TEST_CYCLES = len(TEST_WORDS)  # 2 cycles
+TEST_MESSAGE_PHASE_3 = "What are the test words I mentioned?"
 
 # Critical timing constants for LLM streaming
 LLM_RESPONSE_INITIAL_WAIT = 3     # Wait for response to start
@@ -46,9 +58,9 @@ class ConversationPersistenceTestFinal:
         self.results = {}
         
     async def run_complete_test(self) -> dict:
-        """Execute the complete test cycle"""
+        """Execute the complete N-cycle test"""
         try:
-            print("🎯 Starting Conversation Persistence Test")
+            print(f"🎯 Starting {TEST_CYCLES}-Cycle Conversation Persistence Test")
             print("=" * 60)
             
             # Phase 1: Baseline
@@ -56,57 +68,110 @@ class ConversationPersistenceTestFinal:
             baseline_messages = await self.get_message_count()
             print(f"   📊 Baseline: {baseline_messages} messages in database")
             
-            # Phase 2: Send message with proper timing
-            print("📝 Phase 2: Sending test message...")
-            await self.send_message_with_streaming_wait(TEST_MESSAGE_PHASE_1)
+            # Track results for each cycle
+            cycle_results = []
             
-            # Phase 3: Verify message was saved
-            print("💾 Phase 3: Verifying message persistence...")
-            
-            # Check multiple times to account for potential delay
-            for attempt in range(3):
-                messages_after_send = await self.get_message_count()
-                print(f"   📊 Attempt {attempt + 1}: {messages_after_send} messages in database")
+            # Execute N cycles
+            for cycle_num in range(TEST_CYCLES):
+                print(f"\n🔄 CYCLE {cycle_num + 1}/{TEST_CYCLES}: Testing word '{TEST_WORDS[cycle_num]}'")
+                print("-" * 40)
                 
-                if messages_after_send > baseline_messages:
-                    print(f"   ✅ Message count increased from {baseline_messages} to {messages_after_send}")
-                    break
+                # Phase 2: Send message with proper timing
+                print(f"📝 Phase 2.{cycle_num + 1}: Sending test message...")
+                print(f"   🌐 Creating browser session {cycle_num + 1}/2...")
+                message_result = await self.send_message_with_streaming_wait(TEST_MESSAGES[cycle_num])
+                
+                if not message_result['success']:
+                    return await self.handle_failure(f"Cycle {cycle_num + 1}: Failed to send message")
+                
+                # Phase 3: Verify message was saved
+                print(f"💾 Phase 3.{cycle_num + 1}: Verifying message persistence...")
+                
+                # Check multiple times to account for potential delay
+                messages_after_send = None
+                for attempt in range(3):
+                    messages_after_send = await self.get_message_count()
+                    print(f"   📊 Attempt {attempt + 1}: {messages_after_send} messages in database")
                     
-                if attempt < 2:  # Don't wait after the last attempt
-                    print(f"   ⏳ Waiting 5 more seconds for database update...")
-                    await asyncio.sleep(5)
-            else:
-                # Check if there's conversation data but count is wrong
-                await self.debug_conversation_data()
-                return await self.handle_failure(f"Message count did not increase: {baseline_messages} → {messages_after_send}")
+                    expected_minimum = baseline_messages + (cycle_num + 1) * 2  # Each cycle adds ~2 messages (user + AI)
+                    if messages_after_send >= expected_minimum:
+                        print(f"   ✅ Message count meets expectation: {messages_after_send} >= {expected_minimum}")
+                        break
+                        
+                    if attempt < 2:  # Don't wait after the last attempt
+                        print(f"   ⏳ Waiting 5 more seconds for database update...")
+                        await asyncio.sleep(5)
+                else:
+                    # Check if there's conversation data but count is wrong
+                    await self.debug_conversation_data()
+                    return await self.handle_failure(f"Cycle {cycle_num + 1}: Message count insufficient: {messages_after_send}")
+                
+                # Phase 4: Restart server
+                print(f"🔄 Phase 4.{cycle_num + 1}: Restarting server...")
+                restart_result = await self.restart_server_via_mcp()
+                
+                if not restart_result['success']:
+                    return await self.handle_failure(f"Cycle {cycle_num + 1}: Server restart failed")
+                
+                # Phase 5: Verify conversation persisted after restart
+                print(f"🔍 Phase 5.{cycle_num + 1}: Verifying conversation persistence...")
+                messages_after_restart = await self.get_message_count()
+                print(f"   📊 After restart: {messages_after_restart} messages in database")
+                
+                # Check if current cycle's word is still there
+                current_word_present = await self.check_word_in_conversation(TEST_WORDS[cycle_num])
+                print(f"   🧠 Word '{TEST_WORDS[cycle_num]}' present after restart: {current_word_present}")
+                
+                # For proper persistence, each restart should maintain all previous words
+                all_previous_words_present = True
+                for prev_word_idx in range(cycle_num + 1):
+                    word_present = await self.check_word_in_conversation(TEST_WORDS[prev_word_idx])
+                    print(f"   🧠 Word '{TEST_WORDS[prev_word_idx]}' present: {word_present}")
+                    if not word_present:
+                        all_previous_words_present = False
+                
+                # Success means: messages didn't drop to baseline AND current word is still there
+                cycle_success = (
+                    messages_after_restart > baseline_messages and 
+                    current_word_present and
+                    all_previous_words_present
+                )
+                
+                # Store cycle results
+                cycle_results.append({
+                    'cycle': cycle_num + 1,
+                    'word': TEST_WORDS[cycle_num],
+                    'messages_after_send': messages_after_send,
+                    'messages_after_restart': messages_after_restart,
+                    'current_word_present': current_word_present,
+                    'all_previous_words_present': all_previous_words_present,
+                    'success': cycle_success
+                })
+                
+                # Clean up browser for next cycle
+                print(f"🧹 Phase 6.{cycle_num + 1}: Cleaning up browser session...")
+                if self.driver:
+                    self.driver.quit()
+                    self.driver = None
+                    print(f"   ✅ Browser session {cycle_num + 1} closed cleanly")
             
-            # Phase 4: Restart server
-            print("🔄 Phase 4: Restarting server...")
-            await self.restart_server_via_mcp()
+            # Phase 6: Final comprehensive memory test
+            print(f"\n🧠 Phase 6: Testing comprehensive AI memory...")
+            memory_result = await self.test_ai_memory_comprehensive()
             
-            # Phase 5: Verify conversation persisted
-            print("🔍 Phase 5: Verifying conversation persistence...")
-            messages_after_restart = await self.get_message_count()
-            print(f"   📊 After restart: {messages_after_restart} messages in database")
-            
-            # Phase 6: Test AI memory
-            print("🧠 Phase 6: Testing AI memory...")
-            memory_result = await self.test_ai_memory()
-            
-            # Generate results
-            success = (
-                messages_after_restart > baseline_messages and
-                memory_result['success']
-            )
+            # Generate overall results
+            all_cycles_successful = all(cycle['success'] for cycle in cycle_results)
+            success = all_cycles_successful and memory_result['success']
             
             return {
                 'success': success,
                 'test_name': self.test_name,
                 'results': {
                     'baseline_messages': baseline_messages,
-                    'messages_after_send': messages_after_send,
-                    'messages_after_restart': messages_after_restart,
-                    'memory_test': memory_result
+                    'cycles': cycle_results,
+                    'final_message_count': await self.get_message_count(),
+                    'memory_test': memory_result,
+                    'all_cycles_successful': all_cycles_successful
                 },
                 'timestamp': datetime.now().isoformat()
             }
@@ -146,21 +211,28 @@ class ConversationPersistenceTestFinal:
     async def send_message_with_streaming_wait(self, message: str) -> dict:
         """Send message and wait for LLM streaming response to complete"""
         try:
-            # Setup browser
+            # Ensure no existing browser session
+            if self.driver:
+                print(f"   ⚠️ Warning: Existing browser found, cleaning up...")
+                self.driver.quit()
+                self.driver = None
+            
+            # Setup fresh browser session
             chrome_options = Options()
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--disable-gpu")
             
+            print(f"   🚀 Creating new Chrome browser session...")
             self.driver = webdriver.Chrome(options=chrome_options)
+            print(f"   🌐 Navigating to {SERVER_URL}...")
             self.driver.get(SERVER_URL)
             
             # Wait for page to load
-            print(f"   🌐 Loading {SERVER_URL}...")
             await asyncio.sleep(BROWSER_INTERACTION_DELAY)
             
             # Find and interact with chat interface
-            print(f"   🎭 Finding chat interface...")
+            print(f"   🎭 Locating chat interface...")
             wait = WebDriverWait(self.driver, 10)
             textarea = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, CHAT_TEXTAREA)))
             submit_button = self.driver.find_element(By.CSS_SELECTOR, CHAT_SUBMIT_BUTTON)
@@ -194,9 +266,22 @@ class ConversationPersistenceTestFinal:
         """Restart server using MCP tool"""
         try:
             print(f"   🔧 Calling server_reboot MCP tool...")
+            
+            # Get the correct path to the pipulate directory
+            pipulate_dir = Path(__file__).parent.parent
+            python_path = pipulate_dir / ".venv" / "bin" / "python"
+            cli_path = pipulate_dir / "cli.py"
+            
+            print(f"   📁 Using Python: {python_path}")
+            print(f"   📁 Using CLI: {cli_path}")
+            
             result = subprocess.run([
-                ".venv/bin/python", "cli.py", "call", "server_reboot"
-            ], capture_output=True, text=True, timeout=30)
+                str(python_path), str(cli_path), "call", "server_reboot"
+            ], capture_output=True, text=True, timeout=30, cwd=str(pipulate_dir))
+            
+            print(f"   📝 MCP stdout: {result.stdout}")
+            if result.stderr:
+                print(f"   ⚠️ MCP stderr: {result.stderr}")
             
             print(f"   ⏳ Waiting {SERVER_RESTART_WAIT}s for server restart...")
             await asyncio.sleep(SERVER_RESTART_WAIT)
@@ -220,8 +305,70 @@ class ConversationPersistenceTestFinal:
             print(f"   ❌ Error restarting server: {e}")
             return {'success': False, 'error': str(e)}
     
+    async def test_ai_memory_comprehensive(self) -> dict:
+        """Test if AI remembers all test words from all cycles"""
+        try:
+            # Check if database contains our test messages
+            conn = sqlite3.connect(CONVERSATION_DATABASE)
+            cursor = conn.cursor()
+            
+            # Get conversation data from store table
+            cursor.execute("SELECT value FROM store WHERE key = 'llm_conversation_history'")
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result:
+                return {'success': False, 'error': 'No conversation data found'}
+            
+            # Parse the JSON conversation data
+            import json
+            conversation_data = json.loads(result[0])
+            
+            # Track results for each test word
+            word_results = {}
+            
+            for word in TEST_WORDS:
+                word_results[word] = {
+                    'user_message_found': False,
+                    'ai_response_found': False,
+                    'total_messages': 0
+                }
+                
+                # Look for messages containing this word
+                for msg in conversation_data:
+                    if isinstance(msg, dict) and 'content' in msg and 'role' in msg:
+                        if word in msg['content']:
+                            word_results[word]['total_messages'] += 1
+                            
+                            if msg['role'] == 'user' and f'test word is {word}' in msg['content']:
+                                word_results[word]['user_message_found'] = True
+                            elif msg['role'] == 'assistant' and word in msg['content']:
+                                word_results[word]['ai_response_found'] = True
+            
+            # Check overall success
+            all_words_found = True
+            for word, result in word_results.items():
+                word_success = result['user_message_found'] and result['ai_response_found']
+                print(f"   🧠 Word '{word}': User={result['user_message_found']}, AI={result['ai_response_found']}, Total={result['total_messages']}")
+                if not word_success:
+                    all_words_found = False
+            
+            print(f"   📊 Total conversation messages: {len(conversation_data)}")
+            print(f"   ✅ All words found: {all_words_found}")
+            
+            return {
+                'success': all_words_found,
+                'word_results': word_results,
+                'total_conversation_messages': len(conversation_data),
+                'all_words_found': all_words_found
+            }
+            
+        except Exception as e:
+            print(f"   ❌ Error testing comprehensive AI memory: {e}")
+            return {'success': False, 'error': str(e)}
+    
     async def test_ai_memory(self) -> dict:
-        """Test if AI remembers information after restart"""
+        """Test if AI remembers information after restart (legacy single-word version)"""
         try:
             # Check if database contains our test message
             conn = sqlite3.connect(CONVERSATION_DATABASE)
@@ -313,11 +460,47 @@ class ConversationPersistenceTestFinal:
                     if isinstance(msg, dict) and 'content' in msg and 'role' in msg:
                         content_preview = msg['content'][:50] + "..." if len(msg['content']) > 50 else msg['content']
                         print(f"   🔍 Message {i}: [{msg['role']}] {content_preview}")
+                
+                # Debug: Check for test words
+                print(f"   🔍 DEBUG: Checking for test words...")
+                for word in TEST_WORDS:
+                    count = sum(1 for msg in conversation_data 
+                               if isinstance(msg, dict) and 'content' in msg and word in msg['content'])
+                    print(f"   🔍 Word '{word}' found in {count} messages")
             else:
                 print(f"   🔍 DEBUG: No conversation data found in database")
                 
         except Exception as e:
             print(f"   🔍 DEBUG ERROR: {e}")
+    
+    async def check_word_in_conversation(self, word: str) -> bool:
+        """Check if a specific word exists in the conversation database"""
+        try:
+            conn = sqlite3.connect(CONVERSATION_DATABASE)
+            cursor = conn.cursor()
+            
+            # Get conversation data from store table
+            cursor.execute("SELECT value FROM store WHERE key = 'llm_conversation_history'")
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result:
+                return False
+            
+            # Parse the JSON conversation data
+            import json
+            conversation_data = json.loads(result[0])
+            
+            # Look for the word in any message
+            for msg in conversation_data:
+                if isinstance(msg, dict) and 'content' in msg and word in msg['content']:
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"   ⚠️ Error checking word '{word}': {e}")
+            return False
     
     async def check_server_responsive(self) -> bool:
         """Check if server is responsive"""
@@ -334,19 +517,55 @@ async def main():
     result = await test.run_complete_test()
     
     print("\n" + "=" * 80)
-    print("🎯 FINAL TEST RESULTS")
+    print(f"🎯 FINAL {TEST_CYCLES}-CYCLE TEST RESULTS")
     print("=" * 80)
     
     if result['success']:
-        print("✅ CONVERSATION PERSISTENCE TEST PASSED!")
-        print(f"📊 Results: {result['results']}")
-        print("\n🎉 The bottled test harness pattern works!")
-        print("🍾 Pattern successfully bottled for future use!")
+        print("✅ MULTI-CYCLE CONVERSATION PERSISTENCE TEST PASSED!")
+        print(f"📊 Test Summary:")
+        print(f"   🔄 Cycles completed: {TEST_CYCLES}")
+        print(f"   📝 Test words: {', '.join(TEST_WORDS)}")
+        print(f"   💾 Final message count: {result['results']['final_message_count']}")
+        print(f"   ✅ All cycles successful: {result['results']['all_cycles_successful']}")
+        
+        # Show cycle-by-cycle results
+        if 'cycles' in result['results']:
+            print("\n📋 Cycle-by-Cycle Results:")
+            for cycle_result in result['results']['cycles']:
+                status = "✅" if cycle_result['success'] else "❌"
+                word_status = "✅" if cycle_result.get('current_word_present', False) else "❌"
+                all_words_status = "✅" if cycle_result.get('all_previous_words_present', False) else "❌"
+                print(f"   {status} Cycle {cycle_result['cycle']}: '{cycle_result['word']}'")
+                print(f"      📊 Messages: Send={cycle_result['messages_after_send']}, Restart={cycle_result['messages_after_restart']}")
+                print(f"      🧠 Word Present: {word_status}, All Words Present: {all_words_status}")
+        
+        # Show memory test results
+        if 'memory_test' in result['results'] and 'word_results' in result['results']['memory_test']:
+            print("\n🧠 Memory Test Results:")
+            for word, word_result in result['results']['memory_test']['word_results'].items():
+                user_status = "✅" if word_result['user_message_found'] else "❌"
+                ai_status = "✅" if word_result['ai_response_found'] else "❌"
+                print(f"   '{word}': User {user_status}, AI {ai_status}, Total messages: {word_result['total_messages']}")
+        
+        print("\n🎉 The multi-cycle bottled test harness pattern works!")
+        print("🍾 Pattern successfully demonstrates persistent conversation accumulation!")
     else:
-        print("❌ CONVERSATION PERSISTENCE TEST FAILED")
+        print("❌ MULTI-CYCLE CONVERSATION PERSISTENCE TEST FAILED")
         print(f"🔍 Error: {result.get('error', 'Unknown error')}")
+        
+        # Show partial results if available
+        if 'results' in result and 'cycles' in result['results']:
+            print("\n📋 Partial Cycle Results:")
+            for cycle_result in result['results']['cycles']:
+                status = "✅" if cycle_result['success'] else "❌"
+                word_status = "✅" if cycle_result.get('current_word_present', False) else "❌"
+                all_words_status = "✅" if cycle_result.get('all_previous_words_present', False) else "❌"
+                print(f"   {status} Cycle {cycle_result['cycle']}: '{cycle_result['word']}'")
+                print(f"      📊 Messages: Send={cycle_result['messages_after_send']}, Restart={cycle_result['messages_after_restart']}")
+                print(f"      🧠 Word Present: {word_status}, All Words Present: {all_words_status}")
+        
         if 'diagnostic_data' in result:
-            print("📊 Diagnostic Data:")
+            print("\n📊 Diagnostic Data:")
             for key, value in result['diagnostic_data'].items():
                 print(f"   {key}: {value}")
     
