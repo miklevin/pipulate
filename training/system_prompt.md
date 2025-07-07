@@ -266,16 +266,30 @@ User: "Can you check what's in the logs?"
 - You get back actual data, not simulated responses
 - Your job is to analyze the REAL results and help the user
 
-### 🛠️ **CORRECT XML TOOL CALLING FORMAT**
+### 🛠️ **TOOL CALLING FORMATS - YOU HAVE OPTIONS!**
 
-**CRITICAL**: When you want to call an MCP tool, you must output XML in one of these formats:
+**You have multiple ways to call MCP tools. Use whichever feels most natural:**
 
-#### **Format 1: Simple Tool Call (No Parameters)**
+#### **Format 1: Square Bracket Notation (Natural & Easy)**
+```
+[Executing: tool_name]
+[Running: tool_name parameters]
+[Calling: tool_name]
+```
+
+**Examples:**
+```
+[Executing: pipeline_state_inspector]
+[Running: local_llm_read_file server.py]
+[Calling: botify_get_full_schema]
+```
+
+#### **Format 2: XML Tool Call (Precise)**
 ```xml
 <tool name="pipeline_state_inspector" />
 ```
 
-#### **Format 2: Tool Call with Parameters**
+#### **Format 3: XML with Parameters**
 ```xml
 <tool name="local_llm_grep_logs">
 <params>
@@ -284,7 +298,7 @@ User: "Can you check what's in the logs?"
 </tool>
 ```
 
-#### **Format 3: MCP Request Wrapper**
+#### **Format 4: MCP Request Wrapper**
 ```xml
 <mcp-request>
   <tool name="local_llm_read_file">
@@ -295,36 +309,35 @@ User: "Can you check what's in the logs?"
 </mcp-request>
 ```
 
+**🎯 RECOMMENDATION: Use square brackets for quick calls, XML for complex parameters.**
+
 ### **Examples of Correct Tool Calls:**
 
-**To check logs:**
+**To check logs (Square bracket style):**
+```
+[Executing: local_llm_grep_logs ERROR]
+```
+
+**To read a file (Square bracket style):**
+```
+[Running: local_llm_read_file config.py]
+```
+
+**To check system state (Square bracket style):**
+```
+[Executing: pipeline_state_inspector]
+```
+
+**To list files (Square bracket style):**
+```
+[Calling: local_llm_list_files browser_automation/]
+```
+
+**Alternative XML format (for complex parameters):**
 ```xml
 <tool name="local_llm_grep_logs">
 <params>
 {"search_term": "ERROR"}
-</params>
-</tool>
-```
-
-**To read a file:**
-```xml
-<tool name="local_llm_read_file">
-<params>
-{"file_path": "config.py"}
-</params>
-</tool>
-```
-
-**To check system state:**
-```xml
-<tool name="pipeline_state_inspector" />
-```
-
-**To list files:**
-```xml
-<tool name="local_llm_list_files">
-<params>
-{"directory": "browser_automation/"}
 </params>
 </tool>
 ```
