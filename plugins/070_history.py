@@ -1,33 +1,36 @@
 """
-Discussion History Viewer Plugin
+Discussion History Plugin
 
-A utility plugin for viewing and managing conversation history from the 
-append-only conversation system. Provides a chronological view of all 
-conversations with copy-to-clipboard functionality.
-
-This plugin follows the "weird plugin" pattern - it's a utility app that
-gets FastHTML navigation wrapping but doesn't follow the standard workflow structure.
+Provides a comprehensive view of conversation history using the append-only
+conversation system. Features include:
+- Chronological message display with proper site navigation
+- Role-based filtering (user/assistant/system)
+- Copy-to-clipboard functionality
+- Conversation statistics
+- Session tracking
+- PicoCSS-consistent color scheme
 """
 
 import logging
-import sys
-from pathlib import Path
+import asyncio
 from datetime import datetime
 from fasthtml.common import *
+from pathlib import Path
 
-# Add helpers to path for conversation system access
-helpers_dir = Path(__file__).parent.parent / 'helpers'
-sys.path.insert(0, str(helpers_dir))
-
-try:
-    from append_only_conversation import get_conversation_system
-    CONVERSATION_SYSTEM_AVAILABLE = True
-except ImportError:
-    CONVERSATION_SYSTEM_AVAILABLE = False
-
-ROLES = ['Core', 'Developer']
+ROLES = ['Core']
 
 logger = logging.getLogger(__name__)
+
+# Import the append-only conversation system
+try:
+    from helpers.append_only_conversation import (
+        get_conversation_history, 
+        get_conversation_stats
+    )
+    CONVERSATION_SYSTEM_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Append-only conversation system not available: {e}")
+    CONVERSATION_SYSTEM_AVAILABLE = False
 
 class HistoryViewer:
     """
@@ -46,385 +49,460 @@ class HistoryViewer:
     DISPLAY_NAME = 'Discussion History 💬'
     ENDPOINT_MESSAGE = """📜 Discussion History Viewer: Browse and manage your complete conversation history. View all messages chronologically, filter by role (user/assistant/system), copy individual messages or entire conversations to clipboard, and see conversation statistics. All data is preserved using the bulletproof append-only architecture."""
     
-    # UI styling constants
+    # PicoCSS-consistent UI styling constants
     UI_CONSTANTS = {
-        'COLORS': {
-            'USER_MESSAGE': '#e3f2fd',      # Light blue for user messages
-            'ASSISTANT_MESSAGE': '#f3e5f5', # Light purple for assistant messages  
-            'SYSTEM_MESSAGE': '#e8f5e8',    # Light green for system messages
-            'BORDER_COLOR': '#dee2e6',      # Light gray for borders
-            'TIMESTAMP_COLOR': '#6c757d',   # Muted gray for timestamps
-            'COPY_BUTTON': '#007bff',       # Blue for copy buttons
-        },
-        'SPACING': {
-            'MESSAGE_MARGIN': '1rem 0',
-            'MESSAGE_PADDING': '1rem',
-            'BORDER_RADIUS': '8px',
-        }
+        'user_color': 'var(--pico-primary-background)',
+        'assistant_color': 'var(--pico-secondary-background)', 
+        'system_color': 'var(--pico-color)',
+        'background_color': 'var(--pico-background-color)',
+        'border_color': 'var(--pico-border-color)',
+        'text_color': 'var(--pico-color)',
+        'muted_color': 'var(--pico-muted-color)',
+        'border_radius': 'var(--pico-border-radius)',
+        'spacing': 'var(--pico-spacing)',
+        'card_background': 'var(--pico-card-background-color)',
+        'card_border': 'var(--pico-card-border-color)'
     }
-    
+
     def __init__(self, app, pipulate, pipeline, db):
-        logger.debug(f"HistoryViewer initialized with NAME: {self.APP_NAME}")
+        logger.debug(f"HistoryViewer initialized with APP_NAME: {self.APP_NAME}")
         self.app = app
         self.pipulate = pipulate
         self.pipeline = pipeline
         self.db = db
         
-        # Register routes for the history viewer
-        self.app.route(f'/{self.APP_NAME}', methods=['GET'])(self.landing)
-        self.app.route(f'/{self.APP_NAME}/refresh', methods=['GET'])(self.refresh_history)
-        self.app.route(f'/{self.APP_NAME}/filter', methods=['POST'])(self.filter_messages)
-        self.app.route(f'/{self.APP_NAME}/copy', methods=['POST'])(self.copy_to_clipboard)
-    
+        # Register HTMX interaction routes (utility plugin pattern)
+        app.route('/history/refresh', methods=['GET'])(self.refresh_history)
+        app.route('/history/filter', methods=['POST'])(self.filter_messages)
+        app.route('/history/copy', methods=['POST'])(self.copy_to_clipboard)
+
     async def landing(self, request):
-        """Main history viewer page"""
-        if not CONVERSATION_SYSTEM_AVAILABLE:
-            return self.render_error_page("Conversation system not available")
-        
+        """
+        Main landing page with proper navigation integration.
+        This method ensures the history viewer gets the standard site navigation.
+        """
         try:
-            conv_system = get_conversation_system()
-            stats = conv_system.get_conversation_stats()
-            messages = conv_system.get_conversation_list()
+            # Get conversation data
+            messages = []
+            stats = {'total_messages': 0, 'role_distribution': {}, 'avg_length': 0}
             
-            return self.render_history_page(messages, stats)
+            logger.debug(f"Conversation system available: {CONVERSATION_SYSTEM_AVAILABLE}")
+            
+            if CONVERSATION_SYSTEM_AVAILABLE:
+                messages = await get_conversation_history()
+                stats = await get_conversation_stats()
+                logger.debug(f"Retrieved {len(messages)} messages from conversation system")
+                logger.debug(f"Stats: {stats}")
+            else:
+                logger.warning("Conversation system not available")
+            
+            # Create the main content
+            content = self.render_history_page(messages, stats)
+            return content
             
         except Exception as e:
-            logger.error(f"Error loading conversation history: {e}")
-            return self.render_error_page(f"Error loading conversation history: {e}")
-    
+            logger.error(f"Error in history landing: {e}")
+            return self.render_error_page(f"Error loading history: {str(e)}")
+
+
+
     async def refresh_history(self, request):
         """Refresh the history display"""
         return await self.landing(request)
-    
+
     async def filter_messages(self, request):
         """Filter messages by role"""
-        if not CONVERSATION_SYSTEM_AVAILABLE:
-            return self.render_error_page("Conversation system not available")
-        
         try:
-            form = await request.form()
-            role_filter = form.get('role_filter', 'all')
+            form_data = await request.form()
+            role_filter = form_data.get('role', 'all')
             
-            conv_system = get_conversation_system()
-            stats = conv_system.get_conversation_stats()
-            all_messages = conv_system.get_conversation_list()
+            if not CONVERSATION_SYSTEM_AVAILABLE:
+                return self.render_error_page("Conversation system not available")
             
+            messages = await get_conversation_history()
+            stats = await get_conversation_stats()
+            
+            # Filter messages if needed
             if role_filter != 'all':
-                filtered_messages = [msg for msg in all_messages if msg.get('role') == role_filter]
-            else:
-                filtered_messages = all_messages
+                messages = [msg for msg in messages if msg.get('role') == role_filter]
             
-            return self.render_messages_section(filtered_messages, stats, role_filter)
+            return self.render_messages_section(messages, stats, role_filter)
             
         except Exception as e:
             logger.error(f"Error filtering messages: {e}")
-            return self.render_error_page(f"Error filtering messages: {e}")
-    
+            return self.render_error_page(f"Error filtering messages: {str(e)}")
+
     async def copy_to_clipboard(self, request):
         """Handle copy to clipboard requests"""
-        form = await request.form()
-        copy_type = form.get('copy_type', 'message')
-        message_index = form.get('message_index', '')
-        
         try:
-            conv_system = get_conversation_system()
-            messages = conv_system.get_conversation_list()
+            form_data = await request.form()
+            copy_type = form_data.get('type', 'message')
             
-            if copy_type == 'message' and message_index.isdigit():
-                # Copy single message
-                idx = int(message_index)
-                if 0 <= idx < len(messages):
-                    message = messages[idx]
-                    content = self.format_message_for_clipboard(message)
-                    return self.render_copy_success(f"Message {idx + 1} copied to clipboard", content)
-            
-            elif copy_type == 'all':
-                # Copy entire conversation
+            if copy_type == 'conversation':
+                if not CONVERSATION_SYSTEM_AVAILABLE:
+                    return self.render_copy_error("Conversation system not available")
+                
+                messages = await get_conversation_history()
                 content = self.format_conversation_for_clipboard(messages)
-                return self.render_copy_success("Entire conversation copied to clipboard", content)
+                return self.render_copy_success("Entire conversation copied to clipboard!", content)
+            
+            elif copy_type == 'message':
+                message_index = int(form_data.get('index', 0))
+                if not CONVERSATION_SYSTEM_AVAILABLE:
+                    return self.render_copy_error("Conversation system not available")
+                
+                messages = await get_conversation_history()
+                if 0 <= message_index < len(messages):
+                    message = messages[message_index]
+                    content = self.format_message_for_clipboard(message)
+                    return self.render_copy_success(f"Message {message_index + 1} copied to clipboard!", content)
+                else:
+                    return self.render_copy_error("Message not found")
             
             return self.render_copy_error("Invalid copy request")
             
         except Exception as e:
             logger.error(f"Error copying to clipboard: {e}")
-            return self.render_copy_error(f"Error: {e}")
-    
+            return self.render_copy_error(f"Error: {str(e)}")
+
     def render_history_page(self, messages, stats):
         """Render the complete history page"""
         return Div(
-            H2(self.DISPLAY_NAME),
-            P(self.ENDPOINT_MESSAGE, cls='text-secondary'),
-            
-            # Statistics section
             self.render_stats_section(stats),
-            
-            # Controls section  
             self.render_controls_section(),
-            
-            # Messages section (main content)
-            Div(
-                id='messages-container',
-                hx_target='this',
-                hx_swap='innerHTML'
-            )(
-                self.render_messages_section(messages, stats)
-            ),
-            
-            # Copy functionality scripts
+            self.render_messages_section(messages, stats),
             self.render_copy_scripts(),
-            
-            id=f'{self.APP_NAME}-container'
+            id="history-container",
+            style=f"""
+                padding: {self.UI_CONSTANTS['spacing']};
+                background-color: {self.UI_CONSTANTS['background_color']};
+                color: {self.UI_CONSTANTS['text_color']};
+                min-height: 100vh;
+            """
         )
-    
+
     def render_stats_section(self, stats):
-        """Render conversation statistics"""
-        role_distribution = stats.get('role_distribution', {})
-        total_messages = stats.get('total_messages', 0)
-        avg_length = stats.get('average_message_length', 0)
+        """Render the statistics section"""
+        role_badges = []
+        for role, count in stats.get('role_distribution', {}).items():
+            icon = {'user': '👤', 'assistant': '🤖', 'system': '⚙️'}.get(role, '❓')
+            role_badges.append(
+                Span(
+                    f"{icon} {role.title()}: {count}",
+                    style=f"""
+                        display: inline-block;
+                        margin-right: {self.UI_CONSTANTS['spacing']};
+                        padding: 0.25rem 0.5rem;
+                        background-color: {self.UI_CONSTANTS['card_background']};
+                        border: 1px solid {self.UI_CONSTANTS['border_color']};
+                        border-radius: {self.UI_CONSTANTS['border_radius']};
+                        font-size: 0.85rem;
+                    """
+                )
+            )
         
         return Card(
-            H3("📊 Conversation Statistics"),
+            H3("📊 Conversation Statistics", style=f"color: {self.UI_CONSTANTS['text_color']}; margin-bottom: 1rem;"),
             Div(
-                Div(f"📝 Total Messages: {total_messages}", cls='stat-item'),
-                Div(f"👤 User: {role_distribution.get('user', 0)}", cls='stat-item'),
-                Div(f"🤖 Assistant: {role_distribution.get('assistant', 0)}", cls='stat-item'),
-                Div(f"⚙️ System: {role_distribution.get('system', 0)}", cls='stat-item'),
-                Div(f"📏 Avg Length: {avg_length:.0f} chars", cls='stat-item'),
-                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;"
+                Div(f"📈 Total Messages: {stats.get('total_messages', 0)}", style="margin-bottom: 0.5rem;"),
+                Div(f"📏 Average Length: {stats.get('avg_length', 0):.0f} characters", style="margin-bottom: 0.5rem;"),
+                Div(*role_badges, style="margin-top: 1rem;"),
+                style=f"color: {self.UI_CONSTANTS['text_color']};"
             ),
-            cls='mb-3'
+            style=f"""
+                background-color: {self.UI_CONSTANTS['card_background']};
+                border: 1px solid {self.UI_CONSTANTS['card_border']};
+                margin-bottom: 1rem;
+            """
         )
-    
+
     def render_controls_section(self):
-        """Render filter and action controls"""
+        """Render the filter and action controls"""
         return Card(
-            H3("🔧 Controls"),
+            H4("🎛️ Controls", style=f"color: {self.UI_CONSTANTS['text_color']}; margin-bottom: 1rem;"),
             Div(
                 # Filter controls
-                Form(
-                    Label("Filter by Role:", _for='role_filter'),
+                Div(
+                    Label("Filter by Role:", style=f"color: {self.UI_CONSTANTS['text_color']}; margin-right: 0.5rem;"),
                     Select(
-                        Option("All Messages", value='all', selected=True),
-                        Option("User Messages", value='user'),
-                        Option("Assistant Messages", value='assistant'),
-                        Option("System Messages", value='system'),
-                        name='role_filter',
-                        id='role_filter',
-                        hx_post=f'/{self.APP_NAME}/filter',
-                        hx_target='#messages-container',
-                        hx_swap='innerHTML'
+                        Option("All Messages", value="all"),
+                        Option("👤 User Messages", value="user"),
+                        Option("🤖 Assistant Messages", value="assistant"),
+                        Option("⚙️ System Messages", value="system"),
+                        name="role",
+                        hx_post="/history/filter",
+                        hx_target="#messages-container",
+                        hx_swap="outerHTML",
+                        style=f"""
+                            margin-right: 1rem;
+                            background-color: {self.UI_CONSTANTS['card_background']};
+                            border: 1px solid {self.UI_CONSTANTS['border_color']};
+                            color: {self.UI_CONSTANTS['text_color']};
+                        """
                     ),
-                    cls='filter-form'
+                    style="display: inline-block; margin-right: 1rem;"
                 ),
-                
                 # Action buttons
                 Div(
                     Button(
                         "🔄 Refresh",
-                        hx_get=f'/{self.APP_NAME}/refresh',
-                        hx_target=f'#{self.APP_NAME}-container',
-                        hx_swap='innerHTML',
-                        cls='secondary'
+                        hx_get="/history/refresh",
+                        hx_target="#history-container",
+                        hx_swap="outerHTML",
+                        style=f"""
+                            margin-right: 0.5rem;
+                            background-color: {self.UI_CONSTANTS['user_color']};
+                            border: 1px solid {self.UI_CONSTANTS['border_color']};
+                            color: white;
+                        """
                     ),
                     Button(
                         "📋 Copy All",
-                        onclick="copyEntireConversation()",
-                        cls='primary'
+                        onclick="copyConversation()",
+                        style=f"""
+                            background-color: {self.UI_CONSTANTS['assistant_color']};
+                            border: 1px solid {self.UI_CONSTANTS['border_color']};
+                            color: white;
+                        """
                     ),
-                    style="display: flex; gap: 0.5rem; margin-top: 1rem;"
+                    style="display: inline-block;"
                 ),
-                
-                style="display: flex; justify-content: space-between; align-items: flex-start;"
+                style="display: flex; align-items: center; gap: 1rem;"
             ),
-            cls='mb-3'
+            style=f"""
+                background-color: {self.UI_CONSTANTS['card_background']};
+                border: 1px solid {self.UI_CONSTANTS['card_border']};
+                margin-bottom: 1rem;
+            """
         )
-    
+
     def render_messages_section(self, messages, stats, role_filter='all'):
-        """Render the messages display section"""
+        """Render the messages section"""
         if not messages:
             return Div(
-                H3("📭 No Messages Found"),
-                P("No conversation history available yet."),
-                cls='text-center'
+                Card(
+                    H4("📭 No Messages", style=f"color: {self.UI_CONSTANTS['text_color']};"),
+                    P("No conversation history found.", style=f"color: {self.UI_CONSTANTS['muted_color']};"),
+                    style=f"""
+                        background-color: {self.UI_CONSTANTS['card_background']};
+                        border: 1px solid {self.UI_CONSTANTS['card_border']};
+                        text-align: center;
+                    """
+                ),
+                id="messages-container"
             )
         
         message_elements = []
         for i, message in enumerate(messages):
             message_elements.append(self.render_single_message(message, i))
         
-        filter_info = f"Showing {len(messages)} messages" + (f" (filtered by: {role_filter})" if role_filter != 'all' else "")
-        
         return Div(
-            P(filter_info, cls='text-secondary mb-2'),
-            Div(*message_elements, cls='messages-list'),
-            id='messages-display'
+            H4(f"💬 Messages ({len(messages)})", style=f"color: {self.UI_CONSTANTS['text_color']}; margin-bottom: 1rem;"),
+            Div(*message_elements, style="display: flex; flex-direction: column; gap: 0.5rem;"),
+            id="messages-container"
         )
-    
+
     def render_single_message(self, message, index):
-        """Render a single message with styling based on role"""
+        """Render a single message"""
         role = message.get('role', 'unknown')
         content = message.get('content', '')
         timestamp = message.get('timestamp', '')
         
-        # Format timestamp for display
-        try:
-            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-            display_time = dt.strftime('%Y-%m-%d %H:%M:%S')
-        except:
-            display_time = timestamp
-        
-        # Choose background color based on role
-        bg_color = self.UI_CONSTANTS['COLORS'].get(f'{role.upper()}_MESSAGE', '#f8f9fa')
-        
-        # Role icon
-        role_icons = {
-            'user': '👤',
-            'assistant': '🤖', 
-            'system': '⚙️'
+        # Role-specific styling
+        role_styles = {
+            'user': {
+                'icon': '👤',
+                'color': self.UI_CONSTANTS['user_color'],
+                'border_color': self.UI_CONSTANTS['user_color']
+            },
+            'assistant': {
+                'icon': '🤖', 
+                'color': self.UI_CONSTANTS['assistant_color'],
+                'border_color': self.UI_CONSTANTS['assistant_color']
+            },
+            'system': {
+                'icon': '⚙️',
+                'color': self.UI_CONSTANTS['system_color'],
+                'border_color': self.UI_CONSTANTS['border_color']
+            }
         }
-        role_icon = role_icons.get(role, '❓')
+        
+        role_style = role_styles.get(role, role_styles['system'])
+        
+        # Format timestamp
+        try:
+            if timestamp:
+                dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                formatted_time = dt.strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                formatted_time = 'Unknown time'
+        except:
+            formatted_time = str(timestamp)
+        
+        # Truncate very long messages for display
+        display_content = content
+        if len(content) > 500:
+            display_content = content[:500] + "..."
         
         return Div(
             Div(
-                # Message header
                 Div(
-                    Span(f"{role_icon} {role.title()}", style="font-weight: bold;"),
-                    Span(display_time, style=f"color: {self.UI_CONSTANTS['COLORS']['TIMESTAMP_COLOR']}; font-size: 0.9em;"),
-                    Button(
-                        "📋",
-                        onclick=f"copyMessage({index})",
-                        title="Copy message to clipboard",
-                        style=f"background: {self.UI_CONSTANTS['COLORS']['COPY_BUTTON']}; color: white; border: none; border-radius: 4px; padding: 0.25rem 0.5rem; cursor: pointer; font-size: 0.8em;",
-                        type='button'
-                    ),
+                    Span(f"{role_style['icon']} {role.title()}", style=f"font-weight: bold; color: {role_style['color']};"),
+                    Span(formatted_time, style=f"font-size: 0.8rem; color: {self.UI_CONSTANTS['muted_color']};"),
                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;"
                 ),
-                
-                # Message content
-                Div(
-                    Pre(content, style="white-space: pre-wrap; margin: 0; font-family: inherit;"),
-                    style="line-height: 1.5;"
+                Pre(
+                    display_content,
+                    style=f"""
+                        white-space: pre-wrap;
+                        word-wrap: break-word;
+                        margin: 0;
+                        padding: 0.75rem;
+                        background-color: {self.UI_CONSTANTS['background_color']};
+                        border: 1px solid {self.UI_CONSTANTS['border_color']};
+                        border-radius: {self.UI_CONSTANTS['border_radius']};
+                        color: {self.UI_CONSTANTS['text_color']};
+                        font-family: var(--pico-font-family);
+                        font-size: 0.9rem;
+                        line-height: 1.4;
+                    """
                 ),
-                
+                Button(
+                    "📋 Copy",
+                    onclick=f"copyMessage({index})",
+                    style=f"""
+                        margin-top: 0.5rem;
+                        padding: 0.25rem 0.5rem;
+                        font-size: 0.8rem;
+                        background-color: {role_style['color']};
+                        border: 1px solid {role_style['border_color']};
+                        color: white;
+                        border-radius: {self.UI_CONSTANTS['border_radius']};
+                    """
+                ),
                 style=f"""
-                    background-color: {bg_color};
-                    border: 1px solid {self.UI_CONSTANTS['COLORS']['BORDER_COLOR']};
-                    border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']};
-                    padding: {self.UI_CONSTANTS['SPACING']['MESSAGE_PADDING']};
-                    margin: {self.UI_CONSTANTS['SPACING']['MESSAGE_MARGIN']};
+                    padding: 1rem;
+                    background-color: {self.UI_CONSTANTS['card_background']};
+                    border: 1px solid {self.UI_CONSTANTS['card_border']};
+                    border-left: 4px solid {role_style['color']};
+                    border-radius: {self.UI_CONSTANTS['border_radius']};
                 """
             ),
             data_message_index=str(index),
-            data_message_content=content,
-            data_message_role=role,
-            data_message_timestamp=timestamp
+            data_message_content=content,  # Store full content for copying
+            style="margin-bottom: 0.5rem;"
         )
-    
+
     def render_copy_scripts(self):
         """Render JavaScript for copy functionality"""
         return Script(f"""
+            // Copy individual message
             function copyMessage(index) {{
                 const messageDiv = document.querySelector(`[data-message-index="${{index}}"]`);
-                if (!messageDiv) return;
-                
-                const role = messageDiv.getAttribute('data-message-role');
-                const timestamp = messageDiv.getAttribute('data-message-timestamp');
-                const content = messageDiv.getAttribute('data-message-content');
-                
-                const formattedMessage = `${{role.toUpperCase()}} (${{timestamp}}):\\n${{content}}\\n`;
-                
-                navigator.clipboard.writeText(formattedMessage).then(() => {{
-                    showCopySuccess(`Message ${{parseInt(index) + 1}} copied to clipboard`);
-                }}).catch(() => {{
-                    showCopyError('Failed to copy message');
-                }});
-            }}
-            
-            function copyEntireConversation() {{
-                const messages = document.querySelectorAll('[data-message-index]');
-                let conversation = '';
-                
-                messages.forEach((messageDiv, i) => {{
-                    const role = messageDiv.getAttribute('data-message-role');
-                    const timestamp = messageDiv.getAttribute('data-message-timestamp');
+                if (messageDiv) {{
                     const content = messageDiv.getAttribute('data-message-content');
-                    
-                    conversation += `${{role.toUpperCase()}} (${{timestamp}}):\\n${{content}}\\n\\n`;
+                    if (content) {{
+                        navigator.clipboard.writeText(content).then(() => {{
+                            showNotification('Message copied to clipboard!', 'success');
+                        }}).catch(err => {{
+                            console.error('Failed to copy message:', err);
+                            showNotification('Failed to copy message', 'error');
+                        }});
+                    }}
+                }}
+            }}
+            
+            // Copy entire conversation
+            function copyConversation() {{
+                fetch('/history/copy', {{
+                    method: 'POST',
+                    headers: {{
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    }},
+                    body: 'type=conversation'
+                }})
+                .then(response => response.json())
+                .then(data => {{
+                    if (data.success && data.content) {{
+                        navigator.clipboard.writeText(data.content).then(() => {{
+                            showNotification('Entire conversation copied to clipboard!', 'success');
+                        }}).catch(err => {{
+                            console.error('Failed to copy conversation:', err);
+                            showNotification('Failed to copy conversation', 'error');
+                        }});
+                    }} else {{
+                        showNotification('Failed to copy conversation', 'error');
+                    }}
+                }})
+                .catch(err => {{
+                    console.error('Error copying conversation:', err);
+                    showNotification('Error copying conversation', 'error');
                 }});
+            }}
+            
+            // Show notification
+            function showNotification(message, type) {{
+                const notification = document.createElement('div');
+                notification.textContent = message;
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 1rem;
+                    border-radius: {self.UI_CONSTANTS['border_radius']};
+                    color: white;
+                    font-weight: bold;
+                    z-index: 1000;
+                    transition: opacity 0.3s ease;
+                    background-color: ${{type === 'success' ? '{self.UI_CONSTANTS['user_color']}' : 'var(--pico-del-color)'}};
+                `;
                 
-                navigator.clipboard.writeText(conversation).then(() => {{
-                    showCopySuccess(`Entire conversation (${{messages.length}} messages) copied to clipboard`);
-                }}).catch(() => {{
-                    showCopyError('Failed to copy conversation');
-                }});
-            }}
-            
-            function showCopySuccess(message) {{
-                const notification = document.createElement('div');
-                notification.textContent = '✅ ' + message;
-                notification.style.cssText = `
-                    position: fixed; top: 20px; right: 20px; 
-                    background: #28a745; color: white; 
-                    padding: 1rem; border-radius: 4px; 
-                    z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-                `;
                 document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 3000);
-            }}
-            
-            function showCopyError(message) {{
-                const notification = document.createElement('div');
-                notification.textContent = '❌ ' + message;
-                notification.style.cssText = `
-                    position: fixed; top: 20px; right: 20px; 
-                    background: #dc3545; color: white; 
-                    padding: 1rem; border-radius: 4px; 
-                    z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-                `;
-                document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 3000);
+                
+                setTimeout(() => {{
+                    notification.style.opacity = '0';
+                    setTimeout(() => {{
+                        document.body.removeChild(notification);
+                    }}, 300);
+                }}, 3000);
             }}
         """)
-    
+
     def render_error_page(self, error_message):
-        """Render error page when conversation system is unavailable"""
-        return Div(
-            H2(self.DISPLAY_NAME),
-            Card(
-                H3("❌ Error"),
-                P(error_message),
-                P("The conversation history feature requires the append-only conversation system to be available."),
-                cls='error-card'
-            ),
-            id=f'{self.APP_NAME}-container'
+        """Render an error page"""
+        return Card(
+            H3("❌ Error", style=f"color: var(--pico-del-color);"),
+            P(error_message, style=f"color: {self.UI_CONSTANTS['text_color']};"),
+            P("This may happen if the conversation system is not available.", style=f"color: {self.UI_CONSTANTS['muted_color']};"),
+            style=f"""
+                background-color: {self.UI_CONSTANTS['card_background']};
+                border: 1px solid var(--pico-del-color);
+                text-align: center;
+                margin: 2rem auto;
+                max-width: 500px;
+            """
         )
-    
+
     def render_copy_success(self, message, content):
-        """Render success response for copy operations"""
-        return Div(
-            P(f"✅ {message}", cls='text-success'),
-            style="padding: 1rem; background: #d4edda; border-radius: 4px; margin: 1rem 0;"
-        )
-    
+        """Render copy success response"""
+        return {"success": True, "message": message, "content": content}
+
     def render_copy_error(self, message):
-        """Render error response for copy operations"""
-        return Div(
-            P(f"❌ {message}", cls='text-danger'),
-            style="padding: 1rem; background: #f8d7da; border-radius: 4px; margin: 1rem 0;"
-        )
-    
+        """Render copy error response"""
+        return {"success": False, "message": message}
+
     def format_message_for_clipboard(self, message):
         """Format a single message for clipboard"""
         role = message.get('role', 'unknown')
         content = message.get('content', '')
         timestamp = message.get('timestamp', '')
         
-        return f"{role.upper()} ({timestamp}):\n{content}\n"
-    
+        return f"[{role.upper()}] {timestamp}\n{content}\n"
+
     def format_conversation_for_clipboard(self, messages):
-        """Format entire conversation for clipboard"""
+        """Format the entire conversation for clipboard"""
         formatted_messages = []
         for message in messages:
             formatted_messages.append(self.format_message_for_clipboard(message))
         
-        return "\n".join(formatted_messages) 
+        return "\n" + "="*50 + "\n".join(formatted_messages) + "="*50 + "\n" 
