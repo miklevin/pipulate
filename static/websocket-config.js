@@ -56,6 +56,10 @@ sidebarWs.onmessage = function(event) {
     }
     if (event.data === '%%STREAM_END%%') {
         updateStreamingUI(false);
+        // Add clipboard functionality to the completed assistant message
+        if (sidebarCurrentMessage && sidebarCurrentMessage.dataset.rawText) {
+            addClipboardToAssistantMessage(sidebarCurrentMessage);
+        }
         // Reset message buffer for next stream
         sidebarCurrentMessage = document.createElement('div');
         sidebarCurrentMessage.className = 'message assistant';
@@ -236,6 +240,109 @@ function initializeChatInterface() {
     updateStreamingUI(false);
 }
 
+// Copy message to clipboard with visual feedback
+function copyMessageToClipboard(text, button) {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            showClipboardSuccess(button);
+        }).catch(err => {
+            console.error('Failed to copy message:', err);
+            showClipboardError(button);
+        });
+    } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            if (successful) {
+                showClipboardSuccess(button);
+            } else {
+                showClipboardError(button);
+            }
+        } catch (err) {
+            document.body.removeChild(textArea);
+            console.error('Fallback copy failed:', err);
+            showClipboardError(button);
+        }
+    }
+}
+
+// Show success feedback for clipboard copy
+function showClipboardSuccess(button) {
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '✅';
+    button.style.opacity = '1';
+    button.style.backgroundColor = 'var(--pico-color-green-500)';
+    
+    setTimeout(() => {
+        button.innerHTML = originalHTML;
+        button.style.opacity = '0.6';
+        button.style.backgroundColor = 'transparent';
+    }, 2000);
+}
+
+// Show error feedback for clipboard copy
+function showClipboardError(button) {
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '❌';
+    button.style.opacity = '1';
+    button.style.backgroundColor = 'var(--pico-color-red-500)';
+    
+    setTimeout(() => {
+        button.innerHTML = originalHTML;
+        button.style.opacity = '0.6';
+        button.style.backgroundColor = 'transparent';
+    }, 2000);
+}
+
+// Add clipboard functionality to assistant messages
+function addClipboardToAssistantMessage(messageElement) {
+    // Check if clipboard button already exists
+    if (messageElement.querySelector('.clipboard-button')) {
+        return;
+    }
+    
+    // Only add clipboard if message has content
+    const messageText = messageElement.dataset.rawText;
+    if (!messageText || messageText.trim() === '') {
+        return;
+    }
+    
+    // Create message container structure
+    const messageContainer = document.createElement('div');
+    messageContainer.className = 'message-container';
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    messageContent.innerHTML = messageElement.innerHTML;
+    
+    const clipboardButton = document.createElement('button');
+    clipboardButton.className = 'clipboard-button';
+    clipboardButton.innerHTML = window.PCONFIG.clipboardSVG;
+    clipboardButton.title = 'Copy message to clipboard';
+    clipboardButton.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        copyMessageToClipboard(messageText, clipboardButton);
+    };
+    
+    messageContainer.appendChild(messageContent);
+    messageContainer.appendChild(clipboardButton);
+    
+    // Replace the message element content
+    messageElement.innerHTML = '';
+    messageElement.appendChild(messageContainer);
+}
+
 window.stopSidebarStream = function() {
     if (isStreaming && sidebarWs.readyState === WebSocket.OPEN) {
         console.log('Sending stop command to server...');
@@ -249,17 +356,40 @@ window.sendSidebarMessage = function(event) {
     event.preventDefault();
     const input = document.getElementById('msg');
     if (input.value && !isStreaming) { // Prevent sending while streaming
+        const userMessageText = input.value;
         const userMsg = document.createElement('div');
         userMsg.className = 'message user';
-        userMsg.textContent = input.value;
+        
+        // Create message container with clipboard functionality
+        const messageContainer = document.createElement('div');
+        messageContainer.className = 'message-container';
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        messageContent.textContent = userMessageText;
+        
+        const clipboardButton = document.createElement('button');
+        clipboardButton.className = 'clipboard-button';
+        clipboardButton.innerHTML = window.PCONFIG.clipboardSVG;
+        clipboardButton.title = 'Copy message to clipboard';
+        clipboardButton.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            copyMessageToClipboard(userMessageText, clipboardButton);
+        };
+        
+        messageContainer.appendChild(messageContent);
+        messageContainer.appendChild(clipboardButton);
+        userMsg.appendChild(messageContainer);
+        
         sidebarMsgList.appendChild(userMsg);
         
         sidebarCurrentMessage = document.createElement('div');
         sidebarCurrentMessage.className = 'message assistant';
         
-        console.log('Sidebar sending:', input.value);
+        console.log('Sidebar sending:', userMessageText);
         if (sidebarWs.readyState === WebSocket.OPEN) {
-            sidebarWs.send(input.value);
+            sidebarWs.send(userMessageText);
             input.value = '';
             // The server will now send %%STREAM_START%% to lock the UI
         } else {
