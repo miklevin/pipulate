@@ -348,10 +348,8 @@ class HistoryViewer:
         except:
             formatted_time = str(timestamp)
         
-        # Truncate very long messages for display
+        # Show full message content (no truncation)
         display_content = content
-        if len(content) > 500:
-            display_content = content[:500] + "..."
         
         return Div(
             Div(
