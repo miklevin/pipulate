@@ -287,26 +287,44 @@ class DurableBackupManager:
     
     def backup_ai_keychain(self, keychain_db_path: str) -> bool:
         """
-        🧠 Backup Chip O'Theseus AI Keychain for memory persistence.
+        🧠 Backup Chip O'Theseus AI Keychain to durable storage.
         """
         try:
+            if not os.path.exists(keychain_db_path):
+                logger.warning(f"⚠️ AI keychain not found at {keychain_db_path}")
+                return False
+            
             backup_file = self.backup_root / f"ai_keychain_{datetime.now().strftime('%Y-%m-%d')}.db"
             
-            if backup_file.exists():
-                # Merge keychain data (keychain has its own conflict resolution)
-                logger.info(f"🧠 Merging AI keychain to existing backup")
-                shutil.copy2(keychain_db_path, backup_file)
-            else:
-                # Initial backup
-                shutil.copy2(keychain_db_path, backup_file)
-                logger.info(f"🧠 Created AI keychain backup: {backup_file}")
-            
+            # Copy the entire keychain database
+            shutil.copy2(keychain_db_path, backup_file)
+            logger.info(f"🧠 AI Keychain backed up to: {backup_file}")
             return True
             
         except Exception as e:
             logger.error(f"❌ AI Keychain backup failed: {e}")
             return False
-    
+
+    def backup_discussion_db(self, discussion_db_path: str) -> bool:
+        """
+        💬 Backup conversation history (discussion.db) to durable storage.
+        """
+        try:
+            if not os.path.exists(discussion_db_path):
+                logger.warning(f"⚠️ Discussion database not found at {discussion_db_path}")
+                return False
+            
+            backup_file = self.backup_root / f"discussion_{datetime.now().strftime('%Y-%m-%d')}.db"
+            
+            # Copy the entire discussion database
+            shutil.copy2(discussion_db_path, backup_file)
+            logger.info(f"💬 Discussion database backed up to: {backup_file}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Discussion database backup failed: {e}")
+            return False
+
     def restore_ai_keychain(self, target_keychain_path: str) -> bool:
         """
         🧠 Restore Chip O'Theseus AI Keychain from backup.
@@ -329,8 +347,31 @@ class DurableBackupManager:
         except Exception as e:
             logger.error(f"❌ AI Keychain restore failed: {e}")
             return False
-    
-    def auto_backup_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
+
+    def restore_discussion_db(self, target_discussion_path: str) -> bool:
+        """
+        💬 Restore conversation history (discussion.db) from backup.
+        """
+        try:
+            backup_file = self.backup_root / f"discussion_{datetime.now().strftime('%Y-%m-%d')}.db"
+            if not backup_file.exists():
+                # Try yesterday's backup
+                yesterday = datetime.now() - timedelta(days=1)
+                backup_file = self.backup_root / f"discussion_{yesterday.strftime('%Y-%m-%d')}.db"
+            
+            if backup_file.exists():
+                shutil.copy2(backup_file, target_discussion_path)
+                logger.info(f"💬 Restored discussion database from: {backup_file}")
+                return True
+            else:
+                logger.warning("⚠️ No discussion database backup found")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Discussion database restore failed: {e}")
+            return False
+
+    def auto_backup_all(self, main_db_path: str, keychain_db_path: str, discussion_db_path: str = "data/discussion.db") -> Dict[str, bool]:
         """
         🚀 Perform complete backup of all durable data.
         
@@ -346,13 +387,17 @@ class DurableBackupManager:
         if os.path.exists(keychain_db_path):
             results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
         
+        # Backup discussion database (conversation history)
+        if os.path.exists(discussion_db_path):
+            results['discussion'] = self.backup_discussion_db(discussion_db_path)
+        
         successful = sum(1 for success in results.values() if success)
         total = len(results)
         logger.info(f"🎯 Auto-backup complete: {successful}/{total} successful")
         
         return results
-    
-    def auto_restore_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
+
+    def auto_restore_all(self, main_db_path: str, keychain_db_path: str, discussion_db_path: str = "data/discussion.db") -> Dict[str, bool]:
         """
         🔄 Restore all data from backups.
         
@@ -366,6 +411,9 @@ class DurableBackupManager:
         
         # Restore AI keychain
         results['ai_keychain'] = self.restore_ai_keychain(keychain_db_path)
+        
+        # Restore discussion database
+        results['discussion'] = self.restore_discussion_db(discussion_db_path)
         
         successful = sum(1 for success in results.values() if success)
         total = len(results)
@@ -457,49 +505,62 @@ class DurableBackupManager:
         
         return counts
     
-    def explicit_backup_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
+    def explicit_backup_all(self, 
+                           main_db_path: str, 
+                           keychain_db_path: str, 
+                           discussion_db_path: str = "data/discussion.db") -> Dict[str, bool]:
         """
         📤 EXPLICIT BACKUP: Save current database state TO backup files.
-        
+
         This OVERWRITES backup files with current data. No restore logic.
         Use when you want to save your current work.
         """
         results = {}
-        
+
         # Backup main tables
         for table_name in self.backup_tables.keys():
             results[table_name] = self.backup_table(main_db_path, table_name)
-        
+
         # Backup AI keychain
         if os.path.exists(keychain_db_path):
             results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
-        
+
+        # Backup discussion database (conversation history)
+        if os.path.exists(discussion_db_path):
+            results['discussion'] = self.backup_discussion_db(discussion_db_path)
+
         successful = sum(1 for success in results.values() if success)
         total = len(results)
-        logger.info(f"📤 Explicit backup complete: {successful}/{total} successful")
-        
+        logger.info(f"🔧 Explicit backup complete: {successful}/{total} successful")
+
         return results
     
-    def explicit_restore_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
+    def explicit_restore_all(self, 
+                            main_db_path: str, 
+                            keychain_db_path: str, 
+                            discussion_db_path: str = "data/discussion.db") -> Dict[str, bool]:
         """
-        📥 EXPLICIT RESTORE: Load backup data INTO current database.
-        
-        This OVERWRITES current data with backup. No backup logic.
-        Use when you want to restore from a previous backup.
+        📥 EXPLICIT RESTORE: Overwrite current database state FROM backup files.
+
+        This OVERWRITES current data with backup data. No merge logic.
+        Use when you want to restore from a saved state.
         """
         results = {}
-        
+
         # Restore main tables
         for table_name in self.backup_tables.keys():
             results[table_name] = self.restore_table(main_db_path, table_name)
-        
+
         # Restore AI keychain
         results['ai_keychain'] = self.restore_ai_keychain(keychain_db_path)
-        
+
+        # Restore discussion database (conversation history)
+        results['discussion'] = self.restore_discussion_db(discussion_db_path)
+
         successful = sum(1 for success in results.values() if success)
         total = len(results)
-        logger.info(f"📥 Explicit restore complete: {successful}/{total} successful")
-        
+        logger.info(f"🔧 Explicit restore complete: {successful}/{total} successful")
+
         return results
 
 
