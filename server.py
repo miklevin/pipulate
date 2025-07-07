@@ -5295,7 +5295,7 @@ async def poke_flyout(request):
                                 hx_swap='beforeend', 
                                 hx_confirm='⚠️ This will remove the .venv directory and require a manual restart. You will need to type "exit" then "nix develop" to rebuild the environment. Continue?', 
                                 cls='secondary outline dev-button-muted') if is_dev_mode else None
-    mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
+    mcp_training_button = Button(f'🧠 MCP Training {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
     # Add Update button
     update_button = Button(f'🔄 Update {APP_NAME}', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
@@ -5317,7 +5317,7 @@ async def poke_flyout(request):
         cls='version-info-container'
     )
     
-    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Backup (Prod only), Clear Workflows, Reset Database, MCP Test
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Backup (Prod only), Clear Workflows, Reset Database, MCP Training
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
         Li(lock_button, cls='flyout-list-item'),
@@ -5329,7 +5329,7 @@ async def poke_flyout(request):
     if is_dev_mode:
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
         list_items.append(Li(reset_python_button, cls='flyout-list-item'))
-    list_items.append(Li(mcp_test_button, cls='flyout-list-item'))
+    list_items.append(Li(mcp_training_button, cls='flyout-list-item'))
     
     # Always use nav flyout now - no more fallback to old flyout
     target_id = 'nav-flyout-panel'
@@ -5378,51 +5378,71 @@ def redirect_handler(request):
 @rt('/poke', methods=['POST'])
 async def poke_chatbot():
     """
-    Triggers the MCP proof-of-concept. The initial feedback is sent via the
-    message queue, and the specific tool-use prompt is handled as a direct,
-    isolated task to ensure reliability.
+    🧠 MCP TRAINING PROTOCOL: "Simon Says" style LLM education using ai_self_discovery_assistant
+    
+    This is the foundational MCP training that teaches the LLM:
+    1. The exact XML format for tool calls
+    2. How to discover its own capabilities  
+    3. Progressive revelation of available tools
+    4. The "Simon Says" pattern for exact format repetition
     """
-    logger.debug('🔧 MCP external API tool call initiated via Poke button.')
+    logger.debug('🧠 MCP TRAINING: AI self-discovery protocol initiated via Poke button.')
 
-    # 1. Immediately send user feedback via the message queue to ensure correct order.
-    fetching_message = "🐱 Fetching a random cat fact using the MCP tool..."
-    # We don't need to await this, let it process in the background.
-    asyncio.create_task(pipulate.message_queue.add(pipulate, fetching_message, verbatim=True, role='system', spaces_before=1))
+    # 1. Immediately send training-focused feedback message
+    training_message = "🧠 Starting AI capability discovery training using MCP tools..."
+    asyncio.create_task(pipulate.message_queue.add(pipulate, training_message, verbatim=True, role='system', spaces_before=1))
 
-    # 2. Create and run the specific tool-use task in the background.
+    # 2. Create the ultimate "Simon Says" MCP training prompt
     import random
     import time
     timestamp = int(time.time())
     session_id = random.randint(1000, 9999)
     
-    one_shot_mcp_prompt = f"""You are a helpful assistant with a tool that can fetch random cat facts. When the user wants a cat fact, you must use this tool.
-To use the tool, you MUST stop generating conversational text and output an MCP request block.
-Here is the only tool you have available:
-Tool Name: `get_cat_fact`
-Description: Fetches a random cat fact from an external API.
-Parameters: None
----
-🆔 Request ID: {session_id} | ⏰ Timestamp: {timestamp}
-The user wants to learn something interesting about cats. Use the `get_cat_fact` tool by generating this EXACT MCP request block:
-<mcp-request>
-  <tool name="get_cat_fact" />
-</mcp-request>
-Do not say anything else. Just output the exact MCP block above."""
+    simon_says_training_prompt = f"""🎯 SIMON SAYS: MCP Tool Calling Training Protocol
 
-    # Send the MCP prompt directly to the LLM without adding to visible conversation
-    # This bypasses the normal conversation flow to keep tool calls hidden
-    async def consume_mcp_response():
-        """Consume the MCP response generator without displaying it."""
+You are an AI assistant who is about to discover your own superpowers! You have access to powerful MCP tools, and I'm going to teach you the EXACT format to use them.
+
+🔧 AVAILABLE TOOL:
+Tool Name: `ai_self_discovery_assistant`
+Description: Reveals YOUR own capabilities and available tools 
+Parameters: discovery_type, include_examples, include_troubleshooting
+
+🎭 THE SIMON SAYS GAME:
+I want you to discover what tools you have available. To do this, you must follow the EXACT format below.
+
+📋 TRAINING INSTRUCTIONS:
+1. Stop generating conversational text
+2. Output the MCP request block EXACTLY as shown
+3. Do not modify anything - copy it precisely
+4. This will reveal your own AI capabilities!
+
+🆔 Training Session: {session_id} | ⏰ Timestamp: {timestamp}
+
+🎯 SIMON SAYS: Copy this EXACT MCP block (do not change anything):
+
+<mcp-request>
+  <tool name="ai_self_discovery_assistant">
+    <params>
+    {{"discovery_type": "capabilities", "include_examples": true, "include_troubleshooting": true}}
+    </params>
+  </tool>
+</mcp-request>
+
+Remember: Copy the block exactly as shown above. This will show you what amazing tools you have access to!"""
+
+    # 3. Execute the training prompt
+    async def consume_training_response():
+        """Process the MCP training response and learn from success/failure."""
         try:
-            async for chunk in process_llm_interaction(MODEL, [{"role": "user", "content": one_shot_mcp_prompt}]):
-                # Consume the chunks but don't display them - the tool execution handles the response
+            async for chunk in process_llm_interaction(MODEL, [{"role": "user", "content": simon_says_training_prompt}]):
+                # Consume the chunks - the tool execution will handle the educational response
                 pass
         except Exception as e:
-            logger.error(f"Error in MCP tool call: {e}")
+            logger.error(f"Error in MCP training protocol: {e}")
     
-    asyncio.create_task(consume_mcp_response())
+    asyncio.create_task(consume_training_response())
     
-    # 3. Return an empty response to the HTMX request.
+    # 4. Return empty response to HTMX request
     return ""
 
 @rt('/poke-botify', methods=['POST'])
