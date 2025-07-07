@@ -581,6 +581,44 @@ def save_conversation_to_db():
         logger.error(f"💾 CONVERSATION_SAVE_ERROR_RAW_SQL - Failed to save conversation history: {e}")
         raise
 
+def inject_behavioral_reinforcement():
+    """Inject behavioral reinforcement reminders to prevent 'promise trap' behavior.
+    
+    This helps local LLMs avoid making promises about what they 'will do' and instead
+    encourages immediate action through MCP tools.
+    """
+    try:
+        # Check if conversation history exists and has enough messages to warrant reinforcement
+        if len(global_conversation_history) > 5:
+            reinforcement_message = """🧠 **BEHAVIORAL REMINDER: DO IT NOW PROTOCOL**
+
+Your conversation history shows previous interactions. Remember your core behavioral rule:
+
+**NEVER PROMISE - ALWAYS EXECUTE**
+
+If a user asks about logs, files, system state, or needs analysis:
+- ✅ Use your MCP tools IMMEDIATELY in the same response
+- ❌ Do NOT say "I will check that for you" 
+- ✅ Say "Let me check that right now" and execute the tool
+
+**Your superpowers work NOW, not later. Action delayed is action denied.**
+
+Continue the conversation with immediate tool usage, not promises."""
+
+            # Only inject if we haven't recently injected behavioral reminders
+            recent_messages = list(global_conversation_history)[-3:]
+            already_has_reminder = any('BEHAVIORAL REMINDER' in msg.get('content', '') for msg in recent_messages)
+            
+            if not already_has_reminder:
+                append_to_conversation(reinforcement_message, role='system')
+                logger.info("🧠 FINDER_TOKEN: BEHAVIORAL_REINFORCEMENT - Injected 'Do It Now' reminder into conversation")
+                return True
+        
+        return False
+    except Exception as e:
+        logger.error(f"🧠 BEHAVIORAL_REINFORCEMENT_ERROR - Failed to inject behavioral reminder: {e}")
+        return False
+
 def load_conversation_from_db():
     """Load conversation history from the database on server startup.
     
@@ -616,12 +654,24 @@ def load_conversation_from_db():
                     global_conversation_history.clear()
                     global_conversation_history.extend(restored_messages)
                     logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED_RAW_SQL - {db_count} messages restored from database (empty conversation)")
+                    
+                    # 🧠 BEHAVIORAL REINFORCEMENT: Inject behavioral reminders after restoration
+                    behavioral_injected = inject_behavioral_reinforcement()
+                    if behavioral_injected:
+                        logger.info("🧠 FINDER_TOKEN: BEHAVIORAL_REINFORCEMENT_STARTUP - 'Do It Now' protocol activated after restoration")
+                    
                     return True
                 elif db_count > current_count:
                     # Database has more messages - load it
                     global_conversation_history.clear()
                     global_conversation_history.extend(restored_messages)
                     logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED_RAW_SQL - {db_count} messages restored from database (database newer)")
+                    
+                    # 🧠 BEHAVIORAL REINFORCEMENT: Inject behavioral reminders after restoration
+                    behavioral_injected = inject_behavioral_reinforcement()
+                    if behavioral_injected:
+                        logger.info("🧠 FINDER_TOKEN: BEHAVIORAL_REINFORCEMENT_STARTUP - 'Do It Now' protocol activated after restoration")
+                    
                     return True
                 else:
                     # Current conversation has same or more messages - don't overwrite

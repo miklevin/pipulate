@@ -7511,4 +7511,69 @@ register_mcp_tool("conversation_history_clear", conversation_history_clear)
 register_mcp_tool("conversation_history_restore", conversation_history_restore)
 register_mcp_tool("conversation_history_stats", conversation_history_stats)
 
+# 🧠 BEHAVIORAL REINFORCEMENT TOOL - Manual "Do It Now" Protocol Activation
+
+async def behavioral_reinforcement_inject(params: dict) -> dict:
+    """Manually inject behavioral reinforcement to prevent 'promise trap' behavior.
+    
+    This tool helps combat local LLM tendency to make promises about what they 'will do'
+    instead of immediately executing MCP tools.
+    """
+    try:
+        import sys
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {'success': False, 'error': 'Server module not available'}
+        
+        force_inject = params.get('force_inject', False)
+        custom_message = params.get('custom_message')
+        
+        # Use custom message if provided, otherwise use default
+        if custom_message:
+            reinforcement_message = f"""🧠 **CUSTOM BEHAVIORAL REMINDER**
+
+{custom_message}
+
+**Remember: Use your MCP tools IMMEDIATELY when users need help. Don't promise - execute!**"""
+        else:
+            reinforcement_message = """🧠 **BEHAVIORAL REMINDER: DO IT NOW PROTOCOL**
+
+**NEVER PROMISE - ALWAYS EXECUTE**
+
+If a user asks about logs, files, system state, or needs analysis:
+- ✅ Use your MCP tools IMMEDIATELY in the same response
+- ❌ Do NOT say "I will check that for you" 
+- ✅ Say "Let me check that right now" and execute the tool
+
+**Your superpowers work NOW, not later. Action delayed is action denied.**"""
+
+        # Check if recent reminders exist (unless forced)
+        if not force_inject:
+            recent_messages = list(server_module.global_conversation_history)[-5:]
+            already_has_reminder = any('BEHAVIORAL REMINDER' in msg.get('content', '') for msg in recent_messages)
+            
+            if already_has_reminder:
+                return {
+                    'success': False,
+                    'message': 'Behavioral reminder already exists in recent conversation. Use force_inject=True to override.',
+                    'recent_reminder_found': True
+                }
+        
+        # Inject the behavioral reinforcement
+        server_module.append_to_conversation(reinforcement_message, role='system')
+        
+        return {
+            'success': True,
+            'message': 'Behavioral reinforcement injected successfully',
+            'reinforcement_type': 'custom' if custom_message else 'standard',
+            'forced': force_inject,
+            'conversation_length': len(server_module.global_conversation_history)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in behavioral_reinforcement_inject: {e}")
+        return {'success': False, 'error': str(e)}
+
+register_mcp_tool("behavioral_reinforcement_inject", behavioral_reinforcement_inject)
+
 
