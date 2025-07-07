@@ -820,6 +820,16 @@ def main():
         trifecta_rebuilt=trifecta_rebuild_success,
         trifecta_stats=trifecta_rebuild_stats
     )
+    
+    # 🔄 Trigger server restart so user can immediately talk to Chip about the update
+    print("\n🔄 Triggering server restart for immediate Chip interaction...")
+    server_py_path = PIPULATE_ROOT / "server.py"
+    if server_py_path.exists():
+        # Touch the server.py file to trigger watchdog restart
+        server_py_path.touch()
+        print("✅ Server restart triggered - you can now chat with Chip about this update!")
+    else:
+        print("⚠️  server.py not found, manual restart may be needed")
 
 if __name__ == "__main__":
     main()

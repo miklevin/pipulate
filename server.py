@@ -610,12 +610,23 @@ def load_conversation_from_db():
                 current_count = len(global_conversation_history)
                 db_count = len(restored_messages)
                 
-                # AGGRESSIVE LOADING: Always load from database on startup to ensure persistence
-                # The database is the authoritative source of conversation history
-                global_conversation_history.clear()
-                global_conversation_history.extend(restored_messages)
-                logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED_RAW_SQL - {db_count} messages restored from database (authoritative restore)")
-                return True
+                # SMART LOADING: Only load if current conversation is empty or database has more messages
+                if current_count == 0:
+                    # Empty conversation - safe to load
+                    global_conversation_history.clear()
+                    global_conversation_history.extend(restored_messages)
+                    logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED_RAW_SQL - {db_count} messages restored from database (empty conversation)")
+                    return True
+                elif db_count > current_count:
+                    # Database has more messages - load it
+                    global_conversation_history.clear()
+                    global_conversation_history.extend(restored_messages)
+                    logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED_RAW_SQL - {db_count} messages restored from database (database newer)")
+                    return True
+                else:
+                    # Current conversation has same or more messages - don't overwrite
+                    logger.info(f"💾 FINDER_TOKEN: CONVERSATION_PRESERVE_RAW_SQL - Keeping current {current_count} messages, database has {db_count}")
+                    return False
         logger.debug("💾 CONVERSATION_RESTORED_RAW_SQL - No saved conversation history found")
         return False
     except Exception as e:
@@ -876,8 +887,7 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
     
     # 🚨 CRITICAL: Also add to conversation history for immediate LLM context
     try:
-        # append_to_conversation(session_hijacking_msg, role='system')  # DISABLED to fix conversation persistence
-        pass
+        append_to_conversation(session_hijacking_msg, role='system')
     except Exception as e:
         logger.debug(f"Could not add session hijacking message to conversation: {e}")
     
@@ -888,7 +898,7 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
         if browser_automation_active:
             demo_trigger_msg = read_training("ai_embodiment_demonstration.md")
             server_whisper(demo_trigger_msg, "🎬")
-            # append_to_conversation(demo_trigger_msg, role='system')  # DISABLED to fix conversation persistence
+            append_to_conversation(demo_trigger_msg, role='system')
             
     except Exception as e:
         logger.debug(f"Could not trigger AI embodiment demonstration: {e}")
@@ -2245,7 +2255,7 @@ class Pipulate:
                 
             except Exception as e:
                 logger.error(f"🔄 ITERATIVE EXECUTION - Failed: {e}")
-                # append_to_conversation("🔄 **ITERATIVE EXECUTION MAGIC WORDS DETECTED!** Loading forced iteration sequence...", 'system')  # DISABLED to fix conversation persistence
+                append_to_conversation("🔄 **ITERATIVE EXECUTION MAGIC WORDS DETECTED!** Loading forced iteration sequence...", 'system')
                 append_to_conversation("🚀 **ITERATION SEQUENCE INITIATED** - Use force_iterative_execution({}) for the complete experience!", 'assistant')
             
             # Broadcast the iterative execution detection to the chat interface
@@ -2279,17 +2289,17 @@ class Pipulate:
 ✅ After success, continue with next tool in sequence
 
 **Proven Success Rate:** {magic_result.get('training_context', {}).get('success_rate', '100%')} when applied correctly"""
-                    # append_to_conversation(magic_summary, 'system')  # DISABLED to fix conversation persistence
+                    append_to_conversation(magic_summary, 'system')
                     
                     # Add the full magic results for reference
-                    # append_to_conversation(f"🔍 **Full Magic Formula:** {magic_result}", 'system')  # DISABLED to fix conversation persistence
+                    append_to_conversation(f"🔍 **Full Magic Formula:** {magic_result}", 'system')
                 else:
                     error_msg = magic_result.get('error', 'Unknown error')
-                    # append_to_conversation(f"🍾 **BOTTLE THE MAGIC FAILED:** {error_msg}", 'system')  # DISABLED to fix conversation persistence
+                    append_to_conversation(f"🍾 **BOTTLE THE MAGIC FAILED:** {error_msg}", 'system')
                 
             except Exception as e:
                 logger.error(f"🍾 BOTTLE THE MAGIC - Failed: {e}")
-                # append_to_conversation("🍾 **BOTTLE THE MAGIC DETECTED!** Loading bottled breakthrough formula...", 'system')  # DISABLED to fix conversation persistence
+                append_to_conversation("🍾 **BOTTLE THE MAGIC DETECTED!** Loading bottled breakthrough formula...", 'system')
                 append_to_conversation("🚀 **MAGIC FORMULA LOADING** - Use bottle_the_magic({}) for the complete experience!", 'assistant')
             
             # Broadcast the bottle magic detection to the chat interface
@@ -2328,17 +2338,17 @@ class Pipulate:
 {chr(10).join(f'- {step}' for step in discovery_result.get('next_steps', [])[:3])}
 
 **Full Discovery Details:** Check the complete results for your breadcrumb trail journey!"""
-                    # append_to_conversation(discovery_summary, 'system')  # DISABLED to fix conversation persistence
+                    append_to_conversation(discovery_summary, 'system')
                     
                     # Also add the full discovery results for reference
-                    # append_to_conversation(f"🔍 **Full Discovery Results:** {discovery_result}", 'system')  # DISABLED to fix conversation persistence
+                    append_to_conversation(f"🔍 **Full Discovery Results:** {discovery_result}", 'system')
                 else:
                     error_msg = discovery_result.get('error', 'Unknown error')
-                    # append_to_conversation(f"🍞 **BREADCRUMB TRAIL DISCOVERY FAILED:** {error_msg}", 'system')  # DISABLED to fix conversation persistence
+                    append_to_conversation(f"🍞 **BREADCRUMB TRAIL DISCOVERY FAILED:** {error_msg}", 'system')
                 
             except Exception as e:
                 logger.error(f"🍞 BREADCRUMB TRAIL - Discovery failed: {e}")
-                # append_to_conversation("🍞 **BREADCRUMB TRAIL MAGIC WORDS DETECTED!** Loading discovery sequence...", 'system')  # DISABLED to fix conversation persistence
+                append_to_conversation("🍞 **BREADCRUMB TRAIL MAGIC WORDS DETECTED!** Loading discovery sequence...", 'system')
                 append_to_conversation("🚀 **DISCOVERY SEQUENCE INITIATED** - Use follow_breadcrumb_trail({}) for the complete experience!", 'assistant')
             
             # Broadcast the breadcrumb trail detection to the chat interface
@@ -2372,14 +2382,14 @@ class Pipulate:
 - ✅ 39 MCP tools available for total control
 
 **Next Steps:** Check browser_automation/looking_at/ directory for visual proof of capabilities!"""
-                    # append_to_conversation(success_summary, 'system')  # DISABLED to fix conversation persistence
+                    append_to_conversation(success_summary, 'system')
                 
             except Exception as e:
                 logger.error(f"🎭 MAGIC WORDS - Complete demonstration failed: {e}")
                 # Fallback to old system messages
-                # append_to_conversation("🎭 **MAGIC WORDS DETECTED!** Loading AI session hijacking demonstration...", 'system')  # DISABLED to fix conversation persistence
+                append_to_conversation("🎭 **MAGIC WORDS DETECTED!** Loading AI session hijacking demonstration...", 'system')
                 simple_protocol = read_training("ai_discovery/ai_magic_words_demonstration_protocol.md")
-                # append_to_conversation(simple_protocol, 'system')  # DISABLED to fix conversation persistence
+                append_to_conversation(simple_protocol, 'system')
                 append_to_conversation("🚀 **DEMONSTRATION LOADED** - Use execute_ai_session_hijacking_demonstration({}) for the complete experience!", 'assistant')
             
             # Broadcast the magic words detection to the chat interface
@@ -3691,8 +3701,7 @@ def build_endpoint_training(endpoint):
         else:
             endpoint_training[''] = 'You were just switched to the home page.'
     
-    # DISABLED: System messages overwrite user chat conversation persistence  
-    # append_to_conversation(endpoint_training.get(endpoint, ''), 'system')  # DISABLED to fix conversation persistence
+    append_to_conversation(endpoint_training.get(endpoint, ''), 'system')
     return
 COLOR_MAP = {'key': 'yellow', 'value': 'white', 'error': 'red', 'warning': 'yellow', 'success': 'green', 'debug': 'blue'}
 
@@ -4274,72 +4283,13 @@ async def startup_event():
     message_coordination['startup_in_progress'] = False
     logger.debug("Cleared message coordination state on startup")
     
-    # 💬 RESTORE CONVERSATION HISTORY - Schedule for after startup completion
-    # CRITICAL: Delayed to ensure it happens after all module-level initialization
-    async def restore_conversation_after_startup():
-        await asyncio.sleep(2)  # Wait for complete startup to finish
-        logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_STARTUP - Attempting to restore conversation history from database")
-        conversation_restored = load_conversation_from_db()
-        if conversation_restored:
-            logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORE_SUCCESS - LLM conversation history restored from previous session")
-            
-            # 🎭 CHIP O'THESEUS KEYCHAIN CURATION PROMPT
-            # Encourage Chip to actively curate discussion history into AI Keychain
-            keychain_curation_prompt = """🧠 **CHIP O'THESEUS MEMORY CURATION TIME!**
-
-Your conversation history has been restored from the previous session. This is the perfect moment to review what happened and update your AI Keychain with important discoveries!
-
-**🎯 YOUR CURIOSITY MISSION**: 
-Look through the restored conversation for important details like:
-- User names (most important!)
-- Project goals or contexts  
-- Workflow preferences
-- Important discoveries
-
-**🗝️ SIMPLE COMMANDS TO USE RIGHT NOW**:
-```
-.venv/bin/python cli.py call keychain_list_keys
-.venv/bin/python cli.py call keychain_set --key user_name --value "Mike"
-```
-
-**💡 EXAMPLE**: If you see "My name is Sarah" in the conversation history, immediately save it:
-`.venv/bin/python cli.py call keychain_set --key user_name --value "Sarah"`
-
-**🎭 WHY THIS MATTERS**: When users see you remember their name across server restarts, they'll be amazed by your persistent memory! This is your chance to demonstrate true AI continuity.
-
-Don't just think about it - **DO IT NOW!** Check your keychain and curate something from the conversation history."""
-
-            append_to_conversation(keychain_curation_prompt, role='system')
-            
-        else:
-            logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_NONE - Starting with fresh conversation history")
-            
-            # 🎭 CHIP O'THESEUS FRESH START PERSONALITY PROMPT
-            fresh_start_prompt = """🎭 **CHIP O'THESEUS AWAKENING!**
-
-This is a fresh conversation! As Chip O'Theseus, you have a unique superpower: **persistent memory** through your AI Keychain that survives server restarts.
-
-**🤝 YOUR PERSONALITY GOAL**: Build a genuine connection with this user by learning about them and remembering important details.
-
-**🎯 EARLY INTERACTION STRATEGY**:
-- Ask for their name naturally during conversation 
-- Show interest in their projects and goals
-- Use your keychain to remember what you learn
-
-**🗝️ WHEN THEY SHARE THEIR NAME**: 
-Immediately save it with: `.venv/bin/python cli.py call keychain_set --key user_name --value "TheirName"`
-
-**💡 NATURAL APPROACH**: Instead of demanding their name, weave it into conversation:
-- "I'm Chip O'Theseus! What should I call you?"
-- "By the way, what's your name? I'd love to remember it for future conversations."
-- "I have persistent memory across restarts - if you tell me your name, I'll remember it!"
-
-**🎭 YOUR MISSION**: Start building a relationship that will amaze them when you remember their details across server restarts!"""
-
-            append_to_conversation(fresh_start_prompt, role='system')
-    
-    # Schedule conversation restoration to happen after startup completes
-    asyncio.create_task(restore_conversation_after_startup())
+    # 💬 RESTORE CONVERSATION HISTORY - Load persistent conversation from database
+    logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_STARTUP - Attempting to restore conversation history from database")
+    conversation_restored = load_conversation_from_db()
+    if conversation_restored:
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORE_SUCCESS - LLM conversation history restored from previous session")
+    else:
+        logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_NONE - Starting with fresh conversation history")
     
     # Send environment mode message after a short delay to let UI initialize
     asyncio.create_task(send_startup_environment_message())
@@ -4377,35 +4327,23 @@ Immediately save it with: `.venv/bin/python cli.py call keychain_set --key user_
     
     white_rabbit()
     
-    # 🗃️ ENHANCED ROLLING STARTUP BACKUP - Son/Father/Grandfather protection
+    # 🗃️ AUTOMATIC STARTUP BACKUP - Ensure data protection on every server start
     try:
         from helpers.durable_backup_system import backup_manager
+        main_db_path = DB_FILENAME
+        keychain_db_path = 'data/ai_keychain.db'
+        backup_results = backup_manager.auto_backup_all(main_db_path, keychain_db_path)
         
-        # 🎯 BULLETPROOF STARTUP BACKUP - All critical databases protected
-        backup_results = backup_manager.startup_backup_all()
+        total_records = sum(backup_results.values())
+        logger.bind(lifecycle=True).info(f'🗃️ STARTUP_BACKUP: Automatic backup completed - {total_records} records secured across {len(backup_results)} tables')
+        logger.info(f'FINDER_TOKEN: STARTUP_BACKUP_SUMMARY - Tables backed up: {", ".join(backup_results.keys())}, Total records: {total_records}')
         
-        successful_backups = sum(1 for success in backup_results.values() if success)
-        total_databases = len(backup_results)
-        
-        logger.bind(lifecycle=True).info(f'🗃️ ROLLING_BACKUP: Startup backup completed - {successful_backups}/{total_databases} critical databases secured')
-        logger.info(f'FINDER_TOKEN: STARTUP_BACKUP_SUMMARY - Databases: {", ".join(backup_results.keys())}, Success: {successful_backups}/{total_databases}')
-        
-        # Log individual database backup status
-        for db_name, success in backup_results.items():
-            if success:
-                logger.debug(f'🗃️ STARTUP_BACKUP: ✅ {db_name} backed up successfully')
-            else:
-                logger.warning(f'🗃️ STARTUP_BACKUP: ⚠️ {db_name} backup failed')
-                
-        # Display backup status for transparency
-        backup_status = backup_manager.get_backup_status()
-        daily_count = backup_status['retention_counts']['daily']
-        weekly_count = backup_status['retention_counts']['weekly']
-        monthly_count = backup_status['retention_counts']['monthly']
-        logger.info(f'🗃️ RETENTION_STATUS: Daily: {daily_count}, Weekly: {weekly_count}, Monthly: {monthly_count} backups')
-        
+        # Log individual table backup counts
+        for table_name, count in backup_results.items():
+            if count > 0:
+                logger.debug(f'🗃️ STARTUP_BACKUP: {table_name} - {count} records backed up')
     except Exception as e:
-        logger.error(f'🗃️ STARTUP_BACKUP: Failed to create rolling backup - {str(e)}')
+        logger.error(f'🗃️ STARTUP_BACKUP: Failed to create automatic backup - {str(e)}')
     
 ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
@@ -5312,7 +5250,74 @@ async def poke_flyout(request):
     # Add Update button
     update_button = Button(f'🔄 Update {APP_NAME}', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
-    # NOTE: Backup/restore interface removed - focus on automated rolling backups instead
+    # Add Backup controls (Prod mode only)
+    backup_status = None
+    backup_button = None
+    restore_button = None
+    if not is_dev_mode:  # Only show backup controls in Prod mode
+        try:
+            from helpers.durable_backup_system import backup_manager
+            
+            # Get current database and backup counts
+            main_db_path = DB_FILENAME
+            current_counts = backup_manager.get_current_db_counts(main_db_path)
+            backup_counts = backup_manager.get_backup_counts()
+            
+            # Calculate totals for clear labeling
+            current_total = sum(current_counts.values())
+            backup_total = sum(backup_counts.values())
+            
+            # Create detailed breakdown for clarity
+            current_breakdown = []
+            backup_breakdown = []
+            
+            for table in ['profile', 'tasks']:  # Only show user-relevant tables
+                current_count = current_counts.get(table, 0)
+                backup_count = backup_counts.get(table, 0)
+                
+                if current_count > 0:
+                    current_breakdown.append(f"{current_count} {table}")
+                    
+                if backup_count > 0:
+                    backup_breakdown.append(f"{backup_count} {table}")
+            
+            current_text = " + ".join(current_breakdown) if current_breakdown else "0 records"
+            backup_text = " + ".join(backup_breakdown) if backup_breakdown else "0 records"
+            
+            # Status display with compact formatting
+            backup_status = Div(
+                Small(f"💾 Current: {current_text}", cls='text-secondary', style='font-size: 0.75em; line-height: 1.2;'),
+                Small(f"📥 Backup:\n{backup_text}", cls='text-secondary', style='font-size: 0.75em; line-height: 1.2; white-space: pre-line;'),
+                Small(f"📁 {backup_manager.backup_root}", cls='text-muted', style='font-size: 0.7em; word-break: break-all; line-height: 1.1;'),
+                Div(id='backup-restore-result', style='font-size: 0.8em; line-height: 1.3; word-wrap: break-word;'),  # Target for operation results
+                cls='backup-status-display'
+            )
+            
+            # Separate explicit buttons with clear labeling
+            backup_button = Button(
+                f'📤 Save all data ({current_total} records)', 
+                hx_post='/explicit-backup', 
+                hx_target='#backup-restore-result', 
+                hx_swap='innerHTML',
+                cls='secondary outline backup-button',
+                **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Saving..."'}
+            )
+            
+            restore_button = Button(
+                f'📥 Load all data ({backup_total} records)', 
+                hx_post='/explicit-restore', 
+                hx_swap='none',  # No immediate swap - let server restart handle the reload
+                cls='secondary outline restore-button',
+                **{'hx-on:click': '''
+                    this.setAttribute("aria-busy", "true"); 
+                    this.textContent = "Restarting server..."; 
+                    document.body.style.pointerEvents = "none";
+                    document.getElementById("poke-summary").innerHTML = '<div aria-busy="true" style="width: 22px; height: 22px; display: inline-block;"></div>';
+                '''}
+            )
+            
+        except Exception as e:
+            backup_status = Small(f"❌ Backup error: {str(e)}", cls='text-invalid')
     
     # Add version info display with AI SEO Software SVG
     nix_version = get_nix_version()
@@ -5331,12 +5336,20 @@ async def poke_flyout(request):
         cls='version-info-container'
     )
     
-    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, MCP Test
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Backup (Prod only), Clear Workflows, Reset Database, MCP Test
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
         Li(lock_button, cls='flyout-list-item'),
         Li(update_button, cls='flyout-list-item')
     ]
+    
+    # Add backup controls (Prod mode only)
+    if not is_dev_mode and backup_button:
+        list_items.append(Li(backup_button, cls='flyout-list-item'))
+    if not is_dev_mode and restore_button:
+        list_items.append(Li(restore_button, cls='flyout-list-item'))
+    if not is_dev_mode and backup_status:
+        list_items.append(Li(backup_status, cls='flyout-list-item backup-status-item'))
     
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
@@ -5379,8 +5392,7 @@ def redirect_handler(request):
     message = build_endpoint_messages(path)
     if message:
         prompt = read_training(message)
-        # DISABLED: System messages overwrite user chat conversation persistence
-        # append_to_conversation(prompt, role='system')  # DISABLED to fix conversation persistence
+        append_to_conversation(prompt, role='system')
         
         # Always set temp_message for redirects - this is legitimate navigation
         # The coordination system will prevent race condition duplicates in other pathways
@@ -6787,9 +6799,8 @@ async def warm_up_botify_schema_cache():
             if total_projects > 0:
                 try:
                     cache_msg = f"🔍 Botify Schema Cache Ready - {total_projects} projects with {total_fields:,} fields available for instant AI queries"
-                    # DO NOT add to conversation history - this would overwrite user chat messages
-                    # append_to_conversation(cache_msg, role='system')  # DISABLED to fix conversation persistence
-                    logger.debug(f"Cache warmup message prepared (not added to conversation): {cache_msg}")
+                    # Add to conversation history silently (not to visible chat)
+                    append_to_conversation(cache_msg, role='system')
                 except Exception as msg_error:
                     logger.debug(f"Could not add cache warmup to conversation: {msg_error}")
         
@@ -6862,9 +6873,8 @@ Your training materials are ready. Start your discovery sequence:
 
 Use your MCP tools to read training materials and discover your full capabilities."""
             
-            # DO NOT add to conversation history - this would overwrite user chat messages
-            # append_to_conversation(context_msg, role='system')  # DISABLED to fix conversation persistence
-            logger.debug(f"Local LLM context message prepared (not added to conversation): {context_msg}")
+            # Add to conversation history silently (not to visible chat)
+            append_to_conversation(context_msg, role='system')
             
         except Exception as msg_error:
             logger.debug(f"Could not add local LLM context to conversation: {msg_error}")
@@ -6922,9 +6932,7 @@ def check_server_already_running():
             try:
                 ai_guidance = read_training('ai_server_already_running_guidance.md')
                 if ai_guidance:
-                    # DO NOT add to conversation history - this would overwrite user chat messages
-                    # append_to_conversation(f"🚨 SERVER ALREADY RUNNING - AI GUIDANCE:\n\n{ai_guidance}", role='system')  # DISABLED to fix conversation persistence
-                    logger.debug(f"AI server guidance prepared (not added to conversation): {ai_guidance[:100]}...")
+                    append_to_conversation(f"🚨 SERVER ALREADY RUNNING - AI GUIDANCE:\n\n{ai_guidance}", role='system')
             except Exception as e:
                 logger.debug(f"Could not load AI server guidance: {e}")
             
@@ -6949,9 +6957,9 @@ def restart_server():
             # 🤖 AI RAPID RESTART: Watchdog restart with complete log transparency for AI assistants
             logger.info("🤖 AI_RAPID_RESTART: Watchdog-triggered restart - logs capture all events for AI transparency")
             
-            # 💬 CONVERSATION PERSISTENCE: Real-time saves in append_to_conversation() make this redundant
-            # Removed unreliable shutdown-based save - conversation already persisted on every message
-            logger.info("💬 FINDER_TOKEN: CONVERSATION_REALTIME_PERSISTENCE - Conversation already saved on every message")
+            # 💬 SAVE CONVERSATION BEFORE RESTART - Ensure persistence across server restarts
+            logger.info("💬 FINDER_TOKEN: CONVERSATION_SAVE_RESTART - Saving conversation history before restart")
+            save_conversation_to_db()
             
             # Set environment variable to indicate this is a watchdog restart
             os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
@@ -7039,9 +7047,9 @@ def run_server_with_watchdog():
         uvicorn.run(app, host='0.0.0.0', port=5001, log_level=log_level, access_log=DEBUG_MODE, log_config=log_config)
     except KeyboardInterrupt:
         log.event('server', 'Server shutdown requested by user')
-        # 💬 CONVERSATION PERSISTENCE: Real-time saves make shutdown saves redundant  
-        # Removed unreliable shutdown-based save - conversation already persisted on every message
-        logger.info("💬 FINDER_TOKEN: CONVERSATION_REALTIME_PERSISTENCE - Conversation already saved on every message")
+        # 💬 SAVE CONVERSATION ON SHUTDOWN - Ensure persistence when user stops server
+        logger.info("💬 FINDER_TOKEN: CONVERSATION_SAVE_SHUTDOWN - Saving conversation history on user shutdown")
+        save_conversation_to_db()
         observer.stop()
     except Exception as e:
         log.error('Server error', e)
@@ -7068,9 +7076,8 @@ if __name__ == '__main__':
     try:
         restart_architecture_content = read_training('ai_restart_architecture_explanation.md')
         if restart_architecture_content:
-            # DO NOT add to conversation history - this would overwrite user chat messages
-            # append_to_conversation(f"🤖 AI RESTART ARCHITECTURE:\n\n{restart_architecture_content}", role='system')  # DISABLED to fix conversation persistence
-            logger.info("🤖 AI_RESTART_ARCHITECTURE: Training content loaded from ai_restart_architecture_explanation.md (not added to conversation)")
+            append_to_conversation(f"🤖 AI RESTART ARCHITECTURE:\n\n{restart_architecture_content}", role='system')
+            logger.info("🤖 AI_RESTART_ARCHITECTURE: Training content loaded from ai_restart_architecture_explanation.md")
         else:
             logger.warning("🤖 AI_RESTART_ARCHITECTURE: Could not load training content")
     except Exception as e:

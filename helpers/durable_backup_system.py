@@ -16,13 +16,6 @@ Architecture:
 - Backup files: ~/.pipulate/backups/{table_name}_{date_window}.db
 - Time windows: Daily granularity for efficiency
 - Auto-sync on startup: Restore data after fresh install
-
-Enhanced with Son/Father/Grandfather Rolling Backup Pattern:
-- Son (Daily): Last 7 days, backed up daily
-- Father (Weekly): Last 4 weeks, backed up weekly
-- Grandfather (Monthly): Last 12 months, backed up monthly
-
-BULLETPROOF DATA PROTECTION FOR CHIP O'THESEUS & CONVERSATION HISTORY
 """
 
 import os
@@ -35,24 +28,19 @@ from typing import Dict, List, Optional, Tuple
 from loguru import logger
 
 
-class RollingBackupManager:
+class DurableBackupManager:
     """
-    🎯 Son/Father/Grandfather Rolling Backup System for Pipulate
+    🎯 Manages durable backups for Pipulate data that survive repo deletion.
     
-    CRITICAL DATABASE PROTECTION:
-    - ai_keychain.db: Chip O\'Theseus Memory
-    - discussion.db: Conversation History
-    - app.db: Production profiles and tasks
-    - pipulate_dev.db: Development profiles and tasks (optional)
-    
-    ROLLING RETENTION POLICY:
-    - Daily (Son): 7 days - Every server startup
-    - Weekly (Father): 4 weeks - Every Sunday  
-    - Monthly (Grandfather): 12 months - 1st of month
+    Backup Strategy:
+    - Daily backup files: ~/.pipulate/backups/{table}_{YYYY-MM-DD}.db
+    - Idempotent: Rewrite same day's backup file
+    - Conflict Resolution: timestamp_updated wins (newer data preferred)
+    - Soft Deletes: Add 'deleted_at' field, filter in queries
     """
     
     def __init__(self, backup_root: Optional[str] = None):
-        """Initialize rolling backup manager with cross-platform backup directory."""
+        """Initialize backup manager with cross-platform backup directory."""
         if backup_root:
             self.backup_root = Path(backup_root)
         else:
@@ -62,310 +50,388 @@ class RollingBackupManager:
         
         # Ensure backup directory exists
         self.backup_root.mkdir(parents=True, exist_ok=True)
-        logger.info(f"🗃️ Rolling backup root: {self.backup_root}")
+        logger.info(f"🗃️ Durable backup root: {self.backup_root}")
         
-        # 🎯 CRITICAL DATABASES TO PROTECT
-        self.critical_databases = {
-            'ai_keychain': {
-                'source_path': 'data/ai_keychain.db',
-                'description': 'Chip O\'Theseus Memory',
-                'critical': True,
-                'cross_cutting': True
-            },
-            'discussion': {
-                'source_path': 'data/discussion.db',
-                'description': 'Conversation History',
-                'critical': True,
-                'cross_cutting': True
-            },
-            'app_prod': {
-                'source_path': 'data/botifython.db',
-                'description': 'Production Profiles/Tasks',
-                'critical': True,
-                'cross_cutting': False
-            },
-            'app_dev': {
-                'source_path': 'data/botifython_dev.db',
-                'description': 'Development Profiles/Tasks',
-                'critical': False,
-                'cross_cutting': False
-            }
-        }
-        
-        # Track table schemas for advanced backups (legacy support)
+        # Track which tables need backup
         self.backup_tables = {
             'profile': {
                 'primary_key': 'id',
                 'timestamp_field': 'updated_at',
                 'soft_delete_field': 'deleted_at'
             },
-            'tasks': {
+            'tasks': {  # From the task plugin
                 'primary_key': 'id', 
                 'timestamp_field': 'updated_at',
                 'soft_delete_field': 'deleted_at'
             }
         }
-
-    def get_backup_path(self, db_name: str, backup_type: str = 'daily', date: Optional[datetime] = None) -> Path:
-        """
-        Generate structured backup path based on backup type and date.
-        
-        Structure:
-        - daily/YYYY-MM-DD/{db_name}.db
-        - weekly/YYYY-WW/{db_name}.db  
-        - monthly/YYYY-MM/{db_name}.db
-        """
-        if not date:
-            date = datetime.now()
-        
-        if backup_type == 'daily':
-            # Son: Daily backups for last 7 days
-            date_path = self.backup_root / 'daily' / date.strftime('%Y-%m-%d')
-        elif backup_type == 'weekly':
-            # Father: Weekly backups for last 4 weeks
-            year, week, _ = date.isocalendar()
-            date_path = self.backup_root / 'weekly' / f'{year}-W{week:02d}'
-        elif backup_type == 'monthly':
-            # Grandfather: Monthly backups for last 12 months
-            date_path = self.backup_root / 'monthly' / date.strftime('%Y-%m')
-        else:
-            raise ValueError(f"Invalid backup type: {backup_type}")
-        
-        date_path.mkdir(parents=True, exist_ok=True)
-        return date_path / f"{db_name}.db"
-
-    def backup_database_file(self, db_name: str, source_path: str, backup_type: str = 'daily') -> bool:
-        """
-        Backup entire database file using copy operation.
-        
-        This is the BULLETPROOF method - complete file copy with verification.
-        """
-        try:
-            if not os.path.exists(source_path):
-                logger.warning(f"⚠️ Source database not found: {source_path}")
-                return False
-            
-            backup_path = self.get_backup_path(db_name, backup_type)
-            
-            # Perform atomic copy with verification
-            shutil.copy2(source_path, backup_path)
-            
-            # Verify backup integrity
-            if backup_path.exists() and backup_path.stat().st_size > 0:
-                logger.info(f"🗃️ {backup_type.title()} backup: {db_name} → {backup_path.relative_to(self.backup_root)}")
-                return True
-            else:
-                logger.error(f"❌ Backup verification failed: {backup_path}")
-                return False
-                
-        except Exception as e:
-            logger.error(f"❌ Backup failed for {db_name}: {e}")
-            return False
-
-    def startup_backup_all(self) -> Dict[str, bool]:
-        """
-        🚀 RIGOROUS STARTUP BACKUP - Called on every server startup.
-        
-        Backs up ALL critical databases with daily retention.
-        This is the PRIMARY backup mechanism.
-        """
-        results = {}
-        backup_count = 0
-        
-        logger.info("🗃️ STARTUP BACKUP: Beginning comprehensive database backup...")
-        
-        for db_name, config in self.critical_databases.items():
-            source_path = config['source_path']
-            description = config['description']
-            
-            success = self.backup_database_file(db_name, source_path, 'daily')
-            results[db_name] = success
-            
-            if success:
-                backup_count += 1
-                logger.info(f"✅ {description}: {source_path} backed up successfully")
-            elif config['critical']:
-                logger.error(f"🚨 CRITICAL DATABASE BACKUP FAILED: {description} ({source_path})")
-            else:
-                logger.warning(f"⚠️ Optional database backup failed: {description} ({source_path})")
-        
-        # Perform rolling cleanup
-        self.cleanup_rolling_backups()
-        
-        total = len(self.critical_databases)
-        logger.info(f"🗃️ STARTUP BACKUP COMPLETE: {backup_count}/{total} databases backed up")
-        
-        return results
-
-    def weekly_backup_all(self) -> Dict[str, bool]:
-        """
-        🗓️ WEEKLY BACKUP - Called every Sunday for Father backups.
-        """
-        results = {}
-        
-        logger.info("🗃️ WEEKLY BACKUP: Creating Father backups...")
-        
-        for db_name, config in self.critical_databases.items():
-            if config['critical']:  # Only backup critical databases weekly
-                source_path = config['source_path']
-                success = self.backup_database_file(db_name, source_path, 'weekly')
-                results[db_name] = success
-        
-        return results
-
-    def monthly_backup_all(self) -> Dict[str, bool]:
-        """
-        📅 MONTHLY BACKUP - Called on 1st of month for Grandfather backups.
-        """
-        results = {}
-        
-        logger.info("🗃️ MONTHLY BACKUP: Creating Grandfather backups...")
-        
-        for db_name, config in self.critical_databases.items():
-            if config['critical']:  # Only backup critical databases monthly
-                source_path = config['source_path']
-                success = self.backup_database_file(db_name, source_path, 'monthly')
-                results[db_name] = success
-        
-        return results
-
-    def cleanup_rolling_backups(self):
-        """
-        🧹 Clean up old backups according to rolling retention policy.
-        
-        - Daily: Keep 7 days
-        - Weekly: Keep 4 weeks  
-        - Monthly: Keep 12 months
-        """
-        now = datetime.now()
-        
-        # Daily cleanup (Son): Keep last 7 days
-        daily_cutoff = now - timedelta(days=7)
-        daily_dir = self.backup_root / 'daily'
-        if daily_dir.exists():
-            for date_dir in daily_dir.iterdir():
-                try:
-                    dir_date = datetime.strptime(date_dir.name, '%Y-%m-%d')
-                    if dir_date < daily_cutoff:
-                        shutil.rmtree(date_dir)
-                        logger.debug(f"🧹 Cleaned daily backup: {date_dir.name}")
-                except (ValueError, OSError) as e:
-                    logger.warning(f"⚠️ Could not clean daily backup {date_dir.name}: {e}")
-        
-        # Weekly cleanup (Father): Keep last 4 weeks
-        weekly_cutoff = now - timedelta(weeks=4)
-        weekly_dir = self.backup_root / 'weekly'
-        if weekly_dir.exists():
-            for week_dir in weekly_dir.iterdir():
-                try:
-                    # Parse week format: YYYY-WNN
-                    year_week = week_dir.name.split('-W')
-                    if len(year_week) == 2:
-                        year, week = int(year_week[0]), int(year_week[1])
-                        # Convert ISO week to date
-                        week_date = datetime.fromisocalendar(year, week, 1)
-                        if week_date < weekly_cutoff:
-                            shutil.rmtree(week_dir)
-                            logger.debug(f"🧹 Cleaned weekly backup: {week_dir.name}")
-                except (ValueError, OSError) as e:
-                    logger.warning(f"⚠️ Could not clean weekly backup {week_dir.name}: {e}")
-        
-        # Monthly cleanup (Grandfather): Keep last 12 months
-        monthly_cutoff = now - timedelta(days=365)
-        monthly_dir = self.backup_root / 'monthly'
-        if monthly_dir.exists():
-            for month_dir in monthly_dir.iterdir():
-                try:
-                    dir_date = datetime.strptime(month_dir.name, '%Y-%m')
-                    if dir_date < monthly_cutoff:
-                        shutil.rmtree(month_dir)
-                        logger.debug(f"🧹 Cleaned monthly backup: {month_dir.name}")
-                except (ValueError, OSError) as e:
-                    logger.warning(f"⚠️ Could not clean monthly backup {month_dir.name}: {e}")
-
-    def get_backup_status(self) -> Dict[str, any]:
-        """
-        📊 Get comprehensive backup status for monitoring and UI display.
-        """
-        status = {
-            'databases': {},
-            'retention_counts': {'daily': 0, 'weekly': 0, 'monthly': 0},
-            'last_backup': None,
-            'backup_root': str(self.backup_root)
-        }
-        
-        # Check each critical database
-        for db_name, config in self.critical_databases.items():
-            source_path = config['source_path']
-            db_status = {
-                'source_exists': os.path.exists(source_path),
-                'source_size': os.path.getsize(source_path) if os.path.exists(source_path) else 0,
-                'description': config['description'],
-                'critical': config['critical'],
-                'last_daily_backup': None,
-                'last_weekly_backup': None,
-                'last_monthly_backup': None
-            }
-            
-            # Find most recent backups
-            for backup_type in ['daily', 'weekly', 'monthly']:
-                backup_dir = self.backup_root / backup_type
-                if backup_dir.exists():
-                    backup_files = list(backup_dir.glob(f"**/{db_name}.db"))
-                    if backup_files:
-                        # Get most recent backup
-                        latest_backup = max(backup_files, key=lambda p: p.stat().st_mtime)
-                        db_status[f'last_{backup_type}_backup'] = {
-                            'path': str(latest_backup.relative_to(self.backup_root)),
-                            'size': latest_backup.stat().st_size,
-                            'mtime': latest_backup.stat().st_mtime
-                        }
-            
-            status['databases'][db_name] = db_status
-        
-        # Count retention by type
-        for backup_type in ['daily', 'weekly', 'monthly']:
-            backup_dir = self.backup_root / backup_type
-            if backup_dir.exists():
-                status['retention_counts'][backup_type] = len(list(backup_dir.iterdir()))
-        
-        return status
-
-    # ================================================================
-    # 🔄 LEGACY COMPATIBILITY METHODS (for existing UI/endpoints)
-    # ================================================================
-    
-    def auto_backup_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
-        """Legacy compatibility: Maps to startup_backup_all()"""
-        return self.startup_backup_all()
     
     def get_backup_filename(self, table_name: str, date: Optional[datetime] = None) -> Path:
-        """Legacy compatibility: Generate flat backup filename"""
+        """Generate backup filename for table and date."""
         if not date:
             date = datetime.now()
         date_str = date.strftime('%Y-%m-%d')
         return self.backup_root / f"{table_name}_{date_str}.db"
     
+    def ensure_soft_delete_schema(self, db_path: str, table_name: str):
+        """Ensure table has soft delete fields (updated_at, deleted_at)."""
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        try:
+            # Check if soft delete fields exist
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [col[1] for col in cursor.fetchall()]
+            
+            # Use proper SQLite-compatible defaults for ALTER TABLE
+            if 'updated_at' not in columns:
+                # SQLite ALTER TABLE requires constant defaults, not functions
+                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN updated_at TEXT DEFAULT ''")
+                logger.info(f"✅ Added updated_at to {table_name}")
+            
+            if 'deleted_at' not in columns:
+                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN deleted_at TEXT DEFAULT NULL")
+                logger.info(f"✅ Added deleted_at to {table_name}")
+                
+            conn.commit()
+        except Exception as e:
+            logger.error(f"❌ Error adding soft delete fields to {table_name}: {e}")
+        finally:
+            conn.close()
+    
+    def _table_has_backup_fields(self, db_path: str, table_name: str) -> bool:
+        """Check if table has backup timestamp fields."""
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [col[1] for col in cursor.fetchall()]
+            return 'updated_at' in columns
+        except Exception:
+            return False
+        finally:
+            conn.close()
+    
+    def backup_table(self, source_db_path: str, table_name: str) -> bool:
+        """
+        📁 Backup a table to the durable storage.
+        
+        Returns True if backup successful, False otherwise.
+        """
+        try:
+            # Get today's backup file
+            backup_file = self.get_backup_filename(table_name)
+            
+            # Create backup database if it doesn't exist
+            if not backup_file.exists():
+                # Copy entire database structure first time
+                shutil.copy2(source_db_path, backup_file)
+                logger.info(f"🎯 Created initial backup: {backup_file}")
+                return True
+            
+            # Check if table has backup fields for advanced merge
+            if self._table_has_backup_fields(source_db_path, table_name):
+                # Advanced merge with conflict resolution
+                return self._merge_table_data(source_db_path, backup_file, table_name)
+            else:
+                # Basic backup: simple table copy for tables without backup fields
+                return self._basic_table_backup(source_db_path, backup_file, table_name)
+            
+        except Exception as e:
+            logger.error(f"❌ Backup failed for {table_name}: {e}")
+            return False
+    
+    def _basic_table_backup(self, source_db_path: str, backup_db: Path, table_name: str) -> bool:
+        """
+        📋 Basic table backup without timestamp-based conflict resolution.
+        
+        Used for tables that don't have backup fields yet.
+        """
+        source_conn = sqlite3.connect(source_db_path)
+        backup_conn = sqlite3.connect(str(backup_db))
+        
+        try:
+            # Get table config
+            table_config = self.backup_tables.get(table_name, {})
+            pk_field = table_config.get('primary_key', 'id')
+            
+            # Clear and repopulate backup table (simple strategy)
+            backup_cursor = backup_conn.cursor()
+            backup_cursor.execute(f"DELETE FROM {table_name}")
+            
+            # Copy all current records from source
+            source_cursor = source_conn.cursor()
+            source_cursor.execute(f"SELECT * FROM {table_name}")
+            source_rows = source_cursor.fetchall()
+            
+            # Get column names
+            source_cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [col[1] for col in source_cursor.fetchall()]
+            
+            # Insert all records
+            if source_rows:
+                placeholders = ', '.join(['?' for _ in columns])
+                backup_cursor.executemany(
+                    f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})",
+                    source_rows
+                )
+            
+            backup_conn.commit()
+            logger.info(f"✅ Successfully backed up {table_name} (basic mode: {len(source_rows)} records)")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Basic backup failed for {table_name}: {e}")
+            return False
+        finally:
+            source_conn.close()
+            backup_conn.close()
+    
+    def _merge_table_data(self, source_db: str, backup_db: Path, table_name: str) -> bool:
+        """
+        🔄 Merge table data using conflict resolution: newer updated_at wins.
+        
+        Only called for tables that have backup fields.
+        """
+        source_conn = sqlite3.connect(source_db)
+        backup_conn = sqlite3.connect(str(backup_db))
+        
+        try:
+            # Get table config
+            table_config = self.backup_tables.get(table_name, {})
+            pk_field = table_config.get('primary_key', 'id')
+            timestamp_field = table_config.get('timestamp_field', 'updated_at')
+            
+            # Get column names first
+            source_cursor = source_conn.cursor()
+            source_cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [col[1] for col in source_cursor.fetchall()]
+            
+            # Safety check: ensure timestamp field exists
+            if timestamp_field not in columns:
+                logger.warning(f"⚠️ Timestamp field {timestamp_field} not found in {table_name}, falling back to basic backup")
+                return self._basic_table_backup(source_db, backup_db, table_name)
+            
+            # Get all records from source (including soft-deleted)
+            source_cursor.execute(f"SELECT * FROM {table_name}")
+            source_rows = source_cursor.fetchall()
+            
+            # Merge each record
+            backup_cursor = backup_conn.cursor()
+            for row in source_rows:
+                row_dict = dict(zip(columns, row))
+                pk_value = row_dict[pk_field]
+                source_timestamp = row_dict.get(timestamp_field, '')
+                
+                # Check if record exists in backup
+                backup_cursor.execute(
+                    f"SELECT {timestamp_field} FROM {table_name} WHERE {pk_field} = ?", 
+                    (pk_value,)
+                )
+                backup_result = backup_cursor.fetchone()
+                
+                if not backup_result:
+                    # New record - insert
+                    placeholders = ', '.join(['?' for _ in columns])
+                    backup_cursor.execute(
+                        f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})",
+                        row
+                    )
+                    logger.debug(f"📝 Inserted new record {pk_value} into backup")
+                else:
+                    backup_timestamp = backup_result[0]
+                    # 🎯 CONFLICT RESOLUTION: Newer timestamp wins
+                    if source_timestamp > backup_timestamp:
+                        # Update backup with newer source data
+                        set_clause = ', '.join([f"{col} = ?" for col in columns if col != pk_field])
+                        values = [row_dict[col] for col in columns if col != pk_field]
+                        backup_cursor.execute(
+                            f"UPDATE {table_name} SET {set_clause} WHERE {pk_field} = ?",
+                            values + [pk_value]
+                        )
+                        logger.debug(f"🔄 Updated record {pk_value} with newer data")
+            
+            backup_conn.commit()
+            logger.info(f"✅ Successfully merged {table_name} data to backup")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Merge failed for {table_name}: {e}")
+            return False
+        finally:
+            source_conn.close()
+            backup_conn.close()
+    
+    def restore_table(self, target_db_path: str, table_name: str) -> bool:
+        """
+        🔄 Restore table from backup to current database.
+        
+        Used during fresh installs to restore client data.
+        """
+        try:
+            backup_file = self.get_backup_filename(table_name)
+            if not backup_file.exists():
+                logger.warning(f"⚠️ No backup found for {table_name}")
+                return False
+            
+            # Ensure target has soft delete schema
+            self.ensure_soft_delete_schema(target_db_path, table_name)
+            
+            # Merge backup data into target (backup is source of truth)
+            return self._merge_table_data(str(backup_file), Path(target_db_path), table_name)
+            
+        except Exception as e:
+            logger.error(f"❌ Restore failed for {table_name}: {e}")
+            return False
+    
+    def backup_ai_keychain(self, keychain_db_path: str) -> bool:
+        """
+        🧠 Backup Chip O'Theseus AI Keychain for memory persistence.
+        """
+        try:
+            backup_file = self.backup_root / f"ai_keychain_{datetime.now().strftime('%Y-%m-%d')}.db"
+            
+            if backup_file.exists():
+                # Merge keychain data (keychain has its own conflict resolution)
+                logger.info(f"🧠 Merging AI keychain to existing backup")
+                shutil.copy2(keychain_db_path, backup_file)
+            else:
+                # Initial backup
+                shutil.copy2(keychain_db_path, backup_file)
+                logger.info(f"🧠 Created AI keychain backup: {backup_file}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ AI Keychain backup failed: {e}")
+            return False
+    
+    def restore_ai_keychain(self, target_keychain_path: str) -> bool:
+        """
+        🧠 Restore Chip O'Theseus AI Keychain from backup.
+        """
+        try:
+            backup_file = self.backup_root / f"ai_keychain_{datetime.now().strftime('%Y-%m-%d')}.db"
+            if not backup_file.exists():
+                # Try yesterday's backup
+                yesterday = datetime.now() - timedelta(days=1)
+                backup_file = self.backup_root / f"ai_keychain_{yesterday.strftime('%Y-%m-%d')}.db"
+            
+            if backup_file.exists():
+                shutil.copy2(backup_file, target_keychain_path)
+                logger.info(f"🧠 Restored AI keychain from: {backup_file}")
+                return True
+            else:
+                logger.warning("⚠️ No AI keychain backup found")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ AI Keychain restore failed: {e}")
+            return False
+    
+    def auto_backup_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
+        """
+        🚀 Perform complete backup of all durable data.
+        
+        Called periodically to ensure data durability.
+        """
+        results = {}
+        
+        # Backup main tables
+        for table_name in self.backup_tables.keys():
+            results[table_name] = self.backup_table(main_db_path, table_name)
+        
+        # Backup AI keychain
+        if os.path.exists(keychain_db_path):
+            results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
+        
+        successful = sum(1 for success in results.values() if success)
+        total = len(results)
+        logger.info(f"🎯 Auto-backup complete: {successful}/{total} successful")
+        
+        return results
+    
+    def auto_restore_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
+        """
+        🔄 Restore all data from backups.
+        
+        Called on fresh installs to restore client data.
+        """
+        results = {}
+        
+        # Restore main tables
+        for table_name in self.backup_tables.keys():
+            results[table_name] = self.restore_table(main_db_path, table_name)
+        
+        # Restore AI keychain
+        results['ai_keychain'] = self.restore_ai_keychain(keychain_db_path)
+        
+        successful = sum(1 for success in results.values() if success)
+        total = len(results)
+        logger.info(f"🔄 Auto-restore complete: {successful}/{total} successful")
+        
+        return results
+    
+    def cleanup_old_backups(self, keep_days: int = 30):
+        """
+        🧹 Clean up backup files older than specified days.
+        """
+        cutoff_date = datetime.now() - timedelta(days=keep_days)
+        
+        for backup_file in self.backup_root.glob("*.db"):
+            try:
+                # Extract date from filename
+                name_parts = backup_file.stem.split('_')
+                if len(name_parts) >= 2:
+                    date_str = name_parts[-1]  # Last part should be YYYY-MM-DD
+                    file_date = datetime.strptime(date_str, '%Y-%m-%d')
+                    
+                    if file_date < cutoff_date:
+                        backup_file.unlink()
+                        logger.info(f"🧹 Cleaned up old backup: {backup_file}")
+                        
+            except (ValueError, IndexError) as e:
+                logger.warning(f"⚠️ Could not parse backup file date: {backup_file}")
+    
     def get_backup_counts(self) -> Dict[str, int]:
-        """Legacy compatibility: Get counts for UI display"""
+        """
+        📊 Get counts of records in backup files for clear UI labeling.
+        
+        Returns dict like: {'profile': 5, 'tasks': 23, 'ai_keychain': 1}
+        """
         counts = {}
         
-        # Check for legacy flat file backups
         for table_name in self.backup_tables.keys():
             backup_file = self.get_backup_filename(table_name)
             if backup_file.exists():
-                counts[table_name] = 1
+                try:
+                    conn = sqlite3.connect(str(backup_file))
+                    cursor = conn.cursor()
+                    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                    counts[table_name] = cursor.fetchone()[0]
+                    conn.close()
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not count {table_name} in backup: {e}")
+                    counts[table_name] = 0
             else:
                 counts[table_name] = 0
         
-        # AI keychain
-        keychain_backup = self.get_backup_filename('ai_keychain')
-        counts['ai_keychain'] = 1 if keychain_backup.exists() else 0
-        
+        # Add AI keychain count
+        keychain_backup = self.backup_root / f"ai_keychain_{datetime.now().strftime('%Y-%m-%d')}.db"
+        if keychain_backup.exists():
+            counts['ai_keychain'] = 1  # Keychain is just one file
+        else:
+            counts['ai_keychain'] = 0
+            
         return counts
     
     def get_current_db_counts(self, main_db_path: str) -> Dict[str, int]:
-        """Legacy compatibility: Get current database counts"""
+        """
+        📊 Get counts of records in current database for clear UI labeling.
+        
+        Returns dict like: {'profile': 1, 'tasks': 0, 'ai_keychain': 1}
+        """
         counts = {}
         
         try:
@@ -376,27 +442,66 @@ class RollingBackupManager:
                 try:
                     cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
                     counts[table_name] = cursor.fetchone()[0]
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not count {table_name} in current DB: {e}")
                     counts[table_name] = 0
             
             conn.close()
-        except Exception:
+        except Exception as e:
+            logger.error(f"❌ Could not access current database: {e}")
             for table_name in self.backup_tables.keys():
                 counts[table_name] = 0
         
-        # AI keychain
+        # AI keychain is separate file
         counts['ai_keychain'] = 1 if os.path.exists('data/ai_keychain.db') else 0
         
         return counts
-
+    
     def explicit_backup_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
-        """Legacy compatibility: Explicit backup for UI buttons"""
-        return self.startup_backup_all()
+        """
+        📤 EXPLICIT BACKUP: Save current database state TO backup files.
+        
+        This OVERWRITES backup files with current data. No restore logic.
+        Use when you want to save your current work.
+        """
+        results = {}
+        
+        # Backup main tables
+        for table_name in self.backup_tables.keys():
+            results[table_name] = self.backup_table(main_db_path, table_name)
+        
+        # Backup AI keychain
+        if os.path.exists(keychain_db_path):
+            results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
+        
+        successful = sum(1 for success in results.values() if success)
+        total = len(results)
+        logger.info(f"📤 Explicit backup complete: {successful}/{total} successful")
+        
+        return results
     
     def explicit_restore_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
-        """Legacy compatibility: Restore functionality (disabled per user request)"""
-        logger.warning("📥 RESTORE DISABLED: Focus on automated rolling backups instead")
-        return {'restore': False}
+        """
+        📥 EXPLICIT RESTORE: Load backup data INTO current database.
+        
+        This OVERWRITES current data with backup. No backup logic.
+        Use when you want to restore from a previous backup.
+        """
+        results = {}
+        
+        # Restore main tables
+        for table_name in self.backup_tables.keys():
+            results[table_name] = self.restore_table(main_db_path, table_name)
+        
+        # Restore AI keychain
+        results['ai_keychain'] = self.restore_ai_keychain(keychain_db_path)
+        
+        successful = sum(1 for success in results.values() if success)
+        total = len(results)
+        logger.info(f"📥 Explicit restore complete: {successful}/{total} successful")
+        
+        return results
 
-# 🎯 ENHANCED GLOBAL INSTANCE 
-backup_manager = RollingBackupManager() 
+
+# 🎯 GLOBAL INSTANCE for easy import
+backup_manager = DurableBackupManager() 
