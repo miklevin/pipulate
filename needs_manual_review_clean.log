@@ -13,3 +13,13 @@ f68047c feat: Implement iterative execution magic words and breadcrumb trail dis
 21b8f34 🚀 **MAGIC FORMULA ACTIVATIONcheckout HEAD -- server.py* - Introducing iterative LLM execution with explicit XML format and anti-simulation commands - DEFERRED: server.py (2 conflicts), core system file
 f77690c feat: Implement Golden Path - Prioritize Operational Use - DEFERRED: Patch failed - missing .cursor/rules/WORKSPACE_RULZ.md dependency, conflicts in BREADCRUMB_TRAIL_DVCS.mdc
 ab9e70d feat: Implement Radical Conversation History Transparency System - DEFERRED: Multiple files (mcp_tools.py:1, server.py:1 conflicts), large patch (26KB), core system files
+7261ac0 feat: Add chat automation test script - DEFERRED: Very large patch (93KB), multiple missing files in index, server.py conflicts
+54e7288 feat: Remove backup/restore interface - focus on automated rolling backups - DEFERRED: Multiple files (durable_backup_system.py:2, server.py:3 conflicts), large patch (58KB)
+0d06f65 feat(docs): Introduce LOCAL LLM TOOL CALLING TRAINER - DEFERRED: mcp_tools.py (3 conflicts), core system file
+1a8c88e 🎭 BREAKTHROUGH: Chip O'Theseus Personality & Memory Curation System - DEFERRED: Extremely large patch (135KB), server.py (1 conflict), core system file, 278 whitespace errors
+0b32037 🧹 CLEANUP: Remove test artifacts from repo - DEFERRED: Extremely large patch (126KB), complex cleanup commit, .gitignore (1 conflict)
+b09b4b8 Add breadcrumb trail discovery system for local LLMs - DEFERRED: Multiple files (mcp_tools.py:4, server.py:2 conflicts), core system files
+5b20442 feat(mcp_tools): Add server reboot tool - DEFERRED: mcp_tools.py (1 conflict), core system file
+0bcf016 feat: Implement fastlite-based conversation persistence - DEFERRED: server.py conflicts, large patch (37KB), core system file
+81bea5f feat: Enhance system prompt with detailed Chip O'Theseus personality and keychain usage guidance - DEFERRED: Multiple files (durable_backup_system.py, server.py conflicts), large patch (68KB)
+b3c5830 fix(ai_discovery): Implement persistent conversation history - DEFERRED: Multiple files (mcp_tools.py:2, server.py:2 conflicts), large patch (32KB)

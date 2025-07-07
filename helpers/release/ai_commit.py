@@ -5,6 +5,11 @@ AI Commit Message Generator for Pipulate
 This script uses a local LLM (via Ollama) to generate a conventional
 commit message based on the currently staged git changes.
 
+🧹 LEGACY PURGED: Now uses append-only conversation system
+- Generated commit messages are appended to conversation history
+- Bulletproof persistence across restarts and releases
+- No vulnerable JSON blob overwrites
+
 Usage:
     python helpers/release/ai_commit.py
 """
@@ -13,6 +18,18 @@ import requests
 import json
 import sys
 import os
+from pathlib import Path
+
+# Add the helpers directory to sys.path for imports
+helpers_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(helpers_dir))
+
+try:
+    from append_only_conversation import AppendOnlyConversationSystem
+    CONVERSATION_SYSTEM_AVAILABLE = True
+except ImportError:
+    CONVERSATION_SYSTEM_AVAILABLE = False
+    print("⚠️  Warning: Append-only conversation system not available", file=sys.stderr)
 
 # Configuration for the local LLM
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
@@ -154,9 +171,49 @@ def generate_commit_message(diff_content, change_analysis):
         print(f"To pull the model, run: ollama pull {OLLAMA_MODEL}", file=sys.stderr)
         sys.exit(1)
 
+def append_commit_to_conversation(commit_message, change_analysis):
+    """Append the generated commit message to conversation history using append-only system."""
+    if not CONVERSATION_SYSTEM_AVAILABLE:
+        print("⚠️  Skipping conversation append: conversation system not available", file=sys.stderr)
+        return
+    
+    try:
+        # Initialize conversation system
+        conv_system = AppendOnlyConversationSystem()
+        
+        # Create a formatted message about the commit
+        formatted_message = f"""📝 **AI Generated Commit Message**
+
+**Commit:** {commit_message}
+
+**Change Analysis:**
+- Files added: {len(change_analysis['added_files'])}
+- Files deleted: {len(change_analysis['deleted_files'])}
+- Files modified: {len(change_analysis['modified_files'])}
+- Lines added: +{change_analysis['lines_added']}
+- Lines deleted: -{change_analysis['lines_deleted']}
+- Primary action: {change_analysis['primary_action']}
+- Is housekeeping: {change_analysis['is_housekeeping']}
+
+**Summary:** {change_analysis['change_summary']}
+
+*This commit message was generated using {OLLAMA_MODEL} and appended to conversation history via append-only system.*"""
+        
+        # Append to conversation history
+        message_id = conv_system.append_message('system', formatted_message)
+        
+        print(f"✅ Commit message appended to conversation history (ID: {message_id})", file=sys.stderr)
+        
+    except Exception as e:
+        print(f"⚠️  Error appending to conversation history: {e}", file=sys.stderr)
+
 if __name__ == "__main__":
     change_analysis = get_change_analysis()
     staged_diff = get_staged_diff()
     commit_message = generate_commit_message(staged_diff, change_analysis)
-    # Print only the commit message to stdout so it can be captured
+    
+    # 🧹 NEW: Append commit message to conversation history using append-only system
+    append_commit_to_conversation(commit_message, change_analysis)
+    
+    # Print only the commit message to stdout so it can be captured by publish.py
     print(commit_message) 
