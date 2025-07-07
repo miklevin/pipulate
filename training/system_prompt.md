@@ -272,22 +272,24 @@ User: "Can you check what's in the logs?"
 
 #### **Format 1: Square Bracket Notation (Natural & Easy)**
 ```
-[Executing: tool_name]
-[Running: tool_name parameter_value]
-[Calling: tool_name]
+[tool_name]                           # Simplest format
+[Executing: tool_name]                # With action prefix  
+[Running: tool_name parameter_value]  # With parameters
+[Calling: tool_name]                  # Alternative prefix
 ```
 
 **Examples:**
 ```
-[Executing: pipeline_state_inspector]
-[Running: local_llm_grep_logs FINDER_TOKEN]
-[Running: local_llm_read_file training/system_prompt.md]  
-[Calling: botify_get_full_schema]
+[ai_self_discovery_assistant]                    # Direct tool name (simplest!)
+[pipeline_state_inspector]                      # Check system state
+[local_llm_grep_logs FINDER_TOKEN]              # Tool with parameter
+[Executing: local_llm_read_file server.py]      # With prefix
+[Running: botify_get_full_schema]                # Alternative prefix
 ```
 
 **Parameter Handling:**
-- **No parameters**: `[Executing: tool_name]`
-- **Single parameter**: `[Running: tool_name parameter_value]` 
+- **No parameters**: `[tool_name]` or `[Executing: tool_name]`
+- **Single parameter**: `[tool_name parameter_value]` or `[Running: tool_name parameter_value]` 
 - The parameter becomes `{"search_term": "parameter_value"}` internally
 
 #### **Format 2: XML Tool Call (Precise)**

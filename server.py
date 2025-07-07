@@ -3253,38 +3253,43 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                                     
                                     logger.info(f"🔧 MCP CLIENT: Square bracket notation detected: [{bracket_content}]")
                                     
-                                    # Parse bracket content: "Executing: tool_name" or "Running: tool_name params"
+                                    # Parse bracket content - handle multiple formats:
+                                    # Format 1: "Executing: tool_name" or "Running: tool_name params"  
+                                    # Format 2: "tool_name" (direct tool name)
+                                    # Format 3: "tool_name params" (tool name with parameters)
+                                    
                                     if ':' in bracket_content:
+                                        # Format 1: "Executing: tool_name" style
                                         action_part, tool_part = bracket_content.split(':', 1)
                                         tool_name = tool_part.strip()
+                                    else:
+                                        # Format 2 or 3: Direct tool name (with or without params)
+                                        tool_name = bracket_content.strip()
+                                    
+                                    # Parse parameters if they exist (simple heuristic)
+                                    if ' ' in tool_name and not tool_name.startswith('"'):
+                                        # Likely has parameters: "tool_name param1 param2"
+                                        parts = tool_name.split(' ', 1)
+                                        tool_name = parts[0]
+                                        params_str = parts[1]
                                         
-                                        # Parse parameters if they exist (simple heuristic)
-                                        if ' ' in tool_name and not tool_name.startswith('"'):
-                                            # Likely has parameters: "tool_name param1 param2"
-                                            parts = tool_name.split(' ', 1)
-                                            tool_name = parts[0]
-                                            params_str = parts[1]
-                                            
-                                            # Convert to JSON-like format for complex parameters
-                                            mcp_block = f'''<mcp-request>
+                                        # Convert to JSON-like format for complex parameters
+                                        mcp_block = f'''<mcp-request>
   <tool name="{tool_name}">
     <params>
     {{"search_term": "{params_str}"}}
     </params>
   </tool>
 </mcp-request>'''
-                                        else:
-                                            # Simple tool call without parameters
-                                            mcp_block = f'''<mcp-request>
+                                    else:
+                                        # Simple tool call without parameters
+                                        mcp_block = f'''<mcp-request>
   <tool name="{tool_name}" />
 </mcp-request>'''
-                                        
-                                        logger.info(f"🔧 MCP CLIENT: Square bracket converted to XML.")
-                                        logger.debug(f"🔧 ORIGINAL BRACKET: {match.group(0)}")
-                                        logger.debug(f"🔧 CONVERTED TO XML:\n{mcp_block}")
-                                    else:
-                                        logger.error(f"🔧 MCP CLIENT: Invalid bracket format: {bracket_content}")
-                                        continue
+                                    
+                                    logger.info(f"🔧 MCP CLIENT: Square bracket converted to XML.")
+                                    logger.debug(f"🔧 ORIGINAL BRACKET: {match.group(0)}")
+                                    logger.debug(f"🔧 CONVERTED TO XML:\n{mcp_block}")
                                         
                                 else:  # XML format (group 1)
                                     mcp_block = match.group(1) if match.group(1) else match.group(0)
