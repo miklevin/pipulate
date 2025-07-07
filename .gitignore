@@ -86,3 +86,12 @@ htmlcov/
 # Botify helper outputs - keep schema discovery and data files local only
 helpers/botify/*.json
 helpers/botify/*.csv
+
+# Test artifacts and temporary files
+test.db*
+test_output.txt
+*_test_results_*.json
+conversation_persistence_diagnostic_*.json
+rolling_backup_test_results_*.json
+startup_test.log
+
