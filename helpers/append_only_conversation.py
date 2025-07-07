@@ -39,7 +39,7 @@ class AppendOnlyConversationSystem:
     5. Token window management via deque
     """
     
-    def __init__(self, db_path: str = "data/discussion.db", max_messages: int = 10000):
+    def __init__(self, db_path: str = "data/discussion.db", max_messages: int = 2000):
         self.db_path = Path(db_path)
         self.max_messages = max_messages
         self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")

@@ -515,12 +515,13 @@ DB_FILENAME = get_db_filename()
 logger.info(f'🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: {DB_FILENAME}')
 
 
-TONE = 'neutral'
 MODEL = 'gemma3'
-MAX_LLM_RESPONSE_WORDS = 80
-MAX_CONVERSATION_LENGTH = 10000
+# 🎯 OPTIMIZED FOR 128K TOKEN WINDOW: Based on 43 tokens/message average
+# 128K tokens * 80% safety margin = 102,400 tokens ÷ 43 tokens/msg = ~2,400 messages
+# Setting to 2,000 messages for safety margin and optimal performance
+MAX_CONVERSATION_LENGTH = 2000  # Optimized for 128K token window (was 10000)
 
-logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}')
+logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Conversation length: {MAX_CONVERSATION_LENGTH}')
 
 # ================================================================
 # 💬 PERSISTENT CONVERSATION HISTORY - SURVIVES SERVER RESTARTS
@@ -1182,10 +1183,6 @@ def read_training(prompt_or_filename):
                 logger.warning(f'No training file found for {prompt_or_filename}')
             return f"No training content available for {prompt_or_filename.replace('.md', '')}"
     return prompt_or_filename
-if MAX_LLM_RESPONSE_WORDS:
-    limiter = f'in under {MAX_LLM_RESPONSE_WORDS} {TONE} words'
-else:
-    limiter = ''
 global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}]
 
@@ -1256,13 +1253,17 @@ def append_to_conversation(message=None, role='user'):
     try:
         # Skip auto-save during startup restoration
         if not startup_restoration_in_progress:
-            conv_system = get_global_conversation_system()
-            message_id = conv_system.append_message(role, message)
-            
-            if message_id:
-                logger.info(f"💾 FINDER_TOKEN: CONVERSATION_APPEND_ONLY_SAVED - Message ID {message_id}, Role: {role}")
+            # 🚫 FILTER: Skip saving "No training content available" noise messages
+            if message.startswith("No training content available"):
+                logger.debug(f"💾 CONVERSATION_FILTER_SKIP - Filtered out training content noise: '{message[:50]}...'")
             else:
-                logger.debug("💾 CONVERSATION_APPEND_ONLY_SKIPPED - Duplicate message not saved")
+                conv_system = get_global_conversation_system()
+                message_id = conv_system.append_message(role, message)
+                
+                if message_id:
+                    logger.info(f"💾 FINDER_TOKEN: CONVERSATION_APPEND_ONLY_SAVED - Message ID {message_id}, Role: {role}")
+                else:
+                    logger.debug("💾 CONVERSATION_APPEND_ONLY_SKIPPED - Duplicate message not saved")
         else:
             logger.debug("💾 SKIP_AUTO_SAVE - Startup restoration in progress, skipping auto-save")
             
@@ -5365,7 +5366,6 @@ async def sse_endpoint(request):
 
 @app.post('/chat')
 async def chat_endpoint(request, message: str):
-    # await pipulate.stream(f'Let the user know {limiter} {message}')
     await pipulate.stream(message)
     return ''
 
