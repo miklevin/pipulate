@@ -622,6 +622,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     border-radius: 8px;
     max-width: 100%;
     white-space: pre-wrap;
+    position: relative;
 }
 
 .message.user {
@@ -632,6 +633,73 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 .message.assistant {
     background: var(--pico-muted-background);
     margin-right: auto;
+}
+
+/* Message container for clipboard functionality */
+.message-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.message-content {
+    flex: 1;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* Clipboard button styling */
+.clipboard-button {
+    position: relative;
+    background: transparent;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    margin-top: 2px;
+}
+
+.clipboard-button:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.clipboard-button svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+}
+
+/* Theme-aware clipboard button colors */
+[data-theme="dark"] .clipboard-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .clipboard-button:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* System preference theme handling */
+@media only screen and (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .clipboard-button:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+@media only screen and (prefers-color-scheme: light) {
+    :root:not([data-theme]) .clipboard-button:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+    }
 }
 
 /* Message Content Styling */
