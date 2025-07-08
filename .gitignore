@@ -86,3 +86,5 @@ htmlcov/
 # Botify helper outputs - keep schema discovery and data files local only
 helpers/botify/*.json
 helpers/botify/*.csv
+# 🛡️ Survivable test harness - independent git repo
+tests/
