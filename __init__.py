@@ -13,7 +13,7 @@ Usage:
 """
 
 __version__ = "1.1.1"
-__version_description__ = "Emergency Security Fix - Client Directory Exclusion"
+__version_description__ = "Client Centric"
 __author__ = "Mike Levin"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local First AI SEO Software" 
