@@ -2,13 +2,13 @@
 """
 Version Synchronization Script for Pipulate
 
-This script ensures all version numbers across the codebase come from a single
-source of truth: pipulate.__version__ in __init__.py
+This script ensures all version numbers and descriptions across the codebase come from a single
+source of truth: pipulate.__version__ and pipulate.__description__ in __init__.py
 
 Files updated:
-- pyproject.toml
-- flake.nix  
-- Pipulate.com/install.sh (if in workspace)
+- pyproject.toml (version and description)
+- flake.nix (version only)
+- Pipulate.com/install.sh (version only)
 
 Usage:
     python -c "from pipulate.version_sync import sync_all_versions; sync_all_versions()"
@@ -22,8 +22,8 @@ import re
 import sys
 from pathlib import Path
 
-def get_version():
-    """Get the version from __init__.py at project root"""
+def get_version_and_description():
+    """Get the version and description from __init__.py at project root"""
     # Script is at: pipulate/helpers/release/version_sync.py
     # __init__.py is at: pipulate/__init__.py
     # So we need to go up 2 levels from script location
@@ -35,14 +35,26 @@ def get_version():
         raise RuntimeError(f"Could not find __init__.py at {init_file}")
     
     content = init_file.read_text()
-    match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
-    if not match:
+    
+    # Get version
+    version_match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
+    if not version_match:
         raise RuntimeError(f"Could not find __version__ in {init_file}")
     
-    return match.group(1)
+    # Get description
+    description_match = re.search(r'__description__\s*=\s*["\']([^"\']+)["\']', content)
+    if not description_match:
+        raise RuntimeError(f"Could not find __description__ in {init_file}")
+    
+    return version_match.group(1), description_match.group(1)
 
-def update_pyproject_toml(version):
-    """Update version in pyproject.toml"""
+def get_version():
+    """Get the version from __init__.py at project root (backward compatibility)"""
+    version, _ = get_version_and_description()
+    return version
+
+def update_pyproject_toml(version, description):
+    """Update version and description in pyproject.toml"""
     pyproject_file = Path("pyproject.toml")
     if not pyproject_file.exists():
         print(f"⚠️  {pyproject_file} not found, skipping...")
@@ -58,9 +70,16 @@ def update_pyproject_toml(version):
         content
     )
     
+    # Update description line
+    content = re.sub(
+        r'description\s*=\s*["\'][^"\']+["\']',
+        f'description = "{description}"',
+        content
+    )
+    
     if content != old_content:
         pyproject_file.write_text(content)
-        print(f"✅ Updated {pyproject_file}")
+        print(f"✅ Updated {pyproject_file} (version and description)")
         return True
     else:
         print(f"ℹ️  {pyproject_file} already up to date")
@@ -142,28 +161,29 @@ def update_install_sh(version):
         return False
 
 def sync_all_versions():
-    """Synchronize all version numbers from the single source of truth"""
-    print("🔄 Synchronizing version numbers from single source of truth...")
+    """Synchronize all version numbers and descriptions from the single source of truth"""
+    print("🔄 Synchronizing version and description from single source of truth...")
     
     try:
-        version = get_version()
+        version, description = get_version_and_description()
         print(f"📋 Source version: {version}")
+        print(f"📋 Source description: {description}")
         print()
         
         updates = []
-        updates.append(update_pyproject_toml(version))
+        updates.append(update_pyproject_toml(version, description))
         updates.append(update_flake_nix(version))
         updates.append(update_install_sh(version))
         
         print()
         if any(updates):
-            print("✨ Version synchronization complete!")
-            print("🔧 Files updated with unified version numbers")
+            print("✨ Version and description synchronization complete!")
+            print("🔧 Files updated with unified version and description")
         else:
             print("✨ All files already synchronized!")
             
     except Exception as e:
-        print(f"❌ Error synchronizing versions: {e}")
+        print(f"❌ Error synchronizing versions and descriptions: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
