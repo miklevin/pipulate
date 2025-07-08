@@ -5055,8 +5055,18 @@ async def create_outer_container(current_profile_id, menux, request):
             }
         }
         
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             initMainSplitter();
+        });
+        
+        // Re-initialize after HTMX body swaps (like profile lock)
+        document.body.addEventListener('htmx:afterSettle', function(evt) {
+            if (evt.target === document.body) {
+                console.log('🔄 HTMX body swap detected, re-initializing splitter');
+                // Add small delay to ensure DOM is fully settled
+                setTimeout(initMainSplitter, 100);
+            }
         });
     """)
 
