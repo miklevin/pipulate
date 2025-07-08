@@ -68,6 +68,12 @@ class ProfileCrudOperations(BaseCrud):
         return render_profile(profile_record, self.main_plugin)
 
     def prepare_insert_data(self, form_data_dict):
+        # Check if profile lock is enabled - prevent adding profiles during client meetings
+        profile_locked = self.main_plugin.db_dictlike.get('profile_locked', '0') == '1'
+        if profile_locked:
+            logger.warning('Profile creation blocked: Profile lock is enabled')
+            return {'error': 'Profile creation disabled during locked mode'}
+            
         profile_name = form_data_dict.get('profile_name', '').strip()
         if not profile_name:
             logger.warning('Profile name cannot be empty for insert.')
@@ -79,6 +85,12 @@ class ProfileCrudOperations(BaseCrud):
         return data
 
     def prepare_update_data(self, form_data_dict):
+        # Check if profile lock is enabled - prevent editing profiles during client meetings  
+        profile_locked = self.main_plugin.db_dictlike.get('profile_locked', '0') == '1'
+        if profile_locked:
+            logger.warning('Profile update blocked: Profile lock is enabled')
+            return {'error': 'Profile editing disabled during locked mode'}
+            
         profile_name = form_data_dict.get('profile_name', '').strip()
         if not profile_name:
             logger.warning('Profile name cannot be empty for update.')
@@ -86,6 +98,38 @@ class ProfileCrudOperations(BaseCrud):
         data = {'name': profile_name, 'real_name': form_data_dict.get('profile_real_name', '').strip(), 'address': form_data_dict.get('profile_address', '').strip(), 'code': form_data_dict.get('profile_code', '').strip()}
         logger.debug(f'Prepared update data for profile: {data}')
         return data
+    
+    async def handle_delete(self, request, item_id):
+        """Override delete handler to prevent deletion when profile is locked."""
+        # Check if profile lock is enabled - prevent deleting profiles during client meetings
+        profile_locked = self.main_plugin.db_dictlike.get('profile_locked', '0') == '1'
+        if profile_locked:
+            logger.warning(f'Profile deletion blocked: Profile lock is enabled (attempted to delete ID {item_id})')
+            from fasthtml.common import HTMLResponse
+            return HTMLResponse(
+                content='<div style="color: var(--pico-del-color); padding: 0.5rem; text-align: center;">🔒 Profile deletion disabled during locked mode</div>',
+                status_code=403
+            )
+        
+        # Call parent delete handler if not locked
+        return await super().handle_delete(request, item_id)
+    
+    async def handle_toggle(self, request, item_id):
+        """Override toggle handler to prevent toggling when profile is locked."""
+        # Check if profile lock is enabled - prevent toggling profiles during client meetings
+        profile_locked = self.main_plugin.db_dictlike.get('profile_locked', '0') == '1'
+        if profile_locked:
+            logger.warning(f'Profile toggle blocked: Profile lock is enabled (attempted to toggle ID {item_id})')
+            # Return the current item unchanged
+            item = self.table.get(item_id)
+            if item:
+                return self.render_item(item)
+            else:
+                from fasthtml.common import HTMLResponse
+                return HTMLResponse(content='<div>Profile not found</div>', status_code=404)
+        
+        # Call parent toggle handler if not locked
+        return await super().handle_toggle(request, item_id)
 
 
 class ProfilesPlugin(ProfilesPluginIdentity):
@@ -150,11 +194,53 @@ class ProfilesPlugin(ProfilesPluginIdentity):
         logger.info(f"CRUD routes for {display_name_for_routes} (prefix '/{self.name}') registered by ProfileCrudOperations.")
 
     async def landing(self, request=None):
-        profiles = list(self.table())
-        ordered_profiles = sorted(profiles, key=lambda x: getattr(x, 'priority', 0))
-        profile_list = Ul(*[render_profile(p, self) for p in ordered_profiles], id='profile-list-ul', cls='sortable list-unstyled', data_sortable_group=self.name)
-        add_profile_form = Form(Group(Input(placeholder='Nickname', name='profile_name', id='profile-name-input-add', autofocus=True), Input(placeholder='Real Name (Optional)', name='profile_real_name', id='profile-real-name-input-add'), Input(placeholder=PLACEHOLDER_ADDRESS, name='profile_address', id='profile-address-input-add'), Input(placeholder=PLACEHOLDER_CODE, name='profile_code', id='profile-code-input-add'), Button('Add', type='submit', id='add-profile-button')), hx_post=f'/{self.name}', hx_target='#profile-list-ul', hx_swap='beforeend', hx_on_htmx_after_request="this.reset(); this.querySelector('input[name=profile_name]').focus();")
-        container = Div(H2('Profiles'), add_profile_form, profile_list, cls='container-centered')
+        # Check if profile lock is enabled
+        profile_locked = self.db_dictlike.get('profile_locked', '0') == '1'
+        
+        if profile_locked:
+            # When locked, only show the currently selected profile
+            get_current_profile_id, get_profile_name, _, _, _, _ = get_server_functions()
+            current_profile_id = get_current_profile_id()
+            current_profile_name = get_profile_name()
+            
+            if current_profile_id:
+                try:
+                    # Get only the current profile
+                    current_profile = self.table.get(current_profile_id)
+                    if current_profile:
+                        profiles_to_show = [current_profile]
+                    else:
+                        profiles_to_show = []
+                except Exception as e:
+                    logger.error(f"Error fetching locked profile {current_profile_id}: {e}")
+                    profiles_to_show = []
+            else:
+                profiles_to_show = []
+            
+            # Create locked state message and interface
+            lock_message = Div(
+                P(f"🔒 Profile locked to: {current_profile_name}", 
+                  cls='text-warning', 
+                  style='background-color: var(--pico-secondary-background); padding: 0.75rem; border-radius: var(--pico-border-radius); margin-bottom: 1rem; text-align: center; font-weight: 500;'),
+                P("Only the selected profile is visible. Disable profile lock to manage all profiles.", 
+                  cls='text-secondary', 
+                  style='text-align: center; font-size: 0.9em; margin-bottom: 1rem;')
+            )
+            
+            # Profile list (locked to current profile only)
+            profile_list = Ul(*[render_profile(p, self) for p in profiles_to_show], id='profile-list-ul', cls='list-unstyled')
+            
+            # No add form when locked - prevents accidental profile creation during client meetings
+            container = Div(H2('Profiles'), lock_message, profile_list, cls='container-centered')
+            
+        else:
+            # Normal unlocked behavior - show all profiles
+            profiles = list(self.table())
+            ordered_profiles = sorted(profiles, key=lambda x: getattr(x, 'priority', 0))
+            profile_list = Ul(*[render_profile(p, self) for p in ordered_profiles], id='profile-list-ul', cls='sortable list-unstyled', data_sortable_group=self.name)
+            add_profile_form = Form(Group(Input(placeholder='Nickname', name='profile_name', id='profile-name-input-add', autofocus=True), Input(placeholder='Real Name (Optional)', name='profile_real_name', id='profile-real-name-input-add'), Input(placeholder=PLACEHOLDER_ADDRESS, name='profile_address', id='profile-address-input-add'), Input(placeholder=PLACEHOLDER_CODE, name='profile_code', id='profile-code-input-add'), Button('Add', type='submit', id='add-profile-button')), hx_post=f'/{self.name}', hx_target='#profile-list-ul', hx_swap='beforeend', hx_on_htmx_after_request="this.reset(); this.querySelector('input[name=profile_name]').focus();")
+            container = Div(H2('Profiles'), add_profile_form, profile_list, cls='container-centered')
+            
         return container
 
 
@@ -162,6 +248,9 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     # Get current profile ID to highlight the selected row
     get_current_profile_id, _, _, _, _, _ = get_server_functions()
     current_profile_id = get_current_profile_id()
+    
+    # Check if profile lock is enabled
+    profile_locked = main_plugin_instance.db_dictlike.get('profile_locked', '0') == '1'
     
     # Handle type conversion issues - compare both as strings and integers
     is_current_profile = False
@@ -183,9 +272,23 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     name_input_update_id = f'name-update-{profile_record.id}'
     update_form_id = f'update-form-{profile_record.id}'
     profile_text_display_id = f'profile-text-display-{profile_record.id}'
-    toggle_edit_js = f"document.getElementById('{profile_text_display_id}').style.display='none'; var form = document.getElementById('{update_form_id}'); form.style.display='grid'; form.classList.add('editing');document.getElementById('{item_id_dom}').classList.add('editing-item');document.getElementById('{name_input_update_id}').focus();"
-    toggle_display_js = f"var form = document.getElementById('{update_form_id}'); form.style.display='none'; form.classList.remove('editing');document.getElementById('{profile_text_display_id}').style.display='flex';document.getElementById('{item_id_dom}').classList.remove('editing-item');"
-    update_profile_form = Form(Div(Input(type='text', name='profile_name', value=profile_record.name, placeholder='Nickname', id=name_input_update_id, cls='mb-2'), Input(type='text', name='profile_real_name', value=profile_record.real_name or '', placeholder='Real Name (Optional)', cls='mb-2'), Input(type='text', name='profile_address', value=profile_record.address or '', placeholder=PLACEHOLDER_ADDRESS, cls='mb-2'), Input(type='text', name='profile_code', value=profile_record.code or '', placeholder=PLACEHOLDER_CODE, cls='mb-2'), style='display:grid; grid-template-columns: 1fr; gap: 0.25rem; width:100%;'), Div(Button('Save', type='submit', cls='primary', style='margin-right: 0.5rem;'), Button('Cancel', type='button', cls='secondary outline', onclick=toggle_display_js), style='margin-top:0.5rem; display:flex; justify-content:start;'), hx_post=update_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', id=update_form_id, style='display: none; width: 100%; padding: 0.5rem; box-sizing: border-box; background-color: var(--pico-form-element-background-color); border-radius: var(--pico-border-radius);', cls='profile-edit-form')
+    if profile_locked:
+        # When locked, disable editing to prevent accidental changes during client meetings
+        toggle_edit_js = "return false;"  # Disable edit functionality
+        toggle_display_js = "return false;"
+        # Create a locked message instead of edit form
+        update_profile_form = Div(
+            P("🔒 Profile editing disabled during locked mode", 
+              cls='text-secondary', 
+              style='font-style: italic; text-align: center; padding: 0.5rem; background-color: var(--pico-secondary-background); border-radius: var(--pico-border-radius);'),
+            id=update_form_id, 
+            style='display: none;'
+        )
+    else:
+        # Normal editing behavior when unlocked
+        toggle_edit_js = f"document.getElementById('{profile_text_display_id}').style.display='none'; var form = document.getElementById('{update_form_id}'); form.style.display='grid'; form.classList.add('editing');document.getElementById('{item_id_dom}').classList.add('editing-item');document.getElementById('{name_input_update_id}').focus();"
+        toggle_display_js = f"var form = document.getElementById('{update_form_id}'); form.style.display='none'; form.classList.remove('editing');document.getElementById('{profile_text_display_id}').style.display='flex';document.getElementById('{item_id_dom}').classList.remove('editing-item');"
+        update_profile_form = Form(Div(Input(type='text', name='profile_name', value=profile_record.name, placeholder='Nickname', id=name_input_update_id, cls='mb-2'), Input(type='text', name='profile_real_name', value=profile_record.real_name or '', placeholder='Real Name (Optional)', cls='mb-2'), Input(type='text', name='profile_address', value=profile_record.address or '', placeholder=PLACEHOLDER_ADDRESS, cls='mb-2'), Input(type='text', name='profile_code', value=profile_record.code or '', placeholder=PLACEHOLDER_CODE, cls='mb-2'), style='display:grid; grid-template-columns: 1fr; gap: 0.25rem; width:100%;'), Div(Button('Save', type='submit', cls='primary', style='margin-right: 0.5rem;'), Button('Cancel', type='button', cls='secondary outline', onclick=toggle_display_js), style='margin-top:0.5rem; display:flex; justify-content:start;'), hx_post=update_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', id=update_form_id, style='display: none; width: 100%; padding: 0.5rem; box-sizing: border-box; background-color: var(--pico-form-element-background-color); border-radius: var(--pico-border-radius);', cls='profile-edit-form')
     # Task link to switch to tasks for this profile - inside the profile display with count
     task_count = main_plugin_instance.count_unchecked_tasks_for_profile(profile_record.id)
     tasks_link_text = f'Tasks ({task_count})'
@@ -195,10 +298,32 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
                          style='margin-left: 15px; color: var(--pico-primary-color); text-decoration: none; font-size: 0.9em; cursor: pointer; font-weight: 500;',
                          onclick='event.stopPropagation();')  # Prevent triggering the edit onclick
     
-    profile_display_div = Div(Span(profile_record.name, title='Click to edit', style='cursor:pointer; font-weight:bold;'), Span(f' ({profile_record.real_name})' if profile_record.real_name else '', style='margin-left:5px; color:var(--pico-muted-color); font-size:0.9em;'), Span(f'📍{profile_record.address}' if profile_record.address else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), Span(f'🌐{profile_record.code}' if profile_record.code else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), tasks_link_inline, id=profile_text_display_id, cls='profile-display-flex', onclick=toggle_edit_js)
-    active_checkbox_input = Input(type='checkbox', name='active_status_profile', checked=profile_record.active, hx_post=toggle_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', style='margin-right: 10px; flex-shrink: 0;', title='Toggle Active Status')
+    # Adjust profile display based on lock state
+    if profile_locked:
+        # When locked, disable click-to-edit functionality  
+        profile_name_span = Span(profile_record.name, 
+                                title='Profile editing disabled during locked mode', 
+                                style='font-weight:bold; color: var(--pico-muted-color);')
+        profile_display_div = Div(profile_name_span, Span(f' ({profile_record.real_name})' if profile_record.real_name else '', style='margin-left:5px; color:var(--pico-muted-color); font-size:0.9em;'), Span(f'📍{profile_record.address}' if profile_record.address else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), Span(f'🌐{profile_record.code}' if profile_record.code else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), tasks_link_inline, id=profile_text_display_id, cls='profile-display-flex')
+    else:
+        # Normal click-to-edit functionality when unlocked
+        profile_display_div = Div(Span(profile_record.name, title='Click to edit', style='cursor:pointer; font-weight:bold;'), Span(f' ({profile_record.real_name})' if profile_record.real_name else '', style='margin-left:5px; color:var(--pico-muted-color); font-size:0.9em;'), Span(f'📍{profile_record.address}' if profile_record.address else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), Span(f'🌐{profile_record.code}' if profile_record.code else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), tasks_link_inline, id=profile_text_display_id, cls='profile-display-flex', onclick=toggle_edit_js)
+    # Disable active status toggle when locked
+    if profile_locked:
+        active_checkbox_input = Input(type='checkbox', name='active_status_profile', checked=profile_record.active, disabled=True, style='margin-right: 10px; flex-shrink: 0; cursor: not-allowed;', title='Profile toggle disabled during locked mode')
+    else:
+        active_checkbox_input = Input(type='checkbox', name='active_status_profile', checked=profile_record.active, hx_post=toggle_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', style='margin-right: 10px; flex-shrink: 0;', title='Toggle Active Status')
     
-    delete_icon_span = '' if profile_record.name == 'Default Profile' else Span('🗑️', hx_delete=delete_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', hx_confirm=f"Are you sure you want to delete the profile '{profile_record.name}'? This action cannot be undone.", cls='profile-delete-icon delete-icon', title='Delete Profile')
+    # Disable delete functionality when locked or for default profile
+    if profile_locked:
+        delete_icon_span = Span('🔒', 
+                               cls='profile-lock-icon', 
+                               title='Profile deletion disabled during locked mode',
+                               style='color: var(--pico-muted-color); cursor: not-allowed;')
+    elif profile_record.name == 'Default Profile':
+        delete_icon_span = ''
+    else:
+        delete_icon_span = Span('🗑️', hx_delete=delete_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', hx_confirm=f"Are you sure you want to delete the profile '{profile_record.name}'? This action cannot be undone.", cls='profile-delete-icon delete-icon', title='Delete Profile')
     
     # Add highlighting style for currently selected profile using PicoCSS approach
     base_style = 'display: flex; align-items: center; width: 100%; gap: 10px; padding: 0.5rem 0;'
