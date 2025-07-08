@@ -167,164 +167,25 @@ class DurableBackupManager:
             source_conn.close()
             backup_conn.close()
     
-    def restore_table(self, target_db_path: str, table_name: str) -> bool:
-        """
-        🔄 Restore table from backup to current database.
-        
-        Used during fresh installs to restore client data.
-        """
-        try:
-            backup_file = self.get_backup_filename(table_name)
-            if not backup_file.exists():
-                logger.warning(f"⚠️ No backup found for {table_name}")
-                return False
-            
-            # 🎯 SIMPLE RESTORE - Just copy backup data to target
-            return self._simple_restore_table(str(backup_file), target_db_path, table_name)
-            
-        except Exception as e:
-            logger.error(f"❌ Restore failed for {table_name}: {e}")
-            return False
     
-    def _simple_restore_table(self, backup_db_path: str, target_db_path: str, table_name: str) -> bool:
-        """
-        📋 Simple restore - copy backup data to target database.
-        """
-        backup_conn = sqlite3.connect(backup_db_path)
-        target_conn = sqlite3.connect(target_db_path)
-        
-        try:
-            # Get backup records
-            backup_cursor = backup_conn.cursor()
-            backup_cursor.execute(f"SELECT * FROM {table_name}")
-            backup_rows = backup_cursor.fetchall()
-            
-            # Get column names
-            backup_cursor.execute(f"PRAGMA table_info({table_name})")
-            columns = [col[1] for col in backup_cursor.fetchall()]
-            
-            # Clear and restore target table
-            target_cursor = target_conn.cursor()
-            target_cursor.execute(f"DELETE FROM {table_name}")
-            
-            # Insert backup records into target
-            if backup_rows:
-                placeholders = ', '.join(['?' for _ in columns])
-                target_cursor.executemany(
-                    f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})",
-                    backup_rows
-                )
-            
-            target_conn.commit()
-            logger.info(f"✅ Successfully restored {table_name} ({len(backup_rows)} records)")
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ Simple restore failed for {table_name}: {e}")
-            return False
-        finally:
-            backup_conn.close()
-            target_conn.close()
     
-    def backup_ai_keychain(self, keychain_db_path: str) -> bool:
-        """
-        🧠 Backup Chip O'Theseus AI Keychain to durable storage.
-        """
-        try:
-            if not os.path.exists(keychain_db_path):
-                logger.warning(f"⚠️ AI keychain not found at {keychain_db_path}")
-                return False
-            
-            backup_file = self.backup_root / f"ai_keychain_{datetime.now().strftime('%Y-%m-%d')}.db"
-            
-            # Copy the entire keychain database
-            shutil.copy2(keychain_db_path, backup_file)
-            logger.info(f"🧠 AI Keychain backed up to: {backup_file}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ AI Keychain backup failed: {e}")
-            return False
 
-    def backup_discussion_db(self, discussion_db_path: str) -> bool:
-        """
-        💬 Backup conversation history (discussion.db) to durable storage.
-        """
-        try:
-            if not os.path.exists(discussion_db_path):
-                logger.warning(f"⚠️ Discussion database not found at {discussion_db_path}")
-                return False
-            
-            backup_file = self.backup_root / f"discussion_{datetime.now().strftime('%Y-%m-%d')}.db"
-            
-            # Copy the entire discussion database
-            shutil.copy2(discussion_db_path, backup_file)
-            logger.info(f"💬 Discussion database backed up to: {backup_file}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ Discussion database backup failed: {e}")
-            return False
 
-    def restore_ai_keychain(self, target_keychain_path: str) -> bool:
-        """
-        🧠 Restore Chip O'Theseus AI Keychain from backup.
-        """
-        try:
-            backup_file = self.backup_root / f"ai_keychain_{datetime.now().strftime('%Y-%m-%d')}.db"
-            if not backup_file.exists():
-                # Try yesterday's backup
-                yesterday = datetime.now() - timedelta(days=1)
-                backup_file = self.backup_root / f"ai_keychain_{yesterday.strftime('%Y-%m-%d')}.db"
-            
-            if backup_file.exists():
-                shutil.copy2(backup_file, target_keychain_path)
-                logger.info(f"🧠 Restored AI keychain from: {backup_file}")
-                return True
-            else:
-                logger.warning("⚠️ No AI keychain backup found")
-                return False
-                
-        except Exception as e:
-            logger.error(f"❌ AI Keychain restore failed: {e}")
-            return False
 
-    def restore_discussion_db(self, target_discussion_path: str) -> bool:
-        """
-        💬 Restore conversation history (discussion.db) from backup.
-        """
-        try:
-            backup_file = self.backup_root / f"discussion_{datetime.now().strftime('%Y-%m-%d')}.db"
-            if not backup_file.exists():
-                # Try yesterday's backup
-                yesterday = datetime.now() - timedelta(days=1)
-                backup_file = self.backup_root / f"discussion_{yesterday.strftime('%Y-%m-%d')}.db"
-            
-            if backup_file.exists():
-                shutil.copy2(backup_file, target_discussion_path)
-                logger.info(f"💬 Restored discussion database from: {backup_file}")
-                return True
-            else:
-                logger.warning("⚠️ No discussion database backup found")
-                return False
-                
-        except Exception as e:
-            logger.error(f"❌ Discussion database restore failed: {e}")
-            return False
 
     def auto_backup_all(self, main_db_path: str, keychain_db_path: str, discussion_db_path: str = "data/discussion.db") -> Dict[str, bool]:
         """
         🚀 Perform complete backup of all durable data.
         
-        Called periodically to ensure data durability.
+        Files are backed up with their original names so they can be manually 
+        dragged back into place for restoration.
         """
         results = {}
         
-        # 🎯 SIMPLE FILE COPY BACKUP - No table operations that could cause confusion
+        # 🎯 SIMPLE FILE COPY BACKUP - Original filenames for easy manual restore
         try:
-            # Create a complete backup of the main database file
-            today_str = datetime.now().strftime('%Y-%m-%d')
-            main_backup_file = self.backup_root / f"main_database_{today_str}.db"
+            # Backup main database with original filename
+            main_backup_file = self.backup_root / "data.db"
             
             if os.path.exists(main_db_path):
                 # Log current database state before backup
@@ -332,83 +193,55 @@ class DurableBackupManager:
                 logger.info(f"🔍 BACKUP DEBUG: Source file size: {os.path.getsize(main_db_path)} bytes")
                 logger.info(f"🔍 BACKUP DEBUG: Source file modified: {datetime.fromtimestamp(os.path.getmtime(main_db_path))}")
                 
-                # Simple file copy - no table operations
+                # Simple file copy with original filename
                 shutil.copy2(main_db_path, main_backup_file)
                 logger.info(f"✅ Main database backed up to: {main_backup_file}")
-                results['main_database'] = True
+                results['data.db'] = True
             else:
                 logger.warning(f"⚠️ Main database not found at {main_db_path}")
-                results['main_database'] = False
+                results['data.db'] = False
         
         except Exception as e:
             logger.error(f"❌ Main database backup failed: {e}")
-            results['main_database'] = False
+            results['data.db'] = False
         
-        # Backup AI keychain (unchanged - this was working)
-        if os.path.exists(keychain_db_path):
-            results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
-        else:
-            results['ai_keychain'] = False
+        # Backup AI keychain with original filename
+        try:
+            if os.path.exists(keychain_db_path):
+                keychain_backup_file = self.backup_root / "ai_keychain.db"
+                shutil.copy2(keychain_db_path, keychain_backup_file)
+                logger.info(f"🧠 AI Keychain backed up to: {keychain_backup_file}")
+                results['ai_keychain.db'] = True
+            else:
+                logger.warning(f"⚠️ AI keychain not found at {keychain_db_path}")
+                results['ai_keychain.db'] = False
+        except Exception as e:
+            logger.error(f"❌ AI Keychain backup failed: {e}")
+            results['ai_keychain.db'] = False
         
-        # Backup discussion database (unchanged - this was working)
-        if os.path.exists(discussion_db_path):
-            results['discussion'] = self.backup_discussion_db(discussion_db_path)
-        else:
-            results['discussion'] = False
+        # Backup discussion database with original filename
+        try:
+            if os.path.exists(discussion_db_path):
+                discussion_backup_file = self.backup_root / "discussion.db"
+                shutil.copy2(discussion_db_path, discussion_backup_file)
+                logger.info(f"💬 Discussion database backed up to: {discussion_backup_file}")
+                results['discussion.db'] = True
+            else:
+                logger.warning(f"⚠️ Discussion database not found at {discussion_db_path}")
+                results['discussion.db'] = False
+        except Exception as e:
+            logger.error(f"❌ Discussion database backup failed: {e}")
+            results['discussion.db'] = False
         
-        successful = sum(1 for success in results.values() if success)
+        successful_backups = sum(1 for success in results.values() if success)
         total = len(results)
-        logger.info(f"🎯 Simple file backup complete: {successful}/{total} successful")
+        logger.info(f"🎯 Simple file backup complete: {successful_backups}/{total} successful")
         logger.info(f"🔍 BACKUP DEBUG: Backup results: {results}")
+        logger.info(f"📁 BACKUP LOCATION: {self.backup_root} - Files can be manually dragged back to restore")
         
         return results
 
-    def auto_restore_all(self, main_db_path: str, keychain_db_path: str, discussion_db_path: str = "data/discussion.db") -> Dict[str, bool]:
-        """
-        🔄 Restore all data from backups.
-        
-        ⚠️  IMPORTANT: Called ONLY on fresh installs to restore client data.
-        ⚠️  This should NEVER be called during normal operation.
-        """
-        results = {}
-        
-        logger.warning("🚨 RESTORE OPERATION STARTING - This should only happen on fresh installs!")
-        
-        # Restore main database from file backup
-        try:
-            today_str = datetime.now().strftime('%Y-%m-%d')
-            main_backup_file = self.backup_root / f"main_database_{today_str}.db"
-            
-            if not main_backup_file.exists():
-                # Try yesterday's backup
-                yesterday = datetime.now() - timedelta(days=1)
-                yesterday_str = yesterday.strftime('%Y-%m-%d')
-                main_backup_file = self.backup_root / f"main_database_{yesterday_str}.db"
-            
-            if main_backup_file.exists():
-                logger.warning(f"🔄 RESTORING main database from {main_backup_file} to {main_db_path}")
-                shutil.copy2(main_backup_file, main_db_path)
-                logger.info(f"✅ Main database restored from: {main_backup_file}")
-                results['main_database'] = True
-            else:
-                logger.warning("⚠️ No main database backup found for restore")
-                results['main_database'] = False
-                
-        except Exception as e:
-            logger.error(f"❌ Main database restore failed: {e}")
-            results['main_database'] = False
-        
-        # Restore AI keychain
-        results['ai_keychain'] = self.restore_ai_keychain(keychain_db_path)
-        
-        # Restore discussion database
-        results['discussion'] = self.restore_discussion_db(discussion_db_path)
-        
-        successful = sum(1 for success in results.values() if success)
-        total = len(results)
-        logger.warning(f"🔄 RESTORE COMPLETE: {successful}/{total} successful - This should only happen on fresh installs!")
-        
-        return results
+
     
     def cleanup_old_backups(self, keep_days: int = 30):
         """
