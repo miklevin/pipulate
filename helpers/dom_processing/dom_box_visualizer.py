@@ -46,7 +46,13 @@ class DOMBoxVisualizer:
         # Box styles for different levels
         self.box_styles = [DOUBLE, HEAVY, ROUNDED, ASCII]
         
-        self.max_content_width = 60
+        # Use 90% of console width, with fallback for when width detection fails
+        try:
+            console_width = self.console.size.width
+            self.max_content_width = int(console_width * 0.9)
+        except:
+            self.max_content_width = 120  # Fallback to larger default
+        
         self.max_children_to_show = 8  # Limit children to keep readable
         
     def get_color_for_level(self, level):
@@ -210,13 +216,19 @@ class DOMBoxVisualizer:
             from rich.console import Group
             panel_content = Group(*all_content)
         
+        # Calculate width: start with full width, shrink gradually but keep generous minimum
+        # Use percentage-based shrinking for better proportions
+        width_reduction = int(self.max_content_width * 0.08 * level)  # 8% reduction per level
+        min_width = max(int(self.max_content_width * 0.25), 40)  # 25% of max width minimum
+        calculated_width = max(self.max_content_width - width_reduction, min_width)
+        
         return Panel(
             panel_content,
             title=title,
             border_style=color,
             box=box_style,
             padding=(0, 1),
-            width=min(self.max_content_width - (level * 2), 30)  # Less shrinking, wider min
+            width=calculated_width
         )
     
     def visualize_dom_file(self, file_path):
@@ -235,9 +247,10 @@ class DOMBoxVisualizer:
         try:
             soup = BeautifulSoup(html_content, 'html.parser')
             
-            # Create title
+            # Create title with width info
+            width_info = f"📦 DOM Box Layout: {source_name} (Console width: {self.console.size.width}, Using: {self.max_content_width})"
             title = Panel(
-                f"📦 DOM Box Layout: {source_name}",
+                width_info,
                 style="bold blue",
                 padding=(1, 2)
             )
@@ -304,14 +317,16 @@ class DOMBoxVisualizer:
         """Show the color legend for nesting levels"""
         self.console.print("\n🎨 Box Color Legend:", style="bold white")
         
+        legend_width = max(int(self.max_content_width * 0.2), 30)  # 20% of max width for legend
+        
         for i, color in enumerate(self.level_colors[:8]):  # Show first 8 levels
             box_style = self.get_box_style_for_level(i)
             sample_panel = Panel(
-                f"Level {i} content",
+                f"Level {i} content - {box_style.name if hasattr(box_style, 'name') else 'Custom'} style",
                 title=f"Level {i}",
                 border_style=color,
                 box=box_style,
-                width=20
+                width=legend_width
             )
             self.console.print(sample_panel)
 

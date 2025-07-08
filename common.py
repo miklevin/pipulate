@@ -282,7 +282,10 @@ class BaseCrud:
                 # Don't set deleted_at on insert (should be NULL for active records)
             
             logger.debug(f'[DEBUG] Attempting to insert data into {self.name}: {insert_data}')
-            new_item = self.table.insert(insert_data)
+            # 🔥 CRITICAL: MiniDataAPI requires keyword argument unpacking with **insert_data
+            # ❌ NEVER CHANGE TO: self.table.insert(insert_data) - This will break!
+            # ✅ ALWAYS USE: self.table.insert(**insert_data) - This unpacks the dict
+            new_item = self.table.insert(**insert_data)
             logger.debug(f'[DEBUG] Successfully inserted item into {self.name}: {new_item}')
             
             # 🎯 TRIGGER BACKUP after successful insert
@@ -357,7 +360,10 @@ class BaseCrud:
         try:
             logger = logging.getLogger(__name__)
             logger.debug(f'Creating new {self.name} with data: {kwargs}')
-            new_item = self.table.insert(kwargs)
+            # 🔥 CRITICAL: MiniDataAPI requires keyword argument unpacking with **kwargs
+            # ❌ NEVER CHANGE TO: self.table.insert(kwargs) - This will break!
+            # ✅ ALWAYS USE: self.table.insert(**kwargs) - This unpacks the dict
+            new_item = self.table.insert(**kwargs)
             logger.debug(f'Created new {self.name}: {new_item}')
             return new_item
         except Exception as e:
