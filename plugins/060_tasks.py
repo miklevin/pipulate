@@ -90,6 +90,126 @@ class CrudCustomizer(BaseCrud):
         logger.debug(f'Prepared update data: {update_data}')
         return update_data
 
+    async def insert_item(self, request):
+        """Override to add FINDER_TOKEN logging for task creation."""
+        response = await super().insert_item(request)
+        
+        # Add greppable logging after successful insert
+        try:
+            # Get current profile info for context
+            current_profile_id = self.plugin.db_dictlike.get('last_profile_id', 1)
+            profile_name = "Unknown Profile"
+            try:
+                profiles_table = self.plugin.plugin_db.t.profile
+                profiles_table.dataclass()
+                profile = profiles_table.get(current_profile_id)
+                if profile:
+                    profile_name = profile.name
+            except Exception:
+                pass
+                
+            # Get the most recent task for this profile (should be the one just created)
+            recent_tasks = list(self.table('profile_id = ? ORDER BY id DESC LIMIT 1', [current_profile_id]))
+            if recent_tasks:
+                task = recent_tasks[0]
+                logger.info(f"🔍 FINDER_TOKEN: TASK_CREATED - Task '{task.text}' created for profile '{profile_name}' (ID: {current_profile_id}) - Priority: {task.priority}")
+                
+        except Exception as e:
+            logger.error(f"Error logging task creation: {e}")
+            
+        return response
+
+    async def update_item(self, request, item_id: int):
+        """Override to add FINDER_TOKEN logging for task updates."""
+        # Get task info before update for comparison
+        old_task = None
+        try:
+            old_task = self.table[item_id]
+        except Exception:
+            pass
+            
+        response = await super().update_item(request, item_id)
+        
+        # Add greppable logging after successful update
+        try:
+            updated_task = self.table[item_id]
+            profile_name = "Unknown Profile"
+            try:
+                profiles_table = self.plugin.plugin_db.t.profile
+                profiles_table.dataclass()
+                profile = profiles_table.get(updated_task.profile_id)
+                if profile:
+                    profile_name = profile.name
+            except Exception:
+                pass
+                
+            old_text = old_task.text if old_task else "Unknown"
+            logger.info(f"🔍 FINDER_TOKEN: TASK_UPDATED - Task ID {item_id} updated from '{old_text}' to '{updated_task.text}' for profile '{profile_name}' (ID: {updated_task.profile_id})")
+                
+        except Exception as e:
+            logger.error(f"Error logging task update: {e}")
+            
+        return response
+
+    async def toggle_item(self, request, item_id: int):
+        """Override to add FINDER_TOKEN logging for task completion status changes."""
+        # Get task info before toggle
+        old_task = None
+        try:
+            old_task = self.table[item_id]
+        except Exception:
+            pass
+            
+        response = await super().toggle_item(request, item_id)
+        
+        # Add greppable logging after successful toggle
+        try:
+            updated_task = self.table[item_id]
+            profile_name = "Unknown Profile"
+            try:
+                profiles_table = self.plugin.plugin_db.t.profile
+                profiles_table.dataclass()
+                profile = profiles_table.get(updated_task.profile_id)
+                if profile:
+                    profile_name = profile.name
+            except Exception:
+                pass
+                
+            status_change = "completed" if updated_task.done else "reopened"
+            logger.info(f"🔍 FINDER_TOKEN: TASK_TOGGLED - Task '{updated_task.text}' {status_change} for profile '{profile_name}' (ID: {updated_task.profile_id}) - Priority: {updated_task.priority}")
+                
+        except Exception as e:
+            logger.error(f"Error logging task toggle: {e}")
+            
+        return response
+
+    async def delete_item(self, request, item_id: int):
+        """Override to add FINDER_TOKEN logging for task deletion."""
+        # Get task info before deletion
+        deleted_task = None
+        profile_name = "Unknown Profile"
+        try:
+            deleted_task = self.table[item_id]
+            profiles_table = self.plugin.plugin_db.t.profile
+            profiles_table.dataclass()
+            profile = profiles_table.get(deleted_task.profile_id)
+            if profile:
+                profile_name = profile.name
+        except Exception:
+            pass
+            
+        response = await super().delete_item(request, item_id)
+        
+        # Add greppable logging after successful deletion
+        if deleted_task:
+            try:
+                status_desc = "completed" if deleted_task.done else "pending"
+                logger.info(f"🔍 FINDER_TOKEN: TASK_DELETED - Task '{deleted_task.text}' ({status_desc}) deleted from profile '{profile_name}' (ID: {deleted_task.profile_id}) - Priority: {deleted_task.priority}")
+            except Exception as e:
+                logger.error(f"Error logging task deletion: {e}")
+                
+        return response
+
 
 class CrudUI(PluginIdentityManager):
     # Override this to customize the emoji for this specific plugin
@@ -139,6 +259,80 @@ class CrudUI(PluginIdentityManager):
         self.register_plugin_routes()
         logger.debug(f'{self.DISPLAY_NAME} Plugin initialized successfully.')
         current_profile_id = self.db_dictlike.get('last_profile_id', 1)
+        
+        # STARTUP TASK ENUMERATION: Log all pending tasks for AI assistant discovery
+        self.log_startup_task_baseline()
+
+    def log_startup_task_baseline(self):
+        """
+        🔧 STARTUP TASK BASELINE: Log all pending tasks on server startup for AI assistant discovery.
+        Creates a reliable control/reference point that LLMs can grep to understand current task state.
+        """
+        try:
+            # Get all tasks from all profiles
+            all_tasks = list(self.table())
+            
+            # Get all profiles for name lookup
+            profiles_table = self.plugin_db.t.profile
+            profiles_table.dataclass()
+            all_profiles = list(profiles_table())
+            profile_lookup = {p.id: p.name for p in all_profiles}
+            
+            # Filter for pending tasks only (done=False or done=0)
+            pending_tasks = [task for task in all_tasks if not getattr(task, 'done', False)]
+            
+            if not pending_tasks:
+                logger.info(f"🔍 FINDER_TOKEN: STARTUP_TASKS_BASELINE - No pending tasks found across all profiles")
+                return
+            
+            # Group pending tasks by profile for organized logging
+            tasks_by_profile = {}
+            total_pending = len(pending_tasks)
+            
+            for task in pending_tasks:
+                profile_id = getattr(task, 'profile_id', None)
+                profile_name = profile_lookup.get(profile_id, f'Unknown Profile {profile_id}')
+                
+                if profile_name not in tasks_by_profile:
+                    tasks_by_profile[profile_name] = []
+                
+                tasks_by_profile[profile_name].append({
+                    'id': task.id,
+                    'text': task.text,
+                    'priority': getattr(task, 'priority', 0),
+                    'profile_id': profile_id
+                })
+            
+            # Log summary first
+            summary_lines = [
+                f"📋 Total pending tasks: {total_pending}",
+                f"👥 Profiles with pending tasks: {len(tasks_by_profile)}"
+            ]
+            
+            profile_summary = []
+            for profile_name, tasks in tasks_by_profile.items():
+                profile_summary.append(f"{profile_name}({len(tasks)})")
+            
+            if profile_summary:
+                summary_lines.append(f"📊 Pending tasks by profile: {', '.join(profile_summary)}")
+            
+            summary = '\\n    '.join(summary_lines)
+            logger.info(f"🔍 FINDER_TOKEN: STARTUP_TASKS_BASELINE - Task Control Established:\\n    {summary}")
+            
+            # Log detailed breakdown for each profile with pending tasks
+            for profile_name, tasks in tasks_by_profile.items():
+                # Sort tasks by priority for consistent ordering
+                sorted_tasks = sorted(tasks, key=lambda t: t['priority'] if t['priority'] is not None else 999)
+                
+                task_details = []
+                for task in sorted_tasks:
+                    task_details.append(f"ID:{task['id']} '{task['text']}' (Priority:{task['priority']})")
+                
+                task_list = ', '.join(task_details)
+                logger.info(f"🔍 FINDER_TOKEN: STARTUP_TASKS_PENDING - Profile '{profile_name}' (ID:{sorted_tasks[0]['profile_id']}) has {len(tasks)} pending: {task_list}")
+            
+        except Exception as e:
+            logger.error(f"❌ FINDER_TOKEN: STARTUP_TASKS_BASELINE_ERROR - Failed to enumerate startup tasks: {e}")
 
     def register_plugin_routes(self):
         """Register routes manually using app.route."""
