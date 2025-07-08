@@ -75,3 +75,6 @@ CONFLICT: e3da262 ``` feat: Implement simple file backup for main database - Fil
 CONFLICT: 4602e15 ``` feat: Implement message deletion functionality for conversation history - Files: plugins/070_history.py
 CONFLICT: f5b410d ``` feat: Preserve endpoint context during server restart - Files: config.py
 CONFLICT: 87812ea fix: Correctly handle insert data in common.py - Files: common.py
+CONFLICT: 20e9860 Make profile name clickable in headline breadcrumb - Files: server.py
+CONFLICT: 491f1d9 fix(conversation): Prevent writing noise to conversation history - Files: server.py
+CONFLICT: f24c616 feat: Introduce configurable render throttle delay - Files: config.py

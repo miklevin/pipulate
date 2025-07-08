@@ -40,3 +40,6 @@ SUCCESS: a89c4fe fix: Reduce typing delay and implement restart notification ove
 SUCCESS: 93a5129 chore: Remove redundant backup functions and docstrings
 SUCCESS: f5b410d feat: Preserve endpoint context during server restart
 SUCCESS: 87812ea fix: Correctly handle insert data in common.py
+SUCCESS: 6568854 feat: Add task link to profile display
+SUCCESS: 6568854 feat: Add task link to profile display
+SUCCESS: f24c616 feat: Introduce configurable render throttle delay

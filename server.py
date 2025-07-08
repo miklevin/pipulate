@@ -6872,9 +6872,40 @@ async def send_startup_environment_message():
         message_coordination['last_endpoint_message_time'].clear()
         
         # Also send endpoint message and training for current location
-        # 🔧 BUG FIX: Get actual current endpoint from URL, not just last_app_choice which can be empty
+        # 🔧 BUG FIX: Robust endpoint detection that doesn't rely on fragile database state
         current_endpoint = db.get('last_app_choice', '')
         visited_url = db.get('last_visited_url', '')
+        
+        # 🔧 ROBUST FIX: If database tracking failed, use the LAST endpoint the user actually visited
+        # Check the recent network logs to find the most recent GET request to an actual endpoint
+        if not current_endpoint or current_endpoint == '':
+            try:
+                # Search recent logs for the last actual endpoint visit
+                import subprocess
+                import re
+                recent_endpoint_logs = subprocess.run(
+                    'grep -h "\\[🌐 NETWORK\\] GET /" logs/server-*.log',
+                    capture_output=True, text=True, cwd='.', shell=True)
+                
+                if recent_endpoint_logs.returncode == 0:
+                    # Find the most recent endpoint that's not root, favicon, or well-known
+                    lines = recent_endpoint_logs.stdout.strip().split('\n')
+                    for line in reversed(lines[-20:]):  # Check last 20 network requests
+                        if 'GET /' in line and 'ID:' in line:
+                            # Extract the URL path from the log line
+                            match = re.search(r'GET (/[^\s]*)', line)
+                            if match:
+                                log_path = match.group(1).strip('/')
+                                # Skip non-endpoints
+                                if (log_path and log_path not in ['', 'favicon.ico', 'sse'] and 
+                                    not log_path.startswith('.well-known') and
+                                    not log_path.startswith('static/')):
+                                    # Found a real endpoint!
+                                    current_endpoint = normalize_menu_path(log_path)
+                                    logger.info(f"🔧 ROBUST_ENDPOINT_DETECTION: Found recent endpoint from logs: {log_path} -> {current_endpoint}")
+                                    break
+            except Exception as e:
+                logger.info(f"🔧 ROBUST_ENDPOINT_DETECTION: Could not parse logs: {e}")
         
         logger.info(f"🔧 STARTUP_DEBUG: last_app_choice='{current_endpoint}', last_visited_url='{visited_url}'")
         

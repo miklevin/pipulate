@@ -58,3 +58,5 @@ bba9d23 🗃️ STARTUP_BACKUP: Automatic backup completed - DEFERRED: server.py
 453529a feat: Initialize main splitter with localStorage persistence - DEFERRED: server.py conflicts after syntax fix
 e3da262 feat: Implement simple file backup for main database - DEFERRED: multiple conflicts in backup system and server.py
 4602e15 feat: Implement message deletion functionality for conversation history - DEFERRED: plugins/070_history.py persistent conflicts
+20e9860 Make profile name clickable in headline breadcrumb - DEFERRED: server.py conflicts after syntax fix
+491f1d9 fix(conversation): Prevent writing noise to conversation history - DEFERRED: server.py conflicts after syntax fix
