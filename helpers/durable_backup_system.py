@@ -226,9 +226,9 @@ class DurableBackupManager:
                 dated_backup_path = self.backup_root / self.get_dated_filename(original_filename, backup_date)
                 
                 # Log current database state before backup
-                logger.info(f"🔍 BACKUP DEBUG: About to backup {source_path}")
-                logger.info(f"🔍 BACKUP DEBUG: Source file size: {os.path.getsize(source_path)} bytes")
-                logger.info(f"🔍 BACKUP DEBUG: Source file modified: {datetime.fromtimestamp(os.path.getmtime(source_path))}")
+                # logger.info(f"🔍 BACKUP DEBUG: About to backup {source_path}")
+                # logger.info(f"🔍 BACKUP DEBUG: Source file size: {os.path.getsize(source_path)} bytes")
+                # logger.info(f"🔍 BACKUP DEBUG: Source file modified: {datetime.fromtimestamp(os.path.getmtime(source_path))}")
                 
                 # 1. Create/update latest backup (original filename)
                 shutil.copy2(source_path, latest_backup_path)
