@@ -2287,15 +2287,11 @@ def run_browser_automation():
             except Exception as e:
                 print(f"⚠️ SUBPROCESS: DOM processing failed, using fallback: {{e}}")
                 # Fallback to basic processing
-                simple_dom = f'''<html>
-<head><title>{{page_title}}</title></head>
-<body>
-<!-- Page captured from: {{current_url}} -->
-<!-- Timestamp: {{datetime.now().isoformat()}} -->
-<!-- Fallback DOM (processing failed) -->
-{{dom_content}}
-</body>
-</html>'''
+                simple_dom = "<html>\\n<head><title>" + page_title + "</title></head>\\n<body>\\n"
+                simple_dom += "<!-- Page captured from: " + current_url + " -->\\n"
+                simple_dom += "<!-- Timestamp: " + datetime.now().isoformat() + " -->\\n"
+                simple_dom += "<!-- Fallback DOM (processing failed) -->\\n"
+                simple_dom += dom_content + "\\n</body>\\n</html>"
             
             with open("{looking_at_dir}/simple_dom.html", "w", encoding="utf-8") as f:
                 f.write(simple_dom)
