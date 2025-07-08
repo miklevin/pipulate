@@ -320,21 +320,46 @@ class DurableBackupManager:
         """
         results = {}
         
-        # Backup main tables
-        for table_name in self.backup_tables.keys():
-            results[table_name] = self.backup_table(main_db_path, table_name)
+        # 🎯 SIMPLE FILE COPY BACKUP - No table operations that could cause confusion
+        try:
+            # Create a complete backup of the main database file
+            today_str = datetime.now().strftime('%Y-%m-%d')
+            main_backup_file = self.backup_root / f"main_database_{today_str}.db"
+            
+            if os.path.exists(main_db_path):
+                # Log current database state before backup
+                logger.info(f"🔍 BACKUP DEBUG: About to backup {main_db_path} to {main_backup_file}")
+                logger.info(f"🔍 BACKUP DEBUG: Source file size: {os.path.getsize(main_db_path)} bytes")
+                logger.info(f"🔍 BACKUP DEBUG: Source file modified: {datetime.fromtimestamp(os.path.getmtime(main_db_path))}")
+                
+                # Simple file copy - no table operations
+                shutil.copy2(main_db_path, main_backup_file)
+                logger.info(f"✅ Main database backed up to: {main_backup_file}")
+                results['main_database'] = True
+            else:
+                logger.warning(f"⚠️ Main database not found at {main_db_path}")
+                results['main_database'] = False
         
-        # Backup AI keychain
+        except Exception as e:
+            logger.error(f"❌ Main database backup failed: {e}")
+            results['main_database'] = False
+        
+        # Backup AI keychain (unchanged - this was working)
         if os.path.exists(keychain_db_path):
             results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
+        else:
+            results['ai_keychain'] = False
         
-        # Backup discussion database (conversation history)
+        # Backup discussion database (unchanged - this was working)
         if os.path.exists(discussion_db_path):
             results['discussion'] = self.backup_discussion_db(discussion_db_path)
+        else:
+            results['discussion'] = False
         
         successful = sum(1 for success in results.values() if success)
         total = len(results)
-        logger.info(f"🎯 Auto-backup complete: {successful}/{total} successful")
+        logger.info(f"🎯 Simple file backup complete: {successful}/{total} successful")
+        logger.info(f"🔍 BACKUP DEBUG: Backup results: {results}")
         
         return results
 
@@ -342,13 +367,36 @@ class DurableBackupManager:
         """
         🔄 Restore all data from backups.
         
-        Called on fresh installs to restore client data.
+        ⚠️  IMPORTANT: Called ONLY on fresh installs to restore client data.
+        ⚠️  This should NEVER be called during normal operation.
         """
         results = {}
         
-        # Restore main tables
-        for table_name in self.backup_tables.keys():
-            results[table_name] = self.restore_table(main_db_path, table_name)
+        logger.warning("🚨 RESTORE OPERATION STARTING - This should only happen on fresh installs!")
+        
+        # Restore main database from file backup
+        try:
+            today_str = datetime.now().strftime('%Y-%m-%d')
+            main_backup_file = self.backup_root / f"main_database_{today_str}.db"
+            
+            if not main_backup_file.exists():
+                # Try yesterday's backup
+                yesterday = datetime.now() - timedelta(days=1)
+                yesterday_str = yesterday.strftime('%Y-%m-%d')
+                main_backup_file = self.backup_root / f"main_database_{yesterday_str}.db"
+            
+            if main_backup_file.exists():
+                logger.warning(f"🔄 RESTORING main database from {main_backup_file} to {main_db_path}")
+                shutil.copy2(main_backup_file, main_db_path)
+                logger.info(f"✅ Main database restored from: {main_backup_file}")
+                results['main_database'] = True
+            else:
+                logger.warning("⚠️ No main database backup found for restore")
+                results['main_database'] = False
+                
+        except Exception as e:
+            logger.error(f"❌ Main database restore failed: {e}")
+            results['main_database'] = False
         
         # Restore AI keychain
         results['ai_keychain'] = self.restore_ai_keychain(keychain_db_path)
@@ -358,7 +406,7 @@ class DurableBackupManager:
         
         successful = sum(1 for success in results.values() if success)
         total = len(results)
-        logger.info(f"🔄 Auto-restore complete: {successful}/{total} successful")
+        logger.warning(f"🔄 RESTORE COMPLETE: {successful}/{total} successful - This should only happen on fresh installs!")
         
         return results
     
