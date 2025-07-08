@@ -5038,7 +5038,7 @@ async def create_outer_container(current_profile_id, menux, request):
     # Wait for external splitter-init.js to load before initializing
     init_splitter_script = Script("""
         function initMainSplitter() {
-            if (window.initializePipulateSplitter) {
+            if (window.initializePipulateSplitterSafe) {
                 console.log('🔥 Initializing main interface splitter with localStorage persistence');
                 const elements = ['#grid-left-content', '#chat-interface'];
                 const options = {
@@ -5048,7 +5048,7 @@ async def create_outer_container(current_profile_id, menux, request):
                     cursor: 'col-resize',
                     context: 'main'
                 };
-                initializePipulateSplitter(elements, options);
+                initializePipulateSplitterSafe(elements, options);
             } else {
                 // Retry if splitter-init.js hasn't loaded yet
                 setTimeout(initMainSplitter, 50);
@@ -5064,6 +5064,12 @@ async def create_outer_container(current_profile_id, menux, request):
         document.body.addEventListener('htmx:afterSettle', function(evt) {
             if (evt.target === document.body) {
                 console.log('🔄 HTMX body swap detected, re-initializing splitter');
+                // Add small delay to ensure DOM is fully settled
+                setTimeout(initMainSplitter, 100);
+            }
+            // Also handle left panel content swaps (like profile navigation)
+            else if (evt.target && evt.target.id === 'grid-left-content') {
+                console.log('🔄 HTMX left panel swap detected, re-initializing splitter');
                 // Add small delay to ensure DOM is fully settled
                 setTimeout(initMainSplitter, 100);
             }

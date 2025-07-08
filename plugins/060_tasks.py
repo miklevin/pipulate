@@ -103,8 +103,10 @@ class CrudUI(PluginIdentityManager):
         self.db_dictlike = db_dictlike
         logger.debug(f'{self.DISPLAY_NAME} Plugin initializing...')
         db_path = os.path.join(os.path.dirname(__file__), '..', DB_FILENAME)
-        logger.debug(f'Using database path: {db_path}')
+        logger.warning(f'TASKS INIT: Using database path: {db_path}')
+        logger.warning(f'TASKS INIT: DB_FILENAME value: {DB_FILENAME}')
         self.plugin_db = fastlite.database(db_path)
+        logger.warning(f'TASKS INIT: Plugin database instance: {self.plugin_db}')
         schema = {'id': int, 'text': str, 'done': bool, 'priority': int, 'profile_id': int, 'pk': 'id'}
         schema_fields = {k: v for k, v in schema.items() if k != 'pk'}
         primary_key = schema.get('pk')
@@ -137,17 +139,147 @@ class CrudUI(PluginIdentityManager):
             func = handler
             self.app.route(path, methods=methods)(func)
             logger.debug(f'  Registered: {methods} {path} -> {handler.__name__}')
+        
+        # Add profile navigation route
+        @self.app.route(f'{prefix}/navigate/{{profile_id:int}}', methods=['POST'])
+        async def navigate_to_profile(profile_id: int):
+            """Navigate to tasks for a specific profile."""
+            try:
+                # Validate profile exists by checking if there's a profile record 
+                profiles_table = self.plugin_db.t.profile
+                profiles_table.dataclass()  # Enable dataclass returns
+                profile = profiles_table.get(profile_id)
+                if not profile:
+                    logger.warning(f"Attempted to navigate to non-existent profile {profile_id}")
+                    from fasthtml.common import HTTPException
+                    raise HTTPException(status_code=404, detail=f"Profile {profile_id} not found")
+                
+                # Switch to the profile 
+                self.db_dictlike['last_profile_id'] = profile_id
+                logger.info(f"📋 Navigated to tasks for profile {profile_id} ({profile.name})")
+                
+                # Return full page refresh to update everything
+                from fasthtml.common import RedirectResponse
+                return RedirectResponse(url=f'/{self.name}', status_code=303)
+            except Exception as e:
+                logger.error(f"Error navigating to profile {profile_id}: {e}")
+                from fasthtml.common import HTTPException
+                raise HTTPException(status_code=500, detail="Failed to navigate to profile")
+
+    def get_all_profile_ids(self):
+        """Get all profile IDs sorted by ID."""
+        try:
+            logger.warning(f"TASKS DEBUG: Accessing database: {self.plugin_db}")
+            profiles_table = self.plugin_db.t.profile
+            profiles_table.dataclass()  # Enable dataclass returns
+            profiles = list(profiles_table())
+            logger.warning(f"TASKS DEBUG: Found {len(profiles)} profiles: {[p.id for p in profiles]}")
+            return sorted([p.id for p in profiles])
+        except Exception as e:
+            logger.error(f"Error getting profile IDs: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return []
+
+    def create_profile_navigation(self, current_profile_id):
+        """Create navigation arrows for switching between profiles."""
+        logger.debug(f"Creating profile navigation for profile {current_profile_id}")
+        
+        # Check if profile is locked - hide navigation if locked
+        profile_locked = self.db_dictlike.get('profile_locked', '0') == '1'
+        logger.debug(f"Profile locked: {profile_locked}")
+        if profile_locked:
+            logger.debug("Profile is locked, hiding navigation")
+            return None
+        
+        profile_ids = self.get_all_profile_ids()
+        logger.debug(f"Retrieved profile IDs: {profile_ids}")
+        if len(profile_ids) <= 1:
+            logger.debug("Only one profile or less, no navigation needed")
+            return None  # No navigation needed for single profile
+        
+        # Convert current_profile_id to int to match profile_ids list
+        try:
+            current_profile_id_int = int(current_profile_id)
+            current_index = profile_ids.index(current_profile_id_int)
+            logger.debug(f"Current profile index: {current_index}")
+        except (ValueError, TypeError):
+            logger.warning(f"Current profile {current_profile_id} (type: {type(current_profile_id)}) not found in profile list: {profile_ids}")
+            return None
+        
+        # Previous profile
+        prev_profile_id = profile_ids[current_index - 1] if current_index > 0 else None
+        prev_button = Button(
+            '◂ Previous',
+            hx_post=f'{self.ENDPOINT_PREFIX}/navigate/{prev_profile_id}' if prev_profile_id else '#',
+            hx_target='body',
+            hx_swap='outerHTML',
+            cls=f"{'primary outline' if not prev_profile_id else 'primary'} width-160",
+            disabled=not prev_profile_id
+        )
+        
+        # Next profile  
+        next_profile_id = profile_ids[current_index + 1] if current_index < len(profile_ids) - 1 else None
+        next_button = Button(
+            'Next ▸',
+            hx_post=f'{self.ENDPOINT_PREFIX}/navigate/{next_profile_id}' if next_profile_id else '#',
+            hx_target='body', 
+            hx_swap='outerHTML',
+            cls=f"{'primary outline' if not next_profile_id else 'primary'} width-160",
+            disabled=not next_profile_id
+        )
+        
+        return Div(
+            prev_button,
+            next_button,
+            cls='flex-center-gap'
+        )
 
     async def landing(self, request=None):
         """Renders the main view for the plugin."""
         logger.debug(f'{self.DISPLAY_NAME}Plugin.landing called')
         current_profile_id = self.db_dictlike.get('last_profile_id', 1)
         logger.debug(f'Landing page using profile_id: {current_profile_id}')
+        
+        # Get current profile name for header
+        profile_name = "Unknown Profile"
+        try:
+            profiles_table = self.plugin_db.t.profile
+            profiles_table.dataclass()  # Enable dataclass returns
+            profile = profiles_table.get(current_profile_id)
+            if profile:
+                profile_name = profile.name
+        except Exception as e:
+            logger.warning(f"Error getting profile name for {current_profile_id}: {e}")
+        
+        # Get tasks for current profile
         items_query = self.table(where=f'profile_id = {current_profile_id}')
         items = sorted(items_query, key=lambda item: float(item.priority or 0) if isinstance(item.priority, (int, float, str)) else float('inf'))
         logger.debug(f'Found {len(items)} {self.name} for profile {current_profile_id}')
+        
+        # Create profile navigation arrows (only if not locked)
+        nav_arrows = self.create_profile_navigation(current_profile_id)
+        
         add_placeholder = f'Add new {self.pipulate.make_singular(self.name.lower())}'
-        return Div(Card(H2(f'{self.DISPLAY_NAME} List'), Ul(*[self.app_instance.render_item(item) for item in items], id=self.LIST_ID, cls='sortable', style='padding-left: 0;'), header=Form(Group(Input(placeholder=add_placeholder, id=self.INPUT_ID, name=self.FORM_FIELD_NAME, autofocus=True), Button('Add', type='submit')), hx_post=self.ENDPOINT_PREFIX, hx_swap='beforeend', hx_target=f'#{self.LIST_ID}', hx_on__after_request="this.reset(); document.getElementById(this.querySelector('input').id).focus();")), id=self.CONTAINER_ID, cls='flex-column')
+        
+        # Build the content with optional navigation
+        content_elements = [
+            H2(f'{self.DISPLAY_NAME} List - {profile_name}'),
+        ]
+        
+        # Add navigation arrows before the task list (if available)
+        if nav_arrows:
+            content_elements.append(nav_arrows)
+        
+        # Add the main task card
+        content_elements.append(
+            Card(
+                Ul(*[self.app_instance.render_item(item) for item in items], id=self.LIST_ID, cls='sortable', style='padding-left: 0;'),
+                header=Form(Group(Input(placeholder=add_placeholder, id=self.INPUT_ID, name=self.FORM_FIELD_NAME, autofocus=True), Button('Add', type='submit')), hx_post=self.ENDPOINT_PREFIX, hx_swap='beforeend', hx_target=f'#{self.LIST_ID}', hx_on__after_request="this.reset(); document.getElementById(this.querySelector('input').id).focus();")
+            )
+        )
+        
+        return Div(*content_elements, id=self.CONTAINER_ID, cls='flex-column')
 
     async def render(self, render_items=None):
         """Fallback render method, currently just calls landing."""

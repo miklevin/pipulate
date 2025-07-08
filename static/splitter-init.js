@@ -1,5 +1,38 @@
 console.log('🔥 splitter-init.js script loaded and executing!');
 
+// Global variable to track splitter instances by context
+window.pipulateSplitterInstances = {};
+
+/**
+ * Safely destroys and reinitializes a splitter, preventing gutter accumulation.
+ * 
+ * @param {Array<string>} elements - An array of selectors for the elements to split.
+ * @param {object} defaultOptions - Default options for Split.js, including context for localStorage key.
+ */
+window.initializePipulateSplitterSafe = function(elements, defaultOptions) {
+  const context = defaultOptions.context || 'main';
+  
+  // Destroy existing splitter instance for this context
+  if (window.pipulateSplitterInstances[context] && typeof window.pipulateSplitterInstances[context].destroy === 'function') {
+    console.log(`🧹 Destroying existing ${context} splitter to prevent duplicate gutters`);
+    window.pipulateSplitterInstances[context].destroy();
+    window.pipulateSplitterInstances[context] = null;
+  }
+  
+  // Clean up any orphaned gutter elements
+  const orphanedGutters = document.querySelectorAll('.gutter.gutter-horizontal');
+  if (orphanedGutters.length > 0) {
+    console.log(`🧹 Removing ${orphanedGutters.length} orphaned gutter elements`);
+    orphanedGutters.forEach(gutter => gutter.remove());
+  }
+  
+  // Create new splitter instance and store it
+  const splitterInstance = window.initializePipulateSplitter(elements, defaultOptions);
+  window.pipulateSplitterInstances[context] = splitterInstance;
+  
+  return splitterInstance;
+};
+
 /**
  * Initializes a draggable splitter between two elements.
  * It uses sizes from localStorage with context-specific keys for persistence.
