@@ -30,23 +30,23 @@ def check_test_harness():
         print("4. Follow the test harness setup guide")
         return False
     
-    basic_test = TEST_DIR / "tests" / "basic_pipulate_test.py"
-    if not basic_test.exists():
+    simple_test = TEST_DIR / "tests" / "simple_pipulate_test.py"
+    if not simple_test.exists():
         print("❌ Test framework not properly installed!")
-        print(f"Missing: {basic_test}")
+        print(f"Missing: {simple_test}")
         return False
     
     return True
 
 def run_basic_tests():
     """Run the basic Pipulate functionality tests."""
-    print("🧪 RUNNING BASIC PIPULATE TESTS")
+    print("🧪 RUNNING SIMPLE PIPULATE TESTS")
     print("=" * 50)
     
     try:
         result = subprocess.run([
             sys.executable, 
-            str(TEST_DIR / "tests" / "basic_pipulate_test.py")
+            str(TEST_DIR / "tests" / "simple_pipulate_test.py")
         ], cwd=TEST_DIR)
         
         return result.returncode == 0
