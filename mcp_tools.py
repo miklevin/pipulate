@@ -1642,6 +1642,27 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
         except ImportError:
             return {"success": False, "error": "BeautifulSoup not available for HTML parsing"}
         
+        # === ACCESSIBILITY TREE LOADING (optional) ===
+        accessibility_tree_data = None
+        accessibility_tree_file = None
+        
+        if backup_id:
+            accessibility_tree_file = f"downloads/browser_scrapes/{backup_id}/accessibility_tree.json"
+        else:
+            accessibility_tree_file = "browser_automation/looking_at/accessibility_tree.json"
+            
+        if os.path.exists(accessibility_tree_file):
+            try:
+                with open(accessibility_tree_file, 'r', encoding='utf-8') as f:
+                    accessibility_tree_data = json.load(f)
+                logger.info(f"🌳 FINDER_TOKEN: ACCESSIBILITY_TREE_LOADED - {accessibility_tree_data.get('node_count', 0)} nodes available")
+            except Exception as e:
+                logger.warning(f"⚠️ FINDER_TOKEN: ACCESSIBILITY_TREE_LOAD_ERROR - Could not load accessibility tree: {e}")
+                accessibility_tree_data = None
+        else:
+            logger.info(f"🌳 FINDER_TOKEN: ACCESSIBILITY_TREE_NOT_FOUND - No accessibility tree available at {accessibility_tree_file}")
+            accessibility_tree_data = None
+        
         # === ENHANCED DOM PROCESSING INTEGRATION ===
         automation_assistant_result = None
         if include_automation_assistant and analysis_type in ["all", "enhanced"]:
@@ -1727,6 +1748,119 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                 "high_priority_targets": len([t for t in targets if t['selector_priority'] == 'high'])
             }
             
+        elif analysis_type == "accessibility":
+            # Accessibility analysis using accessibility tree if available
+            if not accessibility_tree_data:
+                return {
+                    "success": False,
+                    "error": "No accessibility tree data available. Accessibility tree extraction may have failed during page scrape."
+                }
+            
+            # Extract accessibility information from the tree
+            accessibility_info = {
+                "nodes": [],
+                "roles": {},
+                "issues": [],
+                "screen_reader_friendly": True
+            }
+            
+            if accessibility_tree_data.get("success"):
+                nodes = accessibility_tree_data.get("accessibility_tree", [])
+                
+                for node in nodes:
+                    # Extract key accessibility properties
+                    node_info = {
+                        "nodeId": node.get("nodeId"),
+                        "role": node.get("role", {}).get("value"),
+                        "name": node.get("name", {}).get("value"),
+                        "description": node.get("description", {}).get("value"),
+                        "value": node.get("value", {}).get("value"),
+                        "properties": []
+                    }
+                    
+                    # Extract properties
+                    for prop in node.get("properties", []):
+                        prop_info = {
+                            "name": prop.get("name"),
+                            "value": prop.get("value", {}).get("value")
+                        }
+                        node_info["properties"].append(prop_info)
+                    
+                    accessibility_info["nodes"].append(node_info)
+                    
+                    # Count roles for analysis
+                    role = node_info["role"]
+                    if role:
+                        accessibility_info["roles"][role] = accessibility_info["roles"].get(role, 0) + 1
+                
+                # Basic accessibility analysis
+                issues = []
+                
+                # Check for images without alt text
+                for node in accessibility_info["nodes"]:
+                    if node.get("role") == "image":
+                        has_name = node.get("name") is not None
+                        if not has_name:
+                            issues.append({
+                                "type": "missing_alt_text",
+                                "severity": "warning",
+                                "message": "Image without accessible name (alt text)",
+                                "node_id": node.get("nodeId")
+                            })
+                
+                # Check for buttons without labels
+                for node in accessibility_info["nodes"]:
+                    if node.get("role") == "button":
+                        has_name = node.get("name") is not None
+                        if not has_name:
+                            issues.append({
+                                "type": "unlabeled_button",
+                                "severity": "error",
+                                "message": "Button without accessible name",
+                                "node_id": node.get("nodeId")
+                            })
+                
+                # Check for form inputs without labels
+                for node in accessibility_info["nodes"]:
+                    if node.get("role") in ["textbox", "combobox", "checkbox", "radio"]:
+                        has_name = node.get("name") is not None
+                        if not has_name:
+                            issues.append({
+                                "type": "unlabeled_form_input",
+                                "severity": "error",
+                                "message": f"Form input ({node.get('role')}) without accessible name",
+                                "node_id": node.get("nodeId")
+                            })
+                
+                accessibility_info["issues"] = issues
+                accessibility_info["screen_reader_friendly"] = len([i for i in issues if i["severity"] == "error"]) == 0
+                
+                result = {
+                    "success": True,
+                    "analysis_type": "accessibility",
+                    "accessibility_tree_available": True,
+                    "total_nodes": len(accessibility_info["nodes"]),
+                    "roles_found": accessibility_info["roles"],
+                    "accessibility_issues": issues,
+                    "issues_count": len(issues),
+                    "error_count": len([i for i in issues if i["severity"] == "error"]),
+                    "warning_count": len([i for i in issues if i["severity"] == "warning"]),
+                    "screen_reader_friendly": accessibility_info["screen_reader_friendly"],
+                    "accessibility_summary": {
+                        "total_interactive_elements": len([n for n in accessibility_info["nodes"] if n.get("role") in ["button", "textbox", "combobox", "checkbox", "radio", "link"]]),
+                        "labeled_elements": len([n for n in accessibility_info["nodes"] if n.get("name") and n.get("role") in ["button", "textbox", "combobox", "checkbox", "radio", "link"]]),
+                        "images_count": accessibility_info["roles"].get("image", 0),
+                        "buttons_count": accessibility_info["roles"].get("button", 0),
+                        "links_count": accessibility_info["roles"].get("link", 0)
+                    },
+                    "analyzed_file": html_file
+                }
+            else:
+                result = {
+                    "success": False,
+                    "error": f"Accessibility tree extraction failed: {accessibility_tree_data.get('error', 'Unknown error')}"
+                }
+            
         elif analysis_type == "all":
             # Comprehensive analysis - all types
             all_results = {}
@@ -1781,6 +1915,106 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                 "high_priority_targets": len([t for t in targets if t['selector_priority'] == 'high']),
                 "analyzed_file": html_file
             }
+            
+            # Add accessibility analysis to comprehensive results
+            if accessibility_tree_data and accessibility_tree_data.get("success"):
+                accessibility_info = {
+                    "nodes": [],
+                    "roles": {},
+                    "issues": []
+                }
+                
+                nodes = accessibility_tree_data.get("accessibility_tree", [])
+                
+                for node in nodes:
+                    # Extract key accessibility properties
+                    node_info = {
+                        "nodeId": node.get("nodeId"),
+                        "role": node.get("role", {}).get("value"),
+                        "name": node.get("name", {}).get("value"),
+                        "description": node.get("description", {}).get("value"),
+                        "value": node.get("value", {}).get("value"),
+                        "properties": []
+                    }
+                    
+                    # Extract properties
+                    for prop in node.get("properties", []):
+                        prop_info = {
+                            "name": prop.get("name"),
+                            "value": prop.get("value", {}).get("value")
+                        }
+                        node_info["properties"].append(prop_info)
+                    
+                    accessibility_info["nodes"].append(node_info)
+                    
+                    # Count roles for analysis
+                    role = node_info["role"]
+                    if role:
+                        accessibility_info["roles"][role] = accessibility_info["roles"].get(role, 0) + 1
+                
+                # Basic accessibility analysis
+                issues = []
+                
+                # Check for images without alt text
+                for node in accessibility_info["nodes"]:
+                    if node.get("role") == "image":
+                        has_name = node.get("name") is not None
+                        if not has_name:
+                            issues.append({
+                                "type": "missing_alt_text",
+                                "severity": "warning",
+                                "message": "Image without accessible name (alt text)",
+                                "node_id": node.get("nodeId")
+                            })
+                
+                # Check for buttons without labels
+                for node in accessibility_info["nodes"]:
+                    if node.get("role") == "button":
+                        has_name = node.get("name") is not None
+                        if not has_name:
+                            issues.append({
+                                "type": "unlabeled_button",
+                                "severity": "error",
+                                "message": "Button without accessible name",
+                                "node_id": node.get("nodeId")
+                            })
+                
+                # Check for form inputs without labels
+                for node in accessibility_info["nodes"]:
+                    if node.get("role") in ["textbox", "combobox", "checkbox", "radio"]:
+                        has_name = node.get("name") is not None
+                        if not has_name:
+                            issues.append({
+                                "type": "unlabeled_form_input",
+                                "severity": "error", 
+                                "message": f"Form input ({node.get('role')}) without accessible name",
+                                "node_id": node.get("nodeId")
+                            })
+                
+                accessibility_info["issues"] = issues
+                
+                result["accessibility"] = {
+                    "available": True,
+                    "total_nodes": len(accessibility_info["nodes"]),
+                    "roles_found": accessibility_info["roles"],
+                    "accessibility_issues": issues,
+                    "issues_count": len(issues),
+                    "error_count": len([i for i in issues if i["severity"] == "error"]),
+                    "warning_count": len([i for i in issues if i["severity"] == "warning"]),
+                    "screen_reader_friendly": len([i for i in issues if i["severity"] == "error"]) == 0,
+                    "accessibility_summary": {
+                        "total_interactive_elements": len([n for n in accessibility_info["nodes"] if n.get("role") in ["button", "textbox", "combobox", "checkbox", "radio", "link"]]),
+                        "labeled_elements": len([n for n in accessibility_info["nodes"] if n.get("name") and n.get("role") in ["button", "textbox", "combobox", "checkbox", "radio", "link"]]),
+                        "images_count": accessibility_info["roles"].get("image", 0),
+                        "buttons_count": accessibility_info["roles"].get("button", 0),
+                        "links_count": accessibility_info["roles"].get("link", 0)
+                    }
+                }
+            else:
+                result["accessibility"] = {
+                    "available": False,
+                    "reason": "No accessibility tree data available or extraction failed"
+                }
             
             # Add automation assistant data if available
             if automation_assistant_result:
@@ -2019,18 +2253,87 @@ def run_browser_automation():
             with open("{looking_at_dir}/dom.html", "w", encoding="utf-8") as f:
                 f.write(dom_content)
             
-            # Create simplified DOM for AI consumption
-            simple_dom = f"""<html>
+            # Create LLM-optimized simplified DOM
+            print(f"🧠 SUBPROCESS: Creating LLM-optimized DOM...")
+            try:
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(dom_content, 'html.parser')
+                
+                # Remove all noise elements that confuse LLMs
+                for tag in soup(['script', 'style', 'noscript', 'meta', 'link', 'head']):
+                    tag.decompose()
+                
+                # Clean up attributes - keep only automation-relevant ones
+                for element in soup.find_all():
+                    attrs_to_keep = {{}}
+                    for attr, value in element.attrs.items():
+                        # Keep attributes useful for automation and accessibility
+                        if attr in ['id', 'role', 'data-testid', 'name', 'type', 'href', 'src', 'class', 'for', 'value', 'placeholder', 'title'] or attr.startswith('aria-'):
+                            attrs_to_keep[attr] = value
+                    element.attrs = attrs_to_keep
+                
+                # Convert to clean HTML
+                clean_html = str(soup)
+                
+                # Build final structure with metadata
+                simple_dom = "<html>\\n<head><title>Page captured for AI analysis</title></head>\\n<body>\\n"
+                simple_dom += "<!-- Page captured from: " + current_url + " -->\\n"
+                simple_dom += "<!-- Timestamp: " + datetime.now().isoformat() + " -->\\n"
+                simple_dom += "<!-- Simplified for LLM consumption: JavaScript removed, attributes cleaned -->\\n"
+                simple_dom += clean_html + "\\n</body>\\n</html>"
+                
+                print(f"✅ SUBPROCESS: LLM-optimized DOM created (removed scripts, cleaned attributes)")
+                
+            except Exception as e:
+                print(f"⚠️ SUBPROCESS: DOM processing failed, using fallback: {{e}}")
+                # Fallback to basic processing
+                simple_dom = f'''<html>
 <head><title>{{page_title}}</title></head>
 <body>
 <!-- Page captured from: {{current_url}} -->
 <!-- Timestamp: {{datetime.now().isoformat()}} -->
+<!-- Fallback DOM (processing failed) -->
 {{dom_content}}
 </body>
-</html>"""
+</html>'''
             
             with open("{looking_at_dir}/simple_dom.html", "w", encoding="utf-8") as f:
                 f.write(simple_dom)
+            
+            # Extract accessibility tree via Chrome DevTools Protocol (optional, fails gracefully)
+            print(f"🌳 SUBPROCESS: Extracting accessibility tree...")
+            accessibility_tree = None
+            try:
+                # Enable the accessibility domain
+                driver.execute_cdp_cmd("Accessibility.enable", {{}})
+                
+                # Get the full accessibility tree
+                ax_tree_result = driver.execute_cdp_cmd("Accessibility.getFullAXTree", {{}})
+                accessibility_tree = ax_tree_result.get("nodes", [])
+                
+                # Save accessibility tree as JSON
+                with open("{looking_at_dir}/accessibility_tree.json", "w", encoding="utf-8") as f:
+                    json.dump({{
+                        "success": True,
+                        "timestamp": datetime.now().isoformat(),
+                        "url": current_url,
+                        "node_count": len(accessibility_tree),
+                        "accessibility_tree": accessibility_tree
+                    }}, f, indent=2)
+                
+                print(f"🌳 SUBPROCESS: Accessibility tree extracted - {{len(accessibility_tree)}} nodes")
+                
+            except Exception as ax_error:
+                print(f"⚠️ SUBPROCESS: Accessibility tree extraction failed (graceful fallback): {{ax_error}}")
+                # Save failure info for debugging
+                with open("{looking_at_dir}/accessibility_tree.json", "w", encoding="utf-8") as f:
+                    json.dump({{
+                        "success": False,
+                        "error": str(ax_error),
+                        "timestamp": datetime.now().isoformat(),
+                        "url": current_url,
+                        "fallback_message": "Accessibility tree extraction failed gracefully - page analysis will continue without it"
+                    }}, f, indent=2)
             
             # Take screenshot if requested
             if {take_screenshot}:
@@ -2144,7 +2447,8 @@ if __name__ == "__main__":
                         "headers": f"{looking_at_dir}/headers.json",
                         "source": f"{looking_at_dir}/source.html",
                         "dom": f"{looking_at_dir}/dom.html",
-                        "simple_dom": f"{looking_at_dir}/simple_dom.html"
+                        "simple_dom": f"{looking_at_dir}/simple_dom.html",
+                        "accessibility_tree": f"{looking_at_dir}/accessibility_tree.json"
                     }
                     
                     if take_screenshot:
