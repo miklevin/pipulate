@@ -107,26 +107,13 @@ class ProfilesPlugin(ProfilesPluginIdentity):
             logger.info(f"{display_name_for_init} Plugin SUCCESS: Initialized with 'profiles' table object: {self.table.name}")
         self.crud_handler = ProfileCrudOperations(main_plugin_instance=self, table=self.table, pipulate_instance=self.pipulate)
         
-    def get_tasks_table(self):
-        """Get the tasks table from the server database."""
-        try:
-            # Access the tasks table through the database connection
-            db = fastlite.database(DB_FILENAME)
-            return db.t.task  # tasks table using MiniDataAPI
-        except Exception as e:
-            logger.warning(f"Could not access tasks table: {e}")
-            return None
-    
     def count_unchecked_tasks_for_profile(self, profile_id):
         """Count unchecked tasks for a specific profile."""
         try:
-            tasks_table = self.get_tasks_table()
-            if not tasks_table:
-                return 0
-            
-            # Get all tasks for this profile that are not completed (active=True means unchecked)
-            tasks = list(tasks_table.xtra(where=f'profile_id = {profile_id} AND active = 1'))
-            return len(tasks)
+            # Use direct SQL query to count unchecked tasks (done=0)
+            db = fastlite.database(DB_FILENAME)
+            result = db.execute('SELECT COUNT(*) FROM tasks WHERE profile_id = ? AND done = 0', (profile_id,)).fetchone()
+            return result[0] if result else 0
         except Exception as e:
             logger.warning(f"Error counting tasks for profile {profile_id}: {e}")
             return 0
