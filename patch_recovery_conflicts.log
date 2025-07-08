@@ -64,3 +64,5 @@ CONFLICT: 5bd19ba feat: Enhance history viewer with Chip O'Theseus branding and 
 CONFLICT: b5c9118 fix(server): Re-initialize splitter on HTMX body swaps - Files: server.py
 CONFLICT: f1ed6b2 fix: Update Discussion History 📜 display name - Files: plugins/070_history.py
 CONFLICT: a8f54ad fix: Restore working CRUD implementation from ae02752 - Files: common.py, plugins/020_profiles.py
+CONFLICT: aa22405 fix: Remove splitter initialization script - Files: server.py
+CONFLICT: 06e9796 Turning off backup temporarily - Files: server.py

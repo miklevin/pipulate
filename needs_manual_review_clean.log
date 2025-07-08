@@ -49,3 +49,6 @@ d2d67da feat: Enhance MCP client to support square bracket notation and XML tool
 b5c9118 fix(server): Re-initialize splitter on HTMX body swaps - DEFERRED: server.py conflicts
 f1ed6b2 fix: Update Discussion History 📜 display name - DEFERRED: plugins/070_history.py conflicts
 a8f54ad fix: Restore working CRUD implementation from ae02752 - DEFERRED: Large patch (28KB), multiple files with conflicts (common.py, plugins/020_profiles.py)
+b10b6c1 feat: Update discussion history display name and icons - DEFERRED: server.py index mismatch after syntax fix, plugins/020_profiles.py conflicts
+aa22405 fix: Remove splitter initialization script - DEFERRED: server.py conflicts after syntax fix
+06e9796 Turning off backup temporarily - DEFERRED: server.py conflicts after syntax fix
