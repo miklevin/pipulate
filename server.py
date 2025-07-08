@@ -1632,10 +1632,16 @@ class SSEBroadcaster:
     def __init__(self):
         if not self._initialized:
             self.queue = asyncio.Queue()
+            self.event_loop = None  # Will be set when generator starts
             logger.bind(name='sse').info('SSE Broadcaster initialized')
             self._initialized = True
 
     async def generator(self):
+        # Store the event loop reference when generator starts (client connected)
+        if not hasattr(self, 'event_loop') or self.event_loop is None:
+            self.event_loop = asyncio.get_running_loop()
+            logger.bind(name='sse').info('🔄 SSE event loop reference stored for restart notifications')
+        
         while True:
             try:
                 message = await asyncio.wait_for(self.queue.get(), timeout=5.0)
@@ -6978,6 +6984,37 @@ def restart_server():
     if not check_syntax(Path(__file__)):
         log.warning('Syntax error detected', 'Fix the error and save the file again')
         return
+    
+    # 🔄 BROADCAST RESTART NOTIFICATION: Send SSE message to all connected clients
+    try:
+        import asyncio
+        
+        # Create a restart notification HTML
+        restart_html = create_restart_response("WATCHDOG_RESTART", "File changed, restarting server...")
+        
+        # Get the event loop reference from the SSE broadcaster
+        if hasattr(broadcaster, 'event_loop') and broadcaster.event_loop and not broadcaster.event_loop.is_closed():
+            # Schedule the coroutine in the main event loop from the watchdog thread
+            try:
+                future = asyncio.run_coroutine_threadsafe(
+                    broadcaster.send(f'restart_notification:{restart_html}'), 
+                    broadcaster.event_loop
+                )
+                # Wait briefly for the message to be sent
+                future.result(timeout=1.0)
+                logger.info('🔄 FINDER_TOKEN: RESTART_NOTIFICATION_SENT - Broadcasted restart spinner to all clients')
+            except Exception as e:
+                logger.warning(f'Could not send restart notification via SSE broadcaster loop: {e}')
+        else:
+            logger.warning('SSE broadcaster event loop not available, skipping restart notification')
+        
+    except Exception as e:
+        logger.warning(f'Could not broadcast restart notification: {e}')
+    
+    # Give UI time to show the spinner
+    import time
+    time.sleep(1)
+    
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -7000,6 +7037,7 @@ def restart_server():
                 time.sleep(5)
             else:
                 log.error('Max restart retries reached', 'Please restart the server manually')
+
 
 class ServerRestartHandler(FileSystemEventHandler):
 
