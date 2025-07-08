@@ -6,16 +6,18 @@ survives complete Pipulate repo deletion and reinstallation.
 
 Key Features:
 - 📁 Cross-platform backup location: ~/.pipulate/backups/
-- 🔄 Idempotent backup operations (same file rewritten per time window)
-- ⚡ Conflict resolution: Newer wins
-- 🗑️ Soft deletes: Mark invisible instead of hard delete
+- 🗓️ Son/Father/Grandfather backup strategy with original filenames
+- ⚡ Daily (Son): 7 days retention - Triggered on every server startup
+- 📅 Weekly (Father): 4 weeks retention - For future implementation  
+- 🗓️ Monthly (Grandfather): 12 months retention - For future implementation
 - 🔗 AI Keychain integration for Chip O'Theseus memory persistence
 - 📊 Profile & Task table backup with Gantt field preservation
 
 Architecture:
-- Backup files: ~/.pipulate/backups/{table_name}_{date_window}.db
+- Latest backups: ~/.pipulate/backups/{original_filename}.db
+- Dated backups: ~/.pipulate/backups/{original_filename}_{YYYY-MM-DD}.db
 - Time windows: Daily granularity for efficiency
-- Auto-sync on startup: Restore data after fresh install
+- Auto-sync on startup: Manual restore by drag-and-drop
 """
 
 import os
@@ -32,11 +34,11 @@ class DurableBackupManager:
     """
     🎯 Manages durable backups for Pipulate data that survive repo deletion.
     
-    Backup Strategy:
-    - Daily backup files: ~/.pipulate/backups/{table}_{YYYY-MM-DD}.db
-    - Idempotent: Rewrite same day's backup file
-    - Conflict Resolution: timestamp_updated wins (newer data preferred)
-    - Soft Deletes: Add 'deleted_at' field, filter in queries
+    Son/Father/Grandfather Backup Strategy:
+    - Latest: ~/.pipulate/backups/{original_filename}.db (always current)
+    - Daily (Son): ~/.pipulate/backups/{original_filename}_{YYYY-MM-DD}.db (7 days retention)
+    - Weekly (Father): Future implementation (4 weeks retention)
+    - Monthly (Grandfather): Future implementation (12 months retention)
     """
     
     def __init__(self, backup_root: Optional[str] = None):
@@ -72,6 +74,22 @@ class DurableBackupManager:
             date = datetime.now()
         date_str = date.strftime('%Y-%m-%d')
         return self.backup_root / f"{table_name}_{date_str}.db"
+
+    def get_original_filename(self, source_path: str) -> str:
+        """Extract original filename from source path."""
+        return Path(source_path).name
+    
+    def get_dated_filename(self, original_filename: str, date: Optional[datetime] = None) -> str:
+        """Generate dated filename: original_name_YYYY-MM-DD.db"""
+        if not date:
+            date = datetime.now()
+        
+        # Split filename and extension
+        name_part = Path(original_filename).stem
+        ext_part = Path(original_filename).suffix
+        
+        date_str = date.strftime('%Y-%m-%d')
+        return f"{name_part}_{date_str}{ext_part}"
     
     def ensure_soft_delete_schema(self, db_path: str, table_name: str):
         """Ensure table has soft delete fields (updated_at, deleted_at)."""
@@ -166,82 +184,107 @@ class DurableBackupManager:
         finally:
             source_conn.close()
             backup_conn.close()
-    
-    
-    
-
-
-
 
     def auto_backup_all(self, main_db_path: str, keychain_db_path: str, discussion_db_path: str = "data/discussion.db") -> Dict[str, bool]:
         """
-        🚀 Perform complete backup of all durable data.
+        🚀 Son/Father/Grandfather backup strategy.
         
-        Files are backed up with their original names so they can be manually 
-        dragged back into place for restoration.
+        For each database file:
+        1. Create/update latest backup with original filename
+        2. Create dated backup for daily (son) retention
+        3. Clean up old daily backups (7-day retention)
+        
+        Directory structure:
+        ~/.pipulate/backups/
+        ├── pipulate.db (latest)
+        ├── pipulate_2025-01-08.db (dated)
+        ├── ai_keychain.db (latest)
+        ├── ai_keychain_2025-01-08.db (dated)
+        ├── discussion.db (latest)
+        └── discussion_2025-01-08.db (dated)
         """
         results = {}
+        backup_date = datetime.now()
         
-        # 🎯 SIMPLE FILE COPY BACKUP - Original filenames for easy manual restore
-        try:
-            # Backup main database with original filename
-            main_backup_file = self.backup_root / "data.db"
-            
-            if os.path.exists(main_db_path):
-                # Log current database state before backup
-                logger.info(f"🔍 BACKUP DEBUG: About to backup {main_db_path} to {main_backup_file}")
-                logger.info(f"🔍 BACKUP DEBUG: Source file size: {os.path.getsize(main_db_path)} bytes")
-                logger.info(f"🔍 BACKUP DEBUG: Source file modified: {datetime.fromtimestamp(os.path.getmtime(main_db_path))}")
+        # Database files to backup
+        backup_files = [
+            (main_db_path, "Main database"),
+            (keychain_db_path, "AI Keychain"), 
+            (discussion_db_path, "Discussion database")
+        ]
+        
+        for source_path, description in backup_files:
+            try:
+                if not os.path.exists(source_path):
+                    logger.warning(f"⚠️ {description} not found at {source_path}")
+                    results[source_path] = False
+                    continue
                 
-                # Simple file copy with original filename
-                shutil.copy2(main_db_path, main_backup_file)
-                logger.info(f"✅ Main database backed up to: {main_backup_file}")
-                results['data.db'] = True
-            else:
-                logger.warning(f"⚠️ Main database not found at {main_db_path}")
-                results['data.db'] = False
+                # Get original filename and create backup paths
+                original_filename = self.get_original_filename(source_path)
+                latest_backup_path = self.backup_root / original_filename
+                dated_backup_path = self.backup_root / self.get_dated_filename(original_filename, backup_date)
+                
+                # Log current database state before backup
+                logger.info(f"🔍 BACKUP DEBUG: About to backup {source_path}")
+                logger.info(f"🔍 BACKUP DEBUG: Source file size: {os.path.getsize(source_path)} bytes")
+                logger.info(f"🔍 BACKUP DEBUG: Source file modified: {datetime.fromtimestamp(os.path.getmtime(source_path))}")
+                
+                # 1. Create/update latest backup (original filename)
+                shutil.copy2(source_path, latest_backup_path)
+                logger.info(f"✅ {description} latest backup: {latest_backup_path}")
+                
+                # 2. Create dated backup (only if it doesn't exist for today)
+                if not dated_backup_path.exists():
+                    shutil.copy2(source_path, dated_backup_path)
+                    logger.info(f"📅 {description} dated backup: {dated_backup_path}")
+                else:
+                    logger.info(f"📅 {description} dated backup already exists for today: {dated_backup_path}")
+                
+                results[source_path] = True
+                
+            except Exception as e:
+                logger.error(f"❌ {description} backup failed: {e}")
+                results[source_path] = False
         
-        except Exception as e:
-            logger.error(f"❌ Main database backup failed: {e}")
-            results['data.db'] = False
-        
-        # Backup AI keychain with original filename
-        try:
-            if os.path.exists(keychain_db_path):
-                keychain_backup_file = self.backup_root / "ai_keychain.db"
-                shutil.copy2(keychain_db_path, keychain_backup_file)
-                logger.info(f"🧠 AI Keychain backed up to: {keychain_backup_file}")
-                results['ai_keychain.db'] = True
-            else:
-                logger.warning(f"⚠️ AI keychain not found at {keychain_db_path}")
-                results['ai_keychain.db'] = False
-        except Exception as e:
-            logger.error(f"❌ AI Keychain backup failed: {e}")
-            results['ai_keychain.db'] = False
-        
-        # Backup discussion database with original filename
-        try:
-            if os.path.exists(discussion_db_path):
-                discussion_backup_file = self.backup_root / "discussion.db"
-                shutil.copy2(discussion_db_path, discussion_backup_file)
-                logger.info(f"💬 Discussion database backed up to: {discussion_backup_file}")
-                results['discussion.db'] = True
-            else:
-                logger.warning(f"⚠️ Discussion database not found at {discussion_db_path}")
-                results['discussion.db'] = False
-        except Exception as e:
-            logger.error(f"❌ Discussion database backup failed: {e}")
-            results['discussion.db'] = False
+        # 3. Clean up old daily (son) backups - 7 day retention
+        self.cleanup_daily_backups(keep_days=7)
         
         successful_backups = sum(1 for success in results.values() if success)
         total = len(results)
-        logger.info(f"🎯 Simple file backup complete: {successful_backups}/{total} successful")
+        logger.info(f"🎯 Son/Father/Grandfather backup complete: {successful_backups}/{total} successful")
         logger.info(f"🔍 BACKUP DEBUG: Backup results: {results}")
-        logger.info(f"📁 BACKUP LOCATION: {self.backup_root} - Files can be manually dragged back to restore")
+        logger.info(f"📁 BACKUP LOCATION: {self.backup_root}")
+        logger.info(f"📋 RESTORE INFO: Drag-and-drop files from backup directory to restore manually")
         
         return results
 
-
+    def cleanup_daily_backups(self, keep_days: int = 7):
+        """
+        🧹 Clean up daily (son) backup files older than specified days.
+        
+        Removes only dated files (filename_YYYY-MM-DD.db), preserves latest files.
+        """
+        cutoff_date = datetime.now() - timedelta(days=keep_days)
+        
+        for backup_file in self.backup_root.glob("*_????-??-??.db"):
+            try:
+                # Extract date from filename (last 10 characters before .db)
+                filename = backup_file.stem
+                if len(filename) >= 10:
+                    date_str = filename[-10:]  # Last 10 chars should be YYYY-MM-DD
+                    try:
+                        file_date = datetime.strptime(date_str, '%Y-%m-%d')
+                        
+                        if file_date < cutoff_date:
+                            backup_file.unlink()
+                            logger.info(f"🧹 Cleaned up old daily backup: {backup_file}")
+                    except ValueError:
+                        # Not a valid date format, skip
+                        continue
+                        
+            except Exception as e:
+                logger.warning(f"⚠️ Error cleaning backup file {backup_file}: {e}")
     
     def cleanup_old_backups(self, keep_days: int = 30):
         """
