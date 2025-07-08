@@ -1165,7 +1165,7 @@ def read_training(prompt_or_filename):
                 logger.warning(f'No training file found for {prompt_or_filename} (used by {plugin_name})')
             else:
                 logger.warning(f'No training file found for {prompt_or_filename}')
-            return f"No training content available for {prompt_or_filename.replace('.md', '')}"
+            return None  # Prevents writing noise to the conversation history
     return prompt_or_filename
 global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}]
@@ -6433,8 +6433,6 @@ async def switch_environment(request):
         environment = form.get('environment', 'Development')
         set_current_environment(environment)
         logger.info(f'Environment switched to: {environment}')
-        
-
         
         # Schedule server restart using centralized system
         schedule_restart_after_operation("ENV_SWITCH", 2)
