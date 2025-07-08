@@ -109,7 +109,7 @@ PCONFIG = {
     
     # Chat & Streaming Configuration
     'CHAT_CONFIG': {
-        'TYPING_DELAY': 0.0125,  # Delay between words in typing simulation (seconds)
+        'TYPING_DELAY': 0.006,  # Delay between words in typing simulation (seconds) - Reduced for restart notification compatibility
         'MAX_CONVERSATION_LENGTH': 100,  # Maximum number of conversation messages to keep
     },
     
