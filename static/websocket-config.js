@@ -26,6 +26,10 @@ const sidebarMsgList = document.getElementById('msg-list');
 let sidebarCurrentMessage = document.createElement('div');
 sidebarCurrentMessage.className = 'message assistant';
 
+// PERFORMANCE OPTIMIZATION: Throttle Markdown rendering to prevent exponential slowdown
+let renderThrottleTimer = null;
+const RENDER_THROTTLE_DELAY = 50; // Render every 50ms max instead of every chunk
+
 sidebarWs.onopen = function() {
     console.log('Sidebar WebSocket connected');
     // If there's a temp message waiting and we just connected, send it immediately
@@ -56,6 +60,15 @@ sidebarWs.onmessage = function(event) {
     }
     if (event.data === '%%STREAM_END%%') {
         updateStreamingUI(false);
+        
+        // PERFORMANCE OPTIMIZATION: Ensure final render happens and clear any pending renders
+        if (renderThrottleTimer) {
+            clearTimeout(renderThrottleTimer);
+            renderThrottleTimer = null;
+        }
+        // Force final render of the complete message
+        renderCurrentMessage();
+        
         // Add clipboard functionality to the completed assistant message
         if (sidebarCurrentMessage && sidebarCurrentMessage.dataset.rawText) {
             addClipboardToAssistantMessage(sidebarCurrentMessage);
@@ -118,6 +131,24 @@ sidebarWs.onmessage = function(event) {
     }
     sidebarCurrentMessage.dataset.rawText += event.data;
     
+    // PERFORMANCE OPTIMIZATION: Throttle Markdown rendering to prevent exponential slowdown
+    // Clear existing timer if one exists
+    if (renderThrottleTimer) {
+        clearTimeout(renderThrottleTimer);
+    }
+    
+    // Schedule a throttled render
+    renderThrottleTimer = setTimeout(() => {
+        renderCurrentMessage();
+        renderThrottleTimer = null;
+    }, RENDER_THROTTLE_DELAY);
+    
+    // Keep the latest message in view
+    sidebarMsgList.scrollTop = sidebarMsgList.scrollHeight;
+};
+
+// PERFORMANCE OPTIMIZATION: Dedicated function for rendering current message
+function renderCurrentMessage() {
     // Render the accumulated Markdown with improved code fence detection
     if (typeof marked !== 'undefined') {
         try {
@@ -205,10 +236,7 @@ sidebarWs.onmessage = function(event) {
             .replace(/\n/g, '<br>');
         sidebarCurrentMessage.innerHTML = processedText;
     }
-    
-    // Keep the latest message in view
-    sidebarMsgList.scrollTop = sidebarMsgList.scrollHeight;
-};
+}
 
 // --- Streaming state and UI control ---
 let isStreaming = false;
