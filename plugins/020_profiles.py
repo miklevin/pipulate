@@ -331,7 +331,7 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
         profile_display_div = Div(profile_name_span, Span(f' ({profile_record.real_name})' if profile_record.real_name else '', style='margin-left:5px; color:var(--pico-muted-color); font-size:0.9em;'), Span(f'📍{profile_record.address}' if profile_record.address else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), Span(f'🌐{profile_record.code}' if profile_record.code else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), tasks_link_inline, id=profile_text_display_id, cls='profile-display-flex')
     else:
         # Normal click-to-edit functionality when unlocked
-        profile_display_div = Div(Span(profile_record.name, title='Click to edit', style='cursor:pointer; font-weight:bold;'), Span(f' ({profile_record.real_name})' if profile_record.real_name else '', style='margin-left:5px; color:var(--pico-muted-color); font-size:0.9em;'), Span(f'📍{profile_record.address}' if profile_record.address else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), Span(f'🌐{profile_record.code}' if profile_record.code else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), tasks_link_inline, id=profile_text_display_id, cls='profile-display-flex', onclick=toggle_edit_js)
+        profile_display_div = Div(Span(profile_record.name, title='Click to edit', style='cursor:pointer; font-weight:bold;'), Span(f' ({profile_record.real_name})' if profile_record.real_name else '', style='margin-left:5px; color:var(--pico-muted-color); font-size:0.9em;'), Span(f'📍{profile_record.address}' if profile_record.address else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), Span(f'🗺{profile_record.code}' if profile_record.code else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), tasks_link_inline, id=profile_text_display_id, cls='profile-display-flex', onclick=toggle_edit_js)
     # Disable active status toggle when locked
     if profile_locked:
         active_checkbox_input = Input(type='checkbox', name='active_status_profile', checked=profile_record.active, disabled=True, style='margin-right: 10px; flex-shrink: 0; cursor: not-allowed;', title='Profile toggle disabled during locked mode')
@@ -347,7 +347,8 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
         lock_url = f'/{main_plugin_instance.name}/lock_to_profile/{profile_record.id}'
         lock_icon_span = Span('🔒', 
                               hx_post=lock_url, 
-                              hx_swap='none',
+                              hx_swap='outerHTML',
+                              hx_target='body',
                               cls='profile-lock-trigger', 
                               title=f'Quick lock to {profile_record.name} (switch + lock for client meeting)',
                               style='margin-right: 8px; cursor: pointer; color: var(--pico-muted-color); flex-shrink: 0; font-size: 0.9em; opacity: 0.7; transition: opacity 0.2s;',
