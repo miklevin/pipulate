@@ -282,7 +282,7 @@ class BaseCrud:
                 # Don't set deleted_at on insert (should be NULL for active records)
             
             logger.debug(f'[DEBUG] Attempting to insert data into {self.name}: {insert_data}')
-            new_item = self.table.insert(insert_data)
+            new_item = self.table.insert(**insert_data)
             logger.debug(f'[DEBUG] Successfully inserted item into {self.name}: {new_item}')
             
             # 🎯 TRIGGER BACKUP after successful insert
