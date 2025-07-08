@@ -4657,9 +4657,9 @@ def create_nav_menu():
         return Div(H1('Error: Profiles plugin not found', cls='text-invalid'), cls='nav-breadcrumb')
     home_link = A(APP_NAME, href='/redirect/', title=f'Go to {PCONFIG["HOME_MENU_ITEM"].lower()}', cls='nav-link-hover')
     separator = Span(' / ', cls='breadcrumb-separator')
-    profile_text = Span(title_name(selected_profile_name))
+    profile_link = A(title_name(selected_profile_name), href='/redirect/profiles', title='Go to profiles app', cls='nav-link-hover')
     endpoint_text = Span(endpoint_name(menux) if menux else PCONFIG["HOME_MENU_ITEM"])
-    breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text, role='banner', aria_label='Current location breadcrumb')
+    breadcrumb = H1(home_link, separator, profile_link, separator, endpoint_text, role='banner', aria_label='Current location breadcrumb')
     # Create navigation poke button for the nav area
     # Use external SVG file for poke button settings icon
     nav_flyout_panel = Div(id='nav-flyout-panel', cls='nav-flyout-panel hidden')
