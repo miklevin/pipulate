@@ -110,6 +110,30 @@ class ProfilesPlugin(ProfilesPluginIdentity):
 
     def register_routes(self, rt_decorator):
         self.crud_handler.register_routes(rt_decorator)
+        
+        # Add route for switching to tasks for a specific profile
+        @rt_decorator(f'/{self.name}/switch_to_tasks/{{profile_id:int}}')
+        async def switch_to_tasks(profile_id: int):
+            """Set the current profile ID and redirect to tasks."""
+            try:
+                # Validate profile exists
+                profile = self.table.get(profile_id)
+                if not profile:
+                    logger.warning(f"Attempted to switch to non-existent profile {profile_id}")
+                    raise HTTPException(status_code=404, detail=f"Profile {profile_id} not found")
+                
+                # Set the current profile ID in the key-value store
+                self.db_dictlike['last_profile_id'] = profile_id
+                logger.info(f"Switched to profile {profile_id} ({profile.name}) for tasks")
+                
+                # Redirect to tasks page
+                from starlette.responses import RedirectResponse
+                return RedirectResponse(url='/tasks', status_code=302)
+                
+            except Exception as e:
+                logger.error(f"Error switching to tasks for profile {profile_id}: {e}")
+                raise HTTPException(status_code=500, detail="Failed to switch profile")
+        
         # Use static name to avoid potential circular import during route registration
         display_name_for_routes = f"{self.EMOJI} Profiles"
         logger.info(f"CRUD routes for {display_name_for_routes} (prefix '/{self.name}') registered by ProfileCrudOperations.")
@@ -137,5 +161,11 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     update_profile_form = Form(Div(Input(type='text', name='profile_name', value=profile_record.name, placeholder='Nickname', id=name_input_update_id, cls='mb-2'), Input(type='text', name='profile_real_name', value=profile_record.real_name or '', placeholder='Real Name (Optional)', cls='mb-2'), Input(type='text', name='profile_address', value=profile_record.address or '', placeholder=PLACEHOLDER_ADDRESS, cls='mb-2'), Input(type='text', name='profile_code', value=profile_record.code or '', placeholder=PLACEHOLDER_CODE, cls='mb-2'), style='display:grid; grid-template-columns: 1fr; gap: 0.25rem; width:100%;'), Div(Button('Save', type='submit', cls='primary', style='margin-right: 0.5rem;'), Button('Cancel', type='button', cls='secondary outline', onclick=toggle_display_js), style='margin-top:0.5rem; display:flex; justify-content:start;'), hx_post=update_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', id=update_form_id, style='display: none; width: 100%; padding: 0.5rem; box-sizing: border-box; background-color: var(--pico-form-element-background-color); border-radius: var(--pico-border-radius);', cls='profile-edit-form')
     profile_display_div = Div(Span(profile_record.name, title='Click to edit', style='cursor:pointer; font-weight:bold;'), Span(f' ({profile_record.real_name})' if profile_record.real_name else '', style='margin-left:5px; color:var(--pico-muted-color); font-size:0.9em;'), Span(f'📍{profile_record.address}' if profile_record.address else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), Span(f'🌐{profile_record.code}' if profile_record.code else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), id=profile_text_display_id, cls='profile-display-flex', onclick=toggle_edit_js)
     active_checkbox_input = Input(type='checkbox', name='active_status_profile', checked=profile_record.active, hx_post=toggle_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', style='margin-right: 10px; flex-shrink: 0;', title='Toggle Active Status')
+    # Task link to switch to tasks for this profile
+    tasks_link = A('📋', href=f'/{main_plugin_instance.name}/switch_to_tasks/{profile_record.id}', 
+                  cls='profile-tasks-link', 
+                  title=f'View tasks for {profile_record.name}',
+                  style='margin-left: 5px; margin-right: 5px; text-decoration: none; font-size: 1.1em; cursor: pointer;')
+    
     delete_icon_span = '' if profile_record.name == 'Default Profile' else Span('🗑️', hx_delete=delete_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', hx_confirm=f"Are you sure you want to delete the profile '{profile_record.name}'? This action cannot be undone.", cls='profile-delete-icon delete-icon', title='Delete Profile')
-    return Li(Div(active_checkbox_input, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), delete_icon_span, style='display: flex; align-items: center; width: 100%; gap: 10px; padding: 0.5rem 0;'), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0), style='border-bottom: 1px solid var(--pico-muted-border-color); padding: 0.25rem 0; list-style-type: none;')
+    return Li(Div(active_checkbox_input, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), tasks_link, delete_icon_span, style='display: flex; align-items: center; width: 100%; gap: 10px; padding: 0.5rem 0;'), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0), style='border-bottom: 1px solid var(--pico-muted-border-color); padding: 0.25rem 0; list-style-type: none;')
