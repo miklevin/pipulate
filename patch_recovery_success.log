@@ -35,3 +35,8 @@ SUCCESS: f7fafb6 feat: Implement copy to clipboard functionality for conversatio
 SUCCESS: f752a04 feat: Improve server reboot wait times
 SUCCESS: f752a04 feat: Improve server reboot wait times
 SUCCESS: 7b7d121 feat: Improve FINDER_TOKEN parameter handling in grep logs
+SUCCESS: a89c4fe fix: Reduce typing delay and implement restart notification overlay
+SUCCESS: a89c4fe fix: Reduce typing delay and implement restart notification overlay
+SUCCESS: 93a5129 chore: Remove redundant backup functions and docstrings
+SUCCESS: f5b410d feat: Preserve endpoint context during server restart
+SUCCESS: 87812ea fix: Correctly handle insert data in common.py

@@ -66,3 +66,12 @@ CONFLICT: f1ed6b2 fix: Update Discussion History 📜 display name - Files: plug
 CONFLICT: a8f54ad fix: Restore working CRUD implementation from ae02752 - Files: common.py, plugins/020_profiles.py
 CONFLICT: aa22405 fix: Remove splitter initialization script - Files: server.py
 CONFLICT: 06e9796 Turning off backup temporarily - Files: server.py
+CONFLICT: 93a5129 chore: Remove redundant backup functions and docstrings\n\nThis commit removes the `explicit_backup_all` and `explicit_restore_all` functions, along with their associated docstrings and related logic. These functions were overly complex and not currently utilized, contributing to unnecessary code duplication. The removal simplifies the codebase and streamlines the backup/restore process. - Files: helpers/durable_backup_system.py
+CONFLICT: e579862 fix: Update profile lock icon hx_swap target - Files: plugins/020_profiles.py
+CONFLICT: bba9d23 ``` 🗃️ STARTUP_BACKUP: Automatic backup completed - 12345 records secured across 5 tables - Files: server.py
+CONFLICT: 511a9fa feat: Handle profile ID type conversion for highlighting - Files: plugins/020_profiles.py
+CONFLICT: 453529a ``` feat: Initialize main splitter with localStorage persistence - Files: server.py
+CONFLICT: e3da262 ``` feat: Implement simple file backup for main database - Files: helpers/durable_backup_system.py, server.py
+CONFLICT: 4602e15 ``` feat: Implement message deletion functionality for conversation history - Files: plugins/070_history.py
+CONFLICT: f5b410d ``` feat: Preserve endpoint context during server restart - Files: config.py
+CONFLICT: 87812ea fix: Correctly handle insert data in common.py - Files: common.py
