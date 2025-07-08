@@ -106,6 +106,30 @@ class ProfilesPlugin(ProfilesPluginIdentity):
         else:
             logger.info(f"{display_name_for_init} Plugin SUCCESS: Initialized with 'profiles' table object: {self.table.name}")
         self.crud_handler = ProfileCrudOperations(main_plugin_instance=self, table=self.table, pipulate_instance=self.pipulate)
+        
+    def get_tasks_table(self):
+        """Get the tasks table from the server database."""
+        try:
+            # Access the tasks table through the database connection
+            db = fastlite.database(DB_FILENAME)
+            return db.t.task  # tasks table using MiniDataAPI
+        except Exception as e:
+            logger.warning(f"Could not access tasks table: {e}")
+            return None
+    
+    def count_unchecked_tasks_for_profile(self, profile_id):
+        """Count unchecked tasks for a specific profile."""
+        try:
+            tasks_table = self.get_tasks_table()
+            if not tasks_table:
+                return 0
+            
+            # Get all tasks for this profile that are not completed (active=True means unchecked)
+            tasks = list(tasks_table.xtra(where=f'profile_id = {profile_id} AND active = 1'))
+            return len(tasks)
+        except Exception as e:
+            logger.warning(f"Error counting tasks for profile {profile_id}: {e}")
+            return 0
         logger.debug(f'{display_name_for_init} ProfileCrudOperations instance created.')
 
     def register_routes(self, rt_decorator):
@@ -159,10 +183,12 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     toggle_edit_js = f"document.getElementById('{profile_text_display_id}').style.display='none'; var form = document.getElementById('{update_form_id}'); form.style.display='grid'; form.classList.add('editing');document.getElementById('{item_id_dom}').classList.add('editing-item');document.getElementById('{name_input_update_id}').focus();"
     toggle_display_js = f"var form = document.getElementById('{update_form_id}'); form.style.display='none'; form.classList.remove('editing');document.getElementById('{profile_text_display_id}').style.display='flex';document.getElementById('{item_id_dom}').classList.remove('editing-item');"
     update_profile_form = Form(Div(Input(type='text', name='profile_name', value=profile_record.name, placeholder='Nickname', id=name_input_update_id, cls='mb-2'), Input(type='text', name='profile_real_name', value=profile_record.real_name or '', placeholder='Real Name (Optional)', cls='mb-2'), Input(type='text', name='profile_address', value=profile_record.address or '', placeholder=PLACEHOLDER_ADDRESS, cls='mb-2'), Input(type='text', name='profile_code', value=profile_record.code or '', placeholder=PLACEHOLDER_CODE, cls='mb-2'), style='display:grid; grid-template-columns: 1fr; gap: 0.25rem; width:100%;'), Div(Button('Save', type='submit', cls='primary', style='margin-right: 0.5rem;'), Button('Cancel', type='button', cls='secondary outline', onclick=toggle_display_js), style='margin-top:0.5rem; display:flex; justify-content:start;'), hx_post=update_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', id=update_form_id, style='display: none; width: 100%; padding: 0.5rem; box-sizing: border-box; background-color: var(--pico-form-element-background-color); border-radius: var(--pico-border-radius);', cls='profile-edit-form')
-    # Task link to switch to tasks for this profile - inside the profile display
-    tasks_link_inline = A('Tasks', href=f'/{main_plugin_instance.name}/switch_to_tasks/{profile_record.id}', 
+    # Task link to switch to tasks for this profile - inside the profile display with count
+    task_count = main_plugin_instance.count_unchecked_tasks_for_profile(profile_record.id)
+    tasks_link_text = f'Tasks ({task_count})'
+    tasks_link_inline = A(tasks_link_text, href=f'/{main_plugin_instance.name}/switch_to_tasks/{profile_record.id}', 
                          cls='profile-tasks-link', 
-                         title=f'View tasks for {profile_record.name}',
+                         title=f'View {task_count} unchecked tasks for {profile_record.name}',
                          style='margin-left: 15px; color: var(--pico-primary-color); text-decoration: none; font-size: 0.9em; cursor: pointer; font-weight: 500;',
                          onclick='event.stopPropagation();')  # Prevent triggering the edit onclick
     
