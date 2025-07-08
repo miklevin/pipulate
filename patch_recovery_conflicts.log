@@ -78,3 +78,10 @@ CONFLICT: 87812ea fix: Correctly handle insert data in common.py - Files: common
 CONFLICT: 20e9860 Make profile name clickable in headline breadcrumb - Files: server.py
 CONFLICT: 491f1d9 fix(conversation): Prevent writing noise to conversation history - Files: server.py
 CONFLICT: f24c616 feat: Introduce configurable render throttle delay - Files: config.py
+CONFLICT: d2e9f3e ``` feat: Add theme management scripts and sync functionality - Files: __init__.py, pyproject.toml
+CONFLICT: 707755a ``` 🚀 Simple file backup complete: 1/1 successful - Files can be manually dragged back to restore 📁 BACKUP LOCATION: /backup - Files can be manually dragged back to restore ``` - Files: helpers/durable_backup_system.py
+CONFLICT: 1639c35 Add one-click profile lock for instant client meeting setup - Files: plugins/020_profiles.py
+CONFLICT: ae3ba00 chore: Remove redundant explicit backup/restore logic and related code. - Files: server.py
+CONFLICT: 8913c34 🎯 Implement son/father/grandfather backup system - Files: helpers/durable_backup_system.py
+CONFLICT: 2d3f30c ``` feat: Initialize Pipulate with database persistence and profile navigation - Files: server.py
+CONFLICT: 9ac8a7a feat: Implement profile update route with full page refresh and breadcrumb handling - Files: plugins/020_profiles.py

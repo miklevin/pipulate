@@ -43,3 +43,6 @@ SUCCESS: 87812ea fix: Correctly handle insert data in common.py
 SUCCESS: 6568854 feat: Add task link to profile display
 SUCCESS: 6568854 feat: Add task link to profile display
 SUCCESS: f24c616 feat: Introduce configurable render throttle delay
+SUCCESS: e53bbee feat: Robust endpoint detection from server logs
+SUCCESS: e53bbee feat: Robust endpoint detection from server logs
+SUCCESS: d2e9f3e feat: Add theme management scripts and sync functionality
