@@ -918,6 +918,7 @@ def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str='
     finally:
         db_conn.row_factory = original_row_factory
 
+
 def log_pipeline_summary(title_prefix: str=''):
     """
     🔧 PIPELINE SUMMARY: User-friendly summary of pipeline state for startup logging.
