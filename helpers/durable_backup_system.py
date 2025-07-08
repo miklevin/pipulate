@@ -99,19 +99,7 @@ class DurableBackupManager:
         finally:
             conn.close()
     
-    def _table_has_backup_fields(self, db_path: str, table_name: str) -> bool:
-        """Check if table has backup timestamp fields."""
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        try:
-            cursor.execute(f"PRAGMA table_info({table_name})")
-            columns = [col[1] for col in cursor.fetchall()]
-            return 'updated_at' in columns
-        except Exception:
-            return False
-        finally:
-            conn.close()
+
     
     def backup_table(self, source_db_path: str, table_name: str) -> bool:
         """
@@ -130,37 +118,24 @@ class DurableBackupManager:
                 logger.info(f"🎯 Created initial backup: {backup_file}")
                 return True
             
-            # Check if table has backup fields for advanced merge
-            if self._table_has_backup_fields(source_db_path, table_name):
-                # Advanced merge with conflict resolution
-                return self._merge_table_data(source_db_path, backup_file, table_name)
-            else:
-                # Basic backup: simple table copy for tables without backup fields
-                return self._basic_table_backup(source_db_path, backup_file, table_name)
-            
+            # 🎯 SIMPLE UNIDIRECTIONAL BACKUP - No complex merge logic
+            return self._simple_unidirectional_backup(source_db_path, backup_file, table_name)
+        
         except Exception as e:
             logger.error(f"❌ Backup failed for {table_name}: {e}")
             return False
     
-    def _basic_table_backup(self, source_db_path: str, backup_db: Path, table_name: str) -> bool:
+    def _simple_unidirectional_backup(self, source_db_path: str, backup_db: Path, table_name: str) -> bool:
         """
-        📋 Basic table backup without timestamp-based conflict resolution.
+        📋 Simple unidirectional backup - just copy current data to backup.
         
-        Used for tables that don't have backup fields yet.
+        No merge logic, no conflict resolution - just a snapshot backup.
         """
         source_conn = sqlite3.connect(source_db_path)
         backup_conn = sqlite3.connect(str(backup_db))
         
         try:
-            # Get table config
-            table_config = self.backup_tables.get(table_name, {})
-            pk_field = table_config.get('primary_key', 'id')
-            
-            # Clear and repopulate backup table (simple strategy)
-            backup_cursor = backup_conn.cursor()
-            backup_cursor.execute(f"DELETE FROM {table_name}")
-            
-            # Copy all current records from source
+            # Get current records from source
             source_cursor = source_conn.cursor()
             source_cursor.execute(f"SELECT * FROM {table_name}")
             source_rows = source_cursor.fetchall()
@@ -169,7 +144,11 @@ class DurableBackupManager:
             source_cursor.execute(f"PRAGMA table_info({table_name})")
             columns = [col[1] for col in source_cursor.fetchall()]
             
-            # Insert all records
+            # Clear and repopulate backup table (snapshot backup)
+            backup_cursor = backup_conn.cursor()
+            backup_cursor.execute(f"DELETE FROM {table_name}")
+            
+            # Insert all current records from source
             if source_rows:
                 placeholders = ', '.join(['?' for _ in columns])
                 backup_cursor.executemany(
@@ -178,86 +157,11 @@ class DurableBackupManager:
                 )
             
             backup_conn.commit()
-            logger.info(f"✅ Successfully backed up {table_name} (basic mode: {len(source_rows)} records)")
+            logger.info(f"✅ Successfully backed up {table_name} ({len(source_rows)} records)")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Basic backup failed for {table_name}: {e}")
-            return False
-        finally:
-            source_conn.close()
-            backup_conn.close()
-    
-    def _merge_table_data(self, source_db: str, backup_db: Path, table_name: str) -> bool:
-        """
-        🔄 Merge table data using conflict resolution: newer updated_at wins.
-        
-        Only called for tables that have backup fields.
-        """
-        source_conn = sqlite3.connect(source_db)
-        backup_conn = sqlite3.connect(str(backup_db))
-        
-        try:
-            # Get table config
-            table_config = self.backup_tables.get(table_name, {})
-            pk_field = table_config.get('primary_key', 'id')
-            timestamp_field = table_config.get('timestamp_field', 'updated_at')
-            
-            # Get column names first
-            source_cursor = source_conn.cursor()
-            source_cursor.execute(f"PRAGMA table_info({table_name})")
-            columns = [col[1] for col in source_cursor.fetchall()]
-            
-            # Safety check: ensure timestamp field exists
-            if timestamp_field not in columns:
-                logger.warning(f"⚠️ Timestamp field {timestamp_field} not found in {table_name}, falling back to basic backup")
-                return self._basic_table_backup(source_db, backup_db, table_name)
-            
-            # Get all records from source (including soft-deleted)
-            source_cursor.execute(f"SELECT * FROM {table_name}")
-            source_rows = source_cursor.fetchall()
-            
-            # Merge each record
-            backup_cursor = backup_conn.cursor()
-            for row in source_rows:
-                row_dict = dict(zip(columns, row))
-                pk_value = row_dict[pk_field]
-                source_timestamp = row_dict.get(timestamp_field, '')
-                
-                # Check if record exists in backup
-                backup_cursor.execute(
-                    f"SELECT {timestamp_field} FROM {table_name} WHERE {pk_field} = ?", 
-                    (pk_value,)
-                )
-                backup_result = backup_cursor.fetchone()
-                
-                if not backup_result:
-                    # New record - insert
-                    placeholders = ', '.join(['?' for _ in columns])
-                    backup_cursor.execute(
-                        f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})",
-                        row
-                    )
-                    logger.debug(f"📝 Inserted new record {pk_value} into backup")
-                else:
-                    backup_timestamp = backup_result[0]
-                    # 🎯 CONFLICT RESOLUTION: Newer timestamp wins
-                    if source_timestamp > backup_timestamp:
-                        # Update backup with newer source data
-                        set_clause = ', '.join([f"{col} = ?" for col in columns if col != pk_field])
-                        values = [row_dict[col] for col in columns if col != pk_field]
-                        backup_cursor.execute(
-                            f"UPDATE {table_name} SET {set_clause} WHERE {pk_field} = ?",
-                            values + [pk_value]
-                        )
-                        logger.debug(f"🔄 Updated record {pk_value} with newer data")
-            
-            backup_conn.commit()
-            logger.info(f"✅ Successfully merged {table_name} data to backup")
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ Merge failed for {table_name}: {e}")
+            logger.error(f"❌ Simple backup failed for {table_name}: {e}")
             return False
         finally:
             source_conn.close()
@@ -275,15 +179,52 @@ class DurableBackupManager:
                 logger.warning(f"⚠️ No backup found for {table_name}")
                 return False
             
-            # Ensure target has soft delete schema
-            self.ensure_soft_delete_schema(target_db_path, table_name)
-            
-            # Merge backup data into target (backup is source of truth)
-            return self._merge_table_data(str(backup_file), Path(target_db_path), table_name)
+            # 🎯 SIMPLE RESTORE - Just copy backup data to target
+            return self._simple_restore_table(str(backup_file), target_db_path, table_name)
             
         except Exception as e:
             logger.error(f"❌ Restore failed for {table_name}: {e}")
             return False
+    
+    def _simple_restore_table(self, backup_db_path: str, target_db_path: str, table_name: str) -> bool:
+        """
+        📋 Simple restore - copy backup data to target database.
+        """
+        backup_conn = sqlite3.connect(backup_db_path)
+        target_conn = sqlite3.connect(target_db_path)
+        
+        try:
+            # Get backup records
+            backup_cursor = backup_conn.cursor()
+            backup_cursor.execute(f"SELECT * FROM {table_name}")
+            backup_rows = backup_cursor.fetchall()
+            
+            # Get column names
+            backup_cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [col[1] for col in backup_cursor.fetchall()]
+            
+            # Clear and restore target table
+            target_cursor = target_conn.cursor()
+            target_cursor.execute(f"DELETE FROM {table_name}")
+            
+            # Insert backup records into target
+            if backup_rows:
+                placeholders = ', '.join(['?' for _ in columns])
+                target_cursor.executemany(
+                    f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})",
+                    backup_rows
+                )
+            
+            target_conn.commit()
+            logger.info(f"✅ Successfully restored {table_name} ({len(backup_rows)} records)")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Simple restore failed for {table_name}: {e}")
+            return False
+        finally:
+            backup_conn.close()
+            target_conn.close()
     
     def backup_ai_keychain(self, keychain_db_path: str) -> bool:
         """
