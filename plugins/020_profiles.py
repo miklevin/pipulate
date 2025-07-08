@@ -172,6 +172,11 @@ class ProfilesPlugin(ProfilesPluginIdentity):
 
 
 def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
+    # Get current profile ID to highlight the selected row
+    get_current_profile_id, _, _, _, _, _ = get_server_functions()
+    current_profile_id = get_current_profile_id()
+    is_current_profile = profile_record.id == current_profile_id
+    
     item_id_dom = f'profile-item-{profile_record.id}'
     profile_crud_handler = main_plugin_instance.crud_handler
     delete_url = profile_crud_handler.get_action_url('delete', profile_record.id)
@@ -196,4 +201,14 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     active_checkbox_input = Input(type='checkbox', name='active_status_profile', checked=profile_record.active, hx_post=toggle_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', style='margin-right: 10px; flex-shrink: 0;', title='Toggle Active Status')
     
     delete_icon_span = '' if profile_record.name == 'Default Profile' else Span('🗑️', hx_delete=delete_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', hx_confirm=f"Are you sure you want to delete the profile '{profile_record.name}'? This action cannot be undone.", cls='profile-delete-icon delete-icon', title='Delete Profile')
-    return Li(Div(active_checkbox_input, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), delete_icon_span, style='display: flex; align-items: center; width: 100%; gap: 10px; padding: 0.5rem 0;'), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0), style='border-bottom: 1px solid var(--pico-muted-border-color); padding: 0.25rem 0; list-style-type: none;')
+    
+    # Add highlighting style for currently selected profile
+    base_style = 'display: flex; align-items: center; width: 100%; gap: 10px; padding: 0.5rem 0;'
+    if is_current_profile:
+        base_style += ' background-color: var(--pico-primary-background); border-radius: var(--pico-border-radius);'
+    
+    li_style = 'border-bottom: 1px solid var(--pico-muted-border-color); padding: 0.25rem 0; list-style-type: none;'
+    if is_current_profile:
+        li_style += ' background-color: var(--pico-primary-background); border-radius: var(--pico-border-radius); border: 2px solid var(--pico-primary-color);'
+    
+    return Li(Div(active_checkbox_input, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), delete_icon_span, style=base_style), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0), style=li_style)

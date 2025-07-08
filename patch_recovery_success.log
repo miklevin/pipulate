@@ -46,3 +46,4 @@ SUCCESS: f24c616 feat: Introduce configurable render throttle delay
 SUCCESS: e53bbee feat: Robust endpoint detection from server logs
 SUCCESS: e53bbee feat: Robust endpoint detection from server logs
 SUCCESS: d2e9f3e feat: Add theme management scripts and sync functionality
+SUCCESS: 9438c31 ✨ Add unchecked task count to profile task links
