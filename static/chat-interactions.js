@@ -73,35 +73,6 @@ function setupWebSocketAndSSE() {
         const data = event.data;
         console.log('SSE received:', data);
         
-        // 🔄 WATCHDOG RESTART NOTIFICATION: Handle restart notifications
-        if (data.startsWith('restart_notification:')) {
-            const restartHtml = data.substring('restart_notification:'.length);
-            
-            // Create a full-screen overlay with the restart spinner
-            const overlay = document.createElement('div');
-            overlay.id = 'restart-overlay';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(0, 0, 0, 0.8);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 10000;
-                color: white;
-                font-family: system-ui, sans-serif;
-            `;
-            overlay.innerHTML = restartHtml;
-            
-            // Add to body
-            document.body.appendChild(overlay);
-            
-            console.log('🔄 WATCHDOG_RESTART: Displaying restart notification overlay');
-            return; // Don't process as normal SSE message
-        }
         
         // Only process if it's not a ping message
         if (!data.includes('Test ping at')) {
