@@ -97,7 +97,7 @@ class GoogleSearchAutomationDemo:
         }
         
         # Check file sizes
-        for filename in ['simple_dom.html', 'simple_dom_cleaned.html', 'beautiful_dom.html']:
+        for filename in ['simple_dom.html', 'beautiful_dom.html']:
             filepath = os.path.join(self.looking_at_dir, filename)
             if os.path.exists(filepath):
                 size = os.path.getsize(filepath)
@@ -106,7 +106,7 @@ class GoogleSearchAutomationDemo:
         
         # Test grep targets
         grep_targets = ['name="q"', 'btnK', 'aria-label="Search"']
-        cleaned_dom_path = os.path.join(self.looking_at_dir, 'simple_dom_cleaned.html')
+        cleaned_dom_path = os.path.join(self.looking_at_dir, 'simple_dom.html')
         
         if os.path.exists(cleaned_dom_path):
             with open(cleaned_dom_path, 'r') as f:

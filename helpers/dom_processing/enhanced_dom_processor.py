@@ -301,25 +301,16 @@ class EnhancedDOMProcessor:
             'cleaned_files': []
         }
         
-        # Process simple_dom.html
+        # Process simple_dom.html - but skip cleaning since it's now LLM-optimized
         simple_dom_path = os.path.join(looking_at_dir, 'simple_dom.html')
         if os.path.exists(simple_dom_path):
             with open(simple_dom_path, 'r', encoding='utf-8') as f:
-                original_content = f.read()
-            
-            # Clean the DOM
-            cleaned_content = self.clean_simple_dom(original_content)
-            
-            # Save cleaned version
-            cleaned_path = os.path.join(looking_at_dir, 'simple_dom_cleaned.html')
-            with open(cleaned_path, 'w', encoding='utf-8') as f:
-                f.write(cleaned_content)
-            
-            results['cleaned_files'].append(cleaned_path)
+                content = f.read()
+                
             results['files_processed'].append('simple_dom.html')
             
-            # Analyze for automation targets
-            soup = BeautifulSoup(cleaned_content, 'html.parser')
+            # Analyze for automation targets using existing content
+            soup = BeautifulSoup(content, 'html.parser')
             
             # Check if this looks like Google
             page_title = soup.find('title')
@@ -359,7 +350,7 @@ class EnhancedDOMProcessor:
             if results['automation_hints'].get('grep_targets'):
                 f.write("🔍 GREP TARGETS FOR VERIFICATION:\n")
                 for target in results['automation_hints']['grep_targets']:
-                    f.write(f"  grep '{target}' simple_dom_cleaned.html\n")
+                    f.write(f"  grep '{target}' simple_dom.html\n")
                 f.write("\n")
             
             if results['automation_hints'].get('regex_patterns'):
