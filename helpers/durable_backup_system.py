@@ -504,64 +504,6 @@ class DurableBackupManager:
         counts['ai_keychain'] = 1 if os.path.exists('data/ai_keychain.db') else 0
         
         return counts
-    
-    def explicit_backup_all(self, 
-                           main_db_path: str, 
-                           keychain_db_path: str, 
-                           discussion_db_path: str = "data/discussion.db") -> Dict[str, bool]:
-        """
-        📤 EXPLICIT BACKUP: Save current database state TO backup files.
-
-        This OVERWRITES backup files with current data. No restore logic.
-        Use when you want to save your current work.
-        """
-        results = {}
-
-        # Backup main tables
-        for table_name in self.backup_tables.keys():
-            results[table_name] = self.backup_table(main_db_path, table_name)
-
-        # Backup AI keychain
-        if os.path.exists(keychain_db_path):
-            results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
-
-        # Backup discussion database (conversation history)
-        if os.path.exists(discussion_db_path):
-            results['discussion'] = self.backup_discussion_db(discussion_db_path)
-
-        successful = sum(1 for success in results.values() if success)
-        total = len(results)
-        logger.info(f"🔧 Explicit backup complete: {successful}/{total} successful")
-
-        return results
-    
-    def explicit_restore_all(self, 
-                            main_db_path: str, 
-                            keychain_db_path: str, 
-                            discussion_db_path: str = "data/discussion.db") -> Dict[str, bool]:
-        """
-        📥 EXPLICIT RESTORE: Overwrite current database state FROM backup files.
-
-        This OVERWRITES current data with backup data. No merge logic.
-        Use when you want to restore from a saved state.
-        """
-        results = {}
-
-        # Restore main tables
-        for table_name in self.backup_tables.keys():
-            results[table_name] = self.restore_table(main_db_path, table_name)
-
-        # Restore AI keychain
-        results['ai_keychain'] = self.restore_ai_keychain(keychain_db_path)
-
-        # Restore discussion database (conversation history)
-        results['discussion'] = self.restore_discussion_db(discussion_db_path)
-
-        successful = sum(1 for success in results.values() if success)
-        total = len(results)
-        logger.info(f"🔧 Explicit restore complete: {successful}/{total} successful")
-
-        return results
 
 
 # 🎯 GLOBAL INSTANCE for easy import
