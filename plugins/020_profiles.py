@@ -162,7 +162,18 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     # Get current profile ID to highlight the selected row
     get_current_profile_id, _, _, _, _, _ = get_server_functions()
     current_profile_id = get_current_profile_id()
-    is_current_profile = profile_record.id == current_profile_id
+    
+    # Handle type conversion issues - compare both as strings and integers
+    is_current_profile = False
+    if current_profile_id is not None:
+        try:
+            # Try both string and integer comparison to handle type mismatches
+            is_current_profile = (str(profile_record.id) == str(current_profile_id) or 
+                                int(profile_record.id) == int(current_profile_id))
+        except (ValueError, TypeError):
+            # Fallback to original comparison if conversion fails
+            is_current_profile = profile_record.id == current_profile_id
+    
     
     item_id_dom = f'profile-item-{profile_record.id}'
     profile_crud_handler = main_plugin_instance.crud_handler
