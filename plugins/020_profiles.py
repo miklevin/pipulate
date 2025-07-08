@@ -189,6 +189,30 @@ class ProfilesPlugin(ProfilesPluginIdentity):
                 logger.error(f"Error switching to tasks for profile {profile_id}: {e}")
                 raise HTTPException(status_code=500, detail="Failed to switch profile")
         
+        # Add route for quick lock to specific profile - one-click client meeting preparation
+        @rt_decorator(f'/{self.name}/lock_to_profile/{{profile_id:int}}')
+        async def lock_to_profile(profile_id: int):
+            """Switch to profile AND enable lock mode in one action."""
+            try:
+                # Validate profile exists
+                profile = self.table.get(profile_id)
+                if not profile:
+                    logger.warning(f"Attempted to lock to non-existent profile {profile_id}")
+                    raise HTTPException(status_code=404, detail=f"Profile {profile_id} not found")
+                
+                # Set the current profile ID and enable lock mode
+                self.db_dictlike['last_profile_id'] = profile_id
+                self.db_dictlike['profile_locked'] = '1'
+                logger.info(f"🔒 Quick-locked to profile {profile_id} ({profile.name}) for client meeting")
+                
+                # Redirect back to profiles page to show locked state
+                from starlette.responses import RedirectResponse
+                return RedirectResponse(url='/profiles', status_code=302)
+                
+            except Exception as e:
+                logger.error(f"Error locking to profile {profile_id}: {e}")
+                raise HTTPException(status_code=500, detail="Failed to lock profile")
+        
         # Use static name to avoid potential circular import during route registration
         display_name_for_routes = f"{self.EMOJI} Profiles"
         logger.info(f"CRUD routes for {display_name_for_routes} (prefix '/{self.name}') registered by ProfileCrudOperations.")
@@ -314,6 +338,22 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     else:
         active_checkbox_input = Input(type='checkbox', name='active_status_profile', checked=profile_record.active, hx_post=toggle_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', style='margin-right: 10px; flex-shrink: 0;', title='Toggle Active Status')
     
+    # Add quick lock icon between checkbox and profile name (hidden when already locked)
+    if profile_locked:
+        # Hide lock icon when already in locked mode
+        lock_icon_span = ''
+    else:
+        # Show lock icon for one-click profile lock + switch
+        lock_url = f'/{main_plugin_instance.name}/lock_to_profile/{profile_record.id}'
+        lock_icon_span = Span('🔒', 
+                              hx_post=lock_url, 
+                              hx_swap='none',
+                              cls='profile-lock-trigger', 
+                              title=f'Quick lock to {profile_record.name} (switch + lock for client meeting)',
+                              style='margin-right: 8px; cursor: pointer; color: var(--pico-muted-color); flex-shrink: 0; font-size: 0.9em; opacity: 0.7; transition: opacity 0.2s;',
+                              onmouseover='this.style.opacity="1"',
+                              onmouseout='this.style.opacity="0.7"')
+    
     # Disable delete functionality when locked or for default profile
     if profile_locked:
         delete_icon_span = Span('🔒', 
@@ -335,4 +375,4 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
         li_style += ' background-color: var(--pico-contrast-focus); border-left: 4px solid var(--pico-primary); border-radius: var(--pico-border-radius); margin: 0.25rem 0; padding-left: 0.75rem;'
         li_classes = 'profile-selected'
     
-    return Li(Div(active_checkbox_input, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), delete_icon_span, style=base_style), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0), style=li_style, cls=li_classes)
+    return Li(Div(active_checkbox_input, lock_icon_span, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), delete_icon_span, style=base_style), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0), style=li_style, cls=li_classes)
