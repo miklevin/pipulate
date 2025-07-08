@@ -164,6 +164,52 @@ class ProfilesPlugin(ProfilesPluginIdentity):
         logger.debug(f'{display_name_for_init} ProfileCrudOperations instance created.')
 
     def register_routes(self, rt_decorator):
+        # Register custom update route FIRST to override default CRUD behavior
+        @rt_decorator(f'/{self.name}/{{profile_id:int}}', methods=['POST'])
+        async def update_profile_with_redirect(request, profile_id: int):
+            """Handle profile updates with full page refresh to update breadcrumb."""
+            try:
+                # Get form data
+                form_data = await request.form()
+                form_data_dict = dict(form_data)
+                
+                # Validate profile exists
+                profile = self.table.get(profile_id)
+                if not profile:
+                    logger.warning(f"Attempted to update non-existent profile {profile_id}")
+                    raise HTTPException(status_code=404, detail=f"Profile {profile_id} not found")
+                
+                # Use the existing prepare_update_data method for validation and processing
+                update_data = self.crud_handler.prepare_update_data(form_data_dict)
+                
+                # Check for validation errors
+                if 'error' in update_data:
+                    logger.warning(f"Profile update validation failed for {profile_id}: {update_data['error']}")
+                    # Return to profiles page even on error to show any error state
+                    from starlette.responses import RedirectResponse
+                    return RedirectResponse(url='/profiles', status_code=302)
+                
+                # Update the profile
+                self.table.update(update_data, profile_id)
+                logger.info(f"Profile {profile_id} updated successfully: {update_data}")
+                
+                # If this is the current profile and name changed, the breadcrumb needs updating
+                get_current_profile_id, _, _, _, _, _ = get_server_functions()
+                current_profile_id = get_current_profile_id()
+                if str(profile_id) == str(current_profile_id):
+                    logger.info(f"Updated current profile {profile_id}, breadcrumb will refresh")
+                
+                # Redirect back to profiles page to refresh everything (including breadcrumb)
+                from starlette.responses import RedirectResponse
+                return RedirectResponse(url='/profiles', status_code=302)
+                
+            except Exception as e:
+                logger.error(f"Error updating profile {profile_id}: {e}")
+                # Even on error, redirect to profiles page
+                from starlette.responses import RedirectResponse
+                return RedirectResponse(url='/profiles', status_code=302)
+        
+        # Register other CRUD routes (but skip the update route since we handle it above)
         self.crud_handler.register_routes(rt_decorator)
         
         # Add route for switching to tasks for a specific profile
@@ -312,7 +358,7 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
         # Normal editing behavior when unlocked
         toggle_edit_js = f"document.getElementById('{profile_text_display_id}').style.display='none'; var form = document.getElementById('{update_form_id}'); form.style.display='grid'; form.classList.add('editing');document.getElementById('{item_id_dom}').classList.add('editing-item');document.getElementById('{name_input_update_id}').focus();"
         toggle_display_js = f"var form = document.getElementById('{update_form_id}'); form.style.display='none'; form.classList.remove('editing');document.getElementById('{profile_text_display_id}').style.display='flex';document.getElementById('{item_id_dom}').classList.remove('editing-item');"
-        update_profile_form = Form(Div(Input(type='text', name='profile_name', value=profile_record.name, placeholder='Nickname', id=name_input_update_id, cls='mb-2'), Input(type='text', name='profile_real_name', value=profile_record.real_name or '', placeholder='Real Name (Optional)', cls='mb-2'), Input(type='text', name='profile_address', value=profile_record.address or '', placeholder=PLACEHOLDER_ADDRESS, cls='mb-2'), Input(type='text', name='profile_code', value=profile_record.code or '', placeholder=PLACEHOLDER_CODE, cls='mb-2'), style='display:grid; grid-template-columns: 1fr; gap: 0.25rem; width:100%;'), Div(Button('Save', type='submit', cls='primary', style='margin-right: 0.5rem;'), Button('Cancel', type='button', cls='secondary outline', onclick=toggle_display_js), style='margin-top:0.5rem; display:flex; justify-content:start;'), hx_post=update_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', id=update_form_id, style='display: none; width: 100%; padding: 0.5rem; box-sizing: border-box; background-color: var(--pico-form-element-background-color); border-radius: var(--pico-border-radius);', cls='profile-edit-form')
+        update_profile_form = Form(Div(Input(type='text', name='profile_name', value=profile_record.name, placeholder='Nickname', id=name_input_update_id, cls='mb-2'), Input(type='text', name='profile_real_name', value=profile_record.real_name or '', placeholder='Real Name (Optional)', cls='mb-2'), Input(type='text', name='profile_address', value=profile_record.address or '', placeholder=PLACEHOLDER_ADDRESS, cls='mb-2'), Input(type='text', name='profile_code', value=profile_record.code or '', placeholder=PLACEHOLDER_CODE, cls='mb-2'), style='display:grid; grid-template-columns: 1fr; gap: 0.25rem; width:100%;'), Div(Button('Save', type='submit', cls='primary', style='margin-right: 0.5rem;'), Button('Cancel', type='button', cls='secondary outline', onclick=toggle_display_js), style='margin-top:0.5rem; display:flex; justify-content:start;'), hx_post=update_url, hx_target='body', hx_swap='outerHTML', id=update_form_id, style='display: none; width: 100%; padding: 0.5rem; box-sizing: border-box; background-color: var(--pico-form-element-background-color); border-radius: var(--pico-border-radius);', cls='profile-edit-form')
     # Task link to switch to tasks for this profile - inside the profile display with count
     task_count = main_plugin_instance.count_unchecked_tasks_for_profile(profile_record.id)
     tasks_link_text = f'Tasks ({task_count})'
