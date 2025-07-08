@@ -30,6 +30,7 @@ requests
 rich
 selenium
 termcolor
+textualize
 twine
 webdriver-manager
 selenium-wire
