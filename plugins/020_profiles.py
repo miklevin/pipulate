@@ -189,13 +189,14 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     
     delete_icon_span = '' if profile_record.name == 'Default Profile' else Span('🗑️', hx_delete=delete_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', hx_confirm=f"Are you sure you want to delete the profile '{profile_record.name}'? This action cannot be undone.", cls='profile-delete-icon delete-icon', title='Delete Profile')
     
-    # Add highlighting style for currently selected profile
+    # Add highlighting style for currently selected profile using PicoCSS approach
     base_style = 'display: flex; align-items: center; width: 100%; gap: 10px; padding: 0.5rem 0;'
-    if is_current_profile:
-        base_style += ' background-color: var(--pico-primary-background); border-radius: var(--pico-border-radius);'
-    
     li_style = 'border-bottom: 1px solid var(--pico-muted-border-color); padding: 0.25rem 0; list-style-type: none;'
-    if is_current_profile:
-        li_style += ' background-color: var(--pico-primary-background); border-radius: var(--pico-border-radius); border: 2px solid var(--pico-primary-color);'
+    li_classes = ''
     
-    return Li(Div(active_checkbox_input, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), delete_icon_span, style=base_style), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0), style=li_style)
+    if is_current_profile:
+        # Use PicoCSS-style highlighting with better contrast
+        li_style += ' background-color: var(--pico-contrast-focus); border-left: 4px solid var(--pico-primary); border-radius: var(--pico-border-radius); margin: 0.25rem 0; padding-left: 0.75rem;'
+        li_classes = 'profile-selected'
+    
+    return Li(Div(active_checkbox_input, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), delete_icon_span, style=base_style), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0), style=li_style, cls=li_classes)
