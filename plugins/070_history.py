@@ -4,7 +4,7 @@ Discussion History Plugin
 Provides a comprehensive view of conversation history using the append-only
 conversation system. Features include:
 - Chronological message display with proper site navigation
-- Role-based filtering (user/assistant/system)
+- Role-based filtering (user/Chip O'Theseus/system)
 - Copy-to-clipboard functionality
 - Conversation statistics
 - Session tracking
@@ -36,7 +36,7 @@ class HistoryViewer:
     Provides a comprehensive view of conversation history using the append-only
     conversation system. Features include:
     - Chronological message display
-    - Role-based filtering
+    - Role-based filtering (user/Chip O'Theseus/system)
     - Copy-to-clipboard functionality
     - Conversation statistics
     - Session tracking
@@ -44,7 +44,7 @@ class HistoryViewer:
     
     APP_NAME = 'history'
     DISPLAY_NAME = 'Discussion History 📜'
-    ENDPOINT_MESSAGE = """📜 Discussion History Viewer: Browse and manage your complete conversation history. View all messages chronologically, filter by role (user/assistant/system), copy individual messages or entire conversations to clipboard, and see conversation statistics. All data is preserved using the bulletproof append-only architecture."""
+    ENDPOINT_MESSAGE = """📜 Discussion History Viewer: Browse and manage your complete conversation history. View all messages chronologically, filter by role (user/Chip O'Theseus/system), copy individual messages or entire conversations to clipboard, and see conversation statistics. All data is preserved using the bulletproof append-only architecture."""
     
     # PicoCSS-consistent UI styling constants
     UI_CONSTANTS = {
@@ -251,10 +251,11 @@ class HistoryViewer:
         """Render the statistics section"""
         role_badges = []
         for role, count in stats.get('role_distribution', {}).items():
-            icon = {'user': '👤', 'assistant': '🤖', 'system': '⚙️'}.get(role, '❓')
+            # Brand the assistant as Chip O'Theseus! 🤖⚡
+            role_display = {'user': '👤 User', 'assistant': '🤖 Chip O\'Theseus', 'system': '⚙️ System'}.get(role, f'❓ {role.title()}')
             role_badges.append(
                 Span(
-                    f"{icon} {role.title()}: {count}",
+                    f"{role_display}: {count}",
                     style=f"""
                         display: inline-block;
                         margin-right: {self.UI_CONSTANTS['spacing']};
@@ -293,7 +294,7 @@ class HistoryViewer:
                     Select(
                         Option("All Messages", value="all"),
                         Option("👤 User Messages", value="user"),
-                        Option("🤖 Assistant Messages", value="assistant"),
+                        Option("🤖 Chip O'Theseus Messages", value="assistant"),
                         Option("⚙️ System Messages", value="system"),
                         name="role",
                         hx_post="/history/filter",
@@ -375,26 +376,34 @@ class HistoryViewer:
         timestamp = message.get('timestamp', '')
         message_id = message.get('id', None)
         
-        # Role-specific styling
+        # Role-specific styling with Chip O'Theseus branding! 🤖⚡
         role_styles = {
             'user': {
                 'icon': '👤',
+                'display_name': 'User',
                 'color': self.UI_CONSTANTS['user_color'],
                 'border_color': self.UI_CONSTANTS['user_color']
             },
             'assistant': {
                 'icon': '🤖', 
+                'display_name': 'Chip O\'Theseus',
                 'color': self.UI_CONSTANTS['assistant_color'],
                 'border_color': self.UI_CONSTANTS['assistant_color']
             },
             'system': {
                 'icon': '⚙️',
+                'display_name': 'System',
                 'color': self.UI_CONSTANTS['system_color'],
                 'border_color': self.UI_CONSTANTS['border_color']
             }
         }
         
-        role_style = role_styles.get(role, role_styles['system'])
+        role_style = role_styles.get(role, {
+            'icon': '❓',
+            'display_name': role.title(),
+            'color': self.UI_CONSTANTS['system_color'],
+            'border_color': self.UI_CONSTANTS['border_color']
+        })
         
         # Format timestamp
         try:
@@ -412,7 +421,7 @@ class HistoryViewer:
         return Div(
             Div(
                 Div(
-                    Span(f"{role_style['icon']} {role.title()}", style=f"font-weight: bold; color: {role_style['color']};"),
+                    Span(f"{role_style['icon']} {role_style['display_name']}", style=f"font-weight: bold; color: {role_style['color']};"),
                     Span(formatted_time, style=f"font-size: 0.8rem; color: {self.UI_CONSTANTS['muted_color']};"),
                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;"
                 ),
