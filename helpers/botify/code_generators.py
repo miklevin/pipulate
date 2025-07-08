@@ -157,6 +157,134 @@ await main()
 #     import asyncio
 #     asyncio.run(main())'''
 
+    def generate_botify_bqlv2_python_code(self, query_payload: dict, username: str, project_name: str, 
+                                        page_size: int, jobs_payload: dict, display_name: str, 
+                                        get_step_name_from_payload_func, get_configured_template_func=None, 
+                                        query_templates: dict = None) -> tuple:
+        """Generate Python code for BQLv2 queries (crawl, GSC)."""
+        
+        # Get step name from payload
+        step_name = get_step_name_from_payload_func(jobs_payload)
+        
+        # Get template info if available
+        template_info = {}
+        if query_templates and get_configured_template_func:
+            try:
+                # Try to determine template from query structure
+                collections = query_payload.get('collections', [])
+                if 'search_console' in collections:
+                    template_key = get_configured_template_func('gsc')
+                else:
+                    template_key = get_configured_template_func('analysis')
+                
+                if template_key and template_key in query_templates:
+                    template_info = query_templates[template_key]
+            except:
+                pass
+        
+        # Generate the header
+        header_lines = self.generate_botify_code_header(
+            display_name=display_name,
+            step_name=step_name,
+            username=username,
+            project_name=project_name,
+            template_info=template_info
+        )
+        
+        # Build the query URL
+        query_url = f"https://api.botify.com/v1/projects/{username}/{project_name}/query?size={page_size}"
+        
+        # Generate the Python code
+        python_code_lines = header_lines + [
+            "",
+            "import os",
+            "import json",
+            "import httpx",
+            "from typing import Dict, Any",
+            "",
+            "# Configuration",
+            "TOKEN_FILE = 'botify_token.txt'",
+            "",
+            self.generate_botify_token_loader(),
+            "",
+            "# API Configuration",
+            "API_TOKEN = load_api_token()",
+            f"URL = '{query_url}'",
+            f"PAYLOAD = {json.dumps(query_payload, indent=4)}",
+            "",
+            "def get_headers() -> Dict[str, str]:",
+            "    return {",
+            "        'Authorization': f'Token {API_TOKEN}',",
+            "        'Content-Type': 'application/json'",
+            "    }",
+            "",
+            self.generate_botify_http_client("make_bqlv2_query", "Execute BQLv2 query for crawl or GSC data"),
+            "",
+            self.generate_botify_main_executor("make_bqlv2_query", "BQLv2 Query")
+        ]
+        
+        python_code = '\n'.join(python_code_lines)
+        return query_url, query_payload, python_code
+
+    def generate_botify_bqlv1_python_code(self, query_payload: dict, username: str, project_name: str, 
+                                        jobs_payload: dict, display_name: str, 
+                                        get_step_name_from_payload_func) -> tuple:
+        """Generate Python code for BQLv1 queries (web logs)."""
+        
+        # Get step name from payload
+        step_name = get_step_name_from_payload_func(jobs_payload)
+        
+        # Extract date information from query payload
+        start_date = query_payload.get('start_date', '2024-01-01')
+        end_date = query_payload.get('end_date', '2024-12-31')
+        
+        # Generate the header
+        header_lines = self.generate_botify_code_header(
+            display_name=display_name,
+            step_name=step_name,
+            username=username,
+            project_name=project_name
+        )
+        
+        # Build the query URL for BQLv1 (web logs)
+        query_url = f"https://app.botify.com/api/v1/logs/{username}/{project_name}/urls/{start_date}/{end_date}"
+        query_url_with_params = f"{query_url}?page=1&size=100&sampling=100"
+        
+        # Extract the query body from the payload
+        query_body = query_payload.get('query_body', query_payload.get('query', {}))
+        
+        # Generate the Python code
+        python_code_lines = header_lines + [
+            "",
+            "import os",
+            "import json",
+            "import httpx",
+            "from typing import Dict, Any",
+            "",
+            "# Configuration",
+            "TOKEN_FILE = 'botify_token.txt'",
+            "",
+            self.generate_botify_token_loader(),
+            "",
+            "# API Configuration",
+            "API_TOKEN = load_api_token()",
+            f"URL = '{query_url_with_params}'",
+            f"PAYLOAD = {json.dumps(query_body, indent=4)}",
+            "",
+            "def get_headers() -> Dict[str, str]:",
+            "    return {",
+            "        'Authorization': f'Token {API_TOKEN}',",
+            "        'Content-Type': 'application/json'",
+            "    }",
+            "",
+            self.generate_botify_http_client("make_bqlv1_query", "Execute BQLv1 query for web logs data"),
+            "",
+            self.generate_botify_main_executor("make_bqlv1_query", "BQLv1 Query")
+        ]
+        
+        python_code = '\n'.join(python_code_lines)
+        return query_url, query_payload, python_code
+
     def create_folder_button(self, folder_path: str, icon: str = "📁", text: str = "Open Folder", 
                            title_prefix: str = "Open folder"):
         """Generate a standardized folder opening button."""
@@ -187,5 +315,7 @@ generate_botify_code_header = botify_code_generators.generate_botify_code_header
 generate_botify_token_loader = botify_code_generators.generate_botify_token_loader
 generate_botify_http_client = botify_code_generators.generate_botify_http_client
 generate_botify_main_executor = botify_code_generators.generate_botify_main_executor
+generate_botify_bqlv2_python_code = botify_code_generators.generate_botify_bqlv2_python_code
+generate_botify_bqlv1_python_code = botify_code_generators.generate_botify_bqlv1_python_code
 create_folder_button = botify_code_generators.create_folder_button
 get_botify_analysis_path = botify_code_generators.get_botify_analysis_path
