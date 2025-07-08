@@ -4393,22 +4393,22 @@ async def startup_event():
     section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_magenta")
     
     # 🗃️ AUTOMATIC STARTUP BACKUP - Ensure data protection on every server start
-    try:
-        from helpers.durable_backup_system import backup_manager
-        main_db_path = DB_FILENAME
-        keychain_db_path = 'data/ai_keychain.db'
-        backup_results = backup_manager.auto_backup_all(main_db_path, keychain_db_path)
-        
-        total_records = sum(backup_results.values())
-        logger.bind(lifecycle=True).info(f'🗃️ STARTUP_BACKUP: Automatic backup completed - {total_records} records secured across {len(backup_results)} tables')
-        logger.info(f'FINDER_TOKEN: STARTUP_BACKUP_SUMMARY - Tables backed up: {", ".join(backup_results.keys())}, Total records: {total_records}')
-        
-        # Log individual table backup counts
-        for table_name, count in backup_results.items():
-            if count > 0:
-                logger.debug(f'🗃️ STARTUP_BACKUP: {table_name} - {count} records backed up')
-    except Exception as e:
-        logger.error(f'🗃️ STARTUP_BACKUP: Failed to create automatic backup - {str(e)}')
+    # try:
+    #     from helpers.durable_backup_system import backup_manager
+    #     main_db_path = DB_FILENAME
+    #     keychain_db_path = 'data/ai_keychain.db'
+    #     backup_results = backup_manager.auto_backup_all(main_db_path, keychain_db_path)
+    #     
+    #     total_records = sum(backup_results.values())
+    #     logger.bind(lifecycle=True).info(f'🗃️ STARTUP_BACKUP: Automatic backup completed - {total_records} records secured across {len(backup_results)} tables')
+    #     logger.info(f'FINDER_TOKEN: STARTUP_BACKUP_SUMMARY - Tables backed up: {", ".join(backup_results.keys())}, Total records: {total_records}')
+    #     
+    #     # Log individual table backup counts
+    #     for table_name, count in backup_results.items():
+    #         if count > 0:
+    #             logger.debug(f'🗃️ STARTUP_BACKUP: {table_name} - {count} records backed up')
+    # except Exception as e:
+    #     logger.error(f'🗃️ STARTUP_BACKUP: Failed to create automatic backup - {str(e)}')
     
     white_rabbit()
     
