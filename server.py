@@ -4360,9 +4360,6 @@ async def startup_event():
     env = get_current_environment()
     status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
     
-    # 🗃️ AUTOMATIC STARTUP BACKUP - Rich banner for visibility
-    section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_cyan")
-
     # 📖 LOG READING LEGEND - Educational guide for understanding logs
     from helpers.ascii_displays import log_reading_legend
     legend_content = log_reading_legend()
@@ -4373,10 +4370,11 @@ async def startup_event():
         style="bright_cyan",
         padding=(1, 2)
     )
-    console.print(panel)
     logger.info("📖 LOG_READING_LEGEND: Educational guide displayed for log interpretation")
+    console.print(panel)
     
-    white_rabbit()
+    # 🗃️ AUTOMATIC STARTUP BACKUP - Rich banner for visibility
+    section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_magenta")
     
     # 🗃️ AUTOMATIC STARTUP BACKUP - Ensure data protection on every server start
     try:
@@ -4395,6 +4393,8 @@ async def startup_event():
                 logger.debug(f'🗃️ STARTUP_BACKUP: {table_name} - {count} records backed up')
     except Exception as e:
         logger.error(f'🗃️ STARTUP_BACKUP: Failed to create automatic backup - {str(e)}')
+    
+    white_rabbit()
     
 ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
