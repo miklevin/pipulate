@@ -5040,9 +5040,8 @@ async def create_outer_container(current_profile_id, menux, request):
     return Container(
         Style(dynamic_css),  # Dynamic CSS injection
         nav_group, 
-        Div(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'),
-        # Splitter initialization is handled by external splitter-init.js
-        Script(src='/static/splitter-init.js')  # Load splitter functionality
+        Div(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid')
+        # Note: Splitter initialization is handled by external splitter-init.js loaded in headers
     )
 
 
