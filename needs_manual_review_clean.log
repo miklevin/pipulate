@@ -60,3 +60,9 @@ e3da262 feat: Implement simple file backup for main database - DEFERRED: multipl
 4602e15 feat: Implement message deletion functionality for conversation history - DEFERRED: plugins/070_history.py persistent conflicts
 20e9860 Make profile name clickable in headline breadcrumb - DEFERRED: server.py conflicts after syntax fix
 491f1d9 fix(conversation): Prevent writing noise to conversation history - DEFERRED: server.py conflicts after syntax fix
+707755a 🚀 Simple file backup complete - DEFERRED: helpers/durable_backup_system.py conflicts
+1639c35 Add one-click profile lock for instant client meeting setup - DEFERRED: plugins/020_profiles.py persistent conflicts
+ae3ba00 chore: Remove redundant explicit backup/restore logic and related code - DEFERRED: server.py conflicts after syntax fix
+8913c34 🎯 Implement son/father/grandfather backup system - DEFERRED: helpers/durable_backup_system.py conflicts
+2d3f30c feat: Initialize Pipulate with database persistence and profile navigation - DEFERRED: server.py conflicts after syntax fix
+9ac8a7a feat: Implement profile update route with full page refresh and breadcrumb handling - DEFERRED: plugins/020_profiles.py persistent conflicts
