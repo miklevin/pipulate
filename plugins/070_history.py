@@ -43,7 +43,7 @@ class HistoryViewer:
     """
     
     APP_NAME = 'history'
-    DISPLAY_NAME = 'Discussion History 📦'
+    DISPLAY_NAME = 'Discussion History 📜'
     ENDPOINT_MESSAGE = """📜 Discussion History Viewer: Browse and manage your complete conversation history. View all messages chronologically, filter by role (user/assistant/system), copy individual messages or entire conversations to clipboard, and see conversation statistics. All data is preserved using the bulletproof append-only architecture."""
     
     # PicoCSS-consistent UI styling constants
