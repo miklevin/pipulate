@@ -3519,6 +3519,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/prism.js'),
         Script(src='/static/copy-functionality.js'),
         Script(src='/static/theme-init.js'),
+        Script(src='/static/theme-management.js'),
         Script(src='/static/widget-scripts.js'),
         create_chat_scripts('.sortable'),
         # Add menu flash demo script in development environments
@@ -5034,53 +5035,14 @@ async def create_outer_container(current_profile_id, menux, request):
     dynamic_css = get_dynamic_role_css()
     nav_group = create_nav_group()
     
-    # Initialize splitter script with localStorage persistence
-    # Wait for external splitter-init.js to load before initializing
-    init_splitter_script = Script("""
-        function initMainSplitter() {
-            if (window.initializePipulateSplitterSafe) {
-                console.log('🔥 Initializing main interface splitter with localStorage persistence');
-                const elements = ['#grid-left-content', '#chat-interface'];
-                const options = {
-                    sizes: [65, 35],  // Default sizes - localStorage will override if available
-                    minSize: [400, 300],
-                    gutterSize: 10,
-                    cursor: 'col-resize',
-                    context: 'main'
-                };
-                initializePipulateSplitterSafe(elements, options);
-            } else {
-                // Retry if splitter-init.js hasn't loaded yet
-                setTimeout(initMainSplitter, 50);
-            }
-        }
-        
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            initMainSplitter();
-        });
-        
-        // Re-initialize after HTMX body swaps (like profile lock)
-        document.body.addEventListener('htmx:afterSettle', function(evt) {
-            if (evt.target === document.body) {
-                console.log('🔄 HTMX body swap detected, re-initializing splitter');
-                // Add small delay to ensure DOM is fully settled
-                setTimeout(initMainSplitter, 100);
-            }
-            // Also handle left panel content swaps (like profile navigation)
-            else if (evt.target && evt.target.id === 'grid-left-content') {
-                console.log('🔄 HTMX left panel swap detected, re-initializing splitter');
-                // Add small delay to ensure DOM is fully settled
-                setTimeout(initMainSplitter, 100);
-            }
-        });
-    """)
+    # Splitter initialization is now handled by external splitter-init.js
 
     return Container(
         Style(dynamic_css),  # Dynamic CSS injection
         nav_group, 
-        Div(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), 
-        init_splitter_script  # Initialize the draggable splitter
+        Div(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'),
+        # Splitter initialization is handled by external splitter-init.js
+        Script(src='/static/splitter-init.js')  # Load splitter functionality
     )
 
 
@@ -5277,30 +5239,12 @@ async def poke_flyout(request):
             Span('🌙 Dark Mode', cls='ml-quarter')
         ),
         Script(f"""
-            // Ensure switch state matches localStorage (sticky preference)
-            (function() {{
-                const currentTheme = localStorage.getItem('theme_preference') || 'dark';
-                const serverTheme = '{current_theme}';
-                
-                // localStorage is the source of truth for stickiness
-                if (currentTheme !== serverTheme) {{
-                    // Update server to match localStorage
-                    fetch('/sync_theme', {{
-                        method: 'POST',
-                        headers: {{'Content-Type': 'application/x-www-form-urlencoded'}},
-                        body: 'theme=' + currentTheme
-                    }});
-                }}
-                
-                // Ensure DOM reflects localStorage
-                document.documentElement.setAttribute('data-theme', currentTheme);
-                
-                // Update switch state to match localStorage
-                const switchElement = document.querySelector('#theme-switch-container input[type="checkbox"]');
-                if (switchElement) {{
-                    switchElement.checked = (currentTheme === 'dark');
-                }}
-            }})();
+            // Theme management now handled by external theme-management.js
+            if (window.initializeThemeManagement) {{
+                window.initializeThemeManagement('{current_theme}');
+            }} else {{
+                console.warn('🌙 Theme management functions not loaded');
+            }}
         """),
         id='theme-switch-container',
         cls='theme-switch-container'
@@ -5641,10 +5585,12 @@ async def toggle_theme(request):
             Span('🌙 Dark Mode', cls='ml-quarter')
         ),
         Script(f"""
-            // Apply theme to HTML element
-            document.documentElement.setAttribute('data-theme', '{new_theme}');
-            // Store in localStorage for persistence across page loads
-            localStorage.setItem('theme_preference', '{new_theme}');
+            // Theme application now handled by external theme-management.js
+            if (window.applyThemeDirectly) {{
+                window.applyThemeDirectly('{new_theme}');
+            }} else {{
+                console.warn('🌙 Theme management functions not loaded');
+            }}
         """),
         id='theme-switch-container',
         cls='theme-switch-container'
@@ -5730,25 +5676,25 @@ async def search_plugins(request):
                 </div>
                 """
             
-            # Show dropdown with JavaScript (styles now in external CSS)
+            # Show dropdown with JavaScript (externalized to chat-interactions.js)
             result_html += """
             <script>
-                document.getElementById('search-results-dropdown').style.display = 'block';
-                // Auto-select single result via server indication
-                if (window.initializeSearchPluginsAutoSelect) {
-                    window.initializeSearchPluginsAutoSelect();
+                if (window.showSearchDropdownWithAutoSelect) {
+                    window.showSearchDropdownWithAutoSelect();
+                } else {
+                    console.warn('🔍 Search dropdown functions not loaded');
                 }
             </script>
             """
         else:
-            # No results or empty search - hide dropdown
+            # No results or empty search - hide dropdown (externalized to chat-interactions.js)
             result_html = """
             <script>
-                document.getElementById('search-results-dropdown').style.display = 'none';
-                // Clear any previous selection
-                const dropdown = document.getElementById('search-results-dropdown');
-                const current = dropdown ? dropdown.querySelector('.search-result-item.selected') : null;
-                if (current) current.classList.remove('selected');
+                if (window.hideSearchDropdownAndClearSelection) {
+                    window.hideSearchDropdownAndClearSelection();
+                } else {
+                    console.warn('🔍 Search dropdown functions not loaded');
+                }
             </script>
             """
         
@@ -5761,7 +5707,11 @@ async def search_plugins(request):
             Search error: {str(e)}
         </div>
         <script>
-            document.getElementById('search-results-dropdown').style.display = 'block';
+            if (window.showSearchDropdown) {{
+                window.showSearchDropdown();
+            }} else {{
+                console.warn('🔍 Search dropdown functions not loaded');
+            }}
         </script>
         """)
 

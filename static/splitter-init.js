@@ -91,4 +91,46 @@ window.initializePipulateSplitter = function(elements, defaultOptions) {
   return splitInstance;
 }
 
+/**
+ * Main splitter initialization function for the primary interface.
+ * Moved from server.py to externalize JavaScript properly.
+ */
+function initMainSplitter() {
+  if (window.initializePipulateSplitterSafe) {
+    console.log('🔥 Initializing main interface splitter with localStorage persistence');
+    const elements = ['#grid-left-content', '#chat-interface'];
+    const options = {
+      sizes: [65, 35],  // Default sizes - localStorage will override if available
+      minSize: [400, 300],
+      gutterSize: 10,
+      cursor: 'col-resize',
+      context: 'main'
+    };
+    initializePipulateSplitterSafe(elements, options);
+  } else {
+    // Retry if splitter-init.js hasn't loaded yet
+    setTimeout(initMainSplitter, 50);
+  }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  initMainSplitter();
+});
+
+// Re-initialize after HTMX body swaps (like profile lock)
+document.addEventListener('htmx:afterSettle', function(evt) {
+  if (evt.target === document.body) {
+    console.log('🔄 HTMX body swap detected, re-initializing splitter');
+    // Add small delay to ensure DOM is fully settled
+    setTimeout(initMainSplitter, 100);
+  }
+  // Also handle left panel content swaps (like profile navigation)
+  else if (evt.target && evt.target.id === 'grid-left-content') {
+    console.log('🔄 HTMX left panel swap detected, re-initializing splitter');
+    // Add small delay to ensure DOM is fully settled
+    setTimeout(initMainSplitter, 100);
+  }
+});
+
 console.log('✅ window.initializePipulateSplitter function defined!', typeof window.initializePipulateSplitter); 

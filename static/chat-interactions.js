@@ -592,3 +592,133 @@ function setupMenuFlashFeedback() {
         console.error('🔑 Error setting up global auto-submit:', setupError);
     }
 })();
+
+/**
+ * Initialize search plugins auto-select functionality.
+ * Moved from server.py to externalize JavaScript properly.
+ */
+window.initializeSearchPluginsAutoSelect = function() {
+    console.log('🔍 Initializing search plugins auto-select functionality');
+    
+    const dropdown = document.getElementById('search-results-dropdown');
+    if (!dropdown) {
+        console.warn('🔍 Search results dropdown not found');
+        return;
+    }
+    
+    const items = dropdown.querySelectorAll('.search-result-item');
+    
+    // Auto-select single result
+    if (items.length === 1) {
+        items[0].classList.add('selected', 'auto-select-single');
+        console.log('🔍 Auto-selected single search result');
+    }
+    
+    // Add keyboard navigation
+    setupSearchKeyboardNavigation(dropdown, items);
+};
+
+/**
+ * Setup keyboard navigation for search results.
+ * 
+ * @param {HTMLElement} dropdown - The search dropdown element
+ * @param {NodeList} items - The search result items
+ */
+function setupSearchKeyboardNavigation(dropdown, items) {
+    if (items.length === 0) return;
+    
+    let selectedIndex = -1;
+    
+    // Find initially selected item
+    items.forEach((item, index) => {
+        if (item.classList.contains('selected')) {
+            selectedIndex = index;
+        }
+    });
+    
+    // Handle arrow keys and enter
+    document.addEventListener('keydown', function(e) {
+        if (dropdown.style.display === 'none') return;
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+            updateSelection();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = Math.max(selectedIndex - 1, 0);
+            updateSelection();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (selectedIndex >= 0 && items[selectedIndex]) {
+                items[selectedIndex].click();
+            }
+        } else if (e.key === 'Escape') {
+            hideSearchDropdown();
+        }
+    });
+    
+    function updateSelection() {
+        items.forEach((item, index) => {
+            if (index === selectedIndex) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+    }
+}
+
+/**
+ * Show search dropdown and initialize auto-selection.
+ * Moved from server.py to externalize all JavaScript properly.
+ */
+window.showSearchDropdownWithAutoSelect = function() {
+    console.log('🔍 Showing search dropdown with auto-selection');
+    const dropdown = document.getElementById('search-results-dropdown');
+    if (dropdown) {
+        dropdown.style.display = 'block';
+        // Auto-select single result via server indication
+        if (window.initializeSearchPluginsAutoSelect) {
+            window.initializeSearchPluginsAutoSelect();
+        }
+    }
+};
+
+/**
+ * Hide search dropdown and clear selections.
+ * Moved from server.py to externalize all JavaScript properly.
+ */
+window.hideSearchDropdownAndClearSelection = function() {
+    console.log('🔍 Hiding search dropdown and clearing selection');
+    const dropdown = document.getElementById('search-results-dropdown');
+    if (dropdown) {
+        dropdown.style.display = 'none';
+        // Clear any previous selection
+        const current = dropdown.querySelector('.search-result-item.selected');
+        if (current) current.classList.remove('selected');
+    }
+};
+
+/**
+ * Show search dropdown (simple version).
+ * Moved from server.py to externalize all JavaScript properly.
+ */
+window.showSearchDropdown = function() {
+    console.log('🔍 Showing search dropdown');
+    const dropdown = document.getElementById('search-results-dropdown');
+    if (dropdown) {
+        dropdown.style.display = 'block';
+    }
+};
+
+/**
+ * Handle search result item click.
+ * 
+ * @param {string} url - The URL to navigate to
+ */
+window.handleSearchResultClick = function(url) {
+    console.log('🔍 Navigating to search result:', url);
+    window.hideSearchDropdown();
+    window.location.href = url;
+};
