@@ -190,7 +190,7 @@
           if [ ! -d .venv/lib/python*/site-packages ] || [ $(find .venv/lib/python*/site-packages -name "*.dist-info" 2>/dev/null | wc -l) -lt 10 ]; then
             FRESH_ENV=true
             echo "🔧 Fresh Python environment detected - installing packages (this may take 2-3 minutes)..."
-            echo "   This is normal after using '🐍 Reset Python Environment' button."
+            echo "   This is normal on a fresh install or after using '🐍 Reset Python Environment' button."
           else
             echo "- Confirming pip packages..."
           fi
