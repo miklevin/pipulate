@@ -72,6 +72,7 @@ class HistoryViewer:
         app.route('/history/refresh', methods=['GET'])(self.refresh_history)
         app.route('/history/filter', methods=['POST'])(self.filter_messages)
         app.route('/history/copy', methods=['POST'])(self.copy_to_clipboard)
+        app.route('/history/delete', methods=['POST'])(self.delete_message)
 
     def filter_noise_messages(self, messages):
         """Filter out noise messages from conversation history"""
@@ -203,6 +204,32 @@ class HistoryViewer:
         except Exception as e:
             logger.error(f"Error copying to clipboard: {e}")
             return self.render_copy_error(f"Error: {str(e)}")
+
+    async def delete_message(self, request):
+        """Handle message deletion requests"""
+        try:
+            form_data = await request.form()
+            message_id = form_data.get('message_id')
+            
+            if not message_id:
+                return {"success": False, "message": "No message ID provided"}
+            
+            if not CONVERSATION_SYSTEM_AVAILABLE:
+                return {"success": False, "message": "Conversation system not available"}
+            
+            conv_system = get_conversation_system()
+            success = conv_system.delete_message(int(message_id))
+            
+            if success:
+                logger.info(f"🗑️ HISTORY_DELETE: Successfully deleted message ID {message_id}")
+                return {"success": True, "message": f"Message {message_id} deleted successfully"}
+            else:
+                logger.warning(f"🗑️ HISTORY_DELETE: Failed to delete message ID {message_id}")
+                return {"success": False, "message": f"Failed to delete message {message_id}"}
+            
+        except Exception as e:
+            logger.error(f"Error deleting message: {e}")
+            return {"success": False, "message": f"Error: {str(e)}"}
 
     def render_history_page(self, messages, stats):
         """Render the complete history page"""
@@ -346,6 +373,7 @@ class HistoryViewer:
         role = message.get('role', 'unknown')
         content = message.get('content', '')
         timestamp = message.get('timestamp', '')
+        message_id = message.get('id', None)
         
         # Role-specific styling
         role_styles = {
@@ -404,18 +432,33 @@ class HistoryViewer:
                         line-height: 1.4;
                     """
                 ),
-                Button(
-                    "📋 Copy",
-                    onclick=f"copyMessage({index}, event)",
-                    style=f"""
-                        margin-top: 0.5rem;
-                        padding: 0.25rem 0.5rem;
-                        font-size: 0.8rem;
-                        background-color: {self.UI_CONSTANTS['assistant_color']};
-                        border: 1px solid {self.UI_CONSTANTS['assistant_color']};
-                        color: white;
-                        border-radius: {self.UI_CONSTANTS['border_radius']};
-                    """
+                Div(
+                    Button(
+                        "📋 Copy",
+                        onclick=f"copyMessage({index}, event)",
+                        style=f"""
+                            padding: 0.25rem 0.5rem;
+                            font-size: 0.8rem;
+                            background-color: {self.UI_CONSTANTS['assistant_color']};
+                            border: 1px solid {self.UI_CONSTANTS['assistant_color']};
+                            color: white;
+                            border-radius: {self.UI_CONSTANTS['border_radius']};
+                            margin-right: 0.5rem;
+                        """
+                    ),
+                    Button(
+                        "🗑️ Delete",
+                        onclick=f"deleteMessage({message_id}, {index}, event)" if message_id else f"showNotification('Cannot delete: No message ID', 'error')",
+                        style=f"""
+                            padding: 0.25rem 0.5rem;
+                            font-size: 0.8rem;
+                            background-color: var(--pico-del-color);
+                            border: 1px solid var(--pico-del-color);
+                            color: white;
+                            border-radius: {self.UI_CONSTANTS['border_radius']};
+                        """
+                    ),
+                    style="margin-top: 0.5rem; display: flex; gap: 0.5rem;"
                 ),
                 style=f"""
                     padding: 1rem;
@@ -452,6 +495,65 @@ class HistoryViewer:
                             showNotification('Failed to copy message', 'error');
                         }});
                     }}
+                }}
+            }}
+            
+            // Delete individual message
+            function deleteMessage(messageId, index, event) {{
+                // Prevent event bubbling to avoid navigation interference
+                if (event) {{
+                    event.preventDefault();
+                    event.stopPropagation();
+                }}
+                
+                if (!messageId) {{
+                    showNotification('Cannot delete: No message ID', 'error');
+                    return;
+                }}
+                
+                // Show confirmation dialog
+                if (!confirm('Are you sure you want to delete this message? This action cannot be undone.')) {{
+                    return;
+                }}
+                
+                fetch('/history/delete', {{
+                    method: 'POST',
+                    headers: {{
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    }},
+                    body: `message_id=${{messageId}}`
+                }})
+                .then(response => response.json())
+                .then(data => {{
+                    if (data.success) {{
+                        showNotification('Message deleted successfully!', 'success');
+                        // Remove the message from the UI
+                        const messageDiv = document.querySelector(`[data-message-index="${{index}}"]`);
+                        if (messageDiv) {{
+                            messageDiv.style.transition = 'opacity 0.3s ease';
+                            messageDiv.style.opacity = '0';
+                            setTimeout(() => {{
+                                messageDiv.remove();
+                                // Update message count if displayed
+                                updateMessageCount();
+                            }}, 300);
+                        }}
+                    }} else {{
+                        showNotification(`Failed to delete message: ${{data.message}}`, 'error');
+                    }}
+                }})
+                .catch(err => {{
+                    console.error('Error deleting message:', err);
+                    showNotification('Error deleting message', 'error');
+                }});
+            }}
+            
+            // Update message count after deletion
+            function updateMessageCount() {{
+                const messagesContainer = document.querySelector('#messages-container h4');
+                if (messagesContainer) {{
+                    const remainingMessages = document.querySelectorAll('[data-message-index]').length;
+                    messagesContainer.textContent = `💬 Messages (${{remainingMessages}})`;
                 }}
             }}
             

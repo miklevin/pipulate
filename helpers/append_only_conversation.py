@@ -83,7 +83,7 @@ class AppendOnlyConversationSystem:
         
         # Load the most recent messages up to max_messages limit
         cursor.execute('''
-            SELECT role, content, timestamp, session_id
+            SELECT id, role, content, timestamp, session_id
             FROM conversation_messages 
             ORDER BY id DESC 
             LIMIT ?
@@ -97,10 +97,11 @@ class AppendOnlyConversationSystem:
         self.conversation_memory.clear()
         for row in messages:
             self.conversation_memory.append({
-                'role': row[0],
-                'content': row[1], 
-                'timestamp': row[2],
-                'session_id': row[3]
+                'id': row[0],
+                'role': row[1],
+                'content': row[2], 
+                'timestamp': row[3],
+                'session_id': row[4]
             })
         
         conn.close()
@@ -162,6 +163,7 @@ class AppendOnlyConversationSystem:
             
             # Add to memory (with automatic deque size management)
             self.conversation_memory.append({
+                'id': message_id,
                 'role': role,
                 'content': content,
                 'timestamp': timestamp,
@@ -290,6 +292,77 @@ class AppendOnlyConversationSystem:
             conn.close()
         
         return cleared_count
+    
+    def delete_message(self, message_id: int) -> bool:
+        """
+        ARCHITECTURALLY SAFE: Delete a message by moving it to archive
+        
+        This function doesn't actually delete the message from the database.
+        Instead, it moves the message to an archive table for data safety.
+        
+        Returns:
+            True if successful, False if message not found
+        """
+        if not message_id:
+            return False
+        
+        # Create backup before delete operation
+        self._create_backup("before_message_delete")
+        
+        # Archive the message in database
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            # Create archive table if it doesn't exist
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS conversation_messages_archive (
+                    id INTEGER,
+                    timestamp TEXT,
+                    role TEXT,
+                    content TEXT,
+                    message_hash TEXT,
+                    session_id TEXT,
+                    archived_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    original_created_at DATETIME,
+                    delete_reason TEXT DEFAULT 'user_delete'
+                )
+            ''')
+            
+            # Move the specific message to archive
+            cursor.execute('''
+                INSERT INTO conversation_messages_archive 
+                (id, timestamp, role, content, message_hash, session_id, original_created_at, delete_reason)
+                SELECT id, timestamp, role, content, message_hash, session_id, created_at, 'user_delete'
+                FROM conversation_messages
+                WHERE id = ?
+            ''', (message_id,))
+            
+            # Check if message was found and archived
+            if cursor.rowcount == 0:
+                logger.warning(f"🗑️ MESSAGE_DELETE: Message ID {message_id} not found in database")
+                return False
+            
+            # Delete from main table
+            cursor.execute('DELETE FROM conversation_messages WHERE id = ?', (message_id,))
+            
+            conn.commit()
+            
+            # Remove from memory
+            self.conversation_memory = deque(
+                [msg for msg in self.conversation_memory if msg.get('id') != message_id],
+                maxlen=self.max_messages
+            )
+            
+            logger.info(f"🗑️ FINDER_TOKEN: MESSAGE_DELETED_SAFE - ID:{message_id} archived and removed from memory")
+            return True
+            
+        except Exception as e:
+            logger.error(f"🗑️ CRITICAL: Message delete failed: {e}")
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
     
     def restore_from_backup(self, backup_date: str = None) -> int:
         """Restore conversation from backup"""
