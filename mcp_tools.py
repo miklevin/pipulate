@@ -2293,8 +2293,18 @@ def run_browser_automation():
                 simple_dom += "<!-- Fallback DOM (processing failed) -->\\n"
                 simple_dom += dom_content + "\\n</body>\\n</html>"
             
+            # Beautify the HTML for human readability
+            print(f"🎨 SUBPROCESS: Beautifying simplified DOM for human readability...")
+            try:
+                beautified_soup = BeautifulSoup(simple_dom, 'html.parser')
+                simple_dom_beautified = beautified_soup.prettify()
+                print(f"🎨 SUBPROCESS: DOM beautification successful!")
+            except Exception as beautify_error:
+                print(f"⚠️ SUBPROCESS: DOM beautification failed (using unformatted): {{beautify_error}}")
+                simple_dom_beautified = simple_dom
+            
             with open("{looking_at_dir}/simple_dom.html", "w", encoding="utf-8") as f:
-                f.write(simple_dom)
+                f.write(simple_dom_beautified)
             
             # Extract accessibility tree via Chrome DevTools Protocol (optional, fails gracefully)
             print(f"🌳 SUBPROCESS: Extracting accessibility tree...")
