@@ -1142,6 +1142,7 @@ SETTINGS_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
 # - botify_ping, botify_list_projects, botify_simple_query  
 # - botify_get_full_schema, botify_list_available_analyses, botify_execute_custom_bql_query
 
+# Register Local LLM Helper Tools (Limited file access for local LLMs)
 # 🔧 FINDER_TOKEN: LOCAL_LLM_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY  
 # ALL local_llm tools (read_file, grep_logs, list_files, get_context)
 # are now registered via register_all_mcp_tools() in mcp_tools.py
