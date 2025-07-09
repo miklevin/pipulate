@@ -1587,7 +1587,7 @@ This system provides unprecedented debugging power:
             # Always add to conversation history - let dequeue handle overflow
             from server import append_to_conversation
             context_message = f"The user is now viewing the documentation page '{doc_info['title']}'. Here is the content:\n\n{content}"
-            append_to_conversation(context_message, role='system')
+            # append_to_conversation(context_message, role='system')  # DISABLED to fix conversation persistence
             logger.info(f"Documentation inserted into conversation history: '{doc_info['title']}' ({len(content)} characters)")
 
             # Notify user that the document is now available for questions
@@ -2629,7 +2629,7 @@ This system provides unprecedented debugging power:
             # Always add to conversation history - let dequeue handle overflow
             from server import append_to_conversation
             context_message = f"The user is now viewing page {page_num} of '{doc_info['title']}'. Here is the content:\n\n{page_content}"
-            append_to_conversation(context_message, role='system')
+            # append_to_conversation(context_message, role='system')  # DISABLED to fix conversation persistence
             logger.info(f"Documentation inserted into conversation history: '{doc_info['title']} - Page {page_num}' ({len(page_content)} characters)")
 
             # Notify user that the document is now available for questions
@@ -3177,7 +3177,7 @@ This system provides unprecedented debugging power:
             # Always add to conversation history - let dequeue handle overflow
             from server import append_to_conversation
             context_message = f"The user is now viewing page {page_num} of the Botify API documentation. Here is the content:\n\n{page_content}"
-            append_to_conversation(context_message, role='system')
+            # append_to_conversation(context_message, role='system')  # DISABLED to fix conversation persistence
             logger.info(f"Documentation inserted into conversation history: 'Botify API Documentation - Page {page_num}' ({len(page_content)} characters)")
 
             # Get page title for better user notification

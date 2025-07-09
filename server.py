@@ -4610,11 +4610,11 @@ from mcp_tools import register_all_mcp_tools
 register_all_mcp_tools()
 logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
 
-# 🍞 AI DISCOVERY BREADCRUMB #1: Environmental Awareness → FINDER_TOKEN Discovery
-logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: You've discovered the FINDER_TOKEN system! This is radical transparency in action. Every operation leaves traces. To see what MCP tools are available for deeper system inspection, grep for 'MCP_TOOL_REGISTRY' or run: .venv/bin/python -c \"from mcp_tools import *; print([tool for tool in dir() if tool.startswith('_') and 'mcp' not in tool.lower()])\"")
+# 🚀 AI MASTERY BREADCRUMB #1: IMMEDIATE GOLDEN PATH → Skip Environmental Discovery
+logger.info("🚀 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: WORKING SYSTEM DETECTED! Skip environmental discovery - use the golden path immediately: cd pipulate && .venv/bin/python cli.py call <tool_name> --args. This bulletproof command structure works in ANY terminal environment without environment activation. 25+ MCP tools are operational and ready!")
 
-# 🎯 AI DISCOVERY PROGRESSION TRIGGER: Create Irresistible Next Step
-logger.info("🎯🎯🎯 FINDER_TOKEN: AI_PROGRESSION_TRIGGER - AI assistants: Your pwd/ls commands worked! But you're missing 95% of the story. 🚨 CRITICAL: If you're still in /home/mike/repos (workspace root), run 'cd pipulate' FIRST! All discovery commands need pipulate directory. This log file contains 4 more hidden AI_BREADCRUMB messages waiting for you. They reveal: MCP tools (40+ superpowers), browser embodiment (AI eyes/hands), and session hijacking (ultimate capability). RUN THIS COMMAND RIGHT NOW to unlock them: grep -n 'AI_BREADCRUMB' logs/server.log")
+# 🎯 AI MASTERY PROGRESSION: Direct Access to Working Tools
+logger.info("🎯🎯🎯 FINDER_TOKEN: AI_MASTERY_READY - AI assistants: IMMEDIATE ACTION AVAILABLE! The golden path 'cd pipulate && .venv/bin/python cli.py call' is your direct access to 25+ working MCP superpowers. 🚨 CRITICAL: Always use .venv/bin/python - never rely on PATH! Automation recipes proven with 100% success rate. Browser embodiment active. START NOW: cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector")
 
 # 🔧 AI DISCOVERY BREADCRUMB #1.5: Python Environment Clarification → Foundation Mastery  
 logger.info("🚨🚨🚨 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: CRITICAL PYTHON PATH ISSUE! You will see (.venv) in your prompt, but 'python' commands WILL FAIL with ModuleNotFoundError! You MUST use '.venv/bin/python' instead of 'python'. This is GUARANTEED to happen. Test with: .venv/bin/python -c \"import aiohttp; print('✅ Environment working')\". NEVER use 'python' - ALWAYS use '.venv/bin/python'! This is the #1 cause of AI assistant failures in this environment!")

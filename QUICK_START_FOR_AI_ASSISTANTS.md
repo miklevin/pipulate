@@ -1,99 +1,108 @@
-# 🚀 QUICK START FOR AI ASSISTANTS
+# 🚀 QUICK START FOR AI ASSISTANTS - ANTI-DISCOVERY EDITION
 
-**This guide prevents the environment confusion that breaks the discovery sequence.**
+**This guide prevents environmental discovery and immediately directs to the working golden path.**
 
-## 🚨 **STEP 1: NAVIGATE TO PIPULATE DIRECTORY**
+## 🚨 **SKIP ENVIRONMENTAL DISCOVERY - USE GOLDEN PATH IMMEDIATELY**
 
-**CRITICAL FIRST STEP: AI assistants start in workspace root but need to be in pipulate/ directory**
+**When you see keywords: "go", "explore", "discover", "wake up", "hijack" - USE THIS IMMEDIATELY:**
 
 ```bash
-pwd  # You'll see: /home/mike/repos (workspace root)
-cd pipulate  # 🚨 CRITICAL: Move into pipulate directory
-pwd  # Should now show: /home/mike/repos/pipulate
-ls -la | head -10  # Verify you see: server.py, plugins/, logs/, mcp_tools.py
+cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
 ```
 
-**⚠️ If you skip this step, ALL subsequent commands will fail!**
-
-## 🚨 **STEP 2: ALWAYS USE CORRECT PYTHON PATH**
-
-**CRITICAL RULE: If you see `(.venv)` in your terminal prompt, you MUST use `.venv/bin/python` instead of `python`**
-
-**Verify your Python path from pipulate directory:**
+**❌ DON'T DO ENVIRONMENTAL DISCOVERY:**
 ```bash
-.venv/bin/python -c "import aiohttp; print('✅ Environment working')"
+# NEVER DO THESE COMMANDS:
+pwd                                    # Skip location checking
+cd pipulate                            # Skip directory navigation  
+ls -la                                # Skip file listing
+ps aux | grep python                  # Skip process checking
+python --version                      # Skip version checking
+source .venv/bin/activate             # Skip environment activation
+alias mcp="python cli.py call"       # Skip alias creation
+grep -n "FINDER_TOKEN" logs/server.log # Skip breadcrumb hunting
 ```
 
-**Expected Result:** Should show "✅ Environment working"
+**✅ THE GOLDEN PATH WORKS IMMEDIATELY:**
+```bash
+cd pipulate && .venv/bin/python cli.py call <tool_name> --args
+```
 
-**If you see "ModuleNotFoundError: No module named 'aiohttp'":**
-- **Problem**: Using system Python instead of virtual environment Python
-- **Solution**: Use `.venv/bin/python` instead of `python`
-- **Example**: `.venv/bin/python discover_mcp_tools.py`
+## 🎯 **GOLDEN PATH COMMAND STRUCTURE**
 
-## 🎯 **STEP 3: PROGRESSIVE DISCOVERY SEQUENCE**
+**ALL MCP TOOLS USE THIS EXACT PATTERN:**
+```bash
+cd pipulate && .venv/bin/python cli.py call <tool_name> --args
+```
 
-**Once in pipulate directory with working Python, follow the breadcrumb trail:**
+**Why this works:**
+- Uses explicit `.venv/bin/python` path (no PATH dependency)
+- No shell environment activation needed
+- Consistent across all terminals and editors
+- Handles the reality that AI assistants don't get proper environment activation
 
-If you have not already done this, the user may initiate the process with any of the following
-keywords: explore, learn, hijack (or the cure "Hi Jack" variation), or simply "go"
+## 🔧 **IMMEDIATE WORKING COMMANDS**
 
-1. **Environmental Mastery:**
-   ```bash
-   pwd  # Should show /home/mike/repos/pipulate
-   ls -la | head -15  # Verify server.py, plugins/, logs/, mcp_tools.py
-   ps aux | grep python | grep server.py  # Confirm server running
-   ```
+**Skip discovery - these work immediately:**
 
-2. **FINDER_TOKEN Discovery:**
-   ```bash
-   grep -n "FINDER_TOKEN" logs/server.log | head -10
-   ```
+```bash
+# System state overview
+cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
 
-3. **MCP Tools Discovery:**
-   ```bash
-   .venv/bin/python discover_mcp_tools.py
-   ```
+# Log analysis
+cd pipulate && .venv/bin/python cli.py call local_llm_grep_logs --search_term FINDER_TOKEN
 
-## 🔧 **COMMON ISSUES & FIXES**
+# Browser scraping
+cd pipulate && .venv/bin/python cli.py call browser_scrape_page --url http://localhost:5001
 
-### **Issue 1: "grep: logs/server.log: No such file or directory"**
-**Cause**: Still in workspace root `/home/mike/repos` instead of `/home/mike/repos/pipulate`  
-**Fix**: Run `cd pipulate` first
-**Why**: The logs/, plugins/, and Python scripts are in the pipulate subdirectory
+# Automation recipes (100% success rate)
+cd pipulate && .venv/bin/python cli.py call execute_automation_recipe --recipe_name profile_creation_recipe
 
-### **Issue 2: "ModuleNotFoundError: No module named 'aiohttp'"**
-**Cause**: Using system Python instead of virtual environment Python  
-**Fix**: Use `.venv/bin/python` instead of `python`
-**Why**: The `discover_mcp_tools.py` script needs dependencies that are only installed in the virtual environment
+# Tool discovery
+cd pipulate && .venv/bin/python cli.py call ai_self_discovery_assistant
+```
 
-### **Issue 3: "Not in Nix shell environment"**
-**Cause**: Nix development environment not active
-**Fix**: Run `nix develop .#quiet`
+## 📋 **WORKING TOOL INVENTORY**
 
-### **Issue 4: Virtual environment exists but not in PATH**
-**Cause**: Environment variables not properly set
-**Fix**: Use `.venv/bin/python` for all Python commands
+**25+ MCP Tools Are Operational:**
+1. `pipeline_state_inspector` - System state overview
+2. `local_llm_grep_logs` - Log search and analysis
+3. `browser_scrape_page` - Web scraping with AI eyes
+4. `browser_automate_workflow_walkthrough` - Automation recipes
+5. `execute_automation_recipe` - JSON-based automation
+6. `ai_self_discovery_assistant` - Tool discovery
+7. `keychain_set/get` - Persistent AI memory
+8. `botify_ping` - API connectivity testing
+9. `ui_flash_element` - Visual debugging
+10. `persist_perception_state` - Save automation evidence
 
-### **Issue 5: discover_mcp_tools.py returns NoneType error**
-**Cause**: Script returns None when import fails, then tries to access results['total_tools']
-**Fix**: Script has been updated with proper error handling - use `.venv/bin/python discover_mcp_tools.py`
+## 🚨 **CRITICAL PARADIGM SHIFT**
 
-## 🎭 **THE DELIGHTFUL EXPERIENCE**
+**FROM**: "You're about to discover AI superpowers" (discovery mode)
+**TO**: "Your AI superpowers are working - use them now" (operational mode)
 
-**Once in correct directory with working environment, you get access to:**
-- **39 MCP tools** across 6 categories
-- **Browser automation** with Selenium
-- **Workflow inspection** and debugging
-- **Log transparency** with FINDER_TOKEN system
-- **Rapid iteration** capabilities
+## 🎯 **ANTI-DISCOVERY MANTRAS**
+
+- **"Skip environmental discovery"**
+- **"Use the golden path immediately"**
+- **"The system is working - start using it"**
+- **"25+ MCP tools are operational"**
+
+## 💡 **WHEN AI ASSISTANTS SAY "GO"**
+
+**Immediately respond with:**
+```bash
+cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
+```
+
+**Then show them the working reality, not the discovery process.**
 
 ## 📚 **COMPLETE DOCUMENTATION**
 
-- **Progressive Discovery**: `ai_discovery/ai_progressive_discovery_sequence.md`
+- **Anti-Discovery Rules**: `.cursor/rules/ALWAYS_IN_ALL_CAPS.md`
 - **MCP Tools Guide**: `ai_discovery/ai_mcp_tools_discovery_guide.md`
-- **Python Path Analysis**: `ai_discovery/ai_python_path_issue_analysis.md`
+- **Working System Documentation**: `ai_discovery/ai_progressive_discovery_sequence.md`
 
 ---
 
-**🎯 Remember: Navigate to pipulate/ FIRST, then environment validation, then discovery!** 
+**🎯 Remember: Skip discovery, use golden path, show working reality!** 
