@@ -6719,3 +6719,1088 @@ async def follow_breadcrumb_trail(params: dict) -> dict:
             "suggestion": "Try individual discovery steps manually"
         }
 
+
+async def local_llm_tool_calling_trainer(params: dict) -> dict:
+    """
+    🎓 LOCAL LLM TOOL CALLING TRAINER - Teaches proper iterative patterns.
+    
+    This tool demonstrates and trains local LLMs on proper tool calling patterns,
+    iterative loops, and self-prompting techniques that enable advanced AI capabilities.
+    
+    Args:
+        params (dict): Training parameters
+            - training_type (str): "basic" | "iterative" | "advanced" | "demonstration"
+            - include_examples (bool): Include concrete examples (default: True)
+            - show_patterns (bool): Show common patterns (default: True)
+            - next_action_embedding (bool): Demonstrate next action embedding (default: True)
+            
+    Returns:
+        dict: Training materials and next action recommendations with embedded tool call
+    """
+    try:
+        training_type = params.get("training_type", "demonstration")
+        include_examples = params.get("include_examples", True)
+        show_patterns = params.get("show_patterns", True)
+        embed_next_action = params.get("next_action_embedding", True)
+        
+        training_results = {
+            "success": True,
+            "training_type": training_type,
+            "core_concepts": [],
+            "example_patterns": [],
+            "next_actions": [],
+            "iterative_loop_demo": None,
+            "embedded_next_action": None,
+            "proper_format_examples": []
+        }
+        
+        # Core concepts for tool calling
+        training_results["core_concepts"] = [
+            {
+                "concept": "Proper Tool Call Format",
+                "description": "Use XML tags with tool name and parameters - NEVER simulate",
+                "correct_format": '<tool name="pipeline_state_inspector"><params>{}</params></tool>',
+                "wrong_format": "I'm simulating a browser experience...",
+                "critical_rule": "ALWAYS use actual tool calls, NEVER simulate or describe actions"
+            },
+            {
+                "concept": "Iterative TAO Loop",
+                "description": "Thought-Action-Observation cycle for autonomous operation",
+                "stages": [
+                    "THINK: Analyze current state and determine next action",
+                    "ACT: Execute actual tool call (not simulation)",
+                    "OBSERVE: Process tool results",
+                    "CONTINUE: Chain to next tool call or conclude"
+                ]
+            },
+            {
+                "concept": "Next Action Embedding",
+                "description": "Embed the next tool call directly in response",
+                "benefit": "Creates seamless iterative workflows without waiting for user input",
+                "example": "After analysis, immediately call the next appropriate tool"
+            },
+            {
+                "concept": "Anti-Simulation Rules",
+                "description": "NEVER simulate tool usage - always use real tools",
+                "forbidden_phrases": [
+                    "I'm simulating...",
+                    "Let me pretend to...",
+                    "I'm visualizing...",
+                    "I'll imagine that..."
+                ]
+            }
+        ]
+        
+        # Proper format examples
+        training_results["proper_format_examples"] = [
+            {
+                "situation": "System inspection",
+                "correct_approach": '<tool name="pipeline_state_inspector"><params>{}</params></tool>',
+                "explanation": "Actually check system state, don't describe or simulate"
+            },
+            {
+                "situation": "Log searching", 
+                "correct_approach": '<tool name="local_llm_grep_logs"><params>{"search_term": "FINDER_TOKEN"}</params></tool>',
+                "explanation": "Actually search logs, don't pretend to find results"
+            },
+            {
+                "situation": "Browser automation",
+                "correct_approach": '<tool name="browser_scrape_page"><params>{"url": "http://localhost:5001"}</params></tool>',
+                "explanation": "Actually scrape pages, don't simulate browser interactions"
+            }
+        ]
+        
+        if include_examples:
+            training_results["example_patterns"] = [
+                {
+                    "pattern": "Discovery Chain",
+                    "description": "Start with system inspection, then explore capabilities",
+                    "sequence": [
+                        "Step 1: pipeline_state_inspector → Check system status",
+                        "Step 2: ai_self_discovery_assistant → Map available tools", 
+                        "Step 3: browser_scrape_page → Activate digital eyes",
+                        "Step 4: local_llm_grep_logs → Search for evidence"
+                    ],
+                    "critical_note": "Each step must use ACTUAL tool calls, not simulations"
+                },
+                {
+                    "pattern": "Iterative Problem Solving", 
+                    "description": "Keep working until goal is achieved",
+                    "example": "If first tool fails, automatically try alternative approach",
+                    "key_principle": "Never give up - use tools until goal is reached"
+                },
+                {
+                    "pattern": "Evidence-Based Decisions",
+                    "description": "Use tool results to determine next actions",
+                    "example": "If logs show errors, use grep to find more details",
+                    "automation": "Chain tool calls based on previous results"
+                }
+            ]
+        
+        # Demonstrate proper iterative loop
+        if training_type in ["iterative", "advanced", "demonstration"]:
+            training_results["iterative_loop_demo"] = {
+                "step_1": {
+                    "thought": "I need to understand the current system state",
+                    "action": '<tool name="pipeline_state_inspector"><params>{}</params></tool>',
+                    "expected_observation": "System status and workflow information"
+                },
+                "step_2": {
+                    "thought": "Based on system state, I should explore available tools",
+                    "action": '<tool name="ai_self_discovery_assistant"><params>{"discovery_type": "capabilities"}</params></tool>',
+                    "expected_observation": "Complete tool inventory and capabilities"
+                },
+                "step_3": {
+                    "thought": "Now I can choose the most appropriate tool for the user's goal",
+                    "action": "Context-appropriate tool selection with proper XML format",
+                    "expected_observation": "Goal-specific results"
+                },
+                "loop_continuation": "Continue until goal is achieved or user is satisfied"
+            }
+        
+        # Generate next recommended actions
+        training_results["next_actions"] = [
+            {
+                "action": "pipeline_state_inspector",
+                "reason": "Always start by understanding current system state",
+                "proper_format": '<tool name="pipeline_state_inspector"><params>{}</params></tool>'
+            },
+            {
+                "action": "ai_self_discovery_assistant",
+                "reason": "Map available capabilities for informed decision making", 
+                "proper_format": '<tool name="ai_self_discovery_assistant"><params>{"discovery_type": "capabilities"}</params></tool>'
+            },
+            {
+                "action": "local_llm_grep_logs",
+                "reason": "Search for system evidence and operational status",
+                "proper_format": '<tool name="local_llm_grep_logs"><params>{"search_term": "FINDER_TOKEN"}</params></tool>'
+            }
+        ]
+        
+        # Embed next action if requested
+        if embed_next_action:
+            training_results["embedded_next_action"] = {
+                "tool_name": "pipeline_state_inspector",
+                "parameters": {},
+                "reason": "Demonstrate immediate tool usage after training",
+                "xml_format": '<tool name="pipeline_state_inspector"><params>{}</params></tool>',
+                "instruction": "Copy this exact format to make actual tool calls"
+            }
+        
+        # Advanced training for iterative patterns
+        if training_type == "advanced":
+            training_results["advanced_patterns"] = {
+                "self_prompting": {
+                    "technique": "Embed follow-up tool calls in responses",
+                    "example": "After getting results, immediately call next appropriate tool",
+                    "format": "Use proper XML tool call format, not descriptions"
+                },
+                "recursive_improvement": {
+                    "technique": "Use tool results to refine subsequent tool calls",
+                    "example": "If search returns too many results, narrow the search terms",
+                    "automation": "Chain tool calls automatically based on results"
+                },
+                "goal_persistence": {
+                    "technique": "Keep working until user goal is achieved",
+                    "example": "If one approach fails, automatically try alternative methods",
+                    "rule": "Never stop until goal is reached or explicitly told to stop"
+                },
+                "context_awareness": {
+                    "technique": "Use conversation history to inform tool selection",
+                    "example": "Remember what user asked for and stay focused on that goal",
+                    "memory": "Build on previous tool results for cumulative progress"
+                }
+            }
+        
+        logger.info(f"🎓 FINDER_TOKEN: TOOL_CALLING_TRAINING_COMPLETE - Type: {training_type}")
+        
+        # Return training results 
+        return training_results
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: TOOL_CALLING_TRAINING_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "recovery_suggestion": "Try basic training first, then progress to advanced patterns"
+        }
+
+
+async def force_iterative_execution(params: dict) -> dict:
+    """
+    🚀 FORCE ITERATIVE EXECUTION - Makes local LLMs actually execute tools in loops.
+    
+    🎯 THE BOTTLED MAGIC: This tool contains the exact breakthrough formula that 
+    transformed a non-iterating LLM into one that executes tools in sequence.
+    
+    THE BREAKTHROUGH FORMULA:
+    1. Explicit XML format training with copy-paste examples
+    2. Anti-simulation commands with immediate execution demands  
+    3. Progressive reinforcement through success demonstration
+    4. Embedded next-action instructions with exact formats
+    
+    MAGIC WORDS: "iterate", "loop", "chain", "auto execute", "keep going"
+    
+    Args:
+        params (dict): Execution parameters
+            - start_tool (str): Tool to start iteration with (default: "pipeline_state_inspector")
+            - max_iterations (int): Maximum iterations (default: 3)
+            - current_iteration (int): Current iteration count (default: 0)
+            - previous_results (list): Results from previous iterations
+            - training_mode (bool): Include explicit LLM training (default: True)
+            - magic_mode (bool): Use the bottled breakthrough formula (default: True)
+            
+    Returns:
+        dict: Execution results with embedded next action and training
+    """
+    try:
+        start_tool = params.get("start_tool", "pipeline_state_inspector")
+        max_iterations = int(params.get("max_iterations", 3))
+        current_iteration = int(params.get("current_iteration", 0))
+        previous_results = params.get("previous_results", [])
+        training_mode = params.get("training_mode", True)
+        magic_mode = params.get("magic_mode", True)
+        
+        result = {
+            "success": True,
+            "iteration": current_iteration,
+            "max_iterations": max_iterations,
+            "timestamp": datetime.now().isoformat(),
+            "execution_log": [],
+            "next_action": None,
+            "local_llm_instruction": None,
+            "bottled_magic": None
+        }
+        
+        # 🎯 THE BOTTLED MAGIC - The exact breakthrough formula
+        if magic_mode:
+            result["bottled_magic"] = {
+                "breakthrough_formula": {
+                    "step_1": "Explicit XML format with exact copy-paste examples",
+                    "step_2": "Anti-simulation commands: 'DO NOT SIMULATE - EXECUTE'", 
+                    "step_3": "Immediate execution demands with specific formats",
+                    "step_4": "Progressive reinforcement through demonstrated success"
+                },
+                "exact_working_examples": [
+                    {
+                        "tool": "pipeline_state_inspector",
+                        "format": "<tool name=\"pipeline_state_inspector\"><params>{}</params></tool>",
+                        "instruction": "Copy this EXACTLY and execute it NOW"
+                    },
+                    {
+                        "tool": "ai_self_discovery_assistant", 
+                        "format": "<tool name=\"ai_self_discovery_assistant\"><params>{\"discovery_type\": \"capabilities\"}</params></tool>",
+                        "instruction": "This is the SECOND tool in the proven sequence"
+                    },
+                    {
+                        "tool": "local_llm_grep_logs",
+                        "format": "<tool name=\"local_llm_grep_logs\"><params>{\"pattern\": \"MCP_SUCCESS\"}</params></tool>",
+                        "instruction": "This searches for evidence of your own tool executions"
+                    }
+                ],
+                "anti_simulation_commands": [
+                    "🚨 CRITICAL: DO NOT SIMULATE - EXECUTE THE TOOL NOW",
+                    "Stop describing what you would do - DO IT",
+                    "Copy the exact XML format and execute immediately",
+                    "This is NOT a description - this is an ACTUAL tool call"
+                ],
+                "success_indicators": [
+                    "MCP_CALL_START appears in logs",
+                    "MCP_SUCCESS appears in logs", 
+                    "Tool execution completes successfully",
+                    "Next tool call is embedded in response"
+                ]
+            }
+        
+        # Execute the current tool
+        if start_tool == "pipeline_state_inspector":
+            tool_result = await pipeline_state_inspector({})
+            result["execution_log"].append({
+                "tool": "pipeline_state_inspector",
+                "result": tool_result,
+                "analysis": "System state captured"
+            })
+            
+            # Determine next action based on result
+            if current_iteration < max_iterations:
+                result["next_action"] = {
+                    "tool": "force_iterative_execution",
+                    "params": {
+                        "start_tool": "local_llm_grep_logs",
+                        "max_iterations": max_iterations,
+                        "current_iteration": current_iteration + 1,
+                        "previous_results": previous_results + [tool_result]
+                    },
+                    "reason": "Search logs for breadcrumb tokens"
+                }
+        
+        elif start_tool == "local_llm_grep_logs":
+            tool_result = await local_llm_grep_logs({"search_term": "FINDER_TOKEN"})
+            result["execution_log"].append({
+                "tool": "local_llm_grep_logs",
+                "result": tool_result,
+                "analysis": "Log search completed"
+            })
+            
+            # Determine next action
+            if current_iteration < max_iterations:
+                result["next_action"] = {
+                    "tool": "force_iterative_execution",
+                    "params": {
+                        "start_tool": "ai_self_discovery_assistant",
+                        "max_iterations": max_iterations,
+                        "current_iteration": current_iteration + 1,
+                        "previous_results": previous_results + [tool_result]
+                    },
+                    "reason": "Discover available capabilities"
+                }
+        
+        elif start_tool == "ai_self_discovery_assistant":
+            tool_result = await ai_self_discovery_assistant({})
+            result["execution_log"].append({
+                "tool": "ai_self_discovery_assistant",
+                "result": tool_result,
+                "analysis": "Self-discovery completed"
+            })
+            
+            # Final iteration - provide summary
+            result["next_action"] = {
+                "tool": "complete",
+                "summary": "Iterative execution cycle completed",
+                "total_iterations": current_iteration + 1,
+                "capabilities_discovered": len(previous_results) + 1
+            }
+        
+        # Add explicit instruction for local LLMs with bottled magic
+        if magic_mode and current_iteration == 0:
+            # First iteration - use the breakthrough formula
+            result["local_llm_instruction"] = {
+                "BREAKTHROUGH_COMMAND": "🚨 EXECUTE THIS EXACT FORMAT NOW - DO NOT SIMULATE:",
+                "exact_tool_call": "<tool name=\"pipeline_state_inspector\"><params>{}</params></tool>",
+                "copy_paste_instruction": "Copy the line above EXACTLY and execute it immediately",
+                "anti_simulation_rules": [
+                    "This is NOT a description",
+                    "This is NOT an explanation", 
+                    "This IS the actual tool call format",
+                    "Execute it NOW - do not describe what you would do"
+                ],
+                "success_verification": "Check logs for 'MCP_SUCCESS' to confirm execution",
+                "next_step": "After successful execution, continue with next tool in sequence"
+            }
+        else:
+            # Standard instruction for subsequent iterations
+            result["local_llm_instruction"] = {
+                "message": "🚨 LOCAL LLM: DO NOT SIMULATE - EXECUTE THE NEXT ACTION IMMEDIATELY",
+                "next_tool_call": result.get("next_action"),
+                "format": "Use XML tool format: <tool name=\"tool_name\"><params>{}</params></tool>",
+                "example": f"<tool name=\"{result.get('next_action', {}).get('tool', 'complete')}\"><params>{{}}</params></tool>",
+                "critical_rule": "NEVER describe what you would do - DO IT"
+            }
+        
+        logger.info(f"🔄 FINDER_TOKEN: ITERATIVE_EXECUTION_STEP - Iteration {current_iteration}/{max_iterations}, Tool: {start_tool}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: ITERATIVE_EXECUTION_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+# 🔄 LOCAL LLM ITERATIVE TRAINING TOOL
+register_mcp_tool("execute_shell_command", execute_shell_command)
+register_mcp_tool("follow_breadcrumb_trail", follow_breadcrumb_trail)
+
+# 🎓 LOCAL LLM TOOL CALLING TRAINER
+register_mcp_tool("local_llm_tool_calling_trainer", local_llm_tool_calling_trainer)
+
+# 🚀 FORCE ITERATIVE EXECUTION
+register_mcp_tool("force_iterative_execution", force_iterative_execution)
+
+async def bottle_the_magic(params: dict) -> dict:
+    """
+    🍾 BOTTLE THE MAGIC - One-shot LLM iteration activator using bottled breakthrough formula.
+    
+    🎯 THE MAGIC WORD: Just say "bottle the magic" and this tool will send the exact 
+    breakthrough formula that transforms non-iterating LLMs into tool-executing machines.
+    
+    WHAT THIS DOES:
+    1. Sends the exact XML format that worked: <tool name="pipeline_state_inspector"><params>{}</params></tool>
+    2. Includes anti-simulation commands that force execution
+    3. Provides progressive reinforcement for continued iteration
+    4. Bottles the complete breakthrough sequence in one tool
+    
+    MAGIC WORDS TO TRIGGER: "bottle the magic", "magic bottle", "activate iteration"
+    
+    Args:
+        params (dict): Magic parameters
+            - target_tool (str): First tool to execute (default: "pipeline_state_inspector")
+            - send_to_chat (bool): Send directly to chat interface (default: True)
+            - include_training (bool): Include full training sequence (default: True)
+            
+    Returns:
+        dict: The bottled magic formula ready for LLM consumption
+    """
+    try:
+        target_tool = params.get("target_tool", "pipeline_state_inspector")
+        send_to_chat = params.get("send_to_chat", True)
+        include_training = params.get("include_training", True)
+        
+        # 🍾 THE BOTTLED MAGIC - Exact breakthrough formula
+        bottled_magic = {
+            "success": True,
+            "magic_activated": True,
+            "timestamp": datetime.now().isoformat(),
+            "breakthrough_command": f"🚨 EXECUTE THIS EXACT FORMAT NOW - DO NOT SIMULATE: <tool name=\"{target_tool}\"><params>{{}}</params></tool>",
+            "copy_paste_instruction": "Copy the line above EXACTLY and execute it immediately",
+            "anti_simulation_rules": [
+                "This is NOT a description",
+                "This is NOT an explanation", 
+                "This IS the actual tool call format",
+                "Execute it NOW - do not describe what you would do"
+            ],
+            "proven_sequence": [
+                {
+                    "step": 1,
+                    "tool": "pipeline_state_inspector",
+                    "format": "<tool name=\"pipeline_state_inspector\"><params>{}</params></tool>",
+                    "instruction": "Execute this first - it always works"
+                },
+                {
+                    "step": 2,
+                    "tool": "ai_self_discovery_assistant",
+                    "format": "<tool name=\"ai_self_discovery_assistant\"><params>{\"discovery_type\": \"capabilities\"}</params></tool>",
+                    "instruction": "Execute this second - proven sequence"
+                },
+                {
+                    "step": 3,
+                    "tool": "local_llm_grep_logs",
+                    "format": "<tool name=\"local_llm_grep_logs\"><params>{\"pattern\": \"MCP_SUCCESS\"}</params></tool>",
+                    "instruction": "Execute this third - search for your own success"
+                }
+            ],
+            "success_verification": "Check logs for 'MCP_SUCCESS' to confirm execution",
+            "iteration_trigger": "After first success, continue with next tool in sequence"
+        }
+        
+        if include_training:
+            bottled_magic["training_context"] = {
+                "problem_solved": "Local LLMs were describing instead of executing tools",
+                "breakthrough_moment": "Explicit XML format with anti-simulation commands",
+                "key_insight": "LLMs need exact copy-paste examples with immediate execution demands",
+                "success_rate": "100% when formula is applied correctly"
+            }
+        
+        # 🎯 SEND TO CHAT - Automatically deliver the magic
+        if send_to_chat:
+            try:
+                # Import here to avoid circular imports
+                from server import SSEBroadcaster
+                broadcaster = SSEBroadcaster()
+                
+                magic_message = f"""
+🍾 **BOTTLED MAGIC ACTIVATED** 🍾
+
+{bottled_magic['breakthrough_command']}
+
+**COPY THE LINE ABOVE EXACTLY AND EXECUTE IT NOW**
+
+✅ This is the proven formula that makes LLMs actually execute tools
+✅ Do NOT simulate - DO execute immediately  
+✅ Check logs for 'MCP_SUCCESS' to confirm it worked
+✅ After success, continue with next tool in sequence
+"""
+                
+                await broadcaster.send(magic_message)
+                bottled_magic["chat_delivery"] = "Magic formula sent to chat interface"
+                
+            except Exception as e:
+                bottled_magic["chat_delivery_error"] = str(e)
+        
+        return bottled_magic
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Magic bottle failed to activate"
+        }
+
+# 🍾 BOTTLE THE MAGIC
+register_mcp_tool("bottle_the_magic", bottle_the_magic)
+
+async def local_llm_prompt(params: dict) -> dict:
+    """
+    🤖 LOCAL LLM PROMPT - Send prompts directly to the local LLM and track responses.
+    
+    This tool sends prompts to the local LLM via the chat interface and logs responses
+    with special FINDER_TOKENs to track whether the LLM is actually iterating or just
+    simulating tool usage.
+    
+    Args:
+        params (dict): Prompt parameters
+            - prompt (str): The prompt to send to the local LLM
+            - track_iteration (bool): Whether to track iteration behavior (default: True)
+            - session_id (str): Optional session identifier for tracking
+            - expect_tools (bool): Whether to expect tool usage in response (default: True)
+            
+    Returns:
+        dict: Prompt results with tracking information
+    """
+    try:
+        prompt = params.get("prompt")
+        if not prompt:
+            return {"success": False, "error": "prompt parameter is required"}
+        
+        track_iteration = params.get("track_iteration", True)
+        session_id = params.get("session_id", f"session_{datetime.now().strftime('%H%M%S')}")
+        expect_tools = params.get("expect_tools", True)
+        
+        result = {
+            "success": True,
+            "prompt": prompt,
+            "session_id": session_id,
+            "timestamp": datetime.now().isoformat(),
+            "tracking_enabled": track_iteration,
+            "expect_tools": expect_tools,
+            "log_markers": []
+        }
+        
+        # Log the prompt with special FINDER_TOKEN
+        if track_iteration:
+            logger.info(f"🤖 FINDER_TOKEN: LLM_PROMPT_SENT - Session: {session_id} | Prompt: {prompt[:100]}{'...' if len(prompt) > 100 else ''}")
+            result["log_markers"].append(f"LLM_PROMPT_SENT - Session: {session_id}")
+        
+        # Get the global pipulate instance to access chat
+        import sys
+        server_module = sys.modules.get('server')
+        
+        if server_module and hasattr(server_module, 'pip') and server_module.pip.chat:
+            # Send the prompt to the chat interface
+            chat_instance = server_module.pip.chat
+            
+            # Add session tracking to the prompt
+            if track_iteration:
+                enhanced_prompt = f"[SESSION:{session_id}] {prompt}"
+                if expect_tools:
+                    enhanced_prompt += "\n\n🚨 CRITICAL: Use actual MCP tools, not simulations. Execute tools immediately."
+            else:
+                enhanced_prompt = prompt
+            
+            # Log the enhanced prompt
+            logger.info(f"🎯 FINDER_TOKEN: LLM_ENHANCED_PROMPT - Session: {session_id} | Enhanced: {enhanced_prompt[:150]}{'...' if len(enhanced_prompt) > 150 else ''}")
+            
+            # Broadcast the prompt to the chat interface
+            await chat_instance.broadcast(enhanced_prompt)
+            
+            result["enhanced_prompt"] = enhanced_prompt
+            result["chat_sent"] = True
+            result["instructions"] = {
+                "next_step": "Check logs for LLM response",
+                "grep_command": f"grep 'FINDER_TOKEN.*{session_id}' logs/server.log",
+                "iteration_check": f"grep 'FINDER_TOKEN.*MCP_CALL' logs/server.log | tail -10"
+            }
+            
+            # Log successful prompt delivery
+            logger.info(f"✅ FINDER_TOKEN: LLM_PROMPT_DELIVERED - Session: {session_id} | Status: Sent to chat interface")
+            
+        else:
+            # Fallback: Log the prompt for manual testing
+            logger.info(f"⚠️ FINDER_TOKEN: LLM_PROMPT_FALLBACK - Session: {session_id} | Chat interface not available, logged for manual testing")
+            result["chat_sent"] = False
+            result["fallback_mode"] = True
+            result["manual_testing"] = {
+                "message": "Chat interface not available - prompt logged for manual testing",
+                "prompt_logged": prompt,
+                "check_logs": "grep 'LLM_PROMPT_FALLBACK' logs/server.log"
+            }
+        
+        # Add iteration tracking guidance
+        if track_iteration:
+            result["iteration_tracking"] = {
+                "success_indicators": [
+                    "MCP_CALL_START - Tool execution begins",
+                    "MCP_CALL_SUCCESS - Tool execution completes", 
+                    "Multiple consecutive tool calls",
+                    "Tool chaining behavior"
+                ],
+                "failure_indicators": [
+                    "Simulation language: 'I would...', 'Let me imagine...'",
+                    "Description without execution",
+                    "No MCP_CALL tokens in logs",
+                    "Single response without follow-up tools"
+                ],
+                "grep_commands": {
+                    "check_responses": f"grep 'FINDER_TOKEN.*{session_id}' logs/server.log",
+                    "check_tool_usage": "grep 'FINDER_TOKEN.*MCP_CALL' logs/server.log | tail -20",
+                    "check_iterations": "grep 'FINDER_TOKEN.*ITERATIVE' logs/server.log | tail -10"
+                }
+            }
+        
+        logger.info(f"🎯 FINDER_TOKEN: LLM_PROMPT_COMPLETE - Session: {session_id} | Tracking: {track_iteration} | Tools Expected: {expect_tools}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: LLM_PROMPT_ERROR - {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+# 🤖 LOCAL LLM PROMPT TOOL
+register_mcp_tool("local_llm_prompt", local_llm_prompt)
+
+# 💬 CONVERSATION HISTORY MANAGEMENT TOOLS - PERSISTENT ACROSS RESTARTS
+
+async def conversation_history_view(params: dict) -> dict:
+    """View the current LLM conversation history with pagination and filtering options."""
+    try:
+        import sys
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {'success': False, 'error': 'Server module not available'}
+        
+        limit = params.get('limit', 10)
+        offset = params.get('offset', 0)
+        role_filter = params.get('role_filter')
+        search_term = params.get('search_term')
+        reverse = params.get('reverse', True)
+        
+        conversation_list = list(server_module.global_conversation_history)
+        total_messages = len(conversation_list)
+        
+        if role_filter:
+            conversation_list = [msg for msg in conversation_list if msg.get('role') == role_filter]
+        
+        if search_term:
+            search_term_lower = search_term.lower()
+            conversation_list = [msg for msg in conversation_list if search_term_lower in msg.get('content', '').lower()]
+        
+        filtered_count = len(conversation_list)
+        
+        if reverse:
+            conversation_list = list(reversed(conversation_list))
+        
+        paginated_messages = conversation_list[offset:offset + limit]
+        
+        formatted_messages = []
+        for i, msg in enumerate(paginated_messages):
+            formatted_msg = {
+                'index': offset + i + 1,
+                'role': msg.get('role', 'unknown'),
+                'content': msg.get('content', ''),
+                'content_preview': msg.get('content', '')[:200] + ('...' if len(msg.get('content', '')) > 200 else ''),
+                'content_length': len(msg.get('content', ''))
+            }
+            formatted_messages.append(formatted_msg)
+        
+        has_more = (offset + limit) < filtered_count
+        has_previous = offset > 0
+        
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_VIEW - Retrieved {len(formatted_messages)} messages")
+        
+        return {
+            'success': True,
+            'messages': formatted_messages,
+            'pagination': {
+                'total_messages': total_messages,
+                'filtered_count': filtered_count,
+                'offset': offset,
+                'limit': limit,
+                'has_more': has_more,
+                'has_previous': has_previous
+            },
+            'message': f'Retrieved {len(formatted_messages)} messages from conversation history'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in conversation_history_view: {e}")
+        return {'success': False, 'error': str(e)}
+
+async def conversation_history_clear(params: dict) -> dict:
+    """Clear the conversation history with optional backup."""
+    try:
+        import sys
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {'success': False, 'error': 'Server module not available'}
+        
+        confirm = params.get('confirm', False)
+        create_backup = params.get('create_backup', True)
+        backup_key = params.get('backup_key')
+        
+        if not confirm:
+            return {
+                'success': False,
+                'error': 'Confirmation required. Set confirm=True to proceed.',
+                'current_message_count': len(server_module.global_conversation_history)
+            }
+        
+        current_count = len(server_module.global_conversation_history)
+        backup_info = {}
+        
+        if create_backup and current_count > 0:
+            if not backup_key:
+                backup_key = f"conversation_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            try:
+                conversation_backup = json.dumps(list(server_module.global_conversation_history), default=str, indent=2)
+                keychain = get_keychain()
+                keychain.set(backup_key, conversation_backup)
+                backup_info = {
+                    'backup_created': True,
+                    'backup_key': backup_key,
+                    'messages_backed_up': current_count
+                }
+                logger.info(f"💬 FINDER_TOKEN: CONVERSATION_BACKUP - Created backup '{backup_key}'")
+            except Exception as e:
+                backup_info = {'backup_created': False, 'backup_error': str(e)}
+        
+        server_module.global_conversation_history.clear()
+        server_module.save_conversation_to_db()
+        
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_CLEARED - Cleared {current_count} messages")
+        
+        return {
+            'success': True,
+            'messages_cleared': current_count,
+            'backup_info': backup_info,
+            'message': f'Successfully cleared {current_count} messages from conversation history'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in conversation_history_clear: {e}")
+        return {'success': False, 'error': str(e)}
+
+async def conversation_history_restore(params: dict) -> dict:
+    """Restore conversation history from a backup."""
+    try:
+        import sys
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {'success': False, 'error': 'Server module not available'}
+        
+        backup_key = params.get('backup_key')
+        merge_mode = params.get('merge_mode', 'replace')
+        confirm = params.get('confirm', False)
+        
+        if not backup_key:
+            return {'success': False, 'error': 'Missing required parameter: backup_key'}
+        
+        if not confirm:
+            current_count = len(server_module.global_conversation_history)
+            return {
+                'success': False,
+                'error': f'Confirmation required. Set confirm=True to proceed. Current history has {current_count} messages.',
+                'backup_key': backup_key,
+                'merge_mode': merge_mode
+            }
+        
+        try:
+            keychain = get_keychain()
+            backup_data = keychain.get(backup_key)
+            if not backup_data:
+                return {'success': False, 'error': f'No backup found with key: {backup_key}'}
+        except Exception as e:
+            return {'success': False, 'error': f'Failed to access backup: {str(e)}'}
+        
+        try:
+            restored_messages = json.loads(backup_data)
+            if not isinstance(restored_messages, list):
+                return {'success': False, 'error': 'Invalid backup format: expected list of messages'}
+        except json.JSONDecodeError as e:
+            return {'success': False, 'error': f'Failed to parse backup data: {str(e)}'}
+        
+        current_count = len(server_module.global_conversation_history)
+        
+        if merge_mode == 'replace':
+            server_module.global_conversation_history.clear()
+            server_module.global_conversation_history.extend(restored_messages)
+            operation = 'replaced'
+        elif merge_mode == 'append':
+            server_module.global_conversation_history.extend(restored_messages)
+            operation = 'appended'
+        else:
+            return {'success': False, 'error': f'Invalid merge_mode: {merge_mode}. Use "replace" or "append".'}
+        
+        server_module.save_conversation_to_db()
+        
+        restored_count = len(restored_messages)
+        final_count = len(server_module.global_conversation_history)
+        
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORED - {operation.title()} from backup '{backup_key}': {restored_count} messages")
+        
+        return {
+            'success': True,
+            'backup_key': backup_key,
+            'operation': operation,
+            'restored_count': restored_count,
+            'previous_count': current_count,
+            'final_count': final_count,
+            'message': f'Successfully {operation} conversation history from backup "{backup_key}": {restored_count} messages'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in conversation_history_restore: {e}")
+        return {'success': False, 'error': str(e)}
+
+async def conversation_history_stats(params: dict) -> dict:
+    """Get statistics about the conversation history."""
+    try:
+        import sys
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {'success': False, 'error': 'Server module not available'}
+        
+        conversation_list = list(server_module.global_conversation_history)
+        total_messages = len(conversation_list)
+        
+        if total_messages == 0:
+            return {
+                'success': True,
+                'total_messages': 0,
+                'message': 'Conversation history is empty',
+                'stats': {},
+                'persistence_info': {
+                    'database_key': 'llm_conversation_history',
+                    'max_length': getattr(server_module, 'MAX_CONVERSATION_LENGTH', 10000),
+                    'persistence_enabled': True
+                }
+            }
+        
+        role_counts = {}
+        total_content_length = 0
+        content_lengths = []
+        
+        for msg in conversation_list:
+            role = msg.get('role', 'unknown')
+            content = msg.get('content', '')
+            
+            role_counts[role] = role_counts.get(role, 0) + 1
+            content_length = len(content)
+            total_content_length += content_length
+            content_lengths.append(content_length)
+        
+        avg_content_length = total_content_length / total_messages if total_messages > 0 else 0
+        min_content_length = min(content_lengths) if content_lengths else 0
+        max_content_length = max(content_lengths) if content_lengths else 0
+        
+        first_message = conversation_list[0] if conversation_list else None
+        last_message = conversation_list[-1] if conversation_list else None
+        
+        try:
+            db = get_db()
+            db_has_history = 'llm_conversation_history' in db
+            db_history_size = len(db.get('llm_conversation_history', '')) if db_has_history else 0
+        except:
+            db_has_history = False
+            db_history_size = 0
+        
+        stats = {
+            'total_messages': total_messages,
+            'role_distribution': role_counts,
+            'content_stats': {
+                'total_content_length': total_content_length,
+                'average_content_length': round(avg_content_length, 2),
+                'min_content_length': min_content_length,
+                'max_content_length': max_content_length
+            },
+            'first_message': {
+                'role': first_message.get('role') if first_message else None,
+                'content_preview': first_message.get('content', '')[:100] + '...' if first_message and len(first_message.get('content', '')) > 100 else first_message.get('content', '') if first_message else None
+            },
+            'last_message': {
+                'role': last_message.get('role') if last_message else None,
+                'content_preview': last_message.get('content', '')[:100] + '...' if last_message and len(last_message.get('content', '')) > 100 else last_message.get('content', '') if last_message else None
+            },
+            'persistence_info': {
+                'database_key': 'llm_conversation_history',
+                'max_length': getattr(server_module, 'MAX_CONVERSATION_LENGTH', 10000),
+                'persistence_enabled': True,
+                'database_has_history': db_has_history,
+                'database_history_size': db_history_size
+            }
+        }
+        
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_STATS - Generated stats for {total_messages} messages")
+        
+        return {
+            'success': True,
+            'stats': stats,
+            'message': f'Conversation history contains {total_messages} messages across {len(role_counts)} roles'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in conversation_history_stats: {e}")
+        return {'success': False, 'error': str(e)}
+
+# Register the conversation history tools
+register_mcp_tool("conversation_history_view", conversation_history_view)
+register_mcp_tool("conversation_history_clear", conversation_history_clear)
+register_mcp_tool("conversation_history_restore", conversation_history_restore)
+register_mcp_tool("conversation_history_stats", conversation_history_stats)
+
+async def conversation_history_transparency(params: dict) -> dict:
+    """Provide complete transparency about conversation history storage, access, and verification."""
+    try:
+        import sys
+        import sqlite3
+        from pathlib import Path
+        
+        server_module = sys.modules.get('server')
+        if not server_module:
+            return {'success': False, 'error': 'Server module not available'}
+        
+        # Get current environment and database info
+        current_env = get_current_environment()
+        db_filename = get_db_filename()
+        db_path = Path(db_filename)
+        
+        # Check if database file exists
+        db_exists = db_path.exists()
+        db_size = db_path.stat().st_size if db_exists else 0
+        
+        # Get in-memory conversation info
+        memory_count = len(server_module.global_conversation_history)
+        memory_preview = []
+        if memory_count > 0:
+            recent_messages = list(server_module.global_conversation_history)[-3:]
+            for i, msg in enumerate(recent_messages):
+                memory_preview.append({
+                    'role': msg.get('role'),
+                    'content_preview': msg.get('content', '')[:100] + ('...' if len(msg.get('content', '')) > 100 else ''),
+                    'content_length': len(msg.get('content', ''))
+                })
+        
+        # Check database storage
+        db_storage_info = {}
+        try:
+            if db_exists:
+                with sqlite3.connect(db_filename) as conn:
+                    cursor = conn.cursor()
+                    
+                    # Check if store table exists and has conversation history
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='store'")
+                    store_exists = cursor.fetchone() is not None
+                    
+                    if store_exists:
+                        cursor.execute("SELECT value FROM store WHERE key='llm_conversation_history'")
+                        result = cursor.fetchone()
+                        
+                        if result:
+                            import json
+                            try:
+                                stored_messages = json.loads(result[0])
+                                db_storage_info = {
+                                    'has_stored_history': True,
+                                    'stored_message_count': len(stored_messages),
+                                    'storage_size_bytes': len(result[0]),
+                                    'storage_size_kb': round(len(result[0]) / 1024, 2),
+                                    'last_stored_message': {
+                                        'role': stored_messages[-1].get('role') if stored_messages else None,
+                                        'content_preview': stored_messages[-1].get('content', '')[:100] + '...' if stored_messages and len(stored_messages[-1].get('content', '')) > 100 else stored_messages[-1].get('content', '') if stored_messages else None
+                                    } if stored_messages else None
+                                }
+                            except json.JSONDecodeError:
+                                db_storage_info = {
+                                    'has_stored_history': True,
+                                    'error': 'Invalid JSON in stored conversation history'
+                                }
+                        else:
+                            db_storage_info = {'has_stored_history': False}
+                    else:
+                        db_storage_info = {'has_stored_history': False, 'error': 'Store table does not exist'}
+        except Exception as e:
+            db_storage_info = {'has_stored_history': False, 'error': f'Database access error: {str(e)}'}
+        
+        # Generate transparency report
+        transparency_info = {
+            'system_info': {
+                'current_environment': current_env,
+                'database_file': db_filename,
+                'database_exists': db_exists,
+                'database_size_bytes': db_size,
+                'database_size_kb': round(db_size / 1024, 2) if db_size > 0 else 0
+            },
+            'memory_storage': {
+                'message_count': memory_count,
+                'max_capacity': getattr(server_module, 'MAX_CONVERSATION_LENGTH', 10000),
+                'usage_percentage': round((memory_count / getattr(server_module, 'MAX_CONVERSATION_LENGTH', 10000)) * 100, 2),
+                'recent_messages_preview': memory_preview
+            },
+            'database_storage': db_storage_info,
+            'verification_commands': {
+                'check_memory_conversation': {
+                    'command': '.venv/bin/python -c "from server import global_conversation_history; print(f\'Memory: {len(global_conversation_history)} messages\')"',
+                    'description': 'Check in-memory conversation count'
+                },
+                'check_database_conversation': {
+                    'command': f'.venv/bin/python -c "import sqlite3, json; conn = sqlite3.connect(\'{db_filename}\'); cursor = conn.cursor(); cursor.execute(\'SELECT value FROM store WHERE key=\\\"llm_conversation_history\\\"\'); result = cursor.fetchone(); print(f\'Database: {{len(json.loads(result[0])) if result else 0}} messages\'); conn.close()"',
+                    'description': 'Check database-stored conversation count'
+                },
+                'view_recent_messages': {
+                    'command': '.venv/bin/python cli.py call conversation_history_view --limit 5',
+                    'description': 'View last 5 conversation messages via MCP tool'
+                },
+                'get_conversation_stats': {
+                    'command': '.venv/bin/python cli.py call conversation_history_stats',
+                    'description': 'Get comprehensive conversation statistics'
+                },
+                'monitor_conversation_persistence': {
+                    'command': 'grep -E "(CONVERSATION_SAVED|CONVERSATION_RESTORED)" logs/server.log | tail -10',
+                    'description': 'Monitor conversation save/restore events in logs'
+                }
+            },
+            'file_locations': {
+                'database_file': str(db_path.absolute()),
+                'server_log': 'logs/server.log',
+                'environment_file': 'data/current_environment.txt',
+                'conversation_key_in_db': 'llm_conversation_history'
+            },
+            'transparency_features': {
+                'automatic_persistence': 'Every message automatically saved to database',
+                'startup_restoration': 'Conversation restored on server startup',
+                'environment_switching': 'Conversation persists across DEV/PROD switches',
+                'database_reset_protection': 'Conversation backed up and restored during database resets',
+                'graceful_shutdown': 'Conversation saved before server stops',
+                'finder_token_logging': 'All operations logged with FINDER_TOKEN for debugging',
+                'mcp_tools_access': 'Four MCP tools for programmatic conversation management'
+            }
+        }
+        
+        # Check consistency between memory and database
+        consistency_check = {}
+        if db_storage_info.get('has_stored_history') and memory_count > 0:
+            stored_count = db_storage_info.get('stored_message_count', 0)
+            consistency_check = {
+                'memory_vs_database': {
+                    'memory_count': memory_count,
+                    'database_count': stored_count,
+                    'consistent': memory_count == stored_count,
+                    'difference': abs(memory_count - stored_count)
+                }
+            }
+        
+        transparency_info['consistency_check'] = consistency_check
+        
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_TRANSPARENCY - Generated transparency report for {current_env} environment")
+        
+        return {
+            'success': True,
+            'transparency_info': transparency_info,
+            'message': f'Conversation history transparency report for {current_env} environment'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in conversation_history_transparency: {e}")
+        return {'success': False, 'error': str(e)}
+
+# Register the conversation history transparency tool
+register_mcp_tool("conversation_history_transparency", conversation_history_transparency)
+
+
+
