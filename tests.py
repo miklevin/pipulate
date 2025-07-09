@@ -214,62 +214,6 @@ def test_profile_regression_sentry(mode, headless):
 
 # ============================================================================
 
-def run_test_command(command, description):
-    """Run a single test command and return success status."""
-    log_message(f"Running: {description}")
-    
-    try:
-        # For Python function calls via -c, execute directly
-        if "from tests import" in command:
-            # Extract the function call
-            import re
-            match = re.search(r'(\w+)\(\'(\w+)\', (\w+)\)', command)
-            if match:
-                func_name = match.group(1)
-                mode = match.group(2)
-                headless = match.group(3) == 'True'
-                
-                # Get the function from globals and call it
-                test_func = globals().get(func_name)
-                if test_func:
-                    result = test_func(mode, headless)
-                    if result:
-                        log_message(f"✅ PASSED: {description}", "SUCCESS")
-                        return True
-                    else:
-                        log_message(f"❌ FAILED: {description}", "ERROR")
-                        return False
-                else:
-                    log_message(f"💥 ERROR: Function {func_name} not found", "ERROR")
-                    return False
-            else:
-                log_message(f"💥 ERROR: Could not parse command: {command}", "ERROR")
-                return False
-        else:
-            # Fall back to subprocess for other commands
-            cmd_parts = command.split()
-            result = subprocess.run(cmd_parts, cwd='.', capture_output=True, text=True, timeout=60)
-            
-            if result.returncode == 0:
-                log_message(f"✅ PASSED: {description}", "SUCCESS")
-                if result.stdout.strip():
-                    print(result.stdout)
-                return True
-            else:
-                log_message(f"❌ FAILED: {description}", "ERROR")
-                if result.stderr.strip():
-                    print(f"STDERR: {result.stderr}")
-                if result.stdout.strip():
-                    print(f"STDOUT: {result.stdout}")
-                return False
-            
-    except subprocess.TimeoutExpired:
-        log_message(f"⏰ TIMEOUT: {description}", "ERROR")
-        return False
-    except Exception as e:
-        log_message(f"💥 ERROR: {description} - {e}", "ERROR")
-        return False
-
 def main():
     """Run the master test suite."""
     
@@ -280,17 +224,11 @@ def main():
     if len(sys.argv) > 1:
         MODE = sys.argv[1].upper()
     
-    # Generate test commands with current mode
+    # Test functions - all self-contained in this file
     TESTS = [
-        f".venv/bin/python tests/tests/test_database_environment_binding.py {MODE} --headless={str(HEADLESS).lower()}",
-        f".venv/bin/python tests/tests/test_minidataapi_profile_integration.py {MODE} --headless={str(HEADLESS).lower()}",
-        f".venv/bin/python tests/tests/test_profile_regression_sentry.py {MODE} --headless={str(HEADLESS).lower()}"
-    ]
-    
-    TEST_DESCRIPTIONS = [
-        "Database Environment Binding - Verify profiles hit correct DB files",
-        "MiniDataAPI Profile Integration - Full web UI to database workflow", 
-        "Profile Regression Sentry - Guard against MiniDataAPI pattern breaks"
+        ("test_database_environment_binding", "Database Environment Binding - Verify profiles hit correct DB files"),
+        ("test_minidataapi_profile_integration", "MiniDataAPI Profile Integration - Full web UI to database workflow"),
+        ("test_profile_regression_sentry", "Profile Regression Sentry - Guard against MiniDataAPI pattern breaks")
     ]
     
     log_message("�� PIPULATE MASTER TEST SUITE", "HEADER")
@@ -303,20 +241,31 @@ def main():
     if not HEADLESS:
         log_message("🔍 Browser tests will be VISIBLE - this builds confidence in automation!", "SUCCESS")
     
-    log_message("📋 Individual test commands (copy-pasteable):")
-    log_message(f"     💡 To run with different mode: Replace '{MODE}' with 'DEV' or 'PROD' in commands below")
-    for i, test in enumerate(TESTS):
-        print(f"  {i+1}. {test}")
+    log_message("📋 All tests are self-contained in this file (no external dependencies):")
+    log_message(f"     💡 To run with different mode: python tests.py DEV or python tests.py PROD")
+    for i, (test_func, description) in enumerate(TESTS):
+        print(f"  {i+1}. {description}")
     print()
     
-    # Run all tests
+    # Run all tests using internal functions
     passed = 0
     total = len(TESTS)
     
-    for i, (test, description) in enumerate(zip(TESTS, TEST_DESCRIPTIONS)):
+    for i, (test_func_name, description) in enumerate(TESTS):
         log_message(f"Test {i+1}/{total}: {description}")
-        if run_test_command(test, description):
-            passed += 1
+        
+        # Get the test function from globals and call it
+        test_func = globals()[test_func_name]
+        try:
+            result = test_func(MODE, HEADLESS)
+            if result:
+                log_message(f"✅ PASSED: {description}", "SUCCESS")
+                passed += 1
+            else:
+                log_message(f"❌ FAILED: {description}", "ERROR")
+        except Exception as e:
+            log_message(f"💥 ERROR: {description} - {e}", "ERROR")
+        
         print()  # Spacing between tests
     
     # Summary
