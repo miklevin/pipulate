@@ -604,6 +604,7 @@ def setup_logging():
     
     return logger
 
+
 # 🔧 FINDER_TOKEN: rotate_looking_at_directory moved to mcp_tools.py to eliminate circular imports
 
 # Initialize logger BEFORE any functions that need it

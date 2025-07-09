@@ -112,42 +112,6 @@ def apply_timing_preset(preset_name: str):
 apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
 
 # ================================================================
-# DATABASE FILENAME UTILITIES - Match server.py logic exactly
-# ================================================================
-
-def get_app_name():
-    """Get the name of the app from the app_name.txt file, or the parent directory name."""
-    app_name_file = 'app_name.txt'
-    if Path(app_name_file).exists():
-        try:
-            return Path(app_name_file).read_text().strip().capitalize()
-        except:
-            pass
-    # Fallback to directory name
-    name = Path(__file__).parent.name
-    name = name[:-5] if name.endswith('-main') else name
-    return name.capitalize()
-
-def get_current_environment():
-    """Get current environment from file, defaulting to Development."""
-    env_file = Path('data/current_environment.txt')
-    if env_file.exists():
-        try:
-            return env_file.read_text().strip()
-        except:
-            pass
-    return 'Development'
-
-def get_db_filename():
-    """Get the database filename using the same logic as server.py."""
-    app_name = get_app_name()
-    current_env = get_current_environment()
-    if current_env == 'Development':
-        return f'data/{app_name.lower()}_dev.db'
-    else:
-        return f'data/{app_name.lower()}.db'
-
-# ================================================================
 # BROWSER AUTOMATION UTILITIES
 # ================================================================
 
