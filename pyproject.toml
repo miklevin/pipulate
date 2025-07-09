@@ -5,7 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pipulate"
 # VERSION NOTE: Synced from pipulate/__init__.py.__version__ via python version_sync.py
+<<<<<<< ours
 version = "1.1.1"
+=======
+version = "1.1.1"
+>>>>>>> theirs
 authors = [
   { name="Mike Levin", email="pipulate@gmail.com" },
 ]

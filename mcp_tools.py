@@ -6331,12 +6331,13 @@ async def persist_perception_state(params: dict) -> dict:
 
 async def server_reboot(params: dict) -> dict:
     """
-    Reboot the Pipulate server by killing the current process and starting a new one.
+    Gracefully reboot the Pipulate server using the watchdog system.
     
-    This tool performs a complete server restart by:
-    1. Killing any existing "python server.py" processes
-    2. Starting a new server instance
-    3. Verifying the server is responding at http://localhost:5001/
+    This tool performs an elegant server restart by:
+    1. Checking if the server is currently running
+    2. If running, touching server.py to trigger watchdog restart
+    3. If not running, falling back to direct start
+    4. Verifying the server responds after restart
     
     Args:
         params: Dictionary (no parameters required)
@@ -6349,69 +6350,76 @@ async def server_reboot(params: dict) -> dict:
         import asyncio
         import os
         import aiohttp
+        from pathlib import Path
         
-        # Kill existing server processes
-        kill_result = subprocess.run(
-            ['pkill', '-f', 'python server.py'],
+        # Check if server is currently running
+        check_process = subprocess.run(
+            ['pgrep', '-f', 'python server.py'],
             capture_output=True,
             text=True
         )
+        server_was_running = check_process.returncode == 0
+        server_pids = check_process.stdout.strip().split('\n') if server_was_running else []
         
-        # Wait a moment for processes to terminate
-        await asyncio.sleep(1)
+        if server_was_running:
+            # Elegant approach: Touch server.py to trigger watchdog restart
+            server_py_path = Path('server.py')
+            if server_py_path.exists():
+                server_py_path.touch()
+                restart_method = "watchdog_triggered"
+                restart_details = f"Touched server.py to trigger watchdog restart (PIDs: {', '.join(server_pids)})"
+            else:
+                return {
+                    "success": False,
+                    "error": "server.py not found in current directory",
+                    "current_directory": os.getcwd(),
+                    "message": "Cannot trigger watchdog restart - server.py missing"
+                }
+        else:
+            # Fallback: Start server directly since it's not running
+            start_result = subprocess.Popen(
+                ['.venv/bin/python', 'server.py'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                cwd=os.getcwd(),
+                start_new_session=True
+            )
+            restart_method = "direct_start"
+            restart_details = f"Server was not running, started directly (PID: {start_result.pid})"
         
-        # Start new server process in background
-        # Use nohup to ensure it continues running after this process ends
-        start_result = subprocess.Popen(
-            ['.venv/bin/python', 'server.py'],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            cwd=os.getcwd(),
-            start_new_session=True  # Detach from parent process
-        )
-        
-        # Give it a moment to start
-        await asyncio.sleep(3)
+        # Give the server time to restart/start
+        await asyncio.sleep(5 if server_was_running else 3)
         
         # Verify server is responding
         server_responding = False
         response_status = None
         response_error = None
         
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get('http://localhost:5001/', timeout=aiohttp.ClientTimeout(total=5)) as response:
-                    response_status = response.status
-                    if response.status == 200:
-                        server_responding = True
-        except Exception as e:
-            response_error = str(e)
-        
-        # If server not responding, try a few more times with longer waits
-        if not server_responding:
-            for attempt in range(3):
-                await asyncio.sleep(2)
-                try:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get('http://localhost:5001/', timeout=aiohttp.ClientTimeout(total=5)) as response:
-                            response_status = response.status
-                            if response.status == 200:
-                                server_responding = True
-                                break
-                except Exception as e:
-                    response_error = str(e)
+        for attempt in range(3):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get('http://localhost:5001/', timeout=aiohttp.ClientTimeout(total=5)) as response:
+                        response_status = response.status
+                        if response.status == 200:
+                            server_responding = True
+                            break
+            except Exception as e:
+                response_error = str(e)
+                if attempt < 2:  # Don't sleep after the last attempt
+                    await asyncio.sleep(2)
         
         return {
             "success": server_responding,
             "message": "Server reboot completed successfully" if server_responding else "Server reboot failed - server not responding",
-            "kill_returncode": kill_result.returncode,
-            "kill_output": kill_result.stdout,
-            "kill_error": kill_result.stderr,
-            "new_process_pid": start_result.pid,
+            "restart_method": restart_method,
+            "restart_details": restart_details,
+            "server_was_running": server_was_running,
             "server_responding": server_responding,
             "response_status": response_status,
             "response_error": response_error,
-            "status": "Server killed and restarted - verified responding" if server_responding else "Server killed and restarted - but not responding"
+            "status": "Graceful restart via watchdog - verified responding" if server_responding and server_was_running else 
+                     "Direct start - verified responding" if server_responding else 
+                     "Restart attempted but server not responding"
         }
         
     except Exception as e:

@@ -37,3 +37,9 @@ CONFLICT: 81bea5f ``` feat: Enhance system prompt with detailed Chip O'Theseus p
 CONFLICT: b3c5830 fix(ai_discovery): Implement persistent conversation history - Files: mcp_tools.py, server.py
 CONFLICT: 9152474 feat: Enhance system prompt with clearer instructions and tool usage guidance - Files: training/system_prompt.md
 CONFLICT: a88b5cb feat: Improve system prompt with parameter clarification - Files: training/system_prompt.md
+CONFLICT: f00c388 ``` feat: Gracefully reboot Pipulate server using watchdog - Files: server.py
+CONFLICT: ebc8448 chore: Remove complex backup controls and related code - Files: server.py
+CONFLICT: d76e878 fix: Remove message truncation in history viewer - Files: plugins/070_history.py
+CONFLICT: ee8e1b0 ``` feat: Implement "Now or Never" rule and refine tool calling behavior - Files: training/system_prompt.md
+CONFLICT: d1082a7 ``` feat: Improve conversation statistics retrieval - Files: plugins/070_history.py
+CONFLICT: 92e4e1a fix: Update version and description in __init__.py - Files: __init__.py, pyproject.toml

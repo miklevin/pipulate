@@ -23,3 +23,9 @@ b09b4b8 Add breadcrumb trail discovery system for local LLMs - DEFERRED: Multipl
 0bcf016 feat: Implement fastlite-based conversation persistence - DEFERRED: server.py conflicts, large patch (37KB), core system file
 81bea5f feat: Enhance system prompt with detailed Chip O'Theseus personality and keychain usage guidance - DEFERRED: Multiple files (durable_backup_system.py, server.py conflicts), large patch (68KB)
 b3c5830 fix(ai_discovery): Implement persistent conversation history - DEFERRED: Multiple files (mcp_tools.py:2, server.py:2 conflicts), large patch (32KB)
+e140af7 fix: Optimize conversation length for 128K token window - DEFERRED: Missing file (helpers/append_only_conversation.py), server.py conflicts
+f00c388 feat: Gracefully reboot Pipulate server using watchdog - DEFERRED: server.py conflicts, core system file
+ebc8448 chore: Remove complex backup controls and related code - DEFERRED: server.py (2 conflicts), core system file
+d76e878 fix: Remove message truncation in history viewer - DEFERRED: plugins/070_history.py (1 conflict), potential variable reference error if resolved automatically
+ee8e1b0 feat: Implement "Now or Never" rule and refine tool calling behavior - DEFERRED: training/system_prompt.md conflicts, large patch (21KB)
+d1082a7 feat: Improve conversation statistics retrieval - DEFERRED: plugins/070_history.py conflicts
