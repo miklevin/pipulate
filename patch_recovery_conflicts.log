@@ -1,3 +1,11 @@
 CONFLICT: f81a3e0 refactor(server): Remove duplicate local LLM helper functions - Files: server.py
 CONFLICT: 676c104 refactor: Move register_mcp_tool to mcp_tools.py - Files: server.py
 CONFLICT: 78f358a ``` feat: Generate BQLv2 and BQLv1 Python code with detailed API call logging - Files: plugins/110_parameter_buster.py, plugins/120_link_graph.py, server.py
+CONFLICT: 1c6b0bf feat(server): Add delay for AI discovery feature reveal - Files: server.py
+CONFLICT: 8894e8d feat: Deterministic Trifecta template inheritance system with AST-based reconstruction - Files: plugins/110_parameter_buster.py, plugins/120_link_graph.py
+CONFLICT: f2379d0 ``` feat: Delegate qualifier logic to code generators - Files: helpers/botify/code_generators.py, plugins/110_parameter_buster.py, plugins/120_link_graph.py, plugins/400_botify_trifecta.py
+CONFLICT: 818fe60 Update ai_discovery docs for simplified automation recipe naming - Files: ai_discovery/ai_mcp_tools_discovery_guide.md
+CONFLICT: d160831 🎯 MAJOR UPDATE: Documentation aligned with working reality - Files: ai_discovery/ai_mcp_tools_discovery_guide.md, server.py
+CONFLICT: f68047c ``` feat: Implement iterative execution magic words and breadcrumb trail discovery - Files: mcp_tools.py, server.py
+CONFLICT: 8cc91fa 🎯 BREAKTHROUGH: Fix conversation persistence across server restarts - Files: server.py
+CONFLICT: f152e09 🚨 Anti-discovery: Cut off environmental exploration at the pass - Files: server.py
