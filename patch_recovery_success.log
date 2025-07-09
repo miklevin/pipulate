@@ -34,3 +34,4 @@ SUCCESS: f7fafb6 ``` feat: Implement copy to clipboard functionality for convers
 SUCCESS: f7fafb6 feat: Implement copy to clipboard functionality for conversation history
 SUCCESS: f752a04 feat: Improve server reboot wait times
 SUCCESS: f752a04 feat: Improve server reboot wait times
+SUCCESS: 7b7d121 feat: Improve FINDER_TOKEN parameter handling in grep logs

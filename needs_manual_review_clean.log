@@ -34,3 +34,18 @@ d1082a7 feat: Improve conversation statistics retrieval - DEFERRED: plugins/070_
 4dbe99b feat: Improve conversation persistence test logic - DEFERRED: tests/conversation_persistence_test_final.py conflicts
 07e37a4 feat: Implement file upload widget with detailed feedback and download links - DEFERRED: Extremely large patch (136KB), plugins/120_link_graph.py conflicts
 a12ee5e fix: Add clipboard SVG icon to config.py - DEFERRED: config.py conflicts, syntax error after resolution attempt
+118b357 feat: Migrate to append-only message database - DEFERRED: Massive patch (86KB), multiple core files with conflicts (server.py, tests, ai_discovery)
+b04ec69 feat: Implement comprehensive behavioral reinforcement system for local LLMs - DEFERRED: Large patch (12KB), multiple core files with conflicts (mcp_tools.py, server.py, training/system_prompt.md)
+d2d67da feat: Enhance MCP client to support square bracket notation and XML tool calls - DEFERRED: training/system_prompt.md conflicts
+0b9ec13 feat: Introduce MCP Training Protocol for AI Capability Discovery - DEFERRED: server.py (8 conflicts)
+91eec6f feat: Reverse conversation history to display newest messages first - DEFERRED: plugins/070_history.py conflicts
+91cd216 feat: Implement critical MCP tool calling instructions and examples - DEFERRED: training/system_prompt.md conflicts
+4daba40 feat: 🔧 CONVERSATION PERSISTENCE FIX: Startup restoration message handling - DEFERRED: server.py conflicts
+785a38d Fix: Preserve conversation history across restarts and system prompts - DEFERRED: Large patch (33KB), multiple core files with conflicts (mcp_tools.py, server.py)
+73a0806 chore: Remove debug logging statements from backup system - DEFERRED: helpers/durable_backup_system.py conflicts, complex structural changes
+6f7dcca Implement profile lock privacy feature for client meetings - DEFERRED: Large patch (20KB), plugins/020_profiles.py conflicts
+6dc9725 Improve profile highlighting with better PicoCSS variables - DEFERRED: plugins/020_profiles.py conflicts
+5bd19ba feat: Enhance history viewer with Chip O'Theseus branding and role-specific styling - DEFERRED: plugins/070_history.py conflicts
+b5c9118 fix(server): Re-initialize splitter on HTMX body swaps - DEFERRED: server.py conflicts
+f1ed6b2 fix: Update Discussion History 📜 display name - DEFERRED: plugins/070_history.py conflicts
+a8f54ad fix: Restore working CRUD implementation from ae02752 - DEFERRED: Large patch (28KB), multiple files with conflicts (common.py, plugins/020_profiles.py)
