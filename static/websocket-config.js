@@ -28,7 +28,7 @@ sidebarCurrentMessage.className = 'message assistant';
 
 // PERFORMANCE OPTIMIZATION: Throttle Markdown rendering to prevent exponential slowdown
 let renderThrottleTimer = null;
-const RENDER_THROTTLE_DELAY = 50; // Render every 50ms max instead of every chunk
+const RENDER_THROTTLE_DELAY = config.CHAT_CONFIG?.RENDER_THROTTLE_DELAY || 15; // Configurable delay between renders (milliseconds)
 
 sidebarWs.onopen = function() {
     console.log('Sidebar WebSocket connected');
