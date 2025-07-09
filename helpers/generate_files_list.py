@@ -279,7 +279,6 @@ def generate_files_list():
     ]
 
     # Not core but also important files
-    lines.append("\n## NOT CORE BUT ALSO IMPORTANT")
     important_files = [
         FileEntry("keychain.py", True, "AI Keychain - Persistent memory for Chip O'Theseus"),
         FileEntry("discover_mcp_tools.py", True, "MCP tool discovery and validation"),
