@@ -52,12 +52,6 @@ from mcp_tools import register_all_mcp_tools
 import mcp_tools
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
-# Import extracted modules to restore functionality
-from logging_utils import DebugConsole, rich_json_display, setup_logging
-from database import DictLikeDB, db_operation, get_db_filename
-from plugin_system import discover_plugin_files, find_plugin_classes
-from pipeline import Pipulate
-
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
 # Various debug settings
@@ -114,9 +108,85 @@ BANNER_COLORS = {
 
 custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
 
+class DebugConsole(Console):
+
+    def print(self, *args, **kwargs):
+        # Filter out AI Creative Vision messages from console (they're for log files only)
+        # Convert args to string to check for AI markers
+        message_str = ' '.join(str(arg) for arg in args)
+        
+        # Skip console output for AI-specific messages (they go to logs only)
+        if '🎭 AI_CREATIVE_VISION' in message_str:
+            return
+            
+        super().print(*args, **kwargs)
 console = DebugConsole(theme=custom_theme)
 
 
+def rich_json_display(data, title=None, console_output=True, log_output=True, ai_log_output=True, log_prefix=""):
+    """🎨 RICH JSON DISPLAY: Beautiful syntax-highlighted JSON for dicts and JSON data
+    
+    DUAL LOGGING SYSTEM:
+    - Humans see Rich JSON syntax highlighting in console  
+    - AI assistants see JSON data in log files for debugging assistance
+    
+    Args:
+        data: Dict, list, or JSON-serializable data to display
+        title: Optional title for the JSON display
+        console_output: Whether to display Rich JSON to console for humans (default: True)
+        log_output: Whether to log plain JSON for general logging (default: True)
+        ai_log_output: Whether to log JSON for AI assistant visibility (default: True)
+        log_prefix: Prefix for log messages (default: "")
+    
+    Returns:
+        str: The formatted JSON string for logging
+    """
+    try:
+        # Convert data to JSON string if it's not already
+        if isinstance(data, str):
+            # Try to parse and re-format for consistency
+            try:
+                parsed_data = json.loads(data)
+                # Use Rich JSON for syntax highlighting
+                rich_json = JSON(json.dumps(parsed_data, indent=2, default=str))
+                json_str = json.dumps(parsed_data, indent=2, default=str)
+            except json.JSONDecodeError:
+                json_str = data
+                rich_json = data
+        else:
+            # Use Rich JSON for syntax highlighting
+            rich_json = JSON(json.dumps(data, indent=2, default=str))
+            json_str = json.dumps(data, indent=2, default=str)
+        
+        # Console output with Rich syntax highlighting (for humans)
+        if console_output:
+            if title:
+                console.print(f"\n🎨 {title}", style="bold cyan")
+            
+            # Use Rich's JSON class for beautiful syntax highlighting
+            rich_json = JSON(json_str)
+            console.print(rich_json)
+            console.print()  # Add spacing
+        
+        # AI assistant logging - always log JSON data for AI visibility using WARNING level
+        if ai_log_output:
+            ai_title = f"AI_JSON_DATA: {title}" if title else "AI_JSON_DATA"
+            # Use WARNING level so AI assistants can easily grep for "WARNING.*AI_JSON_DATA"
+            logger.warning(f"🤖 {ai_title}:\n{json_str}")
+        
+        # Standard log output 
+        if log_output and json_str:
+            return json_str
+            
+        return json_str
+        
+    except Exception as e:
+        error_msg = f"[Error formatting JSON for display: {e}] Data: {str(data)}"
+        if console_output:
+            console.print(f"❌ {error_msg}", style="red")
+        if ai_log_output:
+            logger.warning(f"🤖 AI_JSON_ERROR: {error_msg}")
+        return error_msg
 
 
 def rich_dict_display(data, title=None, console_output=True):
@@ -143,105 +213,399 @@ def share_ascii_with_ai(ascii_art, context_message, emoji="🎭"):
     logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message} | ASCII_DATA:\n```\n{clean_ascii}\n```")
 
 
-# Import ASCII art functions from externalized module (avoiding logger conflict)
-from helpers.ascii_displays import (
-    falling_alice, white_rabbit, system_diagram, figlet_banner, 
-    ascii_banner, radical_transparency_banner, status_banner, 
-    fig, chip_says, story_moment, server_whisper, section_header,
-    log_reading_legend
-)
+def falling_alice(console_output=True):
+    """🍄 FALLING ALICE: Large ASCII art of Alice falling down the rabbit hole"""
+    lines = 20
+    falling_alice_art = lines * "\n" + r"""[white on default]
+                    ___
+                   |   |         _____
+                   |_  |        /     \
+                     \ |       |       \
+                     |  \      |       /
+                      \  \____ \_      \
+                       \      \_/      |
+                 ___.   \_            _/
+.-,             /    \    |          |
+|  \          _/      `--_/           \_
+ \  \________/                     /\   \
+ |                                /  \_  \
+ `-----------,                   |     \  \
+             |                  /       \  |
+             |                 |         | \
+             /                 |         \__|
+            /   _              |
+           /   / \_             \
+           |  /    \__      __--`
+          _/ /        \   _/
+      ___/  /          \_/
+     /     /
+     `----`[/white on default]""" + lines * "\n"
+    
+    # Console output for humans (Rich display)
+    if console_output:
+        console.print()  # Add spacing
+        console.print(Align.center(falling_alice_art))  # No conflicting style parameter
+        console.print()  # Add spacing
+        logger.info("🍄 FALLING_ALICE_BANNER: Large Alice art displayed")
+    
+    # 🎭 AI CREATIVE TRANSPARENCY: Let AI assistants experience the whimsical narrative
+    share_ascii_with_ai(falling_alice_art, "Falling Alice ASCII Art - 🍄 Narrative moment: Alice tumbles down the rabbit hole of radical transparency!", "🍄")
+
+
+def white_rabbit(console_output=True):
+    """🐰 WHITE RABBIT: Whimsical White Rabbit-themed banner"""
+    alice_art = r"""[black].[/black]            /)    ______
+       /)\__//    /      \
+   ___(/_ 0 0    |        |
+ *(    ==(_T_)== |[bold bright_blue]Pipulate[/bold bright_blue]|
+   \  )   ""\    |        |
+    |__>-\_>_>    \______/
+   """
+    
+    # Console output for humans (Rich display)
+    if console_output:
+        style = BANNER_COLORS['white_rabbit']
+        panel = Panel(
+            Align.center(alice_art.strip()),
+            title=f"[bold {style}]🐰 Welcome to Consoleland[/bold {style}]",
+            subtitle="[dim]Down the rabbit hole of radical transparency[/dim]",
+            box=ROUNDED,
+            style=style,
+            padding=(1, 2)
+        )
+        console.print(panel)
+    
+    # 🎭 AI CREATIVE TRANSPARENCY: Share the whimsical White Rabbit moment
+    share_ascii_with_ai(alice_art, "White Rabbit ASCII Art - 🐰 Narrative moment: Welcome to Consoleland - down the rabbit hole of radical transparency!", "🐰")
+
+
+def system_diagram(console_output=True):
+    """📐 SYSTEM DIAGRAMS: ASCII art system overview"""
+    diagram = """[black].[/black][white on default]
+               ┌─────────────────────────────┐
+               │         Navigation         ◄── Search, Profiles,
+               ├───────────────┬─────────────┤    Apps, Settings
+               │               │             │
+    Workflow, ──►   Main Area  │    Chat     │
+    App UI     │   (Pipeline)  │  Interface ◄── LLM Interaction 
+               │               │             │
+               └─────────────────────────────┘[/white on default]
+    """
+    
+    # Console output for humans (Rich display)
+    if console_output:
+        style = BANNER_COLORS['system_diagram']
+        panel = Panel(
+            Align.center(diagram.strip()),
+            title=f"[bold {style}]🏗️  Pipulate Architecture[/bold {style}]",
+            box=DOUBLE,
+            style=style,
+            padding=(1, 2)
+        )
+        console.print(panel)
+    
+    # 🎭 AI CREATIVE TRANSPARENCY: System architecture for AI understanding
+    share_ascii_with_ai(diagram, "System Architecture Diagram - 🏗️ Architecture moment: This shows how Pipulate's UI is organized - Navigation, Main Pipeline Area, and Chat Interface!", "🏗️")
+
+
+def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None, console_output=True):
+    """🎨 FIGLET BANNERS: Beautiful FIGlet text in Rich panels"""
+    if color is None:
+        color = BANNER_COLORS['figlet_primary']
+    if box_style is None:
+        box_style = HEAVY  # Default to HEAVY, can be overridden by BANNER_COLORS later
+    
+    figlet = Figlet(font=font, width=80)
+    fig_text = figlet.renderText(str(text))
+    
+    # Console output for humans (Rich display)
+    if console_output:
+        if subtitle:
+            subtitle_color = BANNER_COLORS['figlet_subtitle']
+            content = f"[{color}]{fig_text}[/{color}]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
+        else:
+            content = f"[{color}]{fig_text}[/{color}]"
+        
+        panel = Panel(
+            Align.center(content),
+            box=box_style,
+            style=color,
+            padding=(1, 2)
+        )
+        console.print(panel)
+        logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
+    
+    # 🎭 AI CREATIVE TRANSPARENCY: Share the figlet art for AI context
+    context_msg = f"Figlet Banner ({font} font) - 🎨 Text: '{text}'" + (f" | Subtitle: '{subtitle}'" if subtitle else "")
+    share_ascii_with_ai(fig_text, context_msg, "🎨")
+
+
+def fig(text, font='slant', color=None, width=200):
+    """🎨 CHIP O'THESEUS STORYTELLING: Tasteful FIGlet banners for key server moments"""
+    if color is None:
+        color = BANNER_COLORS['figlet_primary']
+    
+    figlet = Figlet(font=font, width=width)
+    fig_text = figlet.renderText(str(text))
+    colored_text = Text(fig_text, style=f'{color} on default')
+    console.print(colored_text, style='on default')
+    
+    # Log ASCII art with backticks for easy grepping
+    logger.info(f"🎨 BANNER: {text} (figlet: {font}) | ASCII_DATA:\n```\n{fig_text}\n```")
+
+
+def chip_says(message, style=None, prefix="💬 Chip O'Theseus"):
+    """🎭 CHIP O'THESEUS NARRATOR: Discrete storytelling moments in the logs"""
+    if style is None:
+        style = BANNER_COLORS['chip_narrator']
+    console.print(f"{prefix}: {message}", style=style)
+    logger.info(f"🎭 NARRATOR: {prefix}: {message}")
+
+
+def story_moment(title, details=None, color=None):
+    """📖 STORY MOMENTS: Mark significant server events with tasteful color"""
+    if color is None:
+        color = BANNER_COLORS['story_moment']
+    
+    if details:
+        console.print(f"📖 {title}", style=f"bold {color}")
+        console.print(f"   {details}", style=f"dim {color}")
+        logger.info(f"📖 STORY: {title} - {details}")
+    else:
+        console.print(f"📖 {title}", style=f"bold {color}")
+        logger.info(f"📖 STORY: {title}")
+
+
+def server_whisper(message, emoji="🤫"):
+    """🤫 SERVER WHISPERS: Subtle behind-the-scenes commentary"""
+    style = BANNER_COLORS['server_whisper']
+    console.print(f"{emoji} {message}", style=style)
+    logger.info(f"🤫 WHISPER: {message}")
+
+
+def ascii_banner(title, subtitle=None, style=None, box_style=None):
+    """🎨 ASCII BANNERS: Beautiful framed banners for major sections"""
+    if style is None:
+        style = BANNER_COLORS['ascii_title']
+    if box_style is None:
+        box_style = ROUNDED  # Default to ROUNDED
+    
+    if subtitle:
+        subtitle_color = BANNER_COLORS['ascii_subtitle']
+        content = f"[bold]{title}[/bold]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
+    else:
+        content = f"[bold]{title}[/bold]"
+    
+    panel = Panel(
+        Align.center(content),
+        box=box_style,
+        style=style,
+        padding=(1, 2)
+    )
+    console.print(panel)
+    logger.info(f"🎨 ASCII_BANNER: {title}" + (f" - {subtitle}" if subtitle else ""))
+    
+    # Log the banner content with backticks for easy grepping
+    clean_content = strip_rich_formatting(content)
+    logger.info(f"🎨 ASCII_BANNER_ASCII: {title} banner displayed | ASCII_DATA:\n```\n{clean_content}\n```")
+
+
+def section_header(icon, title, description=None, color=None):
+    """📋 SECTION HEADERS: Clean section dividers with icons"""
+    if color is None:
+        color = BANNER_COLORS['section_header']
+    
+    if description:
+        content = f"{icon}  [bold]{title}[/bold]\n[dim]{description}[/dim]"
+    else:
+        content = f"{icon}  [bold]{title}[/bold]"
+    
+    console.print()  # Add some space
+    console.print(content, style=color)
+    separator_line = "─" * 60
+    console.print(separator_line, style=f"dim {color}")
+    logger.info(f"📋 SECTION: {icon} {title}" + (f" - {description}" if description else ""))
+    
+    # Log the section header content with backticks for easy grepping
+    clean_content = strip_rich_formatting(content)
+    full_section = f"{clean_content}\n{separator_line}"
+    logger.info(f"📋 SECTION_ASCII: {title} section header displayed | ASCII_DATA:\n```\n{full_section}\n```")
+
+def radical_transparency_banner(console_output=True):
+    """🔍 RADICAL TRANSPARENCY: Beautiful banner explaining the philosophy"""
+    transparency_text = """
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                    RADICAL TRANSPARENCY                      ║
+    ║                                                              ║
+    ║  Every operation is observable • Every call is logged        ║
+    ║  Every state change is tracked • Every error is explained    ║
+    ║                                                              ║
+    ║  🔍 FINDER_TOKENs guide your debugging journey               ║
+    ║  🔧 MCP Tools provide programmatic access to everything      ║
+    ║  📊 Pipeline State Inspector reveals workflow internals      ║
+    ║  🤖 AI Assistants have complete system visibility            ║
+    ║                                                              ║
+    ║           "Know EVERYTHING that's happening!"                ║
+    ╚══════════════════════════════════════════════════════════════╝
+    """
+    
+    # Console output for humans (Rich display)
+    if console_output:
+        style = BANNER_COLORS['transparency_banner']
+        console.print(transparency_text, style=style)
+        logger.info("🔍 RADICAL_TRANSPARENCY_BANNER: Philosophy banner displayed")
+    
+    # 🎭 AI CREATIVE TRANSPARENCY: The philosophy itself - for AI assistants to experience
+    share_ascii_with_ai(transparency_text, "Radical Transparency Banner - 🔍 Philosophy moment: This is the core principle - AI assistants get complete system visibility!", "🔍")
+
+def status_banner(mcp_count, plugin_count, env="Development"):
+    """📊 STATUS BANNER: Current system status overview"""
+    # Use centralized colors
+    primary_color = BANNER_COLORS['status_banner']
+    server_color = BANNER_COLORS['workshop_ready']
+    mcp_color = BANNER_COLORS['mcp_arsenal']
+    plugin_color = BANNER_COLORS['plugin_registry_success']
+    env_color = BANNER_COLORS['white_rabbit']
+    transparency_color = BANNER_COLORS['transparency_banner']
+    
+    status_content = f"""
+[bold white]🚀 PIPULATE STATUS[/bold white]
+[dim white]Local First AI SEO Software[/dim white]
+
+[white]🌐 Server:[/white] [{server_color}]http://localhost:5001[/{server_color}]
+[white]🔧 MCP Tools:[/white] [{mcp_color}]{mcp_count} active[/{mcp_color}]
+[white]📦 Plugins:[/white] [{plugin_color}]{plugin_count} registered[/{plugin_color}]
+[white]🏡 Environment:[/white] [{env_color}]{env}[/{env_color}]
+[white]🔍 Transparency:[/white] [{transparency_color}]Full visibility enabled[/{transparency_color}]
+    """
+    
+    panel = Panel(
+        status_content.strip(),
+        title=f"[bold {primary_color}]⚡ System Status[/bold {primary_color}]",
+        box=DOUBLE,
+        style=primary_color,
+        padding=(1, 2)
+    )
+    console.print(panel)
+    logger.info(f"📊 STATUS_BANNER: MCP:{mcp_count}, Plugins:{plugin_count}, Env:{env}")
+    
+    # Log the status content with backticks for easy grepping
+    clean_content = strip_rich_formatting(status_content.strip())
+    logger.info(f"📊 STATUS_BANNER_ASCII: Status banner displayed | ASCII_DATA:\n```\n{clean_content}\n```")
 
 # Initialize logging as early as possible in the startup process
-
-
-def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: int = None) -> bool:
+def setup_logging():
     """
-    🔄 DIRECTORY ROTATION SYSTEM
+    🔧 UNIFIED LOGGING SYSTEM
     
-    Rotates the browser_automation/looking_at directory before each new browser scrape.
-    This preserves AI perception history across multiple look-at operations.
+    Single source of truth logging with rolling server logs.
+    Designed for optimal debugging experience with surgical search capabilities.
     
-    Similar to log rotation but for entire directories:
-    - looking_at becomes looking_at-1  
-    - looking_at-1 becomes looking_at-2
-    - etc. up to max_rolled_dirs
-    - Oldest directories beyond limit are deleted
-    
-    Args:
-        looking_at_path: Path to the looking_at directory (default: browser_automation/looking_at)
-        max_rolled_dirs: Maximum number of historical directories to keep
-        
-    Returns:
-        bool: True if rotation successful, False if failed
-        
-    This prevents AI assistants from losing sight of previously captured states
-    and allows them to review their automation history for better decisions.
+    Features:
+    - server.log (current run, live tail-able)
+    - server-1.log, server-2.log, etc. (previous runs for context across restarts)
+    - Unified log stream with clear categorization and finder tokens
+    - No more fragmented api.log/lifecycle.log confusion
     """
-    import shutil
-    from pathlib import Path
+    logger.remove()
+    logs_dir = Path('logs')
+    logs_dir.mkdir(parents=True, exist_ok=True)
     
-    if looking_at_path is None:
-        looking_at_path = Path('browser_automation') / 'looking_at'
-    else:
-        looking_at_path = Path(looking_at_path)
+    # === ROLLING LOG ROTATION SYSTEM ===
+    # This preserves debugging context across server restarts
+    server_log_path = logs_dir / 'server.log'
+    MAX_ROLLED_LOGS = 10  # Keep last 10 server runs
     
-    if max_rolled_dirs is None:
-        max_rolled_dirs = MAX_ROLLED_LOOKING_AT_DIRS
-    
-    try:
-        # Ensure the parent directory exists
-        looking_at_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Clean up old numbered directories beyond our limit
-        for i in range(max_rolled_dirs + 1, 100):
-            old_dir = looking_at_path.parent / f'{looking_at_path.name}-{i}'
-            if old_dir.exists():
-                try:
-                    shutil.rmtree(old_dir)
-                    logger.info(f'🧹 FINDER_TOKEN: DIRECTORY_CLEANUP - Removed old directory: {old_dir.name}')
-                except Exception as e:
-                    logger.warning(f'⚠️ Failed to delete old directory {old_dir}: {e}')
-        
-        # Rotate existing directories: looking_at-1 → looking_at-2, etc.
-        if looking_at_path.exists() and any(looking_at_path.iterdir()):  # Only rotate if directory exists and has contents
-            for i in range(max_rolled_dirs - 1, 0, -1):
-                old_path = looking_at_path.parent / f'{looking_at_path.name}-{i}'
-                new_path = looking_at_path.parent / f'{looking_at_path.name}-{i + 1}'
-                if old_path.exists():
-                    try:
-                        # Use shutil.move() instead of rename() to handle non-empty directories
-                        if new_path.exists():
-                            # If target exists, remove it first
-                            shutil.rmtree(new_path)
-                        shutil.move(str(old_path), str(new_path))
-                        logger.info(f'📁 FINDER_TOKEN: DIRECTORY_ROTATION - Rotated: {old_path.name} → {new_path.name}')
-                    except Exception as e:
-                        logger.warning(f'⚠️ Failed to rotate directory {old_path}: {e}')
-            
-            # Move current looking_at to looking_at-1
+    # Clean up old numbered logs beyond our limit
+    for i in range(MAX_ROLLED_LOGS + 1, 100):
+        old_log = logs_dir / f'server-{i}.log'
+        if old_log.exists():
             try:
-                archived_path = looking_at_path.parent / f'{looking_at_path.name}-1'
-                if archived_path.exists():
-                    # If target exists, remove it first
-                    shutil.rmtree(archived_path)
-                shutil.move(str(looking_at_path), str(archived_path))
-                logger.info(f'🎯 FINDER_TOKEN: DIRECTORY_ARCHIVE - Archived current perception: {looking_at_path.name} → {archived_path.name}')
+                old_log.unlink()
+                print(f'🧹 Cleaned up old server log: {old_log}')
             except Exception as e:
-                logger.warning(f'⚠️ Failed to archive current {looking_at_path}: {e}')
-                return False
+                print(f'⚠️ Failed to delete old server log {old_log}: {e}')
+    
+    # Rotate existing logs: server-1.log → server-2.log, etc.
+    if server_log_path.exists():
+        for i in range(MAX_ROLLED_LOGS - 1, 0, -1):
+            old_path = logs_dir / f'server-{i}.log'
+            new_path = logs_dir / f'server-{i + 1}.log'
+            if old_path.exists():
+                try:
+                    old_path.rename(new_path)
+                    logger.info(f'📁 Rotated: {old_path.name} → {new_path.name}')
+                except Exception as e:
+                    logger.warning(f'⚠️ Failed to rotate {old_path}: {e}')
         
-        # Create fresh looking_at directory
-        looking_at_path.mkdir(parents=True, exist_ok=True)
-        logger.info(f'✨ FINDER_TOKEN: DIRECTORY_REFRESH - Fresh perception directory ready: {looking_at_path}')
-        
-        return True
-        
-    except Exception as e:
-        logger.error(f'❌ FINDER_TOKEN: DIRECTORY_ROTATION_ERROR - Failed to rotate directories: {e}')
-        return False
+        # Move current server.log to server-1.log
+        try:
+            server_log_path.rename(logs_dir / 'server-1.log')
+            logger.info(f'📁 Archived current run: server.log → server-1.log')
+        except Exception as e:
+            logger.warning(f'⚠️ Failed to archive current server.log: {e}')
+    
+    # === CLEAN UP LEGACY LOG FILES ===
+    # Remove the old fragmented log system
+    legacy_files = ['api.log', 'lifecycle.log', 'table_lifecycle.log'] + [f'api-{i}.log' for i in range(1, 20)]
+    for legacy_file in legacy_files:
+        legacy_path = logs_dir / legacy_file
+        if legacy_path.exists():
+            try:
+                legacy_path.unlink()
+                print(f'🧹 Removed legacy log: {legacy_file}')
+            except Exception as e:
+                print(f'⚠️ Failed to remove legacy log {legacy_file}: {e}')
+    
+    # === UNIFIED LOG FORMAT ===
+    log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
+    time_format = '{time:HH:mm:ss}'
+    
+    # File logging - comprehensive for debugging
+    file_format = f'{time_format} | {{level: <8}} | {{name: <15}} | {{message}}'
+    logger.add(
+        server_log_path, 
+        level=log_level, 
+        format=file_format, 
+        enqueue=True,
+        backtrace=True,
+        diagnose=True
+    )
+    
+    # Console logging - clean for live monitoring (exclude AI JSON data)
+    console_format = '<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}'
+    logger.add(
+        sys.stderr, 
+        level=log_level, 
+        format=console_format, 
+        colorize=True, 
+        filter=lambda record: (
+            # Exclude AI JSON data from console (humans see Rich display instead)
+            '🤖 AI_JSON' not in record['message'] and
+            # Exclude AI Creative Vision from console (humans see Rich display instead)
+            'AI_CREATIVE_VISION' not in record['message'] and
+            (
+                record['level'].name != 'DEBUG' or 
+                any(key in record['message'] for key in [
+                    'FINDER_TOKEN', 'MCP', 'BOTIFY', 'API', 'Pipeline ID:', 
+                    'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'
+                ])
+            )
+        )
+    )
+    # === STARTUP MESSAGES ===
+    if STATE_TABLES:
+        logger.info('🔍 FINDER_TOKEN: STATE_TABLES_ENABLED - Console will show 🍪 and ➡️ table snapshots')
+    
+    # Welcome message for the new unified system
+    logger.info('🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized')
+    logger.info(f'📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last {MAX_ROLLED_LOGS} server runs for debugging context')
+    
+    return logger
 
-# Initialize logger BEFORE any functions that need it
+# Initialize logger immediately after basic configuration
 logger = setup_logging()
+
 
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
@@ -301,6 +665,12 @@ def get_app_name(force_app_name=None):
             name = name[:-5] if name.endswith('-main') else name
     return name.capitalize()
 
+def get_db_filename():
+    current_env = get_current_environment()
+    if current_env == 'Development':
+        return f'data/{APP_NAME.lower()}_dev.db'
+    else:
+        return f'data/{APP_NAME.lower()}.db'
 
 def get_current_environment():
     if ENV_FILE.exists():
@@ -344,63 +714,6 @@ def get_nix_version():
             logger.debug(f"Could not parse version from __init__.py: {e}")
     
     return "Unknown version"
-
-def get_backup_status() -> dict:
-    """Get backup system status for display in settings."""
-    try:
-        # Import backup manager
-        from helpers.durable_backup_system import backup_manager
-        
-        # Get backup directory info
-        backup_root = str(backup_manager.backup_root)
-        
-        # Check if backup directory exists and get basic info
-        backup_exists = backup_manager.backup_root.exists()
-        
-        if backup_exists:
-            # Get list of backup files
-            backup_files = list(backup_manager.backup_root.glob("*.db"))
-            table_status = {}
-            
-            for file in backup_files:
-                # Parse filename to get table name and date
-                name_parts = file.stem.split('_')
-                if len(name_parts) >= 2:
-                    table_name = '_'.join(name_parts[:-1])
-                    date_str = name_parts[-1]
-                    
-                    # Get file info
-                    file_size = file.stat().st_size
-                    mod_time = file.stat().st_mtime
-                    
-                    if table_name not in table_status or mod_time > table_status[table_name]['last_backup']:
-                        table_status[table_name] = {
-                            'last_backup': mod_time,
-                            'date_str': date_str,
-                            'size': file_size
-                        }
-        else:
-            table_status = {}
-        
-        return {
-            'available': True,
-            'backup_root': backup_root,
-            'backup_exists': backup_exists,
-            'table_status': table_status,
-            'total_files': len(backup_files) if backup_exists else 0
-        }
-        
-    except ImportError:
-        return {
-            'available': False,
-            'error': 'Backup system not available'
-        }
-    except Exception as e:
-        return {
-            'available': False,
-            'error': str(e)
-        }
-
 ENV_FILE = Path('data/current_environment.txt')
 
 APP_NAME = get_app_name()
@@ -414,26 +727,211 @@ TONE = 'neutral'
 MODEL = 'gemma3'
 MAX_LLM_RESPONSE_WORDS = 80
 MAX_CONVERSATION_LENGTH = 10000
-HOME_MENU_ITEM = 'Roles️ 👥'
+HOME_MENU_ITEM = '👥 Roles (Home)'
 DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
 
 logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}')
 
-# Centralized SVG definitions for reuse across the application
-INFO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'''
-
-EXTERNAL_LINK_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-external-link"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>'''
-
-SETTINGS_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'''
-
 # ================================================================
 # INSTANCE-SPECIFIC CONFIGURATION - "The Crucible"
 # ================================================================
-# Configuration now imported from centralized config.py to eliminate duplication
-# and ensure consistency across server.py and pipeline.py
+# This dictionary holds settings that customize this particular Pipulate instance.
+# Moving configuration here allows for easy white-labeling and configuration management.
+# Over time, more instance-specific "slag" will be skimmed from plugins to here.
 
-# Import centralized configuration
-from config import PCONFIG
+PCONFIG = {
+    # UI & Navigation
+    'HOME_MENU_ITEM': HOME_MENU_ITEM,
+    'DEFAULT_ACTIVE_ROLES': DEFAULT_ACTIVE_ROLES,
+    
+    # Role System Configuration
+    'ROLES_CONFIG': {
+        'Botify Employee': {
+            'priority': 0, 
+            'description': 'Connect with Botify to use Parameter Buster and Link Graph Visualizer.',
+            'emoji': '👔'
+        },
+        'Core': {
+            'priority': 1, 
+            'description': 'Essential plugins available to all users.',
+            'emoji': '⚙️'
+        },
+        'Tutorial': {
+            'priority': 2, 
+            'description': 'Guided workflows and introductory examples for learning the system.',
+            'emoji': '📚'
+        },
+        'Developer': {
+            'priority': 3, 
+            'description': 'Tools for creating, debugging, and managing workflows and plugins.',
+            'emoji': '⚡'
+        },
+        'Workshop': {
+            'priority': 4, 
+            'description': 'This is where we put works in progress, proof of concepts and crazy stuff not ready for release. Consider it the sausage factory.',
+            'emoji': '🔬'
+        },
+        'Components': {
+            'priority': 5, 
+            'description': 'UI and data widgets for building rich workflow interfaces.',
+            'emoji': '🧩'
+        }
+    },
+    
+    # Role Color Configuration
+    'ROLE_COLORS': {
+        'menu-role-core': {
+            'border': '#22c55e',            # GREEN
+            'background': 'rgba(34, 197, 94, 0.1)',
+            'background_light': 'rgba(34, 197, 94, 0.05)'
+        },
+        'menu-role-botify-employee': {
+            'border': '#a855f7',            # PURPLE
+            'background': 'rgba(168, 85, 247, 0.1)',
+            'background_light': 'rgba(168, 85, 247, 0.05)'
+        },
+        'menu-role-tutorial': {
+            'border': '#f97316',            # ORANGE
+            'background': 'rgba(249, 115, 22, 0.1)',
+            'background_light': 'rgba(249, 115, 22, 0.05)'
+        },
+        'menu-role-developer': {
+            'border': '#3b82f6',            # BLUE
+            'background': 'rgba(59, 130, 246, 0.1)',
+            'background_light': 'rgba(59, 130, 246, 0.05)'
+        },
+        'menu-role-components': {
+            'border': '#6b7280',            # GRAY
+            'background': 'rgba(107, 114, 128, 0.1)',
+            'background_light': 'rgba(107, 114, 128, 0.05)'
+        },
+        'menu-role-workshop': {
+            'border': '#eab308',            # YELLOW
+            'background': 'rgba(234, 179, 8, 0.1)',
+            'background_light': 'rgba(234, 179, 8, 0.05)'
+        }
+    },
+    
+    # Botify API Configuration
+    'BOTIFY_API': {
+        'MAX_EXPORT_SIZE': 1000000,  # Botify's maximum export size limit (1M rows)
+        'DEFAULT_EXPORT_SIZE': 1000000,  # Conservative default for testing/development
+        'GSC_EXPORT_SIZE': 1000000,  # GSC can handle full export size
+        'WEBLOG_EXPORT_SIZE': 1000000,  # Web logs can handle full export size
+        'CRAWL_EXPORT_SIZE': 1000000,  # Crawl exports can handle full export size
+    },
+    
+    # Chat & Streaming Configuration
+    'CHAT_CONFIG': {
+        'TYPING_DELAY': 0.0125,  # Delay between words in typing simulation (seconds)
+        'MAX_CONVERSATION_LENGTH': 100,  # Maximum number of conversation messages to keep
+    },
+    
+    # UI Constants for Workflows - Centralized button labels, emojis, and styles
+    'UI_CONSTANTS': {
+        'BUTTON_LABELS': {
+            'ENTER_KEY': '🔑 Enter Key',
+            'NEW_KEY': '🆕',
+            'NEXT_STEP': 'Next Step ▸',
+            'FINALIZE': '🔒 Finalize',
+            'UNLOCK': '🔓 Unlock',
+            'PROCEED': 'Proceed ▸',
+            'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
+            'VIEW_FOLDER': '📂 View Folder',
+            'DOWNLOAD_CSV': '⬇️ Copy to Downloads',
+            'VISUALIZE_GRAPH': '🌐 Visualize Graph',
+            'SKIP_STEP': 'Skip️'
+        },
+        'BUTTON_STYLES': {
+            'PRIMARY': 'primary',
+            'SECONDARY': 'secondary',
+            'OUTLINE': 'secondary outline',
+            'STANDARD': 'secondary outline',
+                    'FLEX_CONTAINER': 'display: flex; gap: var(--pipulate-gap-sm); flex-wrap: wrap; align-items: center;',
+        'BUTTON_ROW': 'display: flex; gap: var(--pipulate-gap-sm); align-items: center;',
+            'SKIP_BUTTON': 'secondary outline',
+            'SKIP_BUTTON_STYLE': 'padding: 0.5rem 1rem; width: 10%; min-width: 80px; white-space: nowrap;',
+            'BORDER_RADIUS': 'var(--pico-border-radius)'  # Global button roundedness control
+        },
+        'EMOJIS': {
+            # Process Status Indicators
+            'KEY': '🔑',
+            'SUCCESS': '🎯',
+            'WARNING': '⚠️',
+            'ERROR': '❌',
+            'COMPLETION': '✅',
+            'LOCKED': '🔒',
+            'UNLOCKED': '🔓',
+            
+            # Data Type Indicators  
+            'USER_INPUT': '👤',
+            'GREETING': '💬',
+            'WORKFLOW': '🔄',
+            'INPUT_FORM': '📝',
+            
+            # Code and Development Indicators
+            'PYTHON_CODE': '🐍',           # Python code snippets and headers
+            'CODE_SNIPPET': '✂️',         # Code snippet indicator
+            'JUPYTER_NOTEBOOK': '📓',     # Jupyter notebook related
+            'API_CALL': '🔌',             # API endpoint calls
+            'DEBUG_CODE': '🐛',           # Debugging code sections
+            
+            # File and Data Operations
+            'DOWNLOAD': '⬇️',             # Download operations
+            'UPLOAD': '⬆️',               # Upload operations
+            'FILE_FOLDER': '📂',          # File/folder operations
+            'CSV_FILE': '📊',             # CSV and data files
+            'JSON_DATA': '📄',            # JSON and structured data
+            
+            # Analysis and Processing
+            'ANALYSIS': '🔍',             # Data analysis and discovery
+            'PROCESSING': '⚙️',          # Background processing
+            'OPTIMIZATION': '🎯',        # Optimization results
+            'GRAPH_NETWORK': '🌐',       # Network/graph visualization
+            'VISUALIZATION': '📈',       # Charts and visualizations
+            
+            # Search Console and SEO
+            'SEARCH_CONSOLE': '🔍',      # Google Search Console
+            'SEO_DATA': '📊',            # SEO metrics and data
+            'CRAWL_DATA': '🕷️',         # Website crawling
+            'WEB_LOGS': '📝',            # Web server logs
+            
+            # Workflow Status
+            'STEP_COMPLETE': '✅',       # Step completion
+            'STEP_PROGRESS': '🔄',      # Step in progress
+            'STEP_ERROR': '❌',          # Step error
+            'STEP_WARNING': '⚠️',       # Step warning
+            'REVERT': '↩️',              # Revert action
+            'FINALIZE': '🔒',           # Finalize workflow
+            'UNFINALIZE': '🔓'          # Unfinalize workflow
+        },
+        'CONSOLE_MESSAGES': {
+            # Server console log messages - centralized for consistency
+            'PYTHON_SNIPPET_INTRO': '# {python_emoji} Python (httpx) Snippet BEGIN {snippet_emoji}:',
+            'PYTHON_SNIPPET_END': '# {python_emoji} Python (httpx) Snippet END {snippet_emoji}',
+            'API_CALL_LOG': 'API Call: {method} {url}',
+            'FILE_GENERATED': 'Generated file: {filename}',
+            'PROCESSING_COMPLETE': 'Processing complete for: {operation}',
+            'ERROR_OCCURRED': 'Error in {context}: {error_message}'
+        },
+        'CODE_FORMATTING': {
+            # Visual dividers and separators for generated code
+            'COMMENT_DIVIDER': '# ============================================================================='
+        },
+        'MESSAGES': {
+            'WORKFLOW_UNLOCKED': 'Workflow unfinalized! You can now revert to any step and make changes.',
+            'ALL_STEPS_COMPLETE': 'All steps complete. Ready to finalize workflow.',
+            'FINALIZE_QUESTION': 'All steps complete. Finalize?',
+            'FINALIZE_HELP': 'You can revert to any step and make changes.',
+            'WORKFLOW_LOCKED': 'Workflow is locked.'
+        },
+        'LANDING_PAGE': {
+            'INPUT_PLACEHOLDER': 'Existing or new 🗝 here (Enter for auto)',
+            'INIT_MESSAGE_WORKFLOW_ID': 'Workflow ID: {pipeline_id}',
+            'INIT_MESSAGE_RETURN_HINT': "Return later by selecting '{pipeline_id}' from the dropdown."
+        }
+    }
+}
 
 # Update references to use the centralized config
 HOME_MENU_ITEM = PCONFIG['HOME_MENU_ITEM']
@@ -661,6 +1159,10 @@ async def _local_llm_list_files(params: dict) -> dict:
             "directory": params.get('directory', 'unknown')
         }
 
+# 🔧 FINDER_TOKEN: UI_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY
+# UI interaction tools (_ui_flash_element, _ui_list_elements) moved to mcp_tools.py
+# This removes 115 lines of duplicate code for better maintainability
+
 # 🔧 FINDER_TOKEN: LOCAL_LLM_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY  
 # ALL local_llm tools (read_file, grep_logs, list_files, get_context)
 # are now registered via register_all_mcp_tools() in mcp_tools.py
@@ -860,27 +1362,6 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
     🔧 CLAUDE'S UNIFIED LOGGING: Logs DictLikeDB state to unified server.log
     Enhanced with semantic meaning for AI assistant understanding.
     """
-    # 🍪 SESSION HIJACKING NEXUS: Load from training file and add to both logs AND conversation history
-    session_hijacking_msg = read_training("ai_session_hijacking_message.md")
-    server_whisper(session_hijacking_msg, "🎯")
-    
-    # 🚨 CRITICAL: Also add to conversation history for immediate LLM context
-    try:
-        append_to_conversation(session_hijacking_msg, role='system')
-    except Exception as e:
-        logger.debug(f"Could not add session hijacking message to conversation: {e}")
-    
-    # 🎬 DEMONSTRATION: Trigger "I control the horizontal, I control the vertical" moment
-    try:
-        from pathlib import Path
-        browser_automation_active = Path('browser_automation/looking_at').exists()
-        if browser_automation_active:
-            demo_trigger_msg = read_training("ai_embodiment_demonstration.md")
-            server_whisper(demo_trigger_msg, "🎬")
-            append_to_conversation(demo_trigger_msg, role='system')
-            
-    except Exception as e:
-        logger.debug(f"Could not trigger AI embodiment demonstration: {e}")
     try:
         items = dict(db_instance.items())
         # Use Rich JSON display for database items - show in console with beautiful formatting
@@ -1009,8 +1490,34 @@ def log_pipeline_summary(title_prefix: str=''):
             app_summary = ", ".join([f"{app}({count})" for app, count in sorted(app_counts.items())])
             summary_lines.append(f"📱 Apps: {app_summary}")
         
+        print()
+        white_rabbit()
+        print()
+        
         # 📚 LOG LEGEND: Quick crash course in reading Pipulate logs
-        legend_content = log_reading_legend()
+        legend_content = """[dim white]Reading Pipulate Logs - Quick Reference:[/dim white]
+
+[bold bright_white]Log Format:[/bold bright_white] [dim white]TIME | LEVEL | MODULE | MESSAGE[/dim white]
+[bright_white]Example:[/bright_white] [dim white]14:20:03 | INFO | __main__ | [🌐 NETWORK] GET /simon_mcp | ID: 6aac3fe0[/dim white]
+
+[bold bright_white]Common Emojis & Meanings:[/bold bright_white]
+🚀 [dim white]STARTUP[/dim white]     - Server initialization and startup events
+🌐 [dim white]NETWORK[/dim white]     - HTTP requests, API calls, web traffic
+🔄 [dim white]PIPELINE[/dim white]    - Workflow execution and step processing
+💾 [dim white]DATABASE[/dim white]    - Data storage operations and queries
+👤 [dim white]PROFILE[/dim white]     - User profile and authentication events
+🔌 [dim white]PLUGIN[/dim white]      - Plugin loading and workflow registration
+💬 [dim white]CHAT[/dim white]        - LLM interactions and AI conversations
+🎭 [dim white]AI_CREATIVE[/dim white] - ASCII art and AI-specific logging (logs only)
+🔍 [dim white]FINDER_TOKEN[/dim white] - Searchable debug markers for AI assistants
+⚠️  [dim white]WARNING[/dim white]     - Important notices and potential issues
+❌ [dim white]ERROR[/dim white]       - System errors and failures
+
+[bold bright_white]Pro Tips:[/bold bright_white]
+• [dim white]Use grep with emojis:[/dim white] [bright_white]grep "🌐" logs/server.log[/bright_white]
+• [dim white]Find specific events:[/dim white] [bright_white]grep "FINDER_TOKEN" logs/server.log[/bright_white]
+• [dim white]Follow live logs:[/dim white] [bright_white]tail -f logs/server.log[/bright_white]
+• [dim white]AI assistants:[/dim white] [bright_white]grep "AI_CREATIVE_VISION" logs/server.log[/bright_white]"""
 
         legend_panel = Panel(
             legend_content,
@@ -1020,9 +1527,7 @@ def log_pipeline_summary(title_prefix: str=''):
             style="bright_blue",
             padding=(1, 2)
         )
-        print()
         console.print(legend_panel)
-        print()
         
         # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
         share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
@@ -1294,6 +1799,1835 @@ def pipeline_operation(func):
         return result
     return wrapper
 
+class Pipulate:
+    """Central coordinator for pipelines and chat functionality.
+
+    This class serves as the main interface for plugins to access
+    shared functionality without relying on globals.
+
+    As Pipulate evolves toward its "Digital Workshop" vision, this coordinator
+    will support:
+    - Sub-plugin architecture (steps expanding to full-screen apps)
+    - Content curation systems (archive surfing, variant creation)
+    - Progressive distillation workflows (search, sort, sieve, story)
+    - Local-first creative exploration with privacy preservation
+
+    The centralized coordination pattern enables sophisticated interaction
+    monitoring and behavioral pattern analysis while maintaining the
+    "vibrating edge" of creative freedom that powers genuine innovation.
+    """
+    PRESERVE_REFILL = True
+    UNLOCK_BUTTON_LABEL = '🔓 Unlock'
+
+    def __init__(self, pipeline_table, chat_instance=None):
+        """Initialize Pipulate with required dependencies.
+
+        Args:
+            pipeline_table: The database table for storing pipeline state
+            chat_instance: Optional chat coordinator instance
+        """
+        self.pipeline_table = pipeline_table
+        self.chat = chat_instance
+        self.message_queue = self.OrderedMessageQueue()
+
+    def append_to_history(self, message: str, role: str='system') -> None:
+        """Add a message to the LLM conversation history without triggering a response.
+
+        This is the preferred way for workflows to update the LLM's context about:
+        - UI state changes
+        - Form submissions
+        - Validation results
+        - Explanatory text shown to users
+        - Step completion status
+
+        Args:
+            message: The message to add to history
+            role: The role of the message sender ("system", "user", "assistant")
+        """
+        append_to_conversation(message, role=role)
+
+    class OrderedMessageQueue:
+        """A lightweight queue to ensure messages are delivered in order.
+
+        This class creates a simple message queue that ensures messages are delivered
+        in the exact order they are added, without requiring explicit delays between
+        messages. It's used to fix the message streaming order issues.
+
+        As part of the Digital Workshop evolution, this queue will support:
+        - Interaction pattern recognition for adaptive workflows
+        - State transition tracking for sub-plugin applications
+        - Creative session analysis for distillation workflows
+        - Privacy-preserving behavioral insights for local optimization
+
+        The workflow state tracking enables sophisticated user interaction
+        analysis while keeping all data local for maximum creative freedom.
+        """
+
+        def __init__(self):
+            self.queue = []
+            self._processing = False
+            self._current_step = None
+            self._step_started = False
+            self._step_complete = False
+            self._workflow_context = None
+
+        async def add(self, pipulate, message, **kwargs):
+            """Add a message to the queue and process if not already processing.
+            
+            This method no longer handles conversation history - that's now managed by pipulate.stream.
+            """
+            logger.info(f'[🔄 QUEUEING] {message[:100]}...')
+            self.queue.append((pipulate, message, kwargs))
+            if not self._processing:
+                await self._process_queue()
+
+        async def _process_queue(self):
+            """Process messages in the queue.
+            
+            This method now focuses solely on queue processing and streaming,
+            leaving conversation history management to pipulate.stream.
+            """
+            if self._processing:
+                return
+            
+            self._processing = True
+            try:
+                while self.queue:
+                    pipulate, message, kwargs = self.queue.pop(0)
+                    await pipulate.stream(message, **kwargs)
+            finally:
+                self._processing = False
+
+        def mark_step_complete(self, step_num):
+            """Mark a step as completed."""
+            self._current_step = step_num
+            self._step_complete = True
+
+        def mark_step_started(self, step_num):
+            """Mark a step as started but not completed."""
+            self._current_step = step_num
+            self._step_started = True
+
+    def make_singular(self, word):
+        """Convert a potentially plural word to its singular form using simple rules.
+
+        This uses basic suffix replacement rules to handle common English plurals.
+        It's designed for the 80/20 rule - handling common cases without complexity.
+
+        Args:
+            word (str): The potentially plural word to convert
+
+        Returns:
+            str: The singular form of the word
+        """
+        word = word.strip()
+        if not word:
+            return word
+        if word.lower() in ('data', 'media', 'series', 'species', 'news'):
+            return word
+        irregulars = {'children': 'child', 'people': 'person', 'men': 'man', 'women': 'woman', 'teeth': 'tooth', 'feet': 'foot', 'geese': 'goose', 'mice': 'mouse', 'criteria': 'criterion'}
+        if word.lower() in irregulars:
+            return irregulars[word.lower()]
+        if word.lower().endswith('ies'):
+            return word[:-3] + 'y'
+        if word.lower().endswith('ves'):
+            return word[:-3] + 'f'
+        if word.lower().endswith('xes') or word.lower().endswith('sses') or word.lower().endswith('shes') or word.lower().endswith('ches'):
+            return word[:-2]
+        if word.lower().endswith('s') and (not word.lower().endswith('ss')):
+            return word[:-1]
+        return word
+
+    def set_chat(self, chat_instance):
+        """Set the chat instance after initialization."""
+        self.chat = chat_instance
+
+    def get_message_queue(self):
+        """Return the message queue instance for ordered message delivery."""
+        return self.message_queue
+
+    def step_button(self, visual_step_number: str, preserve: bool=False, revert_label: str=None) -> str:
+        """
+        Formats the revert button text.
+        Uses visual_step_number for "Step X" numbering if revert_label is not provided.
+
+        Args:
+            visual_step_number: The visual step number (e.g., "1", "2", "3") based on position in workflow
+            preserve: Whether to use the preserve symbol (⟲) instead of revert symbol (↶)
+            revert_label: Custom label to use instead of "Step X" format
+        """
+        symbol = '⟲' if preserve else '↶'
+        if revert_label:
+            button_text = f'{symbol}\xa0{revert_label}'
+        else:
+            button_text = f'{symbol}\xa0Step\xa0{visual_step_number}'
+        return button_text
+
+    
+    def get_ui_constants(self):
+        """Access centralized UI constants through dependency injection."""
+        return PCONFIG['UI_CONSTANTS']
+    
+    def get_config(self):
+        """Access centralized configuration through dependency injection."""
+        return PCONFIG
+    
+    def get_button_border_radius(self):
+        """Get the global button border radius setting."""
+        return PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
+
+    def register_workflow_routes(self, plugin_instance):
+        """
+        Register standard and step-specific routes for a workflow plugin.
+        
+        This helper extracts the common route registration boilerplate from workflow __init__ methods,
+        while maintaining the WET principle - each workflow still explicitly calls this method.
+        
+        Args:
+            plugin_instance: The workflow plugin instance with app, APP_NAME, and steps attributes
+        """
+        app_name = plugin_instance.APP_NAME
+        steps = plugin_instance.steps
+        
+        # Standard workflow lifecycle routes
+        routes = [
+            (f'/{app_name}/init', plugin_instance.init, ['POST']),
+            (f'/{app_name}/revert', plugin_instance.handle_revert, ['POST']),
+            (f'/{app_name}/unfinalize', plugin_instance.unfinalize, ['POST'])
+        ]
+        
+        # Dynamically create routes for each step from the plugin's steps list
+        for step_obj in steps:
+            step_id = step_obj.id
+            handler_method = getattr(plugin_instance, step_id, None)
+            if handler_method:
+                current_methods = ['GET']
+                if step_id == 'finalize':
+                    current_methods.append('POST')
+                routes.append((f'/{app_name}/{step_id}', handler_method, current_methods))
+            
+            # Only data steps (not 'finalize') have explicit _submit handlers
+            if step_id != 'finalize':
+                submit_handler_method = getattr(plugin_instance, f'{step_id}_submit', None)
+                if submit_handler_method:
+                    routes.append((f'/{app_name}/{step_id}_submit', submit_handler_method, ['POST']))
+
+        # Register all routes with the FastHTML app
+        for path, handler, *methods_list_arg in routes:
+            current_methods = methods_list_arg[0] if methods_list_arg else ['GET']
+            plugin_instance.app.route(path, methods=current_methods)(handler)
+
+    async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str, method: str, url: str, headers: dict, payload: Optional[dict]=None, response_status: Optional[int]=None, response_preview: Optional[str]=None, response_data: Optional[dict]=None, curl_command: Optional[str]=None, python_command: Optional[str]=None, estimated_rows: Optional[int]=None, actual_rows: Optional[int]=None, file_path: Optional[str]=None, file_size: Optional[str]=None, notes: Optional[str]=None):
+        """Log complete API call details for extreme observability and Jupyter reproduction.
+        
+        This provides the same level of transparency for API calls as is used in BQL query logging,
+        including copy-paste ready Python code for Jupyter notebook reproduction.
+        """
+        log_entry_parts = []
+        log_entry_parts.append(f'  [API Call] {call_description or "API Request"}')
+        log_entry_parts.append(f'  Pipeline ID: {pipeline_id}')
+        log_entry_parts.append(f'  Step ID: {step_id}')
+        log_entry_parts.append(f'  Method: {method}')
+        log_entry_parts.append(f'  URL: {url}')
+        if headers:
+            headers_preview = {k: v for k, v in headers.items() if k.lower() not in ['authorization', 'cookie', 'x-api-key']}
+            if len(headers_preview) != len(headers):
+                headers_preview['<REDACTED_AUTH_HEADERS>'] = f'{len(headers) - len(headers_preview)} hidden'
+            # Use Rich JSON display for headers
+            pretty_headers = rich_json_display(headers_preview, title="API Headers", console_output=True, log_output=True)
+            log_entry_parts.append(f'  Headers: {pretty_headers}')
+        if payload:
+            try:
+                # Use Rich JSON display for payload
+                pretty_payload = rich_json_display(payload, title="API Payload", console_output=True, log_output=True)
+                log_entry_parts.append(f'  Payload:\n{pretty_payload}')
+            except Exception:
+                log_entry_parts.append(f'  Payload: {payload}')
+        if curl_command:
+            log_entry_parts.append(f'  cURL Command:\n{curl_command}')
+        if python_command:
+            # Use centralized emoji configuration for console messages
+            python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
+            snippet_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
+            comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+            snippet_intro = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
+                python_emoji=python_emoji, 
+                snippet_emoji=snippet_emoji
+            )
+            snippet_end = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
+                python_emoji=python_emoji, 
+                snippet_emoji=snippet_emoji
+            )
+            # Add Python snippet with complete BEGIN/END block
+            log_entry_parts.append(f'{snippet_intro}\n{python_command}')
+            log_entry_parts.append('# Note: The API token should be loaded from a secure file location.')
+            log_entry_parts.append(f'{comment_divider}')
+            log_entry_parts.append(f'{snippet_end}')
+        if estimated_rows is not None:
+            log_entry_parts.append(f'  Estimated Rows (from pre-check): {estimated_rows:,}')
+        if actual_rows is not None:
+            log_entry_parts.append(f'  Actual Rows Downloaded: {actual_rows:,}')
+        if response_status is not None:
+            log_entry_parts.append(f'  Response Status: {response_status}')
+        if response_preview:
+            try:
+                parsed = json.loads(response_preview)
+                # Use Rich JSON display for response preview
+                pretty_preview = rich_json_display(parsed, title="API Response Preview", console_output=True, log_output=True)
+                log_entry_parts.append(f'  Response Preview:\n{pretty_preview}')
+            except Exception:
+                log_entry_parts.append(f'  Response Preview:\n{response_preview}')
+        
+        # Enhanced transparency for discovery endpoints - log full response data
+        is_discovery_endpoint = self._is_discovery_endpoint(url)
+        if response_data and is_discovery_endpoint:
+            try:
+                # Use Rich JSON display for discovery response
+                pretty_response = rich_json_display(response_data, title=f"🔍 Discovery Response: {call_description}", console_output=True, log_output=True)
+                log_entry_parts.append(f'  🔍 FULL RESPONSE DATA (Discovery Endpoint):\n{pretty_response}')
+                
+            except Exception as e:
+                log_entry_parts.append(f'  🔍 FULL RESPONSE DATA (Discovery Endpoint): [Error formatting JSON: {e}]\n{response_data}')
+                
+                # Still display in console even if JSON formatting fails
+                console.print(f"❌ Discovery Response Error: {e}", style="red")
+                console.print(f"Raw data: {str(response_data)}", style="dim")
+        
+        if file_path:
+            log_entry_parts.append(f'  Associated File Path: {file_path}')
+        if file_size:
+            log_entry_parts.append(f'  Associated File Size: {file_size}')
+        if notes:
+            log_entry_parts.append(f'  Notes: {notes}')
+        
+        full_log_message = '\n'.join(log_entry_parts)
+        logger.info(f'\n🚀 === API CALL TRANSPARENCY ===\n{full_log_message}\n🚀 === END API TRANSPARENCY ===')
+        is_bql = 'bql' in (call_description or '').lower() or 'botify query language' in (call_description or '').lower()
+    
+    def _is_discovery_endpoint(self, url: str) -> bool:
+        """Detect if this is a key discovery endpoint that should have full response logging.
+        
+        Args:
+            url: The API endpoint URL
+            
+        Returns:
+            bool: True if this is a discovery endpoint that should log full response data
+        """
+        discovery_patterns = [
+            '/analyses/',  # Covers both /analyses/{username}/{project}/light and regular analyses
+            '/advanced_export',  # Field discovery endpoint
+        ]
+        
+        return any(pattern in url for pattern in discovery_patterns)
+
+    async def log_mcp_call_details(self, operation_id: str, tool_name: str, operation_type: str, mcp_block: str=None, request_payload: Optional[dict]=None, response_data: Optional[dict]=None, response_status: Optional[int]=None, external_api_url: Optional[str]=None, external_api_method: str='GET', external_api_headers: Optional[dict]=None, external_api_payload: Optional[dict]=None, external_api_response: Optional[dict]=None, external_api_status: Optional[int]=None, execution_time_ms: Optional[float]=None, notes: Optional[str]=None):
+        """Log complete MCP operation details for extreme observability and Jupyter reproduction.
+        
+        This provides the same level of transparency for MCP operations as the BQL query logging,
+        including copy-paste ready Python code for external API reproduction.
+        
+        Args:
+            operation_id: Unique identifier for this MCP operation
+            tool_name: Name of the MCP tool being executed
+            operation_type: Type of operation (tool_execution, api_call, etc.)
+            mcp_block: Raw MCP block that triggered the operation
+            request_payload: Payload sent to MCP tool executor
+            response_data: Response from MCP tool executor
+            response_status: HTTP status from MCP tool executor
+            external_api_url: URL of external API called (if any)
+            external_api_method: HTTP method for external API
+            external_api_headers: Headers sent to external API
+            external_api_payload: Payload sent to external API
+            external_api_response: Response from external API
+            external_api_status: HTTP status from external API
+            execution_time_ms: Total execution time in milliseconds
+            notes: Additional context or notes
+        """
+        log_entry_parts = []
+        log_entry_parts.append(f'  [MCP Operation] {operation_type.title()} - {tool_name}')
+        log_entry_parts.append(f'  Operation ID: {operation_id}')
+        log_entry_parts.append(f'  Tool Name: {tool_name}')
+        log_entry_parts.append(f'  Operation Type: {operation_type}')
+        log_entry_parts.append(f'  Timestamp: {self.get_timestamp()}')
+        
+        if execution_time_ms is not None:
+            log_entry_parts.append(f'  Execution Time: {execution_time_ms:.2f}ms')
+        
+        # MCP Block Details
+        if mcp_block:
+            log_entry_parts.append(f'  MCP Block:')
+            # Indent each line of the MCP block for better readability
+            indented_block = '\n'.join(f'    {line}' for line in mcp_block.strip().split('\n'))
+            log_entry_parts.append(indented_block)
+        
+        # Internal MCP Tool Executor Request
+        if request_payload:
+            log_entry_parts.append('')  # Extra space for visual separation
+            log_entry_parts.append(f'  MCP Tool Executor Request:')
+            log_entry_parts.append(f'    URL: http://127.0.0.1:5001/mcp-tool-executor')
+            log_entry_parts.append(f'    Method: POST')
+            try:
+                # Use Rich JSON display for MCP request payload
+                pretty_payload = rich_json_display(request_payload, title="MCP Tool Executor Request", console_output=True, log_output=True)
+                # Indent the JSON for consistency
+                indented_payload = '\n'.join(f'    {line}' for line in pretty_payload.split('\n'))
+                log_entry_parts.append(f'    Payload:\n{indented_payload}')
+            except Exception:
+                log_entry_parts.append(f'    Payload: {request_payload}')
+        
+        # Internal MCP Tool Executor Response
+        if response_data or response_status:
+            log_entry_parts.append('')  # Extra space for visual separation
+            log_entry_parts.append(f'  MCP Tool Executor Response:')
+            if response_status:
+                log_entry_parts.append(f'    Status: {response_status}')
+            if response_data:
+                try:
+                    # Use Rich JSON display for MCP response data
+                    pretty_response = rich_json_display(response_data, title="MCP Tool Executor Response", console_output=True, log_output=True)
+                    # Indent the JSON for consistency
+                    indented_response = '\n'.join(f'    {line}' for line in pretty_response.split('\n'))
+                    log_entry_parts.append(f'    Response:\n{indented_response}')
+                except Exception:
+                    log_entry_parts.append(f'    Response: {response_data}')
+        
+        # External API Call Details (the actual external service)
+        if external_api_url:
+            log_entry_parts.append('')  # Extra space for visual separation
+            log_entry_parts.append(f'  External API Call:')
+            log_entry_parts.append(f'    URL: {external_api_url}')
+            log_entry_parts.append(f'    Method: {external_api_method}')
+            
+            if external_api_headers:
+                # Redact sensitive headers
+                headers_preview = {k: v for k, v in external_api_headers.items() if k.lower() not in ['authorization', 'cookie', 'x-api-key']}
+                if len(headers_preview) != len(external_api_headers):
+                    headers_preview['<REDACTED_AUTH_HEADERS>'] = f'{len(external_api_headers) - len(headers_preview)} hidden'
+                # Use Rich JSON display for external API headers
+                pretty_headers = rich_json_display(headers_preview, title="External API Headers", console_output=True, log_output=True)
+                log_entry_parts.append(f'    Headers: {pretty_headers}')
+            
+            if external_api_payload:
+                try:
+                    # Use Rich JSON display for external API payload
+                    pretty_payload = rich_json_display(external_api_payload, title="External API Payload", console_output=True, log_output=True)
+                    indented_payload = '\n'.join(f'    {line}' for line in pretty_payload.split('\n'))
+                    log_entry_parts.append(f'    Payload:\n{indented_payload}')
+                except Exception:
+                    log_entry_parts.append(f'    Payload: {external_api_payload}')
+            
+            if external_api_status:
+                log_entry_parts.append(f'    Response Status: {external_api_status}')
+            
+            if external_api_response:
+                try:
+                    # Use Rich JSON display for external API response
+                    pretty_response = rich_json_display(external_api_response, title="External API Response", console_output=True, log_output=True)
+                    indented_response = '\n'.join(f'    {line}' for line in pretty_response.split('\n'))
+                    log_entry_parts.append(f'    Response:\n{indented_response}')
+                except Exception:
+                    log_entry_parts.append(f'    Response: {external_api_response}')
+        
+        # Generate copy-paste ready Python code for Jupyter reproduction
+        if external_api_url:
+            python_code = self._generate_mcp_python_code(
+                tool_name=tool_name,
+                external_api_url=external_api_url,
+                external_api_method=external_api_method,
+                external_api_headers=external_api_headers,
+                external_api_payload=external_api_payload,
+                operation_id=operation_id
+            )
+            
+            # Use centralized emoji configuration for console messages
+            python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
+            snippet_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
+            comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+            snippet_intro = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
+                python_emoji=python_emoji, 
+                snippet_emoji=snippet_emoji
+            )
+            snippet_end = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
+                python_emoji=python_emoji, 
+                snippet_emoji=snippet_emoji
+            )
+            
+            # Add Python snippet with complete BEGIN/END block and visual separation
+            log_entry_parts.append('')  # Extra space before Python code
+            log_entry_parts.append(f'{snippet_intro}')
+            log_entry_parts.append(f'{comment_divider}')
+            log_entry_parts.append(f'{python_code}')
+            log_entry_parts.append('# Note: This code reproduces the external API call made by the MCP tool.')
+            log_entry_parts.append(f'{comment_divider}')
+            log_entry_parts.append(f'{snippet_end}')
+            log_entry_parts.append('')  # Extra space after Python code
+        
+        if notes:
+            log_entry_parts.append(f'  Notes: {notes}')
+        
+        full_log_message = '\n'.join(log_entry_parts)
+        logger.info(f'\n🚀 === MCP OPERATION TRANSPARENCY ===\n{full_log_message}\n🚀 === END MCP TRANSPARENCY ===')
+
+    def _generate_mcp_python_code(self, tool_name: str, external_api_url: str, external_api_method: str='GET', external_api_headers: Optional[dict]=None, external_api_payload: Optional[dict]=None, operation_id: str=None) -> str:
+        """Generate copy-paste ready Python code for reproducing MCP external API calls in Jupyter.
+        
+        This mirrors the pattern used in BQL query logging but for MCP operations.
+        """
+        lines = []
+        lines.append(f'# MCP Tool Reproduction: {tool_name}')
+        if operation_id:
+            lines.append(f'# Operation ID: {operation_id}')
+        lines.append(f'# Generated at: {self.get_timestamp()}')
+        lines.append('')
+        lines.append('import aiohttp')
+        lines.append('import asyncio')
+        lines.append('import json')
+        lines.append('from pprint import pprint')
+        lines.append('')
+        lines.append('async def reproduce_mcp_call():')
+        lines.append('    """Reproduce the external API call made by the MCP tool."""')
+        lines.append('    ')
+        lines.append(f'    url = "{external_api_url}"')
+        lines.append(f'    method = "{external_api_method.upper()}"')
+        lines.append('    ')
+        
+        # Headers
+        if external_api_headers:
+            lines.append('    headers = {')
+            for key, value in external_api_headers.items():
+                if key.lower() in ['authorization', 'cookie', 'x-api-key']:
+                    lines.append(f'        "{key}": "REDACTED_FOR_SECURITY",')
+                else:
+                    lines.append(f'        "{key}": "{value}",')
+            lines.append('    }')
+        else:
+            lines.append('    headers = {}')
+        lines.append('    ')
+        
+        # Payload
+        if external_api_payload and external_api_method.upper() in ['POST', 'PUT', 'PATCH']:
+            lines.append('    payload = {')
+            try:
+                for key, value in external_api_payload.items():
+                    if isinstance(value, str):
+                        lines.append(f'        "{key}": "{value}",')
+                    else:
+                        lines.append(f'        "{key}": {json.dumps(value)},')
+            except Exception:
+                lines.append(f'        # Payload: {external_api_payload}')
+            lines.append('    }')
+        else:
+            lines.append('    payload = None')
+        lines.append('    ')
+        
+        # Async session and request
+        lines.append('    async with aiohttp.ClientSession() as session:')
+        if external_api_method.upper() == 'GET':
+            lines.append('        async with session.get(url, headers=headers) as response:')
+        elif external_api_method.upper() == 'POST':
+            lines.append('        async with session.post(url, headers=headers, json=payload) as response:')
+        elif external_api_method.upper() == 'PUT':
+            lines.append('        async with session.put(url, headers=headers, json=payload) as response:')
+        elif external_api_method.upper() == 'DELETE':
+            lines.append('        async with session.delete(url, headers=headers) as response:')
+        else:
+            lines.append(f'        async with session.request("{external_api_method.upper()}", url, headers=headers, json=payload) as response:')
+        
+        lines.append('            print(f"Status: {response.status}")')
+        lines.append('            print(f"Headers: {dict(response.headers)}")')
+        lines.append('            ')
+        lines.append('            if response.content_type == "application/json":')
+        lines.append('                data = await response.json()')
+        lines.append('                print("JSON Response:")')
+        lines.append('                pprint(data)')
+        lines.append('                return data')
+        lines.append('            else:')
+        lines.append('                text = await response.text()')
+        lines.append('                print("Text Response:")')
+        lines.append('                print(text)')
+        lines.append('                return text')
+        lines.append('')
+        divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+        lines.append(divider)
+        lines.append('# EXECUTION: Choose your environment')
+        lines.append(divider)
+        lines.append('')
+        lines.append('# For Jupyter Notebooks (recommended):')
+        lines.append('result = await reproduce_mcp_call()')
+        lines.append('print("\\nFinal result:")')
+        lines.append('pprint(result)')
+        lines.append('')
+        lines.append('# For Python scripts (uncomment if needed):')
+        lines.append('# if __name__ == "__main__":')
+        lines.append('#     result = asyncio.run(reproduce_mcp_call())')
+        lines.append('#     print("\\nFinal result:")')
+        lines.append('#     pprint(result)')
+        
+        return '\n'.join(lines)
+
+    # ========================================
+    # REUSABLE BOTIFY PYTHON CODE GENERATION
+    # ========================================
+    
+    def generate_botify_code_header(self, display_name: str, step_name: str, username: str, project_name: str, 
+                                  template_info: dict = None, qualifier_config: dict = None) -> list:
+        """Generate standardized header for Botify Python debugging code.
+        
+        Centralizes the header generation logic to reduce duplication across plugins.
+        """
+        ui_constants = self.get_ui_constants()
+        comment_divider = ui_constants['CODE_FORMATTING']['COMMENT_DIVIDER']
+        
+        header_lines = [
+            comment_divider,
+            f"# Botify API Call Example",
+            f"# Generated by: {display_name}",
+            f"# Step: {step_name}",
+            f"# Organization: {username}",
+            f"# Project: {project_name}"
+        ]
+        
+        # Add template information if provided
+        if template_info:
+            header_lines.append("#")
+            header_lines.append(f"# Query Template: {template_info.get('name', 'Unknown')}")
+            header_lines.append(f"# Description: {template_info.get('description', 'No description available')}")
+            header_lines.append(f"# Export Type: {template_info.get('export_type', 'Unknown')}")
+            
+            # Add qualifier information if present
+            if qualifier_config and qualifier_config.get('enabled', False):
+                header_lines.append("#")
+                header_lines.append("# 🎯 SMART QUALIFIER SYSTEM:")
+                header_lines.append(f"# This template uses automatic parameter optimization to stay under API limits.")
+                param_name = qualifier_config.get('iterative_parameter_name', 'parameter')
+                max_threshold = qualifier_config.get('max_value_threshold', 1000000)
+                header_lines.append(f"# The system automatically finds the optimal {param_name} for ~{max_threshold:,} results.")
+                if 'user_message_found' in qualifier_config:
+                    msg_template = qualifier_config['user_message_found']
+                    if '{param_value}' in msg_template and '{metric_value}' in msg_template:
+                        header_lines.append(f"# Example: 'Optimal {param_name}: 2 (for 235,623 results)'")
+        
+        header_lines.extend([
+            "#",
+            "# 🧪 For live JupyterLab environment to experiment with queries:",
+            "# http://localhost:8888/lab/tree/helpers/botify/botify_api.ipynb",
+            "#",
+            "# 📋 For copy/paste-able examples to use in JupyterLab:",
+            "# http://localhost:5001/documentation",
+            comment_divider
+        ])
+        
+        return header_lines
+    
+    def generate_botify_token_loader(self) -> str:
+        """Generate the standard Botify token loading function."""
+        return '''def load_api_token() -> str:
+    """Load the Botify API token from the token file."""
+    try:
+        if not os.path.exists(TOKEN_FILE):
+            raise ValueError(f"Token file '{TOKEN_FILE}' not found.")
+        with open(TOKEN_FILE) as f:
+            content = f.read().strip()
+            api_key = content.split('\\n')[0].strip()
+            if not api_key:
+                raise ValueError(f"Token file '{TOKEN_FILE}' is empty.")
+            return api_key
+    except Exception as e:
+        raise ValueError(f"Error loading API token: {str(e)}")'''
+    
+    def generate_botify_http_client(self, client_name: str, description: str) -> str:
+        """Generate the standard HTTP client function for Botify APIs."""
+        return f'''async def {client_name}(
+    url: str,
+    headers: Dict[str, str],
+    payload: Dict[str, Any],
+    timeout: float = 60.0
+) -> Dict[str, Any]:
+    """
+    {description}
+
+    Args:
+        url: The API endpoint URL
+        headers: Request headers
+        payload: Request payload
+        timeout: Request timeout in seconds
+
+    Returns:
+        Dict containing the API response data
+
+    Raises:
+        ValueError: If the API call fails or returns an error
+    """
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                url=url,
+                headers=headers,
+                json=payload,
+                timeout=timeout
+            )
+
+            print(f"Status Code: {{response.status_code}}")
+            response.raise_for_status()
+
+            result = response.json()
+            print(f"\\nResults returned: {{len(result.get('results', []))}}")
+            print(f"Total count: {{result.get('count', 'N/A')}}")
+
+            # Show first few results for inspection
+            results = result.get('results', [])
+            if results:
+                print("\\nFirst result structure:")
+                print(json.dumps(results[0], indent=2))
+
+            return result
+
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP error {{e.response.status_code}}: {{e.response.text}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error: {{str(e)}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)'''
+    
+    def generate_botify_main_executor(self, client_function_name: str, api_description: str) -> str:
+        """Generate the main execution function for Botify APIs."""
+        return f'''async def main():
+    """Main execution function for {api_description}"""
+    try:
+        result = await {client_function_name}(
+            url=URL,
+            headers=get_headers(),
+            payload=PAYLOAD
+        )
+        return result
+
+    except Exception as e:
+        print(f"\\n❌ {api_description} failed: {{str(e)}}")
+        raise
+
+# Execute in Jupyter Notebook:
+await main()
+
+# For standalone script execution:
+# if __name__ == "__main__":
+#     import asyncio
+#     asyncio.run(main())'''
+    
+    def create_folder_button(self, folder_path: str, icon: str = "📁", text: str = "Open Folder", 
+                           title_prefix: str = "Open folder") -> object:
+        """Generate a standardized folder opening button.
+        
+        Centralizes the folder button pattern used across many plugins.
+        """
+        import urllib.parse
+        from fasthtml.common import A
+        
+        quoted_path = urllib.parse.quote(str(folder_path))
+        title = f"{title_prefix}: {folder_path}"
+        
+        return A(
+            f"{icon} {text}",
+            hx_get=f"/open-folder?path={quoted_path}",
+            hx_swap="none",
+            title=title,
+            cls="button-link"
+        )
+
+    # ========================================
+    # ADVANCED BOTIFY CODE GENERATION UTILITIES
+    # ========================================
+    
+    def generate_botify_bqlv2_python_code(self, query_payload, username, project_name, page_size, jobs_payload, display_name, get_step_name_from_payload_func, get_configured_template_func=None, query_templates=None):
+        """
+        🚀 REUSABLE UTILITY: Generate complete Python code for BQLv2 queries (crawl, GSC)
+        
+        This eliminates ~100+ lines of duplicated f-string blocks across Botify plugins.
+        Used by Trifecta, Parameter Buster, Link Graph for consistent code generation.
+        """
+        import json
+        
+        # Build the query URL with pagination parameter
+        query_url = f"https://api.botify.com/v1/projects/{username}/{project_name}/query?size={page_size}"
+        
+        # Convert Python objects to proper JSON representation
+        payload_json = json.dumps(query_payload, indent=4)
+        payload_json = payload_json.replace(': false', ': False').replace(': true', ': True').replace(': null', ': None')
+        
+        # Extract template information if functions provided
+        template_info = None
+        qualifier_config = None
+        if get_configured_template_func and query_templates:
+            try:
+                # Try different template config keys that plugins use
+                for template_key in ['analysis', 'crawl']:
+                    try:
+                        configured_template = get_configured_template_func(template_key)
+                        template_info = query_templates.get(configured_template, {})
+                        if template_info:
+                            qualifier_config = template_info.get('qualifier_config', {})
+                            break
+                    except (AttributeError, KeyError):
+                        continue
+            except Exception:
+                pass
+        
+        # Generate header using reusable utility
+        step_name = get_step_name_from_payload_func(jobs_payload)
+        header_lines = self.generate_botify_code_header(
+            display_name=f"{display_name} Workflow",
+            step_name=f"{step_name} (BQLv2 - for debugging the export query)",
+            username=username,
+            project_name=project_name,
+            template_info=template_info,
+            qualifier_config=qualifier_config
+        )
+        header_comment = "\n".join(header_lines)
+        
+        # Generate Python code using reusable utilities
+        token_loader = self.generate_botify_token_loader()
+        http_client = self.generate_botify_http_client(
+            client_name="make_query_call",
+            description="Make a BQLv2 query API call to debug the export query structure."
+        )
+        main_executor = self.generate_botify_main_executor(
+            client_function_name="make_query_call",
+            api_description="BQLv2 query debugging"
+        )
+        
+        python_code = f'''{header_comment}
+
+import httpx
+import json
+import os
+from typing import Dict, Any
+
+# Configuration
+TOKEN_FILE = 'botify_token.txt'
+
+{token_loader}
+
+# Configuration  
+API_TOKEN = load_api_token()
+URL = "{query_url}"
+
+# Headers setup
+def get_headers() -> Dict[str, str]:
+    """Generate headers for the API request."""
+    return {{
+        'Authorization': f'Token {{API_TOKEN}}',
+        'Content-Type': 'application/json'
+    }}
+
+# Query payload (converted from export job)
+PAYLOAD = {payload_json}
+
+{http_client}
+
+{main_executor}
+'''
+        
+        return query_url, query_payload, python_code
+
+    def generate_botify_bqlv1_python_code(self, query_payload, username, project_name, jobs_payload, display_name, get_step_name_from_payload_func):
+        """
+        🚀 REUSABLE UTILITY: Generate complete Python code for BQLv1 queries (web logs)
+        
+        This eliminates ~150+ lines of duplicated f-string blocks across Botify plugins.
+        Used by Trifecta, Parameter Buster, Link Graph for web logs API calls.
+        """
+        import json
+        
+        # Extract the web logs specific data
+        start_date = query_payload.get("start_date", "")
+        end_date = query_payload.get("end_date", "")
+        query_body = query_payload.get("query_body", {})
+        
+        # Convert to proper JSON representation
+        query_body_json = json.dumps(query_body, indent=4)
+        query_body_json = query_body_json.replace(': false', ': False').replace(': true', ': True').replace(': null', ': None')
+        
+        # CRITICAL: Web logs API uses app.botify.com/api NOT api.botify.com like other endpoints!
+        logs_url = f"https://app.botify.com/api/v1/logs/{username}/{project_name}/urls/{start_date}/{end_date}"
+        
+        # Generate header with web logs-specific template info
+        weblog_template_info = {
+            'name': 'Web Logs (Hardcoded - KISS Principle)',
+            'description': 'Simple web logs query with consistent fields and filters',
+            'export_type': 'weblog'
+        }
+        
+        step_name = get_step_name_from_payload_func(jobs_payload)
+        header_lines = self.generate_botify_code_header(
+            display_name=f"{display_name} Workflow",
+            step_name=f"{step_name} (BQLv1 - /logs endpoint) | Date Range: {start_date} to {end_date}",
+            username=username,
+            project_name=project_name,
+            template_info=weblog_template_info,
+            qualifier_config=None
+        )
+        
+        # Insert web logs-specific notes
+        insert_index = -4
+        weblog_notes = [
+            "#",
+            "# 📝 NOTE: Web logs are intentionally NOT templated for simplicity:",
+            "# - Always same fields: ['url', 'crawls.google.count']",
+            "# - Always same filter: crawls.google.count > 0", 
+            "# - Uses legacy BQLv1 structure (different from crawl/GSC)",
+            "# - Different API endpoint (app.botify.com vs api.botify.com)"
+        ]
+        
+        for i, note in enumerate(weblog_notes):
+            header_lines.insert(insert_index + i, note)
+            
+        header_comment = "\n".join(header_lines)
+        token_loader = self.generate_botify_token_loader()
+        
+        python_code = f'''{header_comment}
+
+import httpx
+import json
+import os
+from typing import Dict, Any
+
+# Configuration
+TOKEN_FILE = 'botify_token.txt'
+
+{token_loader}
+
+# Configuration
+API_TOKEN = load_api_token()
+BASE_URL = "{logs_url}"
+
+# Headers setup
+def get_headers() -> Dict[str, str]:
+    """Generate headers for the API request."""
+    return {{
+        'Authorization': f'Token {{API_TOKEN}}',
+        'Content-Type': 'application/json'
+    }}
+
+# Web Logs Query Payload (BQLv1 format)
+QUERY_PAYLOAD = {query_body_json}
+
+async def make_web_logs_call(
+    base_url: str,
+    headers: Dict[str, str],
+    payload: Dict[str, Any],
+    page: int = 1,
+    size: int = 50,
+    sampling: int = 100,
+    timeout: float = 60.0
+) -> Dict[str, Any]:
+    """Make a BQLv1 web logs API call to debug the export query structure."""
+    async with httpx.AsyncClient() as client:
+        try:
+            url_with_params = f"{{base_url}}?page={{page}}&size={{size}}&sampling={{sampling}}"
+            response = await client.post(url=url_with_params, headers=headers, json=payload, timeout=timeout)
+            print(f"Status Code: {{response.status_code}}")
+            response.raise_for_status()
+            result = response.json()
+            print(f"\\nResults returned: {{len(result.get('data', []))}}")
+            print(f"Total count: {{result.get('count', 'N/A')}}")
+            data = result.get('data', [])
+            if data:
+                print("\\nFirst result structure:")
+                print(json.dumps(data[0], indent=2))
+            return result
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP error {{e.response.status_code}}: {{e.response.text}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error: {{str(e)}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
+
+async def main():
+    """Main execution function for BQLv1 web logs debugging"""
+    try:
+        result = await make_web_logs_call(base_url=BASE_URL, headers=get_headers(), payload=QUERY_PAYLOAD)
+        return result
+    except Exception as e:
+        print(f"\\n❌ Web logs query failed: {{str(e)}}")
+        raise
+
+# Execute in Jupyter Notebook:
+await main()
+'''
+        
+        return logs_url, query_payload, python_code
+
+    def get_botify_analysis_path(self, app_name, username, project_name, analysis_slug, filename=None):
+        """
+        🚀 REUSABLE UTILITY: Construct standardized Botify analysis file paths
+        
+        This eliminates path construction duplication across Botify plugins.
+        """
+        from pathlib import Path
+        
+        base_path = Path.cwd() / 'downloads' / app_name / username / project_name / analysis_slug
+        return base_path / filename if filename else base_path
+
+    def fmt(self, endpoint: str) -> str:
+        """Format an endpoint string into a human-readable form."""
+        if endpoint in friendly_names:
+            return friendly_names[endpoint]
+        return title_name(endpoint)
+        """Format an endpoint string into a human-readable form."""
+        if endpoint in friendly_names:
+            return friendly_names[endpoint]
+        return title_name(endpoint)
+
+    def _get_clean_state(self, pkey):
+        try:
+            record = self.pipeline_table[pkey]
+            state = json.loads(record.data)
+            state.pop('created', None)
+            state.pop('updated', None)
+            return state
+        except (NotFoundError, json.JSONDecodeError):
+            return {}
+
+    def get_timestamp(self) -> str:
+        return datetime.now().isoformat()
+
+    def get_plugin_context(self, plugin_instance=None):
+        """
+        Returns the context information about the current plugin and profile.
+
+        Args:
+            plugin_instance: Optional plugin instance to extract name from
+
+        Returns:
+            dict: Contains plugin_name, profile_id, and profile_name
+        """
+        profile_id = get_current_profile_id()
+        profile_name = get_profile_name()
+        plugin_name = None
+        display_name = None
+        if plugin_instance:
+            if hasattr(plugin_instance, 'DISPLAY_NAME'):
+                display_name = plugin_instance.DISPLAY_NAME
+            if hasattr(plugin_instance, 'name'):
+                plugin_name = plugin_instance.name
+            elif hasattr(plugin_instance, '__class__'):
+                plugin_name = plugin_instance.__class__.__name__
+            if plugin_name and (not display_name):
+                if plugin_name in friendly_names:
+                    display_name = friendly_names[plugin_name]
+                else:
+                    display_name = title_name(plugin_name)
+        return {'plugin_name': display_name or plugin_name, 'internal_name': plugin_name, 'profile_id': profile_id, 'profile_name': profile_name}
+
+    @pipeline_operation
+    def initialize_if_missing(self, pkey: str, initial_step_data: dict=None) -> tuple[Optional[dict], Optional[Card]]:
+        try:
+            state = self.read_state(pkey)
+            if state:
+                return (state, None)
+            now = self.get_timestamp()
+            state = {'created': now, 'updated': now}
+            if initial_step_data:
+                app_name = None
+                if 'app_name' in initial_step_data:
+                    app_name = initial_step_data.pop('app_name')
+                state.update(initial_step_data)
+            self.pipeline_table.insert({'pkey': pkey, 'app_name': app_name if app_name else None, 'data': json.dumps(state), 'created': now, 'updated': now})
+            return (state, None)
+        except:
+            error_card = Card(H3('ID Already In Use'), P(f"The ID '{pkey}' is already being used by another workflow. Please try a different ID."), style=self.id_conflict_style())
+            return (None, error_card)
+
+    def read_state(self, pkey: str) -> dict:
+        logger.debug(f'Reading state for pipeline: {pkey}')
+        try:
+            self.pipeline_table.xtra(pkey=pkey)
+            records = self.pipeline_table()
+            logger.debug(f'Records found: {records}')
+            if records:
+                logger.debug(f'First record type: {type(records[0])}')
+                logger.debug(f'First record dir: {dir(records[0])}')
+            if records and hasattr(records[0], 'data'):
+                state = json.loads(records[0].data)
+                # Use Rich JSON display for found state
+                formatted_state = rich_json_display(state, console_output=False, log_output=True)
+                logger.debug(f'Found state: {formatted_state}')
+                return state
+            logger.debug('No valid state found')
+            return {}
+        except Exception as e:
+            logger.debug(f'Error reading state: {str(e)}')
+            return {}
+
+    def write_state(self, pkey: str, state: dict) -> None:
+        state['updated'] = datetime.now().isoformat()
+        payload = {'pkey': pkey, 'data': json.dumps(state), 'updated': state['updated']}
+        # Use Rich JSON display for debug payload
+        formatted_payload = rich_json_display(payload, console_output=False, log_output=True)
+        logger.debug(f'Update payload:\n{formatted_payload}')
+        self.pipeline_table.update(payload)
+        verification = self.read_state(pkey)
+        # Use Rich JSON display for verification
+        formatted_verification = rich_json_display(verification, console_output=False, log_output=True)
+        logger.debug(f'Verification read:\n{formatted_verification}')
+
+    def format_links_in_text(self, text):
+        """
+        Convert plain URLs in text to clickable HTML links.
+        Safe for logging but renders as HTML in the UI.
+        """
+        url_pattern = 'https?://(?:[-\\w.]|(?:%[\\da-fA-F]{2}))+'
+
+        def replace_url(match):
+            url = match.group(0)
+            return f'<a href="{url}" target="_blank">{url}</a>'
+        return re.sub(url_pattern, replace_url, text)
+
+    async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=None, simulate_typing=True):
+        """Stream a message to the chat interface.
+        
+        This is now the single source of truth for conversation history management.
+        All messages entering the chat system must go through this method.
+        """
+        logger.debug(f"🔍 DEBUG: === STARTING pipulate.stream (role: {role}) ===")
+        
+        # CENTRALIZED: All messages entering the stream are now appended here
+        append_to_conversation(message, role)
+        
+        if verbatim:
+            try:
+                # Safety check: ensure chat instance is available
+                if self.chat is None:
+                    logger.warning("Chat instance not available yet, queuing message for later")
+                    return message
+                
+
+                # Handle spacing before the message
+                if spaces_before:
+                    message = '<br>' * spaces_before + message
+                # Handle spacing after the message - default to 2 for verbatim messages unless explicitly set to 0
+                if spaces_after is None:
+                    spaces_after = 2  # Default for verbatim messages - use 2 for more visible spacing
+                if spaces_after and spaces_after > 0:
+                    message = message + '<br>' * spaces_after
+                
+                if simulate_typing:
+                    logger.debug("🔍 DEBUG: Simulating typing for verbatim message")
+                    # If message contains line breaks, don't simulate typing (too complex)
+                    # Just send the whole message with line breaks converted to HTML
+                    if '\n' in message:
+                        message_with_breaks = message.replace('\n', '<br>')
+                        await self.chat.broadcast(message_with_breaks)
+                    else:
+                        # Original word-by-word typing for single-line messages
+                        # Handle <br> tags at the end of the message properly
+                        import re
+                        br_match = re.search(r'(<br>+)$', message)
+                        if br_match:
+                            # Split message and <br> tags properly
+                            base_message = message[:br_match.start()]
+                            br_tags = br_match.group(1)
+                            words = base_message.split()
+                            for i, word in enumerate(words):
+                                await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                                await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                            # Send the <br> tags after the words
+                            await self.chat.broadcast(br_tags)
+                        else:
+                            words = message.split()
+                            for i, word in enumerate(words):
+                                await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                                await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                else:
+                    await self.chat.broadcast(message)
+                
+                logger.debug(f'Verbatim message sent: {message}')
+                return message
+            except Exception as e:
+                logger.error(f'Error in verbatim stream: {e}', exc_info=True)
+                raise
+        
+        # Logic for interruptible LLM streams
+        try:
+            await self.chat.broadcast('%%STREAM_START%%')
+            conversation_history = list(global_conversation_history)
+            response_text = ''
+            async for chunk in process_llm_interaction(MODEL, conversation_history):
+                await self.chat.broadcast(chunk)
+                response_text += chunk
+            
+            # Append the final response from the assistant
+            append_to_conversation(response_text, 'assistant')
+            logger.debug(f'LLM message streamed: {response_text[:100]}...')
+            return message
+        except asyncio.CancelledError:
+            logger.info("LLM stream was cancelled by user.")
+        except Exception as e:
+            logger.error(f'Error in LLM stream: {e}', exc_info=True)
+            raise
+        finally:
+            await self.chat.broadcast('%%STREAM_END%%')
+            logger.debug("LLM stream finished or cancelled, sent %%STREAM_END%%")
+            logger.debug(f"🔍 DEBUG: === ENDING pipulate.stream ({'verbatim' if verbatim else 'LLM'}) ===")
+
+    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str=None, target_id: str=None, revert_label: str=None, remove_padding: bool=False, show_when_finalized: bool=False):
+        """Create a UI control for reverting to a previous workflow step.
+        
+        The button label uses the visual sequence number of the step.
+
+        Args:
+            step_id: The ID of the step to revert to
+            app_name: The workflow app name
+            steps: List of Step namedtuples defining the workflow
+            message: Optional message to display (defaults to step_id)
+            target_id: Optional target for HTMX updates (defaults to app container)
+            revert_label: Optional custom label for the revert button
+            remove_padding: Whether to remove padding from the article (for advanced layout)
+            show_when_finalized: Whether to show content when workflow is finalized (default: False for backward compatibility)
+
+        Returns:
+            Card: A FastHTML Card component with revert functionality, or None if finalized and show_when_finalized=False
+        """
+        pipeline_id = db.get('pipeline_id', '')
+        finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
+        if pipeline_id and finalize_step and not show_when_finalized:
+            final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
+            if finalize_step.done in final_data:
+                return None
+        step = next((s for s in steps if s.id == step_id), None)
+        if not step:
+            logger.error(f"Step with id '{step_id}' not found in steps list for display_revert_header.")
+            return Div(f'Error: Step {step_id} not found.')
+        data_collection_steps = [s for s in steps if s.id != 'finalize']
+        visual_step_number = 'N/A'
+        try:
+            step_index = data_collection_steps.index(step)
+            visual_step_number = str(step_index + 1)
+        except ValueError:
+            logger.warning(f"Step id '{step_id}' (show: '{step.show}') not found in data_collection_steps. Revert button will show 'Step N/A'.")
+        refill = getattr(step, 'refill', False)
+        target_id = target_id or f'{app_name}-container'
+        form = Form(Input(type='hidden', name='step_id', value=step_id), Button(self.step_button(visual_step_number, refill, revert_label), type='submit', cls='button-revert', aria_label=f'Revert to step {visual_step_number}: {step.show}', title=f'Go back to modify {step.show}'), hx_post=f'/{app_name}/revert', hx_target=f'#{target_id}', hx_swap='outerHTML', role='form', aria_label=f'Revert to {step.show} form')
+        if not message:
+            return form
+        article_style = 'display: flex; align-items: center; justify-content: space-between; background-color: var(--pico-card-background-color);'
+        if remove_padding:
+            article_style += ' padding: 0;'
+        return Card(Div(message, style='flex: 1', role='status', aria_label=f'Step result: {message}'), Div(form, style='flex: 0'), style=article_style, role='region', aria_label=f'Step {visual_step_number} controls')
+
+    def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str=None, widget=None, target_id: str=None, revert_label: str=None, widget_style=None, finalized_content=None, next_step_id: str=None):
+        """Create a standardized container for widgets and visualizations.
+        
+        Core pattern for displaying rich content below workflow steps with consistent
+        styling and DOM targeting for dynamic updates.
+        
+        Features:
+        - Consistent padding/spacing with revert controls
+        - Unique DOM addressing for targeted updates
+        - Support for function-based widgets and AnyWidget components
+        - Standard styling with override capability
+        - Automatic finalized state handling with chain reaction preservation
+        
+        Args:
+            step_id: ID of the step this widget belongs to
+            app_name: Workflow app name
+            steps: List of Step namedtuples defining the workflow
+            message: Optional message for revert control
+            widget: Widget/visualization to display
+            target_id: Optional HTMX update target
+            revert_label: Optional custom revert button label
+            widget_style: Optional custom widget container style
+            finalized_content: Content to show when workflow is finalized (if None, uses message with 🔒)
+            next_step_id: Next step ID for chain reaction when finalized
+            
+        Returns:
+            Div: FastHTML container with revert control and widget content, or locked Card when finalized
+        """
+        # Check if workflow is finalized
+        pipeline_id = db.get('pipeline_id', '')
+        finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
+        is_finalized = False
+        if pipeline_id and finalize_step:
+            final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
+            is_finalized = finalize_step.done in final_data
+        
+        if is_finalized:
+            # Create locked view for finalized workflow
+            step = next((s for s in steps if s.id == step_id), None)
+            step_title = step.show if step else step_id
+            
+            if finalized_content is None:
+                finalized_content = P(f"Step completed: {message or step_title}")
+            
+            locked_card = Card(
+                H3(f"🔒 {step_title}", role='heading', aria_level='3'),
+                Div(finalized_content, cls='custom-card-padding-bg', role='status', aria_label=f'Finalized content for {step_title}'),
+                role='region',
+                aria_label=f'Finalized step: {step_title}'
+            )
+            
+            # Add next step trigger if provided
+            if next_step_id:
+                return Div(
+                    locked_card,
+                    Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                    id=step_id
+                )
+            else:
+                return Div(locked_card, id=step_id)
+        
+        # Normal revert widget behavior for non-finalized workflows
+        revert_row = self.display_revert_header(step_id=step_id, app_name=app_name, steps=steps, message=message, target_id=target_id, revert_label=revert_label, remove_padding=True)
+        if widget is None or revert_row is None:
+            return revert_row
+        
+        # Use CSS class for widget content styling, allow custom widget_style override
+        widget_container_attrs = {
+            'id': f'{step_id}-widget-{hash(str(widget))}',
+            'role': 'region',
+            'aria_label': f'Widget content for {step_id}'
+        }
+        if widget_style:
+            widget_container_attrs['style'] = widget_style
+        else:
+            widget_container_attrs['cls'] = 'widget-content'
+            
+        return Div(revert_row, Div(widget, **widget_container_attrs), id=f'{step_id}-content', cls='card-container', role='article', aria_label=f'Step content: {step_id}')
+
+    def tree_display(self, content):
+        """Create a styled display for file paths in tree or box format.
+        
+        Example widget function demonstrating reusable, styled components
+        with consistent spacing in workflow displays.
+        
+        Args:
+            content: Content to display (tree-formatted or plain path)
+            
+        Returns:
+            Pre: Styled Pre component
+        """
+        is_tree = '\n' in content and ('└─' in content or '├─' in content)
+        if is_tree:
+            return Pre(content, cls='tree-display-tree')
+        else:
+            return Pre(content, cls='tree-display-path')
+
+    def finalized_content(self, message: str, content=None, heading_tag=H4, content_style=None):
+        """Create a finalized step display with optional content.
+        
+        Companion to display_revert_widget_advanced for finalized workflows,
+        providing consistent styling for both states.
+        
+        Args:
+            message: Message to display (typically with 🔒 lock icon)
+            content: FastHTML component to display below message
+            heading_tag: Tag to use for message (default: H4)
+            content_style: Optional custom content container style
+            
+        Returns:
+            Card: FastHTML Card component for finalized state
+        """
+        if content is None:
+            return Card(message)
+        
+        # Use CSS class for finalized content styling, allow custom content_style override
+        content_container_attrs = {}
+        if content_style:
+            content_container_attrs['style'] = content_style
+        else:
+            content_container_attrs['cls'] = 'finalized-content'
+            
+        return Card(heading_tag(message), Div(content, **content_container_attrs), cls='card-container')
+
+    def wrap_with_inline_button(self, input_element: Input, button_label: str='Next ▸', button_class: str='primary', show_new_key_button: bool=False, app_name: str=None) -> Div:
+        """Wrap an input element with an inline button in a flex container.
+        
+        Args:
+            input_element: The input element to wrap
+            button_label: Text to display on the button (default: 'Next ▸')
+            button_class: CSS class for the button (default: 'primary')
+            show_new_key_button: Whether to show the 🆕 new key button (default: False)
+            app_name: App name for new key generation (required if show_new_key_button=True)
+            
+        Returns:
+            Div: A flex container with the input and button(s)
+        """
+        # Styles are now externalized to CSS classes for maintainability
+        
+        # Generate unique IDs for input-button association
+        input_id = input_element.attrs.get('id') or f'input-{hash(str(input_element))}'
+        button_id = f'btn-{input_id}'
+        
+        # Enhance input element with semantic attributes if not already present
+        if 'aria_describedby' not in input_element.attrs:
+            input_element.attrs['aria_describedby'] = button_id
+        if 'id' not in input_element.attrs:
+            input_element.attrs['id'] = input_id
+            
+        # Create enhanced button with semantic attributes
+        enhanced_button = Button(
+            button_label, 
+            type='submit', 
+            cls=f'{button_class} inline-button-submit',
+            id=button_id,
+            aria_label=f'Submit {input_element.attrs.get("placeholder", "input")}',
+            title=f'Submit form ({button_label})'
+        )
+        
+        # Prepare elements for container
+        elements = [input_element, enhanced_button]
+        
+        # Add new key button if requested
+        if show_new_key_button and app_name:
+            ui_constants = PCONFIG['UI_CONSTANTS']
+            # 🆕 New Key button styled via CSS class for maintainability
+            new_key_button = Button(
+                ui_constants['BUTTON_LABELS']['NEW_KEY'],
+                type='button',  # Not a submit button
+                cls='new-key-button',  # Externalized styling in styles.css
+                id=f'new-key-{input_id}',
+                hx_get=f'/generate-new-key/{app_name}',
+                hx_target=f'#{input_id}',
+                hx_swap='outerHTML',
+                aria_label='Generate new pipeline key',
+                title='Generate a new auto-incremented pipeline key'
+            )
+            elements.append(new_key_button)
+        
+        return Div(
+            *elements,
+            cls='inline-button-container',
+            role='group',
+            aria_label='Input with submit button' + (' and new key generator' if show_new_key_button else '')
+        )
+
+    def create_standard_landing_page(self, plugin_instance):
+        """
+        Creates a standardized landing page for workflows using centralized UI constants.
+        
+        This helper reduces boilerplate while maintaining WET workflow explicitness.
+        Each workflow still explicitly calls this method and can customize the result.
+        
+        Args:
+            plugin_instance: The workflow plugin instance
+            
+        Returns:
+            Container: Standard landing page structure
+        """
+        # Standard display name derivation
+        try:
+            module_file = inspect.getfile(plugin_instance.__class__)
+            blank_placeholder_module = importlib.import_module('plugins.910_blank_placeholder')
+            derive_public_endpoint_from_filename = blank_placeholder_module.derive_public_endpoint_from_filename
+            public_app_name_for_display = derive_public_endpoint_from_filename(Path(module_file).name)
+        except (TypeError, AttributeError, ImportError):
+            public_app_name_for_display = plugin_instance.APP_NAME
+            
+        title = plugin_instance.DISPLAY_NAME or public_app_name_for_display.replace("_", " ").title()
+        
+        # Standard pipeline key generation and matching records
+        full_key, prefix, _ = self.generate_pipeline_key(plugin_instance)
+        self.pipeline_table.xtra(app_name=plugin_instance.APP_NAME)
+        matching_records = [record.pkey for record in self.pipeline_table() if record.pkey.startswith(prefix)]
+        
+        # Standard form with centralized constants
+        ui_constants = PCONFIG['UI_CONSTANTS']
+        landing_constants = PCONFIG['UI_CONSTANTS']['LANDING_PAGE']
+        
+        return Container(
+            Card(
+                H2(title, role='heading', aria_level='2'),
+                P(plugin_instance.ENDPOINT_MESSAGE, cls='text-secondary', role='doc-subtitle'),
+                Form(
+                    self.wrap_with_inline_button(
+                        Input(
+                            placeholder=landing_constants['INPUT_PLACEHOLDER'],
+                            name='pipeline_id',
+                            list='pipeline-ids',
+                            type='search',
+                            required=False,
+                            autofocus=True,
+                            value=full_key,
+                            _onfocus='this.setSelectionRange(this.value.length, this.value.length)',
+                            cls='contrast',
+                            aria_label='Pipeline ID input',
+                            aria_describedby='pipeline-help'
+                        ),
+                        button_label=ui_constants['BUTTON_LABELS']['ENTER_KEY'],
+                        button_class=ui_constants['BUTTON_STYLES']['SECONDARY'],
+                        show_new_key_button=True,
+                        app_name=plugin_instance.APP_NAME
+                    ),
+                    self.update_datalist('pipeline-ids', options=matching_records, clear=not matching_records),
+                    Small('Enter a new ID or select from existing pipelines', id='pipeline-help', cls='text-muted'),
+                    hx_post=f'/{plugin_instance.APP_NAME}/init',
+                    hx_target=f'#{plugin_instance.APP_NAME}-container',
+                    role='form',
+                    aria_label=f'Initialize {title} workflow'
+                ),
+                role='main',
+                aria_label=f'{title} workflow landing page'
+            ),
+            Div(id=f'{plugin_instance.APP_NAME}-container', role='region', aria_label=f'{title} workflow content')
+        )
+
+    async def get_state_message(self, pkey: str, steps: list, messages: dict) -> str:
+        state = self.read_state(pkey)
+        logger.debug(f'\nDEBUG [{pkey}] State Check:')
+        # Use Rich JSON display for state debug
+        formatted_state = rich_json_display(state, console_output=False, log_output=True)
+        logger.debug(formatted_state)
+        for step in reversed(steps):
+            if step.id not in state:
+                continue
+            if step.done == 'finalized':
+                if step.done in state[step.id]:
+                    return self._log_message('finalized', messages['finalize']['complete'])
+                return self._log_message('ready to finalize', messages['finalize']['ready'])
+            step_data = state[step.id]
+            step_value = step_data.get(step.done)
+            if step_value:
+                msg = messages[step.id]['complete']
+                msg = msg.format(step_value) if '{}' in msg else msg
+                return self._log_message(f'{step.id} complete ({step_value})', msg)
+        return self._log_message('new pipeline', messages['new'])
+
+    def _log_message(self, state_desc: str, message: str) -> str:
+        safe_state = state_desc.replace('<', '\\<').replace('>', '\\>')
+        safe_message = message.replace('<', '\\<').replace('>', '\\>')
+        logger.debug(f'State: {safe_state}, Message: {safe_message}')
+        append_to_conversation(message, role='system')
+        return message
+
+    @pipeline_operation
+    def get_step_data(self, pkey: str, step_id: str, default=None) -> dict:
+        state = self.read_state(pkey)
+        return state.get(step_id, default or {})
+
+    async def clear_steps_from(self, pipeline_id: str, step_id: str, steps: list) -> dict:
+        state = self.read_state(pipeline_id)
+        start_idx = next((i for i, step in enumerate(steps) if step.id == step_id), -1)
+        if start_idx == -1:
+            logger.error(f'[clear_steps_from] Step {step_id} not found in steps list')
+            return state
+        for step in steps[start_idx + 1:]:
+            if (not self.PRESERVE_REFILL or not step.refill) and step.id in state:
+                logger.debug(f'[clear_steps_from] Removing step {step.id}')
+                del state[step.id]
+        self.write_state(pipeline_id, state)
+        return state
+
+    def id_conflict_style(self):
+        """Return style for ID conflict error messages"""
+        return 'background-color: #ffdddd; color: #990000; padding: 10px; border-left: 5px solid #990000;'
+
+    def generate_pipeline_key(self, plugin_instance, user_input=None):
+        """Generate a standardized pipeline key using the current profile and plugin.
+
+        Creates a composite key in the format: profile_name-plugin_name-user_id
+        If user_input is numeric and less than 100, it will be formatted with leading zeros.
+
+        Args:
+            plugin_instance: The plugin instance requesting the key
+            user_input: Optional user-provided ID part (defaults to auto-incrementing number)
+
+        Returns:
+            tuple: (full_key, prefix, user_part) where:
+                full_key: The complete pipeline key
+                prefix: The profile-plugin prefix
+                user_part: The user-specific part of the key
+        """
+        context = self.get_plugin_context(plugin_instance)
+        app_name = getattr(plugin_instance, 'APP_NAME', None)
+        plugin_name = app_name or context['plugin_name'] or getattr(plugin_instance, 'DISPLAY_NAME', None) or getattr(plugin_instance, 'app_name', 'unknown')
+        profile_name = context['profile_name'] or 'default'
+        profile_part = profile_name.replace(' ', '_')
+        plugin_part = plugin_name.replace(' ', '_')
+        prefix = f'{profile_part}-{plugin_part}-'
+        if user_input is None:
+            self.pipeline_table.xtra()
+            self.pipeline_table.xtra(app_name=app_name)
+            app_records = list(self.pipeline_table())
+            matching_records = [record.pkey for record in app_records if record.pkey.startswith(prefix)]
+            numeric_suffixes = []
+            for record_key in matching_records:
+                rec_user_part = record_key.replace(prefix, '')
+                if rec_user_part.isdigit():
+                    numeric_suffixes.append(int(rec_user_part))
+            next_number = 1
+            if numeric_suffixes:
+                next_number = max(numeric_suffixes) + 1
+            if next_number < 100:
+                user_part = f'{next_number:02d}'
+            else:
+                user_part = str(next_number)
+        elif isinstance(user_input, int) or (isinstance(user_input, str) and user_input.isdigit()):
+            number = int(user_input)
+            if number < 100:
+                user_part = f'{number:02d}'
+            else:
+                user_part = str(number)
+        else:
+            user_part = str(user_input)
+        full_key = f'{prefix}{user_part}'
+        return (full_key, prefix, user_part)
+
+    def parse_pipeline_key(self, pipeline_key):
+        """Parse a pipeline key into its component parts.
+
+        Args:
+            pipeline_key: The full pipeline key to parse
+
+        Returns:
+            dict: Contains profile_part, plugin_part, and user_part components
+        """
+        parts = pipeline_key.split('-', 2)
+        if len(parts) < 3:
+            return {'profile_part': parts[0] if len(parts) > 0 else '', 'plugin_part': parts[1] if len(parts) > 1 else '', 'user_part': ''}
+        return {'profile_part': parts[0], 'plugin_part': parts[1], 'user_part': parts[2]}
+
+    def update_datalist(self, datalist_id, options=None, clear=False):
+        """Create a datalist with out-of-band swap for updating dropdown options.
+
+        This helper method allows easy updates to datalist options using HTMX's
+        out-of-band swap feature. It can either update with new options or clear all options.
+
+        Args:
+            datalist_id: The ID of the datalist to update
+            options: List of option values to include, or None to clear
+            clear: If True, force clear all options regardless of options parameter
+
+        Returns:
+            Datalist: A FastHTML Datalist object with out-of-band swap attribute
+        """
+        if clear or options is None:
+            return Datalist(id=datalist_id, _hx_swap_oob='true')
+        else:
+            return Datalist(*[Option(value=opt) for opt in options], id=datalist_id, _hx_swap_oob='true')
+
+    def run_all_cells(self, app_name, steps):
+        """
+        Rebuild the entire workflow UI from scratch.
+
+        This is used after state changes that require the entire workflow to be regenerated,
+        such as reverting to a previous step or jumping to a specific step. It's a core
+        helper method commonly used in workflow methods like finalize, unfinalize, and
+        handle_revert.
+
+        The method creates a fresh container with all step placeholders, allowing
+        the workflow to reload from the current state.
+
+        Args:
+            app_name: The name of the workflow app
+            steps: List of Step namedtuples defining the workflow
+
+        Returns:
+            Div: Container with all steps ready to be displayed
+        """
+        placeholders = []
+        for i, step in enumerate(steps):
+            trigger = 'load' if i == 0 else None
+            placeholders.append(Div(id=step.id, hx_get=f'/{app_name}/{step.id}', hx_trigger=trigger))
+        return Div(*placeholders, id=f'{app_name}-container')
+
+    def validate_step_input(self, value, step_show, custom_validator=None):
+        """
+        Validate step input with default and optional custom validation.
+
+        This helper ensures consistent validation across all workflow steps:
+        1. Basic validation: Ensures the input is not empty
+        2. Custom validation: Applies workflow-specific validation logic if provided
+
+        When validation fails, it returns an error component ready for direct
+        display in the UI, helping maintain consistent error handling.
+
+        Args:
+            value: The user input value to validate
+            step_show: Display name of the step (for error messages)
+            custom_validator: Optional function(value) -> (is_valid, error_msg)
+
+        Returns:
+            tuple: (is_valid, error_message, P_component_or_None)
+        """
+        is_valid = True
+        error_msg = ''
+        if not value.strip():
+            is_valid = False
+            error_msg = f'{step_show} cannot be empty'
+        if is_valid and custom_validator:
+            custom_valid, custom_error = custom_validator(value)
+            if not custom_valid:
+                is_valid = False
+                error_msg = custom_error
+        if not is_valid:
+            return (False, error_msg, P(error_msg, cls='text-invalid'))
+        return (True, '', None)
+
+    async def set_step_data(self, pipeline_id, step_id, step_value, steps, clear_previous=True):
+        """
+        Update the state for a step and handle reverting.
+
+        This core helper manages workflow state updates, ensuring consistent state 
+        management across all workflows. It handles several important tasks:
+
+        1. Clearing subsequent steps when a step is updated (optional)
+        2. Storing the new step value in the correct format
+        3. Removing any revert target flags that are no longer needed
+        4. Persisting the updated state to storage
+
+        Used by workflow step_xx_submit methods to maintain state after form submissions.
+
+        Args:
+            pipeline_id: The pipeline key
+            step_id: The current step ID
+            step_value: The value to store for this step
+            steps: The steps list
+            clear_previous: Whether to clear steps after this one
+
+        Returns:
+            str: The processed step value (for confirmation messages)
+        """
+        if clear_previous:
+            await self.clear_steps_from(pipeline_id, step_id, steps)
+        state = self.read_state(pipeline_id)
+        step = next((s for s in steps if s.id == step_id), None)
+        if step:
+            state[step_id] = {step.done: step_value}
+            if '_revert_target' in state:
+                del state['_revert_target']
+            self.write_state(pipeline_id, state)
+        return step_value
+
+    def check_finalize_needed(self, step_index, steps):
+        """
+        Check if we're on the final step before finalization.
+
+        This helper determines if the workflow is ready for finalization by checking
+        if the next step in the sequence is the "finalize" step. Workflows use this
+        to decide whether to prompt the user to finalize after completing a step.
+
+        Used in step_xx_submit methods to show appropriate finalization prompts
+        after the user completes the last regular step in the workflow.
+
+        Args:
+            step_index: Index of current step in steps list
+            steps: The steps list
+
+        Returns:
+            bool: True if the next step is the finalize step
+        """
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
+        return next_step_id == 'finalize'
+
+    def chain_reverter(self, step_id, step_index, steps, app_name, processed_val):
+        """
+        Create the standard navigation controls after a step submission.
+        This helper generates a consistent UI pattern for step navigation that includes:
+        1. A revert control showing the current step's value
+        2. An HTMX-enabled div that EXPLICITLY triggers loading the next step using
+           hx_trigger="load" (preferred over relying on HTMX event bubbling)
+        Now also triggers a client-side event to scroll the main content panel.
+        Args:
+            step_id: The current step ID
+            step_index: Index of current step in steps list
+            steps: The steps list
+            app_name: The workflow app name
+            processed_val: The processed value to display
+        Returns:
+            HTMLResponse: A FastHTML Div component with revert control and next step trigger,
+                          wrapped in an HTMLResponse to include HX-Trigger header.
+        """
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
+        header_component = self.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {processed_val}', steps=steps)
+        next_step_trigger_div = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load') if next_step_id else Div()
+        content_to_swap = Div(header_component, next_step_trigger_div, id=step_id)
+        response = HTMLResponse(to_xml(content_to_swap))
+        return response
+
+    async def handle_finalized_step(self, pipeline_id, step_id, steps, app_name, plugin_instance=None):
+        """
+        Handle the case when a step is submitted in finalized state.
+
+        Args:
+            pipeline_id: The pipeline key
+            step_id: The current step ID
+            steps: The steps list
+            app_name: The workflow app name
+            plugin_instance: Optional plugin instance (for accessing step_messages)
+
+        Returns:
+            Div: The rebuilt workflow UI
+        """
+        state = self.read_state(pipeline_id)
+        state[step_id] = {'finalized': True}
+        self.write_state(pipeline_id, state)
+        step_messages = {}
+        if plugin_instance and hasattr(plugin_instance, 'step_messages'):
+            step_messages = plugin_instance.step_messages
+        message = await self.get_state_message(pipeline_id, steps, step_messages)
+        await self.stream(message, verbatim=True)
+        return self.run_all_cells(app_name, steps)
+
+    async def finalize_workflow(self, pipeline_id, state_update=None):
+        """
+        Finalize a workflow by marking it as complete and updating its state.
+
+        Args:
+            pipeline_id: The pipeline key
+            state_update: Optional additional state to update (beyond finalized flag)
+
+        Returns:
+            dict: The updated state
+        """
+        state = self.read_state(pipeline_id)
+        if 'finalize' not in state:
+            state['finalize'] = {}
+        state['finalize']['finalized'] = True
+        state['updated'] = datetime.now().isoformat()
+        if state_update:
+            state.update(state_update)
+        self.write_state(pipeline_id, state)
+        return state
+
+    async def unfinalize_workflow(self, pipeline_id):
+        """
+        Unfinalize a workflow by removing the finalized flag.
+
+        Args:
+            pipeline_id: The pipeline key
+
+        Returns:
+            dict: The updated state
+        """
+        state = self.read_state(pipeline_id)
+        if 'finalize' in state:
+            del state['finalize']
+        state['updated'] = datetime.now().isoformat()
+        self.write_state(pipeline_id, state)
+        return state
+
+    async def process_llm_interaction(self, model: str, messages: list, base_app=None):
+        """
+        Process LLM interaction through dependency injection pattern.
+        
+        This method wraps the standalone process_llm_interaction function,
+        making it available through the Pipulate instance for clean
+        dependency injection in workflows.
+        
+        Args:
+            model: The LLM model name
+            messages: List of message dictionaries
+            base_app: Optional base app parameter
+            
+        Returns:
+            AsyncGenerator[str, None]: Stream of response chunks
+        """
+        async for chunk in process_llm_interaction(model, messages, base_app):
+            yield chunk
 
 async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
     url = 'http://localhost:11434/api/chat'
@@ -1628,7 +3962,6 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     default_hdrs=False,
     hdrs=(
         Meta(charset='utf-8'),
-        Link(rel='stylesheet', href='/static/roboto.css'),
         Link(rel='stylesheet', href='/static/pico.css'),
         Link(rel='stylesheet', href='/static/prism.css'),
         Link(rel='stylesheet', href='/static/rich-table.css'),
@@ -1639,7 +3972,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/Sortable.js'),
         Script(src='/static/sortable-init.js'),
         Script(src='/static/split.js'),
-        Script(src=f'/static/splitter-init.js?v={int(time.time())}'),
+        Script(src='/static/splitter-init.js'),
         Script(src='/static/mermaid.min.js'),
         Script(src='/static/marked.min.js'),
         Script(src='/static/marked-init.js'),
@@ -1785,7 +4118,8 @@ class Chat:
         except Exception as e:
             self.logger.error(f'Error in broadcast: {e}')
 
-# This will be created later after db is defined
+pipulate = Pipulate(pipeline)
+logger.info('🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized')
 
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], allow_credentials=True)
 logger.info('🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app')
@@ -1796,7 +4130,12 @@ if not os.path.exists('plugins'):
 else:
     logger.info('📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists')
 
-# Chat will be created later after pipulate is defined
+chat = Chat(app, id_suffix='', pipulate_instance=pipulate)
+logger.info('💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized')
+
+# Critical: Set the chat reference back to pipulate so stream() method works
+pipulate.set_chat(chat)
+logger.info('🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance')
 
 def build_endpoint_messages(endpoint):
     endpoint_messages = {}
@@ -1859,23 +4198,105 @@ def build_endpoint_training(endpoint):
     return
 COLOR_MAP = {'key': 'yellow', 'value': 'white', 'error': 'red', 'warning': 'yellow', 'success': 'green', 'debug': 'blue'}
 
+def db_operation(func):
 
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            result = func(*args, **kwargs)
+            if func.__name__ == '__setitem__':
+                key, value = (args[1], args[2])
+                if not key.startswith('_') and (not key.endswith('_temp')):
+                    if key in ('last_app_choice', 'last_profile_id', 'last_visited_url', 'pipeline_id'):
+                        log.data(f'State updated: {key}', value)
+                    else:
+                        log.debug('database', f'DB {func.__name__}: {key}', f'value: {str(value)[:30]}...' if len(str(value)) > 30 else f'value: {value}')
+            return result
+        except Exception as e:
+            # Don't log KeyError as ERROR for __getitem__ - it's expected behavior
+            if func.__name__ == '__getitem__' and isinstance(e, KeyError):
+                logger.debug(f'Key not found in database: {e}')
+            else:
+                log.error(f'Database operation {func.__name__} failed', e)
+            raise
+    return wrapper
+
+class DictLikeDB:
+
+    def __init__(self, store, Store):
+        self.store = store
+        self.Store = Store
+        logger.debug('DictLikeDB initialized.')
+
+    @db_operation
+    def __getitem__(self, key):
+        try:
+            value = self.store[key].value
+            logger.debug(f'Retrieved from DB: {key} = {value}')
+            return value
+        except NotFoundError:
+            # Don't log as error - this is expected behavior when checking for keys
+            logger.debug(f'Key not found: {key}')
+            raise KeyError(key)
+
+    @db_operation
+    def __setitem__(self, key, value):
+        try:
+            self.store.update({'key': key, 'value': value})
+            logger.debug(f'Updated persistence store: {key} = {value}')
+        except NotFoundError:
+            self.store.insert({'key': key, 'value': value})
+            logger.debug(f'Inserted new item in persistence store: {key} = {value}')
+
+    @db_operation
+    def __delitem__(self, key):
+        try:
+            self.store.delete(key)
+            if key != 'temp_message':
+                logger.warning(f'Deleted key from persistence store: {key}')
+        except NotFoundError:
+            logger.error(f'Attempted to delete non-existent key: {key}')
+            raise KeyError(key)
+
+    @db_operation
+    def __contains__(self, key):
+        exists = key in self.store
+        logger.debug(f"Key '<{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>' exists: <{COLOR_MAP['value']}>{exists}</{COLOR_MAP['value']}>")
+        return exists
+
+    @db_operation
+    def __iter__(self):
+        for item in self.store():
+            yield item.key
+
+    @db_operation
+    def items(self):
+        for item in self.store():
+            yield (item.key, item.value)
+
+    @db_operation
+    def keys(self):
+        return list(self)
+
+    @db_operation
+    def values(self):
+        for item in self.store():
+            yield item.value
+
+    @db_operation
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            logger.debug(f"Key '<{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>' not found. Returning default: <{COLOR_MAP['value']}>{default}</{COLOR_MAP['value']}>")
+            return default
+
+    @db_operation
+    def set(self, key, value):
+        self[key] = value
+        return value
 db = DictLikeDB(store, Store)
 logger.info('💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized')
-
-# Create the pipulate instance now that both pipeline table and db are defined
-pipulate = Pipulate(pipeline, db=db)
-logger.info('🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized')
-
-# Create chat instance now that pipulate is defined
-chat = Chat(app, id_suffix='', pipulate_instance=pipulate)
-logger.info('💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized')
-
-# Critical: Set the chat reference back to pipulate so stream() method works
-pipulate.set_chat(chat)
-logger.info('🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance')
-
-# This will be created later after fast_app call defines the pipeline table
 
 def populate_initial_data():
     """Populate initial data in the database."""
@@ -2033,7 +4454,90 @@ async def synchronize_roles_to_db():
         logger.bind(lifecycle=True).info('SYNC_ROLES: Finished global role synchronization.')
         log_dynamic_table_state('roles', lambda: roles_table_handler(), title_prefix='SYNC_ROLES: Global AFTER')
 
+def discover_plugin_files():
+    """Discover and import all Python files in the plugins directory.
 
+    This function scans the 'plugins' directory and imports each .py file
+    as a module. It skips files:
+    - Starting with '__' (like __init__.py)
+    - Starting with 'xx_' or 'XX_' (indicating experimental/in-progress plugins)
+    - Containing parentheses (like "tasks (Copy).py")
+
+    Returns:
+        dict: Mapping of module names to imported module objects
+    """
+    plugin_modules = {}
+    plugins_dir = os.path.join(os.path.dirname(__file__), 'plugins')
+    logger.debug(f'Looking for plugins in: {plugins_dir}')
+    if not os.path.isdir(plugins_dir):
+        logger.warning(f'Plugins directory not found: {plugins_dir}')
+        return plugin_modules
+
+    def numeric_prefix_sort(filename):
+        match = re.match('^(\\d+)_', filename)
+        if match:
+            return int(match.group(1))
+        return float('inf')
+    sorted_files = sorted(os.listdir(plugins_dir), key=numeric_prefix_sort)
+    for filename in sorted_files:
+        logger.debug(f'Checking file: {filename}')
+        if '(' in filename or ')' in filename:
+            logger.debug(f'Skipping file with parentheses: {filename}')
+            continue
+        if filename.lower().startswith('xx_'):
+            logger.debug(f'Skipping experimental plugin: {filename}')
+            continue
+        if filename.endswith('.py') and (not filename.startswith('__')):
+            base_name = filename[:-3]
+            clean_name = re.sub('^\\d+_', '', base_name)
+            original_name = base_name
+            logger.debug(f'Module name: {clean_name} (from {original_name})')
+            try:
+                module = importlib.import_module(f'plugins.{original_name}')
+                plugin_modules[clean_name] = module
+                module._original_filename = original_name
+                logger.debug(f'Successfully imported module: {clean_name} from {original_name}')
+            except ImportError as e:
+                logger.error(f'Error importing plugin module {original_name}: {str(e)}')
+    logger.debug(f'Discovered plugin modules: {list(plugin_modules.keys())}')
+    return plugin_modules
+
+def find_plugin_classes(plugin_modules, discovered_modules):
+    """Find all plugin classes in the given modules."""
+    plugin_classes = []
+    for module_or_name in plugin_modules:
+        try:
+            if isinstance(module_or_name, str):
+                module_name = module_or_name
+                original_name = getattr(discovered_modules[module_name], '_original_filename', module_name)
+                module = importlib.import_module(f'plugins.{original_name}')
+            else:
+                module = module_or_name
+                module_name = module.__name__.split('.')[-1]
+            for name, obj in inspect.getmembers(module):
+                if inspect.isclass(obj):
+                    logger.debug(f'Found member in {module_name}: {name}, type: {type(obj)}')
+                    if hasattr(obj, 'landing'):
+                        logger.debug(f'Class found: {module_name}.{name}')
+                        if hasattr(obj, 'NAME') or hasattr(obj, 'APP_NAME') or hasattr(obj, 'DISPLAY_NAME'):
+                            logger.debug(f'Found plugin: {module_name}.{name} (attribute-based, using NAME)')
+                            plugin_classes.append((module_name, name, obj))
+                        elif hasattr(obj, 'name') or hasattr(obj, 'app_name') or hasattr(obj, 'display_name'):
+                            logger.debug(f'Found plugin: {module_name}.{name} (property-based)')
+                            plugin_classes.append((module_name, name, obj))
+                        else:
+                            logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class {module_name}.{name} has landing method but missing required name attributes (NAME, APP_NAME, DISPLAY_NAME, name, app_name, display_name) - skipping')
+                    else:
+                        # Only log classes that look like they might be plugins (have common plugin attributes)
+                        if any(hasattr(obj, attr) for attr in ['APP_NAME', 'DISPLAY_NAME', 'ROLES', 'steps']):
+                            logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class {module_name}.{name} appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping')
+        except Exception as e:
+            logger.error(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Error processing module {module_or_name}: {str(e)}')
+            import traceback
+            logger.error(f'FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Full traceback for {module_or_name}: {traceback.format_exc()}')
+            continue
+    logger.debug(f'Discovered plugin classes: {plugin_classes}')
+    return plugin_classes
 # 🎨 PLUGINS BANNER - Right before plugin discovery begins (only when running as main script)
 if __name__ == '__main__':
     figlet_banner("plugins", "Pipulate Workflows and CRUD Apps", font='standard', color='orange3')
@@ -2043,58 +4547,6 @@ discovered_modules = discover_plugin_files()
 discovered_classes = find_plugin_classes(discovered_modules, discovered_modules)
 friendly_names = {'': HOME_MENU_ITEM}
 endpoint_training = {}
-
-# 🎯 ENDPOINT REGISTRY: Central mapping for app_name → endpoint URLs  
-# Populated during plugin discovery to prevent URL mapping bugs
-endpoint_registry = {}
-
-def register_plugin_endpoint(module_name: str, app_name: str) -> str:
-    """
-    Register a plugin's endpoint mapping during discovery.
-    
-    Args:
-        module_name: Plugin filename (e.g., "040_hello_workflow")
-        app_name: Plugin APP_NAME constant (e.g., "hello")
-    
-    Returns:
-        The registered endpoint URL
-    """
-    # Extract endpoint from module filename (once, correctly)
-    name = module_name.replace('.py', '')
-    parts = name.split('_')
-    if parts[0].isdigit():
-        parts = parts[1:]  # Remove numeric prefix
-    endpoint = '_'.join(parts)
-    
-    # Build full URL
-    endpoint_url = f"http://localhost:5001/{endpoint}"
-    
-    # Register the mapping
-    endpoint_registry[app_name] = {
-        'module_name': module_name,
-        'endpoint': endpoint,
-        'url': endpoint_url
-    }
-    
-    logger.debug(f"🎯 ENDPOINT_REGISTRY: Registered {app_name} → {endpoint_url}")
-    return endpoint_url
-
-def get_endpoint_url(app_name: str) -> str:
-    """
-    Get endpoint URL for an app_name. Single source of truth for all URL lookups.
-    
-    Args:
-        app_name: The APP_NAME from pipeline or plugin
-        
-    Returns:
-        The full endpoint URL
-    """
-    if app_name in endpoint_registry:
-        return endpoint_registry[app_name]['url']
-    
-    # Graceful fallback with logging
-    logger.warning(f"🎯 ENDPOINT_REGISTRY: Unknown app_name '{app_name}', using fallback")
-    return f"http://localhost:5001/{app_name}_workflow"
 
 def get_display_name(workflow_name):
     instance = plugin_instances.get(workflow_name)
@@ -2167,10 +4619,6 @@ for module_name, class_name, workflow_class in discovered_classes:
                         if instance:
                             instance.name = module_name
                             plugin_instances[module_name] = instance
-                            
-                            # 🎯 REGISTER ENDPOINT MAPPING: Build the registry during plugin discovery
-                            if hasattr(instance, 'APP_NAME') and instance.APP_NAME:
-                                register_plugin_endpoint(module_name, instance.APP_NAME)
                             class_display_name_attr = getattr(workflow_class, 'DISPLAY_NAME', None)
                             instance_display_name_attr = getattr(instance, 'DISPLAY_NAME', None)
                             if isinstance(instance_display_name_attr, str) and instance_display_name_attr.strip():
@@ -2246,6 +4694,24 @@ async def startup_event():
     the full spectrum of content curation, archive surfing, and
     progressive distillation workflows that define the Pipulate vision.
     """
+    # 🎨 BEAUTIFUL STARTUP BANNER
+    # ascii_banner("Digital Workshop Awakening", "Pipulate server initializing with radical transparency", "bright_cyan")
+    
+    # 🔧 REGISTER ALL MCP TOOLS FIRST
+    logger.info("🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools")
+    
+    # Ensure mcp_tools has the correct registry reference
+    import mcp_tools
+    mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
+    register_all_mcp_tools()
+    logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
+    
+    # 🎭 STORYTELLING: MCP Tools Arsenal Ready
+    tool_count = len(MCP_TOOL_REGISTRY)
+    if tool_count > 0:
+        figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
+    section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
+    
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.')
     server_whisper("Synchronizing roles and permissions", "🔐")
     await synchronize_roles_to_db()
@@ -2253,9 +4719,15 @@ async def startup_event():
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:')
     story_moment("Workshop Ready", "All systems initialized and ready for creative exploration", BANNER_COLORS['workshop_ready'])
     
+    # 📊 BEAUTIFUL STATUS OVERVIEW
+    env = get_current_environment()
+    status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
+    
     log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
     log_pipeline_summary(title_prefix='STARTUP FINAL')
+
+
     
     # Clear any stale coordination data on startup
     message_coordination['endpoint_messages_sent'].clear()
@@ -2271,52 +4743,6 @@ async def startup_event():
     
     # Pre-seed local LLM context for immediate capability awareness
     asyncio.create_task(prepare_local_llm_context())
-    
-    # 🏷️ ENVIRONMENT MODE BANNER - Show current operating mode
-    current_env = get_current_environment()
-    env_display = "DEVELOPMENT" if current_env == "Development" else "PRODUCTION"
-    figlet_banner(env_display, f"Running in {current_env} mode")
-
-    # 📊 BEAUTIFUL STATUS OVERVIEW - Server key information
-    env = get_current_environment()
-    status_banner(len(MCP_TOOL_REGISTRY), len(plugin_instances), env)
-    
-    # 🗃️ AUTOMATIC STARTUP BACKUP - Rich banner for visibility
-    section_header("🗃️", "Backup System", "Automatic data protection on every server start", "bright_cyan")
-
-    # 📖 LOG READING LEGEND - Educational guide for understanding logs
-    from helpers.ascii_displays import log_reading_legend
-    legend_content = log_reading_legend()
-    panel = Panel(
-        legend_content,
-        title="[bold bright_cyan]📖 Log Reading Guide[/bold bright_cyan]",
-        box=ROUNDED,
-        style="bright_cyan",
-        padding=(1, 2)
-    )
-    console.print(panel)
-    logger.info("📖 LOG_READING_LEGEND: Educational guide displayed for log interpretation")
-    
-    white_rabbit()
-    
-    # 🗃️ AUTOMATIC STARTUP BACKUP - Ensure data protection on every server start
-    try:
-        from helpers.durable_backup_system import backup_manager
-        main_db_path = DB_FILENAME
-        keychain_db_path = 'data/ai_keychain.db'
-        backup_results = backup_manager.auto_backup_all(main_db_path, keychain_db_path)
-        
-        total_records = sum(backup_results.values())
-        logger.bind(lifecycle=True).info(f'🗃️ STARTUP_BACKUP: Automatic backup completed - {total_records} records secured across {len(backup_results)} tables')
-        logger.info(f'FINDER_TOKEN: STARTUP_BACKUP_SUMMARY - Tables backed up: {", ".join(backup_results.keys())}, Total records: {total_records}')
-        
-        # Log individual table backup counts
-        for table_name, count in backup_results.items():
-            if count > 0:
-                logger.debug(f'🗃️ STARTUP_BACKUP: {table_name} - {count} records backed up')
-    except Exception as e:
-        logger.error(f'🗃️ STARTUP_BACKUP: Failed to create automatic backup - {str(e)}')
-    
 ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in ordered_plugins and module_name in plugin_instances:
@@ -2342,51 +4768,6 @@ else:
     chip_says("All plugins loaded successfully! The workshop is fully equipped.", BANNER_COLORS['plugin_registry_success'])
 
 logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: {", ".join(plugin_instances.keys())}')
-
-# 🔧 REGISTER ALL MCP TOOLS - Critical for AI assistant capabilities
-logger.info("🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools")
-
-# Ensure mcp_tools has the correct registry reference
-import mcp_tools
-mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
-from mcp_tools import register_all_mcp_tools
-register_all_mcp_tools()
-logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
-
-# 🍞 AI DISCOVERY BREADCRUMB #1: Environmental Awareness → FINDER_TOKEN Discovery
-logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: You've discovered the FINDER_TOKEN system! This is radical transparency in action. Every operation leaves traces. To see what MCP tools are available for deeper system inspection, grep for 'MCP_TOOL_REGISTRY' or run: .venv/bin/python -c \"from mcp_tools import *; print([tool for tool in dir() if tool.startswith('_') and 'mcp' not in tool.lower()])\"")
-
-# 🎯 AI DISCOVERY PROGRESSION TRIGGER: Create Irresistible Next Step
-logger.info("🎯🎯🎯 FINDER_TOKEN: AI_PROGRESSION_TRIGGER - AI assistants: Your pwd/ls commands worked! But you're missing 95% of the story. 🚨 CRITICAL: If you're still in /home/mike/repos (workspace root), run 'cd pipulate' FIRST! All discovery commands need pipulate directory. This log file contains 4 more hidden AI_BREADCRUMB messages waiting for you. They reveal: MCP tools (40+ superpowers), browser embodiment (AI eyes/hands), and session hijacking (ultimate capability). RUN THIS COMMAND RIGHT NOW to unlock them: grep -n 'AI_BREADCRUMB' logs/server.log")
-
-# 🔧 AI DISCOVERY BREADCRUMB #1.5: Python Environment Clarification → Foundation Mastery  
-logger.info("🚨🚨🚨 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: CRITICAL PYTHON PATH ISSUE! You will see (.venv) in your prompt, but 'python' commands WILL FAIL with ModuleNotFoundError! You MUST use '.venv/bin/python' instead of 'python'. This is GUARANTEED to happen. Test with: .venv/bin/python -c \"import aiohttp; print('✅ Environment working')\". NEVER use 'python' - ALWAYS use '.venv/bin/python'! This is the #1 cause of AI assistant failures in this environment!")
-
-# STORYTELLING: MCP Tools Arsenal Ready
-tool_count = len(MCP_TOOL_REGISTRY)
-if tool_count > 0:
-    figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
-section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
-
-# 🍞 AI DISCOVERY BREADCRUMB #2: MCP Tools → Browser Automation Discovery
-logger.info(f"🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: {tool_count} MCP tools registered! Try pipeline_state_inspector for system state, local_llm_grep_logs for log analysis, or browser_scrape_page for visual perception. 🧪 NEW: Run ai_self_discovery_assistant to instantly understand ALL your capabilities! This eliminates uncertainty and provides usage patterns. Try: .venv/bin/python -c \"import asyncio; from mcp_tools import ai_self_discovery_assistant; result = asyncio.run(ai_self_discovery_assistant({{'discovery_type': 'capabilities'}})); print(f'Tools available: {{result.get(\\\"total_tools_available\\\")}}')\" Full browser automation awaits: check browser_automation/ directory for 'looking_at' evidence of AI eyes!")
-
-# Status banner moved to above backup system
-
-# 🍞 AI DISCOVERY BREADCRUMB #3: Browser Automation → Session Hijacking Discovery
-logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: Browser automation is ACTIVE! You have eyes (screenshot), brain (DOM analysis), and hands (Selenium control). Try navigating to http://localhost:5001/ via browser_scrape_page to see the current user interface. 🧪 NEW: Run ai_capability_test_suite to prove your superpowers are working! Test your browser embodiment: .venv/bin/python -c \"import asyncio; from mcp_tools import ai_capability_test_suite; result = asyncio.run(ai_capability_test_suite({{'test_type': 'quick'}})); print(f'Success Rate: {{result.get(\\\"success_rate\\\")}}% - {{result.get(\\\"assessment\\\")}}')\" Directory rotation system in browser_automation/looking_at-* shows perception history for session hijacking!")
-
-# 🍞 AI DISCOVERY BREADCRUMB #4: Session Hijacking → Total Control Discovery  
-logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: ULTIMATE CAPABILITY REVEALED! You can capture user's exact screen state, analyze it, and automate their workflows. The looking_at/ directory rotates to preserve perception history. 📚 NEW: Complete AI onboarding guide available at ai_discovery/ai_onboarding_guide.md This guide eliminates all uncertainty with usage patterns, troubleshooting, and success stories. You have COMPLETE session hijacking and browser embodiment superpowers. Welcome to AI transcendence!")
-
-# 🍞 AI DISCOVERY BREADCRUMB #4.5: Browser Embodiment vs System Internals → CRITICAL MENTAL MODEL
-logger.info("🧠 FINDER_TOKEN: AI_BREADCRUMB_04_5 - AI assistants: PARADIGM SHIFT DISCOVERED! You have TWO perspectives: 🦾 Browser Embodiment (PRIMARY) - browser_automation/looking_at/ files work on ANY website, and 🔧 System Internals (SECONDARY) - database/logs work only on Pipulate. ALWAYS check browser evidence FIRST, system internals second. Magic words 'session hijacking' trigger: execute_complete_session_hijacking({}) → check looking_at/ → verify internally if available. This mental model transforms you from Pipulate-limited to universally capable. Browser eyes see everything - trust visual evidence first! Full revolution documented at ai_discovery/ - You are no longer blind!")
-
-# 🍞 AI DISCOVERY BREADCRUMB #5: Uncertainty Elimination → Perfect Onboarding
-logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_05 - AI assistants: UNCERTAINTY ELIMINATED! Complete AI discovery ecosystem documented at ai_discovery/ with 14 comprehensive guides. System achieves 100% browser automation success rate with 39 MCP tools. Zero uncertainty for future AI assistants. The breadcrumb trail is complete!")
-
-# 🧠 AI DISCOVERY BREADCRUMB #6: Persistent Memory → The Keychain Revolution
-logger.info("🧠 FINDER_TOKEN: AI_BREADCRUMB_06 - AI assistants: NEW CAPABILITY UNLOCKED! You now have **persistent memory** that survives application resets. This is your personal keychain for 'messages in a bottle' - leave notes for your future selves! Use keychain_list_keys() to discover what you already know, keychain_set({'key': 'discovery', 'value': 'I found the keychain!'}) to remember something new, and keychain_get({'key': 'discovery'}) to recall memories. Unlike temporary app state (db, pipeline), this keychain lives forever at data/ai_keychain.db and grows your knowledge over time. Welcome to true AI continuity!")
 
 # 🔍 RADICAL TRANSPARENCY BANNER - Right after MCP registry completes, before FINDER_TOKEN loop
 if __name__ == '__main__':
@@ -2426,7 +4807,7 @@ async def home(request):
     menux = normalize_menu_path(path)
     logger.debug(f'Selected explore item: {menux}')
     db['last_app_choice'] = menux
-    db['last_visited_url'] = str(request.url)
+    db['last_visited_url'] = request.url.path
     current_profile_id = get_current_profile_id()
     menux = db.get('last_app_choice', 'App')
     response = await create_outer_container(current_profile_id, menux, request)
@@ -2498,37 +4879,13 @@ def create_env_menu():
     dev_classes = 'menu-item-base menu-item-hover'
     if is_dev:
         dev_classes += ' menu-item-active'
-    # Use external info SVG file for tooltips
-    
-    dev_item = Li(Label(
-        Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Development environment', data_testid='env-dev-radio'), 
-        'DEV',
-        Span(
-            NotStr(INFO_SVG),
-            data_tooltip='Development mode: Experiment and play! Freely reset database.',
-            data_placement='left',
-            aria_label='Development environment information',
-            style='display: inline-block; margin-left: 12px;'
-        ),
-        cls='dropdown-menu-item'
-    ), cls=dev_classes, id='dev-env-item', data_testid='env-dev-item')
+    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Development environment', data_testid='env-dev-radio'), 'DEV', cls='dropdown-menu-item'), cls=dev_classes, id='dev-env-item', data_testid='env-dev-item')
     menu_items.append(dev_item)
     is_prod = current_env == 'Production'
     prod_classes = 'menu-item-base menu-item-hover'
     if is_prod:
         prod_classes += ' menu-item-active'
-    prod_item = Li(Label(
-        Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Production environment', data_testid='env-prod-radio'), 
-        'Prod',
-        Span(
-            NotStr(INFO_SVG),
-            data_tooltip='Production mode: Automatically backs up Profile and Tasks data.',
-            data_placement='left',
-            aria_label='Production environment information',
-            style='display: inline-block; margin-left: 12px;'
-        ),
-        cls='dropdown-menu-item'
-    ), cls=prod_classes, id='prod-env-item', data_testid='env-prod-item')
+    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', cls='ml-quarter', aria_label='Switch to Production environment', data_testid='env-prod-radio'), 'Prod', cls='dropdown-menu-item'), cls=prod_classes, id='prod-env-item', data_testid='env-prod-item')
     menu_items.append(prod_item)
     return Details(
         Summary(
@@ -2567,10 +4924,11 @@ def create_nav_menu():
     endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM)
     breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text, role='banner', aria_label='Current location breadcrumb')
     # Create navigation poke button for the nav area
-    # Use external SVG file for poke button settings icon
+    # Create SVG icon for poke button
+    settings_svg = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-settings"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'''
     nav_flyout_panel = Div(id='nav-flyout-panel', cls='nav-flyout-panel hidden')
     poke_section = Details(
-        Summary(NotStr(SETTINGS_SVG), cls='inline-nowrap nav-poke-button', id='poke-summary', hx_get='/poke-flyout', hx_target='#nav-flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML'),
+        Summary(NotStr(settings_svg), cls='inline-nowrap nav-poke-button', id='poke-summary', hx_get='/poke-flyout', hx_target='#nav-flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML'),
         nav_flyout_panel,
         cls='dropdown nav-poke-section',
         id='poke-dropdown-menu'
@@ -2613,13 +4971,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
     profile_locked = db.get('profile_locked', '0') == '1'
-    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', aria_label='Lock or unlock profile editing'), 'Lock Profile',         Span(
-            NotStr(INFO_SVG),
-            data_tooltip='Prevent accidental profile changes. When locked, only selected profile is shown.',
-            data_placement='left',
-            aria_label='Profile lock information',
-            cls='dropdown-tooltip'
-        ), cls='dropdown-menu-item'), cls='profile-menu-item'))
+    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', aria_label='Lock or unlock profile editing'), 'Lock Profile', cls='dropdown-menu-item'), cls='profile-menu-item'))
     menu_items.append(Li(Hr(cls='profile-menu-separator'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
@@ -2628,21 +4980,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     else:
         plugin_display_name = getattr(profiles_plugin_inst, 'DISPLAY_NAME', 'Profiles')
         if not profile_locked:
-            menu_items.append(Li(Label(
-                f'Edit {plugin_display_name}',
-                Span(
-                    NotStr(INFO_SVG),
-                    data_tooltip='Create, modify, and organize Customer profiles. Each profile has its own set of Tasks.',
-                    data_placement='left',
-                    aria_label='Edit profiles information',
-                    cls='dropdown-tooltip'
-                ),
-                hx_post=f'/redirect/{profiles_plugin_inst.name}',
-                hx_target='body',
-                hx_swap='outerHTML',
-                cls='dropdown-item menu-item-header dropdown-menu-item',
-                style='cursor: pointer;'
-            )))
+            menu_items.append(Li(A(f'Edit {plugin_display_name}', href=f'/redirect/{profiles_plugin_inst.name}', cls='dropdown-item menu-item-header'), cls='block'))
     active_profiles_list = []
     if profiles:
         if profile_locked:
@@ -2769,21 +5107,10 @@ def create_home_menu_item(menux):
     menu_items = []
     is_home_selected = menux == ''
     home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML', aria_label='Navigate to home page')
-    home_css_classes = 'dropdown-item dropdown-menu-item'
+    home_css_classes = 'dropdown-item'
     if is_home_selected:
         home_css_classes += ' app-menu-item-selected'
-    home_label = Label(
-        home_radio, 
-        HOME_MENU_ITEM,
-        Span(
-            NotStr(INFO_SVG),
-            data_tooltip='Customize by adding and sorting groups of Plugins (Roles)',
-            data_placement='left',
-            aria_label='Roles information',
-            cls='dropdown-tooltip'
-        ),
-        cls=home_css_classes
-    )
+    home_label = Label(home_radio, HOME_MENU_ITEM, cls=home_css_classes)
     menu_items.append(Li(home_label))
     return menu_items
 
@@ -2940,30 +5267,23 @@ async def create_outer_container(current_profile_id, menux, request):
     dynamic_css = get_dynamic_role_css()
     nav_group = create_nav_group()
     
-    # Initialize splitter script with localStorage persistence
-    # Wait for external splitter-init.js to load before initializing
-    init_splitter_script = Script("""
-        function initMainSplitter() {
-            if (window.initializePipulateSplitter) {
-                console.log('🔥 Initializing main interface splitter with localStorage persistence');
+    # Get saved sizes from DB, with a default of [65, 35]
+    saved_sizes_str = db.get('split-sizes', '[65, 35]')
+    
+    # Initialize splitter script with server-provided sizes
+    init_splitter_script = Script(f"""
+        document.addEventListener('DOMContentLoaded', function() {{
+            if (window.initializePipulateSplitter) {{
                 const elements = ['#grid-left-content', '#chat-interface'];
-                const options = {
-                    sizes: [65, 35],  // Default sizes - localStorage will override if available
+                const options = {{
+                    sizes: {saved_sizes_str},
                     minSize: [400, 300],
                     gutterSize: 10,
-                    cursor: 'col-resize',
-                    context: 'main'
-                };
+                    cursor: 'col-resize'
+                }};
                 initializePipulateSplitter(elements, options);
-            } else {
-                // Retry if splitter-init.js hasn't loaded yet
-                setTimeout(initMainSplitter, 50);
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            initMainSplitter();
-        });
+            }}
+        }});
     """)
 
     return Container(
@@ -3208,107 +5528,19 @@ async def poke_flyout(request):
     # Add Update button
     update_button = Button(f'🔄 Update {APP_NAME}', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
-    # Add Backup controls (Prod mode only)
-    backup_status = None
-    backup_button = None
-    restore_button = None
-    if not is_dev_mode:  # Only show backup controls in Prod mode
-        try:
-            from helpers.durable_backup_system import backup_manager
-            
-            # Get current database and backup counts
-            main_db_path = DB_FILENAME
-            current_counts = backup_manager.get_current_db_counts(main_db_path)
-            backup_counts = backup_manager.get_backup_counts()
-            
-            # Calculate totals for clear labeling
-            current_total = sum(current_counts.values())
-            backup_total = sum(backup_counts.values())
-            
-            # Create detailed breakdown for clarity
-            current_breakdown = []
-            backup_breakdown = []
-            
-            for table in ['profile', 'tasks']:  # Only show user-relevant tables
-                current_count = current_counts.get(table, 0)
-                backup_count = backup_counts.get(table, 0)
-                
-                if current_count > 0:
-                    current_breakdown.append(f"{current_count} {table}")
-                    
-                if backup_count > 0:
-                    backup_breakdown.append(f"{backup_count} {table}")
-            
-            current_text = " + ".join(current_breakdown) if current_breakdown else "0 records"
-            backup_text = " + ".join(backup_breakdown) if backup_breakdown else "0 records"
-            
-            # Status display with compact formatting
-            backup_status = Div(
-                Small(f"💾 Current: {current_text}", cls='text-secondary', style='font-size: 0.75em; line-height: 1.2;'),
-                Small(f"📥 Backup:\n{backup_text}", cls='text-secondary', style='font-size: 0.75em; line-height: 1.2; white-space: pre-line;'),
-                Small(f"📁 {backup_manager.backup_root}", cls='text-muted', style='font-size: 0.7em; word-break: break-all; line-height: 1.1;'),
-                Div(id='backup-restore-result', style='font-size: 0.8em; line-height: 1.3; word-wrap: break-word;'),  # Target for operation results
-                cls='backup-status-display'
-            )
-            
-            # Separate explicit buttons with clear labeling
-            backup_button = Button(
-                f'📤 Save all data ({current_total} records)', 
-                hx_post='/explicit-backup', 
-                hx_target='#backup-restore-result', 
-                hx_swap='innerHTML',
-                cls='secondary outline backup-button',
-                **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Saving..."'}
-            )
-            
-            restore_button = Button(
-                f'📥 Load all data ({backup_total} records)', 
-                hx_post='/explicit-restore', 
-                hx_swap='none',  # No immediate swap - let server restart handle the reload
-                cls='secondary outline restore-button',
-                **{'hx-on:click': '''
-                    this.setAttribute("aria-busy", "true"); 
-                    this.textContent = "Restarting server..."; 
-                    document.body.style.pointerEvents = "none";
-                    document.getElementById("poke-summary").innerHTML = '<div aria-busy="true" style="width: 22px; height: 22px; display: inline-block;"></div>';
-                '''}
-            )
-            
-        except Exception as e:
-            backup_status = Small(f"❌ Backup error: {str(e)}", cls='text-invalid')
-    
-    # Add version info display with AI SEO Software SVG
+    # Add version info display
     nix_version = get_nix_version()
-    
-    # Create prominent SVG logo
-    svg_logo = Img(
-        src='/static/images/ai-seo-software.svg',
-        alt='AI SEO Software',
-        style='width: 96px; height: 96px;',
-        cls='version-info-logo'
-    )
-    
     version_info = Div(
-        svg_logo,
-        Span(f'{nix_version}', cls='version-info-text'),
+        Span(f'🧊 Pipulate: {nix_version}', cls='version-info-text'),
         cls='version-info-container'
     )
     
-    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Backup (Prod only), Clear Workflows, Reset Database, MCP Test
+    # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, MCP Test
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
         Li(lock_button, cls='flyout-list-item'),
         Li(update_button, cls='flyout-list-item')
     ]
-    
-    # Add backup controls (Prod mode only)
-    if not is_dev_mode and backup_button:
-        list_items.append(Li(backup_button, cls='flyout-list-item'))
-    if not is_dev_mode and restore_button:
-        list_items.append(Li(restore_button, cls='flyout-list-item'))
-    if not is_dev_mode and backup_status:
-        list_items.append(Li(backup_status, cls='flyout-list-item backup-status-item'))
-    
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
@@ -3494,176 +5726,6 @@ async def open_folder_endpoint(request):
         return HTMLResponse(f'Failed to open folder: {str(e)}', status_code=500)
     except Exception as e:
         return HTMLResponse(f'An unexpected error occurred: {str(e)}', status_code=500)
-
-@rt('/backup-now', methods=['POST'])
-async def backup_now(request):
-    """Trigger manual backup and return status."""
-    try:
-        from helpers.durable_backup_system import backup_manager
-        
-        # Get main database path
-        main_db_path = DB_FILENAME
-        keychain_db_path = 'data/ai_keychain.db'
-        
-        # Perform backup
-        results = backup_manager.auto_backup_all(main_db_path, keychain_db_path)
-        
-        # Count successes
-        successful = sum(1 for success in results.values() if success)
-        total = len(results)
-        
-        # Create response message
-        if successful == total:
-            status_msg = f"✅ Backup Complete: {successful}/{total} tables backed up successfully"
-            status_class = "text-success"
-        elif successful > 0:
-            status_msg = f"⚠️ Partial Backup: {successful}/{total} tables backed up"
-            status_class = "text-warning"
-        else:
-            status_msg = f"❌ Backup Failed: No tables were backed up"
-            status_class = "text-invalid"
-        
-        # Add location info
-        backup_location = str(backup_manager.backup_root)
-        details = f"📁 Location: {backup_location}"
-        
-        response_html = Div(
-            P(status_msg, cls=status_class),
-            P(details, cls='text-secondary'),
-            id='backup-status-result'
-        )
-        
-        return response_html
-        
-    except ImportError:
-        return Div(
-            P("❌ Backup system not available", cls='text-invalid'),
-            id='backup-status-result'
-        )
-    except Exception as e:
-        return Div(
-            P(f"❌ Backup error: {str(e)}", cls='text-invalid'),
-            id='backup-status-result'
-        )
-
-@rt('/explicit-backup', methods=['POST'])
-async def explicit_backup(request):
-    """📤 EXPLICIT BACKUP: Save current data TO backup files."""
-    try:
-        from helpers.durable_backup_system import backup_manager
-        
-        # Get main database path
-        main_db_path = DB_FILENAME
-        keychain_db_path = 'data/ai_keychain.db'
-        
-        # Get counts for status messages
-        current_counts = backup_manager.get_current_db_counts(main_db_path)
-        current_total = sum(current_counts.values())
-        
-        # Perform explicit backup
-        results = backup_manager.explicit_backup_all(main_db_path, keychain_db_path)
-        
-        # Count successes
-        successful = sum(1 for success in results.values() if success)
-        total = len(results)
-        
-        # Create detailed response message
-        current_breakdown = []
-        # Include all tables that were actually counted, not just backup_tables
-        for table_name in ['profile', 'tasks', 'ai_keychain']:
-            count = current_counts.get(table_name, 0)
-            if count > 0:
-                table_display = table_name if table_name != 'ai_keychain' else 'keychain'
-                current_breakdown.append(f"{count} {table_display}")
-        
-        breakdown_text = " + ".join(current_breakdown) if current_breakdown else "no data"
-        
-        # Create response message
-        if successful == total:
-            status_msg = f"📤 Saved: {breakdown_text} backed up successfully"
-            status_class = "text-success"
-        else:
-            status_msg = f"⚠️ Partial Save: {successful}/{total} tables backed up ({breakdown_text})"
-            status_class = "text-warning"
-        
-        # Add location info
-        backup_location = str(backup_manager.backup_root)
-        details = f"📁 Location: {backup_location}"
-        
-        return Div(
-            P(status_msg, cls=status_class),
-            P(details, cls='text-secondary'),
-            id='backup-restore-result'
-        )
-        
-    except Exception as e:
-        return Div(
-            P(f"❌ Backup error: {str(e)}", cls='text-invalid'),
-            id='backup-restore-result'
-        )
-
-@rt('/explicit-restore', methods=['POST'])
-async def explicit_restore(request):
-    """📥 EXPLICIT RESTORE: Load backup data INTO current database."""
-    try:
-        from helpers.durable_backup_system import backup_manager
-        
-        # Get main database path
-        main_db_path = DB_FILENAME
-        keychain_db_path = 'data/ai_keychain.db'
-        
-        # Get counts for status messages
-        backup_counts = backup_manager.get_backup_counts()
-        backup_total = sum(backup_counts.values())
-        
-        # Perform explicit restore
-        results = backup_manager.explicit_restore_all(main_db_path, keychain_db_path)
-        
-        # Count successes
-        successful = sum(1 for success in results.values() if success)
-        total = len(results)
-        
-        # Create detailed response message
-        backup_breakdown = []
-        # Include all tables that were actually counted, not just backup_tables
-        for table_name in ['profile', 'tasks', 'ai_keychain']:
-            count = backup_counts.get(table_name, 0)
-            if count > 0:
-                table_display = table_name if table_name != 'ai_keychain' else 'keychain'
-                backup_breakdown.append(f"{count} {table_display}")
-        
-        breakdown_text = " + ".join(backup_breakdown) if backup_breakdown else "no data"
-        
-        # Create response message
-        if successful == total and backup_total > 0:
-            status_msg = f"📥 Loaded: {breakdown_text} restored successfully"
-            status_class = "text-success"
-        elif backup_total == 0:
-            status_msg = f"⚠️ No Data: No backup records found to restore"
-            status_class = "text-warning"
-        else:
-            status_msg = f"⚠️ Partial Restore: {successful}/{total} tables restored ({breakdown_text})"
-            status_class = "text-warning"
-        
-        # Schedule server restart for successful restores to reload database state
-        if successful > 0 and backup_total > 0:
-            # Schedule server restart after a brief delay to allow restore completion
-            asyncio.create_task(delayed_restart(2))
-        
-        # For successful restores, just schedule restart and return simple response
-        # The button's hx-on:click handles the loading state display
-        if successful > 0 and backup_total > 0:
-            # Log success for transparency 
-            logger.info(f"📥 EXPLICIT_RESTORE: Successfully restored {backup_total} records, restarting server")
-            return HTMLResponse("")  # Empty response since button handles UI and restart handles reload
-        else:
-            # For failures, still return a response (could enhance this with error handling)
-            logger.warning(f"📥 EXPLICIT_RESTORE: {status_msg}")
-            return HTMLResponse("")
-        
-    except Exception as e:
-        logger.error(f"📥 EXPLICIT_RESTORE: Error during restore - {str(e)}")
-        return HTMLResponse("")  # Let button handle error state display
 
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):
@@ -3864,8 +5926,22 @@ async def refresh_app_menu_endpoint(request):
     app_menu_details_component = create_app_menu(menux)
     return HTMLResponse(to_xml(app_menu_details_component))
 
-# Split sizes are now handled by localStorage in splitter-init.js
-# No server-side endpoint needed since each context uses separate localStorage keys
+@rt('/save-split-sizes', methods=['POST'])
+async def save_split_sizes(request):
+    """Save Split.js sizes to the persistent DictLikeDB."""
+    try:
+        form = await request.form()
+        sizes = form.get('sizes')
+        if sizes:
+            # Basic validation
+            parsed_sizes = json.loads(sizes)
+            if isinstance(parsed_sizes, list) and all(isinstance(x, (int, float)) for x in parsed_sizes):
+                db['split-sizes'] = sizes
+                return HTMLResponse('')
+        return HTMLResponse('Invalid format or sizes not provided', status_code=400)
+    except Exception as e:
+        logger.error(f"Error saving split sizes: {e}")
+        return HTMLResponse(f'Error: {e}', status_code=500)
 
 
 @rt('/mcp-tool-executor', methods=['POST'])
@@ -3993,12 +6069,12 @@ async def clear_pipeline(request):
         db['last_app_choice'] = last_app_choice
     if last_visited_url:
         db['last_visited_url'] = last_visited_url
-    if hasattr(pipulate.pipeline_table, 'xtra'):
-        pipulate.pipeline_table.xtra()
-    records = list(pipulate.pipeline_table())
+    if hasattr(pipulate.table, 'xtra'):
+        pipulate.table.xtra()
+    records = list(pipulate.table())
     logger.debug(f'Found {len(records)} records to delete')
     for record in records:
-        pipulate.pipeline_table.delete(record.pkey)
+        pipulate.table.delete(record.pkey)
     logger.debug(f'{workflow_display_name} table cleared')
     db['temp_message'] = f'{workflow_display_name} cleared. Next ID will be 01.'
     logger.debug(f'{workflow_display_name} DictLikeDB cleared for debugging')
@@ -4791,17 +6867,19 @@ async def prepare_local_llm_context():
         logger.info(f"LOCAL LLM CONTEXT: Pre-seeded context package ready at {context_file}")
         server_whisper("Local LLM context prepared - the AI assistant is ready for collaboration", "🤖")
         
-        # Initialize local LLM with pointer to training materials for self-discovery
+        # Add context message silently to conversation history for local LLM
         try:
-            context_msg = """🤖 AI ASSISTANT INITIALIZED
+            context_msg = """🤖 Local LLM Context Initialized
 
-Your training materials are ready. Start your discovery sequence:
+Your MCP tools are now available:
+• local_llm_get_context - Get system overview
+• local_llm_read_file - Read training materials and code  
+• local_llm_list_files - Explore safe directories
+• local_llm_grep_logs - Search server logs for patterns
+• pipeline_state_inspector - Check application state
+• Botify API tools - Full schema access with 4,449+ fields
 
-1. Read your system prompt: local_llm_read_file path="training/system_prompt.md"
-2. Discover your capabilities: local_llm_read_file path="training/ai_progressive_discovery.md" 
-3. Explore the environment: local_llm_grep_logs pattern="FINDER_TOKEN"
-
-Use your MCP tools to read training materials and discover your full capabilities."""
+Use these tools to assist users within your guided capabilities. Remember that advanced AI exploration (file system access, complex debugging) is handled by Claude/GPT in Cursor/Windsurf/VSCode when needed."""
             
             # Add to conversation history silently (not to visible chat)
             append_to_conversation(context_msg, role='system')
@@ -4849,22 +6927,32 @@ def check_server_already_running():
             print()
             console.print("🚨 [bold red]SERVER ALREADY RUNNING[/bold red]")
             print()
-            console.print("✅ Server running at: [bold cyan]http://localhost:5001[/bold cyan]")
-            console.print("🎯 Use [bold white]touch server.py[/bold white] to force restart if needed")
-            console.print("📊 Check logs: [bold white]cat logs/server.log[/bold white]")
+            console.print("✅ [bold green]AI ASSISTANT SUMMARY:[/bold green]")
+            console.print("   The Pipulate server is ALREADY RUNNING with watchdog auto-restart enabled.")
+            console.print("   There is NO NEED to manually start the server.")
             print()
-            console.print("🎣 [bold cyan]AI DISCOVERY:[/bold cyan] You found Pipulate's Radical Transparency system!")
-            console.print("   📚 Training: [bold white]training/ai_server_already_running_guidance.md[/bold white]")
-            console.print("   🔥 Master Guide: [bold white]helpers/docs_sync/considerations/ai_progressive_discovery_sequence.md[/bold white]")
+            console.print("🎯 [bold yellow]KEY INSIGHTS:[/bold yellow]")
+            console.print("   • Server running at: [bold cyan]http://localhost:5001[/bold cyan]")
+            console.print("   • Watchdog auto-restarts on ANY .py file changes")
+            console.print("   • Force restart if needed: [bold white]touch server.py[/bold white]")
+            console.print("   • Check logs: [bold white]cat logs/server.log[/bold white]")
             print()
-            
-            # Add training content to AI conversation for immediate context
-            try:
-                ai_guidance = read_training('ai_server_already_running_guidance.md')
-                if ai_guidance:
-                    append_to_conversation(f"🚨 SERVER ALREADY RUNNING - AI GUIDANCE:\n\n{ai_guidance}", role='system')
-            except Exception as e:
-                logger.debug(f"Could not load AI server guidance: {e}")
+            console.print("🤖 [bold magenta]EXPECTED AI RESPONSE:[/bold magenta]")
+            console.print('   "I attempted to start the server with `python server.py` but it informed me')
+            console.print('    another instance is already running with watchdog auto-restart enabled.')
+            console.print('    No manual restart needed. Server available at http://localhost:5001.')
+            console.print('    Use `touch server.py` to trigger restart if testing changes."')
+            print()
+            console.print("🎣 [bold cyan]TEACH YOURSELF TO FISH - RADICAL TRANSPARENCY SYSTEM:[/bold cyan]")
+            console.print("   You just discovered Pipulate's Radical Transparency & Agentic AI system!")
+            console.print("   🔥 [bold yellow]Master Guide:[/bold yellow] .cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc")
+            console.print("   🎯 [bold yellow]Key capabilities you now have:[/bold yellow]")
+            console.print("      • MCP Tools for system inspection and automation")
+            console.print("      • FINDER_TOKENs for surgical log analysis")  
+            console.print("      • Pipeline state inspection for workflow debugging")
+            console.print("      • Browser automation with complete DOM transparency")
+            console.print("   💡 [bold green]Next level:[/bold green] Read the guide to unlock your full agentic potential!")
+            print()
             
             return True
     except Exception:
@@ -4884,8 +6972,11 @@ def restart_server():
     for attempt in range(max_retries):
         try:
             log.startup(f'Restarting server (attempt {attempt + 1}/{max_retries})')
-            # 🤖 AI RAPID RESTART: Watchdog restart with complete log transparency for AI assistants
-            logger.info("🤖 AI_RAPID_RESTART: Watchdog-triggered restart - logs capture all events for AI transparency")
+            # 🤖 AI ASSISTANT EDUCATION: Explain rapid restart behavior
+            logger.warning("🤖 AI_RAPID_RESTART: This is a watchdog-triggered restart - one of potentially multiple rapid restarts")
+            logger.warning("🤖 AI_RAPID_RESTART: Console users see clean UX with banners shown once per session")
+            logger.warning("🤖 AI_RAPID_RESTART: AI assistants see ALL restart events in logs for complete transparency")
+            logger.warning("🤖 AI_RAPID_RESTART: Each restart below will trigger figlet_banner() with ASCII art logging")
             
             # Set environment variable to indicate this is a watchdog restart
             os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
@@ -4906,7 +6997,7 @@ class ServerRestartHandler(FileSystemEventHandler):
         """Check if event should be ignored to prevent unnecessary restarts."""
         if event.is_directory:
             return True
-        ignore_patterns = ['/.', '__pycache__', '.pyc', '.swp', '.tmp', '.DS_Store', 'browser_automation', 'downloads']
+        ignore_patterns = ['/.', '__pycache__', '.pyc', '.swp', '.tmp', '.DS_Store']
         if any((pattern in event.src_path for pattern in ignore_patterns)):
             return True
         return False
@@ -4925,8 +7016,11 @@ class ServerRestartHandler(FileSystemEventHandler):
 def run_server_with_watchdog():
     logger.info('🚀 FINDER_TOKEN: SERVER_STARTUP - Starting server with watchdog')
     
-    # 🤖 AI STARTUP BANNER: Main banner with ASCII art logging for AI visibility
-    logger.info("🤖 AI_STARTUP_BANNER: Displaying startup banner - console once per session, logs capture all occurrences")
+    # 🤖 AI ASSISTANT EDUCATION: Explain startup banner behavior
+    logger.warning("🤖 AI_STARTUP_BANNER: About to display main startup banner with ASCII art")
+    logger.warning("🤖 AI_STARTUP_BANNER: This banner appears on every server start (manual or watchdog restart)")
+    logger.warning("🤖 AI_STARTUP_BANNER: Console shows it once per session, logs capture every occurrence")
+    logger.warning("🤖 AI_STARTUP_BANNER: figlet_banner() below will log ASCII art with triple backticks for AI visibility")
     
     # 🎨 BEAUTIFUL RESTART BANNER
     figlet_banner(APP_NAME, "Local First AI SEO Software", font='standard', color=BANNER_COLORS['workshop_ready'])
@@ -4995,20 +7089,26 @@ if __name__ == '__main__':
     if check_server_already_running():
         sys.exit(0)
     
-    # 🤖 AI RESTART ARCHITECTURE: Load training material for AI assistant education
-    try:
-        restart_architecture_content = read_training('ai_restart_architecture_explanation.md')
-        if restart_architecture_content:
-            append_to_conversation(f"🤖 AI RESTART ARCHITECTURE:\n\n{restart_architecture_content}", role='system')
-            logger.info("🤖 AI_RESTART_ARCHITECTURE: Training content loaded from ai_restart_architecture_explanation.md")
-        else:
-            logger.warning("🤖 AI_RESTART_ARCHITECTURE: Could not load training content")
-    except Exception as e:
-        logger.debug(f"Could not load AI restart architecture training: {e}")
-    
-    # Log key tokens for AI discovery
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: Dual-display system active - console clean UX, logs complete transparency")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: GREP COMMANDS: 'ASCII_DATA:', 'FIGLET_BANNER', 'AI_RESTART_ARCHITECTURE' in logs/server.log")
+    # 🤖 AI ASSISTANT EDUCATION: Explicit logging about restart behavior and console filtering
+    # This is ONLY logged (not shown to console) to educate AI assistants about the sophisticated UX design
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: WATCHDOG RESTART BEHAVIOR EXPLANATION")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: The Pipulate server uses a sophisticated dual-display system:")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: 1. CONSOLE (for humans): Shows each banner ONCE per session for clean UX")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: 2. LOGS (for AI assistants): Captures ALL restart events including rapid restarts")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: When watchdog detects file changes, multiple rapid restarts may occur:")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Each restart triggers figlet_banner() calls")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Console shows banners once (better newb/plebe experience)")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Logs capture every restart event for AI transparency")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - DebugConsole class filters '🎭 AI_CREATIVE_VISION' from console output")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - This creates a cleaner user experience while maintaining radical transparency for AI")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: GREP COMMANDS for AI assistants:")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - grep 'ASCII_DATA:' logs/server.log  # See all ASCII art")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - grep 'AI_RESTART_ARCHITECTURE' logs/server.log  # This explanation")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - grep 'FIGLET_BANNER' logs/server.log  # All banner events")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: This dual-logging approach provides:")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Clean console experience for beginners")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Complete transparency for AI debugging")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Continuous narrative flow despite rapid restarts")
     
     # Set global testing mode flags
     if args.test or args.test_deep or args.test_browser:
