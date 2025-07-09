@@ -2817,7 +2817,7 @@ class Trifecta:
                         username=username, project_name=project_name
                     )
                     await pip.log_api_call_details(
-                        pipeline_id=pip.db.get('pipeline_id', 'unknown'), 
+                        pipeline_id=self.db.get('pipeline_id', 'unknown'), 
                         step_id="depth_finding",
                         call_description=f"First Depth Finding Query - {iter_param_name}={current_iter_val}",
                         method="POST", url=url, headers=headers, payload=query_payload,

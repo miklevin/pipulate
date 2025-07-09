@@ -17,3 +17,7 @@ CONFLICT: ab9e70d feat: Implement Radical Conversation History Transparency Syst
 CONFLICT: ae0ea58 ``` feat: Implement independent discussion database for persistent conversation history - Files: server.py
 CONFLICT: a277716 ``` feat: Implement directory rotation for AI perception history - Files: mcp_tools.py, server.py
 CONFLICT: f81a3e0 refactor(server): Remove duplicate local LLM helper functions - Files: server.py
+CONFLICT: 78f358a ``` feat: Generate BQLv2 and BQLv1 Python code with detailed API call logging - Files: plugins/110_parameter_buster.py, plugins/120_link_graph.py, server.py
+CONFLICT: 2a4d811 ``` feat: Enhance AI Assistant Onboarding and Tool Discovery - Files: ai_discovery/ai_mcp_tools_discovery_guide.md, flake.nix
+CONFLICT: eef65b9 feat: Centralize UI constants and configuration settings - Files: config.py, server.py
+CONFLICT: 5a6e7e7 fix(server): Schedule server restart using centralized system - Files: server.py
