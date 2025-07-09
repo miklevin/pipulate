@@ -11,3 +11,7 @@ CONFLICT: 8cc91fa 🎯 BREAKTHROUGH: Fix conversation persistence across server 
 CONFLICT: f152e09 🚨 Anti-discovery: Cut off environmental exploration at the pass - Files: server.py
 CONFLICT: f74b00e 🔧 CRITICAL FIX: Correct backup system database paths - Files: helpers/durable_backup_system.py
 CONFLICT: b63508a Fix breadcrumb trail discovery shell command issues - Files: mcp_tools.py
+CONFLICT: 21b8f34 ``` 🚀 **MAGIC FORMULA ACTIVATION!** - Introducing iterative LLM execution with explicit XML format and anti-simulation commands. - Files: mcp_tools.py, server.py
+CONFLICT: f77690c ``` feat: Implement Golden Path - Prioritize Operational Use - Files: mcp_tools.py, server.py
+CONFLICT: ab9e70d feat: Implement Radical Conversation History Transparency System - Files: mcp_tools.py
+CONFLICT: ae0ea58 ``` feat: Implement independent discussion database for persistent conversation history - Files: server.py
