@@ -49,3 +49,18 @@ CONFLICT: 4dbe99b ``` feat: Improve conversation persistence test logic - Files:
 CONFLICT: 07e37a4 ``` feat: Implement file upload widget with detailed feedback and download links - Files: plugins/120_link_graph.py
 CONFLICT: a12ee5e fix: Add clipboard SVG icon to config.py - Files: config.py
 CONFLICT: 118b357 ``` feat: Migrate to append-only message database - Files: ai_discovery/ai_conversation_architecture_solution.md, server.py, tests/conversation_persistence_test_final.py
+CONFLICT: b04ec69 feat: Implement comprehensive behavioral reinforcement system for local LLMs - Files: mcp_tools.py, server.py, training/system_prompt.md
+CONFLICT: d2d67da feat: Enhance MCP client to support square bracket notation and XML tool calls - Files: training/system_prompt.md
+CONFLICT: 0b9ec13 ``` feat: Introduce MCP Training Protocol for AI Capability Discovery - Files: server.py
+CONFLICT: 91eec6f feat: Reverse conversation history to display newest messages first - Files: plugins/070_history.py
+CONFLICT: 7b7d121 feat: Improve FINDER_TOKEN parameter handling in grep logs - Files: .cursor/rules/BREADCRUMB_TRAIL_DVCS.mdc
+CONFLICT: 91cd216 feat: Implement critical MCP tool calling instructions and examples - Files: training/system_prompt.md
+CONFLICT: 4daba40 ``` feat: 🔧 CONVERSATION PERSISTENCE FIX: Startup restoration message handling - Files: server.py
+CONFLICT: 785a38d ``` Fix: Preserve conversation history across restarts and system prompts - Files: mcp_tools.py, server.py
+CONFLICT: 73a0806 chore: Remove debug logging statements from backup system - Files: helpers/durable_backup_system.py
+CONFLICT: 6f7dcca Implement profile lock privacy feature for client meetings - Files: plugins/020_profiles.py
+CONFLICT: 6dc9725 Improve profile highlighting with better PicoCSS variables - Files: plugins/020_profiles.py
+CONFLICT: 5bd19ba feat: Enhance history viewer with Chip O'Theseus branding and role-specific styling - Files: plugins/070_history.py
+CONFLICT: b5c9118 fix(server): Re-initialize splitter on HTMX body swaps - Files: server.py
+CONFLICT: f1ed6b2 fix: Update Discussion History 📜 display name - Files: plugins/070_history.py
+CONFLICT: a8f54ad fix: Restore working CRUD implementation from ae02752 - Files: common.py, plugins/020_profiles.py
