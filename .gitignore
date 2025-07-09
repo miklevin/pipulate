@@ -88,3 +88,4 @@ helpers/botify/*.json
 helpers/botify/*.csv
 # 🛡️ Survivable test harness - independent git repo
 tests/
+tests/tools/__pycache__/
