@@ -18,8 +18,10 @@ import argparse
 import sys
 import time
 import json
+import subprocess
+import os
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Traditional testing imports
 import requests
@@ -179,64 +181,213 @@ def run_normal_tests(mode: str) -> TestResults:
     
     return results
 
+def white_rabbit_assert_test(commit_hash: str, touch_server: bool = True) -> dict:
+    """
+    The deterministic White Rabbit assertion test.
+    
+    Tests for "Welcome to Consoleland" in server logs after:
+    1. Git checkout to specific commit (in parent pipulate directory)
+    2. Optional touch server.py (for deliberate restart control)
+    3. 15-second delay for server restart
+    4. Grep for the white rabbit message
+    
+    Returns:
+        dict: {"success": bool, "message": str, "details": dict}
+    """
+    try:
+        print(f"🔍 Testing commit {commit_hash[:7]} for White Rabbit...")
+        
+        # CRITICAL: Work in parent pipulate directory where server runs
+        parent_dir = ".."
+        abs_parent_dir = os.path.abspath(parent_dir)
+        print(f"   📁 Working directory: {abs_parent_dir}")
+        
+        # Step 1: Git checkout in parent directory
+        checkout_cmd = ["git", "checkout", commit_hash]
+        print(f"   🔧 Running: git checkout {commit_hash[:7]} in {abs_parent_dir}")
+        checkout_result = subprocess.run(checkout_cmd, capture_output=True, text=True, cwd=parent_dir)
+        
+        if checkout_result.returncode != 0:
+            return {
+                "success": False,
+                "message": f"Git checkout failed: {checkout_result.stderr}",
+                "details": {"commit": commit_hash, "step": "checkout"}
+            }
+        
+        # Step 2: Optional touch server.py for deliberate restart control
+        if touch_server:
+            touch_cmd = ["touch", "server.py"]
+            subprocess.run(touch_cmd, cwd=parent_dir)
+            print("   📝 Touched server.py for deliberate restart control")
+        
+        # Step 3: 15-second delay for server restart
+        print("   ⏱️  Waiting 15 seconds for server restart...")
+        for i in range(15, 0, -1):
+            print(f"      ⏳ {i} seconds remaining...")
+            time.sleep(1)
+        print("   ✅ Server restart wait complete")
+        
+        # Step 4: Grep for "Welcome to Consoleland" (case insensitive)
+        log_path = os.path.join(parent_dir, "logs", "server.log")
+        grep_cmd = ["grep", "-i", "welcome to consoleland", log_path]
+        grep_result = subprocess.run(grep_cmd, capture_output=True, text=True)
+        
+        white_rabbit_found = grep_result.returncode == 0
+        
+        result = {
+            "success": white_rabbit_found,
+            "message": "🐰 White Rabbit FOUND!" if white_rabbit_found else "❌ White Rabbit MISSING",
+            "details": {
+                "commit": commit_hash,
+                "touch_server": touch_server,
+                "log_path": log_path,
+                "grep_output": grep_result.stdout.strip() if white_rabbit_found else "",
+                "grep_error": grep_result.stderr.strip() if not white_rabbit_found else ""
+            }
+        }
+        
+        print(f"   {result['message']}")
+        return result
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"White Rabbit test failed: {str(e)}",
+            "details": {"commit": commit_hash, "error": str(e)}
+        }
+
+def get_commits_for_timeframe(days_ago: int) -> list:
+    """Get list of commit hashes for binary search within timeframe."""
+    try:
+        # Get commits from N days ago to now
+        since_date = (datetime.now() - timedelta(days=days_ago)).strftime("%Y-%m-%d")
+        
+        git_cmd = [
+            "git", "log", 
+            f"--since={since_date}",
+            "--format=%H",
+            "--reverse"  # Oldest first for binary search
+        ]
+        
+        result = subprocess.run(git_cmd, capture_output=True, text=True, cwd="..")
+        
+        if result.returncode != 0:
+            print(f"❌ Git log failed: {result.stderr}")
+            return []
+        
+        commits = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
+        print(f"🎯 Found {len(commits)} commits in the last {days_ago} days")
+        return commits
+        
+    except Exception as e:
+        print(f"❌ Error getting commits: {e}")
+        return []
+
+def binary_search_white_rabbit(commits: list) -> dict:
+    """
+    Binary search to find the exact commit where White Rabbit disappeared.
+    
+    Returns the boundary: last commit WITH rabbit, first commit WITHOUT rabbit.
+    """
+    if not commits:
+        return {"success": False, "error": "No commits to search"}
+    
+    print(f"🔍 BINARY SEARCH: {len(commits)} commits")
+    print(f"   Range: {commits[0][:7]} ... {commits[-1][:7]}")
+    
+    left = 0
+    right = len(commits) - 1
+    last_good_commit = None
+    first_bad_commit = None
+    iteration = 0
+    
+    while left <= right:
+        iteration += 1
+        mid = (left + right) // 2
+        commit_hash = commits[mid]
+        
+        print(f"\n📍 ITERATION {iteration}: Testing commit {mid+1}/{len(commits)}")
+        print(f"   Commit: {commit_hash[:7]}")
+        
+        # Run the White Rabbit assertion test
+        test_result = white_rabbit_assert_test(commit_hash)
+        
+        if test_result["success"]:
+            # White Rabbit found - this is a GOOD commit
+            last_good_commit = commit_hash
+            print(f"   ✅ WHITE RABBIT PRESENT - searching forward...")
+            left = mid + 1
+        else:
+            # White Rabbit missing - this is a BAD commit  
+            first_bad_commit = commit_hash
+            print(f"   ❌ WHITE RABBIT MISSING - searching backward...")
+            right = mid - 1
+    
+    # Determine the boundary
+    if last_good_commit and first_bad_commit:
+        return {
+            "success": True,
+            "boundary_found": True,
+            "last_good_commit": last_good_commit,
+            "first_bad_commit": first_bad_commit,
+            "iterations": iteration,
+            "message": f"🎯 BOUNDARY FOUND! Rabbit disappeared between {last_good_commit[:7]} and {first_bad_commit[:7]}"
+        }
+    elif last_good_commit:
+        return {
+            "success": True,
+            "boundary_found": False,
+            "last_good_commit": last_good_commit,
+            "iterations": iteration,
+            "message": f"🐰 Rabbit present in all tested commits (last good: {last_good_commit[:7]})"
+        }
+    elif first_bad_commit:
+        return {
+            "success": True,
+            "boundary_found": False,
+            "first_bad_commit": first_bad_commit,
+            "iterations": iteration,
+            "message": f"❌ Rabbit missing in all tested commits (first bad: {first_bad_commit[:7]})"
+        }
+    else:
+        return {
+            "success": False,
+            "iterations": iteration,
+            "message": "🤔 No conclusive results from binary search"
+        }
+
 def run_regression_hunt(days_ago: int) -> TestResults:
-    """Run regression hunting using our beautiful MCP tools."""
+    """Run regression hunting using binary search with White Rabbit assertion."""
     print(f"🕰️ REGRESSION HUNTING MODE: {days_ago} days back")
     results = TestResults()
     
-    if not MCP_TOOLS_AVAILABLE:
-        results.add_result("mcp_tools_check", False, {"error": "MCP tools not available"})
+    # Get commits for the timeframe
+    commits = get_commits_for_timeframe(days_ago)
+    
+    if not commits:
+        results.add_result("commit_retrieval", False, {"error": "No commits found"})
         return results
     
-    results.add_result("mcp_tools_check", True)
+    results.add_result("commit_retrieval", True, {"commit_count": len(commits)})
     
-    # Test 1: Hunt for server startup regression
-    print("  🔍 Hunting server startup regressions...")
-    try:
-        # Level 2 API usage (smart model interface)
-        hunt_result = execute_tool("hunt_regression", days_ago=days_ago, pattern="Server started")
-        results.add_result("server_startup_hunt", hunt_result.get("success", False), hunt_result)
-        
-        if hunt_result.get("regression_found"):
-            print(f"    📍 REGRESSION FOUND: {hunt_result.get('investigation_command')}")
-        else:
-            print("    ✅ No server startup regressions found")
-            
-    except Exception as e:
-        results.add_result("server_startup_hunt", False, {"error": str(e)})
+    # Run binary search for White Rabbit
+    print("\n🎯 STARTING BINARY SEARCH FOR WHITE RABBIT...")
+    search_result = binary_search_white_rabbit(commits)
     
-    # Test 2: Hunt for profile system regression  
-    print("  🔍 Hunting profile system regressions...")
-    try:
-        # Level 1 API usage (super-brain interface)
-        hunter = RegressionHunter()
-        hunt_result = hunter.find_breaking_commit(
-            days_ago=days_ago,
-            test_function=lambda commit: test_profile_system()  # Custom test function
-        )
-        results.add_result("profile_system_hunt", hunt_result.get("success", False), hunt_result)
-        
-        if hunt_result.get("regression_found"):
-            print(f"    📍 REGRESSION FOUND: {hunt_result.get('investigation_command')}")
-        else:
-            print("    ✅ No profile system regressions found")
-            
-    except Exception as e:
-        results.add_result("profile_system_hunt", False, {"error": str(e)})
+    results.add_result("white_rabbit_binary_search", search_result["success"], search_result)
     
-    # Test 3: List commits for manual inspection
-    print("  📋 Listing recent commits...")
+    # Save current commit for restoration
     try:
-        # Level 3 API usage (local LLM interface)  
-        commit_result = parse_command(f"list_commits {days_ago}")
-        results.add_result("commit_listing", commit_result.get("success", False), commit_result)
+        original_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], 
+            capture_output=True, text=True, cwd=".."
+        ).stdout.strip()
         
-        if commit_result.get("success"):
-            total = commit_result.get("total_commits", 0)
-            print(f"    📅 Found {total} commits in {days_ago} day window")
-            
+        print(f"\n🔙 Restoring to original commit: {original_commit[:7]}")
+        subprocess.run(["git", "checkout", original_commit], cwd="..")
+        
     except Exception as e:
-        results.add_result("commit_listing", False, {"error": str(e)})
+        print(f"⚠️ Warning: Could not restore original commit: {e}")
     
     return results
 
