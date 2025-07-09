@@ -32,3 +32,5 @@ SUCCESS: a88b5cb feat: Improve system prompt with parameter clarification
 SUCCESS: 92e4e1a fix: Update version and description in __init__.py
 SUCCESS: f7fafb6 ``` feat: Implement copy to clipboard functionality for conversation history
 SUCCESS: f7fafb6 feat: Implement copy to clipboard functionality for conversation history
+SUCCESS: f752a04 feat: Improve server reboot wait times
+SUCCESS: f752a04 feat: Improve server reboot wait times
