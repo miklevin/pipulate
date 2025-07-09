@@ -2745,134 +2745,16 @@ class Trifecta:
     async def _execute_qualifier_logic(self, username, project_name, analysis_slug, api_token, qualifier_config):
         """Execute the generic qualifier logic to determine a dynamic parameter.
 
-        This method implements the generalized pattern for finding optimal parameters
-        (like depth for link graphs) that keep exports within API limits. It iteratively
-        tests values and finds the largest parameter that stays under the threshold.
-
-        Args:
-            username: Organization username
-            project_name: Project name
-            analysis_slug: Analysis slug
-            api_token: Botify API token
-            qualifier_config: Configuration dict from template's qualifier_config
-
+        This method delegates to the shared qualifier logic in the code generators module.
+        
         Returns:
             dict: {'parameter_value': determined_value, 'metric_at_parameter': metric_value}
         """
-        import httpx
-        import json
-
-        pip = self.pipulate
-        iter_param_name = qualifier_config['iterative_parameter_name']
-        bql_template_str = json.dumps(qualifier_config['qualifier_bql_template'])
-        collection_name = f"crawl.{analysis_slug}"
-
-        # Replace collection placeholder
-        bql_template_str = bql_template_str.replace("{collection}", collection_name)
-
-        # Initialize iteration variables
-        start_val, end_val, step_val = qualifier_config['iteration_range']
-        determined_param_value = start_val
-        metric_at_determined_param = 0
-        threshold = qualifier_config['max_value_threshold']
-
-        # Iterate through the range to find optimal parameter
-        for current_iter_val in range(start_val, end_val + 1, step_val):
-            # Replace iteration placeholder with proper type preservation
-            current_bql_payload = json.loads(bql_template_str)
-
-            def replace_iteration_placeholder(obj, placeholder, value):
-                """Recursively replace placeholder strings with properly typed values."""
-                if isinstance(obj, dict):
-                    return {k: replace_iteration_placeholder(v, placeholder, value) for k, v in obj.items()}
-                elif isinstance(obj, list):
-                    return [replace_iteration_placeholder(item, placeholder, value) for item in obj]
-                elif isinstance(obj, str) and obj == placeholder:
-                    return value  # Keep as integer
-                else:
-                    return obj
-
-            current_bql_payload = replace_iteration_placeholder(current_bql_payload, "{ITERATION_VALUE}", current_iter_val)
-
-            # Construct full query payload
-            query_payload = {
-                "collections": [collection_name],
-                "query": current_bql_payload
-            }
-
-            # Make API call
-            url = f"https://api.botify.com/v1/projects/{username}/{project_name}/query"
-            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
-
-            try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.post(url, headers=headers, json=query_payload, timeout=60.0)
-                
-                # Log only the FIRST query in the depth-finding series for transparency
-                if current_iter_val == start_val:
-                    # Generate curl and python commands for the depth-finding query
-                    curl_cmd, python_cmd = self._generate_api_call_representations(
-                        method="POST", url=url, headers=headers, payload=query_payload,
-                        step_context=f"Depth Finding Query ({iter_param_name})",
-                        username=username, project_name=project_name
-                    )
-                    await pip.log_api_call_details(
-                        pipeline_id=self.db.get('pipeline_id', 'unknown'), 
-                        step_id="depth_finding",
-                        call_description=f"First Depth Finding Query - {iter_param_name}={current_iter_val}",
-                        method="POST", url=url, headers=headers, payload=query_payload,
-                        response_status=response.status_code,
-                        curl_command=curl_cmd, python_command=python_cmd,
-                        notes=f"Finding optimal {iter_param_name} value (showing first query only to avoid spam)"
-                    )
-
-                if response.status_code != 200:
-                    await self.message_queue.add(pip, f"API error during qualifier check at {iter_param_name}={current_iter_val}: Status {response.status_code}", verbatim=True)
-                    break
-
-                data = response.json()
-
-                # Extract metric using the configured path
-                try:
-                    metric_value = data
-                    for path_element in qualifier_config['target_metric_path']:
-                        metric_value = metric_value[path_element]
-
-                    # Convert to int if it's a number
-                    if isinstance(metric_value, (int, float)):
-                        metric_value = int(metric_value)
-                    else:
-                        metric_value = 0
-
-                except (KeyError, IndexError, TypeError):
-                    await self.message_queue.add(pip, f"Could not extract metric from response at {iter_param_name}={current_iter_val}", verbatim=True)
-                    metric_value = 0
-
-                await self.message_queue.add(pip, f"🔍 Qualifier '{iter_param_name}' at {current_iter_val}: {metric_value:,} items.", verbatim=True)
-
-                # Check if we're within threshold
-                if metric_value <= threshold:
-                    determined_param_value = current_iter_val
-                    metric_at_determined_param = metric_value
-                    # Continue to find the largest value still under threshold
-                else:
-                    # Threshold exceeded
-                    if current_iter_val == start_val:
-                        # Even the first value exceeds threshold
-                        await self.message_queue.add(pip, qualifier_config['user_message_threshold_exceeded'].format(metric_value=metric_value), verbatim=True)
-                        determined_param_value = start_val
-                        metric_at_determined_param = metric_value
-                    # Break since further iterations will also exceed
-                    break
-
-            except Exception as e:
-                await self.message_queue.add(pip, f"Error during qualifier check at {iter_param_name}={current_iter_val}: {str(e)}", verbatim=True)
-                break
-
-        return {
-            'parameter_value': determined_param_value,
-            'metric_at_parameter': metric_at_determined_param
-        }
+        from helpers.botify.code_generators import execute_qualifier_logic
+        optimal_param_value, final_metric_value = await execute_qualifier_logic(
+            self, username, project_name, analysis_slug, api_token, qualifier_config
+        )
+        return {'parameter_value': optimal_param_value, 'metric_at_parameter': final_metric_value}
 
     def get_filename_for_export_type(self, export_type):
         """Get the filename for a given export type.

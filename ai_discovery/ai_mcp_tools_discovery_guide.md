@@ -138,6 +138,17 @@ mcp execute_automation_recipe --recipe_path browser_automation/automation_recipe
 # The simplified, reliable automation engine (formerly baby_steps)
 ```
 
+### **🔸 execute_automation_recipe - YOUR AUTOMATION RECIPES**
+```bash
+# Execute JSON automation recipes with progressive disclosure
+mcp execute_automation_recipe
+
+# Execute specific recipe file
+mcp execute_automation_recipe --recipe_path browser_automation/automation_recipes/http_localhost_5001/profile_creation_recipe.json
+
+# The simplified, reliable automation engine (formerly baby_steps)
+```
+
 ### **🔸 browser_interact_with_current_page - YOUR PRECISE CONTROL**
 ```bash
 # Click specific elements
@@ -291,6 +302,16 @@ mcp execute_automation_recipe --recipe_path browser_automation/automation_recipe
 # The clean CLI contract: simple commands, reliable results
 ```
 
+### **Pattern 3: Automation Recipe Execution**
+```bash
+# Step 1: Discover available recipes (progressive disclosure)
+mcp execute_automation_recipe
+
+# Step 2: Execute specific recipe with 100% success rate
+mcp execute_automation_recipe --recipe_path browser_automation/automation_recipes/http_localhost_5001/profile_creation_recipe.json
+
+# The clean CLI contract: simple commands, reliable results
+```
 ### **Pattern 4: Botify Data Discovery**
 ```bash
 # Check that tools are properly registered (expect 39)

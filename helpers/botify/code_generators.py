@@ -82,7 +82,7 @@ class BotifyCodeGenerators:
             raise ValueError(f"Token file '{TOKEN_FILE}' not found.")
         with open(TOKEN_FILE) as f:
             content = f.read().strip()
-            api_key = content.split('\\n')[0].strip()
+            api_key = content.split('\n')[0].strip()
             if not api_key:
                 raise ValueError(f"Token file '{TOKEN_FILE}' is empty.")
             return api_key
@@ -113,24 +113,24 @@ class BotifyCodeGenerators:
             response.raise_for_status()
 
             result = response.json()
-            print(f"\\nResults returned: {{len(result.get('results', []))}}")
+            print(f"\nResults returned: {{len(result.get('results', []))}}")
             print(f"Total count: {{result.get('count', 'N/A')}}")
 
             # Show first few results for inspection
             results = result.get('results', [])
             if results:
-                print("\\nFirst result structure:")
+                print("\nFirst result structure:")
                 print(json.dumps(results[0], indent=2))
 
             return result
 
         except httpx.HTTPStatusError as e:
             error_msg = f"HTTP error {{e.response.status_code}}: {{e.response.text}}"
-            print(f"\\n❌ Error: {{error_msg}}")
+            print(f"\n❌ Error: {{error_msg}}")
             raise ValueError(error_msg)
         except Exception as e:
             error_msg = f"Unexpected error: {{str(e)}}"
-            print(f"\\n❌ Error: {{error_msg}}")
+            print(f"\n❌ Error: {{error_msg}}")
             raise ValueError(error_msg)'''
 
     def generate_botify_main_executor(self, client_function_name: str, api_description: str):
@@ -146,7 +146,7 @@ class BotifyCodeGenerators:
         return result
 
     except Exception as e:
-        print(f"\\n❌ {api_description} failed: {{str(e)}}")
+        print(f"\n❌ {api_description} failed: {{str(e)}}")
         raise
 
 # Execute in Jupyter Notebook:
@@ -381,7 +381,7 @@ def get_headers() -> Dict[str, str]:
                                         jobs_payload: dict, display_name: str, 
                                         get_step_name_from_payload_func) -> tuple:
         """Generate Python code for BQLv1 queries (web logs)."""
-        # Generate the query URL for BQLv1 (different endpoint)
+        # Generate the query URL
         query_url = f"https://app.botify.com/api/v1/logs/{username}/{project_name}/query"
         
         # Get step name from payload
@@ -392,50 +392,197 @@ def get_headers() -> Dict[str, str]:
             display_name=display_name,
             step_name=step_name,
             username=username,
-            project_name=project_name,
-            template_info={'name': 'Web Logs', 'description': 'Web logs query using BQLv1', 'export_type': 'weblog'}
+            project_name=project_name
         )
         
-        # Generate the complete Python code
-        python_code = '''
-import asyncio
-import json
-import os
-from pathlib import Path
-from typing import Dict, Any
-
+        # Generate the Python code
+        python_code = f'''
 import httpx
+import json
+import asyncio
+import os
+from typing import Optional, Dict, Any
 
 # Configuration
 TOKEN_FILE = 'botify_token.txt'
-URL = "{url}"
-PAYLOAD = {payload}
 
-{token_loader}
+{self.generate_botify_token_loader()}
 
+# Configuration
+API_TOKEN = load_api_token()
+URL = "{query_url}"
+PAYLOAD = {json.dumps(query_payload, indent=2)}
+
+# Headers setup
 def get_headers() -> Dict[str, str]:
-    """Get headers with API token."""
-    api_token = load_api_token()
+    """Generate headers for the API request."""
     return {{
-        'Authorization': f'Token {{api_token}}',
+        'Authorization': f'Token {{API_TOKEN}}',
         'Content-Type': 'application/json'
     }}
 
-{http_client}
+{self.generate_botify_http_client('execute_bqlv1_query', 'Execute BQLv1 query for web logs analysis')}
 
-{main_executor}
-'''.format(
-            url=query_url,
-            payload=json.dumps(query_payload, indent=4),
-            token_loader=self.generate_botify_token_loader(),
-            http_client=self.generate_botify_http_client('execute_bqlv1_query', 'Execute BQLv1 query for web logs data'),
-            main_executor=self.generate_botify_main_executor('execute_bqlv1_query', 'BQLv1 Query')
-        )
+{self.generate_botify_main_executor('execute_bqlv1_query', 'BQLv1 Web Logs Query')}
+'''
         
         # Combine header and code
         full_code = '\n'.join(header_lines) + '\n' + python_code
         
         return query_url, query_payload, full_code
+
+    async def execute_qualifier_logic(self, workflow_instance, username: str, project_name: str, 
+                                    analysis_slug: str, api_token: str, qualifier_config: dict):
+        """
+        🎯 SHARED QUALIFIER LOGIC - Handles parameter optimization for all Botify workflows
+        
+        This method finds the optimal parameter value (like depth, page count, etc.) that stays 
+        under API limits while maximizing data collection.
+        """
+        import httpx
+        import json
+        import asyncio
+        
+        # Extract configuration
+        qualifier_template = qualifier_config['qualifier_bql_template']
+        parameter_name = qualifier_config['iterative_parameter_name']
+        target_metric_path = qualifier_config['target_metric_path']
+        max_threshold = qualifier_config['max_value_threshold']
+        iteration_range = qualifier_config['iteration_range']
+        
+        # Get messages
+        user_message_running = qualifier_config.get('user_message_running', f'Finding optimal {parameter_name}...')
+        user_message_found = qualifier_config.get('user_message_found', f'Optimal {parameter_name}: {{param_value}} (for {{metric_value:,}} results).')
+        user_message_threshold_exceeded = qualifier_config.get('user_message_threshold_exceeded', f'{parameter_name.title()} count exceeds threshold even at minimum value.')
+        
+        # Add initial message
+        await workflow_instance.message_queue.add(
+            workflow_instance.pipulate,
+            user_message_running,
+            verbatim=True
+        )
+        
+        # Build the base query
+        base_query = {
+            "collections": [f"crawl.{analysis_slug}"],
+            "query": qualifier_template.copy()
+        }
+        
+        # Replace collection placeholders
+        def replace_iteration_placeholder(obj, placeholder, value):
+            if isinstance(obj, dict):
+                return {k: replace_iteration_placeholder(v, placeholder, value) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [replace_iteration_placeholder(item, placeholder, value) for item in obj]
+            elif isinstance(obj, str):
+                return obj.replace(placeholder, str(value))
+            return obj
+        
+        # Replace collection placeholder first
+        base_query = replace_iteration_placeholder(base_query, '{collection}', f'crawl.{analysis_slug}')
+        
+        # Iterate through parameter values
+        start_val, end_val, step_val = iteration_range
+        optimal_param_value = start_val
+        final_metric_value = 0
+        
+        first_call_logged = False
+        
+        for current_iter_val in range(start_val, end_val + 1, step_val):
+            # Replace iteration placeholder
+            query_payload = replace_iteration_placeholder(base_query, '{ITERATION_VALUE}', current_iter_val)
+            
+            # Make API call
+            url = f'https://api.botify.com/v1/projects/{username}/{project_name}/query'
+            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+            
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(url, headers=headers, json=query_payload, timeout=60.0)
+                    response.raise_for_status()
+                    result = response.json()
+                
+                # Log first API call for transparency
+                if not first_call_logged:
+                    # Generate curl and python commands for transparency
+                    curl_cmd = f"curl -X POST '{url}' -H 'Authorization: Token {{YOUR_BOTIFY_API_TOKEN}}' -H 'Content-Type: application/json' -d '{json.dumps(query_payload)}'"
+                    python_cmd = f"""
+import httpx
+import json
+
+async def test_qualifier():
+    url = "{url}"
+    headers = {repr(headers)}
+    payload = {json.dumps(query_payload, indent=2)}
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, json=payload, timeout=60.0)
+        response.raise_for_status()
+        return response.json()
+
+await test_qualifier()
+"""
+                    
+                    # Use workflow instance's database instead of pip.db
+                    await workflow_instance.pipulate.log_api_call_details(
+                        pipeline_id=workflow_instance.db.get('pipeline_id', 'unknown'),
+                        step_id='depth_finding',
+                        call_description=f'First Depth Finding Query - {parameter_name}={current_iter_val}',
+                        method='POST',
+                        url=url,
+                        headers=headers,
+                        payload=query_payload,
+                        response_status=response.status_code,
+                        curl_command=curl_cmd,
+                        python_command=python_cmd,
+                        notes=f'Finding optimal {parameter_name} value (showing first query only to avoid spam)'
+                    )
+                    first_call_logged = True
+                
+                # Extract metric value from result
+                metric_value = result
+                for path_segment in target_metric_path:
+                    if isinstance(metric_value, dict):
+                        metric_value = metric_value.get(path_segment, 0)
+                    elif isinstance(metric_value, list) and isinstance(path_segment, int):
+                        metric_value = metric_value[path_segment] if path_segment < len(metric_value) else 0
+                    else:
+                        metric_value = 0
+                        break
+                
+                # Update status message
+                await workflow_instance.message_queue.add(
+                    workflow_instance.pipulate,
+                    f'🔍 Qualifier \'{parameter_name}\' at {current_iter_val}: {metric_value:,} items.',
+                    verbatim=True
+                )
+                
+                # Check if we're still under threshold
+                if metric_value <= max_threshold:
+                    optimal_param_value = current_iter_val
+                    final_metric_value = metric_value
+                else:
+                    # Exceeded threshold, use previous value
+                    break
+                    
+            except Exception as e:
+                await workflow_instance.message_queue.add(
+                    workflow_instance.pipulate,
+                    f'Error during qualifier check at {parameter_name}={current_iter_val}: {str(e)}',
+                    verbatim=True
+                )
+                # Continue with current optimal value
+                break
+        
+        # Add final message
+        final_message = user_message_found.format(param_value=optimal_param_value, metric_value=final_metric_value)
+        await workflow_instance.message_queue.add(
+            workflow_instance.pipulate,
+            final_message,
+            verbatim=True
+        )
+        
+        return optimal_param_value, final_metric_value
 
 # Convenience instance for backward compatibility with existing plugins
 botify_code_generators = BotifyCodeGenerators()
@@ -451,3 +598,4 @@ create_folder_button = botify_code_generators.create_folder_button
 get_botify_analysis_path = botify_code_generators.get_botify_analysis_path
 generate_botify_bqlv2_python_code = botify_code_generators.generate_botify_bqlv2_python_code
 generate_botify_bqlv1_python_code = botify_code_generators.generate_botify_bqlv1_python_code
+execute_qualifier_logic = botify_code_generators.execute_qualifier_logic
