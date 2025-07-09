@@ -5985,6 +5985,14 @@ async def clear_db(request):
     last_app_choice = db.get('last_app_choice')
     last_visited_url = db.get('last_visited_url')
     temp_message = db.get('temp_message')
+    
+    # 💬 PRESERVE CONVERSATION HISTORY - Backup conversation before database reset
+    conversation_backup = None
+    if 'llm_conversation_history' in db:
+        conversation_backup = db.get('llm_conversation_history')
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_BACKUP_DB_RESET - Backing up conversation history before database reset")
+    else:
+        logger.info("💬 FINDER_TOKEN: CONVERSATION_BACKUP_DB_RESET - No conversation history to backup")
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('CLEAR_DB: Table states BEFORE plugin table wipe:')
         try:
@@ -6064,6 +6072,22 @@ async def clear_db(request):
         db['last_visited_url'] = last_visited_url
     if temp_message:
         db['temp_message'] = temp_message
+    
+    # 💬 RESTORE CONVERSATION HISTORY - Restore conversation after database reset
+    if conversation_backup:
+        db['llm_conversation_history'] = conversation_backup
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORED_DB_RESET - Restored conversation history after database reset")
+        # Also restore to in-memory conversation history
+        try:
+            import json
+            restored_messages = json.loads(conversation_backup)
+            global_conversation_history.clear()
+            global_conversation_history.extend(restored_messages)
+            logger.info(f"💬 FINDER_TOKEN: CONVERSATION_MEMORY_RESTORED_DB_RESET - Restored {len(restored_messages)} messages to in-memory conversation")
+        except Exception as e:
+            logger.error(f"💬 CONVERSATION_MEMORY_RESTORE_ERROR - Failed to restore in-memory conversation: {e}")
+    else:
+        logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORED_DB_RESET - No conversation history to restore")
     if TABLE_LIFECYCLE_LOGGING:
         log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB FINAL (post key restoration)')
         logger.bind(lifecycle=True).info('CLEAR_DB: Operation fully complete.')
@@ -6474,10 +6498,14 @@ async def switch_environment(request):
     try:
         form = await request.form()
         environment = form.get('environment', 'Development')
-        set_current_environment(environment)
-        logger.info(f'Environment switched to: {environment}')
+        previous_env = get_current_environment()
         
-
+        # 💬 SAVE CONVERSATION BEFORE ENVIRONMENT SWITCH - Ensure persistence across environment changes
+        logger.info(f"💬 FINDER_TOKEN: CONVERSATION_SAVE_ENV_SWITCH - Saving conversation history before switching from {previous_env} to {environment}")
+        save_conversation_to_db()
+        
+        set_current_environment(environment)
+        logger.info(f'💬 FINDER_TOKEN: ENVIRONMENT_SWITCHED - Environment switched from {previous_env} to {environment}')
         
         # Schedule server restart after a delay to allow HTMX to swap in the spinner
         asyncio.create_task(delayed_restart(2))
