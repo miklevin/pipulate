@@ -97,6 +97,12 @@ class ASTWorkflowReconstructor:
                             self._check_steps_assignment(init_node, target, chunk2_step_definitions)
                 break
         
+        # Check inside step building methods for dynamic step construction
+        for node in class_node.body:
+            if isinstance(node, ast.FunctionDef) and '_build_dynamic_steps' in node.name:
+                print(f"  🔍 Found dynamic step building method: {node.name}")
+                self._extract_dynamic_steps_from_method(node, chunk2_step_definitions)
+        
         # Extract Chunk 2 methods
         chunk2_methods = self.extract_chunk2_methods(class_node)
         
@@ -120,12 +126,54 @@ class ASTWorkflowReconstructor:
                 for i, element in enumerate(assign_node.value.elts):
                     step_def_str = ast.unparse(element)
                     print(f"        Element {i}: {step_def_str}")
-                    # Check if this is a Chunk 2 step (parameter-specific)
-                    if any(step_id in step_def_str for step_id in ['step_parameters', 'step_optimization', 'step_robots']):
+                    # Extract workflow-specific steps (anything not in base Trifecta steps)
+                    if self._is_workflow_specific_step(step_def_str):
                         chunk2_step_definitions.append(step_def_str)
                         print(f"  📋 Extracted Chunk 2 step definition: {step_def_str}")
             else:
                 print(f"      Not a list - value: {ast.unparse(assign_node.value)}")
+    
+    def _is_workflow_specific_step(self, step_def_str: str) -> bool:
+        """Check if a step definition is workflow-specific (not a base Trifecta step)."""
+        # Base Trifecta steps that should NOT be extracted
+        base_step_ids = ['step_project', 'step_analysis', 'step_crawler', 'step_webogs', 'step_gsc', 'finalize']
+        
+        # Check if this step is NOT one of the base steps
+        for base_step in base_step_ids:
+            if f"id='{base_step}'" in step_def_str or f'id="{base_step}"' in step_def_str:
+                return False
+        
+        # If it's not a base step, it's workflow-specific
+        return True
+    
+    def _extract_dynamic_steps_from_method(self, method_node: ast.FunctionDef, chunk2_step_definitions: List[str]):
+        """Extract workflow-specific steps from dynamic step building methods."""
+        print(f"    🔍 Analyzing dynamic step building in method: {method_node.name}")
+        
+        # Look for steps.append(...) and steps.extend([...]) calls
+        for node in ast.walk(method_node):
+            if isinstance(node, ast.Call):
+                if (isinstance(node.func, ast.Attribute) and 
+                    isinstance(node.func.value, ast.Name) and 
+                    node.func.value.id == 'steps'):
+                    
+                    if node.func.attr == 'append' and node.args:
+                        # steps.append(Step(...))
+                        step_def_str = ast.unparse(node.args[0])
+                        print(f"      Found steps.append: {step_def_str}")
+                        if self._is_workflow_specific_step(step_def_str):
+                            chunk2_step_definitions.append(step_def_str)
+                            print(f"  📋 Extracted from append: {step_def_str}")
+                    
+                    elif node.func.attr == 'extend' and node.args and isinstance(node.args[0], ast.List):
+                        # steps.extend([Step(...), Step(...), ...])
+                        print(f"      Found steps.extend with {len(node.args[0].elts)} elements")
+                        for element in node.args[0].elts:
+                            step_def_str = ast.unparse(element)
+                            print(f"        Extend element: {step_def_str}")
+                            if self._is_workflow_specific_step(step_def_str):
+                                chunk2_step_definitions.append(step_def_str)
+                                print(f"  📋 Extracted from extend: {step_def_str}")
     
     def extract_chunk2_methods(self, class_node: ast.ClassDef) -> List[ast.FunctionDef]:
         """Extract Chunk 2 methods from the class node."""
@@ -138,34 +186,39 @@ class ASTWorkflowReconstructor:
                 print(f"    Method: {method_name}")
                 
                 # Identify workflow-specific methods (NOT template methods)
-                # Debug each condition
-                starts_with_params = method_name.startswith('step_parameters')
-                starts_with_optim = method_name.startswith('step_optimization')
-                starts_with_robots = method_name.startswith('step_robots')
-                has_parameter = 'parameter' in method_name
-                has_optimization = 'optimization' in method_name
-                has_robots = 'robots' in method_name
+                # Use generic pattern matching instead of hardcoded step names
+                
+                # Parameter Buster specific patterns
+                param_buster_patterns = ['parameter', 'optimization', 'robots']
+                has_param_buster_keyword = any(keyword in method_name.lower() for keyword in param_buster_patterns)
+                
+                # Link Graph specific patterns  
+                link_graph_patterns = ['step_01', 'step_02b', 'step_03', 'step_04', 'step_05', 'step_06', 'visualization', 'cosmograph']
+                has_link_graph_keyword = any(keyword in method_name.lower() for keyword in link_graph_patterns)
+                
+                # Base template step patterns (should be excluded)
+                template_step_prefixes = ['step_project', 'step_analysis', 'step_crawler', 'step_webogs', 'step_gsc']
+                is_template_step = any(method_name.startswith(prefix) for prefix in template_step_prefixes)
+                
+                # General workflow-specific detection
                 not_in_template = method_name not in self.template_methods
                 not_private = not method_name.startswith('_')
-                not_template_step = not any(method_name.startswith(prefix) for prefix in 
-                    ['step_project', 'step_analysis', 'step_crawler', 'step_webogs', 'step_gsc'])
+                not_finalize = method_name != 'finalize'
+                not_common_utility = method_name not in ['landing', 'init', 'handle_revert', 'unfinalize', 'get_suggestion']
                 
                 is_workflow_specific = (
-                    starts_with_params or starts_with_optim or starts_with_robots or
-                    has_parameter or has_optimization or has_robots or
-                    (not_in_template and not_private and not_template_step)
+                    has_param_buster_keyword or has_link_graph_keyword or
+                    (not_in_template and not_private and not is_template_step and not_finalize and not_common_utility)
                 )
                 
                 print(f"    📋 Debug for {method_name}:")
-                print(f"      starts_with_params: {starts_with_params}")
-                print(f"      starts_with_optim: {starts_with_optim}")
-                print(f"      starts_with_robots: {starts_with_robots}")
-                print(f"      has_parameter: {has_parameter}")
-                print(f"      has_optimization: {has_optimization}")
-                print(f"      has_robots: {has_robots}")
+                print(f"      has_param_buster_keyword: {has_param_buster_keyword}")
+                print(f"      has_link_graph_keyword: {has_link_graph_keyword}")
+                print(f"      is_template_step: {is_template_step}")
                 print(f"      not_in_template: {not_in_template}")
                 print(f"      not_private: {not_private}")
-                print(f"      not_template_step: {not_template_step}")
+                print(f"      not_finalize: {not_finalize}")
+                print(f"      not_common_utility: {not_common_utility}")
                 print(f"      => is_workflow_specific: {is_workflow_specific}")
                 
                 if is_workflow_specific:
