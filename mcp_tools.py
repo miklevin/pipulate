@@ -112,6 +112,96 @@ def apply_timing_preset(preset_name: str):
 apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
 
 # ================================================================
+# BROWSER AUTOMATION UTILITIES
+# ================================================================
+
+# Configuration for directory rotation
+MAX_ROLLED_LOOKING_AT_DIRS = 10  # Keep last 10 AI perception states
+
+def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: int = None) -> bool:
+    """
+    🔄 DIRECTORY ROTATION SYSTEM
+    
+    Rotates the browser_automation/looking_at directory before each new browser scrape.
+    This preserves AI perception history across multiple look-at operations.
+    
+    Similar to log rotation but for entire directories:
+    - looking_at becomes looking_at-1  
+    - looking_at-1 becomes looking_at-2
+    - etc. up to max_rolled_dirs
+    - Oldest directories beyond limit are deleted
+    
+    Args:
+        looking_at_path: Path to the looking_at directory (default: browser_automation/looking_at)
+        max_rolled_dirs: Maximum number of historical directories to keep
+        
+    Returns:
+        bool: True if rotation successful, False if failed
+        
+    This prevents AI assistants from losing sight of previously captured states
+    and allows them to review their automation history for better decisions.
+    """
+    if looking_at_path is None:
+        looking_at_path = Path('browser_automation') / 'looking_at'
+    else:
+        looking_at_path = Path(looking_at_path)
+    
+    if max_rolled_dirs is None:
+        max_rolled_dirs = MAX_ROLLED_LOOKING_AT_DIRS
+    
+    try:
+        # Ensure the parent directory exists
+        looking_at_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Clean up old numbered directories beyond our limit
+        for i in range(max_rolled_dirs + 1, 100):
+            old_dir = looking_at_path.parent / f'{looking_at_path.name}-{i}'
+            if old_dir.exists():
+                try:
+                    shutil.rmtree(old_dir)
+                    logger.info(f'🧹 FINDER_TOKEN: DIRECTORY_CLEANUP - Removed old directory: {old_dir.name}')
+                except Exception as e:
+                    logger.warning(f'⚠️ Failed to delete old directory {old_dir}: {e}')
+        
+        # Rotate existing directories: looking_at-1 → looking_at-2, etc.
+        if looking_at_path.exists() and any(looking_at_path.iterdir()):  # Only rotate if directory exists and has contents
+            for i in range(max_rolled_dirs - 1, 0, -1):
+                old_path = looking_at_path.parent / f'{looking_at_path.name}-{i}'
+                new_path = looking_at_path.parent / f'{looking_at_path.name}-{i + 1}'
+                if old_path.exists():
+                    try:
+                        # Use shutil.move() instead of rename() to handle non-empty directories
+                        if new_path.exists():
+                            # If target exists, remove it first
+                            shutil.rmtree(new_path)
+                        shutil.move(str(old_path), str(new_path))
+                        logger.info(f'📁 FINDER_TOKEN: DIRECTORY_ROTATION - Rotated: {old_path.name} → {new_path.name}')
+                    except Exception as e:
+                        logger.warning(f'⚠️ Failed to rotate directory {old_path}: {e}')
+            
+            # Move current looking_at to looking_at-1
+            try:
+                archived_path = looking_at_path.parent / f'{looking_at_path.name}-1'
+                if archived_path.exists():
+                    # If target exists, remove it first
+                    shutil.rmtree(archived_path)
+                shutil.move(str(looking_at_path), str(archived_path))
+                logger.info(f'🎯 FINDER_TOKEN: DIRECTORY_ARCHIVE - Archived current perception: {looking_at_path.name} → {archived_path.name}')
+            except Exception as e:
+                logger.warning(f'⚠️ Failed to archive current {looking_at_path}: {e}')
+                return False
+        
+        # Create fresh looking_at directory
+        looking_at_path.mkdir(parents=True, exist_ok=True)
+        logger.info(f'✨ FINDER_TOKEN: DIRECTORY_REFRESH - Fresh perception directory ready: {looking_at_path}')
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f'❌ FINDER_TOKEN: DIRECTORY_ROTATION_ERROR - Failed to rotate directories: {e}')
+        return False
+
+# ================================================================
 # HELPER FUNCTIONS
 # ================================================================
 
@@ -2143,10 +2233,7 @@ async def browser_scrape_page(params: dict) -> dict:
             
         # === DIRECTORY ROTATION BEFORE NEW BROWSER SCRAPE ===
         # Rotate looking_at directory to preserve AI perception history
-        from server import rotate_looking_at_directory
-        
-        # Define constant locally to avoid circular import
-        MAX_ROLLED_LOOKING_AT_DIRS = 10
+        # rotate_looking_at_directory is now defined locally in this module
         
         rotation_success = rotate_looking_at_directory(
             looking_at_path=Path('browser_automation/looking_at'),
@@ -2587,11 +2674,8 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         # Only now do we proceed to rotate directories and create the browser
         # === DIRECTORY ROTATION BEFORE NEW WORKFLOW WALKTHROUGH ===
         # Rotate looking_at directory to preserve AI workflow history
-        from server import rotate_looking_at_directory
+        # rotate_looking_at_directory is now defined locally in this module
         from pathlib import Path
-        
-        # Define constant locally to avoid circular import  
-        MAX_ROLLED_LOOKING_AT_DIRS = 10
         
         rotation_success = rotate_looking_at_directory(
             looking_at_path=Path('browser_automation/looking_at'),
@@ -5088,8 +5172,7 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
         logger.info(f"✅ FINDER_TOKEN: WORKFLOW_HIJACK_VALIDATION_PASSED - URL: {url}, Pipeline: {pipeline_id}")
         
         # === DIRECTORY ROTATION ===
-        from server import rotate_looking_at_directory
-        MAX_ROLLED_LOOKING_AT_DIRS = 10
+        # rotate_looking_at_directory is now defined locally in this module
         rotation_success = rotate_looking_at_directory(
             looking_at_path=Path('browser_automation/looking_at'),
             max_rolled_dirs=MAX_ROLLED_LOOKING_AT_DIRS
