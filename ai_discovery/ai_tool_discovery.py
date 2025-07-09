@@ -21,7 +21,8 @@ from mcp_tools import (
     pipeline_state_inspector,
     local_llm_grep_logs,
     ui_flash_element,
-    botify_get_full_schema
+    botify_get_full_schema,
+    execute_automation_recipe
 )
 
 async def test_mcp_tools():
@@ -76,6 +77,15 @@ async def test_mcp_tools():
     except Exception as e:
         print(f"❌ ui_flash_element: FAILED - {e}")
     
+    # Test 5: Automation Recipe Execution
+    print("\n🤖 Testing execute_automation_recipe...")
+    try:
+        result = await execute_automation_recipe({})
+        print("✅ execute_automation_recipe: SUCCESS")
+        print(f"   Available recipes: {len(result.get('available_recipes', []))}")
+    except Exception as e:
+        print(f"❌ execute_automation_recipe: FAILED - {e}")
+    
     print("\n" + "=" * 50)
     print("🎭 TOOL ACCESS VERIFICATION COMPLETE")
     print("\n📚 Next Steps:")
@@ -94,7 +104,8 @@ def list_available_tools():
             "browser_scrape_page",
             "browser_analyze_scraped_page", 
             "browser_automate_workflow_walkthrough",
-            "browser_interact_with_current_page"
+            "browser_interact_with_current_page",
+            "execute_automation_recipe"
         ]),
         ("🔍 Analysis Tools", [
             "pipeline_state_inspector",
