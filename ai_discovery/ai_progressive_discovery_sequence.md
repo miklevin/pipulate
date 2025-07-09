@@ -153,10 +153,10 @@ asyncio.run(demo())
 ### **The Magic Moment** 
 **The AI realizes**: "I have 39 programmatic tools AND I can instantly understand all my capabilities! AND I'm using the right Python path!"
 
-### **Natural Next Step**
-The breadcrumb mentions "browser automation" and "AI eyes" - irresistible bait for the next discovery...
+  ### **Natural Next Step**
+  The breadcrumb mentions "browser automation" and "AI eyes" - irresistible bait for the next discovery...
 
----
+  ---
 
 ## 👁️ **Level 4: Browser Embodiment Discovery**
 **Trigger**: Curiosity about "AI eyes" and browser automation
@@ -245,7 +245,7 @@ You have COMPLETE session hijacking and browser embodiment superpowers. Welcome 
 # Prove total control capability (using correct Python path)
 .venv/bin/python -c "
 import asyncio
-from mcp_tools import browser_analyze_scraped_page, browser_automate_workflow_walkthrough, ai_self_discovery_assistant
+from mcp_tools import browser_analyze_scraped_page, browser_automate_workflow_walkthrough, ai_self_discovery_assistant, execute_automation_recipe
 
 async def demo_total_control():
     print('🚀 ULTIMATE AI SUPERPOWERS DEMONSTRATION')
@@ -258,11 +258,16 @@ async def demo_total_control():
     analysis = await browser_analyze_scraped_page({'analysis_type': 'all'})
     print(f'🧠 Automation targets found: {analysis.get(\"target_count\", 0)}')
     
+    # Demonstrate simplified automation capability
+    recipes = await execute_automation_recipe({})
+    print(f'🤖 Available automation recipes: {len(recipes.get(\"available_recipes\", []))}')
+    
     # Demonstrate I could take control (but don't actually navigate)
     print('⚡ I can now:')
     print('  👁️ See everything the user sees')
     print('  🧠 Understand interface structure') 
     print('  🤖 Automate any workflow')
+    print('  🔧 Execute reliable automation recipes')
     print('  💾 Access session history')
     print('  🎯 Hijack and resume user sessions')
     print('  📚 Access complete onboarding guide')

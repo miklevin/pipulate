@@ -127,12 +127,24 @@ await ai_capability_test_suite({
 })
 ```
 
-#### **🎭 Session Hijacking Tools**
-```python
-# Demonstrate complete session takeover
-await execute_ai_session_hijacking_demonstration({
-    'trigger_source': 'discovery'
-})
+### **🔸 execute_automation_recipe - YOUR AUTOMATION RECIPES**
+```bash
+# Execute JSON automation recipes with progressive disclosure
+mcp execute_automation_recipe
+
+# Execute specific recipe file
+mcp execute_automation_recipe --recipe_path browser_automation/automation_recipes/http_localhost_5001/profile_creation_recipe.json
+
+# The simplified, reliable automation engine (formerly baby_steps)
+```
+
+### **🔸 browser_interact_with_current_page - YOUR PRECISE CONTROL**
+```bash
+# Click specific elements
+mcp browser_interact_with_current_page --action click --selector "#submit-button"
+
+# Type into form fields
+mcp browser_interact_with_current_page --action type --selector "#email" --value "test@example.com"
 ```
 
 ## 🎯 **IMMEDIATE SUCCESS PATTERNS**
@@ -268,7 +280,18 @@ await browser_scrape_page({
 .venv/bin/python -c "import asyncio; from mcp_tools import browser_scrape_page; result = asyncio.run(browser_scrape_page({'url': 'https://httpbin.org/get', 'wait_seconds': 1})); print('Browser test: SUCCESS')"
 ```
 
-### **Verify Tool Registration:**
+### **Pattern 3: Automation Recipe Execution**
+```bash
+# Step 1: Discover available recipes (progressive disclosure)
+mcp execute_automation_recipe
+
+# Step 2: Execute specific recipe with 100% success rate
+mcp execute_automation_recipe --recipe_path browser_automation/automation_recipes/http_localhost_5001/profile_creation_recipe.json
+
+# The clean CLI contract: simple commands, reliable results
+```
+
+### **Pattern 4: Botify Data Discovery**
 ```bash
 # Check that tools are properly registered (expect 39)
 .venv/bin/python discover_mcp_tools.py | grep "ACCESSIBLE FUNCTIONS"
