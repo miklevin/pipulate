@@ -484,51 +484,6 @@ class DurableBackupManager:
         counts['ai_keychain'] = 1 if os.path.exists('data/ai_keychain.db') else 0
         
         return counts
-    
-    def explicit_backup_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
-        """
-        📤 EXPLICIT BACKUP: Save current database state TO backup files.
-        
-        This OVERWRITES backup files with current data. No restore logic.
-        Use when you want to save your current work.
-        """
-        results = {}
-        
-        # Backup main tables
-        for table_name in self.backup_tables.keys():
-            results[table_name] = self.backup_table(main_db_path, table_name)
-        
-        # Backup AI keychain
-        if os.path.exists(keychain_db_path):
-            results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
-        
-        successful = sum(1 for success in results.values() if success)
-        total = len(results)
-        logger.info(f"📤 Explicit backup complete: {successful}/{total} successful")
-        
-        return results
-    
-    def explicit_restore_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
-        """
-        📥 EXPLICIT RESTORE: Load backup data INTO current database.
-        
-        This OVERWRITES current data with backup. No backup logic.
-        Use when you want to restore from a previous backup.
-        """
-        results = {}
-        
-        # Restore main tables
-        for table_name in self.backup_tables.keys():
-            results[table_name] = self.restore_table(main_db_path, table_name)
-        
-        # Restore AI keychain
-        results['ai_keychain'] = self.restore_ai_keychain(keychain_db_path)
-        
-        successful = sum(1 for success in results.values() if success)
-        total = len(results)
-        logger.info(f"📥 Explicit restore complete: {successful}/{total} successful")
-        
-        return results
 
 
 # 🎯 GLOBAL INSTANCE for easy import
