@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 
 # Static constants - NEVER QUESTION THESE
-CONVERSATION_DATABASE = "data/discussion.db"
+CONVERSATION_DATABASE = "../data/discussion.db"
 SERVER_URL = "http://localhost:5001"
 CHAT_TEXTAREA = 'textarea[name="msg"]'
 CHAT_SUBMIT_BUTTON = 'button[type="submit"]'

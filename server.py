@@ -739,7 +739,6 @@ logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LL
 # ================================================================
 # INSTANCE-SPECIFIC CONFIGURATION - "The Crucible"
 # ================================================================
-<<<<<<< ours
 # This dictionary holds settings that customize this particular Pipulate instance.
 # Moving configuration here allows for easy white-labeling and configuration management.
 # Over time, more instance-specific "slag" will be skimmed from plugins to here.
@@ -936,21 +935,6 @@ PCONFIG = {
             'INIT_MESSAGE_RETURN_HINT': "Return later by selecting '{pipeline_id}' from the dropdown."
         }
     },
-=======
-
-def save_conversation_to_db():
-    """DEPRECATED: Replaced by append-only architecture.
-    
-    This function is now a no-op since the new system saves each message
-    immediately upon append. Keeping for backward compatibility.
-    """
-    # No-op: New system auto-saves each message
-    logger.debug("💾 FINDER_TOKEN: CONVERSATION_SAVE_DEPRECATED - Using append-only system (auto-saves)")
-    pass
-
-def inject_behavioral_reinforcement():
-    """Inject behavioral reinforcement reminders to prevent 'promise trap' behavior.
->>>>>>> theirs
     
     # SVG Icons Configuration
     'SVG_ICONS': {
@@ -969,7 +953,6 @@ def get_discussion_db():
     import sqlite3
     Path('data').mkdir(parents=True, exist_ok=True)
     try:
-<<<<<<< ours
         # Use direct SQLite connection to avoid FastHTML app conflicts
         conn = sqlite3.connect(DISCUSSION_DB_PATH)
         conn.execute('''
@@ -987,14 +970,6 @@ def get_discussion_db():
 def get_discussion_store():
     """Get conversation store from dedicated discussion database."""
     return get_discussion_db()
-=======
-        conv_system = get_global_conversation_system()
-        conversation_list = conv_system.get_conversation_list()
-        
-        # Check if conversation history exists and has enough messages to warrant reinforcement
-        if len(conversation_list) > 5:
-            reinforcement_message = """🧠 **BEHAVIORAL REMINDER: DO IT NOW PROTOCOL**
->>>>>>> theirs
 
 def migrate_existing_conversations():
     """Migrate existing conversation history from environment-specific databases to discussion.db."""
@@ -1081,23 +1056,12 @@ def get_discussion_store():
     """Get conversation store from dedicated discussion database."""
     return get_discussion_db()
 
-<<<<<<< ours
 def migrate_existing_conversations():
     """Migrate existing conversation history from environment-specific databases to discussion.db."""
     try:
         # Check both environment databases for existing conversations
         existing_conversations = []
         migrated_from = []
-=======
-            # Only inject if we haven't recently injected behavioral reminders
-            recent_messages = conversation_list[-3:] if len(conversation_list) >= 3 else conversation_list
-            already_has_reminder = any('BEHAVIORAL REMINDER' in msg.get('content', '') for msg in recent_messages)
-            
-            if not already_has_reminder:
-                conv_system.append_message('system', reinforcement_message)
-                logger.info("🧠 FINDER_TOKEN: BEHAVIORAL_REINFORCEMENT - Injected 'Do It Now' reminder into conversation")
-                return True
->>>>>>> theirs
         
         for db_file in [f'data/{APP_NAME.lower()}.db', f'data/{APP_NAME.lower()}_dev.db']:
             if Path(db_file).exists():
@@ -1181,7 +1145,6 @@ def save_conversation_to_db():
         logger.error(f"💬 CONVERSATION_SAVE_ERROR - Failed to save conversation history to discussion.db: {e}")
 
 def load_conversation_from_db():
-<<<<<<< ours
     """Load conversation history from the independent discussion database."""
     try:
         # First, attempt migration from old environment-specific databases
@@ -1218,40 +1181,6 @@ def load_conversation_from_db():
             
     except Exception as e:
         logger.error(f"💬 CONVERSATION_RESTORE_ERROR - Failed to load conversation history from discussion.db: {e}")
-=======
-    """Load conversation history using the new append-only system.
-    
-    ARCHITECTURAL IMPROVEMENT: No merging complexity, no JSON blob vulnerability.
-    The new system maintains all messages as individual records.
-    """
-    global global_conversation_history
-    
-    try:
-        conv_system = get_global_conversation_system()
-        
-        # Get conversation from new system
-        conversation_list = conv_system.get_conversation_list()
-        
-        if conversation_list:
-            # Clear the old deque and populate with new system data
-            global_conversation_history.clear()
-            global_conversation_history.extend(conversation_list)
-            
-            logger.info(f"💾 FINDER_TOKEN: CONVERSATION_RESTORED_NEW_ARCHITECTURE - {len(conversation_list)} messages loaded from append-only system")
-            
-            # 🧠 BEHAVIORAL REINFORCEMENT: Inject behavioral reminders after restoration
-            behavioral_injected = inject_behavioral_reinforcement()
-            if behavioral_injected:
-                logger.info("🧠 FINDER_TOKEN: BEHAVIORAL_REINFORCEMENT_STARTUP - 'Do It Now' protocol activated after restoration")
-            
-            return True
-        else:
-            logger.debug("💾 CONVERSATION_RESTORED_NEW_ARCHITECTURE - No saved conversation history found")
-            return False
-            
-    except Exception as e:
-        logger.error(f"💾 CONVERSATION_RESTORE_ERROR_NEW_ARCHITECTURE - Failed to restore conversation history: {e}")
->>>>>>> theirs
         return False
 
 # Centralized SVG definitions for reuse across the application
@@ -1833,29 +1762,6 @@ else:
 global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}]
 
-<<<<<<< ours
-=======
-# 🔧 CONVERSATION PERSISTENCE FIX: Prevent auto-save during startup restoration
-startup_restoration_in_progress = False  # Trigger watchdog restart
-
-# ================================================================
-# 🛡️ NEW APPEND-ONLY CONVERSATION SYSTEM - ARCHITECTURALLY BULLETPROOF
-# ================================================================
-
-# Import the new append-only conversation system
-from helpers.append_only_conversation import get_conversation_system
-
-# Initialize the global conversation system
-global_conversation_system = None
-
-def get_global_conversation_system():
-    """Get or create the global conversation system instance"""
-    global global_conversation_system
-    if global_conversation_system is None:
-        global_conversation_system = get_conversation_system()
-    return global_conversation_system
-
->>>>>>> theirs
 def append_to_conversation(message=None, role='user'):
     """Append a message to the global conversation history.
 
@@ -1901,41 +1807,16 @@ def append_to_conversation(message=None, role='user'):
         global_conversation_history.appendleft(conversation[0])
         logger.debug(f"🔍 DEBUG: \1")
     
-<<<<<<< ours
     logger.debug(f"🔍 DEBUG: \1")
-=======
-    # CRITICAL: Append to conversation history in memory (for compatibility)
->>>>>>> theirs
     global_conversation_history.append({'role': role, 'content': message})
     logger.debug(f"🔍 DEBUG: \1")
     
-<<<<<<< ours
     # Log the last few messages for verification
     history_list = list(global_conversation_history)
     logger.debug(f"🔍 DEBUG: \1")
     for i, msg in enumerate(history_list[-3:]):
         idx = len(history_list) - 3 + i
         logger.debug(f"🔍 DEBUG: \1")
-=======
-    # CRITICAL: IMMEDIATELY save to new append-only database system
-    try:
-        # Skip auto-save during startup restoration
-        if not startup_restoration_in_progress:
-            conv_system = get_global_conversation_system()
-            message_id = conv_system.append_message(role, message)
-            
-            if message_id:
-                logger.info(f"💾 FINDER_TOKEN: CONVERSATION_APPEND_ONLY_SAVED - Message ID {message_id}, Role: {role}")
-            else:
-                logger.debug("💾 CONVERSATION_APPEND_ONLY_SKIPPED - Duplicate message not saved")
-        else:
-            logger.debug("💾 SKIP_AUTO_SAVE - Startup restoration in progress, skipping auto-save")
-            
-    except Exception as e:
-        logger.error(f"💾 CRITICAL: CONVERSATION_APPEND_ONLY_FAILURE - {e}")
-        # Don't re-raise - allow conversation to continue in memory even if DB fails
-        logger.warning("💾 Continuing with in-memory conversation despite database failure")
->>>>>>> theirs
     
     logger.debug(f"🔍 DEBUG: \1")
     return list(global_conversation_history)
@@ -3824,8 +3705,8 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     word_buffer = ""  # Buffer for word-boundary detection
     mcp_detected = False
     chunk_count = 0
-    # Match both full MCP requests, standalone tool tags, AND square bracket notation
-    mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>|\[(?:Executing|Running|Calling):\s*([^\]]+)\])', re.DOTALL)
+    # Match both full MCP requests and standalone tool tags
+    mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>)', re.DOTALL)
     
 
     logger.debug("🔍 DEBUG: === STARTING process_llm_interaction ===")
@@ -3877,41 +3758,8 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                             # Use regex to find a complete MCP block
                             match = mcp_pattern.search(full_content_buffer)
                             if match:
-                                mcp_block = match.group(1) if match.group(1) else match.group(0)
+                                mcp_block = match.group(1)
                                 mcp_detected = True # Flag that we've found our tool call
-                                
-                                # Check if this is square bracket notation and convert to XML format
-                                if mcp_block.startswith('[') and mcp_block.endswith(']'):
-                                    # Extract tool name and parameters from bracket notation
-                                    bracket_content = mcp_block[1:-1]  # Remove brackets
-                                    if ':' in bracket_content:
-                                        action_part, tool_part = bracket_content.split(':', 1)
-                                        tool_name = tool_part.strip()
-                                        
-                                        # Parse parameters if they exist (simple heuristic)
-                                        if ' ' in tool_name and not tool_name.startswith('"'):
-                                            # Likely has parameters: "tool_name param1 param2"
-                                            parts = tool_name.split(' ', 1)
-                                            tool_name = parts[0]
-                                            params_str = parts[1]
-                                            
-                                            # Convert to JSON-like format
-                                            mcp_block = f'''<mcp-request>
-  <tool name="{tool_name}">
-    <params>
-    {{"params": "{params_str}"}}
-    </params>
-  </tool>
-</mcp-request>'''
-                                        else:
-                                            # Simple tool call without parameters
-                                            mcp_block = f'''<mcp-request>
-  <tool name="{tool_name}" />
-</mcp-request>'''
-                                        
-                                        logger.info(f"🔧 MCP CLIENT: Square bracket notation detected and converted.")
-                                        logger.debug(f"🔧 ORIGINAL BRACKET: {match.group(0)}")
-                                        logger.debug(f"🔧 CONVERTED TO XML:\n{mcp_block}")
                                 
                                 logger.info(f"🔧 MCP CLIENT: Complete MCP tool call extracted.")
                                 logger.debug(f"🔧 MCP BLOCK:\n{mcp_block}")
