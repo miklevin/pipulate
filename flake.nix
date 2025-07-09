@@ -651,6 +651,11 @@ EOF
 
           # Add a 'release' alias for quick access to the release pipeline
           alias release='.venv/bin/python helpers/release/publish.py'
+          
+          # Add MCP tool aliases for clean command-line interface
+          alias mcp='.venv/bin/python cli.py call'
+          alias mcp-discover='.venv/bin/python cli.py mcp-discover'
+          alias mcp-browser='.venv/bin/python cli.py call browser_scrape_page'
         '';
 
         # Function to create shells for each OS

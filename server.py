@@ -4785,9 +4785,7 @@ tool_count = len(MCP_TOOL_REGISTRY)
 if __name__ == '__main__' and tool_count > 0:
     figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
     section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
-    # Half-second delay so humans can notice this major feature before it scrolls away
-    import time
-    time.sleep(0.5)
+
 
 # 🍞 AI DISCOVERY BREADCRUMB #2: MCP Tools → Browser Automation Discovery
 logger.info(f"🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: {tool_count} MCP tools registered! Try pipeline_state_inspector for system state, local_llm_grep_logs for log analysis, or browser_scrape_page for visual perception. 🧪 NEW: Run ai_self_discovery_assistant to instantly understand ALL your capabilities! This eliminates uncertainty and provides usage patterns. Try: .venv/bin/python -c \"import asyncio; from mcp_tools import ai_self_discovery_assistant; result = asyncio.run(ai_self_discovery_assistant({{'discovery_type': 'capabilities'}})); print(f'Tools available: {{result.get(\\\"total_tools_available\\\")}}')\" Full browser automation awaits: check browser_automation/ directory for 'looking_at' evidence of AI eyes!")
