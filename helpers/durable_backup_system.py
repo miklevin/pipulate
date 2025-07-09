@@ -50,7 +50,35 @@ class DurableBackupManager:
         
         # Ensure backup directory exists
         self.backup_root.mkdir(parents=True, exist_ok=True)
-        logger.info(f"🗃️ Durable backup root: {self.backup_root}")
+        logger.info(f"🗃️ Rolling backup root: {self.backup_root}")
+        
+        # 🎯 CRITICAL DATABASES TO PROTECT
+        self.critical_databases = {
+            'ai_keychain': {
+                'source_path': 'data/ai_keychain.db',
+                'description': 'Chip O\'Theseus Memory',
+                'critical': True,
+                'cross_cutting': True
+            },
+            'discussion': {
+                'source_path': 'data/discussion.db',
+                'description': 'Conversation History',
+                'critical': True,
+                'cross_cutting': True
+            },
+            'app_prod': {
+                'source_path': 'data/botifython.db',
+                'description': 'Production Profiles/Tasks',
+                'critical': True,
+                'cross_cutting': False
+            },
+            'app_dev': {
+                'source_path': 'data/botifython_dev.db',
+                'description': 'Development Profiles/Tasks',
+                'critical': False,
+                'cross_cutting': False
+            }
+        }
         
         # Track which tables need backup
         self.backup_tables = {
