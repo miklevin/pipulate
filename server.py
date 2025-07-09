@@ -4212,6 +4212,7 @@ pipulate.set_chat(chat)
 logger.info('🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance')
 
 def build_endpoint_messages(endpoint):
+    logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Called with endpoint='{endpoint}'")
     endpoint_messages = {}
     for plugin_name, plugin_instance in plugin_instances.items():
         if plugin_name not in endpoint_messages:
@@ -4223,8 +4224,11 @@ def build_endpoint_messages(endpoint):
                 class_name = plugin_instance.__class__.__name__
                 endpoint_messages[plugin_name] = f'{class_name} app is where you manage your {plugin_name}.'
     
+    logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Built {len(endpoint_messages)} endpoint messages")
+    
     # Special handling for empty endpoint (homepage) - check if roles plugin exists
     if not endpoint:
+        logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Empty endpoint - using roles homepage logic")
         roles_instance = plugin_instances.get('roles')
         if roles_instance:
             if hasattr(roles_instance, 'get_endpoint_message') and callable(getattr(roles_instance, 'get_endpoint_message')):
@@ -4239,10 +4243,16 @@ def build_endpoint_messages(endpoint):
     
     if endpoint in plugin_instances:
         plugin_instance = plugin_instances[endpoint]
+        logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Found plugin for endpoint '{endpoint}'")
         logger.debug(f"Checking if {endpoint} has get_endpoint_message: {hasattr(plugin_instance, 'get_endpoint_message')}")
         logger.debug(f"Checking if get_endpoint_message is callable: {callable(getattr(plugin_instance, 'get_endpoint_message', None))}")
         logger.debug(f"Checking if {endpoint} has ENDPOINT_MESSAGE: {hasattr(plugin_instance, 'ENDPOINT_MESSAGE')}")
-    return endpoint_messages.get(endpoint, None)
+    else:
+        logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: No plugin found for endpoint '{endpoint}' in {list(plugin_instances.keys())}")
+    
+    result = endpoint_messages.get(endpoint, None)
+    logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Returning message for '{endpoint}': {result[:100] if result else 'None'}...")
+    return result
 
 def build_endpoint_training(endpoint):
     endpoint_training = {}
@@ -6862,14 +6872,39 @@ async def send_startup_environment_message():
         message_coordination['last_endpoint_message_time'].clear()
         
         # Also send endpoint message and training for current location
+        # 🔧 BUG FIX: Get actual current endpoint from URL, not just last_app_choice which can be empty
         current_endpoint = db.get('last_app_choice', '')
+        visited_url = db.get('last_visited_url', '')
+        
+        logger.info(f"🔧 STARTUP_DEBUG: last_app_choice='{current_endpoint}', last_visited_url='{visited_url}'")
+        
+        # Extract endpoint from URL if available (same logic as home function)
+        if visited_url:
+            try:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(visited_url)
+                path = parsed_url.path.strip('/')
+                if path:  # Don't override with empty path
+                    current_endpoint = normalize_menu_path(path)
+                    logger.info(f"🔧 STARTUP_DEBUG: URL endpoint resolved: {visited_url} -> {current_endpoint}")
+            except Exception as e:
+                logger.info(f"🔧 STARTUP_DEBUG: Could not parse last_visited_url: {e}")
+        
+        logger.info(f"🔧 STARTUP_DEBUG: Final current_endpoint='{current_endpoint}'")
+        logger.info(f"🔧 STARTUP_DEBUG: Available plugin_instances: {list(plugin_instances.keys())}")
         
         # Add training prompt to conversation history
         build_endpoint_training(current_endpoint)
         
         # Send endpoint message if available (with coordination check)
-        if 'temp_message' not in db:
+        # 🔧 BUG FIX: Skip endpoint message during startup if endpoint is empty to prevent wrong Roles message
+        has_temp_message = 'temp_message' in db
+        is_endpoint_valid = bool(current_endpoint and current_endpoint.strip())
+        logger.info(f"🔧 STARTUP_DEBUG: has_temp_message={has_temp_message}, is_endpoint_valid={is_endpoint_valid}, current_endpoint_repr={repr(current_endpoint)}")
+        
+        if not has_temp_message and is_endpoint_valid:
             endpoint_message = build_endpoint_messages(current_endpoint)
+            logger.info(f"🔧 STARTUP_DEBUG: Endpoint message for '{current_endpoint}': {endpoint_message[:100] if endpoint_message else 'None'}...")
             if endpoint_message:
                 # Create unique message identifier for coordination
                 message_id = f'{current_endpoint}_{current_env}_{hash(endpoint_message) % 10000}'
@@ -6883,8 +6918,10 @@ async def send_startup_environment_message():
                     await asyncio.sleep(1)  # Brief pause between messages
                     
                     try:
-                        await pipulate.message_queue.add(pipulate, endpoint_message, verbatim=True, role='system', spaces_after=2)
-                        logger.debug(f"Successfully sent startup endpoint message: {message_id}")
+                        # 🔧 STARTUP_DEBUG: Mark this message as coming from startup
+                        startup_marked_message = f"🔧 [STARTUP] {endpoint_message}"
+                        await pipulate.message_queue.add(pipulate, startup_marked_message, verbatim=True, role='system', spaces_after=2)
+                        logger.info(f"🔧 STARTUP_DEBUG: Successfully sent startup endpoint message: {message_id}")
                         
                         # Mark as sent in coordination system
                         message_coordination['last_endpoint_message_time'][message_id] = current_time
@@ -6894,11 +6931,13 @@ async def send_startup_environment_message():
                         session_key = f'endpoint_message_sent_{current_endpoint}_{current_env}'
                         db[session_key] = 'sent'
                     except Exception as e:
-                        logger.warning(f"Failed to send startup endpoint message: {e}")
+                        logger.warning(f"🔧 STARTUP_DEBUG: Failed to send startup endpoint message: {e}")
                 else:
-                    logger.debug(f"Skipping startup endpoint message - recently sent: {message_id}")
+                    logger.info(f"🔧 STARTUP_DEBUG: Skipping startup endpoint message - recently sent: {message_id}")
+        elif has_temp_message:
+            logger.info(f"🔧 STARTUP_DEBUG: Using existing temp_message instead of generating new endpoint message for '{current_endpoint}'")
         else:
-            logger.debug(f"Skipping startup endpoint message because temp_message exists in db")
+            logger.info(f"🔧 STARTUP_DEBUG: Skipping endpoint message because current_endpoint is invalid: '{current_endpoint}'")
             
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
@@ -7143,6 +7182,37 @@ def restart_server():
     if not check_syntax(Path(__file__)):
         log.warning('Syntax error detected', 'Fix the error and save the file again')
         return
+    
+    # 🔧 PRESERVE ENDPOINT CONTEXT: Store current endpoint message in temp_message for restart preservation
+    try:
+        current_endpoint = db.get('last_app_choice', '')
+        visited_url = db.get('last_visited_url', '')
+        
+        # Extract endpoint from URL if available (same logic as startup function)
+        if visited_url:
+            try:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(visited_url)
+                path = parsed_url.path.strip('/')
+                if path:  # Use URL path as the canonical endpoint
+                    current_endpoint = normalize_menu_path(path)
+                    logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Using URL endpoint: {visited_url} -> {current_endpoint}")
+            except Exception as e:
+                logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Could not parse URL: {e}")
+        
+        # Generate and store the endpoint message for this context
+        if current_endpoint and current_endpoint != '':
+            endpoint_message = build_endpoint_messages(current_endpoint)
+            if endpoint_message:
+                db['temp_message'] = endpoint_message
+                logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Stored endpoint message for '{current_endpoint}' in temp_message")
+            else:
+                logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: No endpoint message found for '{current_endpoint}'")
+        else:
+            logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Empty endpoint '{current_endpoint}', not storing temp_message")
+            
+    except Exception as e:
+        logger.warning(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Could not preserve endpoint context: {e}")
     
     # 🔄 BROADCAST RESTART NOTIFICATION: Send SSE message to all connected clients
     try:
