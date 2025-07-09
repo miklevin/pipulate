@@ -21,8 +21,16 @@ When you see session hijacking mentioned in the breadcrumbs, **this is the patte
 **Expected Result:** Browser automation popup → Complete workflow hijacking → Fresh captures in `looking_at/`
 
 ### **Step 1b: Programmatic Hijack (For AI Understanding)**
-```python
-.venv/bin/python -c "
+
+**First, ensure your environment is activated:**
+```bash
+source .venv/bin/activate
+alias mcp="python cli.py call"
+```
+
+**Then, the simple hijack command:**
+```bash
+python -c "
 import asyncio
 from mcp_tools import browser_hijack_workflow_complete
 
@@ -54,7 +62,7 @@ grep -i "name\|user\|value" browser_automation/looking_at/simple_dom.html
 ### **Step 3: Internal Verification (When Available)**
 ```bash
 # 🔧 SYSTEM INTERNALS - Secondary verification (only works on Pipulate workflows)
-.venv/bin/python -c "
+python -c "
 import sqlite3, json
 conn = sqlite3.connect('data/data.db')
 cursor = conn.cursor()

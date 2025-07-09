@@ -307,6 +307,136 @@ await main()
             return base_path / filename
         return base_path
 
+    def generate_botify_bqlv2_python_code(self, query_payload: dict, username: str, project_name: str, 
+                                        page_size: int, jobs_payload: dict, display_name: str, 
+                                        get_step_name_from_payload_func, get_configured_template_func=None, 
+                                        query_templates=None) -> tuple:
+        """Generate Python code for BQLv2 queries (crawl, GSC)."""
+        # Generate the query URL
+        query_url = f"https://api.botify.com/v1/projects/{username}/{project_name}/query"
+        
+        # Get step name from payload
+        step_name = get_step_name_from_payload_func(jobs_payload)
+        
+        # Generate header
+        template_info = {}
+        if get_configured_template_func and query_templates:
+            try:
+                # Try to get template info for better header generation
+                template_key = get_configured_template_func('analysis')  # Default to analysis template
+                template_info = query_templates.get(template_key, {})
+            except:
+                pass
+        
+        header_lines = self.generate_botify_code_header(
+            display_name=display_name,
+            step_name=step_name,
+            username=username,
+            project_name=project_name,
+            template_info=template_info
+        )
+        
+        # Generate the complete Python code
+        python_code = '''
+import asyncio
+import json
+import os
+from pathlib import Path
+from typing import Dict, Any
+
+import httpx
+
+# Configuration
+TOKEN_FILE = 'botify_token.txt'
+URL = "{url}"
+PAYLOAD = {payload}
+
+{token_loader}
+
+def get_headers() -> Dict[str, str]:
+    """Get headers with API token."""
+    api_token = load_api_token()
+    return {{
+        'Authorization': f'Token {{api_token}}',
+        'Content-Type': 'application/json'
+    }}
+
+{http_client}
+
+{main_executor}
+'''.format(
+            url=query_url,
+            payload=json.dumps(query_payload, indent=4),
+            token_loader=self.generate_botify_token_loader(),
+            http_client=self.generate_botify_http_client('execute_bqlv2_query', 'Execute BQLv2 query for crawl/GSC data'),
+            main_executor=self.generate_botify_main_executor('execute_bqlv2_query', 'BQLv2 Query')
+        )
+        
+        # Combine header and code
+        full_code = '\n'.join(header_lines) + '\n' + python_code
+        
+        return query_url, query_payload, full_code
+
+    def generate_botify_bqlv1_python_code(self, query_payload: dict, username: str, project_name: str, 
+                                        jobs_payload: dict, display_name: str, 
+                                        get_step_name_from_payload_func) -> tuple:
+        """Generate Python code for BQLv1 queries (web logs)."""
+        # Generate the query URL for BQLv1 (different endpoint)
+        query_url = f"https://app.botify.com/api/v1/logs/{username}/{project_name}/query"
+        
+        # Get step name from payload
+        step_name = get_step_name_from_payload_func(jobs_payload)
+        
+        # Generate header
+        header_lines = self.generate_botify_code_header(
+            display_name=display_name,
+            step_name=step_name,
+            username=username,
+            project_name=project_name,
+            template_info={'name': 'Web Logs', 'description': 'Web logs query using BQLv1', 'export_type': 'weblog'}
+        )
+        
+        # Generate the complete Python code
+        python_code = '''
+import asyncio
+import json
+import os
+from pathlib import Path
+from typing import Dict, Any
+
+import httpx
+
+# Configuration
+TOKEN_FILE = 'botify_token.txt'
+URL = "{url}"
+PAYLOAD = {payload}
+
+{token_loader}
+
+def get_headers() -> Dict[str, str]:
+    """Get headers with API token."""
+    api_token = load_api_token()
+    return {{
+        'Authorization': f'Token {{api_token}}',
+        'Content-Type': 'application/json'
+    }}
+
+{http_client}
+
+{main_executor}
+'''.format(
+            url=query_url,
+            payload=json.dumps(query_payload, indent=4),
+            token_loader=self.generate_botify_token_loader(),
+            http_client=self.generate_botify_http_client('execute_bqlv1_query', 'Execute BQLv1 query for web logs data'),
+            main_executor=self.generate_botify_main_executor('execute_bqlv1_query', 'BQLv1 Query')
+        )
+        
+        # Combine header and code
+        full_code = '\n'.join(header_lines) + '\n' + python_code
+        
+        return query_url, query_payload, full_code
+
 # Convenience instance for backward compatibility with existing plugins
 botify_code_generators = BotifyCodeGenerators()
 
@@ -319,3 +449,5 @@ generate_botify_bqlv2_python_code = botify_code_generators.generate_botify_bqlv2
 generate_botify_bqlv1_python_code = botify_code_generators.generate_botify_bqlv1_python_code
 create_folder_button = botify_code_generators.create_folder_button
 get_botify_analysis_path = botify_code_generators.get_botify_analysis_path
+generate_botify_bqlv2_python_code = botify_code_generators.generate_botify_bqlv2_python_code
+generate_botify_bqlv1_python_code = botify_code_generators.generate_botify_bqlv1_python_code

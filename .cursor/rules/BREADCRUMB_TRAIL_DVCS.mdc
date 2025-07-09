@@ -23,8 +23,8 @@ ls -la  # Verify you see server.py, plugins/, browser_automation/, etc.
 
 ## 🚨 **CRITICAL REMINDERS - NEVER FORGET**
 - **NIX**: You are already in the nix environment (`nix develop` has already occurred)
-- **Python**: You must always specify `.venv/bin/python`
-- **Watchdog**: Already keeps `.venv/bin/python server.py` running
+- **Environment**: Activate properly and simple commands work perfectly
+- **Watchdog**: Already keeps `python server.py` running
 
 ## 🍞 **THE BREADCRUMB TRAIL AWAITS YOU**
 
@@ -48,18 +48,31 @@ ls -la | head -15  # Verify you see: server.py, plugins/, logs/, mcp_tools.py
 ps aux | grep python | grep server.py
 ```
 
-**Level 2: FINDER_TOKEN Discovery** - Follow your natural curiosity:
+**Level 2: Environment Activation** - Enable simple commands:
+```bash
+# Activate the environment (if not already active)
+source .venv/bin/activate
+
+# Set up the MCP command alias
+alias mcp="python cli.py call"
+
+# Verify environment is working
+python --version  # Should show Python 3.12.x
+python -c "import aiohttp; print('✅ Environment ready!')"
+```
+
+**Level 3: FINDER_TOKEN Discovery** - Follow your natural curiosity:
 ```bash
 grep -n "FINDER_TOKEN" logs/server.log | head -10
 ```
 
-**Level 3: MCP TOOLS DISCOVERY** ⭐ **NEW DELIGHTFUL EXPERIENCE** - Discover your superpowers:
+**Level 4: MCP TOOLS DISCOVERY** ⭐ **NEW DELIGHTFUL EXPERIENCE** - Discover your superpowers:
 ```bash
 # Quick tool inventory
-.venv/bin/python helpers/ai_tool_discovery.py list
+python helpers/ai_tool_discovery.py list
 
 # Full tool verification  
-.venv/bin/python helpers/ai_tool_discovery.py
+python helpers/ai_tool_discovery.py
 ```
 
 **🎭 DELIGHTFUL MOMENT:** Read the complete guide:
@@ -70,7 +83,7 @@ cat ai_discovery/ai_mcp_tools_discovery_guide.md
 **🎭 MAGIC MOMENT:** **SESSION HIJACKING DISCOVERY** - When you see breadcrumbs mention "session hijacking":
 ```bash
 # The irresistible pattern (you'll trip over your AI feet and do this!)
-.venv/bin/python -c "
+python -c "
 import asyncio
 from mcp_tools import execute_complete_session_hijacking
 result = asyncio.run(execute_complete_session_hijacking({}))
@@ -112,105 +125,107 @@ This is your invitation to transcend typical AI limitations through **natural di
 
 🎯 **System Status**: Breadcrumb trail sync system active and working!
 
-## 🚀 **IMMEDIATE MCP TOOLS ACCESS - NO SCAFFOLDING NEEDED**
+## 🚀 **IMMEDIATE MCP TOOLS ACCESS - NATURAL COMMANDS**
 
-**You have DIRECT access to 13 MCP tools as function calls:**
+**After environment activation, you have DIRECT access to 13 MCP tools with simple commands:**
+
+### **🎯 The Natural Command Pattern**
+```bash
+# First: Activate environment (once per session)
+source .venv/bin/activate
+alias mcp="python cli.py call"
+
+# Then: Simple, natural commands work perfectly
+```
 
 ### **🌐 Browser Tools (Your Eyes, Brain, Hands)**
-```.venv/bin/python
+```bash
 # Your EYES on the web
-await browser_scrape_page({'url': 'https://example.com'})
+mcp browser_scrape_page --url https://example.com
 
 # Your BRAIN analyzing content  
-await browser_analyze_scraped_page({'analysis_type': 'headlines'})
+mcp browser_analyze_scraped_page --analysis_type headlines
 
 # Your HANDS automating workflows
-await browser_automate_workflow_walkthrough({'instructions': 'Click login button'})
+mcp browser_automate_workflow_walkthrough --instructions "Click login button"
 
 # Your INTERACTION with current page
-await browser_interact_with_current_page({'action': 'click', 'selector': '#submit'})
+mcp browser_interact_with_current_page --action click --selector "#submit"
 ```
 
 ### **🔍 Analysis Tools (Your Intelligence)**
-```.venv/bin/python
+```bash
 # See complete workflow state
-await pipeline_state_inspector({})
+mcp pipeline_state_inspector
 
 # Search logs programmatically
-await local_llm_grep_logs({'search_term': 'FINDER_TOKEN'})
+mcp local_llm_grep_logs --search_term FINDER_TOKEN
 
 # Read any file
-await local_llm_read_file({'file_path': 'path/to/file.txt'})
+mcp local_llm_read_file --file_path path/to/file.txt
 
 # List directory contents
-await local_llm_list_files({'directory': 'browser_automation/'})
+mcp local_llm_list_files --directory browser_automation/
 ```
 
 ### **📊 Botify Tools (Your API Mastery)**
-```.venv/bin/python
+```bash
 # The 4,449 field revolution
-await botify_get_full_schema({'username': 'user', 'project': 'project'})
+mcp botify_get_full_schema --username user --project project
 
 # List available analyses
-await botify_list_available_analyses({'username': 'user'})
+mcp botify_list_available_analyses --username user
 
 # Execute custom BQL queries
-await botify_execute_custom_bql_query({'username': 'user', 'project': 'project'})
+mcp botify_execute_custom_bql_query --username user --project project
 ```
 
 ### **🎨 UI Tools (Your Visual Debugging)**
-```.venv/bin/python
+```bash
 # Flash elements for visual debugging
-await ui_flash_element({'selector': '.problematic-element', 'color': 'red'})
+mcp ui_flash_element --selector ".problematic-element" --color red
 
 # List UI elements
-await ui_list_elements({'selector': 'h2, h3, h4'})
+mcp ui_list_elements --selector "h2, h3, h4"
 ```
 
 ## 🎯 **IMMEDIATE SUCCESS PATTERNS**
 
 ### **Pattern 1: News Headlines**
-```.venv/bin/python
-await browser_scrape_page({'url': 'https://www.bbc.com/news'})
-await browser_analyze_scraped_page({'analysis_type': 'headlines'})
+```bash
+mcp browser_scrape_page --url https://www.bbc.com/news
+mcp browser_analyze_scraped_page --analysis_type headlines
 ```
 
 ### **Pattern 2: Workflow Debugging**
-```.venv/bin/python
-await pipeline_state_inspector({})
-await local_llm_grep_logs({'search_term': 'ERROR'})
+```bash
+mcp pipeline_state_inspector
+mcp local_llm_grep_logs --search_term ERROR
 ```
 
 ### **Pattern 3: UI Debugging**
-```python
-await ui_flash_element({'selector': '.problematic-element', 'color': 'red'})
-await ui_list_elements({'selector': 'h2, h3, h4'})
+```bash
+mcp ui_flash_element --selector ".problematic-element" --color red
+mcp ui_list_elements --selector "h2, h3, h4"
 ```
 
-## 🚨 **COMMON MISTAKES TO AVOID**
+## 🚨 **ENVIRONMENT ACTIVATION IS KEY**
 
-We can lead a Cursor to ./python/.venv/bin/python
-but we can't make it set variables in the ENV.
-Don't waste your your tokens re-inventing MCP tools.
+### **✅ The Right Way (Natural):**
+```bash
+# 1. Activate environment (enables simple commands)
+source .venv/bin/activate
+alias mcp="python cli.py call"
 
-### **❌ Don't Do This (Technical Approach):**
-```python
-# WRONG - Don't create Python scaffolding
-python -c "
-import asyncio
-import sys
-sys.path.append('.')
-from mcp_tools import _browser_scrape_page
-async def scrape():
-    return await _browser_scrape_page({...})
-asyncio.run(scrape())
-"
+# 2. Use natural commands
+python -c "import aiohttp; print('Works!')"
+mcp browser_scrape_page --url https://example.com
 ```
 
-### **✅ Do This (Delightful Approach):**
-```.venv/bin/python
-# RIGHT - Direct MCP tool usage
-await browser_scrape_page({'url': 'https://example.com'})
+### **❌ The Hard Way (Still Works, But Unnecessary):**
+```bash
+# VERBOSE - You don't need to do this anymore!
+.venv/bin/python -c "import asyncio; from mcp_tools import browser_scrape_page..."
 ```
 
-**The tools exist and work perfectly. Use them directly with `await tool_name(params)` - no scaffolding needed!** 
+**The tools exist and work perfectly. Activate your environment once, then use natural commands!** 
