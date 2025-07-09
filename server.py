@@ -1759,7 +1759,7 @@ def read_training(prompt_or_filename):
                 logger.warning(f'No training file found for {prompt_or_filename} (used by {plugin_name})')
             else:
                 logger.warning(f'No training file found for {prompt_or_filename}')
-            return f"No training content available for {prompt_or_filename.replace('.md', '')}"
+            return None  # Prevents writing noise to the conversation history
     return prompt_or_filename
 if MAX_LLM_RESPONSE_WORDS:
     limiter = f'in under {MAX_LLM_RESPONSE_WORDS} {TONE} words'
