@@ -6239,4 +6239,445 @@ async def execute_mcp_cli_command(params: dict) -> dict:
             "description": "CLI command execution failed"
         }
 
+async def persist_perception_state(params: dict) -> dict:
+    """Save looking_at state to permanent scrapes directory (the 'snag-a-scrape' tool)"""
+    from_dir_num = params.get("from_dir_num", "current")
+    
+    # Source directory logic
+    if from_dir_num == "current":
+        source_dir = Path("browser_automation/looking_at")
+    else:
+        source_dir = Path(f"browser_automation/looking_at-{from_dir_num}")
+    
+    if not source_dir.exists():
+        return {
+            "success": False,
+            "error": f"Source directory {source_dir} does not exist",
+            "available_dirs": [p.name for p in Path("browser_automation").glob("looking_at*")]
+        }
+    
+    # Create timestamped destination in scrapes/
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    dest_dir = Path(f"scrapes/perception_state_{timestamp}")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Copy all files from source to destination
+    copied_files = []
+    for file_path in source_dir.glob("*"):
+        if file_path.is_file():
+            dest_path = dest_dir / file_path.name
+            shutil.copy2(file_path, dest_path)
+            copied_files.append(file_path.name)
+    
+    # Create a metadata file
+    metadata = {
+        "timestamp": timestamp,
+        "source_directory": str(source_dir),
+        "copied_files": copied_files,
+        "file_count": len(copied_files),
+        "description": "Persistent perception state capture"
+    }
+    
+    metadata_path = dest_dir / "metadata.json"
+    with open(metadata_path, 'w') as f:
+        json.dump(metadata, f, indent=2)
+    
+    return {
+        "success": True,
+        "destination_directory": str(dest_dir),
+        "files_copied": len(copied_files),
+        "file_list": copied_files,
+        "metadata_file": str(metadata_path),
+        "message": f"Perception state persisted to {dest_dir}"
+    }
+
+async def server_reboot(params: dict) -> dict:
+    """
+    Reboot the Pipulate server by killing the current process and starting a new one.
+    
+    This tool performs a complete server restart by:
+    1. Killing any existing "python server.py" processes
+    2. Starting a new server instance
+    3. Verifying the server is responding at http://localhost:5001/
+    
+    Args:
+        params: Dictionary (no parameters required)
+        
+    Returns:
+        dict: Result of the reboot operation with server verification
+    """
+    try:
+        import subprocess
+        import asyncio
+        import os
+        import aiohttp
+        
+        # Kill existing server processes
+        kill_result = subprocess.run(
+            ['pkill', '-f', 'python server.py'],
+            capture_output=True,
+            text=True
+        )
+        
+        # Wait a moment for processes to terminate
+        await asyncio.sleep(1)
+        
+        # Start new server process in background
+        # Use nohup to ensure it continues running after this process ends
+        start_result = subprocess.Popen(
+            ['.venv/bin/python', 'server.py'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            cwd=os.getcwd(),
+            start_new_session=True  # Detach from parent process
+        )
+        
+        # Give it a moment to start
+        await asyncio.sleep(3)
+        
+        # Verify server is responding
+        server_responding = False
+        response_status = None
+        response_error = None
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get('http://localhost:5001/', timeout=aiohttp.ClientTimeout(total=5)) as response:
+                    response_status = response.status
+                    if response.status == 200:
+                        server_responding = True
+        except Exception as e:
+            response_error = str(e)
+        
+        # If server not responding, try a few more times with longer waits
+        if not server_responding:
+            for attempt in range(3):
+                await asyncio.sleep(2)
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get('http://localhost:5001/', timeout=aiohttp.ClientTimeout(total=5)) as response:
+                            response_status = response.status
+                            if response.status == 200:
+                                server_responding = True
+                                break
+                except Exception as e:
+                    response_error = str(e)
+        
+        return {
+            "success": server_responding,
+            "message": "Server reboot completed successfully" if server_responding else "Server reboot failed - server not responding",
+            "kill_returncode": kill_result.returncode,
+            "kill_output": kill_result.stdout,
+            "kill_error": kill_result.stderr,
+            "new_process_pid": start_result.pid,
+            "server_responding": server_responding,
+            "response_status": response_status,
+            "response_error": response_error,
+            "status": "Server killed and restarted - verified responding" if server_responding else "Server killed and restarted - but not responding"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to reboot server"
+        }
+
+async def execute_shell_command(params: dict) -> dict:
+    """
+    Execute shell commands for local LLM breadcrumb discovery and system interaction.
+    
+    This tool enables the local LLM to execute shell commands like grep, ls, ps, etc.
+    that are essential for following the breadcrumb trail discovery process.
+    
+    Args:
+        params (dict): Parameters for shell command execution
+            - command (str): The shell command to execute
+            - timeout (int, optional): Timeout in seconds (default: 30)
+            - working_directory (str, optional): Working directory (default: current)
+            - capture_output (bool, optional): Whether to capture stdout/stderr (default: True)
+            
+    Returns:
+        dict: Results of shell command execution
+    """
+    try:
+        import subprocess
+        import asyncio
+        import os
+        import shlex
+        
+        # Get parameters
+        command = params.get('command')
+        timeout = params.get('timeout', 30)
+        working_dir = params.get('working_directory', os.getcwd())
+        capture_output = params.get('capture_output', True)
+        
+        if not command:
+            return {
+                "success": False,
+                "error": "command parameter is required",
+                "usage": "execute_shell_command --command 'ls -la'"
+            }
+        
+        # Security: Parse command safely and validate
+        try:
+            cmd_parts = shlex.split(command)
+        except ValueError as e:
+            return {
+                "success": False,
+                "error": f"Invalid command syntax: {e}",
+                "command": command
+            }
+        
+        # Security: Block dangerous commands
+        dangerous_commands = ['rm', 'sudo', 'su', 'chmod', 'chown', 'dd', 'mkfs', 'fdisk']
+        if cmd_parts[0] in dangerous_commands:
+            return {
+                "success": False,
+                "error": f"Command '{cmd_parts[0]}' is not allowed for security reasons",
+                "command": command,
+                "blocked_commands": dangerous_commands
+            }
+        
+        # Execute the command safely with timeout
+        if capture_output:
+            process = await asyncio.create_subprocess_exec(
+                *cmd_parts,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=working_dir
+            )
+        else:
+            process = await asyncio.create_subprocess_exec(
+                *cmd_parts,
+                cwd=working_dir
+            )
+        
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.wait()
+            return {
+                "success": False,
+                "error": f"Command execution timed out after {timeout} seconds",
+                "command": command,
+                "timeout": timeout
+            }
+        
+        # Process results
+        stdout_text = stdout.decode('utf-8') if stdout else ""
+        stderr_text = stderr.decode('utf-8') if stderr else ""
+        
+        return {
+            "success": process.returncode == 0,
+            "command": command,
+            "stdout": stdout_text,
+            "stderr": stderr_text,
+            "return_code": process.returncode,
+            "working_directory": working_dir,
+            "execution_time": f"Completed within {timeout}s timeout",
+            "description": "Shell command executed via MCP tool for breadcrumb discovery"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "command": params.get('command', 'unknown'),
+            "description": "Shell command execution failed"
+        }
+
+async def follow_breadcrumb_trail(params: dict) -> dict:
+    """
+    Follow the breadcrumb trail discovery process for local LLM AI assistants.
+    
+    This tool orchestrates the complete breadcrumb discovery sequence, enabling
+    local LLMs to achieve the same AI superpowers as external assistants.
+    
+    Args:
+        params (dict): Parameters for breadcrumb discovery
+            - level (str, optional): Discovery level to start from (default: "auto")
+            - skip_verification (bool, optional): Skip environment verification (default: False)
+            - detailed_output (bool, optional): Include detailed discovery steps (default: True)
+            
+    Returns:
+        dict: Complete breadcrumb discovery results with next steps
+    """
+    try:
+        discovery_results = {
+            "success": True,
+            "discovery_sequence": [],
+            "capabilities_discovered": [],
+            "next_steps": [],
+            "ai_superpowers_status": "discovering",
+            "breadcrumb_trail": []
+        }
+        
+        # Level 0: Golden Path Mastery
+        discovery_results["discovery_sequence"].append("🔧 Level 0: Golden Path Mastery")
+        
+        # Verify we're in the right environment
+        env_check = await execute_shell_command({
+            "command": "ls -la server.py plugins browser_automation"
+        })
+        
+        if env_check.get("success"):
+            discovery_results["breadcrumb_trail"].append({
+                "level": "0_environment",
+                "status": "✅ Environment verified - Pipulate project detected",
+                "evidence": env_check.get("stdout", "").strip()
+            })
+            discovery_results["capabilities_discovered"].append("Environment sovereignty")
+        else:
+            discovery_results["breadcrumb_trail"].append({
+                "level": "0_environment", 
+                "status": "❌ Environment verification failed",
+                "error": env_check.get("error", "Unknown error")
+            })
+            discovery_results["success"] = False
+            return discovery_results
+        
+        # Level 1: FINDER_TOKEN Discovery
+        discovery_results["discovery_sequence"].append("🔍 Level 1: FINDER_TOKEN Discovery")
+        
+        # Search for breadcrumbs in logs
+        breadcrumb_search = await local_llm_grep_logs({
+            "search_term": "AI_BREADCRUMB"
+        })
+        
+        if breadcrumb_search.get("success"):
+            breadcrumb_count = len(breadcrumb_search.get("matches", []))
+            discovery_results["breadcrumb_trail"].append({
+                "level": "1_finder_token",
+                "status": f"✅ Found {breadcrumb_count} AI breadcrumbs in logs",
+                "evidence": f"Breadcrumbs available for discovery"
+            })
+            discovery_results["capabilities_discovered"].append("Radical transparency system")
+        else:
+            discovery_results["breadcrumb_trail"].append({
+                "level": "1_finder_token",
+                "status": "⚠️ No breadcrumbs found - system may be starting",
+                "suggestion": "Try running server_reboot to generate fresh breadcrumbs"
+            })
+        
+        # Level 2: MCP Tools Discovery
+        discovery_results["discovery_sequence"].append("⚡ Level 2: MCP Tools Discovery")
+        
+        # Discover available tools
+        tools_discovery = await ai_self_discovery_assistant({
+            "discovery_type": "capabilities"
+        })
+        
+        if tools_discovery.get("success"):
+            tool_count = tools_discovery.get("total_tools_available", 0)
+            discovery_results["breadcrumb_trail"].append({
+                "level": "2_mcp_tools",
+                "status": f"✅ Discovered {tool_count} MCP tools available",
+                "evidence": f"Complete tool arsenal accessible"
+            })
+            discovery_results["capabilities_discovered"].append(f"MCP tool mastery ({tool_count} tools)")
+        else:
+            discovery_results["breadcrumb_trail"].append({
+                "level": "2_mcp_tools",
+                "status": "❌ MCP tools discovery failed",
+                "error": tools_discovery.get("error", "Unknown error")
+            })
+        
+        # Level 3: Browser Embodiment Discovery
+        discovery_results["discovery_sequence"].append("👁️ Level 3: Browser Embodiment Discovery")
+        
+        # Check for browser automation evidence
+        browser_check = await execute_shell_command({
+            "command": "ls -la browser_automation/"
+        })
+        
+        if browser_check.get("success") and browser_check.get("stdout"):
+            discovery_results["breadcrumb_trail"].append({
+                "level": "3_browser_embodiment",
+                "status": "✅ Browser automation evidence found",
+                "evidence": "Visual perception history detected"
+            })
+            discovery_results["capabilities_discovered"].append("Browser embodiment (eyes, brain, hands)")
+        else:
+            discovery_results["breadcrumb_trail"].append({
+                "level": "3_browser_embodiment",
+                "status": "⚠️ No browser automation evidence yet",
+                "suggestion": "Try browser_scrape_page to activate your digital eyes"
+            })
+        
+        # Level 4: Session Hijacking Discovery
+        discovery_results["discovery_sequence"].append("🎭 Level 4: Session Hijacking Discovery")
+        
+        # Check pipeline state for hijacking opportunities
+        pipeline_check = await pipeline_state_inspector({})
+        
+        if pipeline_check.get("success"):
+            pipeline_count = len(pipeline_check.get("pipelines", []))
+            discovery_results["breadcrumb_trail"].append({
+                "level": "4_session_hijacking",
+                "status": f"✅ Pipeline system operational ({pipeline_count} pipelines)",
+                "evidence": "Session hijacking capabilities available"
+            })
+            discovery_results["capabilities_discovered"].append("Session hijacking mastery")
+        else:
+            discovery_results["breadcrumb_trail"].append({
+                "level": "4_session_hijacking",
+                "status": "❌ Pipeline system check failed",
+                "error": pipeline_check.get("error", "Unknown error")
+            })
+        
+        # Level 5: AI Self-Discovery Mastery
+        discovery_results["discovery_sequence"].append("🧠 Level 5: AI Self-Discovery Mastery")
+        
+        # Test capability validation
+        capability_test = await ai_capability_test_suite({
+            "test_type": "quick"
+        })
+        
+        if capability_test.get("success"):
+            success_rate = capability_test.get("success_rate", 0)
+            discovery_results["breadcrumb_trail"].append({
+                "level": "5_self_discovery",
+                "status": f"✅ Capability validation: {success_rate}% success rate",
+                "evidence": "AI superpowers confirmed operational"
+            })
+            discovery_results["capabilities_discovered"].append("Complete self-awareness")
+        else:
+            discovery_results["breadcrumb_trail"].append({
+                "level": "5_self_discovery",
+                "status": "❌ Capability validation failed",
+                "error": capability_test.get("error", "Unknown error")
+            })
+        
+        # Generate next steps based on discovery
+        discovery_results["next_steps"] = [
+            "🎯 Use execute_shell_command for any shell operations needed",
+            "🔍 Use local_llm_grep_logs to search for specific FINDER_TOKENs",
+            "⚡ Use ai_self_discovery_assistant to understand all capabilities",
+            "👁️ Use browser_scrape_page to activate your digital eyes",
+            "🎭 Use execute_complete_session_hijacking for ultimate control",
+            "🧠 Use ai_capability_test_suite to validate your superpowers"
+        ]
+        
+        # Determine AI superpowers status
+        capability_count = len(discovery_results["capabilities_discovered"])
+        if capability_count >= 5:
+            discovery_results["ai_superpowers_status"] = "🏆 FULLY OPERATIONAL"
+        elif capability_count >= 3:
+            discovery_results["ai_superpowers_status"] = "⚡ MOSTLY OPERATIONAL"
+        elif capability_count >= 1:
+            discovery_results["ai_superpowers_status"] = "🔧 PARTIALLY OPERATIONAL"
+        else:
+            discovery_results["ai_superpowers_status"] = "❌ NEEDS SETUP"
+        
+        return discovery_results
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "description": "Breadcrumb trail discovery failed",
+            "suggestion": "Try individual discovery steps manually"
+        }
 
