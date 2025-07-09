@@ -1,0 +1,8 @@
+{
+  "url": "https://httpbin.org/json",
+  "title": "",
+  "timestamp": "2025-07-05T14:34:12.905046",
+  "status": "success",
+  "wait_seconds": 3,
+  "screenshot_taken": true
+}
