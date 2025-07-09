@@ -47,7 +47,7 @@ from watchdog.observers import Observer
 # Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
 MCP_TOOL_REGISTRY = {}
 
-from mcp_tools import register_all_mcp_tools
+from mcp_tools import register_all_mcp_tools, register_mcp_tool
 # Pass our registry to mcp_tools so they use the same instance
 import mcp_tools
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
@@ -515,6 +515,7 @@ def setup_logging():
     # This preserves debugging context across server restarts
     server_log_path = logs_dir / 'server.log'
     MAX_ROLLED_LOGS = 10  # Keep last 10 server runs
+    # 🔧 FINDER_TOKEN: MAX_ROLLED_LOOKING_AT_DIRS moved to mcp_tools.py (used by rotate_looking_at_directory)
     
     # Clean up old numbered logs beyond our limit
     for i in range(MAX_ROLLED_LOGS + 1, 100):
@@ -952,16 +953,8 @@ DEFAULT_ACTIVE_ROLES = PCONFIG['DEFAULT_ACTIVE_ROLES']
 # that take parameters and return structured responses.
 
 # Global registry for MCP tools - populated by plugins during startup
-def register_mcp_tool(tool_name: str, handler_func):
-    """Register an MCP tool handler function.
-    
-    Args:
-        tool_name: Name of the tool (e.g., 'get_cat_fact', 'botify_query')
-        handler_func: Async function that takes (params: dict) -> dict
-    """
-    logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
-    MCP_TOOL_REGISTRY[tool_name] = handler_func
-    # Debug logging removed - registry working correctly
+# 🔧 FINDER_TOKEN: register_mcp_tool moved to mcp_tools.py (superior error handling)
+# Use register_mcp_tool from mcp_tools.py - it has better error handling for uninitialized registry
 
 # MCP tools are now consolidated in mcp_tools.py - see register_all_mcp_tools()
 
