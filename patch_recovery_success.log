@@ -14,3 +14,4 @@ SUCCESS: f81a3e0 refactor(server): Remove duplicate local LLM helper functions
 SUCCESS: 676c104 refactor: Move register_mcp_tool to mcp_tools.py
 SUCCESS: c4bbfb2 feat(storytelling): Conditionally display MCP tools in main script
 SUCCESS: 5ad76a4 feat(docs): Add browser automation recipes documentation
+SUCCESS: f152e09 🚨 Anti-discovery: Cut off environmental exploration at the pass
