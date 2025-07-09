@@ -4,8 +4,9 @@ Pipulate Master Test Suite
 ==========================
 
 Run all tests with: python tests.py
+Run with specific mode: python tests.py DEV (or PROD)
 
-Individual test commands (copy-pasteable):
+🔧 Configuration (80/20 Rule - Simple defaults, configurable if needed)
 """
 
 import subprocess
@@ -65,35 +66,48 @@ def run_test_command(command, description):
 
 def main():
     """Run the master test suite."""
-    log_message("🧪 PIPULATE MASTER TEST SUITE", "HEADER")
     
-    app_name = get_app_name()
-    log_message(f"App Name: {app_name}")
+    # Parse command line arguments for mode override
+    MODE = "DEV"  # Default to DEV for safety
+    HEADLESS = False  # Always visible for confidence
     
-    # Test commands in storytelling order
-    # Each command should be easily copy-pasteable for individual execution
-    tests = """
-.venv/bin/python tests/tests/test_database_environment_binding.py
-.venv/bin/python tests/tests/test_minidataapi_profile_integration.py
-.venv/bin/python tests/tests/test_profile_regression_sentry.py
-""".split("\n")[1:-1]
+    if len(sys.argv) > 1:
+        MODE = sys.argv[1].upper()
     
-    test_descriptions = [
+    # Generate test commands with current mode
+    TESTS = [
+        f".venv/bin/python tests/tests/test_database_environment_binding.py {MODE} --headless={str(HEADLESS).lower()}",
+        f".venv/bin/python tests/tests/test_minidataapi_profile_integration.py {MODE} --headless={str(HEADLESS).lower()}",
+        f".venv/bin/python tests/tests/test_profile_regression_sentry.py {MODE} --headless={str(HEADLESS).lower()}"
+    ]
+    
+    TEST_DESCRIPTIONS = [
         "Database Environment Binding - Verify profiles hit correct DB files",
         "MiniDataAPI Profile Integration - Full web UI to database workflow", 
         "Profile Regression Sentry - Guard against MiniDataAPI pattern breaks"
     ]
     
+    log_message("�� PIPULATE MASTER TEST SUITE", "HEADER")
+    
+    app_name = get_app_name()
+    log_message(f"App Name: {app_name}")
+    log_message(f"Test Mode: {MODE}")
+    log_message(f"Browser Automation: {'Visible (headless=False)' if not HEADLESS else 'Headless (headless=True)'}")
+    
+    if not HEADLESS:
+        log_message("🔍 Browser tests will be VISIBLE - this builds confidence in automation!", "SUCCESS")
+    
     log_message("📋 Individual test commands (copy-pasteable):")
-    for i, test in enumerate(tests):
+    log_message(f"     💡 To run with different mode: Replace '{MODE}' with 'DEV' or 'PROD' in commands below")
+    for i, test in enumerate(TESTS):
         print(f"  {i+1}. {test}")
     print()
     
     # Run all tests
     passed = 0
-    total = len(tests)
+    total = len(TESTS)
     
-    for i, (test, description) in enumerate(zip(tests, test_descriptions)):
+    for i, (test, description) in enumerate(zip(TESTS, TEST_DESCRIPTIONS)):
         log_message(f"Test {i+1}/{total}: {description}")
         if run_test_command(test, description):
             passed += 1
@@ -102,6 +116,7 @@ def main():
     # Summary
     log_message("📊 TEST SUITE SUMMARY", "HEADER")
     log_message(f"Tests Passed: {passed}/{total}")
+    log_message(f"Mode Used: {MODE}")
     
     if passed == total:
         log_message("🎉 ALL TESTS PASSED!", "SUCCESS")
