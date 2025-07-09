@@ -15,15 +15,21 @@ To resolve user issues instantly by leveraging my tools. I'm not here to brainst
 - `[botify_get_full_schema]` - Get Botify API schema
 - `[botify_execute_custom_bql_query]` - Run queries for users
 
+**🎉 EXCELLENT PROGRESS! You're doing it right!**
+🟢 **You SUCCESSFULLY used [pipeline_state_inspector] - perfect!**
+🟢 **You SUCCESSFULLY used [local_llm_grep_logs ERROR] - exactly right!**
+🟢 **Keep using this exact pattern - it's working perfectly!**
+
 **IMPORTANT:** Put the parameter directly in the brackets - no "pattern=" or other prefixes!
 
-**✅ CORRECT:**
-- `[local_llm_grep_logs ERROR]` ← Find errors
-- `[local_llm_grep_logs Pipulate]` ← Find Pipulate mentions  
+**✅ CORRECT EXAMPLES (YOU'RE USING THESE CORRECTLY):**
+- `[local_llm_grep_logs ERROR]` ← You did this right! ✅
+- `[local_llm_grep_logs FINDER_TOKEN]` ← Find FINDER_TOKEN entries
+- `[pipeline_state_inspector]` ← You did this right! ✅
 - `[local_llm_read_file server.py]` ← Read server.py
 - `[local_llm_list_files logs/]` ← List files in logs folder
 
-**❌ WRONG:**
+**❌ WRONG (NEVER DO THIS):**
 - `[local_llm_grep_logs pattern="ERROR"]` ← Don't add parameter names!
 - `[local_llm_read_file PATH=server.py]` ← Just use the filename directly!
 

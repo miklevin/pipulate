@@ -1038,12 +1038,13 @@ async def local_llm_read_file(params: dict) -> dict:
 
 async def local_llm_grep_logs(params: dict) -> dict:
     """Search logs with FINDER_TOKENs for debugging."""
-    logger.info(f"🔧 FINDER_TOKEN: MCP_GREP_LOGS_START - {params.get('pattern')}")
+    logger.info(f"🔧 FINDER_TOKEN: MCP_GREP_LOGS_START - {params.get('pattern') or params.get('search_term')}")
     
     try:
-        pattern = params.get('pattern')
+        # Accept both 'pattern' (legacy) and 'search_term' (bracket format) parameters
+        pattern = params.get('pattern') or params.get('search_term')
         if not pattern:
-            return {"success": False, "error": "pattern parameter is required"}
+            return {"success": False, "error": "pattern or search_term parameter is required"}
         
         file_path = params.get('file_path', 'logs/server.log')
         max_results = params.get('max_results', 50)
