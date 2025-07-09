@@ -46,3 +46,6 @@ CONFLICT: 92e4e1a fix: Update version and description in __init__.py - Files: __
 CONFLICT: 973c0d4 feat: Enhance MCP client to handle diverse bracket formats - Files: server.py, training/system_prompt.md
 CONFLICT: 575717e feat: Support square bracket notation and XML tool calls - Files: training/system_prompt.md
 CONFLICT: 4dbe99b ``` feat: Improve conversation persistence test logic - Files: tests/conversation_persistence_test_final.py
+CONFLICT: 07e37a4 ``` feat: Implement file upload widget with detailed feedback and download links - Files: plugins/120_link_graph.py
+CONFLICT: a12ee5e fix: Add clipboard SVG icon to config.py - Files: config.py
+CONFLICT: 118b357 ``` feat: Migrate to append-only message database - Files: ai_discovery/ai_conversation_architecture_solution.md, server.py, tests/conversation_persistence_test_final.py
