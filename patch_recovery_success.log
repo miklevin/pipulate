@@ -52,3 +52,8 @@ SUCCESS: 0b278d4 🔧 Fix task counting logic - use direct SQL
 SUCCESS: 9438c31 ✨ Add unchecked task count to profile task links
 SUCCESS: 45e36ab Highlight currently selected profile in profiles app
 SUCCESS: 0b278d4 🔧 Fix task counting logic - use direct SQL
+SUCCESS: aa22405 fix: Remove splitter initialization script - SURGICAL EDIT from deferred batch
+SUCCESS: 06e9796 Turning off backup temporarily - NATURALLY RESOLVED (already applied)
+SUCCESS: 20e9860 Make profile name clickable in headline breadcrumb - SURGICAL EDIT from deferred batch
+SUCCESS: 491f1d9 fix(conversation): Prevent writing noise to conversation history - SURGICAL EDIT from deferred batch
+SUCCESS: ae3ba00 chore: Remove redundant explicit backup/restore logic - NATURALLY RESOLVED (already applied)
