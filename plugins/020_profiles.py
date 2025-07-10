@@ -267,7 +267,7 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
         
         # Lock emoji for quick lock-to-profile action
         lock_to_profile_url = f'/{main_plugin_instance.name}/lock_to_profile/{profile_record.id}'
-        lock_to_profile_icon = Span('🔒', hx_post=lock_to_profile_url, hx_target='#profile-list-ul', hx_swap='outerHTML', style='margin-right: 8px; cursor: pointer; flex-shrink: 0; font-size: 0.9em;', title=f'Lock to {profile_record.name} profile')
+        lock_to_profile_icon = Span('🔒', hx_post=lock_to_profile_url, hx_target='.container-centered', hx_swap='outerHTML', style='margin-right: 8px; cursor: pointer; flex-shrink: 0; font-size: 0.9em;', title=f'Lock to {profile_record.name} profile')
         
         # Delete icon (always hide for Default Profile)
         delete_icon_span = '' if profile_record.name == 'Default Profile' else Span('🗑️', hx_delete=delete_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', hx_confirm=f"Are you sure you want to delete the profile '{profile_record.name}'? This action cannot be undone.", cls='profile-delete-icon delete-icon', title='Delete Profile')
