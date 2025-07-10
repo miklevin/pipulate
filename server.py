@@ -1224,6 +1224,37 @@ def log_pipeline_summary(title_prefix: str=''):
     try:
         records = list(pipeline())
         
+        # 🐰 WHITE RABBIT WELCOME - Show during startup or when no records exist (clean startup)
+        if 'STARTUP' in title_prefix.upper() or not records:
+            print()
+            logger.info("🔧 LEGEND_MARKER_1: Displaying white_rabbit for startup")
+            white_rabbit()
+            logger.info("🔧 LEGEND_MARKER_2: white_rabbit displayed")
+            print()
+            
+            # 📚 LOG LEGEND: Use the comprehensive version from ascii_displays.py 
+            logger.info("🔧 LEGEND_MARKER_3: About to call log_reading_legend")
+            legend_content = log_reading_legend()
+            logger.info("🔧 LEGEND_MARKER_4: log_reading_legend returned content")
+
+            legend_panel = Panel(
+                legend_content,
+                title="📖 [bold bright_blue]Log Reading Guide[/bold bright_blue]",
+                subtitle="[dim]Understanding what you're seeing in the logs[/dim]",
+                box=ROUNDED,
+                style="bright_blue",
+                padding=(1, 2)
+            )
+            logger.info("🔧 LEGEND_MARKER_5: About to print legend_panel with Rich")
+            console.print(legend_panel)
+            logger.info("🔧 LEGEND_MARKER_6: legend_panel printed to console")
+            
+            # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
+            logger.info("🔧 LEGEND_MARKER_7: About to call share_ascii_with_ai")
+            share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
+            logger.info("🔧 LEGEND_MARKER_8: share_ascii_with_ai completed")
+            print()
+        
         if not records:
             logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} No active workflows")
             return
@@ -1286,26 +1317,7 @@ def log_pipeline_summary(title_prefix: str=''):
             app_summary = ", ".join([f"{app}({count})" for app, count in sorted(app_counts.items())])
             summary_lines.append(f"📱 Apps: {app_summary}")
         
-        print()
-        white_rabbit()
-        print()
-        
-        # 📚 LOG LEGEND: Use the comprehensive version from ascii_displays.py 
-        legend_content = log_reading_legend()
 
-        legend_panel = Panel(
-            legend_content,
-            title="📖 [bold bright_blue]Log Reading Guide[/bold bright_blue]",
-            subtitle="[dim]Understanding what you're seeing in the logs[/dim]",
-            box=ROUNDED,
-            style="bright_blue",
-            padding=(1, 2)
-        )
-        console.print(legend_panel)
-        
-        # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
-        share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
-        print()
 
         # Add recent activity
         if recent_activity:
@@ -4549,12 +4561,18 @@ logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TO
 
 # STORYTELLING: MCP Tools Arsenal Ready - Only show when running as main script
 tool_count = len(MCP_TOOL_REGISTRY)
+logger.info("🔧 ASCII_MARKER_1: About to check MCP figlet banner conditions")
+logger.info(f"🔧 ASCII_MARKER_1: __name__ = {__name__}, tool_count = {tool_count}")
 if __name__ == '__main__' and tool_count > 0:
+    logger.info("🔧 ASCII_MARKER_2: Displaying MCP figlet banner and section header")
     figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
     section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
+    logger.info("🔧 ASCII_MARKER_3: MCP figlet banner and section header displayed")
     # Half-second delay so humans can notice this major feature before it scrolls away
     import time
     time.sleep(0.5)
+else:
+    logger.info("🔧 ASCII_MARKER_X: MCP figlet banner conditions not met - skipped")
 
 # Calculate startup metrics
 discovered_count = len(discovered_classes)
@@ -4565,7 +4583,10 @@ current_app = get_app_name()
 current_env = get_current_environment()
 
 # 📊 ELEGANT STARTUP SUMMARY - Rich tables for humans, FINDER_TOKEN for AIs
+logger.info("🔧 STARTUP_MARKER_1: About to check __name__ == '__main__' condition")
+logger.info(f"🔧 STARTUP_MARKER_1: __name__ value is: {__name__}")
 if __name__ == '__main__':
+    logger.info("🔧 STARTUP_MARKER_2: Inside __name__ == '__main__' block - showing Rich tables")
     # Show beautiful startup summary for humans
     startup_summary = startup_summary_table(
         plugins_discovered=discovered_count,
@@ -4575,14 +4596,19 @@ if __name__ == '__main__':
         environment=current_env
     )
     print(startup_summary)
+    logger.info("🔧 STARTUP_MARKER_3: startup_summary_table displayed")
     
     # Show AI capabilities summary
     ai_summary = ai_breadcrumb_summary(tool_count)
     print(ai_summary)
+    logger.info("🔧 STARTUP_MARKER_4: ai_breadcrumb_summary displayed")
     
     # Show critical environment warnings
     warnings_summary = startup_environment_warnings()
     print(warnings_summary)
+    logger.info("🔧 STARTUP_MARKER_5: startup_environment_warnings displayed")
+else:
+    logger.info("🔧 STARTUP_MARKER_X: NOT in __name__ == '__main__' block - Rich tables skipped")
 
 # 🔍 FINDER_TOKEN MESSAGES - Preserved for AI assistant discovery (compact format)
 logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: {discovered_count}, successfully registered: {registered_count}, failed: {failed_count}')
@@ -4626,13 +4652,25 @@ if failed_count > 0:
 else:
     chip_says("All plugins loaded successfully! The workshop is fully equipped.", BANNER_COLORS['plugin_registry_success'])
 # 🔍 RADICAL TRANSPARENCY BANNER - Right after MCP registry completes, before FINDER_TOKEN loop
+logger.info("🔧 TRANSPARENCY_MARKER_1: About to check radical transparency banner conditions")
+logger.info(f"🔧 TRANSPARENCY_MARKER_1: __name__ = {__name__}")
 if __name__ == '__main__':
+    logger.info("🔧 TRANSPARENCY_MARKER_2: Displaying radical transparency banner")
     radical_transparency_banner()
+    logger.info("🔧 TRANSPARENCY_MARKER_3: radical_transparency_banner displayed")
+else:
+    logger.info("🔧 TRANSPARENCY_MARKER_X: radical transparency banner conditions not met - skipped")
 
 # 🐰 ALICE WELCOME BANNER - Perfect transition point: FINDER_TOKENs end, ROLES begin
+logger.info("🔧 ALICE_MARKER_1: About to check Alice banner conditions")
+logger.info(f"🔧 ALICE_MARKER_1: __name__ = {__name__}")
 if __name__ == '__main__':
     logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point')
+    logger.info("🔧 ALICE_MARKER_2: Displaying falling_alice banner")
     falling_alice()
+    logger.info("🔧 ALICE_MARKER_3: falling_alice banner displayed")
+else:
+    logger.info("🔧 ALICE_MARKER_X: Alice banner conditions not met - skipped")
 
 MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
