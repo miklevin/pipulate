@@ -53,7 +53,23 @@ import mcp_tools
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
 # Import ASCII display functions (externalized from server.py for token reduction)
-from helpers.ascii_displays import log_reading_legend
+from helpers.ascii_displays import (
+    log_reading_legend,
+    strip_rich_formatting, 
+    share_ascii_with_ai,
+    falling_alice,
+    white_rabbit, 
+    system_diagram,
+    figlet_banner,
+    fig,
+    chip_says,
+    story_moment,
+    server_whisper,
+    ascii_banner,
+    section_header,
+    radical_transparency_banner,
+    status_banner
+)
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
@@ -200,301 +216,8 @@ def rich_dict_display(data, title=None, console_output=True):
     return rich_json_display(data, title=title, console_output=console_output, log_output=False)
 
 
-def strip_rich_formatting(text):
-    """🎭 STRIP RICH FORMATTING: Remove Rich square-bracket color codes for AI transparency"""
-    import re
-
-    # Remove Rich color formatting like [bold], [/bold], [white on default], etc.
-    clean_text = re.sub(r'\[/?[^\]]*\]', '', text)
-    return clean_text
-
-
-def share_ascii_with_ai(ascii_art, context_message, emoji="🎭"):
-    """🎭 AI ASCII SHARING: Automatically share cleaned ASCII art with AI assistants"""
-    clean_ascii = strip_rich_formatting(ascii_art)
-    # Preserve actual newlines for proper ASCII art display in logs
-    logger.warning(f"{emoji} AI_CREATIVE_VISION: {context_message} | ASCII_DATA:\n```\n{clean_ascii}\n```")
-
-
-def falling_alice(console_output=True):
-    """🍄 FALLING ALICE: Large ASCII art of Alice falling down the rabbit hole"""
-    lines = 20
-    falling_alice_art = lines * "\n" + r"""[white on default]
-                    ___
-                   |   |         _____
-                   |_  |        /     \
-                     \ |       |       \
-                     |  \      |       /
-                      \  \____ \_      \
-                       \      \_/      |
-                 ___.   \_            _/
-.-,             /    \    |          |
-|  \          _/      `--_/           \_
- \  \________/                     /\   \
- |                                /  \_  \
- `-----------,                   |     \  \
-             |                  /       \  |
-             |                 |         | \
-             /                 |         \__|
-            /   _              |
-           /   / \_             \
-           |  /    \__      __--`
-          _/ /        \   _/
-      ___/  /          \_/
-     /     /
-     `----`[/white on default]""" + lines * "\n"
-    
-    # Console output for humans (Rich display)
-    if console_output:
-        console.print()  # Add spacing
-        console.print(Align.center(falling_alice_art))  # No conflicting style parameter
-        console.print()  # Add spacing
-        logger.info("🍄 FALLING_ALICE_BANNER: Large Alice art displayed")
-    
-    # 🎭 AI CREATIVE TRANSPARENCY: Let AI assistants experience the whimsical narrative
-    share_ascii_with_ai(falling_alice_art, "Falling Alice ASCII Art - 🍄 Narrative moment: Alice tumbles down the rabbit hole of radical transparency!", "🍄")
-
-
-def white_rabbit(console_output=True):
-    """🐰 WHITE RABBIT: Whimsical White Rabbit-themed banner"""
-    alice_art = r"""[black].[/black]            /)    ______
-       /)\__//    /      \
-   ___(/_ 0 0    |        |
- *(    ==(_T_)== |[bold bright_blue]Pipulate[/bold bright_blue]|
-   \  )   ""\    |        |
-    |__>-\_>_>    \______/
-   """
-    
-    # Console output for humans (Rich display)
-    if console_output:
-        style = BANNER_COLORS['white_rabbit']
-        panel = Panel(
-            Align.center(alice_art.strip()),
-            title=f"[bold {style}]🐰 Welcome to Consoleland[/bold {style}]",
-            subtitle="[dim]Down the rabbit hole of radical transparency[/dim]",
-            box=ROUNDED,
-            style=style,
-            padding=(1, 2)
-        )
-        console.print(panel)
-    
-    # 🎭 AI CREATIVE TRANSPARENCY: Share the whimsical White Rabbit moment
-    share_ascii_with_ai(alice_art, "White Rabbit ASCII Art - 🐰 Narrative moment: Welcome to Consoleland - down the rabbit hole of radical transparency!", "🐰")
-
-
-def system_diagram(console_output=True):
-    """📐 SYSTEM DIAGRAMS: ASCII art system overview"""
-    diagram = """[black].[/black][white on default]
-               ┌─────────────────────────────┐
-               │         Navigation         ◄── Search, Profiles,
-               ├───────────────┬─────────────┤    Apps, Settings
-               │               │             │
-    Workflow, ──►   Main Area  │    Chat     │
-    App UI     │   (Pipeline)  │  Interface ◄── LLM Interaction 
-               │               │             │
-               └─────────────────────────────┘[/white on default]
-    """
-    
-    # Console output for humans (Rich display)
-    if console_output:
-        style = BANNER_COLORS['system_diagram']
-        panel = Panel(
-            Align.center(diagram.strip()),
-            title=f"[bold {style}]🏗️  Pipulate Architecture[/bold {style}]",
-            box=DOUBLE,
-            style=style,
-            padding=(1, 2)
-        )
-        console.print(panel)
-    
-    # 🎭 AI CREATIVE TRANSPARENCY: System architecture for AI understanding
-    share_ascii_with_ai(diagram, "System Architecture Diagram - 🏗️ Architecture moment: This shows how Pipulate's UI is organized - Navigation, Main Pipeline Area, and Chat Interface!", "🏗️")
-
-
-def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None, console_output=True):
-    """🎨 FIGLET BANNERS: Beautiful FIGlet text in Rich panels"""
-    if color is None:
-        color = BANNER_COLORS['figlet_primary']
-    if box_style is None:
-        box_style = HEAVY  # Default to HEAVY, can be overridden by BANNER_COLORS later
-    
-    figlet = Figlet(font=font, width=80)
-    fig_text = figlet.renderText(str(text))
-    
-    # Console output for humans (Rich display)
-    if console_output:
-        if subtitle:
-            subtitle_color = BANNER_COLORS['figlet_subtitle']
-            content = f"[{color}]{fig_text}[/{color}]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
-        else:
-            content = f"[{color}]{fig_text}[/{color}]"
-        
-        panel = Panel(
-            Align.center(content),
-            box=box_style,
-            style=color,
-            padding=(1, 2)
-        )
-        console.print(panel)
-        logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
-    
-    # 🎭 AI CREATIVE TRANSPARENCY: Share the figlet art for AI context
-    context_msg = f"Figlet Banner ({font} font) - 🎨 Text: '{text}'" + (f" | Subtitle: '{subtitle}'" if subtitle else "")
-    share_ascii_with_ai(fig_text, context_msg, "🎨")
-
-
-def fig(text, font='slant', color=None, width=200):
-    """🎨 CHIP O'THESEUS STORYTELLING: Tasteful FIGlet banners for key server moments"""
-    if color is None:
-        color = BANNER_COLORS['figlet_primary']
-    
-    figlet = Figlet(font=font, width=width)
-    fig_text = figlet.renderText(str(text))
-    colored_text = Text(fig_text, style=f'{color} on default')
-    console.print(colored_text, style='on default')
-    
-    # Log ASCII art with backticks for easy grepping
-    logger.info(f"🎨 BANNER: {text} (figlet: {font}) | ASCII_DATA:\n```\n{fig_text}\n```")
-
-
-def chip_says(message, style=None, prefix="💬 Chip O'Theseus"):
-    """🎭 CHIP O'THESEUS NARRATOR: Discrete storytelling moments in the logs"""
-    if style is None:
-        style = BANNER_COLORS['chip_narrator']
-    console.print(f"{prefix}: {message}", style=style)
-    logger.info(f"🎭 NARRATOR: {prefix}: {message}")
-
-
-def story_moment(title, details=None, color=None):
-    """📖 STORY MOMENTS: Mark significant server events with tasteful color"""
-    if color is None:
-        color = BANNER_COLORS['story_moment']
-    
-    if details:
-        console.print(f"📖 {title}", style=f"bold {color}")
-        console.print(f"   {details}", style=f"dim {color}")
-        logger.info(f"📖 STORY: {title} - {details}")
-    else:
-        console.print(f"📖 {title}", style=f"bold {color}")
-        logger.info(f"📖 STORY: {title}")
-
-
-def server_whisper(message, emoji="🤫"):
-    """🤫 SERVER WHISPERS: Subtle behind-the-scenes commentary"""
-    style = BANNER_COLORS['server_whisper']
-    console.print(f"{emoji} {message}", style=style)
-    logger.info(f"🤫 WHISPER: {message}")
-
-
-def ascii_banner(title, subtitle=None, style=None, box_style=None):
-    """🎨 ASCII BANNERS: Beautiful framed banners for major sections"""
-    if style is None:
-        style = BANNER_COLORS['ascii_title']
-    if box_style is None:
-        box_style = ROUNDED  # Default to ROUNDED
-    
-    if subtitle:
-        subtitle_color = BANNER_COLORS['ascii_subtitle']
-        content = f"[bold]{title}[/bold]\n[{subtitle_color}]{subtitle}[/{subtitle_color}]"
-    else:
-        content = f"[bold]{title}[/bold]"
-    
-    panel = Panel(
-        Align.center(content),
-        box=box_style,
-        style=style,
-        padding=(1, 2)
-    )
-    console.print(panel)
-    logger.info(f"🎨 ASCII_BANNER: {title}" + (f" - {subtitle}" if subtitle else ""))
-    
-    # Log the banner content with backticks for easy grepping
-    clean_content = strip_rich_formatting(content)
-    logger.info(f"🎨 ASCII_BANNER_ASCII: {title} banner displayed | ASCII_DATA:\n```\n{clean_content}\n```")
-
-
-def section_header(icon, title, description=None, color=None):
-    """📋 SECTION HEADERS: Clean section dividers with icons"""
-    if color is None:
-        color = BANNER_COLORS['section_header']
-    
-    if description:
-        content = f"{icon}  [bold]{title}[/bold]\n[dim]{description}[/dim]"
-    else:
-        content = f"{icon}  [bold]{title}[/bold]"
-    
-    console.print()  # Add some space
-    console.print(content, style=color)
-    separator_line = "─" * 60
-    console.print(separator_line, style=f"dim {color}")
-    logger.info(f"📋 SECTION: {icon} {title}" + (f" - {description}" if description else ""))
-    
-    # Log the section header content with backticks for easy grepping
-    clean_content = strip_rich_formatting(content)
-    full_section = f"{clean_content}\n{separator_line}"
-    logger.info(f"📋 SECTION_ASCII: {title} section header displayed | ASCII_DATA:\n```\n{full_section}\n```")
-
-def radical_transparency_banner(console_output=True):
-    """🔍 RADICAL TRANSPARENCY: Beautiful banner explaining the philosophy"""
-    transparency_text = """
-    ╔══════════════════════════════════════════════════════════════╗
-    ║                    RADICAL TRANSPARENCY                      ║
-    ║                                                              ║
-    ║  Every operation is observable • Every call is logged        ║
-    ║  Every state change is tracked • Every error is explained    ║
-    ║                                                              ║
-    ║  🔍 FINDER_TOKENs guide your debugging journey               ║
-    ║  🔧 MCP Tools provide programmatic access to everything      ║
-    ║  📊 Pipeline State Inspector reveals workflow internals      ║
-    ║  🤖 AI Assistants have complete system visibility            ║
-    ║                                                              ║
-    ║           "Know EVERYTHING that's happening!"                ║
-    ╚══════════════════════════════════════════════════════════════╝
-    """
-    
-    # Console output for humans (Rich display)
-    if console_output:
-        style = BANNER_COLORS['transparency_banner']
-        console.print(transparency_text, style=style)
-        logger.info("🔍 RADICAL_TRANSPARENCY_BANNER: Philosophy banner displayed")
-    
-    # 🎭 AI CREATIVE TRANSPARENCY: The philosophy itself - for AI assistants to experience
-    share_ascii_with_ai(transparency_text, "Radical Transparency Banner - 🔍 Philosophy moment: This is the core principle - AI assistants get complete system visibility!", "🔍")
-
-def status_banner(mcp_count, plugin_count, env="Development"):
-    """📊 STATUS BANNER: Current system status overview"""
-    # Use centralized colors
-    primary_color = BANNER_COLORS['status_banner']
-    server_color = BANNER_COLORS['workshop_ready']
-    mcp_color = BANNER_COLORS['mcp_arsenal']
-    plugin_color = BANNER_COLORS['plugin_registry_success']
-    env_color = BANNER_COLORS['white_rabbit']
-    transparency_color = BANNER_COLORS['transparency_banner']
-    
-    status_content = f"""
-[bold white]🚀 PIPULATE STATUS[/bold white]
-[dim white]Local First AI SEO Software[/dim white]
-
-[white]🌐 Server:[/white] [{server_color}]http://localhost:5001[/{server_color}]
-[white]🔧 MCP Tools:[/white] [{mcp_color}]{mcp_count} active[/{mcp_color}]
-[white]📦 Plugins:[/white] [{plugin_color}]{plugin_count} registered[/{plugin_color}]
-[white]🏡 Environment:[/white] [{env_color}]{env}[/{env_color}]
-[white]🔍 Transparency:[/white] [{transparency_color}]Full visibility enabled[/{transparency_color}]
-    """
-    
-    panel = Panel(
-        status_content.strip(),
-        title=f"[bold {primary_color}]⚡ System Status[/bold {primary_color}]",
-        box=DOUBLE,
-        style=primary_color,
-        padding=(1, 2)
-    )
-    console.print(panel)
-    logger.info(f"📊 STATUS_BANNER: MCP:{mcp_count}, Plugins:{plugin_count}, Env:{env}")
-    
-    # Log the status content with backticks for easy grepping
-    clean_content = strip_rich_formatting(status_content.strip())
-    logger.info(f"📊 STATUS_BANNER_ASCII: Status banner displayed | ASCII_DATA:\n```\n{clean_content}\n```")
+# All ASCII display functions now imported from helpers.ascii_displays.py
+# This eliminates ~300 lines of duplicate code while preserving functionality
 
 # Initialize logging as early as possible in the startup process
 def setup_logging():
