@@ -159,8 +159,8 @@ class ProfilesPlugin(ProfilesPluginIdentity):
                 # Set the current profile ID in the key-value store
                 self.db_dictlike['last_profile_id'] = profile_id
                 
-                # Enable profile lock mode
-                self.db_dictlike['profile_lock_enabled'] = True
+                # Enable profile lock mode - FIX: Use same key/format as dropdown toggle
+                self.db_dictlike['profile_locked'] = '1'
                 
                 logger.info(f"🔒 Locked to profile {profile_id} ({profile.name}) - meeting prep mode activated")
                 
@@ -183,8 +183,8 @@ class ProfilesPlugin(ProfilesPluginIdentity):
         # Get all profiles first
         profiles = list(self.table())
         
-        # Check if profile lock is enabled
-        profile_lock_enabled = self.db_dictlike.get('profile_lock_enabled', False)
+        # Check if profile lock is enabled - FIX: Use same key as dropdown toggle
+        profile_lock_enabled = self.db_dictlike.get('profile_locked', '0') == '1'
         
         if profile_lock_enabled:
             # If locked, only show the current profile
@@ -256,8 +256,8 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     
     profile_display_div = Div(Span(profile_record.name, title='Click to edit', style='cursor:pointer; font-weight:bold;'), Span(f' ({profile_record.real_name})' if profile_record.real_name else '', style='margin-left:5px; color:var(--pico-muted-color); font-size:0.9em;'), Span(f'📍{profile_record.address}' if profile_record.address else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), Span(f'🌐{profile_record.code}' if profile_record.code else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), tasks_link_inline, id=profile_text_display_id, cls='profile-display-flex', onclick=toggle_edit_js)
     
-    # Check if profile lock is enabled 
-    profile_lock_enabled = main_plugin_instance.db_dictlike.get('profile_lock_enabled', False)
+    # Check if profile lock is enabled - FIX: Use same key as dropdown toggle
+    profile_lock_enabled = main_plugin_instance.db_dictlike.get('profile_locked', '0') == '1'
     
     # Conditionally render elements based on lock state
     if profile_lock_enabled:
