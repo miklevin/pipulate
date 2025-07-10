@@ -149,7 +149,7 @@ class CrudCustomizer(BaseCrud):
                 # Send message to msg-list like tasks app does
                 status_text = 'enabled' if item.done else 'disabled'
                 action_details = f"The role '{item.text}' is now {status_text}."
-                self.send_message(action_details, verbatim=True)
+                self.safe_send_message(action_details, verbatim=True)
             
             # Render the updated item
             updated_item_html = self.render_item(item)
