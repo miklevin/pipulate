@@ -43,6 +43,9 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
+# Import centralized configuration to eliminate duplication
+from config import PCONFIG as CONFIG_PCONFIG
+
 # Import MCP tools module for enhanced AI assistant capabilities
 # Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
 MCP_TOOL_REGISTRY = {}
@@ -553,9 +556,9 @@ PCONFIG = {
         'CRAWL_EXPORT_SIZE': 1000000,  # Crawl exports can handle full export size
     },
     
-    # Chat & Streaming Configuration
+    # Chat & Streaming Configuration - Use typing delay from config.py
     'CHAT_CONFIG': {
-        'TYPING_DELAY': 0.0125,  # Delay between words in typing simulation (seconds)
+        'TYPING_DELAY': CONFIG_PCONFIG['CHAT_CONFIG']['TYPING_DELAY'],  # Import from config.py (single source of truth)
         'MAX_CONVERSATION_LENGTH': 100,  # Maximum number of conversation messages to keep
     },
     
@@ -2708,31 +2711,29 @@ await main()
                 
                 if simulate_typing:
                     logger.debug("🔍 DEBUG: Simulating typing for verbatim message")
-                    # If message contains line breaks, don't simulate typing (too complex)
-                    # Just send the whole message with line breaks converted to HTML
+                    # Handle both single-line and multi-line messages with typing simulation
+                    # Convert newlines to <br> tags first, then simulate typing
                     if '\n' in message:
-                        message_with_breaks = message.replace('\n', '<br>')
-                        await self.chat.broadcast(message_with_breaks)
+                        message = message.replace('\n', '<br>')
+                    
+                    # Handle <br> tags at the end of the message properly
+                    import re
+                    br_match = re.search(r'(<br>+)$', message)
+                    if br_match:
+                        # Split message and <br> tags properly
+                        base_message = message[:br_match.start()]
+                        br_tags = br_match.group(1)
+                        words = base_message.split()
+                        for i, word in enumerate(words):
+                            await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                        # Send the <br> tags after the words
+                        await self.chat.broadcast(br_tags)
                     else:
-                        # Original word-by-word typing for single-line messages
-                        # Handle <br> tags at the end of the message properly
-                        import re
-                        br_match = re.search(r'(<br>+)$', message)
-                        if br_match:
-                            # Split message and <br> tags properly
-                            base_message = message[:br_match.start()]
-                            br_tags = br_match.group(1)
-                            words = base_message.split()
-                            for i, word in enumerate(words):
-                                await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                                await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
-                            # Send the <br> tags after the words
-                            await self.chat.broadcast(br_tags)
-                        else:
-                            words = message.split()
-                            for i, word in enumerate(words):
-                                await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                                await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                        words = message.split()
+                        for i, word in enumerate(words):
+                            await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
                 else:
                     await self.chat.broadcast(message)
                 
