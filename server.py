@@ -6913,6 +6913,11 @@ def check_server_already_running():
     return False
 
 
+def create_restart_response(restart_type: str, message: str) -> str:
+    """Create HTML for restart notification with Pico CSS aria-busy spinner."""
+    return f'<span aria-busy="true">{message}</span>'
+
+
 def restart_server():
     if shared_app_state['critical_operation_in_progress'] or is_critical_operation_in_progress():
         log.warning('Restart requested but critical operation in progress. Deferring restart.')
