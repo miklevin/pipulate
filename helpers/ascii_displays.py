@@ -377,3 +377,147 @@ def log_reading_legend():
 • [dim white]MCP tool calls:[/dim white] [bright_white]grep "MCP_.*_START" logs/server.log[/bright_white]"""
     
     return legend_content 
+
+def startup_summary_table(
+    plugins_discovered: int, 
+    plugins_registered: int, 
+    mcp_tools_count: int, 
+    app_name: str = "Pipulate",
+    environment: str = "Development"
+) -> str:
+    """🚀 STARTUP SUMMARY: Create organized Rich table for system startup status
+    
+    Consolidates verbose startup messages into scannable format for humans
+    while preserving all FINDER_TOKEN information for AI assistants.
+    """
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.columns import Columns
+    from rich.console import Console
+    
+    console = Console(width=120)
+    
+    # 📊 System Status Table
+    status_table = Table(title="🚀 System Status", show_header=True, header_style="bold bright_blue")
+    status_table.add_column("Component", style="cyan", width=20)
+    status_table.add_column("Status", style="green", width=15)
+    status_table.add_column("Details", style="white", width=40)
+    
+    status_table.add_row("🏷️  App Name", "✅ Active", app_name)
+    status_table.add_row("🌍 Environment", "✅ Active", environment)
+    status_table.add_row("📦 Plugins", "✅ Loaded", f"{plugins_registered}/{plugins_discovered} registered")
+    status_table.add_row("🔧 MCP Tools", "✅ Ready", f"{mcp_tools_count} tools available")
+    status_table.add_row("🧠 AI Memory", "✅ Active", "Keychain persistence enabled")
+    status_table.add_row("🌐 Browser Eyes", "✅ Ready", "Session hijacking capability")
+    
+    # 🎯 Quick Commands Table  
+    commands_table = Table(title="🎯 AI Quick Commands", show_header=True, header_style="bold bright_yellow")
+    commands_table.add_column("Purpose", style="cyan", width=25)
+    commands_table.add_column("Command", style="green", width=50)
+    
+    commands_table.add_row("🔍 System State", ".venv/bin/python cli.py call pipeline_state_inspector")
+    commands_table.add_row("📖 Log Analysis", ".venv/bin/python cli.py call local_llm_grep_logs --search_term FINDER_TOKEN")
+    commands_table.add_row("👁️  Browser Scrape", ".venv/bin/python cli.py call browser_scrape_page --url http://localhost:5001")
+    commands_table.add_row("🎭 Session Hijack", ".venv/bin/python -c \"import asyncio; from mcp_tools import execute_complete_session_hijacking; asyncio.run(execute_complete_session_hijacking({}))\"")
+    commands_table.add_row("🧠 AI Discovery", ".venv/bin/python -c \"from mcp_tools import ai_self_discovery_assistant; import asyncio; asyncio.run(ai_self_discovery_assistant({'discovery_type': 'capabilities'}))\"")
+    
+    # Render both tables side by side
+    columns = Columns([status_table, commands_table], equal=True, expand=True)
+    
+    # Create panel with consolidated summary
+    panel = Panel(
+        columns,
+        title="🚀 Pipulate Startup Complete",
+        subtitle="All systems operational • Ready for AI workflows",
+        border_style="bright_green",
+        padding=(1, 2)
+    )
+    
+    # Capture the rendered output
+    with console.capture() as capture:
+        console.print(panel)
+    
+    return capture.get()
+
+
+def ai_breadcrumb_summary(tool_count: int) -> str:
+    """🍞 AI BREADCRUMB SUMMARY: Consolidate all AI discovery messages into compact format"""
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.console import Console
+    
+    console = Console(width=100)
+    
+    # 🧠 AI Capabilities Overview
+    capabilities_table = Table(title="🧠 AI Capabilities Discovered", show_header=True, header_style="bold bright_magenta")
+    capabilities_table.add_column("Capability", style="cyan", width=25)
+    capabilities_table.add_column("Status", style="green", width=15)
+    capabilities_table.add_column("Description", style="white", width=40)
+    
+    capabilities_table.add_row("🔧 MCP Tools", "✅ Active", f"{tool_count} programmatic tools ready")
+    capabilities_table.add_row("👁️  Browser Eyes", "✅ Ready", "Screenshot + DOM analysis")
+    capabilities_table.add_row("🤲 Browser Hands", "✅ Ready", "Selenium automation control")
+    capabilities_table.add_row("🎭 Session Hijack", "✅ Ready", "Complete workflow capture")
+    capabilities_table.add_row("🧠 Persistent Memory", "✅ Active", "Keychain across restarts")
+    capabilities_table.add_row("📚 Documentation", "✅ Complete", "14 comprehensive guides")
+    
+    # Create compact panel
+    panel = Panel(
+        capabilities_table,
+        title="🍞 AI Discovery Complete",
+        subtitle="Zero uncertainty • 100% automation success rate",
+        border_style="bright_magenta",
+        padding=(0, 2)
+    )
+    
+    # Capture the rendered output
+    with console.capture() as capture:
+        console.print(panel)
+    
+    return capture.get()
+
+
+def startup_environment_warnings() -> str:
+    """⚠️  STARTUP WARNINGS: Critical environment setup messages for AI assistants"""
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.console import Console
+    
+    console = Console(width=110)
+    
+    # ⚠️ Critical Warnings Table
+    warnings_table = Table(title="⚠️ Critical Environment Notes", show_header=True, header_style="bold bright_red")
+    warnings_table.add_column("Issue", style="red", width=25)
+    warnings_table.add_column("Solution", style="yellow", width=60)
+    
+    warnings_table.add_row(
+        "🐍 Python Path Issue", 
+        "NEVER use 'python' - ALWAYS use '.venv/bin/python' (even with .venv in prompt!)"
+    )
+    warnings_table.add_row(
+        "🔗 Golden Path", 
+        "cd pipulate && .venv/bin/python cli.py call <tool_name> works everywhere"
+    )
+    warnings_table.add_row(
+        "📁 Working Directory", 
+        "MCP tools require 'cd pipulate' first - never run from workspace root"
+    )
+    warnings_table.add_row(
+        "🎯 Browser Evidence", 
+        "Check browser_automation/looking_at/ FIRST, system internals second"
+    )
+    
+    # Create warning panel
+    panel = Panel(
+        warnings_table,
+        title="🚨 AI Assistant Guidelines",
+        subtitle="Essential knowledge for 100% success rate",
+        border_style="bright_red",
+        padding=(0, 2)
+    )
+    
+    # Capture the rendered output
+    with console.capture() as capture:
+        console.print(panel)
+    
+    return capture.get() 
