@@ -469,6 +469,71 @@ function sendTempMessageWhenReady() {
     }
 }
 
+// Global keyboard shortcuts
+document.addEventListener('keydown', function(event) {
+    // Ctrl+Shift+R: Restart server
+    if (event.ctrlKey && event.shiftKey && event.key === 'R') {
+        event.preventDefault();
+        console.log('🔄 Server restart triggered via Ctrl+Shift+R');
+        
+        // Show immediate UI feedback
+        showRestartSpinner();
+        
+        // Send restart command via WebSocket
+        if (sidebarWs.readyState === WebSocket.OPEN) {
+            sidebarWs.send('%%RESTART_SERVER%%');
+            console.log('🔄 Restart command sent via WebSocket');
+        } else {
+            console.error('🔄 WebSocket not connected, cannot send restart command');
+            hideRestartSpinner();
+        }
+    }
+});
+
+// Show Pico CSS restart spinner
+function showRestartSpinner() {
+    // Remove any existing restart overlay
+    const existingOverlay = document.getElementById('restart-overlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+    
+    // Create restart overlay with Pico CSS spinner
+    const overlay = document.createElement('div');
+    overlay.id = 'restart-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.85);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        color: white;
+        font-family: system-ui, sans-serif;
+        backdrop-filter: blur(2px);
+        font-size: 1.2rem;
+    `;
+    
+    // Use Pico CSS aria-busy spinner
+    overlay.innerHTML = '<span aria-busy="true">Restarting server...</span>';
+    
+    document.body.appendChild(overlay);
+    console.log('🔄 Restart spinner displayed');
+}
+
+// Hide restart spinner (fallback)
+function hideRestartSpinner() {
+    const overlay = document.getElementById('restart-overlay');
+    if (overlay) {
+        overlay.remove();
+        console.log('🔄 Restart spinner hidden');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeChatInterface();
     initializeScrollObserver();

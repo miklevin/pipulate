@@ -4146,6 +4146,10 @@ class Chat:
                         task_to_cancel.cancel()
                     else:
                         self.logger.warning(f"No active chat task found for {websocket} to stop.")
+                elif message == '%%RESTART_SERVER%%':
+                    self.logger.info(f"🔄 Received server restart command from {websocket}.")
+                    # Trigger server restart using existing restart_server function
+                    restart_server()
                 else:
                     # Launch as a non-blocking background task
                     asyncio.create_task(self.handle_chat_message(websocket, message))
