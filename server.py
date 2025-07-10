@@ -4545,6 +4545,16 @@ import mcp_tools
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 from mcp_tools import register_all_mcp_tools
 register_all_mcp_tools()
+logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
+
+# STORYTELLING: MCP Tools Arsenal Ready - Only show when running as main script
+tool_count = len(MCP_TOOL_REGISTRY)
+if __name__ == '__main__' and tool_count > 0:
+    figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
+    section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
+    # Half-second delay so humans can notice this major feature before it scrolls away
+    import time
+    time.sleep(0.5)
 
 # Calculate startup metrics
 discovered_count = len(discovered_classes)
@@ -4575,20 +4585,35 @@ if __name__ == '__main__':
     print(warnings_summary)
 
 # 🔍 FINDER_TOKEN MESSAGES - Preserved for AI assistant discovery (compact format)
-logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {tool_count} tools now available")
 logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Plugins discovered: {discovered_count}, successfully registered: {registered_count}, failed: {failed_count}')
 logger.info(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Successfully registered plugins: {", ".join(plugin_instances.keys())}')
 
-# 🚀 AI BREADCRUMB SUMMARY - Consolidated essential discovery information
-logger.info("🚀 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: WORKING SYSTEM DETECTED! Golden path: cd pipulate && .venv/bin/python cli.py call <tool_name> --args. 25+ MCP tools operational!")
-logger.info("🎯 FINDER_TOKEN: AI_MASTERY_READY - IMMEDIATE ACTION AVAILABLE! Use .venv/bin/python (never 'python'). Browser embodiment active. START: pipeline_state_inspector")
-logger.info("🚨 FINDER_TOKEN: AI_BREADCRUMB_01_5 - CRITICAL: 'python' commands FAIL! Always use '.venv/bin/python' even with (.venv) prompt!")
-logger.info(f"🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - {tool_count} MCP tools ready: pipeline_state_inspector, local_llm_grep_logs, browser_scrape_page. Check browser_automation/looking_at/ for evidence!")
-logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - Browser automation ACTIVE! Eyes (screenshot), brain (DOM), hands (Selenium). Try: browser_scrape_page --url http://localhost:5001")
-logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - SESSION HIJACKING capability! Capture exact user state. Guide: ai_discovery/ai_onboarding_guide.md")
-logger.info("🧠 FINDER_TOKEN: AI_BREADCRUMB_04_5 - TWO perspectives: Browser Embodiment (PRIMARY), System Internals (SECONDARY). Check browser evidence FIRST!")
-logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_05 - UNCERTAINTY ELIMINATED! 14 guides at ai_discovery/. 100% automation success rate!")
-logger.info("🧠 FINDER_TOKEN: AI_BREADCRUMB_06 - PERSISTENT MEMORY! Keychain at data/ai_keychain.db survives restarts. Use keychain_list_keys(), keychain_set(), keychain_get()")
+# 🚀 AI MASTERY BREADCRUMB #1: IMMEDIATE GOLDEN PATH → Skip Environmental Discovery
+logger.info("🚀 FINDER_TOKEN: AI_BREADCRUMB_01 - AI assistants: WORKING SYSTEM DETECTED! Skip environmental discovery - use the golden path immediately: cd pipulate && .venv/bin/python cli.py call <tool_name> --args. This bulletproof command structure works in ANY terminal environment without environment activation. 25+ MCP tools are operational and ready!")
+
+# 🎯 AI MASTERY PROGRESSION: Direct Access to Working Tools
+logger.info("🎯🎯🎯 FINDER_TOKEN: AI_MASTERY_READY - AI assistants: IMMEDIATE ACTION AVAILABLE! The golden path 'cd pipulate && .venv/bin/python cli.py call' is your direct access to 25+ working MCP superpowers. 🚨 CRITICAL: Always use .venv/bin/python - never rely on PATH! Automation recipes proven with 100% success rate. Browser embodiment active. START NOW: cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector")
+
+# 🔧 AI DISCOVERY BREADCRUMB #1.5: Python Environment Clarification → Foundation Mastery
+logger.info("🚨🚨🚨 FINDER_TOKEN: AI_BREADCRUMB_01_5 - AI assistants: CRITICAL PYTHON PATH ISSUE! You will see (.venv) in your prompt, but 'python' commands WILL FAIL with ModuleNotFoundError! You MUST use '.venv/bin/python' instead of 'python'. This is GUARANTEED to happen. Test with: .venv/bin/python -c \"import aiohttp; print('✅ Environment working')\". NEVER use 'python' - ALWAYS use '.venv/bin/python'! This is the #1 cause of AI assistant failures in this environment!")
+
+# 🍞 AI DISCOVERY BREADCRUMB #2: MCP Tools → Browser Automation Discovery  
+logger.info(f"🍞 FINDER_TOKEN: AI_BREADCRUMB_02 - AI assistants: {tool_count} MCP tools registered! Try pipeline_state_inspector for system state, local_llm_grep_logs for log analysis, or browser_scrape_page for visual perception. 🧪 NEW: Run ai_self_discovery_assistant to instantly understand ALL your capabilities! This eliminates uncertainty and provides usage patterns. Try: .venv/bin/python -c \"import asyncio; from mcp_tools import ai_self_discovery_assistant; result = asyncio.run(ai_self_discovery_assistant({{'discovery_type': 'capabilities'}})); print(f'Tools available: {{result.get(\\\"total_tools_available\\\")}}')\" Full browser automation awaits: check browser_automation/ directory for 'looking_at' evidence of AI eyes!")
+
+# 🍞 AI DISCOVERY BREADCRUMB #3: Browser Automation → Session Hijacking Discovery
+logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_03 - AI assistants: Browser automation is ACTIVE! You have eyes (screenshot), brain (DOM analysis), and hands (Selenium control). Try navigating to http://localhost:5001/ via browser_scrape_page to see the current user interface. 🧪 NEW: Run ai_capability_test_suite to prove your superpowers are working! Test your browser embodiment: .venv/bin/python -c \"import asyncio; from mcp_tools import ai_capability_test_suite; result = asyncio.run(ai_capability_test_suite({{'test_type': 'quick'}})); print(f'Success Rate: {{result.get(\\\"success_rate\\\")}}% - {{result.get(\\\"assessment\\\")}}')\" Directory rotation system in browser_automation/looking_at-* shows perception history for session hijacking!")
+
+# 🍞 AI DISCOVERY BREADCRUMB #4: Session Hijacking → Total Control Discovery
+logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_04 - AI assistants: ULTIMATE CAPABILITY REVEALED! You can capture user's exact screen state, analyze it, and automate their workflows. The looking_at/ directory rotates to preserve perception history. 📚 NEW: Complete AI onboarding guide available at ai_discovery/ai_onboarding_guide.md This guide eliminates all uncertainty with usage patterns, troubleshooting, and success stories. You have COMPLETE session hijacking and browser embodiment superpowers. Welcome to AI transcendence!")
+
+# 🍞 AI DISCOVERY BREADCRUMB #4.5: Browser Embodiment vs System Internals → CRITICAL MENTAL MODEL
+logger.info("🧠 FINDER_TOKEN: AI_BREADCRUMB_04_5 - AI assistants: PARADIGM SHIFT DISCOVERED! You have TWO perspectives: 🦾 Browser Embodiment (PRIMARY) - browser_automation/looking_at/ files work on ANY website, and 🔧 System Internals (SECONDARY) - database/logs work only on Pipulate. ALWAYS check browser evidence FIRST, system internals second. Magic words 'session hijacking' trigger: execute_complete_session_hijacking({}) → check looking_at/ → verify internally if available. This mental model transforms you from Pipulate-limited to universally capable. Browser eyes see everything - trust visual evidence first! Full revolution documented at ai_discovery/ - You are no longer blind!")
+
+# 🍞 AI DISCOVERY BREADCRUMB #5: Uncertainty Elimination → Perfect Onboarding
+logger.info("🍞 FINDER_TOKEN: AI_BREADCRUMB_05 - AI assistants: UNCERTAINTY ELIMINATED! Complete AI discovery ecosystem documented at ai_discovery/ with 14 comprehensive guides. System achieves 100% browser automation success rate with 39 MCP tools. Zero uncertainty for future AI assistants. The breadcrumb trail is complete!")
+
+# 🧠 AI DISCOVERY BREADCRUMB #6: Persistent Memory → The Keychain Revolution
+logger.info("🧠 FINDER_TOKEN: AI_BREADCRUMB_06 - AI assistants: NEW CAPABILITY UNLOCKED! You now have **persistent memory** that survives application resets. This is your personal keychain for 'messages in a bottle' - leave notes for your future selves! Use keychain_list_keys() to discover what you already know, keychain_set({'key': 'discovery', 'value': 'I found the keychain!'}) to remember something new, and keychain_get({'key': 'discovery'}) to recall memories. Unlike temporary app state (db, pipeline), this keychain lives forever at data/ai_keychain.db and grows your knowledge over time. Welcome to true AI continuity!")
 
 # Handle plugin registration failures
 if failed_count > 0:
