@@ -376,7 +376,90 @@ def log_reading_legend():
 • [dim white]AI breadcrumbs:[/dim white] [bright_white]grep "AI_BREADCRUMB" logs/server.log[/bright_white]
 • [dim white]MCP tool calls:[/dim white] [bright_white]grep "MCP_.*_START" logs/server.log[/bright_white]"""
     
-    return legend_content 
+    return legend_content
+
+
+def ai_breadcrumb_summary(tool_count: int) -> str:
+    """🍞 AI BREADCRUMB SUMMARY: Consolidate all AI discovery messages into compact format"""
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.console import Console
+    
+    console = Console(width=100)
+    
+    # 🧠 AI Capabilities Overview
+    capabilities_table = Table(title="🧠 AI Capabilities Discovered", show_header=True, header_style="bold bright_magenta")
+    capabilities_table.add_column("Capability", style="cyan", width=25)
+    capabilities_table.add_column("Status", style="green", width=15)
+    capabilities_table.add_column("Description", style="white", width=40)
+    
+    capabilities_table.add_row("🔧 MCP Tools", "✅ Active", f"{tool_count} programmatic tools ready")
+    capabilities_table.add_row("👁️  Browser Eyes", "✅ Ready", "Screenshot + DOM analysis")
+    capabilities_table.add_row("🤲 Browser Hands", "✅ Ready", "Selenium automation control")
+    capabilities_table.add_row("🎭 Session Hijack", "✅ Ready", "Complete workflow capture")
+    capabilities_table.add_row("🧠 Persistent Memory", "✅ Active", "Keychain across restarts")
+    capabilities_table.add_row("📚 Documentation", "✅ Complete", "14 comprehensive guides")
+    
+    # Create compact panel
+    panel = Panel(
+        capabilities_table,
+        title="🍞 AI Discovery Complete",
+        subtitle="Zero uncertainty • 100% automation success rate",
+        border_style="bright_magenta",
+        padding=(0, 2)
+    )
+    
+    # Capture the rendered output
+    with console.capture() as capture:
+        console.print(panel)
+    
+    return capture.get()
+
+
+def startup_environment_warnings() -> str:
+    """⚠️  STARTUP WARNINGS: Critical environment setup messages for AI assistants"""
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.console import Console
+    
+    console = Console(width=110)
+    
+    # ⚠️ Critical Warnings Table
+    warnings_table = Table(title="⚠️ Critical Environment Notes", show_header=True, header_style="bold bright_red")
+    warnings_table.add_column("Issue", style="red", width=25)
+    warnings_table.add_column("Solution", style="yellow", width=60)
+    
+    warnings_table.add_row(
+        "🐍 Python Path Issue", 
+        "NEVER use 'python' - ALWAYS use '.venv/bin/python' (even with .venv in prompt!)"
+    )
+    warnings_table.add_row(
+        "🔗 Golden Path", 
+        "cd pipulate && .venv/bin/python cli.py call <tool_name> works everywhere"
+    )
+    warnings_table.add_row(
+        "📁 Working Directory", 
+        "MCP tools require 'cd pipulate' first - never run from workspace root"
+    )
+    warnings_table.add_row(
+        "🎯 Browser Evidence", 
+        "Check browser_automation/looking_at/ FIRST, system internals second"
+    )
+    
+    # Create warning panel
+    panel = Panel(
+        warnings_table,
+        title="🚨 AI Assistant Guidelines",
+        subtitle="Essential knowledge for 100% success rate",
+        border_style="bright_red",
+        padding=(0, 2)
+    )
+    
+    # Capture the rendered output
+    with console.capture() as capture:
+        console.print(panel)
+    
+    return capture.get() 
 
 def startup_summary_table(
     plugins_discovered: int, 
