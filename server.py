@@ -4549,10 +4549,55 @@ for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in ordered_plugins and module_name in plugin_instances:
         ordered_plugins.append(module_name)
 
-# Calculate startup metrics for plugin failure handling
+# Calculate startup metrics for plugin failure handling and display
 discovered_count = len(discovered_classes)
 registered_count = len(plugin_instances)
 failed_count = discovered_count - registered_count
+tool_count = len(MCP_TOOL_REGISTRY)
+current_app = get_app_name()
+current_env = get_current_environment()
+
+# 🎨 MCP FIGLET BANNER - Only show when running as main script
+logger.info("🔧 ASCII_MARKER_1: About to check MCP figlet banner conditions")
+logger.info(f"🔧 ASCII_MARKER_1: __name__ = {__name__}, tool_count = {tool_count}")
+if __name__ == '__main__' and tool_count > 0:
+    logger.info("🔧 ASCII_MARKER_2: Displaying MCP figlet banner and section header")
+    figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
+    section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
+    logger.info("🔧 ASCII_MARKER_3: MCP figlet banner and section header displayed")
+    # Half-second delay so humans can notice this major feature before it scrolls away
+    import time
+    time.sleep(0.5)
+else:
+    logger.info("🔧 ASCII_MARKER_X: MCP figlet banner conditions not met - skipped")
+
+# 📊 ELEGANT STARTUP SUMMARY - Rich tables for humans, FINDER_TOKEN for AIs
+logger.info("🔧 STARTUP_MARKER_1: About to check __name__ == '__main__' condition")
+logger.info(f"🔧 STARTUP_MARKER_1: __name__ value is: {__name__}")
+if __name__ == '__main__':
+    logger.info("🔧 STARTUP_MARKER_2: Inside __name__ == '__main__' block - showing Rich tables")
+    # Show beautiful startup summary for humans
+    startup_summary = startup_summary_table(
+        plugins_discovered=discovered_count,
+        plugins_registered=registered_count, 
+        mcp_tools_count=tool_count,
+        app_name=current_app,
+        environment=current_env
+    )
+    print(startup_summary)
+    logger.info("🔧 STARTUP_MARKER_3: startup_summary_table displayed")
+    
+    # Show AI capabilities summary
+    ai_summary = ai_breadcrumb_summary(tool_count)
+    print(ai_summary)
+    logger.info("🔧 STARTUP_MARKER_4: ai_breadcrumb_summary displayed")
+    
+    # Show critical environment warnings
+    warnings_summary = startup_environment_warnings()
+    print(warnings_summary)
+    logger.info("🔧 STARTUP_MARKER_5: startup_environment_warnings displayed")
+else:
+    logger.info("🔧 STARTUP_MARKER_X: NOT in __name__ == '__main__' block - Rich tables skipped")
 
 # Handle plugin registration failures
 if failed_count > 0:
