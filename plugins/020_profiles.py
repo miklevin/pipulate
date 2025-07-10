@@ -162,7 +162,18 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     # Get current profile ID to highlight the selected row
     get_current_profile_id, _, _, _, _, _ = get_server_functions()
     current_profile_id = get_current_profile_id()
-    is_current_profile = profile_record.id == current_profile_id
+    
+    # Ensure proper type comparison by converting both to int
+    try:
+        current_id_int = int(current_profile_id) if current_profile_id is not None else None
+        profile_id_int = int(profile_record.id) if profile_record.id is not None else None
+        is_current_profile = current_id_int is not None and profile_id_int is not None and current_id_int == profile_id_int
+        
+        # Debug logging to help identify the issue
+        logger.debug(f"Profile highlighting check: profile_id={profile_id_int}, current_id={current_id_int}, is_current={is_current_profile}")
+    except (ValueError, TypeError) as e:
+        logger.warning(f"Error comparing profile IDs: {e}. profile_record.id={profile_record.id}, current_profile_id={current_profile_id}")
+        is_current_profile = False
     
     item_id_dom = f'profile-item-{profile_record.id}'
     profile_crud_handler = main_plugin_instance.crud_handler
@@ -189,13 +200,9 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     
     delete_icon_span = '' if profile_record.name == 'Default Profile' else Span('🗑️', hx_delete=delete_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', hx_confirm=f"Are you sure you want to delete the profile '{profile_record.name}'? This action cannot be undone.", cls='profile-delete-icon delete-icon', title='Delete Profile')
     
-    # Add highlighting style for currently selected profile
-    base_style = 'display: flex; align-items: center; width: 100%; gap: 10px; padding: 0.5rem 0;'
+    # Apply PicoCSS-friendly highlighting classes
+    profile_item_classes = 'profile-item-base'
     if is_current_profile:
-        base_style += ' background-color: var(--pico-primary-background); border-radius: var(--pico-border-radius);'
+        profile_item_classes += ' profile-item-selected'
     
-    li_style = 'border-bottom: 1px solid var(--pico-muted-border-color); padding: 0.25rem 0; list-style-type: none;'
-    if is_current_profile:
-        li_style += ' background-color: var(--pico-primary-background); border-radius: var(--pico-border-radius); border: 2px solid var(--pico-primary-color);'
-    
-    return Li(Div(active_checkbox_input, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), delete_icon_span, style=base_style), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0), style=li_style)
+    return Li(Div(active_checkbox_input, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), delete_icon_span, cls=profile_item_classes), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0))

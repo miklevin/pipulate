@@ -1097,6 +1097,30 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     flex-shrink: 0;
 }
 
+/* Profile item highlighting - PicoCSS friendly */
+.profile-item-base {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    list-style-type: none;
+    transition: all 0.2s ease;
+}
+
+.profile-item-selected {
+    background-color: var(--pico-primary-background);
+    border-radius: var(--pico-border-radius);
+    border: 2px solid var(--pico-primary-border);
+    margin: 0.125rem 0;
+    padding: 0.375rem 0.5rem;
+}
+
+.profile-item-selected .profile-display-flex {
+    font-weight: 500;
+}
+
 /* Tasks Plugin Semantic Classes
    ===============================
    Consolidated from 5 inline styles in tasks plugin
