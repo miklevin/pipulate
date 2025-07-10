@@ -6631,12 +6631,13 @@ async def send_startup_environment_message():
         build_endpoint_training(current_endpoint)
         
         # Send endpoint message if available (with coordination check)
-        # 🔧 BUG FIX: Skip endpoint message during startup if endpoint is empty to prevent wrong Roles message
+        # 🔧 BUG FIX: Send appropriate endpoint message for both homepage and other endpoints
         has_temp_message = 'temp_message' in db
-        is_endpoint_valid = bool(current_endpoint and current_endpoint.strip())
-        logger.info(f"🔧 STARTUP_DEBUG: has_temp_message={has_temp_message}, is_endpoint_valid={is_endpoint_valid}, current_endpoint_repr={repr(current_endpoint)}")
+        # 🔧 HOMEPAGE FIX: Empty string (homepage) is also valid and should get the Roles message
+        is_valid_endpoint = True  # Both homepage ('') and other endpoints are valid
+        logger.info(f"🔧 STARTUP_DEBUG: has_temp_message={has_temp_message}, is_valid_endpoint={is_valid_endpoint}, current_endpoint_repr={repr(current_endpoint)}")
         
-        if not has_temp_message and is_endpoint_valid:
+        if not has_temp_message and is_valid_endpoint:
             endpoint_message = build_endpoint_messages(current_endpoint)
             logger.info(f"🔧 STARTUP_DEBUG: Endpoint message for '{current_endpoint}': {endpoint_message[:100] if endpoint_message else 'None'}...")
             if endpoint_message:
@@ -6671,7 +6672,7 @@ async def send_startup_environment_message():
         elif has_temp_message:
             logger.info(f"🔧 STARTUP_DEBUG: Using existing temp_message instead of generating new endpoint message for '{current_endpoint}'")
         else:
-            logger.info(f"🔧 STARTUP_DEBUG: Skipping endpoint message because current_endpoint is invalid: '{current_endpoint}'")
+            logger.info(f"🔧 STARTUP_DEBUG: Skipping endpoint message - this should not happen with current logic")
             
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
