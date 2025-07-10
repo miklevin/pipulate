@@ -1105,7 +1105,8 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     gap: 10px;
     padding: 0.5rem 0;
     border-bottom: 1px solid var(--pico-muted-border-color);
-    list-style-type: none;
+    list-style: none !important;
+    list-style-type: none !important;
     transition: all 0.2s ease;
 }
 
@@ -1119,6 +1120,13 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 .profile-item-selected .profile-display-flex {
     font-weight: 500;
+}
+
+/* Ensure profile list items never show bullets */
+#profile-list-ul li,
+li[id^="profile-item-"] {
+    list-style: none !important;
+    list-style-type: none !important;
 }
 
 /* Tasks Plugin Semantic Classes
