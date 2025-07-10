@@ -1110,9 +1110,9 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 }
 
 .profile-item-selected {
-    background-color: var(--pico-primary-background);
+    background-color: var(--pico-primary-focus);
     border-radius: var(--pico-border-radius);
-    border: 2px solid var(--pico-primary-border);
+    border: 2px solid var(--pico-primary);
     margin: 0.125rem 0;
     padding: 0.375rem 0.5rem;
 }
