@@ -4549,6 +4549,16 @@ for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in ordered_plugins and module_name in plugin_instances:
         ordered_plugins.append(module_name)
 
+# 🔧 REGISTER ALL MCP TOOLS - Critical for AI assistant capabilities
+logger.info("🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools")
+
+# Ensure mcp_tools has the correct registry reference
+import mcp_tools
+mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
+from mcp_tools import register_all_mcp_tools
+register_all_mcp_tools()
+logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
+
 # Calculate startup metrics for plugin failure handling and display
 discovered_count = len(discovered_classes)
 registered_count = len(plugin_instances)
