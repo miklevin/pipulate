@@ -145,15 +145,74 @@ class ProfilesPlugin(ProfilesPluginIdentity):
                 logger.error(f"Error switching to tasks for profile {profile_id}: {e}")
                 raise HTTPException(status_code=500, detail="Failed to switch profile")
         
+        # Add route for lock-to-profile shortcut
+        @rt_decorator(f'/{self.name}/lock_to_profile/{{profile_id:int}}')
+        async def lock_to_profile(profile_id: int):
+            """Set profile as current AND enable lock mode - meeting prep shortcut."""
+            try:
+                # Validate profile exists
+                profile = self.table.get(profile_id)
+                if not profile:
+                    logger.warning(f"Attempted to lock to non-existent profile {profile_id}")
+                    raise HTTPException(status_code=404, detail=f"Profile {profile_id} not found")
+                
+                # Set the current profile ID in the key-value store
+                self.db_dictlike['last_profile_id'] = profile_id
+                
+                # Enable profile lock mode
+                self.db_dictlike['profile_lock_enabled'] = True
+                
+                logger.info(f"🔒 Locked to profile {profile_id} ({profile.name}) - meeting prep mode activated")
+                
+                # Return updated profile list (locked mode shows only this profile)
+                profiles = [profile]  # Only show the locked profile
+                ordered_profiles = sorted(profiles, key=lambda x: getattr(x, 'priority', 0))
+                profile_list = Ul(*[render_profile(p, self) for p in ordered_profiles], id='profile-list-ul', cls='sortable list-unstyled', data_sortable_group=self.name)
+                
+                return profile_list
+                
+            except Exception as e:
+                logger.error(f"Error locking to profile {profile_id}: {e}")
+                raise HTTPException(status_code=500, detail="Failed to lock profile")
+        
         # Use static name to avoid potential circular import during route registration
         display_name_for_routes = f"{self.EMOJI} Profiles"
         logger.info(f"CRUD routes for {display_name_for_routes} (prefix '/{self.name}') registered by ProfileCrudOperations.")
 
     async def landing(self, request=None):
+        # Get all profiles first
         profiles = list(self.table())
+        
+        # Check if profile lock is enabled
+        profile_lock_enabled = self.db_dictlike.get('profile_lock_enabled', False)
+        
+        if profile_lock_enabled:
+            # If locked, only show the current profile
+            get_current_profile_id, _, _, _, _, _ = get_server_functions()
+            current_profile_id = get_current_profile_id()
+            
+            if current_profile_id:
+                try:
+                    current_id_int = int(current_profile_id)
+                    # Filter to only show the current profile
+                    profiles = [p for p in profiles if int(p.id) == current_id_int]
+                    logger.debug(f"Profile lock enabled - showing only profile {current_profile_id}")
+                except (ValueError, TypeError):
+                    logger.warning(f"Error filtering profiles for lock mode: invalid current_profile_id {current_profile_id}")
+                    # If there's an error, show all profiles as fallback
+            else:
+                logger.warning("Profile lock enabled but no current profile ID found")
+                # If no current profile, show all profiles as fallback
+        
         ordered_profiles = sorted(profiles, key=lambda x: getattr(x, 'priority', 0))
         profile_list = Ul(*[render_profile(p, self) for p in ordered_profiles], id='profile-list-ul', cls='sortable list-unstyled', data_sortable_group=self.name)
-        add_profile_form = Form(Group(Input(placeholder='Nickname', name='profile_name', id='profile-name-input-add', autofocus=True), Input(placeholder='Real Name (Optional)', name='profile_real_name', id='profile-real-name-input-add'), Input(placeholder=PLACEHOLDER_ADDRESS, name='profile_address', id='profile-address-input-add'), Input(placeholder=PLACEHOLDER_CODE, name='profile_code', id='profile-code-input-add'), Button('Add', type='submit', id='add-profile-button')), hx_post=f'/{self.name}', hx_target='#profile-list-ul', hx_swap='beforeend', hx_on_htmx_after_request="this.reset(); this.querySelector('input[name=profile_name]').focus();")
+        
+        # Hide the add form when profile is locked
+        if profile_lock_enabled:
+            add_profile_form = Div()  # Empty div when locked
+        else:
+            add_profile_form = Form(Group(Input(placeholder='Nickname', name='profile_name', id='profile-name-input-add', autofocus=True), Input(placeholder='Real Name (Optional)', name='profile_real_name', id='profile-real-name-input-add'), Input(placeholder=PLACEHOLDER_ADDRESS, name='profile_address', id='profile-address-input-add'), Input(placeholder=PLACEHOLDER_CODE, name='profile_code', id='profile-code-input-add'), Button('Add', type='submit', id='add-profile-button')), hx_post=f'/{self.name}', hx_target='#profile-list-ul', hx_swap='beforeend', hx_on_htmx_after_request="this.reset(); this.querySelector('input[name=profile_name]').focus();")
+        
         container = Div(H2('Profiles'), add_profile_form, profile_list, cls='container-centered')
         return container
 
@@ -196,13 +255,30 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
                          onclick='event.stopPropagation();')  # Prevent triggering the edit onclick
     
     profile_display_div = Div(Span(profile_record.name, title='Click to edit', style='cursor:pointer; font-weight:bold;'), Span(f' ({profile_record.real_name})' if profile_record.real_name else '', style='margin-left:5px; color:var(--pico-muted-color); font-size:0.9em;'), Span(f'📍{profile_record.address}' if profile_record.address else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), Span(f'🌐{profile_record.code}' if profile_record.code else '', style='margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);'), tasks_link_inline, id=profile_text_display_id, cls='profile-display-flex', onclick=toggle_edit_js)
-    active_checkbox_input = Input(type='checkbox', name='active_status_profile', checked=profile_record.active, hx_post=toggle_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', style='margin-right: 10px; flex-shrink: 0;', title='Toggle Active Status')
     
-    delete_icon_span = '' if profile_record.name == 'Default Profile' else Span('🗑️', hx_delete=delete_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', hx_confirm=f"Are you sure you want to delete the profile '{profile_record.name}'? This action cannot be undone.", cls='profile-delete-icon delete-icon', title='Delete Profile')
+    # Check if profile lock is enabled 
+    profile_lock_enabled = main_plugin_instance.db_dictlike.get('profile_lock_enabled', False)
+    
+    # Conditionally render elements based on lock state
+    if profile_lock_enabled:
+        # When locked: no checkbox, no lock icon, no delete icon
+        active_checkbox_input = ''
+        lock_to_profile_icon = ''
+        delete_icon_span = ''
+    else:
+        # When unlocked: show all elements
+        active_checkbox_input = Input(type='checkbox', name='active_status_profile', checked=profile_record.active, hx_post=toggle_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', style='margin-right: 10px; flex-shrink: 0;', title='Toggle Active Status')
+        
+        # Lock emoji for quick lock-to-profile action
+        lock_to_profile_url = f'/{main_plugin_instance.name}/lock_to_profile/{profile_record.id}'
+        lock_to_profile_icon = Span('🔒', hx_post=lock_to_profile_url, hx_target='#profile-list-ul', hx_swap='outerHTML', style='margin-right: 8px; cursor: pointer; flex-shrink: 0; font-size: 0.9em;', title=f'Lock to {profile_record.name} profile')
+        
+        # Delete icon (always hide for Default Profile)
+        delete_icon_span = '' if profile_record.name == 'Default Profile' else Span('🗑️', hx_delete=delete_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', hx_confirm=f"Are you sure you want to delete the profile '{profile_record.name}'? This action cannot be undone.", cls='profile-delete-icon delete-icon', title='Delete Profile')
     
     # Apply PicoCSS-friendly highlighting classes
     profile_item_classes = 'profile-item-base'
     if is_current_profile:
         profile_item_classes += ' profile-item-selected'
     
-    return Li(Div(active_checkbox_input, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), delete_icon_span, cls=profile_item_classes), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0))
+    return Li(Div(active_checkbox_input, lock_to_profile_icon, Div(profile_display_div, update_profile_form, style='flex-grow:1; min-width:0;'), delete_icon_span, cls=profile_item_classes), id=item_id_dom, data_id=str(profile_record.id), data_priority=str(profile_record.priority or 0))
