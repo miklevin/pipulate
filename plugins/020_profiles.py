@@ -164,8 +164,11 @@ class ProfilesPlugin(ProfilesPluginIdentity):
                 
                 logger.info(f"🔒 Locked to profile {profile_id} ({profile.name}) - meeting prep mode activated")
                 
-                # Return complete landing page to update both form and list
-                return await self.landing()
+                # Return full page refresh to sync all UI elements (dropdown toggles, etc.)
+                from starlette.responses import Response
+                response = Response('')
+                response.headers['HX-Refresh'] = 'true'
+                return response
                 
             except Exception as e:
                 logger.error(f"Error locking to profile {profile_id}: {e}")
