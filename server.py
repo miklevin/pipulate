@@ -52,6 +52,9 @@ from mcp_tools import register_all_mcp_tools, register_mcp_tool
 import mcp_tools
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
+# Import ASCII display functions (externalized from server.py for token reduction)
+from helpers.ascii_displays import log_reading_legend
+
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
 # Various debug settings
@@ -1562,30 +1565,8 @@ def log_pipeline_summary(title_prefix: str=''):
         white_rabbit()
         print()
         
-        # 📚 LOG LEGEND: Quick crash course in reading Pipulate logs
-        legend_content = """[dim white]Reading Pipulate Logs - Quick Reference:[/dim white]
-
-[bold bright_white]Log Format:[/bold bright_white] [dim white]TIME | LEVEL | MODULE | MESSAGE[/dim white]
-[bright_white]Example:[/bright_white] [dim white]14:20:03 | INFO | __main__ | [🌐 NETWORK] GET /simon_mcp | ID: 6aac3fe0[/dim white]
-
-[bold bright_white]Common Emojis & Meanings:[/bold bright_white]
-🚀 [dim white]STARTUP[/dim white]     - Server initialization and startup events
-🌐 [dim white]NETWORK[/dim white]     - HTTP requests, API calls, web traffic
-🔄 [dim white]PIPELINE[/dim white]    - Workflow execution and step processing
-💾 [dim white]DATABASE[/dim white]    - Data storage operations and queries
-👤 [dim white]PROFILE[/dim white]     - User profile and authentication events
-🔌 [dim white]PLUGIN[/dim white]      - Plugin loading and workflow registration
-💬 [dim white]CHAT[/dim white]        - LLM interactions and AI conversations
-🎭 [dim white]AI_CREATIVE[/dim white] - ASCII art and AI-specific logging (logs only)
-🔍 [dim white]FINDER_TOKEN[/dim white] - Searchable debug markers for AI assistants
-⚠️  [dim white]WARNING[/dim white]     - Important notices and potential issues
-❌ [dim white]ERROR[/dim white]       - System errors and failures
-
-[bold bright_white]Pro Tips:[/bold bright_white]
-• [dim white]Use grep with emojis:[/dim white] [bright_white]grep "🌐" logs/server.log[/bright_white]
-• [dim white]Find specific events:[/dim white] [bright_white]grep "FINDER_TOKEN" logs/server.log[/bright_white]
-• [dim white]Follow live logs:[/dim white] [bright_white]tail -f logs/server.log[/bright_white]
-• [dim white]AI assistants:[/dim white] [bright_white]grep "AI_CREATIVE_VISION" logs/server.log[/bright_white]"""
+        # 📚 LOG LEGEND: Use the comprehensive version from ascii_displays.py 
+        legend_content = log_reading_legend()
 
         legend_panel = Panel(
             legend_content,
