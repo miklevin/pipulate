@@ -333,13 +333,12 @@ def setup_logging():
 
 # 🔧 FINDER_TOKEN: rotate_looking_at_directory moved to mcp_tools.py to eliminate circular imports
 
-# Initialize logger BEFORE any functions that need it
-logger = setup_logging()
-
-
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
     figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
+
+# Initialize logger BEFORE any functions that need it
+logger = setup_logging()
 
 
 # Log early startup phase
