@@ -6593,56 +6593,38 @@ async def send_startup_environment_message():
         message_coordination['last_endpoint_message_time'].clear()
         
         # Also send endpoint message and training for current location
-        # 🔧 BUG FIX: Robust endpoint detection that doesn't rely on fragile database state
+        # 🔧 BUG FIX: Simplified and robust endpoint detection
         current_endpoint = db.get('last_app_choice', '')
         visited_url = db.get('last_visited_url', '')
         
-        # 🔧 ROBUST FIX: If database tracking failed, use the LAST endpoint the user actually visited
-        # Check the recent network logs to find the most recent GET request to an actual endpoint
-        if not current_endpoint or current_endpoint == '':
-            try:
-                # Search recent logs for the last actual endpoint visit
-                import subprocess
-                import re
-                recent_endpoint_logs = subprocess.run(
-                    'grep -h "\\[🌐 NETWORK\\] GET /" logs/server-*.log',
-                    capture_output=True, text=True, cwd='.', shell=True)
-                
-                if recent_endpoint_logs.returncode == 0:
-                    # Find the most recent endpoint that's not root, favicon, or well-known
-                    lines = recent_endpoint_logs.stdout.strip().split('\n')
-                    for line in reversed(lines[-20:]):  # Check last 20 network requests
-                        if 'GET /' in line and 'ID:' in line:
-                            # Extract the URL path from the log line
-                            match = re.search(r'GET (/[^\s]*)', line)
-                            if match:
-                                log_path = match.group(1).strip('/')
-                                # Skip non-endpoints
-                                if (log_path and log_path not in ['', 'favicon.ico', 'sse'] and 
-                                    not log_path.startswith('.well-known') and
-                                    not log_path.startswith('static/')):
-                                    # Found a real endpoint!
-                                    current_endpoint = normalize_menu_path(log_path)
-                                    logger.info(f"🔧 ROBUST_ENDPOINT_DETECTION: Found recent endpoint from logs: {log_path} -> {current_endpoint}")
-                                    break
-            except Exception as e:
-                logger.info(f"🔧 ROBUST_ENDPOINT_DETECTION: Could not parse logs: {e}")
+        logger.info(f"🔧 STARTUP_DEBUG: Initial last_app_choice='{current_endpoint}', last_visited_url='{visited_url}'")
         
-        logger.info(f"🔧 STARTUP_DEBUG: last_app_choice='{current_endpoint}', last_visited_url='{visited_url}'")
-        
-        # Extract endpoint from URL if available (same logic as home function)
+        # 🔧 ROBUST FIX: Use visited_url as the primary source of truth for current location
         if visited_url:
             try:
                 from urllib.parse import urlparse
                 parsed_url = urlparse(visited_url)
                 path = parsed_url.path.strip('/')
-                if path:  # Don't override with empty path
-                    current_endpoint = normalize_menu_path(path)
-                    logger.info(f"🔧 STARTUP_DEBUG: URL endpoint resolved: {visited_url} -> {current_endpoint}")
+                
+                # Normalize the path to get the current endpoint
+                current_endpoint = normalize_menu_path(path) if path else ''
+                logger.info(f"🔧 STARTUP_DEBUG: URL endpoint resolved: {visited_url} -> '{current_endpoint}'")
+                
+                # 🔧 EXPLICIT HOMEPAGE DETECTION: If path is empty or '/', we're on homepage
+                if not path or path == '':
+                    current_endpoint = ''
+                    logger.info(f"🔧 STARTUP_DEBUG: Detected homepage from URL: {visited_url}")
+                    
             except Exception as e:
                 logger.info(f"🔧 STARTUP_DEBUG: Could not parse last_visited_url: {e}")
         
-        logger.info(f"🔧 STARTUP_DEBUG: Final current_endpoint='{current_endpoint}'")
+        # 🔧 FALLBACK: If no URL or URL parsing failed, check last_app_choice but treat '' as homepage
+        if not visited_url:
+            # Use last_app_choice as fallback, but ensure '' is treated as homepage
+            current_endpoint = current_endpoint if current_endpoint else ''
+            logger.info(f"🔧 STARTUP_DEBUG: Using last_app_choice fallback: '{current_endpoint}'")
+        
+        logger.info(f"🔧 STARTUP_DEBUG: Final current_endpoint='{current_endpoint}' (empty string = homepage)")
         logger.info(f"🔧 STARTUP_DEBUG: Available plugin_instances: {list(plugin_instances.keys())}")
         
         # Add training prompt to conversation history
@@ -6954,10 +6936,15 @@ def restart_server():
                 if path:  # Use URL path as the canonical endpoint
                     current_endpoint = normalize_menu_path(path)
                     logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Using URL endpoint: {visited_url} -> {current_endpoint}")
+                else:
+                    # Empty path means homepage/roles - set explicitly
+                    current_endpoint = ''
+                    logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Empty URL path detected - using homepage: {visited_url} -> ''")
             except Exception as e:
                 logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Could not parse URL: {e}")
         
-        # Generate and store the endpoint message for this context
+        # 🔧 BUG FIX: Only preserve endpoint context for non-homepage endpoints
+        # Homepage should always regenerate its message on startup, not preserve old workflow messages
         if current_endpoint and current_endpoint != '':
             endpoint_message = build_endpoint_messages(current_endpoint)
             if endpoint_message:
@@ -6966,7 +6953,13 @@ def restart_server():
             else:
                 logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: No endpoint message found for '{current_endpoint}'")
         else:
-            logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Empty endpoint '{current_endpoint}', not storing temp_message")
+            # 🔧 BUG FIX: For homepage (empty endpoint), explicitly clear temp_message
+            # This ensures the startup sequence will generate the correct Roles message
+            if 'temp_message' in db:
+                del db['temp_message']
+                logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Cleared temp_message for homepage to ensure correct Roles message on restart")
+            else:
+                logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Homepage endpoint '{current_endpoint}', no temp_message to clear")
             
     except Exception as e:
         logger.warning(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Could not preserve endpoint context: {e}")
