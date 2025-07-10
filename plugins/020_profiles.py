@@ -164,12 +164,8 @@ class ProfilesPlugin(ProfilesPluginIdentity):
                 
                 logger.info(f"🔒 Locked to profile {profile_id} ({profile.name}) - meeting prep mode activated")
                 
-                # Return updated profile list (locked mode shows only this profile)
-                profiles = [profile]  # Only show the locked profile
-                ordered_profiles = sorted(profiles, key=lambda x: getattr(x, 'priority', 0))
-                profile_list = Ul(*[render_profile(p, self) for p in ordered_profiles], id='profile-list-ul', cls='sortable list-unstyled', data_sortable_group=self.name)
-                
-                return profile_list
+                # Return complete landing page to update both form and list
+                return await self.landing()
                 
             except Exception as e:
                 logger.error(f"Error locking to profile {profile_id}: {e}")
@@ -247,7 +243,7 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     update_profile_form = Form(Div(Input(type='text', name='profile_name', value=profile_record.name, placeholder='Nickname', id=name_input_update_id, cls='mb-2'), Input(type='text', name='profile_real_name', value=profile_record.real_name or '', placeholder='Real Name (Optional)', cls='mb-2'), Input(type='text', name='profile_address', value=profile_record.address or '', placeholder=PLACEHOLDER_ADDRESS, cls='mb-2'), Input(type='text', name='profile_code', value=profile_record.code or '', placeholder=PLACEHOLDER_CODE, cls='mb-2'), style='display:grid; grid-template-columns: 1fr; gap: 0.25rem; width:100%;'), Div(Button('Save', type='submit', cls='primary', style='margin-right: 0.5rem;'), Button('Cancel', type='button', cls='secondary outline', onclick=toggle_display_js), style='margin-top:0.5rem; display:flex; justify-content:start;'), hx_post=update_url, hx_target=f'#{item_id_dom}', hx_swap='outerHTML', id=update_form_id, style='display: none; width: 100%; padding: 0.5rem; box-sizing: border-box; background-color: var(--pico-form-element-background-color); border-radius: var(--pico-border-radius);', cls='profile-edit-form')
     # Task link to switch to tasks for this profile - inside the profile display with count
     task_count = main_plugin_instance.count_unchecked_tasks_for_profile(profile_record.id)
-    tasks_link_text = f'Tasks ({task_count})'
+    tasks_link_text = f'✔️ Tasks ({task_count})'
     tasks_link_inline = A(tasks_link_text, href=f'/{main_plugin_instance.name}/switch_to_tasks/{profile_record.id}', 
                          cls='profile-tasks-link', 
                          title=f'View {task_count} unchecked tasks for {profile_record.name}',
