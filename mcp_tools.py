@@ -112,40 +112,39 @@ def apply_timing_preset(preset_name: str):
 apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
 
 # ================================================================
-# DATABASE FILENAME UTILITIES - Match server.py logic exactly
+# DATABASE FILENAME UTILITIES - Use server.py functions directly
 # ================================================================
 
-def get_app_name():
-    """Get the name of the app from the app_name.txt file, or the parent directory name."""
-    app_name_file = 'app_name.txt'
-    if Path(app_name_file).exists():
-        try:
-            return Path(app_name_file).read_text().strip().capitalize()
-        except:
-            pass
-    # Fallback to directory name
-    name = Path(__file__).parent.name
-    name = name[:-5] if name.endswith('-main') else name
-    return name.capitalize()
-
-def get_current_environment():
-    """Get current environment from file, defaulting to Development."""
-    env_file = Path('data/current_environment.txt')
-    if env_file.exists():
-        try:
-            return env_file.read_text().strip()
-        except:
-            pass
-    return 'Development'
-
 def get_db_filename():
-    """Get the database filename using the same logic as server.py."""
-    app_name = get_app_name()
-    current_env = get_current_environment()
-    if current_env == 'Development':
-        return f'data/{app_name.lower()}_dev.db'
-    else:
-        return f'data/{app_name.lower()}.db'
+    """Get the database filename using the server.py functions (single source of truth)."""
+    try:
+        # Use dynamic import to avoid circular dependency
+        import sys
+        server_module = sys.modules.get('server') or sys.modules.get('__main__')
+        
+        if server_module and hasattr(server_module, 'get_db_filename'):
+            return server_module.get_db_filename()
+        else:
+            # Fallback: use server.py globals if available
+            if server_module and hasattr(server_module, 'DB_FILENAME'):
+                return server_module.DB_FILENAME
+            
+            # Last resort: basic logic matching server.py
+            app_name = 'Pipulate'  # Default fallback
+            current_env = 'Development'
+            env_file = Path('data/current_environment.txt')
+            if env_file.exists():
+                try:
+                    current_env = env_file.read_text().strip()
+                except:
+                    pass
+            if current_env == 'Development':
+                return f'data/{app_name.lower()}_dev.db'
+            else:
+                return f'data/{app_name.lower()}.db'
+    except Exception as e:
+        logger.warning(f"⚠️ Could not access server.py database functions: {e}")
+        return 'data/pipulate_dev.db'  # Safe default
 
 # ================================================================
 # BROWSER AUTOMATION UTILITIES
