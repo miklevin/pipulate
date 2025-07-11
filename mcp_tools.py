@@ -1047,8 +1047,8 @@ async def local_llm_grep_logs(params: dict) -> dict:
             return {"success": False, "error": "pattern or search_term parameter is required"}
         
         file_path = params.get('file_path', 'logs/server.log')
-        max_results = params.get('max_results', 50)
-        context_lines = params.get('context_lines', 2)
+        max_results = int(params.get('max_results', 50))
+        context_lines = int(params.get('context_lines', 2))
         
         if not os.path.exists(file_path):
             return {"success": False, "error": f"Log file not found: {file_path}"}
