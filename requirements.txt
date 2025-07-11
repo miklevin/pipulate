@@ -11,6 +11,7 @@ httpx
 ipynbname
 isort
 itables
+jsonschema
 jupyter-ai[all]
 jupyterlab
 jupyterlab-spellchecker
