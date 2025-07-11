@@ -358,10 +358,11 @@ def generate_files_list():
         ignore_patterns=ignore_patterns
     ))
     
-    # AI Discovery directory (NEW)
+    # AI Discovery directory (NEW) - recursive to include subdirectories
     lines.extend(enumerate_directory(
         f"{base_paths['pipulate']}/ai_discovery",
         description="AI DISCOVERY (AI Assistant Training & Progressive Discovery)",
+        recursive=True,
         ignore_patterns=ignore_patterns
     ))
     
