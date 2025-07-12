@@ -1,7 +1,7 @@
 {
   "demo_script": {
-    "name": "Regression Prevention Demo Sequence",
-    "description": "A scripted dialogue demonstrating MCP tool capabilities with embedded tool calls",
+    "name": "Interactive Pipulate Demo",
+    "description": "An interactive demo that responds to keyboard input and branches based on user choices",
     "trigger_message": "What is this?",
     "steps": [
       {
@@ -14,86 +14,147 @@
         }
       },
       {
-        "step_id": "02_system_intro",
+        "step_id": "02_pipulate_intro",
         "type": "system_reply",
-        "message": "🎯 **REGRESSION PREVENTION DEMO SEQUENCE INITIATED**\n\nYou've triggered the most fun MCP tool calling regression prevention system! Let me show you what's possible...",
+        "message": "This is Pipulate, local first AI SEO automation software. Would you like a demo? Press \"y\" or \"n\" on the keyboard.",
         "timing": {
           "delay_before": 1000,
           "display_speed": 30
         },
-        "verbatim": true
-      },
-      {
-        "step_id": "03_mcp_tool_discovery",
-        "type": "mcp_tool_call",
-        "tool_name": "ai_self_discovery_assistant",
-        "tool_args": {
-          "discovery_type": "capabilities"
-        },
-        "timing": {
-          "delay_before": 2000
-        },
-        "description": "Discovering available MCP tools..."
-      },
-      {
-        "step_id": "04_ui_flash_demo",
-        "type": "mcp_tool_call",
-        "tool_name": "ui_flash_element",
-        "tool_args": {
-          "selector": "#msg",
-          "color": "green",
-          "duration": 2000
-        },
-        "timing": {
-          "delay_before": 1000
-        },
-        "description": "✨ Twinkling the chat input to show UI interaction capabilities"
-      },
-      {
-        "step_id": "05_system_explanation",
-        "type": "system_reply",
-        "message": "🌟 **MCP TOOLS DEMONSTRATED:**\n\n✅ **ai_self_discovery_assistant**: Discovered available tools\n✅ **ui_flash_element**: Twinkled the chat input\n\nThis is just the beginning! We have 32 MCP tools available for automation magic.",
-        "timing": {
-          "delay_before": 3000,
-          "display_speed": 25
-        },
-        "verbatim": true
-      },
-      {
-        "step_id": "06_simulated_user_question",
-        "type": "user_input",
-        "message": "Show me the session hijacking demo!",
-        "timing": {
-          "delay_before": 2000,
-          "typing_speed": 40
+        "verbatim": true,
+        "wait_for_input": true,
+        "input_type": "keyboard",
+        "valid_keys": ["y", "n", "Y", "N"],
+        "branches": {
+          "y": "branch_yes",
+          "Y": "branch_yes", 
+          "n": "branch_no",
+          "N": "branch_no"
         }
-      },
-      {
-        "step_id": "07_session_hijacking_demo",
-        "type": "mcp_tool_call",
-        "tool_name": "execute_complete_session_hijacking",
-        "tool_args": {},
-        "timing": {
-          "delay_before": 1000
-        },
-        "description": "🎭 Executing the famous 1-shot session hijacking demo..."
-      },
-      {
-        "step_id": "08_final_system_message",
-        "type": "system_reply",
-        "message": "🎉 **DEMO COMPLETE!**\n\nThis scripted sequence demonstrates:\n\n- **Ctrl+Shift+D**: Keyboard trigger for demo sequences\n- **Simulated User Input**: Putting words in user's mouth\n- **System Replies**: Verbatim responses (not LLM generated)\n- **MCP Tool Integration**: Embedded tool calls with timing\n- **UI Interaction**: Visual feedback and twinkling\n\n🌟 **The yellowbrickroad remains golden!**",
-        "timing": {
-          "delay_before": 2000,
-          "display_speed": 20
-        },
-        "verbatim": true
       }
     ],
+    "branches": {
+      "branch_yes": [
+        {
+          "step_id": "03_yes_response",
+          "type": "system_reply",
+          "message": "You hit yes! First let's set us to DEV mode so we can play with the database. Is that okay? y/n",
+          "timing": {
+            "delay_before": 500,
+            "display_speed": 25
+          },
+          "verbatim": true,
+          "wait_for_input": true,
+          "input_type": "keyboard",
+          "valid_keys": ["y", "n", "Y", "N"],
+          "branches": {
+            "y": "branch_dev_yes",
+            "Y": "branch_dev_yes",
+            "n": "branch_dev_no", 
+            "N": "branch_dev_no"
+          }
+        }
+      ],
+      "branch_no": [
+        {
+          "step_id": "03_no_response",
+          "type": "system_reply",
+          "message": "Back to our regularly scheduled program.",
+          "timing": {
+            "delay_before": 500,
+            "display_speed": 25
+          },
+          "verbatim": true,
+          "end_demo": true
+        }
+      ],
+      "branch_dev_yes": [
+        {
+          "step_id": "04_dev_mode_activated",
+          "type": "system_reply",
+          "message": "🚀 **DEV MODE ACTIVATED!**\n\nNow we can safely experiment with the database. Let me show you what's possible...",
+          "timing": {
+            "delay_before": 500,
+            "display_speed": 25
+          },
+          "verbatim": true
+        },
+        {
+          "step_id": "05_mcp_tool_demo",
+          "type": "mcp_tool_call",
+          "tool_name": "pipeline_state_inspector",
+          "tool_args": {},
+          "timing": {
+            "delay_before": 1500
+          },
+          "description": "🔍 Inspecting current pipeline state..."
+        },
+        {
+          "step_id": "06_ui_flash_demo",
+          "type": "mcp_tool_call",
+          "tool_name": "ui_flash_element",
+          "tool_args": {
+            "selector": "#msg",
+            "color": "gold",
+            "duration": 2500
+          },
+          "timing": {
+            "delay_before": 1000
+          },
+          "description": "✨ Twinkling the chat input with gold magic"
+        },
+        {
+          "step_id": "07_demo_complete",
+          "type": "system_reply",
+          "message": "🎉 **DEMO COMPLETE!**\n\nYou've just experienced:\n\n✅ **Interactive keyboard input** - Real y/n branching\n✅ **MCP tool integration** - Pipeline inspection\n✅ **UI magic** - Gold twinkling effects\n\n🌟 **Welcome to the future of local-first AI automation!**",
+          "timing": {
+            "delay_before": 3000,
+            "display_speed": 20
+          },
+          "verbatim": true
+        }
+      ],
+      "branch_dev_no": [
+        {
+          "step_id": "04_dev_mode_declined",
+          "type": "system_reply",
+          "message": "No problem! We'll stick to safe, read-only operations. Let me show you a quick overview instead...",
+          "timing": {
+            "delay_before": 500,
+            "display_speed": 25
+          },
+          "verbatim": true
+        },
+        {
+          "step_id": "05_safe_demo",
+          "type": "mcp_tool_call",
+          "tool_name": "local_llm_list_files",
+          "tool_args": {
+            "directory": "."
+          },
+          "timing": {
+            "delay_before": 1500
+          },
+          "description": "📁 Listing available files safely..."
+        },
+        {
+          "step_id": "06_safe_demo_complete",
+          "type": "system_reply",
+          "message": "🎯 **SAFE DEMO COMPLETE!**\n\nEven in read-only mode, Pipulate offers powerful automation capabilities. Thanks for being cautious!",
+          "timing": {
+            "delay_before": 2000,
+            "display_speed": 25
+          },
+          "verbatim": true
+        }
+      ]
+    },
     "settings": {
-      "auto_advance": true,
+      "auto_advance": false,
       "pausable": true,
       "loop": false,
-      "debug_mode": false
+      "debug_mode": false,
+      "interactive": true
     }
   }
 }

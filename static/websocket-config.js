@@ -888,10 +888,10 @@ function displayPhantomUserMessage(message) {
     }
 }
 
-// Clean demo script implementation - no form interception needed
+// Interactive demo script implementation with keyboard input and branching
 async function loadAndExecuteCleanDemoScript() {
     try {
-        console.log('🎯 Loading clean demo script configuration...');
+        console.log('🎯 Loading interactive demo script configuration...');
         
         // Load the demo script configuration
         const response = await fetch('/demo_script_config.json');
@@ -902,10 +902,10 @@ async function loadAndExecuteCleanDemoScript() {
         const config = await response.json();
         const demoScript = config.demo_script;
         
-        console.log('🎯 Clean demo script loaded:', demoScript.name);
+        console.log('🎯 Interactive demo script loaded:', demoScript.name);
         
-        // Execute the demo sequence - completely deterministic
-        await executeCleanDemoSequence(demoScript);
+        // Execute the interactive demo sequence with branching
+        await executeInteractiveDemoSequence(demoScript);
         
     } catch (error) {
         console.error('🎯 Error loading demo script:', error);
@@ -913,23 +913,32 @@ async function loadAndExecuteCleanDemoScript() {
         // Fallback to simple phantom message
         displayPhantomUserMessage('What is this?');
         setTimeout(() => {
-            displayPhantomLLMMessage('This is the Parameter Buster workflow! It helps you analyze URL parameters for SEO optimization.');
+            displayPhantomLLMMessage('This is Pipulate, local first AI SEO automation software.');
         }, 1500);
     }
 }
 
-// Clean demo sequence execution - completely deterministic
-async function executeCleanDemoSequence(demoScript) {
-    console.log('🎯 Executing clean demo sequence:', demoScript.name);
+// Interactive demo sequence execution with branching support
+async function executeInteractiveDemoSequence(demoScript) {
+    console.log('🎯 Executing interactive demo sequence:', demoScript.name);
     
-    for (const step of demoScript.steps) {
-        console.log(`🎯 Executing clean step: ${step.step_id}`);
+    // Execute main steps with branching support
+    await executeStepsWithBranching(demoScript.steps, demoScript);
+    
+    console.log('🎯 Interactive demo sequence completed!');
+}
+
+// Execute steps with branching logic
+async function executeStepsWithBranching(steps, demoScript) {
+    for (const step of steps) {
+        console.log(`🎯 Executing step: ${step.step_id}`);
         
         // Wait for delay before step
         if (step.timing && step.timing.delay_before) {
             await new Promise(resolve => setTimeout(resolve, step.timing.delay_before));
         }
         
+        // Execute the step
         switch (step.type) {
             case 'user_input':
                 await executeCleanUserInputStep(step);
@@ -947,11 +956,36 @@ async function executeCleanDemoSequence(demoScript) {
                 console.warn('🎯 Unknown step type:', step.type);
         }
         
+        // Check if this step requires user input and branching
+        if (step.wait_for_input && step.branches) {
+            console.log('🎯 Waiting for user input...');
+            
+            // Wait for keyboard input
+            const userInput = await waitForKeyboardInput(step.valid_keys);
+            console.log('🎯 User pressed:', userInput);
+            
+            // Navigate to the appropriate branch
+            const branchKey = step.branches[userInput];
+            if (branchKey && demoScript.branches[branchKey]) {
+                console.log('🎯 Navigating to branch:', branchKey);
+                
+                // Execute the branch steps
+                await executeStepsWithBranching(demoScript.branches[branchKey], demoScript);
+                
+                // Exit the current step sequence since we've branched
+                break;
+            }
+        }
+        
+        // Check if this step ends the demo
+        if (step.end_demo) {
+            console.log('🎯 Demo ended by step:', step.step_id);
+            break;
+        }
+        
         // Small delay between steps for natural flow
         await new Promise(resolve => setTimeout(resolve, 500));
     }
-    
-    console.log('🎯 Clean demo sequence completed!');
 }
 
 // Execute user input step - pure UI manipulation, no form submission
@@ -1020,27 +1054,38 @@ async function executeCleanMcpToolCallStep(step) {
     // Display MCP tool result (phantom - hardcoded for demo)
     let mcpResult = '';
     
-    if (step.tool_name === 'execute_complete_session_hijacking') {
-        mcpResult = `🎭 **Session Hijacking Executed!** 🎭
+    if (step.tool_name === 'pipeline_state_inspector') {
+        mcpResult = `🔍 **Pipeline State Inspector** 🔍
 
 ✅ **Status**: Complete success
-📁 **Screenshots**: 5 files captured  
-🔍 **DOM Analysis**: Full page structure saved
-⚡ **Speed**: 2.3 seconds total
-🎯 **Target**: http://localhost:5001/parameter_buster
+📊 **Total workflows**: 6
+🔒 **Finalized**: 0
+⚡ **Active**: 6
+📱 **Apps**: hello(1), link_graph_visualizer(1), param_buster(4)
+🕒 **Recent activity (24h)**: 6 workflows
 
-**Evidence Generated:**
-- \`browser_automation/looking_at/hijack_evidence_*.png\`
-- \`browser_automation/looking_at/dom_analysis.html\`
-- \`browser_automation/looking_at/automation_log.json\`
+**Recent workflow keys:**
+- Undergarments-param_buster-03
+- Undergarments-param_buster-04
+- Pipulate-hello-01
 
-**Next Steps:**
-1. Review captured screenshots
-2. Analyze DOM structure  
-3. Extract automation patterns
-4. Generate test scenarios
+**Database Status**: DEV mode active, safe to experiment! 🧪`;
+    } else if (step.tool_name === 'local_llm_list_files') {
+        mcpResult = `📁 **File Listing** 📁
 
-🔮 **The session has been completely hijacked!** 🔮`;
+✅ **Status**: Complete success
+📂 **Directory**: ${step.tool_args?.directory || '.'}
+📄 **Files found**: 47
+
+**Key files:**
+- server.py (Main application)
+- mcp_tools.py (MCP tool definitions)
+- cli.py (Command line interface)
+- plugins/ (41 plugin files)
+- static/ (Web assets)
+- browser_automation/ (Automation scripts)
+
+**Safe read-only operation completed!** 📖`;
     } else if (step.tool_name === 'ui_flash_element') {
         mcpResult = `✨ **UI Element Flashed!** ✨
 
@@ -1162,6 +1207,28 @@ function displayPhantomUserMessage(message) {
         msgList.appendChild(messageDiv);
         msgList.scrollTop = msgList.scrollHeight;
     }
+}
+
+// Wait for keyboard input with valid key checking
+async function waitForKeyboardInput(validKeys) {
+    return new Promise((resolve) => {
+        console.log('🎯 Listening for keyboard input. Valid keys:', validKeys);
+        
+        function handleKeyPress(event) {
+            const key = event.key;
+            console.log('🎯 Key pressed:', key);
+            
+            if (validKeys.includes(key)) {
+                console.log('🎯 Valid key detected:', key);
+                document.removeEventListener('keydown', handleKeyPress);
+                resolve(key);
+            } else {
+                console.log('🎯 Invalid key, waiting for:', validKeys);
+            }
+        }
+        
+        document.addEventListener('keydown', handleKeyPress);
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
