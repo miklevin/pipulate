@@ -923,7 +923,7 @@ async function executeInteractiveDemoSequence(demoScript) {
     console.log('🎯 Executing interactive demo sequence:', demoScript.name);
     
     // Add invisible demo start message to conversation history (for LLM context)
-    addToConversationHistory('system', `[DEMO SCRIPT STARTED: ${demoScript.name}] An automated interactive demo is now running. All following messages are part of the scripted demo sequence. The user triggered this demo and is interacting with it via keyboard input (Ctrl+y/Ctrl+n). Continue to respond naturally if asked about the demo.`);
+    await addToConversationHistory('system', `[DEMO SCRIPT STARTED: ${demoScript.name}] An automated interactive demo is now running. All following messages are part of the scripted demo sequence. The user triggered this demo and is interacting with it via keyboard input (Ctrl+y/Ctrl+n). Continue to respond naturally if asked about the demo.`);
     
     // Execute main steps with branching support
     await executeStepsWithBranching(demoScript.steps, demoScript);
@@ -1015,7 +1015,7 @@ async function executeCleanUserInputStep(step) {
     displayPhantomUserMessage(step.message);
     
     // Add to conversation history for LLM context
-    addToConversationHistory('user', step.message);
+    await addToConversationHistory('user', step.message);
     
     // Clear the textarea to simulate message being sent
     msgTextarea.value = '';
@@ -1045,7 +1045,7 @@ async function executeCleanSystemReplyStep(step) {
     await simulateWordByWordReveal(messageDiv, step.message, step.timing?.display_speed || 30);
     
     // Add to conversation history for LLM context
-    addToConversationHistory('assistant', step.message);
+    await addToConversationHistory('assistant', step.message);
     
     // Automatically re-focus textarea after LLM reply finishes (standard UX behavior)
     const textarea = document.querySelector('textarea[name="msg"]');
@@ -1137,7 +1137,7 @@ ${step.description || 'MCP tool execution completed successfully.'}`;
     }
     
     // Add to conversation history for LLM context
-    addToConversationHistory('assistant', mcpResult);
+    await addToConversationHistory('assistant', mcpResult);
     
     // Automatically re-focus textarea after MCP tool response finishes (standard UX behavior)
     const textarea = document.querySelector('textarea[name="msg"]');
@@ -1390,15 +1390,20 @@ async function waitForKeyboardInput(validKeys) {
 }
 
 // Add message to conversation history invisibly (for LLM context)
-function addToConversationHistory(role, content) {
-    if (sidebarWs && sidebarWs.readyState === WebSocket.OPEN) {
-        const historyMessage = {
-            type: 'conversation_history',
-            role: role,
-            content: content
-        };
-        sidebarWs.send(JSON.stringify(historyMessage));
+async function addToConversationHistory(role, content) {
+    try {
+        const formData = new FormData();
+        formData.append('role', role);
+        formData.append('content', content);
+        
+        await fetch('/add-to-conversation-history', {
+            method: 'POST',
+            body: formData
+        });
+        
         console.log('🎯 Added to conversation history:', role, content.substring(0, 100) + '...');
+    } catch (error) {
+        console.error('🎯 Error adding to conversation history:', error);
     }
 }
 
