@@ -1,0 +1,99 @@
+{
+  "demo_script": {
+    "name": "Regression Prevention Demo Sequence",
+    "description": "A scripted dialogue demonstrating MCP tool capabilities with embedded tool calls",
+    "trigger_message": "What is this?",
+    "steps": [
+      {
+        "step_id": "01_user_trigger",
+        "type": "user_input",
+        "message": "What is this?",
+        "timing": {
+          "delay_before": 0,
+          "typing_speed": 50
+        }
+      },
+      {
+        "step_id": "02_system_intro",
+        "type": "system_reply",
+        "message": "🎯 **REGRESSION PREVENTION DEMO SEQUENCE INITIATED**\n\nYou've triggered the most fun MCP tool calling regression prevention system! Let me show you what's possible...",
+        "timing": {
+          "delay_before": 1000,
+          "display_speed": 30
+        },
+        "verbatim": true
+      },
+      {
+        "step_id": "03_mcp_tool_discovery",
+        "type": "mcp_tool_call",
+        "tool_name": "ai_self_discovery_assistant",
+        "tool_args": {
+          "discovery_type": "capabilities"
+        },
+        "timing": {
+          "delay_before": 2000
+        },
+        "description": "Discovering available MCP tools..."
+      },
+      {
+        "step_id": "04_ui_flash_demo",
+        "type": "mcp_tool_call",
+        "tool_name": "ui_flash_element",
+        "tool_args": {
+          "selector": "#msg",
+          "color": "green",
+          "duration": 2000
+        },
+        "timing": {
+          "delay_before": 1000
+        },
+        "description": "✨ Twinkling the chat input to show UI interaction capabilities"
+      },
+      {
+        "step_id": "05_system_explanation",
+        "type": "system_reply",
+        "message": "🌟 **MCP TOOLS DEMONSTRATED:**\n\n✅ **ai_self_discovery_assistant**: Discovered available tools\n✅ **ui_flash_element**: Twinkled the chat input\n\nThis is just the beginning! We have 32 MCP tools available for automation magic.",
+        "timing": {
+          "delay_before": 3000,
+          "display_speed": 25
+        },
+        "verbatim": true
+      },
+      {
+        "step_id": "06_simulated_user_question",
+        "type": "user_input",
+        "message": "Show me the session hijacking demo!",
+        "timing": {
+          "delay_before": 2000,
+          "typing_speed": 40
+        }
+      },
+      {
+        "step_id": "07_session_hijacking_demo",
+        "type": "mcp_tool_call",
+        "tool_name": "execute_complete_session_hijacking",
+        "tool_args": {},
+        "timing": {
+          "delay_before": 1000
+        },
+        "description": "🎭 Executing the famous 1-shot session hijacking demo..."
+      },
+      {
+        "step_id": "08_final_system_message",
+        "type": "system_reply",
+        "message": "🎉 **DEMO COMPLETE!**\n\nThis scripted sequence demonstrates:\n\n- **Ctrl+Shift+D**: Keyboard trigger for demo sequences\n- **Simulated User Input**: Putting words in user's mouth\n- **System Replies**: Verbatim responses (not LLM generated)\n- **MCP Tool Integration**: Embedded tool calls with timing\n- **UI Interaction**: Visual feedback and twinkling\n\n🌟 **The yellowbrickroad remains golden!**",
+        "timing": {
+          "delay_before": 2000,
+          "display_speed": 20
+        },
+        "verbatim": true
+      }
+    ],
+    "settings": {
+      "auto_advance": true,
+      "pausable": true,
+      "loop": false,
+      "debug_mode": false
+    }
+  }
+}
