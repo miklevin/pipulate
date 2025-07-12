@@ -272,7 +272,6 @@ def generate_files_list():
         FileEntry("requirements.txt", False, "Python dependencies"),
         FileEntry("config.py", False, "Centralized configuration - single source of truth"),
         FileEntry("server.py", False, "Server entrypoint"),
-        FileEntry("config.py", False, "Centralized configuration - \"The Crucible\""),
         FileEntry("common.py", False, "CRUD base class"),
         FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
         FileEntry("helpers/ascii_displays.py", True, "Externalized ASCII art functions"),
@@ -282,6 +281,7 @@ def generate_files_list():
     important_files = [
         FileEntry("keychain.py", True, "AI Keychain - Persistent memory for Chip O'Theseus"),
         FileEntry("discover_mcp_tools.py", True, "MCP tool discovery and validation"),
+        FileEntry("tools/__init__.py", False, "Modular tools package interface"),
     ]
     
     for entry in core_files:
@@ -312,6 +312,13 @@ def generate_files_list():
         else:
             # Single comment with description
             lines.append(f"{full_path}  # {entry.description} {token_info}")
+    
+    # Tools directory - modular MCP tools (NEW)
+    lines.extend(enumerate_directory(
+        f"{base_paths['pipulate']}/tools",
+        description="MODULAR MCP TOOLS (Extracted for token optimization)",
+        ignore_patterns=ignore_patterns
+    ))
     
     # PyPI release system files - commented out by default
     lines.append("\n## PYPI RELEASE SYSTEM FILES")
