@@ -3136,16 +3136,22 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     # 🎯 GOLDEN PATH EXECUTION MATRIX - ORCHESTRATOR STATUS:
     # ✅ WORKING: XML syntax <tool><params><url>value</url></params></tool>
     # ✅ WORKING: JSON syntax <tool><params>{"url": "value"}</params></tool>  
-    # 🔴 NOT YET: [cmd arg] bracket notation syntax
+    # 🟡 INTEGRATING: [cmd arg] bracket notation syntax (parser exists, integrating now)
     # 🔴 NOT YET: python -c "..." inline code execution
     # 🔴 NOT YET: python cli.py call forwarding from message stream
     #
+    # 🎓 PROGRESSIVE REVEAL DESIGN FOR LLMs (simplest first):
+    # Level 1: [mcp-discover] - Ultra-simple for small models
+    # Level 2: .venv/bin/python cli.py mcp-discover - Terminal proficiency  
+    # Level 3: python -c "from helpers.ai_tool_discovery_simple_parser import execute_simple_command..."
+    # Level 4: <tool name="ai_self_discovery_assistant"><params>{"discovery_type":"capabilities"}</params></tool>
+    # Level 5: <tool name="ai_self_discovery_assistant"><params><discovery_type>capabilities</discovery_type></params></tool>
+    #
     # This orchestrator monitors LLM response streams for MCP tool calls.
     # When found, tools are executed asynchronously and results injected back.
-    # See ai_discovery/AI_GOLDEN_PATH_EXECUTION_MATRIX.md for complete status.
     
-    # Match both full MCP requests and standalone tool tags
-    mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>)', re.DOTALL)
+    # Match XML/JSON tool tags AND bracket notation commands
+    mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>|\[[^\]]+\])', re.DOTALL)
     
 
     logger.debug("🔍 DEBUG: === STARTING process_llm_interaction ===")
@@ -3256,8 +3262,12 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
 
 async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block: str):
     """
-    Parses an MCP block, executes the tool, and directly formats and sends
+    Parses an MCP block (XML/JSON/bracket notation), executes the tool, and directly formats and sends
     the result to the UI, bypassing a second LLM call for reliability.
+    
+    🎓 PROGRESSIVE REVEAL SUPPORT:
+    - [mcp-discover] - Level 1: Ultra-simple bracket notation for small models
+    - <tool name="..."> - Level 4/5: XML/JSON for sophisticated models
     """
     import uuid
     start_time = time.time()
@@ -3266,6 +3276,12 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
     try:
         logger.debug("🔍 DEBUG: === STARTING execute_and_respond_to_tool_call ===")
         
+        # Check if this is bracket notation (Level 1: simplest)
+        if mcp_block.startswith('[') and mcp_block.endswith(']'):
+            logger.debug("🔍 DEBUG: Detected bracket notation command")
+            return await execute_bracket_notation_command(mcp_block, operation_id, start_time)
+        
+        # Handle XML/JSON tool syntax (Level 4/5: more complex)
         tool_name_match = re.search(r'<tool name="([^"]+)"', mcp_block)
         tool_name = tool_name_match.group(1) if tool_name_match else None
         
@@ -3406,6 +3422,93 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
         await pipulate.message_queue.add(pipulate, f"An unexpected error occurred during tool execution: {str(e)}", verbatim=True, role='system')
     finally:
         logger.debug("🔍 DEBUG: === ENDING execute_and_respond_to_tool_call ===")
+
+
+async def execute_bracket_notation_command(mcp_block: str, operation_id: str, start_time: float):
+    """
+    Execute bracket notation commands - Level 1 of progressive reveal.
+    
+    🎓 PROGRESSIVE REVEAL LEVEL 1: Ultra-simple for small models
+    Examples: [mcp-discover], [pipeline], [search FINDER_TOKEN]
+    
+    This is the simplest possible syntax, designed for quantized models
+    that can't handle complex tool calling but can embed simple commands.
+    """
+    try:
+        # Import the simple parser
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent / 'helpers'))
+        from ai_tool_discovery_simple_parser import execute_simple_command
+        
+        # Remove brackets and execute
+        command = mcp_block.strip('[]')
+        logger.info(f"🔧 FINDER_TOKEN: BRACKET_COMMAND_START - Command '{command}'")
+        
+        # Execute using the simple parser
+        result = await execute_simple_command(command)
+        
+        if result.get('success'):
+            logger.info(f"🎯 FINDER_TOKEN: BRACKET_SUCCESS - Command '{command}' executed successfully")
+            
+            # Format response based on command type
+            if command in ['mcp', 'mcp-discover']:
+                # Special handling for discovery commands
+                categories = result.get('categories', [])
+                response_text = "🚀 **MCP Tool Discovery** 🚀\n\n"
+                response_text += "Available categories:\n\n"
+                for category in categories:
+                    response_text += f"• {category}\n"
+                response_text += f"\n💡 Try [tools] to see specific tools in each category"
+                response_text += f"\n🎓 **Progressive Reveal**: Start simple, get sophisticated!"
+                response_text += f"\n\n**Next levels:**"
+                response_text += f"\nLevel 2: `.venv/bin/python cli.py mcp-discover`"
+                response_text += f"\nLevel 3: `python -c \"from helpers.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))\"`"
+                response_text += f"\nLevel 4: `<tool name=\"ai_self_discovery_assistant\"><params>{{\"discovery_type\":\"capabilities\"}}</params></tool>`"
+                response_text += f"\nLevel 5: `<tool name=\"ai_self_discovery_assistant\"><params><discovery_type>capabilities</discovery_type></params></tool>`"
+                
+            elif command == 'tools':
+                # List tools by category
+                tools = result.get('tools', {})
+                response_text = "🔧 **Available MCP Tools** 🔧\n\n"
+                for category, tool_list in tools.items():
+                    response_text += f"**{category}:**\n"
+                    for tool in tool_list:
+                        response_text += f"• {tool}\n"
+                    response_text += "\n"
+                    
+            elif command == 'pipeline':
+                # System state inspection
+                response_text = f"📊 **System State** 📊\n\n"
+                response_text += f"Pipeline state inspection completed.\n"
+                if 'result' in result:
+                    response_text += f"Result: {result['result']}\n"
+                    
+            else:
+                # Generic success handling
+                response_text = f"✅ **Command '{command}' completed!** ✅\n\n"
+                if 'result' in result:
+                    response_text += f"Result: {result['result']}\n"
+            
+            await pipulate.message_queue.add(pipulate, response_text, verbatim=True, role='assistant')
+            
+        else:
+            # Handle errors
+            error_msg = result.get('error', 'Unknown error')
+            suggestion = result.get('suggestion', '')
+            response_text = f"❌ **Command Error** ❌\n\n"
+            response_text += f"Command: `{command}`\n"
+            response_text += f"Error: {error_msg}\n"
+            if suggestion:
+                response_text += f"Suggestion: {suggestion}\n"
+            response_text += f"\n💡 Try [mcp] for available commands"
+            
+            logger.error(f"🔧 BRACKET CLIENT: Command '{command}' failed: {error_msg}")
+            await pipulate.message_queue.add(pipulate, response_text, verbatim=True, role='system')
+            
+    except Exception as e:
+        logger.error(f"🔧 BRACKET CLIENT: Error in bracket notation execution: {e}", exc_info=True)
+        await pipulate.message_queue.add(pipulate, f"An error occurred executing bracket command: {str(e)}", verbatim=True, role='system')
 
 
 def get_current_profile_id():
