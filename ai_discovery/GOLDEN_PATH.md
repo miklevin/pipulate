@@ -214,4 +214,29 @@ By following this path, you build context iteratively, confirm your abilities, a
 
 **Remember:** Local-first sovereignty + progressive enhancement + golden path discipline = AI collaboration excellence.
 
+---
+
+## 💡 **Optional: Making Commands Less Verbose**
+
+To reduce the verbosity of `.venv/bin/python cli.py`, you can create a simple alias in your shell session:
+
+```bash
+# Create temporary alias for current session
+alias mcp=".venv/bin/python cli.py"
+
+# Then use the shorter commands
+mcp mcp-discover
+mcp call ai_capability_test_suite
+mcp call browser_scrape_page --json-args '{"url": "https://example.com"}'
+```
+
+**Note:** This alias only works:
+- Within the pipulate directory
+- For the current shell session
+- After running `nix develop .#quiet` to activate the environment
+
+The full `.venv/bin/python cli.py` syntax is always the reliable, documented approach.
+
+---
+
 Welcome to the future of AI-human collaboration. 🎯 
