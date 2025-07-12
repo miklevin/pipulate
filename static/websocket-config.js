@@ -500,7 +500,7 @@ document.addEventListener('keydown', function(event) {
         console.log('🎯 Demo sequence triggered via Ctrl+Shift+D');
         
         // Load and execute the demo script sequence
-        loadDemoScript();
+        loadAndExecuteCleanDemoScript();
     }
 });
 
@@ -888,15 +888,288 @@ function displayPhantomUserMessage(message) {
     }
 }
 
+// Clean demo script implementation - no form interception needed
+async function loadAndExecuteCleanDemoScript() {
+    try {
+        console.log('🎯 Loading clean demo script configuration...');
+        
+        // Load the demo script configuration
+        const response = await fetch('/demo_script_config.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const config = await response.json();
+        const demoScript = config.demo_script;
+        
+        console.log('🎯 Clean demo script loaded:', demoScript.name);
+        
+        // Execute the demo sequence - completely deterministic
+        await executeCleanDemoSequence(demoScript);
+        
+    } catch (error) {
+        console.error('🎯 Error loading demo script:', error);
+        
+        // Fallback to simple phantom message
+        displayPhantomUserMessage('What is this?');
+        setTimeout(() => {
+            displayPhantomLLMMessage('This is the Parameter Buster workflow! It helps you analyze URL parameters for SEO optimization.');
+        }, 1500);
+    }
+}
+
+// Clean demo sequence execution - completely deterministic
+async function executeCleanDemoSequence(demoScript) {
+    console.log('🎯 Executing clean demo sequence:', demoScript.name);
+    
+    for (const step of demoScript.steps) {
+        console.log(`🎯 Executing clean step: ${step.step_id}`);
+        
+        // Wait for delay before step
+        if (step.timing && step.timing.delay_before) {
+            await new Promise(resolve => setTimeout(resolve, step.timing.delay_before));
+        }
+        
+        switch (step.type) {
+            case 'user_input':
+                await executeCleanUserInputStep(step);
+                break;
+                
+            case 'system_reply':
+                await executeCleanSystemReplyStep(step);
+                break;
+                
+            case 'mcp_tool_call':
+                await executeCleanMcpToolCallStep(step);
+                break;
+                
+            default:
+                console.warn('🎯 Unknown step type:', step.type);
+        }
+        
+        // Small delay between steps for natural flow
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    console.log('🎯 Clean demo sequence completed!');
+}
+
+// Execute user input step - pure UI manipulation, no form submission
+async function executeCleanUserInputStep(step) {
+    console.log('🎯 Executing clean user input step:', step.message);
+    
+    const msgTextarea = document.getElementById('msg');
+    if (!msgTextarea) {
+        console.error('🎯 Could not find message input textarea');
+        return;
+    }
+    
+    // Simulate typing if typing_speed is specified
+    if (step.timing && step.timing.typing_speed) {
+        await simulateTypingInTextarea(msgTextarea, step.message, step.timing.typing_speed);
+        
+        // Brief pause to show the completed typing
+        await new Promise(resolve => setTimeout(resolve, 800));
+    } else {
+        msgTextarea.value = step.message;
+    }
+    
+    // Display the phantom user message directly (no form submission)
+    displayPhantomUserMessage(step.message);
+    
+    // Clear the textarea to simulate message being sent
+    msgTextarea.value = '';
+    
+    console.log('🎯 Clean user input step completed');
+}
+
+// Execute system reply step - pure phantom message display
+async function executeCleanSystemReplyStep(step) {
+    console.log('🎯 Executing clean system reply step');
+    
+    // Show typing indicator
+    showLLMTypingIndicator();
+    
+    // Simulate typing time
+    if (step.timing && step.timing.display_speed) {
+        await simulatePhantomLLMTyping(step.message, step.timing.display_speed);
+    } else {
+        await simulatePhantomLLMTyping(step.message, 30);
+    }
+    
+    // Hide typing indicator and show message
+    hideLLMTypingIndicator();
+    displayPhantomLLMMessage(step.message);
+    
+    console.log('🎯 Clean system reply step completed');
+}
+
+// Execute MCP tool call step - phantom tool execution with real UI effects
+async function executeCleanMcpToolCallStep(step) {
+    console.log('🎯 Executing clean MCP tool call:', step.tool_name);
+    
+    // Show typing indicator for MCP tool execution
+    showLLMTypingIndicator();
+    
+    // Simulate MCP tool execution time
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Hide typing indicator
+    hideLLMTypingIndicator();
+    
+    // Display MCP tool result (phantom - hardcoded for demo)
+    let mcpResult = '';
+    
+    if (step.tool_name === 'execute_complete_session_hijacking') {
+        mcpResult = `🎭 **Session Hijacking Executed!** 🎭
+
+✅ **Status**: Complete success
+📁 **Screenshots**: 5 files captured  
+🔍 **DOM Analysis**: Full page structure saved
+⚡ **Speed**: 2.3 seconds total
+🎯 **Target**: http://localhost:5001/parameter_buster
+
+**Evidence Generated:**
+- \`browser_automation/looking_at/hijack_evidence_*.png\`
+- \`browser_automation/looking_at/dom_analysis.html\`
+- \`browser_automation/looking_at/automation_log.json\`
+
+**Next Steps:**
+1. Review captured screenshots
+2. Analyze DOM structure  
+3. Extract automation patterns
+4. Generate test scenarios
+
+🔮 **The session has been completely hijacked!** 🔮`;
+    } else if (step.tool_name === 'ui_flash_element') {
+        mcpResult = `✨ **UI Element Flashed!** ✨
+
+🎯 **Element**: ${step.tool_args?.element_id || 'chat-input'}
+💫 **Effect**: Gold twinkling animation
+⏱️ **Duration**: 2.5 seconds
+🎨 **Style**: Magical shimmer effect
+
+The element is now sparkling with golden light!`;
+        
+        // Actually flash the element for real
+        const elementId = step.tool_args?.element_id || 'msg';
+        flashElementWithGoldEffect(elementId);
+    } else {
+        mcpResult = `🔧 **MCP Tool Executed** 🔧
+
+**Tool**: ${step.tool_name}
+**Args**: ${JSON.stringify(step.tool_args || {})}
+**Status**: Success ✅
+
+${step.description || 'MCP tool execution completed successfully.'}`;
+    }
+    
+    displayPhantomLLMMessage(mcpResult);
+    console.log('🎯 Clean MCP tool step completed');
+}
+
+// Flash element with gold effect - real UI enhancement
+function flashElementWithGoldEffect(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        // Add gold flash animation
+        element.style.transition = 'all 0.3s ease-in-out';
+        element.style.boxShadow = '0 0 20px gold, 0 0 40px gold, 0 0 60px gold';
+        element.style.border = '2px solid gold';
+        element.style.transform = 'scale(1.02)';
+        
+        // Create twinkling effect
+        let twinkleCount = 0;
+        const twinkle = setInterval(() => {
+            if (twinkleCount >= 8) {
+                clearInterval(twinkle);
+                element.style.animation = '';
+                element.style.boxShadow = '';
+                element.style.border = '';
+                element.style.transform = '';
+                element.style.opacity = '1';
+                return;
+            }
+            
+            element.style.opacity = twinkleCount % 2 === 0 ? '0.7' : '1';
+            twinkleCount++;
+        }, 300);
+    }
+}
+
+// Simulate typing in textarea - pure animation, no submission
+async function simulateTypingInTextarea(textarea, message, speed) {
+    textarea.value = '';
+    textarea.focus();
+    
+    for (let i = 0; i < message.length; i++) {
+        textarea.value += message[i];
+        
+        // Scroll textarea if needed
+        textarea.scrollTop = textarea.scrollHeight;
+        
+        await new Promise(resolve => setTimeout(resolve, speed));
+    }
+}
+
+// Show LLM typing indicator
+function showLLMTypingIndicator() {
+    const msgList = document.getElementById('msg-list');
+    if (msgList) {
+        const typingDiv = document.createElement('div');
+        typingDiv.id = 'phantom-typing-indicator';
+        typingDiv.className = 'message assistant';
+        typingDiv.innerHTML = '<p><em>🤖 AI is typing...</em></p>';
+        typingDiv.style.cssText = 'opacity: 0.7; font-style: italic;';
+        msgList.appendChild(typingDiv);
+        msgList.scrollTop = msgList.scrollHeight;
+    }
+}
+
+// Hide LLM typing indicator
+function hideLLMTypingIndicator() {
+    const typingIndicator = document.getElementById('phantom-typing-indicator');
+    if (typingIndicator) {
+        typingIndicator.remove();
+    }
+}
+
+// Simulate phantom LLM typing time
+async function simulatePhantomLLMTyping(message, speed) {
+    const typingTime = message.length * speed;
+    await new Promise(resolve => setTimeout(resolve, typingTime));
+}
+
+// Display phantom LLM message
+function displayPhantomLLMMessage(message) {
+    const msgList = document.getElementById('msg-list');
+    if (msgList) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message assistant';
+        messageDiv.innerHTML = `<div class="message-container"><div class="message-content"><p>${message}</p></div></div>`;
+        msgList.appendChild(messageDiv);
+        msgList.scrollTop = msgList.scrollHeight;
+    }
+}
+
+// Display phantom user message
+function displayPhantomUserMessage(message) {
+    const msgList = document.getElementById('msg-list');
+    if (msgList) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message user';
+        messageDiv.innerHTML = `<div class="message-container"><div class="message-content">${message}</div></div>`;
+        msgList.appendChild(messageDiv);
+        msgList.scrollTop = msgList.scrollHeight;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeChatInterface();
     initializeScrollObserver();
-    
-    // Initialize form submission interceptor
-    interceptFormSubmission();
     
     // Send temp message when WebSocket is ready (with initial delay for page load)
     if (tempMessage && !tempMessageSent) {
         setTimeout(sendTempMessageWhenReady, 1000);
     }
-}); 
+});

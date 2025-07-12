@@ -3459,6 +3459,31 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
         if result.get('success'):
             logger.info(f"🎯 FINDER_TOKEN: BRACKET_SUCCESS - Command '{command}' executed successfully")
             
+            # 🔧 ENHANCED TRANSPARENCY: Log complete MCP tool execution details to console
+            logger.info(f"🔧 MCP_TRANSPARENCY: === COMPLETE TOOL EXECUTION DETAILS ===")
+            logger.info(f"🔧 MCP_TRANSPARENCY: Command: '{command}'")
+            logger.info(f"🔧 MCP_TRANSPARENCY: Result Success: {result.get('success')}")
+            logger.info(f"🔧 MCP_TRANSPARENCY: Result Keys: {list(result.keys())}")
+            
+            # Log the full result structure for debugging
+            if 'result' in result:
+                logger.info(f"🔧 MCP_TRANSPARENCY: Result Data: {result['result']}")
+            
+            # Log any pattern matches or search results
+            if 'pattern' in result:
+                logger.info(f"🔧 MCP_TRANSPARENCY: Search Pattern: {result['pattern']}")
+            if 'matches' in result:
+                logger.info(f"🔧 MCP_TRANSPARENCY: Match Count: {len(result['matches'])}")
+                logger.info(f"🔧 MCP_TRANSPARENCY: First 3 Matches: {result['matches'][:3]}")
+            
+            # Log file operations
+            if 'file_path' in result:
+                logger.info(f"🔧 MCP_TRANSPARENCY: File Path: {result['file_path']}")
+            if 'match_count' in result:
+                logger.info(f"🔧 MCP_TRANSPARENCY: Total Match Count: {result['match_count']}")
+            
+            logger.info(f"🔧 MCP_TRANSPARENCY: === END TRANSPARENCY LOG ===")
+            
             # Format response based on command type
             if command in ['mcp', 'mcp-discover']:
                 # Special handling for discovery commands
@@ -3501,9 +3526,19 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
             await pipulate.message_queue.add(pipulate, response_text, verbatim=True, role='assistant')
             
         else:
-            # Handle errors
+            # Handle errors with enhanced transparency
             error_msg = result.get('error', 'Unknown error')
             suggestion = result.get('suggestion', '')
+            
+            # 🔧 ENHANCED TRANSPARENCY: Log complete error details
+            logger.error(f"🔧 MCP_TRANSPARENCY: === COMMAND FAILURE DETAILS ===")
+            logger.error(f"🔧 MCP_TRANSPARENCY: Failed Command: '{command}'")
+            logger.error(f"🔧 MCP_TRANSPARENCY: Error Message: {error_msg}")
+            logger.error(f"🔧 MCP_TRANSPARENCY: Full Error Result: {result}")
+            if suggestion:
+                logger.error(f"🔧 MCP_TRANSPARENCY: Suggested Fix: {suggestion}")
+            logger.error(f"🔧 MCP_TRANSPARENCY: === END ERROR LOG ===")
+            
             response_text = f"❌ **Command Error** ❌\n\n"
             response_text += f"Command: `{command}`\n"
             response_text += f"Error: {error_msg}\n"
