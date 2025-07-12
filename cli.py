@@ -106,8 +106,8 @@ def discover_mcp_tools(show_all=False, tool_name=None):
         
         elif show_all:
             # Full view - run complete discovery and show everything
-            from discover_mcp_tools import discover_mcp_tools as run_discovery
-            results = run_discovery()
+        from discover_mcp_tools import discover_mcp_tools as run_discovery
+        results = run_discovery()
             
             console.print(f"📊 [bold green]Complete Tool Discovery Results[/bold green]")
             console.print(f"Found {results['total_tools']} tools, {results['accessible_functions']} accessible")
@@ -430,7 +430,7 @@ def main():
             sys.exit(1)
         except Exception as e:
             console.print(f"❌ [bold red]Unexpected error:[/bold red] {e}")
-            sys.exit(1)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main() 

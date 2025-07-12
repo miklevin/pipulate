@@ -319,7 +319,7 @@ Let's work together to make this system as efficient and responsive as possible.
             
             results['system_prompt'] = True
             print(f"✅ Updated {system_prompt_path}")
-        except Exception as e:
+    except Exception as e:
             results['system_prompt'] = False
             print(f"❌ Failed to update system prompt: {e}")
         
@@ -335,7 +335,7 @@ Let's work together to make this system as efficient and responsive as possible.
             
             results['context_json'] = True
             print(f"✅ Updated {context_json_path}")
-        except Exception as e:
+    except Exception as e:
             results['context_json'] = False
             print(f"❌ Failed to update context JSON: {e}")
         
@@ -345,7 +345,7 @@ Let's work together to make this system as efficient and responsive as possible.
             print(f"\n🔧 SIMPLE_COMMANDS for helpers/ai_tool_discovery_simple_parser.py:")
             print(simple_commands)
             results['simple_parser'] = True
-        except Exception as e:
+    except Exception as e:
             results['simple_parser'] = False
             print(f"❌ Failed to generate simple parser commands: {e}")
         
