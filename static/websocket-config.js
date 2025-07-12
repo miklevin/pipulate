@@ -469,6 +469,11 @@ function sendTempMessageWhenReady() {
     }
 }
 
+// Global demo mode tracking
+let demoModeActive = false;
+let currentDemoScript = null;
+let currentDemoStepIndex = 0;
+
 // Global keyboard shortcuts
 document.addEventListener('keydown', function(event) {
     // Ctrl+Shift+R: Restart server
@@ -539,6 +544,13 @@ async function loadDemoScript() {
         
         console.log('🎯 Demo script loaded:', demoScript.name);
         
+        // Activate demo mode - this prevents real LLM submissions
+        demoModeActive = true;
+        currentDemoScript = demoScript;
+        currentDemoStepIndex = 0;
+        
+        console.log('🎯 Demo mode ACTIVATED - Form submissions will be intercepted');
+        
         // Execute the demo sequence
         await executeDemoSequence(demoScript);
         
@@ -603,7 +615,8 @@ async function executeUserInputStep(step) {
         msgTextarea.value = step.message;
     }
     
-    // Submit the form
+    // In demo mode, we'll intercept the submission and trigger the next step
+    // Submit the form (will be intercepted by our demo mode interceptor)
     const form = msgTextarea.closest('form');
     if (form) {
         form.requestSubmit ? form.requestSubmit() : form.submit();
@@ -704,9 +717,183 @@ function hideRestartSpinner() {
     }
 }
 
+// Form submission interceptor for demo mode
+function interceptFormSubmission() {
+    // Find all forms and add submission interceptors
+    document.addEventListener('submit', function(event) {
+        if (demoModeActive) {
+            console.log('🎯 INTERCEPTED: Form submission blocked due to demo mode');
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // Get the message that was typed
+            const msgTextarea = document.getElementById('msg');
+            const userMessage = msgTextarea ? msgTextarea.value : '';
+            
+            console.log('🎯 Intercepted user message:', userMessage);
+            
+            // Display the user message in the chat (phantom user message)
+            if (userMessage.trim()) {
+                displayPhantomUserMessage(userMessage);
+            }
+            
+            // Clear the textarea to simulate normal submission
+            if (msgTextarea) {
+                msgTextarea.value = '';
+            }
+            
+            // Trigger the next step in our demo script (the phantom LLM response)
+            triggerNextDemoStep();
+        }
+    });
+    
+    // Also intercept the Enter key submission in chat
+    document.addEventListener('keydown', function(event) {
+        if (demoModeActive && event.key === 'Enter' && !event.shiftKey) {
+            const msgTextarea = document.getElementById('msg');
+            if (msgTextarea && event.target === msgTextarea) {
+                console.log('🎯 INTERCEPTED: Enter key submission blocked due to demo mode');
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const userMessage = msgTextarea.value;
+                console.log('🎯 Intercepted user message (Enter key):', userMessage);
+                
+                // Display the user message in the chat (phantom user message)
+                if (userMessage.trim()) {
+                    displayPhantomUserMessage(userMessage);
+                }
+                
+                // Clear the textarea
+                msgTextarea.value = '';
+                
+                // Trigger the next step in our demo script
+                triggerNextDemoStep();
+            }
+        }
+    });
+}
+
+// Function to trigger the next step in the demo script
+function triggerNextDemoStep() {
+    if (!demoModeActive || !currentDemoScript) {
+        console.log('🎯 No demo script active, cannot trigger next step');
+        return;
+    }
+    
+    // Find the next step that should be executed as a response
+    const nextStepIndex = currentDemoStepIndex + 1;
+    if (nextStepIndex >= currentDemoScript.steps.length) {
+        console.log('🎯 Demo script completed, deactivating demo mode');
+        demoModeActive = false;
+        currentDemoScript = null;
+        currentDemoStepIndex = 0;
+        return;
+    }
+    
+    const nextStep = currentDemoScript.steps[nextStepIndex];
+    console.log(`🎯 Triggering next demo step: ${nextStep.step_id}`);
+    
+    currentDemoStepIndex = nextStepIndex;
+    
+    // Execute the next step (usually a system reply)
+    setTimeout(async () => {
+        await executeIndividualDemoStep(nextStep);
+    }, nextStep.timing?.delay_before || 500);
+}
+
+// Function to execute an individual demo step
+async function executeIndividualDemoStep(step) {
+    console.log(`🎯 Executing individual step: ${step.step_id}`);
+    
+    switch (step.type) {
+        case 'system_reply':
+            await executePhantomLLMResponse(step);
+            break;
+            
+        case 'mcp_tool_call':
+            await executeMcpToolCallStep(step);
+            break;
+            
+        default:
+            console.warn('🎯 Unexpected step type in response:', step.type);
+    }
+}
+
+// Function to simulate phantom LLM response with typing
+async function executePhantomLLMResponse(step) {
+    console.log('🎯 Executing phantom LLM response with typing simulation');
+    
+    // Show the typing indicator
+    showLLMTypingIndicator();
+    
+    // Wait for the typing simulation
+    await simulatePhantomLLMTyping(step.message, step.timing?.display_speed || 30);
+    
+    // Hide the typing indicator and show the final message
+    hideLLMTypingIndicator();
+    displayPhantomLLMMessage(step.message);
+}
+
+// Function to show LLM typing indicator
+function showLLMTypingIndicator() {
+    // Add a typing indicator to the chat
+    const msgList = document.getElementById('msg-list');
+    if (msgList) {
+        const typingDiv = document.createElement('div');
+        typingDiv.id = 'phantom-typing-indicator';
+        typingDiv.innerHTML = '🤖 <em>AI is typing...</em>';
+        typingDiv.style.cssText = 'opacity: 0.7; font-style: italic; padding: 10px;';
+        msgList.appendChild(typingDiv);
+        msgList.scrollTop = msgList.scrollHeight;
+    }
+}
+
+// Function to hide LLM typing indicator
+function hideLLMTypingIndicator() {
+    const typingIndicator = document.getElementById('phantom-typing-indicator');
+    if (typingIndicator) {
+        typingIndicator.remove();
+    }
+}
+
+// Function to simulate phantom LLM typing
+async function simulatePhantomLLMTyping(message, speed) {
+    // Just wait for the appropriate time to simulate typing
+    const typingTime = message.length * speed;
+    await new Promise(resolve => setTimeout(resolve, typingTime));
+}
+
+// Function to display phantom LLM message
+function displayPhantomLLMMessage(message) {
+    const msgList = document.getElementById('msg-list');
+    if (msgList) {
+        const messageDiv = document.createElement('div');
+        messageDiv.innerHTML = `<div class="assistant-message">${message}</div>`;
+        messageDiv.style.cssText = 'padding: 10px; margin: 5px 0; background: #f0f8ff; border-radius: 8px;';
+        msgList.appendChild(messageDiv);
+        msgList.scrollTop = msgList.scrollHeight;
+    }
+}
+
+// Function to display phantom user message
+function displayPhantomUserMessage(message) {
+    const msgList = document.getElementById('msg-list');
+    if (msgList) {
+        const messageDiv = document.createElement('div');
+        messageDiv.innerHTML = `<div class="user-message">${message}</div>`;
+        messageDiv.style.cssText = 'padding: 10px; margin: 5px 0; background: #e8f5e8; border-radius: 8px; text-align: right;';
+        msgList.appendChild(messageDiv);
+        msgList.scrollTop = msgList.scrollHeight;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeChatInterface();
     initializeScrollObserver();
+    
+    // Initialize form submission interceptor
+    interceptFormSubmission();
     
     // Send temp message when WebSocket is ready (with initial delay for page load)
     if (tempMessage && !tempMessageSent) {
