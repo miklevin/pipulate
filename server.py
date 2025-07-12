@@ -3729,18 +3729,6 @@ class Chat:
                     self.logger.info(f"🔄 Received server restart command from {websocket}.")
                     # Trigger server restart using existing restart_server function
                     restart_server()
-                elif message.startswith('{') and '"type": "conversation_history"' in message:
-                    # Handle conversation history message
-                    try:
-                        history_data = json.loads(message)
-                        role = history_data.get('role', 'user')
-                        content = history_data.get('content', '')
-                        
-                        # Add to conversation history without triggering LLM response
-                        global_conversation_history.append({'role': role, 'content': content})
-                        self.logger.info(f"🎯 DEMO: Added to conversation history - {role}: {content[:100]}...")
-                    except json.JSONDecodeError:
-                        self.logger.error(f"Invalid JSON in conversation history message: {message}")
                 else:
                     # Launch as a non-blocking background task
                     asyncio.create_task(self.handle_chat_message(websocket, message))
@@ -5315,6 +5303,27 @@ async def sse_endpoint(request):
 async def chat_endpoint(request, message: str):
     await pipulate.stream(f'Let the user know {limiter} {message}')
     return ''
+
+@app.post('/add-to-conversation-history')
+async def add_to_conversation_history_endpoint(request):
+    """
+    Add a message directly to conversation history without triggering LLM processing.
+    Used by demo system for phantom dialogue integration.
+    """
+    try:
+        form_data = await request.form()
+        role = form_data.get('role', 'user')
+        content = form_data.get('content', '')
+        
+        if content:
+            # Use the existing append_to_conversation function that adds to history without triggering LLM
+            append_to_conversation(content, role)
+            logger.info(f"🎯 DEMO: Added to conversation history - {role}: {content[:100]}...")
+        
+        return ''
+    except Exception as e:
+        logger.error(f"Error adding to conversation history: {e}")
+        return ''
 
 @rt('/redirect/{path:path}')
 def redirect_handler(request):
