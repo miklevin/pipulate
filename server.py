@@ -3729,6 +3729,18 @@ class Chat:
                     self.logger.info(f"🔄 Received server restart command from {websocket}.")
                     # Trigger server restart using existing restart_server function
                     restart_server()
+                elif message.startswith('{') and '"type": "conversation_history"' in message:
+                    # Handle conversation history message
+                    try:
+                        history_data = json.loads(message)
+                        role = history_data.get('role', 'user')
+                        content = history_data.get('content', '')
+                        
+                        # Add to conversation history without triggering LLM response
+                        global_conversation_history.append({'role': role, 'content': content})
+                        self.logger.info(f"🎯 DEMO: Added to conversation history - {role}: {content[:100]}...")
+                    except json.JSONDecodeError:
+                        self.logger.error(f"Invalid JSON in conversation history message: {message}")
                 else:
                     # Launch as a non-blocking background task
                     asyncio.create_task(self.handle_chat_message(websocket, message))
