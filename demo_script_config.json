@@ -16,7 +16,7 @@
       {
         "step_id": "02_pipulate_intro",
         "type": "system_reply",
-        "message": "This is Pipulate, local first AI SEO automation software. Would you like a demo? Press \"y\" or \"n\" on the keyboard.",
+        "message": "This is Pipulate, local first AI SEO automation software. Would you like a demo? Press **Ctrl+y** or **Ctrl+n** on the keyboard.",
         "timing": {
           "delay_before": 1000,
           "display_speed": 30
@@ -24,12 +24,10 @@
         "verbatim": true,
         "wait_for_input": true,
         "input_type": "keyboard",
-        "valid_keys": ["y", "n", "Y", "N"],
+        "valid_keys": ["ctrl+y", "ctrl+n"],
         "branches": {
-          "y": "branch_yes",
-          "Y": "branch_yes", 
-          "n": "branch_no",
-          "N": "branch_no"
+          "ctrl+y": "branch_yes",
+          "ctrl+n": "branch_no"
         }
       }
     ],
@@ -38,7 +36,7 @@
         {
           "step_id": "03_yes_response",
           "type": "system_reply",
-          "message": "You hit yes! First let's set us to DEV mode so we can play with the database. Is that okay? y/n",
+          "message": "You hit yes! First let's set us to DEV mode so we can play with the database. Is that okay? **Ctrl+y** / **Ctrl+n**",
           "timing": {
             "delay_before": 500,
             "display_speed": 25
@@ -46,12 +44,10 @@
           "verbatim": true,
           "wait_for_input": true,
           "input_type": "keyboard",
-          "valid_keys": ["y", "n", "Y", "N"],
+          "valid_keys": ["ctrl+y", "ctrl+n"],
           "branches": {
-            "y": "branch_dev_yes",
-            "Y": "branch_dev_yes",
-            "n": "branch_dev_no", 
-            "N": "branch_dev_no"
+            "ctrl+y": "branch_dev_yes",
+            "ctrl+n": "branch_dev_no"
           }
         }
       ],

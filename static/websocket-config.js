@@ -922,6 +922,9 @@ async function loadAndExecuteCleanDemoScript() {
 async function executeInteractiveDemoSequence(demoScript) {
     console.log('🎯 Executing interactive demo sequence:', demoScript.name);
     
+    // Add invisible demo start message to conversation history (for LLM context)
+    addToConversationHistory('system', `[DEMO SCRIPT STARTED: ${demoScript.name}] An automated interactive demo is now running. All following messages are part of the scripted demo sequence. The user triggered this demo and is interacting with it via keyboard input (Ctrl+y/Ctrl+n). Continue to respond naturally if asked about the demo.`);
+    
     // Execute main steps with branching support
     await executeStepsWithBranching(demoScript.steps, demoScript);
     
@@ -1011,6 +1014,9 @@ async function executeCleanUserInputStep(step) {
     // Display the phantom user message directly (no form submission)
     displayPhantomUserMessage(step.message);
     
+    // Add to conversation history for LLM context
+    addToConversationHistory('user', step.message);
+    
     // Clear the textarea to simulate message being sent
     msgTextarea.value = '';
     
@@ -1037,6 +1043,9 @@ async function executeCleanSystemReplyStep(step) {
     
     // Use EXACT same word-reveal technique as endpoint messages
     await simulateWordByWordReveal(messageDiv, step.message, step.timing?.display_speed || 30);
+    
+    // Add to conversation history for LLM context
+    addToConversationHistory('assistant', step.message);
     
     // Automatically re-focus textarea after LLM reply finishes (standard UX behavior)
     const textarea = document.querySelector('textarea[name="msg"]');
@@ -1126,6 +1135,9 @@ ${step.description || 'MCP tool execution completed successfully.'}`;
         // Use EXACT same word-reveal technique as endpoint messages (slightly faster for MCP results)
         await simulateWordByWordReveal(messageDiv, mcpResult, 20);
     }
+    
+    // Add to conversation history for LLM context
+    addToConversationHistory('assistant', mcpResult);
     
     // Automatically re-focus textarea after MCP tool response finishes (standard UX behavior)
     const textarea = document.querySelector('textarea[name="msg"]');
@@ -1347,11 +1359,17 @@ async function waitForKeyboardInput(validKeys) {
         console.log('🎯 Listening for keyboard input. Valid keys:', validKeys);
         
         function handleKeyPress(event) {
-            const key = event.key;
-            console.log('🎯 Key pressed:', key);
+            const key = event.key.toLowerCase();
+            const isCtrl = event.ctrlKey;
+            const keyCombo = isCtrl ? `ctrl+${key}` : key;
             
-            if (validKeys.includes(key)) {
-                console.log('🎯 Valid key detected:', key);
+            console.log('🎯 Key pressed:', keyCombo, 'Raw key:', key, 'Ctrl:', isCtrl);
+            
+            if (validKeys.includes(keyCombo)) {
+                console.log('🎯 Valid key combination detected:', keyCombo);
+                
+                // Prevent default behavior for ctrl+y/ctrl+n
+                event.preventDefault();
                 
                 // Blur the textarea to prevent keystroke from appearing in message box
                 const textarea = document.querySelector('textarea[name="msg"]');
@@ -1361,14 +1379,27 @@ async function waitForKeyboardInput(validKeys) {
                 }
                 
                 document.removeEventListener('keydown', handleKeyPress);
-                resolve(key);
+                resolve(keyCombo);
             } else {
-                console.log('🎯 Invalid key, waiting for:', validKeys);
+                console.log('🎯 Invalid key combination, waiting for:', validKeys);
             }
         }
         
         document.addEventListener('keydown', handleKeyPress);
     });
+}
+
+// Add message to conversation history invisibly (for LLM context)
+function addToConversationHistory(role, content) {
+    if (sidebarWs && sidebarWs.readyState === WebSocket.OPEN) {
+        const historyMessage = {
+            type: 'conversation_history',
+            role: role,
+            content: content
+        };
+        sidebarWs.send(JSON.stringify(historyMessage));
+        console.log('🎯 Added to conversation history:', role, content.substring(0, 100) + '...');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
