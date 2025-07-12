@@ -488,7 +488,177 @@ document.addEventListener('keydown', function(event) {
             hideRestartSpinner();
         }
     }
+    
+    // Ctrl+Shift+D: Start demo/regression prevention sequence
+    if (event.ctrlKey && event.shiftKey && event.key === 'D') {
+        event.preventDefault();
+        console.log('🎯 Demo sequence triggered via Ctrl+Shift+D');
+        
+        // Load and execute the demo script sequence
+        loadDemoScript();
+    }
 });
+
+// Function to simulate user input for demo/regression prevention sequences
+function simulateUserInput(message) {
+    console.log('🎯 Simulating user input:', message);
+    
+    // Find the message input textarea
+    const msgTextarea = document.getElementById('msg');
+    if (!msgTextarea) {
+        console.error('🎯 Could not find message input textarea');
+        return;
+    }
+    
+    // Set the message text
+    msgTextarea.value = message;
+    
+    // Find the form and submit it (simulating user pressing Enter)
+    const form = msgTextarea.closest('form');
+    if (form) {
+        console.log('🎯 Submitting simulated user message');
+        form.requestSubmit ? form.requestSubmit() : form.submit();
+    } else {
+        console.error('🎯 Could not find form to submit');
+    }
+}
+
+// Function to load and execute demo script sequence
+async function loadDemoScript() {
+    try {
+        console.log('🎯 Loading demo script configuration...');
+        
+        // Load the demo script configuration
+        const response = await fetch('/demo_script_config.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const config = await response.json();
+        const demoScript = config.demo_script;
+        
+        console.log('🎯 Demo script loaded:', demoScript.name);
+        
+        // Execute the demo sequence
+        await executeDemoSequence(demoScript);
+        
+    } catch (error) {
+        console.error('🎯 Error loading demo script:', error);
+        
+        // Fallback to simple user input
+        simulateUserInput('What is this?');
+    }
+}
+
+// Function to execute a demo sequence with timing and MCP tool calls
+async function executeDemoSequence(demoScript) {
+    console.log('🎯 Executing demo sequence:', demoScript.name);
+    
+    for (const step of demoScript.steps) {
+        console.log(`🎯 Executing step: ${step.step_id}`);
+        
+        // Wait for delay before step
+        if (step.timing && step.timing.delay_before) {
+            await new Promise(resolve => setTimeout(resolve, step.timing.delay_before));
+        }
+        
+        switch (step.type) {
+            case 'user_input':
+                await executeUserInputStep(step);
+                break;
+                
+            case 'system_reply':
+                await executeSystemReplyStep(step);
+                break;
+                
+            case 'mcp_tool_call':
+                await executeMcpToolCallStep(step);
+                break;
+                
+            default:
+                console.warn('🎯 Unknown step type:', step.type);
+        }
+        
+        // Small delay between steps for natural flow
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    console.log('🎯 Demo sequence completed!');
+}
+
+// Execute user input step with typing simulation
+async function executeUserInputStep(step) {
+    console.log('🎯 Executing user input step:', step.message);
+    
+    const msgTextarea = document.getElementById('msg');
+    if (!msgTextarea) {
+        console.error('🎯 Could not find message input textarea');
+        return;
+    }
+    
+    // Simulate typing if typing_speed is specified
+    if (step.timing && step.timing.typing_speed) {
+        await simulateTyping(msgTextarea, step.message, step.timing.typing_speed);
+    } else {
+        msgTextarea.value = step.message;
+    }
+    
+    // Submit the form
+    const form = msgTextarea.closest('form');
+    if (form) {
+        form.requestSubmit ? form.requestSubmit() : form.submit();
+    }
+}
+
+// Execute system reply step (verbatim, not LLM generated)
+async function executeSystemReplyStep(step) {
+    console.log('🎯 Executing system reply step');
+    
+    // Send verbatim system message via WebSocket
+    if (sidebarWs.readyState === WebSocket.OPEN) {
+        const systemMessage = {
+            type: 'system_reply',
+            message: step.message,
+            verbatim: step.verbatim || false,
+            timing: step.timing || {}
+        };
+        
+        sidebarWs.send('%%DEMO_SYSTEM_REPLY%%:' + JSON.stringify(systemMessage));
+        console.log('🎯 Sent system reply via WebSocket');
+    } else {
+        console.error('🎯 WebSocket not connected, cannot send system reply');
+    }
+}
+
+// Execute MCP tool call step
+async function executeMcpToolCallStep(step) {
+    console.log('🎯 Executing MCP tool call:', step.tool_name);
+    
+    // Send MCP tool call via WebSocket
+    if (sidebarWs.readyState === WebSocket.OPEN) {
+        const mcpCall = {
+            type: 'mcp_tool_call',
+            tool_name: step.tool_name,
+            tool_args: step.tool_args || {},
+            description: step.description || ''
+        };
+        
+        sidebarWs.send('%%DEMO_MCP_CALL%%:' + JSON.stringify(mcpCall));
+        console.log('🎯 Sent MCP tool call via WebSocket');
+    } else {
+        console.error('🎯 WebSocket not connected, cannot send MCP tool call');
+    }
+}
+
+// Simulate typing animation
+async function simulateTyping(textarea, message, speed) {
+    textarea.value = '';
+    
+    for (let i = 0; i < message.length; i++) {
+        textarea.value += message[i];
+        await new Promise(resolve => setTimeout(resolve, speed));
+    }
+}
 
 // Show Pico CSS restart spinner
 function showRestartSpinner() {
