@@ -272,7 +272,6 @@ def generate_files_list():
         FileEntry("requirements.txt", False, "Python dependencies"),
         FileEntry("config.py", False, "Centralized configuration - single source of truth"),
         FileEntry("server.py", False, "Server entrypoint"),
-        FileEntry("config.py", False, "Centralized configuration - \"The Crucible\""),
         FileEntry("common.py", False, "CRUD base class"),
         FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
         FileEntry("helpers/ascii_displays.py", True, "Externalized ASCII art functions"),
