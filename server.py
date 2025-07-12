@@ -37,7 +37,7 @@ from rich.table import Table, Text
 from rich.theme import Theme
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, JSONResponse
 from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
@@ -6113,6 +6113,22 @@ async def select_profile(request):
     redirect_url = db.get('last_visited_url', '/')
     logger.debug(f'Redirecting to: {redirect_url}')
     return Redirect(redirect_url)
+
+@rt('/demo_script_config.json', methods=['GET'])
+async def serve_demo_script_config(request):
+    """Serve the demo script configuration file"""
+    try:
+        demo_config_path = Path('demo_script_config.json')
+        if demo_config_path.exists():
+            with open(demo_config_path, 'r') as f:
+                config_data = json.load(f)
+            return JSONResponse(config_data)
+        else:
+            logger.error('🎯 Demo script config file not found')
+            return JSONResponse({'error': 'Demo script config file not found'}, status_code=404)
+    except Exception as e:
+        logger.error(f'🎯 Error serving demo script config: {str(e)}')
+        return JSONResponse({'error': 'Failed to load demo script config'}, status_code=500)
 
 @rt('/download_file', methods=['GET', 'OPTIONS'])
 async def download_file_endpoint(request):
