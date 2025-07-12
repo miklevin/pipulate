@@ -25,11 +25,22 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
 
-# Simple command mappings
+# 🎓 PROGRESSIVE REVEAL LEVEL 1: Ultra-simple commands for small models
+# These are the simplest possible syntax - just [command] in square brackets
+# Example: [mcp-discover], [tools], [pipeline]
+#
+# This enables small quantized models to access MCP superpowers without
+# complex tool calling syntax. Each command leads to next complexity level.
+
 SIMPLE_COMMANDS = {
     'mcp': {
         'description': 'List MCP categories (Rule of 7)',
         'tool': 'list_mcp_categories',
+        'args': {}
+    },
+    'mcp-discover': {
+        'description': 'Start MCP discovery journey (same as mcp)',
+        'tool': 'list_mcp_categories', 
         'args': {}
     },
     'tools': {

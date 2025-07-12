@@ -13,8 +13,14 @@ GOLDEN PATH EXECUTION MATRIX - TERMINAL STATUS:
     🟡 PARTIAL: python -c "..." (basic only, needs error handling wrapper)
     🔴 NOT YET: XML command parsing in CLI
     🔴 NOT YET: JSON command parsing in CLI  
-    🔴 NOT YET: [cmd arg] bracket notation in CLI
-    See ai_discovery/AI_GOLDEN_PATH_EXECUTION_MATRIX.md for complete status.
+    🔴 NOT YET: [cmd arg] bracket notation in CLI (works in chat interface!)
+
+🎓 PROGRESSIVE REVEAL FOR ALL LLMs (simplest first):
+    Level 1: [mcp-discover] - Ultra-simple bracket notation (via chat)
+    Level 2: .venv/bin/python cli.py mcp-discover - Terminal proficiency
+    Level 3: python -c "from helpers.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))"
+    Level 4: <tool name="ai_self_discovery_assistant"><params>{"discovery_type":"capabilities"}</params></tool>
+    Level 5: <tool name="ai_self_discovery_assistant"><params><discovery_type>capabilities</discovery_type></params></tool>
 
 Usage:
     .venv/bin/python cli.py install [app_name]         # Install with optional custom name
