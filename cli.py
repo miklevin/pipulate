@@ -50,37 +50,42 @@ def discover_mcp_tools(show_all=False, tool_name=None):
     ]
     
     try:
-        # Import and run the discovery script
-        from discover_mcp_tools import discover_mcp_tools as run_discovery
-        results = run_discovery()
-        
         if tool_name:
-            # Detailed view for a single tool
+            # Detailed view for a single tool - clean, focused output
             console.print(Panel(f"🔍 [bold cyan]Detailed Tool Information: {tool_name}[/bold cyan]", border_style="cyan"))
-            # Try to get detailed info about the specific tool
-            from mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
-            register_all_mcp_tools()
             
-            if tool_name in MCP_TOOL_REGISTRY:
-                tool_func = MCP_TOOL_REGISTRY[tool_name]
-                console.print(f"📝 [bold]Function:[/bold] {tool_func.__name__}")
-                console.print(f"📋 [bold]Docstring:[/bold] {tool_func.__doc__ or 'No docstring available'}")
+            try:
+                # Only get tool registry info, no noisy discovery
+                from mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
+                register_all_mcp_tools()
                 
-                # Show golden path usage example
-                console.print(Panel(
-                    f"[bold cyan]Golden Path Usage:[/bold cyan]\n"
-                    f"[bold white].venv/bin/python cli.py call {tool_name} --json-args '{{\n"
-                    f"  \"param1\": \"value1\",\n"
-                    f"  \"param2\": \"value2\"\n"
-                    f"}}'[/bold white]",
-                    title="💡 Recommended Usage",
-                    border_style="green"
-                ))
-            else:
-                console.print(f"❌ Tool '{tool_name}' not found in registry")
+                if tool_name in MCP_TOOL_REGISTRY:
+                    tool_func = MCP_TOOL_REGISTRY[tool_name]
+                    console.print(f"📝 [bold]Function:[/bold] {tool_func.__name__}")
+                    console.print(f"📋 [bold]Docstring:[/bold] {tool_func.__doc__ or 'No docstring available'}")
+                    
+                    # Show golden path usage example
+                    console.print(Panel(
+                        f"[bold cyan]Golden Path Usage:[/bold cyan]\n"
+                        f"[bold white].venv/bin/python cli.py call {tool_name} --json-args '{{\n"
+                        f"  \"param1\": \"value1\",\n"
+                        f"  \"param2\": \"value2\"\n"
+                        f"}}'[/bold white]",
+                        title="💡 Recommended Usage",
+                        border_style="green"
+                    ))
+                else:
+                    console.print(f"❌ Tool '{tool_name}' not found in registry")
+                    console.print("\n💡 [italic]Use `.venv/bin/python cli.py mcp-discover` to see available tools.[/italic]")
+            except ImportError:
+                console.print("❌ [bold red]Error:[/bold red] Could not load MCP tools registry")
+                console.print("Make sure you're running this from the pipulate directory with the virtual environment activated.")
         
         elif show_all:
-            # Full view - show all tools by category
+            # Full view - run complete discovery and show everything
+            from discover_mcp_tools import discover_mcp_tools as run_discovery
+            results = run_discovery()
+            
             console.print(f"📊 [bold green]Complete Tool Discovery Results[/bold green]")
             console.print(f"Found {results['total_tools']} tools, {results['accessible_functions']} accessible")
             
@@ -90,7 +95,7 @@ def discover_mcp_tools(show_all=False, tool_name=None):
                 console.print(f"  • {tool}")
         
         else:
-            # Default "Rule of 7" view - progressive reveal
+            # Default "Rule of 7" view - NO overwhelming discovery dump!
             console.print(Panel(
                 "✨ [bold cyan]Essential MCP Tools (Getting Started)[/bold cyan]\n\n"
                 "These 7 core tools provide the foundation for AI collaboration.\n"
@@ -102,7 +107,7 @@ def discover_mcp_tools(show_all=False, tool_name=None):
             for i, tool in enumerate(essential_tools, 1):
                 console.print(f"  {i}. [bold cyan]{tool}[/bold cyan]")
             
-            console.print(f"\n[italic]Use `.venv/bin/python cli.py mcp-discover --all` to see all {results['total_tools']} tools.[/italic]")
+            console.print(f"\n[italic]Use `.venv/bin/python cli.py mcp-discover --all` to see all available tools.[/italic]")
             console.print(f"[italic]Use `.venv/bin/python cli.py mcp-discover --tool [name]` for detailed info on a specific tool.[/italic]")
             
             # Show the golden path workflow
