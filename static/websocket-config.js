@@ -1017,11 +1017,11 @@ async function executeCleanUserInputStep(step) {
     console.log('🎯 Clean user input step completed');
 }
 
-// Execute system reply step - pure phantom message display with real simulated typing
+// Execute system reply step using EXACT same technique as endpoint messages
 async function executeCleanSystemReplyStep(step) {
     console.log('🎯 Executing clean system reply step');
     
-    // Create the message container first
+    // Create the message container with data-rawText tracking (same as real messages)
     const msgList = document.getElementById('msg-list');
     if (!msgList) {
         console.error('🎯 Could not find message list container');
@@ -1031,28 +1031,12 @@ async function executeCleanSystemReplyStep(step) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message assistant';
     messageDiv.innerHTML = `<div class="message-container"><div class="message-content"><p></p></div></div>`;
+    messageDiv.dataset.rawText = ''; // Initialize raw text tracking
     msgList.appendChild(messageDiv);
     msgList.scrollTop = msgList.scrollHeight;
     
-    // Get the paragraph element where we'll type the text
-    const textElement = messageDiv.querySelector('p');
-    
-    // Simulate real typing - character by character
-    const typingSpeed = step.timing?.display_speed || 30;
-    
-    // For simple messages, type character by character
-    if (!step.message.includes('**') && !step.message.includes('\n')) {
-        // Simple text - type character by character
-        for (let i = 0; i < step.message.length; i++) {
-            textElement.textContent += step.message[i];
-            msgList.scrollTop = msgList.scrollHeight;
-            await new Promise(resolve => setTimeout(resolve, typingSpeed));
-        }
-    } else {
-        // Complex formatting - just display with proper formatting
-        textElement.innerHTML = step.message.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        msgList.scrollTop = msgList.scrollHeight;
-    }
+    // Use EXACT same word-reveal technique as endpoint messages
+    await simulateWordByWordReveal(messageDiv, step.message, step.timing?.display_speed || 30);
     
     console.log('🎯 Clean system reply step completed');
 }
@@ -1122,20 +1106,18 @@ The element is now sparkling with golden light!`;
 ${step.description || 'MCP tool execution completed successfully.'}`;
     }
     
-    // Display MCP result with simulated typing
+    // Display MCP result using EXACT same technique as endpoint messages
     const msgList = document.getElementById('msg-list');
     if (msgList) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message assistant';
         messageDiv.innerHTML = `<div class="message-container"><div class="message-content"><p></p></div></div>`;
+        messageDiv.dataset.rawText = ''; // Initialize raw text tracking
         msgList.appendChild(messageDiv);
         msgList.scrollTop = msgList.scrollHeight;
         
-        // Get the paragraph element where we'll type the text
-        const textElement = messageDiv.querySelector('p');
-        
-        // For MCP results, just display immediately with proper formatting
-        textElement.innerHTML = mcpResult.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // Use EXACT same word-reveal technique as endpoint messages (slightly faster for MCP results)
+        await simulateWordByWordReveal(messageDiv, mcpResult, 20);
     }
     
     console.log('🎯 Clean MCP tool step completed');
@@ -1234,6 +1216,114 @@ function displayPhantomUserMessage(message) {
         messageDiv.innerHTML = `<div class="message-container"><div class="message-content">${message}</div></div>`;
         msgList.appendChild(messageDiv);
         msgList.scrollTop = msgList.scrollHeight;
+    }
+}
+
+// Simulate word-by-word reveal using EXACT same technique as endpoint messages
+async function simulateWordByWordReveal(messageElement, fullMessage, baseSpeed = 30) {
+    console.log('🎯 Starting word-by-word reveal simulation');
+    
+    // Split message into word chunks (same pattern as LLM generation)
+    const words = fullMessage.split(/(\s+)/); // Keep whitespace
+    
+    // Use same timing as real Gemma 3 generation
+    let accumulatedText = '';
+    
+    for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        accumulatedText += word;
+        
+        // Update the dataset.rawText (same as real WebSocket messages)
+        messageElement.dataset.rawText = accumulatedText;
+        
+        // Use EXACT same rendering technique as real messages
+        renderMessageElement(messageElement);
+        
+        // Keep message in view (same as real messages)
+        const msgList = document.getElementById('msg-list');
+        if (msgList) {
+            msgList.scrollTop = msgList.scrollHeight;
+        }
+        
+        // Timing matches natural Gemma 3 generation speed
+        // Shorter delay for whitespace, longer for actual words
+        const delay = word.trim() ? baseSpeed + Math.random() * 20 : baseSpeed / 3;
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    console.log('🎯 Word-by-word reveal completed');
+}
+
+// Render individual message element (extracted from renderCurrentMessage logic)
+function renderMessageElement(messageElement) {
+    const rawText = messageElement.dataset.rawText;
+    
+    // Use EXACT same rendering logic as renderCurrentMessage
+    if (typeof marked !== 'undefined') {
+        try {
+            // Enhanced code fence detection - handle both ``` and ~~~ fences
+            const codeFenceRegex = /^(```|~~~)/gm;
+            const allFences = rawText.match(codeFenceRegex) || [];
+            const hasIncompleteCodeFence = allFences.length % 2 !== 0;
+            
+            if (hasIncompleteCodeFence) {
+                // Don't parse incomplete markdown - show as plain text for now
+                const lines = rawText.split('\n');
+                const formattedLines = lines.map(line => {
+                    return line.replace(/&/g, '&amp;')
+                              .replace(/</g, '&lt;')
+                              .replace(/>/g, '&gt;')
+                              .replace(/&lt;br&gt;/g, '<br>');
+                });
+                const contentElement = messageElement.querySelector('.message-content p') || messageElement.querySelector('.message-content');
+                if (contentElement) {
+                    contentElement.innerHTML = formattedLines.join('<br>');
+                }
+            } else {
+                // Safe to parse complete markdown using pre-configured marked
+                let cleanedText = rawText
+                    .replace(/(\n\s*[-*+]\s+[^\n]+)\n\s*\n(\s*[-*+]\s+)/g, '$1\n$2')
+                    .replace(/(\n\s*[-*+]\s+[^\n]+)\n\s*\n(\s+[-*+]\s+)/g, '$1\n$2')
+                    .replace(/\n\s*\n\s*\n/g, '\n\n')
+                    .replace(/[ \t]+$/gm, '')
+                    .replace(/\r\n/g, '\n');
+                
+                const renderedHtml = marked.parse(cleanedText);
+                const contentElement = messageElement.querySelector('.message-content p') || messageElement.querySelector('.message-content');
+                if (contentElement) {
+                    contentElement.innerHTML = renderedHtml;
+                }
+                
+                // Apply syntax highlighting if Prism is available
+                if (typeof Prism !== 'undefined') {
+                    Prism.highlightAllUnder(messageElement);
+                }
+            }
+        } catch (e) {
+            console.error('Error rendering Markdown:', e);
+            const processedText = rawText
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/&lt;br&gt;/g, '<br>')
+                .replace(/\n/g, '<br>');
+            const contentElement = messageElement.querySelector('.message-content p') || messageElement.querySelector('.message-content');
+            if (contentElement) {
+                contentElement.innerHTML = processedText;
+            }
+        }
+    } else {
+        // Fallback to plain text if marked.js is not available
+        const processedText = rawText
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/&lt;br&gt;/g, '<br>')
+            .replace(/\n/g, '<br>');
+        const contentElement = messageElement.querySelector('.message-content p') || messageElement.querySelector('.message-content');
+        if (contentElement) {
+            contentElement.innerHTML = processedText;
+        }
     }
 }
 
