@@ -1338,6 +1338,14 @@ async function waitForKeyboardInput(validKeys) {
             
             if (validKeys.includes(key)) {
                 console.log('🎯 Valid key detected:', key);
+                
+                // Blur the textarea to prevent keystroke from appearing in message box
+                const textarea = document.querySelector('textarea[name="msg"]');
+                if (textarea) {
+                    textarea.blur();
+                    console.log('🎯 Textarea blurred to prevent keystroke interference');
+                }
+                
                 document.removeEventListener('keydown', handleKeyPress);
                 resolve(key);
             } else {
