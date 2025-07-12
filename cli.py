@@ -2,11 +2,19 @@
 """
 Pipulate CLI - Beautiful installation and execution interface
 
+🎯 THE GOLDEN PATH FOR AI ASSISTANTS:
+    1. pipulate mcp-discover                     # Discover your core abilities
+    2. pipulate call ai_capability_test_suite    # Verify your capabilities  
+    3. pipulate call ai_self_discovery_assistant # Understand current context
+    4. pipulate call [tool_name] --json-args '{"param": "value"}'  # Execute tasks
+
 Usage:
     pipulate install [app_name]         # Install with optional custom name
     pipulate run [app_name]             # Run existing installation  
     pipulate uninstall [app_name]       # Clean uninstall for testing
+    pipulate mcp-discover [--all] [--tool name]  # Discover MCP tools (progressive reveal)
     pipulate call [tool_name] [args]    # Execute MCP tool with arguments
+    pipulate call [tool_name] --json-args '{"param": "value"}'  # Golden path for complex args
     pipulate --help                     # Show this help
 """
 
@@ -26,18 +34,86 @@ from rich.table import Table
 
 console = Console()
 
-def discover_mcp_tools():
-    """Run the MCP tools discovery script."""
+def discover_mcp_tools(show_all=False, tool_name=None):
+    """Run the MCP tools discovery script with progressive reveal."""
     console.print(Panel("🔧 [bold cyan]MCP Tools Discovery[/bold cyan]", border_style="cyan"))
-    console.print("Discovering all available MCP tools...")
+    
+    # Essential tools for the "Rule of 7" - the golden path starting tools
+    essential_tools = [
+        'ai_self_discovery_assistant',
+        'ai_capability_test_suite', 
+        'browser_scrape_page',
+        'browser_analyze_scraped_page',
+        'local_llm_list_files',
+        'local_llm_read_file',
+        'pipeline_state_inspector'
+    ]
     
     try:
         # Import and run the discovery script
         from discover_mcp_tools import discover_mcp_tools as run_discovery
         results = run_discovery()
         
-        console.print(f"\n✅ [bold green]Discovery Complete![/bold green]")
-        console.print(f"📊 Found {results['total_tools']} tools, {results['accessible_functions']} accessible")
+        if tool_name:
+            # Detailed view for a single tool
+            console.print(Panel(f"🔍 [bold cyan]Detailed Tool Information: {tool_name}[/bold cyan]", border_style="cyan"))
+            # Try to get detailed info about the specific tool
+            from mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
+            register_all_mcp_tools()
+            
+            if tool_name in MCP_TOOL_REGISTRY:
+                tool_func = MCP_TOOL_REGISTRY[tool_name]
+                console.print(f"📝 [bold]Function:[/bold] {tool_func.__name__}")
+                console.print(f"📋 [bold]Docstring:[/bold] {tool_func.__doc__ or 'No docstring available'}")
+                
+                # Show golden path usage example
+                console.print(Panel(
+                    f"[bold cyan]Golden Path Usage:[/bold cyan]\n"
+                    f"[bold white]pipulate call {tool_name} --json-args '{{\n"
+                    f"  \"param1\": \"value1\",\n"
+                    f"  \"param2\": \"value2\"\n"
+                    f"}}'[/bold white]",
+                    title="💡 Recommended Usage",
+                    border_style="green"
+                ))
+            else:
+                console.print(f"❌ Tool '{tool_name}' not found in registry")
+        
+        elif show_all:
+            # Full view - show all tools by category
+            console.print(f"📊 [bold green]Complete Tool Discovery Results[/bold green]")
+            console.print(f"Found {results['total_tools']} tools, {results['accessible_functions']} accessible")
+            
+            # Show all tools (existing discovery logic)
+            console.print("\n[bold]All Available Tools:[/bold]")
+            for tool in sorted(results.get('all_tools', [])):
+                console.print(f"  • {tool}")
+        
+        else:
+            # Default "Rule of 7" view - progressive reveal
+            console.print(Panel(
+                "✨ [bold cyan]Essential MCP Tools (Getting Started)[/bold cyan]\n\n"
+                "These 7 core tools provide the foundation for AI collaboration.\n"
+                "Master these first before exploring the full toolkit.",
+                title="🎯 The Golden Path - Rule of 7",
+                border_style="cyan"
+            ))
+            
+            for i, tool in enumerate(essential_tools, 1):
+                console.print(f"  {i}. [bold cyan]{tool}[/bold cyan]")
+            
+            console.print(f"\n[italic]Use `pipulate mcp-discover --all` to see all {results['total_tools']} tools.[/italic]")
+            console.print(f"[italic]Use `pipulate mcp-discover --tool [name]` for detailed info on a specific tool.[/italic]")
+            
+            # Show the golden path workflow
+            console.print(Panel(
+                "[bold cyan]🎯 Golden Path Workflow:[/bold cyan]\n\n"
+                "1. [bold]pipulate call ai_capability_test_suite[/bold] - Verify your environment\n"
+                "2. [bold]pipulate call ai_self_discovery_assistant[/bold] - Understand the system\n"
+                "3. [bold]pipulate call [tool_name] --json-args '{\"param\": \"value\"}'[/bold] - Execute tasks",
+                title="🚀 Recommended Next Steps",
+                border_style="green"
+            ))
         
     except ImportError:
         console.print("❌ [bold red]Error:[/bold red] discover_mcp_tools.py not found in current directory")
@@ -227,42 +303,48 @@ def uninstall_pipulate(app_name):
     console.print(f"✅ Successfully uninstalled from [green]{target_dir}[/green].")
 
 def main():
-    """Main CLI entry point."""
-    # Handle call command specially since it has different argument structure
-    if len(sys.argv) > 1 and sys.argv[1] == 'call':
-        if len(sys.argv) < 3:
-            console.print("❌ [bold red]Error:[/bold red] Tool name required for call command")
-            console.print("Usage: pipulate call [tool_name] [args]")
-            sys.exit(1)
-        
-        tool_name = sys.argv[2]
-        tool_args = parse_tool_arguments(sys.argv[3:])
-        
-        console.print(Panel("🚀 [bold cyan]Pipulate :: The Local-First AI SEO & Automation Workshop[/bold cyan] 🚀", border_style="cyan"))
-        
-        # Run the async call function
-        try:
-            success = asyncio.run(call_mcp_tool(tool_name, tool_args))
-            if not success:
-                sys.exit(1)
-        except KeyboardInterrupt:
-            console.print("\n🔴 [bold red]Interrupted by user[/bold red]")
-            sys.exit(1)
-        except Exception as e:
-            console.print(f"❌ [bold red]Unexpected error:[/bold red] {e}")
-            sys.exit(1)
-        return
-    
-    # Handle other commands with normal argument parsing
+    """Main CLI entry point with improved golden path argument parsing."""
     parser = argparse.ArgumentParser(
-        description="Pipulate CLI - Installation and execution helper.",
-        formatter_class=argparse.RawTextHelpFormatter,
+        description="Pipulate CLI - The Local-First AI SEO & Automation Workshop.\n\n"
+                   "🎯 THE GOLDEN PATH FOR AI ASSISTANTS:\n"
+                   "  1. pipulate mcp-discover                     # Discover your core abilities\n"
+                   "  2. pipulate call ai_capability_test_suite    # Verify your capabilities  \n"
+                   "  3. pipulate call ai_self_discovery_assistant # Understand current context\n"
+                   "  4. pipulate call [tool_name] --json-args '...' # Execute tasks with precision",
+        formatter_class=argparse.RawTextHelpFormatter
     )
-    # This setup makes 'install' the default if no command is given
-    parser.add_argument("command", nargs="?", default="install", choices=['install', 'run', 'uninstall', 'mcp-discover', 'call'],
-                        help="The command to execute (defaults to 'install').")
-    parser.add_argument("app_name", nargs="?", default="pipulate",
-                        help="A custom name for the installation directory (e.g., 'mybotify'). Defaults to 'pipulate'.")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # Command: install
+    install_parser = subparsers.add_parser('install', help='Install Pipulate with optional custom name.')
+    install_parser.add_argument('app_name', nargs='?', default='pipulate', 
+                               help='Custom name for the installation directory (default: pipulate)')
+
+    # Command: run 
+    run_parser = subparsers.add_parser('run', help='Run an existing Pipulate installation.')
+    run_parser.add_argument('app_name', nargs='?', default='pipulate',
+                           help='Name of the installation to run (default: pipulate)')
+
+    # Command: uninstall
+    uninstall_parser = subparsers.add_parser('uninstall', help='Clean uninstall for testing.')
+    uninstall_parser.add_argument('app_name', nargs='?', default='pipulate',
+                                 help='Name of the installation to uninstall (default: pipulate)')
+
+    # Command: mcp-discover (Progressive Reveal)
+    discover_parser = subparsers.add_parser('mcp-discover', help='Discover available MCP tools (progressive reveal).')
+    discover_parser.add_argument('--all', action='store_true', 
+                                help='Show all tools, not just the essential 7.')
+    discover_parser.add_argument('--tool', type=str, 
+                                help='Get detailed information for a specific tool.')
+
+    # Command: call (Golden Path Enhanced)
+    call_parser = subparsers.add_parser('call', help='Execute an MCP tool.')
+    call_parser.add_argument('tool_name', help='The name of the MCP tool to execute.')
+    call_parser.add_argument('tool_args', nargs='*', 
+                            help='Key-value arguments (e.g., url https://example.com).')
+    call_parser.add_argument('--json-args', type=str, 
+                            help='🎯 GOLDEN PATH: A JSON string containing all tool arguments. '
+                                 'Use this for complex parameters to ensure perfect data transmission.')
 
     args = parser.parse_args()
 
@@ -283,12 +365,44 @@ def main():
         uninstall_pipulate(args.app_name)
     
     elif args.command == 'mcp-discover':
-        discover_mcp_tools()
+        discover_mcp_tools(show_all=args.all, tool_name=args.tool)
     
     elif args.command == 'call':
-        console.print("❌ [bold red]Error:[/bold red] Tool name required for call command")
-        console.print("Usage: pipulate call [tool_name] [args]")
-        sys.exit(1)
+        # Golden Path argument parsing
+        if args.json_args:
+            try:
+                params = json.loads(args.json_args)
+                console.print(f"🎯 [bold green]Golden Path: Using JSON arguments[/bold green]")
+            except json.JSONDecodeError as e:
+                console.print(f"❌ [bold red]Error: Invalid JSON provided to --json-args.[/bold red]")
+                console.print(f"JSON Error: {e}")
+                console.print(Panel(
+                    "💡 [bold cyan]Golden Path JSON Format:[/bold cyan]\n\n"
+                    "pipulate call tool_name --json-args '{\n"
+                    "  \"param1\": \"value1\",\n"
+                    "  \"param2\": \"value2\"\n"
+                    "}'",
+                    title="Correct JSON Format",
+                    border_style="green"
+                ))
+                sys.exit(1)
+        else:
+            # Fallback to traditional parsing
+            params = parse_tool_arguments(args.tool_args)
+            if params:
+                console.print("[italic]Consider using --json-args for complex parameters[/italic]")
+        
+        # Execute the tool
+        try:
+            success = asyncio.run(call_mcp_tool(args.tool_name, params))
+            if not success:
+                sys.exit(1)
+        except KeyboardInterrupt:
+            console.print("\n🔴 [bold red]Interrupted by user[/bold red]")
+            sys.exit(1)
+        except Exception as e:
+            console.print(f"❌ [bold red]Unexpected error:[/bold red] {e}")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main() 
