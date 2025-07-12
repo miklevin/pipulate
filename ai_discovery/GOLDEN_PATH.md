@@ -21,7 +21,7 @@ You are operating in a **local-first, AI-sovereign environment** where:
 Begin by understanding your essential tools. This prevents overwhelm and focuses on high-leverage actions.
 
 ```bash
-pipulate mcp-discover
+.venv/bin/python cli.py mcp-discover
 ```
 
 **What this does:**
@@ -37,7 +37,7 @@ pipulate mcp-discover
 Run the self-test suite to confirm your access to the environment (filesystem, browser, etc.) is working correctly.
 
 ```bash
-pipulate call ai_capability_test_suite --json-args '{"test_type": "quick"}'
+.venv/bin/python cli.py call ai_capability_test_suite --json-args '{"test_type": "quick"}'
 ```
 
 **What this does:**
@@ -53,7 +53,7 @@ pipulate call ai_capability_test_suite --json-args '{"test_type": "quick"}'
 Use the self-discovery assistant to get a high-level overview of the project's state, available tools, and common usage patterns.
 
 ```bash
-pipulate call ai_self_discovery_assistant --json-args '{"discovery_type": "complete"}'
+.venv/bin/python cli.py call ai_self_discovery_assistant --json-args '{"discovery_type": "complete"}'
 ```
 
 **What this does:**
@@ -68,7 +68,7 @@ Once you have context, execute specific tasks. For complex parameters, **always 
 
 ```bash
 # Example: Scraping a page with perfect parameter transmission
-pipulate call browser_scrape_page --json-args '{
+.venv/bin/python cli.py call browser_scrape_page --json-args '{
   "url": "https://pipulate.com", 
   "take_screenshot": true,
   "wait_time": 3
@@ -99,12 +99,12 @@ Master these first before exploring the full toolkit of 47+ tools.
 
 ### **Simple Parameters (Traditional)**
 ```bash
-pipulate call local_llm_read_file --file_path README.md
+.venv/bin/python cli.py call local_llm_read_file --file_path README.md
 ```
 
 ### **Complex Parameters (Golden Path)**
 ```bash
-pipulate call browser_automate_workflow_walkthrough --json-args '{
+.venv/bin/python cli.py call browser_automate_workflow_walkthrough --json-args '{
   "instructions": "Navigate to login page, fill credentials, submit form",
   "target_url": "https://example.com/login",
   "wait_between_actions": 2,
@@ -144,22 +144,22 @@ pipulate call browser_automate_workflow_walkthrough --json-args '{
 
 ### **Full Tool Discovery**
 ```bash
-pipulate mcp-discover --all
+.venv/bin/python cli.py mcp-discover --all
 ```
 
 ### **Detailed Tool Information**
 ```bash
-pipulate mcp-discover --tool browser_scrape_page
+.venv/bin/python cli.py mcp-discover --tool browser_scrape_page
 ```
 
 ### **Pipeline State Inspection**
 ```bash
-pipulate call pipeline_state_inspector --json-args '{"show_all": true}'
+.venv/bin/python cli.py call pipeline_state_inspector --json-args '{"show_all": true}'
 ```
 
 ### **Log Analysis**
 ```bash
-pipulate call local_llm_grep_logs --json-args '{"search_term": "FINDER_TOKEN"}'
+.venv/bin/python cli.py call local_llm_grep_logs --json-args '{"search_term": "FINDER_TOKEN"}'
 ```
 
 ---
@@ -206,10 +206,10 @@ By following this path, you build context iteratively, confirm your abilities, a
 
 ```bash
 # The Golden Path Sequence
-pipulate mcp-discover                                    # Step 1: Discover
-pipulate call ai_capability_test_suite                  # Step 2: Verify
-pipulate call ai_self_discovery_assistant               # Step 3: Understand
-pipulate call [tool_name] --json-args '{"param": "value"}'  # Step 4: Execute
+.venv/bin/python cli.py mcp-discover                                    # Step 1: Discover
+.venv/bin/python cli.py call ai_capability_test_suite                  # Step 2: Verify
+.venv/bin/python cli.py call ai_self_discovery_assistant               # Step 3: Understand
+.venv/bin/python cli.py call [tool_name] --json-args '{"param": "value"}'  # Step 4: Execute
 ```
 
 **Remember:** Local-first sovereignty + progressive enhancement + golden path discipline = AI collaboration excellence.
