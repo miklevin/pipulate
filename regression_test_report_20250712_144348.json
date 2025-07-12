@@ -1,0 +1,74 @@
+{
+  "summary": {
+    "total_tests": 9,
+    "passed": 6,
+    "failed": 3,
+    "duration": 11.096763610839844,
+    "success_rate": 66.66666666666666
+  },
+  "results": [
+    {
+      "test": "Git State Check",
+      "status": "PASS",
+      "details": "On yellowbrickroad tagged commit: 82490728",
+      "data": null,
+      "timestamp": "2025-07-12T14:43:37.649935"
+    },
+    {
+      "test": "Server Health Check",
+      "status": "FAIL",
+      "details": "Server returned status 404",
+      "data": null,
+      "timestamp": "2025-07-12T14:43:37.660575"
+    },
+    {
+      "test": "Endpoint Messages Structure",
+      "status": "PASS",
+      "details": "Page contains endpoint message handling code",
+      "data": null,
+      "timestamp": "2025-07-12T14:43:37.815768"
+    },
+    {
+      "test": "MCP Tool: Cat Fact",
+      "status": "PASS",
+      "details": "Cat fact tool working",
+      "data": null,
+      "timestamp": "2025-07-12T14:43:39.933340"
+    },
+    {
+      "test": "MCP Tool: Pipeline State",
+      "status": "PASS",
+      "details": "Pipeline state inspector working",
+      "data": null,
+      "timestamp": "2025-07-12T14:43:41.577847"
+    },
+    {
+      "test": "MCP Tool: UI Elements",
+      "status": "PASS",
+      "details": "UI element lister working",
+      "data": null,
+      "timestamp": "2025-07-12T14:43:43.167272"
+    },
+    {
+      "test": "Keychain Persistence",
+      "status": "FAIL",
+      "details": "Keychain get failed",
+      "data": null,
+      "timestamp": "2025-07-12T14:43:46.566133"
+    },
+    {
+      "test": "File Operations",
+      "status": "FAIL",
+      "details": "File reading failed: usage: cli.py [-h] {install,run,uninstall,mcp-discover,call} ...\ncli.py: error: unrecognized arguments: --file_path\n",
+      "data": null,
+      "timestamp": "2025-07-12T14:43:46.816630"
+    },
+    {
+      "test": "Session Hijacking Demo",
+      "status": "PASS",
+      "details": "Session hijacking demo executed successfully",
+      "data": null,
+      "timestamp": "2025-07-12T14:43:48.738392"
+    }
+  ]
+}
