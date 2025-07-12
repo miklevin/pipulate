@@ -3157,6 +3157,14 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     logger.debug("🔍 DEBUG: === STARTING process_llm_interaction ===")
     logger.debug(f"🔍 DEBUG: MODEL='{MODEL}', messages_count={len(messages)}")
 
+    # 🚨 TRANSPARENCY: Show COMPLETE conversation history being sent to LLM
+    logger.info("🔍 TRANSPARENCY: === COMPLETE CONVERSATION HISTORY ===")
+    for i, msg in enumerate(messages):
+        role = msg.get('role', 'unknown')  
+        content = msg.get('content', '')
+        logger.info(f"🔍 TRANSPARENCY: Message {i}: [{role}] {content}")
+    logger.info("🔍 TRANSPARENCY: === END CONVERSATION HISTORY ===")
+
     table = Table(title='User Input')
     table.add_column('Role', style='cyan')
     table.add_column('Content', style='orange3')
