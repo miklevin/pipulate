@@ -376,7 +376,7 @@ def log_reading_legend():
 • [dim white]AI breadcrumbs:[/dim white] [bright_white]grep "AI_BREADCRUMB" logs/server.log[/bright_white]
 • [dim white]MCP tool calls:[/dim white] [bright_white]grep "MCP_.*_START" logs/server.log[/bright_white]"""
     
-    return legend_content
+    return legend_content 
 
 
 def ai_breadcrumb_summary(tool_count: int) -> str:

@@ -2418,24 +2418,24 @@ class Pipulate:
                     if '\n' in message:
                         message = message.replace('\n', '<br>')
                     
-                    # Handle <br> tags at the end of the message properly
-                    import re
-                    br_match = re.search(r'(<br>+)$', message)
-                    if br_match:
-                        # Split message and <br> tags properly
-                        base_message = message[:br_match.start()]
-                        br_tags = br_match.group(1)
-                        words = base_message.split()
-                        for i, word in enumerate(words):
-                            await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
-                        # Send the <br> tags after the words
-                        await self.chat.broadcast(br_tags)
-                    else:
-                        words = message.split()
-                        for i, word in enumerate(words):
-                            await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                        # Handle <br> tags at the end of the message properly
+                        import re
+                        br_match = re.search(r'(<br>+)$', message)
+                        if br_match:
+                            # Split message and <br> tags properly
+                            base_message = message[:br_match.start()]
+                            br_tags = br_match.group(1)
+                            words = base_message.split()
+                            for i, word in enumerate(words):
+                                await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                                await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                            # Send the <br> tags after the words
+                            await self.chat.broadcast(br_tags)
+                        else:
+                            words = message.split()
+                            for i, word in enumerate(words):
+                                await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                                await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
                 else:
                     await self.chat.broadcast(message)
                 
