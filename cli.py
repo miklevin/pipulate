@@ -8,6 +8,14 @@ Pipulate CLI - Beautiful installation and execution interface
     3. .venv/bin/python cli.py call ai_self_discovery_assistant # Understand current context
     4. .venv/bin/python cli.py call [tool_name] --json-args '{"param": "value"}'  # Execute tasks
 
+GOLDEN PATH EXECUTION MATRIX - TERMINAL STATUS:
+    ✅ WORKING: python cli.py call tool_name --json-args '...'
+    🟡 PARTIAL: python -c "..." (basic only, needs error handling wrapper)
+    🔴 NOT YET: XML command parsing in CLI
+    🔴 NOT YET: JSON command parsing in CLI  
+    🔴 NOT YET: [cmd arg] bracket notation in CLI
+    See ai_discovery/AI_GOLDEN_PATH_EXECUTION_MATRIX.md for complete status.
+
 Usage:
     .venv/bin/python cli.py install [app_name]         # Install with optional custom name
     .venv/bin/python cli.py run [app_name]             # Run existing installation  

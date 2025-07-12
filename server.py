@@ -3132,6 +3132,18 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     word_buffer = ""  # Buffer for word-boundary detection
     mcp_detected = False
     chunk_count = 0
+    
+    # 🎯 GOLDEN PATH EXECUTION MATRIX - ORCHESTRATOR STATUS:
+    # ✅ WORKING: XML syntax <tool><params><url>value</url></params></tool>
+    # ✅ WORKING: JSON syntax <tool><params>{"url": "value"}</params></tool>  
+    # 🔴 NOT YET: [cmd arg] bracket notation syntax
+    # 🔴 NOT YET: python -c "..." inline code execution
+    # 🔴 NOT YET: python cli.py call forwarding from message stream
+    #
+    # This orchestrator monitors LLM response streams for MCP tool calls.
+    # When found, tools are executed asynchronously and results injected back.
+    # See ai_discovery/AI_GOLDEN_PATH_EXECUTION_MATRIX.md for complete status.
+    
     # Match both full MCP requests and standalone tool tags
     mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>)', re.DOTALL)
     
