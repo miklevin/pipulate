@@ -3,19 +3,19 @@
 Pipulate CLI - Beautiful installation and execution interface
 
 🎯 THE GOLDEN PATH FOR AI ASSISTANTS:
-    1. pipulate mcp-discover                     # Discover your core abilities
-    2. pipulate call ai_capability_test_suite    # Verify your capabilities  
-    3. pipulate call ai_self_discovery_assistant # Understand current context
-    4. pipulate call [tool_name] --json-args '{"param": "value"}'  # Execute tasks
+    1. .venv/bin/python cli.py mcp-discover                     # Discover your core abilities
+    2. .venv/bin/python cli.py call ai_capability_test_suite    # Verify your capabilities  
+    3. .venv/bin/python cli.py call ai_self_discovery_assistant # Understand current context
+    4. .venv/bin/python cli.py call [tool_name] --json-args '{"param": "value"}'  # Execute tasks
 
 Usage:
-    pipulate install [app_name]         # Install with optional custom name
-    pipulate run [app_name]             # Run existing installation  
-    pipulate uninstall [app_name]       # Clean uninstall for testing
-    pipulate mcp-discover [--all] [--tool name]  # Discover MCP tools (progressive reveal)
-    pipulate call [tool_name] [args]    # Execute MCP tool with arguments
-    pipulate call [tool_name] --json-args '{"param": "value"}'  # Golden path for complex args
-    pipulate --help                     # Show this help
+    .venv/bin/python cli.py install [app_name]         # Install with optional custom name
+    .venv/bin/python cli.py run [app_name]             # Run existing installation  
+    .venv/bin/python cli.py uninstall [app_name]       # Clean uninstall for testing
+    .venv/bin/python cli.py mcp-discover [--all] [--tool name]  # Discover MCP tools (progressive reveal)
+    .venv/bin/python cli.py call [tool_name] [args]    # Execute MCP tool with arguments
+    .venv/bin/python cli.py call [tool_name] --json-args '{"param": "value"}'  # Golden path for complex args
+    .venv/bin/python cli.py --help                     # Show this help
 """
 
 import os
@@ -69,7 +69,7 @@ def discover_mcp_tools(show_all=False, tool_name=None):
                 # Show golden path usage example
                 console.print(Panel(
                     f"[bold cyan]Golden Path Usage:[/bold cyan]\n"
-                    f"[bold white]pipulate call {tool_name} --json-args '{{\n"
+                    f"[bold white].venv/bin/python cli.py call {tool_name} --json-args '{{\n"
                     f"  \"param1\": \"value1\",\n"
                     f"  \"param2\": \"value2\"\n"
                     f"}}'[/bold white]",
@@ -102,15 +102,15 @@ def discover_mcp_tools(show_all=False, tool_name=None):
             for i, tool in enumerate(essential_tools, 1):
                 console.print(f"  {i}. [bold cyan]{tool}[/bold cyan]")
             
-            console.print(f"\n[italic]Use `pipulate mcp-discover --all` to see all {results['total_tools']} tools.[/italic]")
-            console.print(f"[italic]Use `pipulate mcp-discover --tool [name]` for detailed info on a specific tool.[/italic]")
+            console.print(f"\n[italic]Use `.venv/bin/python cli.py mcp-discover --all` to see all {results['total_tools']} tools.[/italic]")
+            console.print(f"[italic]Use `.venv/bin/python cli.py mcp-discover --tool [name]` for detailed info on a specific tool.[/italic]")
             
             # Show the golden path workflow
             console.print(Panel(
                 "[bold cyan]🎯 Golden Path Workflow:[/bold cyan]\n\n"
-                "1. [bold]pipulate call ai_capability_test_suite[/bold] - Verify your environment\n"
-                "2. [bold]pipulate call ai_self_discovery_assistant[/bold] - Understand the system\n"
-                "3. [bold]pipulate call [tool_name] --json-args '{\"param\": \"value\"}'[/bold] - Execute tasks",
+                "1. [bold].venv/bin/python cli.py call ai_capability_test_suite[/bold] - Verify your environment\n"
+                "2. [bold].venv/bin/python cli.py call ai_self_discovery_assistant[/bold] - Understand the system\n"
+                "3. [bold].venv/bin/python cli.py call [tool_name] --json-args '{\"param\": \"value\"}'[/bold] - Execute tasks",
                 title="🚀 Recommended Next Steps",
                 border_style="green"
             ))
@@ -307,10 +307,10 @@ def main():
     parser = argparse.ArgumentParser(
         description="Pipulate CLI - The Local-First AI SEO & Automation Workshop.\n\n"
                    "🎯 THE GOLDEN PATH FOR AI ASSISTANTS:\n"
-                   "  1. pipulate mcp-discover                     # Discover your core abilities\n"
-                   "  2. pipulate call ai_capability_test_suite    # Verify your capabilities  \n"
-                   "  3. pipulate call ai_self_discovery_assistant # Understand current context\n"
-                   "  4. pipulate call [tool_name] --json-args '...' # Execute tasks with precision",
+                   "  1. .venv/bin/python cli.py mcp-discover                     # Discover your core abilities\n"
+                   "  2. .venv/bin/python cli.py call ai_capability_test_suite    # Verify your capabilities  \n"
+                   "  3. .venv/bin/python cli.py call ai_self_discovery_assistant # Understand current context\n"
+                   "  4. .venv/bin/python cli.py call [tool_name] --json-args '...' # Execute tasks with precision",
         formatter_class=argparse.RawTextHelpFormatter
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -378,7 +378,7 @@ def main():
                 console.print(f"JSON Error: {e}")
                 console.print(Panel(
                     "💡 [bold cyan]Golden Path JSON Format:[/bold cyan]\n\n"
-                    "pipulate call tool_name --json-args '{\n"
+                    ".venv/bin/python cli.py call tool_name --json-args '{\n"
                     "  \"param1\": \"value1\",\n"
                     "  \"param2\": \"value2\"\n"
                     "}'",
