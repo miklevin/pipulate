@@ -56,6 +56,59 @@ def run_command(cmd, cwd=PIPULATE_ROOT, capture=False, check=True, shell=False):
         print(f"❌ Command failed: {' '.join(cmd) if not shell else cmd}", file=sys.stderr)
         sys.exit(1)
 
+def validate_git_remotes():
+    """Validate git remote configuration and provide helpful guidance."""
+    print("🔍 Validating git remote configuration...")
+    
+    try:
+        # Check if we're in a git repository
+        run_command(['git', 'rev-parse', '--git-dir'], capture=True)
+        
+        # Check if origin remote exists
+        remotes_result = run_command(['git', 'remote', '-v'], capture=True)
+        remotes_output = remotes_result.stdout.strip()
+        
+        if not remotes_output:
+            print("⚠️  Warning: No git remotes configured")
+            print("💡 To add origin remote: git remote add origin <repository-url>")
+            return False
+        
+        # Check for origin specifically
+        if 'origin' not in remotes_output:
+            print("⚠️  Warning: No 'origin' remote found")
+            print("💡 To add origin remote: git remote add origin <repository-url>")
+            print(f"📋 Current remotes:\n{remotes_output}")
+            return False
+        
+        # Check current branch
+        branch_result = run_command(['git', 'branch', '--show-current'], capture=True)
+        current_branch = branch_result.stdout.strip()
+        
+        if not current_branch:
+            print("⚠️  Warning: Unable to determine current branch")
+            return False
+        
+        print(f"✅ Git validation passed:")
+        print(f"   📍 Current branch: {current_branch}")
+        print(f"   🔗 Remote 'origin' configured")
+        
+        # Check upstream status (informational only)
+        upstream_result = run_command(['git', 'rev-parse', '--abbrev-ref', f'{current_branch}@{{upstream}}'], 
+                                    capture=True, check=False)
+        
+        if upstream_result.returncode == 0:
+            upstream_branch = upstream_result.stdout.strip()
+            print(f"   ⬆️  Upstream: {upstream_branch}")
+        else:
+            print(f"   🔗 No upstream configured (will be set automatically during push)")
+        
+        return True
+        
+    except Exception as e:
+        print(f"⚠️  Git validation failed: {e}")
+        print("💡 Make sure you're in a git repository with proper remote configuration")
+        return False
+
 def get_current_version():
     """Gets the version from pipulate/__init__.py."""
     content = INIT_PY_PATH.read_text()
@@ -292,8 +345,41 @@ def sync_install_sh():
             run_command(['git', 'add', str(dest_path.name)], cwd=PIPULATE_COM_ROOT)
             commit_msg = f"chore: Update install.sh from pipulate repo v{get_current_version()}"
             run_command(['git', 'commit', '-m', commit_msg], cwd=PIPULATE_COM_ROOT)
-            run_command(['git', 'push'], cwd=PIPULATE_COM_ROOT)
-            print("✅ Pushed install.sh update to Pipulate.com repo.")
+            
+            # Handle upstream branch setup for Pipulate.com repo
+            try:
+                # Try to get current branch name
+                branch_result = run_command(['git', 'branch', '--show-current'], cwd=PIPULATE_COM_ROOT, capture=True)
+                current_branch = branch_result.stdout.strip()
+                
+                # Check if upstream is configured
+                upstream_result = run_command(['git', 'rev-parse', '--abbrev-ref', f'{current_branch}@{{upstream}}'], 
+                                            cwd=PIPULATE_COM_ROOT, capture=True, check=False)
+                
+                if upstream_result.returncode != 0:
+                    # No upstream configured, set it during push
+                    print(f"🔗 No upstream configured for Pipulate.com branch '{current_branch}', setting upstream...")
+                    run_command(['git', 'push', '--set-upstream', 'origin', current_branch], cwd=PIPULATE_COM_ROOT)
+                    print(f"✅ Pushed install.sh update and set upstream: origin/{current_branch}")
+                else:
+                    # Upstream exists, normal push
+                    run_command(['git', 'push'], cwd=PIPULATE_COM_ROOT)
+                    print("✅ Pushed install.sh update to Pipulate.com repo.")
+                    
+            except Exception as e:
+                print(f"⚠️  Git push to Pipulate.com encountered an issue: {e}")
+                print("🔄 Attempting fallback push with upstream setup...")
+                try:
+                    # Fallback: try to push with upstream setup
+                    branch_result = run_command(['git', 'branch', '--show-current'], cwd=PIPULATE_COM_ROOT, capture=True)
+                    current_branch = branch_result.stdout.strip()
+                    run_command(['git', 'push', '--set-upstream', 'origin', current_branch], cwd=PIPULATE_COM_ROOT)
+                    print(f"✅ Fallback successful: Pushed install.sh update and set upstream: origin/{current_branch}")
+                except Exception as fallback_error:
+                    print(f"❌ Fallback push to Pipulate.com also failed: {fallback_error}")
+                    print("💡 Pipulate.com repo may need manual git remote configuration")
+                    return False
+            
             return True
         else:
             print("✅ install.sh is already up-to-date in Pipulate.com repo.")
@@ -836,6 +922,11 @@ def main():
     current_version = get_current_version()
     print(f"📋 Current version: {current_version}")
     
+    # Early validation of git configuration
+    if not validate_git_remotes():
+        print("\n❌ Git remote validation failed. Please fix git configuration before proceeding.")
+        sys.exit(1)
+    
     # === RELEASE PIPELINE PHASE 1: PREPARATION ===
     print("\n🔧 === RELEASE PIPELINE: PREPARATION PHASE ===")
     
@@ -928,8 +1019,41 @@ def main():
     if has_changes:
         print(f"\n📝 Commit message: {commit_message}")
         run_command(['git', 'commit', '-am', commit_message])
-        run_command(['git', 'push'])
-        print("✅ Pushed changes to remote repository.")
+        
+        # Check if upstream branch exists and push accordingly
+        try:
+            # Try to get current branch name
+            branch_result = run_command(['git', 'branch', '--show-current'], capture=True)
+            current_branch = branch_result.stdout.strip()
+            
+            # Check if upstream is configured
+            upstream_result = run_command(['git', 'rev-parse', '--abbrev-ref', f'{current_branch}@{{upstream}}'], 
+                                        capture=True, check=False)
+            
+            if upstream_result.returncode != 0:
+                # No upstream configured, set it during push
+                print(f"🔗 No upstream configured for branch '{current_branch}', setting upstream...")
+                run_command(['git', 'push', '--set-upstream', 'origin', current_branch])
+                print(f"✅ Pushed changes and set upstream: origin/{current_branch}")
+            else:
+                # Upstream exists, normal push
+                run_command(['git', 'push'])
+                print("✅ Pushed changes to remote repository.")
+                
+        except Exception as e:
+            print(f"⚠️  Git push operation encountered an issue: {e}")
+            print("🔄 Attempting fallback push with upstream setup...")
+            try:
+                # Fallback: try to push with upstream setup
+                branch_result = run_command(['git', 'branch', '--show-current'], capture=True)
+                current_branch = branch_result.stdout.strip()
+                run_command(['git', 'push', '--set-upstream', 'origin', current_branch])
+                print(f"✅ Fallback successful: Pushed changes and set upstream: origin/{current_branch}")
+            except Exception as fallback_error:
+                print(f"❌ Fallback push also failed: {fallback_error}")
+                print("💡 You may need to manually configure git remote or check network connectivity")
+                sys.exit(1)
+                
     elif args.force:
         print("🚨 --force flag: Skipping git commit (no changes to commit)")
         print("➡️  Proceeding directly to PyPI publishing...")
