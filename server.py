@@ -4242,9 +4242,6 @@ async def startup_event():
     # Send environment mode message after a short delay to let UI initialize
     asyncio.create_task(send_startup_environment_message())
     
-    # Warm up Botify schema cache for instant AI enlightenment
-    asyncio.create_task(warm_up_botify_schema_cache())
-    
     # Pre-seed local LLM context for immediate capability awareness
     asyncio.create_task(prepare_local_llm_context())
 ordered_plugins = []
@@ -6383,88 +6380,6 @@ async def send_startup_environment_message():
         # Clear startup flag
         message_coordination['startup_in_progress'] = False
 
-async def warm_up_botify_schema_cache():
-    """Warm up Botify schema cache on startup for instant AI enlightenment.
-    
-    This function proactively populates schema cache for known projects to ensure
-    AI assistants have instant access to complete Botify API schema without waiting
-    for live API calls during development sessions.
-    """
-    await asyncio.sleep(7)  # Let startup complete first (staggered from startup message)
-    
-    try:
-        # Check if we have Botify token available
-        from mcp_tools import _read_botify_api_token, botify_get_full_schema
-        api_token = _read_botify_api_token()
-        if not api_token:
-            logger.debug("No Botify API token found - skipping schema cache warmup")
-            return
-        
-        # List of known projects to warm up (can be expanded)
-        projects_to_warm = [
-            {"org": "uhnd-com", "project": "uhnd.com-demo-account", "analysis": "20250616"},
-            {"org": "michaellevin-org", "project": "mikelev.in", "analysis": "20241211"}
-        ]
-        
-        cache_warmed = []
-        for project_info in projects_to_warm:
-            try:
-                # Check if we have recent analyses cached locally first
-                from pathlib import Path
-                analyses_path = Path(f"downloads/quadfecta/{project_info['org']}/{project_info['project']}/analyses.json")
-                
-                if analyses_path.exists():
-                    # Try to get latest analysis from cache
-                    import json
-                    with open(analyses_path, 'r') as f:
-                        analyses_data = json.load(f)
-                    
-                    if analyses_data.get("results"):
-                        # Use most recent analysis
-                        latest_analysis = max(analyses_data["results"], 
-                                            key=lambda x: x.get("date_finished", ""))
-                        project_info["analysis"] = latest_analysis.get("slug", project_info["analysis"])
-                
-                # Attempt to warm cache (will use existing cache if available)
-                cache_result = await botify_get_full_schema({
-                    "org": project_info["org"],
-                    "project": project_info["project"], 
-                    "analysis": project_info["analysis"]
-                })
-                
-                if cache_result.get("status") == "success":
-                    cache_used = cache_result.get("summary", {}).get("cache_used", False)
-                    fields_count = cache_result.get("summary", {}).get("total_fields_discovered", 0)
-                    cache_warmed.append({
-                        "project": f"{project_info['org']}/{project_info['project']}",
-                        "analysis": project_info["analysis"],
-                        "cache_hit": cache_used,
-                        "fields": fields_count
-                    })
-                    
-            except Exception as project_error:
-                logger.debug(f"Could not warm cache for {project_info['org']}/{project_info['project']}: {project_error}")
-                continue
-        
-        if cache_warmed:
-            total_projects = len(cache_warmed)
-            cache_hits = sum(1 for p in cache_warmed if p["cache_hit"])
-            total_fields = sum(p["fields"] for p in cache_warmed)
-            
-            logger.info(f"SCHEMA CACHE WARMUP: {total_projects} projects, {cache_hits} cache hits, {total_fields:,} total fields ready for AI")
-            
-            # Add cache status to conversation history silently for AI context
-            if total_projects > 0:
-                try:
-                    cache_msg = f"🔍 Botify Schema Cache Ready - {total_projects} projects with {total_fields:,} fields available for instant AI queries"
-                    # Add to conversation history silently (not to visible chat)
-                    append_to_conversation(cache_msg, role='system')
-                except Exception as msg_error:
-                    logger.debug(f"Could not add cache warmup to conversation: {msg_error}")
-        
-    except Exception as e:
-        logger.error(f"Error during Botify schema cache warmup: {e}")
-        # Don't fail startup if cache warmup fails
 
 async def prepare_local_llm_context():
     """Pre-seed context for local LLMs with essential system information.
