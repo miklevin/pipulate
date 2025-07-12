@@ -8,6 +8,20 @@ Consolidated from server.py to improve maintainability and provide a
 clean separation of concerns for AI-focused functionality.
 
 # 🔧 FINDER_TOKEN: MCP_TOOLS_CONSOLIDATED - ALL TOOLS IN ONE PLACE
+
+🎓 PROGRESSIVE REVEAL FOR AI ASSISTANTS:
+If you're an AI assistant just discovering Pipulate, start with the simplest syntax:
+
+Level 1 (Ultra-simple): [mcp-discover]
+Level 2 (Terminal): .venv/bin/python cli.py mcp-discover  
+Level 3 (Python): python -c "from helpers.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))"
+Level 4 (JSON): <tool name="ai_self_discovery_assistant"><params>{"discovery_type":"capabilities"}</params></tool>
+Level 5 (XML): <tool name="ai_self_discovery_assistant"><params><discovery_type>capabilities</discovery_type></params></tool>
+
+Small models: Start with Level 1 and stop when you're successful
+Big models: Use any level, but Level 1 is often the most reliable
+
+🔍 BREADCRUMB TRAIL: Execute [mcp-discover] in the chat interface to begin your journey.
 """
 
 import os

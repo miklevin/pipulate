@@ -2,11 +2,23 @@
 """
 Simple MCP Command Parser for Small Quantized Models
 
+🎓 PROGRESSIVE REVEAL LEVEL 1 IMPLEMENTATION
+
 This module provides the simplest possible interface for MCP tool calling,
 designed specifically for small quantized models that can't handle complex
 tool calling syntax but can embed simple [command argument] patterns.
 
-Usage:
+This is Level 1 of the 5-level progressive reveal system:
+Level 1: [mcp-discover] - YOU ARE HERE (ultra-simple for small models)
+Level 2: .venv/bin/python cli.py mcp-discover - Terminal proficiency
+Level 3: python -c with full imports - Direct execution
+Level 4: JSON tool calling - Structured parameters  
+Level 5: XML tool calling - Full complexity
+
+🚀 START HERE: Try [mcp-discover] in the chat interface!
+
+Usage examples:
+    [mcp-discover] - Start your MCP discovery journey
     [mcp] - List MCP categories (Rule of 7)
     [tools] - List available tools by category
     [pipeline] - System state inspection
