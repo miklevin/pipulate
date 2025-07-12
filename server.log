@@ -1,0 +1,553 @@
+nohup: ignoring input
+Could not import from mcp_tools - some functionality may be limited
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                              ┃
+┃                    ______________    ____  ________  ______                  ┃
+┃                   / ___/_  __/   |  / __ \/_  __/ / / / __ \                 ┃
+┃                   \__ \ / / / /| | / /_/ / / / / / / / /_/ /                 ┃
+┃                  ___/ // / / ___ |/ _, _/ / / / /_/ / ____/                  ┃
+┃                 /____//_/ /_/  |_/_/ |_| /_/  \____/_/                       ┃
+┃                                                                              ┃
+┃                                                                              ┃
+┃                 Pipulate server starting...                                  ┃
+┃                                                                              ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last 10 server runs for debugging context
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 Running in INFO mode (edit server.py and set DEBUG_MODE=True for verbose logging)
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 🏷️ FINDER_TOKEN: APP_CONFIG - App name: Botifython
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: data/botifython.db
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 🤖 FINDER_TOKEN: LLM_CONFIG - Model: gemma3, Max words: 80, Conversation length: 10000
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | SSE Broadcaster initialized
+[32m17:29:32[0m | [1mINFO    [0m | [36mhelpers.durable_backup_system[0m | 🗃️ Rolling backup root: /home/mike/.pipulate/backups
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance
+[32m17:29:32[0m | [1mINFO    [0m | [36m__main__       [0m | 💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                              ┃
+┃                             _             _                                  ┃
+┃                       _ __ | |_   _  __ _(_)_ __  ___                        ┃
+┃                      | '_ \| | | | |/ _` | | '_ \/ __|                       ┃
+┃                      | |_) | | |_| | (_| | | | | \__ \                       ┃
+┃                      | .__/|_|\__,_|\__, |_|_| |_|___/                       ┃
+┃                      |_|            |___/                                    ┃
+┃                                                                              ┃
+┃                      Pipulate Workflows and CRUD Apps                        ┃
+┃                                                                              ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last 10 server runs for debugging context
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 🏷️ FINDER_TOKEN: APP_CONFIG - App name: Botifython
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: data/botifython.db
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 🤖 FINDER_TOKEN: LLM_CONFIG - Model: gemma3, Max words: 80, Conversation length: 10000
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | SSE Broadcaster initialized
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance
+[32m17:29:32[0m | [1mINFO    [0m | [36mserver         [0m | 💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized
+Append-only conversation system not available: cannot import name 'get_conversation_history' from 'helpers.append_only_conversation' (/home/mike/repos/pipulate/helpers/append_only_conversation.py)
+[32m17:29:33[0m | [33m[1mWARNING [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class roles.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m17:29:33[0m | [33m[1mWARNING [0m | [36mserver         [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class tasks.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m17:29:33[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Fastlite 'roles' table created or accessed via handle: "roles"
+[32m17:29:33[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m17:29:33[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ roles CRUD initialized with durable backup support
+[32m17:29:33[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | ROLES: Role initialization complete.
+[32m17:29:33[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Fastlite 'tasks' table created or accessed via handle: "tasks"
+[32m17:29:33[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m17:29:33[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ tasks CRUD initialized with durable backup support
+[32m17:29:33[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | 🔍 FINDER_TOKEN: STARTUP_TASKS_BASELINE - Task Control Established:\n    📋 Total pending tasks: 3\n    👥 Profiles with pending tasks: 1\n    📊 Pending tasks by profile: Pipulate(3)
+[32m17:29:33[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | 🔍 FINDER_TOKEN: STARTUP_TASKS_PENDING - Profile 'Pipulate' (ID:6) has 3 pending: ID:4 'Add Tasks to server.log startup' (Priority:0), ID:5 'Fix Genesis to use the DISPLAY_NAME set in workflow. Currently uses Kung Fu Placeholder 🥋'' (Priority:1), ID:6 'Fix Persistent Discussion Memory' (Priority:2)
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - 32 tools now available
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 ASCII_MARKER_1: About to check MCP figlet banner conditions
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 ASCII_MARKER_1: __name__ = server, tool_count = 32
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 ASCII_MARKER_X: MCP figlet banner conditions not met - skipped
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 STARTUP_MARKER_1: About to check __name__ == '__main__' condition
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 STARTUP_MARKER_1: __name__ value is: server
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 STARTUP_MARKER_X: NOT in __name__ == '__main__' block - Rich tables skipped
+💬 Chip O'Theseus: All plugins loaded successfully! The workshop is fully 
+equipped.
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 TRANSPARENCY_MARKER_1: About to check radical transparency banner conditions
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 TRANSPARENCY_MARKER_1: __name__ = server
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 TRANSPARENCY_MARKER_X: radical transparency banner conditions not met - skipped
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 ALICE_MARKER_1: About to check Alice banner conditions
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 ALICE_MARKER_1: __name__ = server
+[32m17:29:34[0m | [1mINFO    [0m | [36mserver         [0m | 🔧 ALICE_MARKER_X: Alice banner conditions not met - skipped
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class profiles.ProfilesPluginIdentity appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class roles.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class tasks.PluginIdentityManager appears to be a plugin (has APP_NAME/DISPLAY_NAME/ROLES/steps) but missing required landing method - skipping
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | Instantiating ProfilesPlugin with profiles_table_from_server
+[32m17:29:34[0m | [1mINFO    [0m | [36mplugins.020_profiles[0m | 👤 Profiles Plugin SUCCESS: Initialized with 'profiles' table object: profile
+[32m17:29:34[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ profiles CRUD initialized with durable backup support
+[32m17:29:34[0m | [1mINFO    [0m | [36mplugins.020_profiles[0m | CRUD routes for 👤 Profiles (prefix '/profiles') registered by ProfileCrudOperations.
+[32m17:29:34[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Fastlite 'roles' table created or accessed via handle: "roles"
+[32m17:29:34[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m17:29:34[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ roles CRUD initialized with durable backup support
+[32m17:29:34[0m | [1mINFO    [0m | [36mplugins.030_roles[0m | ROLES: Role initialization complete.
+[32m17:29:34[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Fastlite 'tasks' table created or accessed via handle: "tasks"
+[32m17:29:34[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | Called .dataclass() on table handle to enable dataclass returns.
+[32m17:29:34[0m | [1mINFO    [0m | [36mcommon         [0m | 🗃️ tasks CRUD initialized with durable backup support
+[32m17:29:34[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | 🔍 FINDER_TOKEN: STARTUP_TASKS_BASELINE - Task Control Established:\n    📋 Total pending tasks: 3\n    👥 Profiles with pending tasks: 1\n    📊 Pending tasks by profile: Pipulate(3)
+[32m17:29:34[0m | [1mINFO    [0m | [36mplugins.060_tasks[0m | 🔍 FINDER_TOKEN: STARTUP_TASKS_PENDING - Profile 'Pipulate' (ID:6) has 3 pending: ID:4 'Add Tasks to server.log startup' (Priority:0), ID:5 'Fix Genesis to use the DISPLAY_NAME set in workflow. Currently uses Kung Fu Placeholder 🥋'' (Priority:1), ID:6 'Fix Persistent Discussion Memory' (Priority:2)
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - 32 tools now available
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 ASCII_MARKER_1: About to check MCP figlet banner conditions
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 ASCII_MARKER_1: __name__ = __main__, tool_count = 32
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 ASCII_MARKER_2: Displaying MCP figlet banner and section header
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                              ┃
+┃                          __  __  ____ ____                                   ┃
+┃                         |  \/  |/ ___|  _ \                                  ┃
+┃                         | |\/| | |   | |_) |                                 ┃
+┃                         | |  | | |___|  __/                                  ┃
+┃                         |_|  |_|\____|_|                                     ┃
+┃                                                                              ┃
+┃                                                                              ┃
+┃                         Model Context Protocol Tools                         ┃
+┃                                                                              ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│         🔧  MCP Arsenal                                                      │
+│         Equipped with 32 AI-powered tools for transparency                   │
+│         ────────────────────────────────────────────────────────────         │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 ASCII_MARKER_3: MCP figlet banner and section header displayed
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_MARKER_1: About to check __name__ == '__main__' condition
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_MARKER_1: __name__ value is: __main__
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_MARKER_2: Inside __name__ == '__main__' block - showing Rich tables
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_MARKER_3: startup_summary_table displayed
+╭──────────────────────────────────────────── 🚀 Pipulate Startup Complete ────────────────────────────────────────────╮
+│                                                                                                                      │
+│                                    🚀 System Status                                                                  │
+│  ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓                               │
+│  ┃ Component            ┃ Status          ┃ Details                                  ┃                               │
+│  ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩                               │
+│  │ 🏷️  App Name          │ ✅ Active       │ Botifython                               │                               │
+│  │ 🌍 Environment       │ ✅ Active       │ Production                               │                               │
+│  │ 📦 Plugins           │ ✅ Loaded       │ 39/39 registered                         │                               │
+│  │ 🔧 MCP Tools         │ ✅ Ready        │ 32 tools available                       │                               │
+│  │ 🧠 AI Memory         │ ✅ Active       │ Keychain persistence enabled             │                               │
+│  │ 🌐 Browser Eyes      │ ✅ Ready        │ Session hijacking capability             │                               │
+│  └──────────────────────┴─────────────────┴──────────────────────────────────────────┘                               │
+│                                 🎯 AI Quick Commands                                                                 │
+│  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓                                  │
+│  ┃ Purpose                   ┃ Command                                            ┃                                  │
+│  ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩                                  │
+│  │ 🔍 System State           │ .venv/bin/python cli.py call                       │                                  │
+│  │                           │ pipeline_state_inspector                           │                                  │
+│  │ 📖 Log Analysis           │ .venv/bin/python cli.py call local_llm_grep_logs   │                                  │
+│  │                           │ --search_term FINDER_TOKEN                         │                                  │
+│  │ 👁️  Browser Scrape         │ .venv/bin/python cli.py call browser_scrape_page   │                                  │
+│  │                           │ --url http://localhost:5001                        │                                  │
+│  │ 🎭 Session Hijack         │ .venv/bin/python -c "import asyncio; from          │                                  │
+│  │                           │ mcp_tools import                                   │                                  │
+│  │                           │ execute_complete_session_hijacking;                │                                  │
+│  │                           │ asyncio.run(execute_complete_session_hijacking({}… │                                  │
+│  │ 🧠 AI Discovery           │ .venv/bin/python -c "from mcp_tools import         │                                  │
+│  │                           │ ai_self_discovery_assistant; import asyncio;       │                                  │
+│  │                           │ asyncio.run(ai_self_discovery_assistant({'discove… │                                  │
+│  │                           │ 'capabilities'}))"                                 │                                  │
+│  └───────────────────────────┴────────────────────────────────────────────────────┘                                  │
+│                                                                                                                      │
+╰────────────────────────────────── All systems operational • Ready for AI workflows ──────────────────────────────────╯
+
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_MARKER_4: ai_breadcrumb_summary displayed
+╭──────────────────────────────────── 🍞 AI Discovery Complete ────────────────────────────────────╮
+│                                🧠 AI Capabilities Discovered                                     │
+│  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓      │
+│  ┃ Capability                ┃ Status          ┃ Description                              ┃      │
+│  ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩      │
+│  │ 🔧 MCP Tools              │ ✅ Active       │ 32 programmatic tools ready              │      │
+│  │ 👁️  Browser Eyes           │ ✅ Ready        │ Screenshot + DOM analysis                │      │
+│  │ 🤲 Browser Hands          │ ✅ Ready        │ Selenium automation control              │      │
+│  │ 🎭 Session Hijack         │ ✅ Ready        │ Complete workflow capture                │      │
+│  │ 🧠 Persistent Memory      │ ✅ Active       │ Keychain across restarts                 │      │
+│  │ 📚 Documentation          │ ✅ Complete     │ 14 comprehensive guides                  │      │
+│  └───────────────────────────┴─────────────────┴──────────────────────────────────────────┘      │
+╰──────────────────────── Zero uncertainty • 100% automation success rate ─────────────────────────╯
+
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_MARKER_5: startup_environment_warnings displayed
+╭──────────────────────────────────────── 🚨 AI Assistant Guidelines ────────────────────────────────────────╮
+│                                  ⚠️ Critical Environment Notes                                              │
+│  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓              │
+│  ┃ Issue                     ┃ Solution                                                     ┃              │
+│  ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩              │
+│  │ 🐍 Python Path Issue      │ NEVER use 'python' - ALWAYS use '.venv/bin/python' (even     │              │
+│  │                           │ with .venv in prompt!)                                       │              │
+│  │ 🔗 Golden Path            │ cd pipulate && .venv/bin/python cli.py call <tool_name>      │              │
+│  │                           │ works everywhere                                             │              │
+│  │ 📁 Working Directory      │ MCP tools require 'cd pipulate' first - never run from       │              │
+│  │                           │ workspace root                                               │              │
+│  │ 🎯 Browser Evidence       │ Check browser_automation/looking_at/ FIRST, system internals │              │
+│  │                           │ second                                                       │              │
+│  └───────────────────────────┴──────────────────────────────────────────────────────────────┘              │
+╰──────────────────────────────── Essential knowledge for 100% success rate ─────────────────────────────────╯
+
+💬 Chip O'Theseus: All plugins loaded successfully! The workshop is fully 
+equipped.
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 TRANSPARENCY_MARKER_1: About to check radical transparency banner conditions
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 TRANSPARENCY_MARKER_1: __name__ = __main__
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 TRANSPARENCY_MARKER_2: Displaying radical transparency banner
+
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                    RADICAL TRANSPARENCY                      ║
+    ║                                                              ║
+    ║  Every operation is observable • Every call is logged        ║
+    ║  Every state change is tracked • Every error is explained    ║
+    ║                                                              ║
+    ║  🔍 FINDER_TOKENs guide your debugging journey               ║
+    ║  🔧 MCP Tools provide programmatic access to everything      ║
+    ║  📊 Pipeline State Inspector reveals workflow internals      ║
+    ║  🤖 AI Assistants have complete system visibility            ║
+    ║                                                              ║
+    ║           "Know EVERYTHING that's happening!"                ║
+    ╚══════════════════════════════════════════════════════════════╝
+    
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 TRANSPARENCY_MARKER_3: radical_transparency_banner displayed
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 ALICE_MARKER_1: About to check Alice banner conditions
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 ALICE_MARKER_1: __name__ = __main__
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 ALICE_MARKER_2: Displaying falling_alice banner
+
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                     ___                                        
+                                    |   |         _____                         
+                                    |_  |        /     \                        
+                                      \ |       |       \                       
+                                      |  \      |       /                       
+                                       \  \____ \_      \                       
+                                        \      \_/      |                       
+                                  ___.   \_            _/                       
+                 .-,             /    \    |          |                         
+                 |  \          _/      `--_/           \_                       
+                  \  \________/                     /\   \                      
+                  |                                /  \_  \                     
+                  `-----------,                   |     \  \                    
+                              |                  /       \  |                   
+                              |                 |         | \                   
+                              /                 |         \__|                  
+                             /   _              |                               
+                            /   / \_             \                              
+                            |  /    \__      __--`                              
+                           _/ /        \   _/                                   
+                       ___/  /          \_/                                     
+                      /     /                                                   
+                      `----`                                                    
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 ALICE_MARKER_3: falling_alice banner displayed
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: WATCHDOG RESTART BEHAVIOR EXPLANATION
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: The Pipulate server uses a sophisticated dual-display system:
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: 1. CONSOLE (for humans): Shows each banner ONCE per session for clean UX
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: 2. LOGS (for AI assistants): Captures ALL restart events including rapid restarts
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: When watchdog detects file changes, multiple rapid restarts may occur:
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: - Each restart triggers figlet_banner() calls
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: - Console shows banners once (better newb/plebe experience)
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: - Logs capture every restart event for AI transparency
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: - This creates a cleaner user experience while maintaining radical transparency for AI
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: GREP COMMANDS for AI assistants:
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: - grep 'ASCII_DATA:' logs/server.log  # See all ASCII art
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: - grep 'AI_RESTART_ARCHITECTURE' logs/server.log  # This explanation
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: - grep 'FIGLET_BANNER' logs/server.log  # All banner events
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: This dual-logging approach provides:
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: - Clean console experience for beginners
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: - Complete transparency for AI debugging
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_RESTART_ARCHITECTURE: - Continuous narrative flow despite rapid restarts
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🚀 FINDER_TOKEN: SERVER_STARTUP - Starting server with watchdog
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_STARTUP_BANNER: About to display main startup banner with ASCII art
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_STARTUP_BANNER: This banner appears on every server start (manual or watchdog restart)
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_STARTUP_BANNER: Console shows it once per session, logs capture every occurrence
+[32m17:29:34[0m | [33m[1mWARNING [0m | [36m__main__       [0m | 🤖 AI_STARTUP_BANNER: figlet_banner() below will log ASCII art with triple backticks for AI visibility
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                              ┃
+┃              ____        _   _  __       _   _                               ┃
+┃             | __ )  ___ | |_(_)/ _|_   _| |_| |__   ___  _ __                ┃
+┃             |  _ \ / _ \| __| | |_| | | | __| '_ \ / _ \| '_ \               ┃
+┃             | |_) | (_) | |_| |  _| |_| | |_| | | | (_) | | | |              ┃
+┃             |____/ \___/ \__|_|_|  \__, |\__|_| |_|\___/|_| |_|              ┃
+┃                                    |___/                                     ┃
+┃                                                                              ┃
+┃             Local First AI SEO Software                                      ┃
+┃                                                                              ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                              ┃
+┃               __     __            _               _   _   _                 ┃
+┃               \ \   / /__ _ __ ___(_) ___  _ __   / | / | / |                ┃
+┃                \ \ / / _ \ '__/ __| |/ _ \| '_ \  | | | | | |                ┃
+┃                 \ V /  __/ |  \__ \ | (_) | | | | | |_| |_| |                ┃
+┃                  \_/ \___|_|  |___/_|\___/|_| |_| |_(_)_(_)_|                ┃
+┃                                                                              ┃
+┃                                                                              ┃
+┃               Client Centric                                                 ┃
+┃                                                                              ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+╔══════════════════════════ 🏗️  Pipulate Architecture ══════════════════════════╗
+║                                                                              ║
+║      .                                                                       ║
+║                     ┌─────────────────────────────┐                          ║
+║                     │         Navigation         ◄── Search, Profiles,       ║
+║                     ├───────────────┬─────────────┤    Apps, Settings        ║
+║                     │               │             │                          ║
+║          Workflow, ──►   Main Area  │    Chat     │                          ║
+║          App UI     │   (Pipeline)  │  Interface ◄── LLM Interaction         ║
+║                     │               │             │                          ║
+║                     └─────────────────────────────┘                          ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+💬 Chip O'Theseus: Hello! The server is restarting. I'll be right back online.
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | 🌍 FINDER_TOKEN: ENVIRONMENT - Current environment: Production
+[32m17:29:34[0m | [1mINFO    [0m | [36m__main__       [0m | [🚀 STARTUP] Production mode active | Using database: data/botifython.db
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | [🚀 STARTUP] Server starting on http://localhost:5001
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🌐 FINDER_TOKEN: UVICORN_START - Starting uvicorn server on http://localhost:5001
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 📊 FINDER_TOKEN: UVICORN_CONFIG - Log level: warning, Access log: False
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 FINDER_TOKEN: STARTUP_EVENT_MCP_READY - 32 MCP tools available for async startup
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.
+🔐 Synchronizing roles and permissions
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | SYNC_ROLES: Starting role synchronization to database...
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | SYNC_ROLES: Total unique role names discovered from all sources: {'Tutorial', 'Core', 'Developer', 'Workshop', 'Botify Employee', 'Components'}
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | SYNC_ROLES: Synchronization complete. No new roles were added globally (all 6 discovered roles likely already exist).
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:
+📖 Workshop Ready
+   All systems initialized and ready for creative exploration
+
+🎨 Database State: db
+{
+  "last_profile_id": "6",
+  "last_app_choice": "",
+  "current_environment": "Development",
+  "profile_locked": "0",
+  "split-sizes": "[65, 35]",
+  "theme_preference": "dark",
+  "intro_current_page": "1",
+  "last_visited_url": "/",
+  "profile_lock_enabled": "1",
+  "pipeline_id": "Pipulate-hello-01",
+  "demo_state": "{\"demo_active\": true, \"current_step\": \"initial_prompt\", 
+\"demo_started\": \"2025-07-12T21:11:11.685Z\", \"environment_before_demo\": 
+\"Production\"}",
+  "endpoint_message_sent__Production": "sent"
+}
+
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 FINDER_TOKEN: DB_STATE_DB - STARTUP FINAL Key-Value Store: [Rich JSON displayed to console]
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 SEMANTIC_DB_DB: STARTUP FINAL Human-readable state:
+    🧑 Active user profile: 6
+    📱 Current app/workflow: None (Home page)
+    🌍 Environment mode: Development
+    👤 Profile editing: 🔓 Unlocked
+    📐 UI layout split: [65, 35]
+    🎨 UI theme: dark
+    🔗 Last page visited: /
+    📨 Startup message sent for Production: sent
+
+🎨 Table State: profiles
+[
+  {
+    "id": 1,
+    "name": "Default Profile",
+    "real_name": "Default User",
+    "address": "",
+    "code": "",
+    "active": 0,
+    "priority": 5
+  },
+  {
+    "id": 2,
+    "name": "Dress",
+    "real_name": "David's Bridal",
+    "address": "www.davidsbridal.com",
+    "code": "us",
+    "active": 1,
+    "priority": 0
+  },
+  {
+    "id": 3,
+    "name": "Boots",
+    "real_name": "Ariat",
+    "address": "www.ariat.com",
+    "code": "us",
+    "active": 1,
+    "priority": 2
+  },
+  {
+    "id": 4,
+    "name": "Undergarments",
+    "real_name": "Bare Necessities",
+    "address": "www.barenecessities.com",
+    "code": "us",
+    "active": 1,
+    "priority": 1
+  },
+  {
+    "id": 5,
+    "name": "Pajamas",
+    "real_name": "PJ Salvage",
+    "address": "www.pjsalvage.com",
+    "code": "us",
+    "active": 1,
+    "priority": 3
+  },
+  {
+    "id": 6,
+    "name": "Pipulate",
+    "real_name": "Botifython",
+    "address": "pipulate.com",
+    "code": "ww",
+    "active": 1,
+    "priority": 4
+  }
+]
+
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 FINDER_TOKEN: TABLE_STATE_PROFILES - STARTUP FINAL Snapshot: [Rich JSON displayed to console]
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 LEGEND_MARKER_1: Displaying white_rabbit for startup
+
+╭───────────────────────── 🐰 Welcome to Consoleland ──────────────────────────╮
+│                                                                              │
+│  .                                                                           │
+│   - This is Uvicorn webserver output.                       /)    ______     │
+│     (i.e. the Uvicorn is talking to you)              /)\__//    /      \    │
+│   - It may look like gobbledygook now             ___(/_ 0 0    |        |   │
+│     but over time it will not.                  *(    ==(_T_)== |Pipulate|   │
+│   - Curious? Become a Carpenter!                  \  )   ""\    |        |   │
+│                                                    |__>-\_>_>    \______/    │
+│                                                                              │
+╰──────────────── Down the rabbit hole of radical transparency ────────────────╯
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 LEGEND_MARKER_2: white_rabbit displayed
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 LEGEND_MARKER_3: About to call log_reading_legend
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 LEGEND_MARKER_4: log_reading_legend returned content
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 LEGEND_MARKER_5: About to print legend_panel with Rich
+
+╭──────────────────────────── 📖 Log Reading Guide ────────────────────────────╮
+│                                                                              │
+│  Reading Pipulate Logs - Quick Reference:                                    │
+│                                                                              │
+│  Log Format: TIME | LEVEL | MODULE | MESSAGE                                 │
+│  Example: 14:20:03 | INFO | __main__ | [🌐 NETWORK] GET /simon_mcp | ID:     │
+│  6aac3fe0                                                                    │
+│                                                                              │
+│  Common Emojis & Meanings:                                                   │
+│  🚀 STARTUP      - Server initialization and startup events                  │
+│  🌐 NETWORK      - HTTP requests, API calls, web traffic                     │
+│  🔄 PIPELINE     - Workflow execution and step processing                    │
+│  💾 DATABASE     - Data storage operations and queries                       │
+│  👤 PROFILE      - User profile and authentication events                    │
+│  🔌 PLUGIN       - Plugin loading and workflow registration                  │
+│  💬 CHAT         - LLM interactions and AI conversations                     │
+│  🎭 AI_CREATIVE  - ASCII art and AI-specific logging (logs only)     You're  │
+│  speaking                                                                    │
+│  🔍 FINDER_TOKEN - Searchable debug markers for AI assistants          my    │
+│  language!                                                                   │
+│  🔧 MCP_TOOLS    - Model Context Protocol tool operations                ,   │
+│  O                                                                           │
+│  🌍 BROWSER      - Browser automation and Selenium operations            \\  │
+│  .  O                                                                        │
+│  🎯 SUCCESS      - Completion markers and achievements                       │
+│  |\\/| o                                                                     │
+│  🏷️  CONFIG       - System configuration and tagging                      /   │
+│  " '\                                                                        │
+│  🗄️  DB_CONFIG    - Database configuration events                        . .  │
+│  .                                                                           │
+│  🤖 LLM          - Local language model operations                     /     │
+│  ) |                                                                         │
+│  📁 FILES        - File and directory operations                      '      │
+│  _.'  |                                                                      │
+│  🧹 CLEANUP      - Housekeeping and maintenance                       '-'/   │
+│  \                                                                           │
+│  ✨ FRESH        - New state creation and refresh                            │
+│  🍞 BREADCRUMBS  - AI discovery guidance (AI_BREADCRUMB_01-04)               │
+│  📸 CAPTURE      - Screenshots and visual state                              │
+│  📝 INPUT        - Form inputs and user data entry                           │
+│  📤 UPLOAD       - File upload operations                                    │
+│  ✅ COMPLETE     - Task completion and success                               │
+│  ⚠️  WARNING      - Important notices and potential issues                    │
+│  ❌ ERROR        - System errors and failures                                │
+│                                                                              │
+│  Pro Tips:                                                                   │
+│  • Use grep with emojis: grep "🌐" logs/server.log                           │
+│  • Find specific events: grep "FINDER_TOKEN" logs/server.log                 │
+│  • Follow live logs: tail -f logs/server.log                                 │
+│  • AI breadcrumbs: grep "AI_BREADCRUMB" logs/server.log                      │
+│  • MCP tool calls: grep "MCP_.*_START" logs/server.log                       │
+│                                                                              │
+╰──────────────── Understanding what you're seeing in the logs ────────────────╯
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 LEGEND_MARKER_6: legend_panel printed to console
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 LEGEND_MARKER_7: About to call share_ascii_with_ai
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 LEGEND_MARKER_8: share_ascii_with_ai completed
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 FINDER_TOKEN: PIPELINE_SUMMARY - STARTUP FINAL Workflow Overview:
+    📊 Total workflows: 6
+    🔒 Finalized: 0
+    ⚡ Active: 6
+    📱 Apps: hello(1), link_graph_visualizer(1), param_buster(4)
+    🕒 Recent activity (24h): 6 workflows
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | 🔍 SEMANTIC_PIPELINE_CONTEXT: STARTUP FINAL Recent workflow keys: Undergarments-param_buster-03, Undergarments-param_buster-04, Pipulate-hello-01
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET / (live-reload check) | ID: 4c45434d
+[32m17:29:35[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET / (live-reload check) | ID: b9325581
+[32m17:29:36[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET /.well-known/appspecific/com.chrome.devtools.json | ID: 97aadd10
+[32m17:29:36[0m | [1mINFO    [0m | [36m__main__       [0m | 🔄 SSE event loop reference stored for restart notifications
+[32m17:29:36[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET /favicon.ico | ID: 597934ef
+[32m17:29:36[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET / (live-reload check) | ID: 4d404df1
+[32m17:29:38[0m | [1mINFO    [0m | [36m__main__       [0m | [🔄 QUEUEING] 🚀 Server started in Prod mode. Ready for production use....
+[32m17:29:38[0m | [33m[1mWARNING [0m | [36m__main__       [0m | Deleted key from persistence store: endpoint_message_sent__Production
+[32m17:29:38[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_DEBUG: Initial last_app_choice='', last_visited_url='/'
+[32m17:29:38[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_DEBUG: URL endpoint resolved: / -> ''
+[32m17:29:38[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_DEBUG: Detected homepage from URL: /
+[32m17:29:38[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_DEBUG: Final current_endpoint='' (empty string = homepage)
+[32m17:29:38[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_DEBUG: Available plugin_instances: ['dom_visualizer', 'introduction', 'profiles', 'roles', 'hello_workflow', 'documentation', 'tasks', 'history', 'connect_with_botify', 'parameter_buster', 'link_graph', 'gap_analysis', 'workflow_genesis', 'widget_examples', 'roadmap', 'dev_assistant', 'simon_mcp', 'blank_placeholder', 'botify_trifecta', 'tab_opener', 'browser_automation', 'stream_simulator', 'text_field', 'text_area', 'dropdown', 'checkboxes', 'radios', 'range', 'switch', 'upload', 'markdown', 'mermaid', 'prism', 'javascript', 'pandas', 'rich', 'matplotlib', 'webbrowser', 'selenium']
+[32m17:29:38[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_DEBUG: has_temp_message=False, is_valid_endpoint=True, current_endpoint_repr=''
+[32m17:29:38[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_DEBUG: Endpoint message for '': Configure Botifython how you like. Check to add Roles to APP menu. Drag-to-reorder. Click any role t...
+[32m17:29:39[0m | [1mINFO    [0m | [36m__main__       [0m | [🔄 QUEUEING] 🔧 [STARTUP] Configure Botifython how you like. Check to add Roles to APP menu. Drag-to-reorder. Clic...
+[32m17:29:40[0m | [1mINFO    [0m | [36m__main__       [0m | 🔧 STARTUP_DEBUG: Successfully sent startup endpoint message: _Production_1626
+[32m17:29:42[0m | [1mINFO    [0m | [36m__main__       [0m | [🌐 NETWORK] GET /demo_script_config.json | ID: 51fdb531
+[32m17:29:45[0m | [1mINFO    [0m | [36m__main__       [0m | LOCAL LLM CONTEXT: Pre-seeded context package ready at data/local_llm_context.json
+
+🤖 Local LLM context prepared - the AI assistant is ready for collaboration
+[32m17:31:07[0m | [1mINFO    [0m | [36m__main__       [0m | WebSocket disconnected
