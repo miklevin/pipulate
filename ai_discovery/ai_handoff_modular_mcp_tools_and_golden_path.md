@@ -1,8 +1,9 @@
 # 🎯 AI HANDOFF: Modular MCP Tools & Golden Path Tool Calling
 
 **Date**: January 2025  
-**Branch**: `botify-extraction-experiment` (NOT merged to main yet)  
-**Next Phase**: Golden Path Tool Calling System Implementation
+**Branch**: `golden-path-cascading-v2` (created from `botify-extraction-experiment`)  
+**Previous Branch**: `botify-extraction-experiment` (NOT merged to main yet)  
+**Current Phase**: Golden Path Tool Calling System Implementation - ACTIVE
 
 ---
 
