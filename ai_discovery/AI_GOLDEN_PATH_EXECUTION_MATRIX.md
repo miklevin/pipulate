@@ -19,9 +19,9 @@
     2. JSON        │        🟢 WORKING       │   🔴 NOT YET  
     3. python -c   │        🔴 NOT YET       │   🟡 PARTIAL
     4. python cli  │        🔴 NOT YET       │   🟢 WORKING
-    5. [cmd arg]   │        🔴 NOT YET       │   🔴 NOT YET
+    5. [cmd arg]   │        🟢 WORKING       │   🔴 NOT YET
     ──────────────┼─────────────────────────┼──────────────────
-    STATUS:        │      2/5 IMPLEMENTED    │  1.5/5 IMPLEMENTED
+    STATUS:        │      3/5 IMPLEMENTED    │  1.5/5 IMPLEMENTED
 ```
 
 **LEGEND:**
@@ -107,6 +107,26 @@ except json.JSONDecodeError:
     # Falls back to XML parsing
 ```
 
+#### **✅ WORKING: Bracket Notation (Syntax 5)**
+```
+[mcp-discover]
+[tools]
+[pipeline]
+[search FINDER_TOKEN]
+[browser localhost:5001]
+```
+
+**Evidence in Code**:
+```python
+# pipulate/server.py lines 3147-3148
+# Match XML/JSON tool tags AND bracket notation commands
+mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>|\[[^\]]+\])', re.DOTALL)
+
+# pipulate/server.py execute_bracket_notation_command function
+if mcp_block.startswith('[') and mcp_block.endswith(']'):
+    return await execute_bracket_notation_command(mcp_block, operation_id, start_time)
+```
+
 ---
 
 ### **MECHANISM 2: TERMINAL (Direct CLI)**
@@ -152,8 +172,8 @@ print(result)
 # ✅ WORKING: Async execution pipeline (execute_and_respond_to_tool_call)
 # ✅ WORKING: Result injection system (message_queue.add)
 # ✅ WORKING: WebSocket integration with Ctrl+Shift+R restart
+# ✅ WORKING: [cmd arg] bracket notation parsing (NEW: execute_bracket_notation_command)
 
-# 🔴 MISSING: [cmd arg] bracket notation parsing  
 # 🔴 MISSING: python -c command parsing in message stream
 ```
 
@@ -213,24 +233,51 @@ cd pipulate && .venv/bin/python cli.py call tool_name --param value
 python -c commands in message stream  # Not implemented in orchestrator
 ```
 
-### **For Local LLMs via Chat Interface**
-```xml
-<!-- WORKS RIGHT NOW: -->
-<tool name="browser_scrape_page">
-<params>
-<url>https://example.com</url>
-</params>
-</tool>
+### **For Local LLMs via Chat Interface (Progressive Reveal)**
 
-<!-- ALSO WORKS: -->
+**🎓 PROGRESSIVE REVEAL: Start simple, get sophisticated!**
+
+**Level 1: Ultra-simple bracket notation (WORKING NOW!)**
+```
+[mcp-discover]
+[tools]
+[pipeline]
+[search FINDER_TOKEN]
+```
+
+**Level 2: Terminal CLI commands**
+```bash
+.venv/bin/python cli.py mcp-discover
+.venv/bin/python cli.py call ai_capability_test_suite
+```
+
+**Level 3: Python -c direct execution**  
+```bash
+python -c "from helpers.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))"
+```
+
+**Level 4: JSON tool calling (WORKING NOW!)**
+```xml
 <tool name="browser_scrape_page">
 <params>
 {"url": "https://example.com", "wait_seconds": 3}
 </params>
 </tool>
+```
 
-<!-- DOESN'T WORK YET: -->
-[browser_scrape_page url=https://example.com]
+**Level 5: XML tool calling (WORKING NOW!)**
+```xml
+<tool name="browser_scrape_page">
+<params>
+<url>https://example.com</url>
+<wait_seconds>3</wait_seconds>
+</params>
+</tool>
+```
+
+**🚫 DOESN'T WORK YET:**
+```
+[browser_scrape_page url=https://example.com]  # Complex bracket args not implemented
 ```
 
 ---
@@ -258,11 +305,12 @@ python -c commands in message stream  # Not implemented in orchestrator
 ## 📈 **SUCCESS METRICS**
 
 ### **Orchestrator Mechanism** 
-- [x] 2/5 syntaxes working (XML, JSON)
+- [x] 3/5 syntaxes working (XML, JSON, bracket notation)
 - [x] Message stream monitoring working
-- [x] Pattern matching working  
+- [x] Pattern matching working (now includes bracket detection)
 - [x] Async execution working
 - [x] Result injection working
+- [x] Progressive reveal Level 1 implementation complete
 
 ### **Terminal Mechanism**
 - [x] 1.5/5 syntaxes working (cli.py full, python -c partial)
@@ -286,11 +334,11 @@ python -c commands in message stream  # Not implemented in orchestrator
 
 ## 🙏 **MEA CULPA**
 
-**I completely missed the working orchestrator mechanism!** The matrix now reflects the ACTUAL implementation:
+**I completely missed the working orchestrator mechanism AND found bracket notation implementation!** The matrix now reflects the ACTUAL implementation:
 
-- **Orchestrator**: 2/5 syntaxes working (XML, JSON)
+- **Orchestrator**: 3/5 syntaxes working (XML, JSON, bracket notation)
 - **Terminal**: 1.5/5 syntaxes working (python cli.py, partial python -c)
-- **Total**: 3.5/10 possibilities implemented (not 1.5/10 as I incorrectly stated)
+- **Total**: 4.5/10 possibilities implemented (MUCH better than my original wrong assessment of 1.5/10)
 
 **You're absolutely executing MCP calls through the orchestrator all the time** - I should have searched for the implementation first instead of assuming it didn't exist.
 
