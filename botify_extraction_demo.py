@@ -26,7 +26,7 @@ def main():
     
     # Get file sizes
     original_size = get_file_size('mcp_tools.py')
-    botify_size = get_file_size('botify_mcp_tools.py')
+    botify_size = get_file_size('tools/botify_mcp_tools.py')
     
     # Calculate token estimates
     original_tokens = estimate_tokens(original_size)
@@ -34,7 +34,7 @@ def main():
     
     print(f"📊 FILE SIZE COMPARISON:")
     print(f"   • Original mcp_tools.py: {original_size:,} characters (~{original_tokens:,} tokens)")
-    print(f"   • Extracted botify_mcp_tools.py: {botify_size:,} characters (~{botify_tokens:,} tokens)")
+    print(f"   • Extracted tools/botify_mcp_tools.py: {botify_size:,} characters (~{botify_tokens:,} tokens)")
     print(f"   • Extraction ratio: {(botify_size/original_size)*100:.1f}% of original")
     
     print(f"\n🚀 TOKEN OPTIMIZATION ACHIEVED:")
@@ -45,7 +45,7 @@ def main():
     
     # Test imports
     try:
-        from botify_mcp_tools import get_botify_tools
+        from tools.botify_mcp_tools import get_botify_tools
         botify_tools = get_botify_tools()
         print(f"   • Botify module import: SUCCESS ({len(botify_tools)} tools)")
     except ImportError as e:
@@ -61,7 +61,7 @@ def main():
     print(f"\n🎭 USE CASE SCENARIOS:")
     print(f"   • AI Assistant analyzing Botify issues:")
     print(f"     - OLD: Include full mcp_tools.py ({original_tokens:,} tokens)")
-    print(f"     - NEW: Include only botify_mcp_tools.py ({botify_tokens:,} tokens)")
+    print(f"     - NEW: Include only tools/botify_mcp_tools.py ({botify_tokens:,} tokens)")
     print(f"     - Benefit: {((original_tokens - botify_tokens)/original_tokens)*100:.1f}% more room for actual analysis")
     
     print(f"\n🏆 EXTRACTION SUCCESS SUMMARY:")
