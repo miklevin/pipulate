@@ -47,17 +47,22 @@ from mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
 SIMPLE_COMMANDS = {
     'mcp': {
         'description': 'List MCP categories (Rule of 7)',
-        'tool': 'list_mcp_categories',
-        'args': {}
+        'tool': 'ai_self_discovery_assistant',
+        'args': {'discovery_type': 'categories'}
     },
     'mcp-discover': {
-        'description': 'Start MCP discovery journey (same as mcp)',
-        'tool': 'list_mcp_categories', 
+        'description': 'Start MCP discovery journey',
+        'tool': 'ai_self_discovery_assistant',
+        'args': {'discovery_type': 'categories'}
+    },
+    'discover': {
+        'description': 'AI self-discovery assistant',
+        'tool': 'ai_self_discovery_assistant',
         'args': {}
     },
-    'tools': {
-        'description': 'List available tools by category',
-        'tool': 'list_mcp_tools',
+    'test': {
+        'description': 'Test MCP capabilities',
+        'tool': 'ai_capability_test_suite',
         'args': {}
     },
     'pipeline': {
@@ -65,16 +70,36 @@ SIMPLE_COMMANDS = {
         'tool': 'pipeline_state_inspector',
         'args': {}
     },
-    'discover': {
-        'description': 'AI self-discovery',
-        'tool': 'ai_self_discovery_assistant',
-        'args': {'discovery_type': 'capabilities'}
+    'read': {
+        'description': 'Read file contents for AI analysis',
+        'tool': 'local_llm_read_file',
+        'args': {}
     },
-    'test': {
-        'description': 'Test MCP capabilities',
-        'tool': 'ai_capability_test_suite',
-        'args': {'test_type': 'quick'}
-    }
+    'list': {
+        'description': 'List files and directories for AI exploration',
+        'tool': 'local_llm_list_files',
+        'args': {}
+    },
+    'search': {
+        'description': 'Search logs with FINDER_TOKENs for debugging',
+        'tool': 'local_llm_grep_logs',
+        'args': {}
+    },
+    'browser': {
+        'description': 'Scrape web pages for analysis',
+        'tool': 'browser_scrape_page',
+        'args': {}
+    },
+    'flash': {
+        'description': 'Flash a UI element by ID to draw user attention',
+        'tool': 'ui_flash_element',
+        'args': {}
+    },
+    'tools': {
+        'description': 'List available tools by category',
+        'tool': 'ai_self_discovery_assistant',
+        'args': {'discovery_type': 'tools'}
+    },
 }
 
 # Command patterns with arguments
@@ -161,12 +186,6 @@ async def execute_simple_command(command: str) -> Dict[str, Any]:
         
         tool_name, args = parsed
         
-        # Special handling for meta commands
-        if tool_name == 'list_mcp_categories':
-            return list_mcp_categories()
-        elif tool_name == 'list_mcp_tools':
-            return list_mcp_tools()
-        
         # Execute the MCP tool
         if tool_name not in MCP_TOOL_REGISTRY:
             return {
@@ -193,62 +212,7 @@ async def execute_simple_command(command: str) -> Dict[str, Any]:
             'command': command
         }
 
-def list_mcp_categories() -> Dict[str, Any]:
-    """List MCP categories following Rule of 7."""
-    categories = [
-        "🌐 Browser - Your eyes, brain, and hands on the web",
-        "🔍 Analysis - System transparency and debugging",
-        "📊 Botify - SEO API integration and queries",
-        "🎨 UI - Visual debugging and interaction",
-        "🧠 AI - Self-discovery and capability testing",
-        "🔧 System - File operations and log analysis",
-        "⚡ Automation - Complete workflow automation"
-    ]
-    
-    return {
-        'success': True,
-        'categories': categories,
-        'total_categories': len(categories),
-        'next_step': 'Use [tools] to see specific tools in each category'
-    }
-
-def list_mcp_tools() -> Dict[str, Any]:
-    """List available MCP tools by category."""
-    tools = {
-        "🌐 Browser": [
-            "browser_scrape_page - Your eyes on the web",
-            "browser_analyze_scraped_page - Your brain analyzing content",
-            "browser_automate_workflow_walkthrough - Your hands automating",
-            "browser_interact_with_current_page - Your interaction capabilities"
-        ],
-        "🔍 Analysis": [
-            "pipeline_state_inspector - Complete system transparency",
-            "local_llm_grep_logs - Log search and analysis",
-            "local_llm_read_file - File content reading",
-            "local_llm_list_files - Directory exploration"
-        ],
-        "📊 Botify": [
-            "botify_get_full_schema - The 4,449 field revolution",
-            "botify_list_available_analyses - Analysis discovery",
-            "botify_execute_custom_bql_query - Custom queries"
-        ],
-        "🎨 UI": [
-            "ui_flash_element - Visual debugging",
-            "ui_list_elements - UI element discovery"
-        ],
-        "🧠 AI": [
-            "ai_self_discovery_assistant - Eliminate uncertainty",
-            "ai_capability_test_suite - Comprehensive testing",
-            "execute_complete_session_hijacking - Complete automation"
-        ]
-    }
-    
-    return {
-        'success': True,
-        'tools': tools,
-        'total_tools': sum(len(tool_list) for tool_list in tools.values()),
-        'usage': 'Use simple commands like [pipeline], [list static], [search FINDER_TOKEN]'
-    }
+# Legacy functions removed - now using actual MCP tools from registry directly
 
 def print_simple_help():
     """Print help for simple command syntax."""
