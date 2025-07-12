@@ -1017,23 +1017,42 @@ async function executeCleanUserInputStep(step) {
     console.log('🎯 Clean user input step completed');
 }
 
-// Execute system reply step - pure phantom message display
+// Execute system reply step - pure phantom message display with real simulated typing
 async function executeCleanSystemReplyStep(step) {
     console.log('🎯 Executing clean system reply step');
     
-    // Show typing indicator
-    showLLMTypingIndicator();
-    
-    // Simulate typing time
-    if (step.timing && step.timing.display_speed) {
-        await simulatePhantomLLMTyping(step.message, step.timing.display_speed);
-    } else {
-        await simulatePhantomLLMTyping(step.message, 30);
+    // Create the message container first
+    const msgList = document.getElementById('msg-list');
+    if (!msgList) {
+        console.error('🎯 Could not find message list container');
+        return;
     }
     
-    // Hide typing indicator and show message
-    hideLLMTypingIndicator();
-    displayPhantomLLMMessage(step.message);
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message assistant';
+    messageDiv.innerHTML = `<div class="message-container"><div class="message-content"><p></p></div></div>`;
+    msgList.appendChild(messageDiv);
+    msgList.scrollTop = msgList.scrollHeight;
+    
+    // Get the paragraph element where we'll type the text
+    const textElement = messageDiv.querySelector('p');
+    
+    // Simulate real typing - character by character
+    const typingSpeed = step.timing?.display_speed || 30;
+    
+    // For simple messages, type character by character
+    if (!step.message.includes('**') && !step.message.includes('\n')) {
+        // Simple text - type character by character
+        for (let i = 0; i < step.message.length; i++) {
+            textElement.textContent += step.message[i];
+            msgList.scrollTop = msgList.scrollHeight;
+            await new Promise(resolve => setTimeout(resolve, typingSpeed));
+        }
+    } else {
+        // Complex formatting - just display with proper formatting
+        textElement.innerHTML = step.message.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        msgList.scrollTop = msgList.scrollHeight;
+    }
     
     console.log('🎯 Clean system reply step completed');
 }
@@ -1042,14 +1061,8 @@ async function executeCleanSystemReplyStep(step) {
 async function executeCleanMcpToolCallStep(step) {
     console.log('🎯 Executing clean MCP tool call:', step.tool_name);
     
-    // Show typing indicator for MCP tool execution
-    showLLMTypingIndicator();
-    
-    // Simulate MCP tool execution time
+    // Simulate MCP tool execution time (no typing indicator)
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Hide typing indicator
-    hideLLMTypingIndicator();
     
     // Display MCP tool result (phantom - hardcoded for demo)
     let mcpResult = '';
@@ -1109,7 +1122,22 @@ The element is now sparkling with golden light!`;
 ${step.description || 'MCP tool execution completed successfully.'}`;
     }
     
-    displayPhantomLLMMessage(mcpResult);
+    // Display MCP result with simulated typing
+    const msgList = document.getElementById('msg-list');
+    if (msgList) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message assistant';
+        messageDiv.innerHTML = `<div class="message-container"><div class="message-content"><p></p></div></div>`;
+        msgList.appendChild(messageDiv);
+        msgList.scrollTop = msgList.scrollHeight;
+        
+        // Get the paragraph element where we'll type the text
+        const textElement = messageDiv.querySelector('p');
+        
+        // For MCP results, just display immediately with proper formatting
+        textElement.innerHTML = mcpResult.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    }
+    
     console.log('🎯 Clean MCP tool step completed');
 }
 
