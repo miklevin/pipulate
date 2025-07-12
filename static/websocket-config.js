@@ -1038,6 +1038,13 @@ async function executeCleanSystemReplyStep(step) {
     // Use EXACT same word-reveal technique as endpoint messages
     await simulateWordByWordReveal(messageDiv, step.message, step.timing?.display_speed || 30);
     
+    // Automatically re-focus textarea after LLM reply finishes (standard UX behavior)
+    const textarea = document.querySelector('textarea[name="msg"]');
+    if (textarea) {
+        textarea.focus();
+        console.log('🎯 Textarea re-focused after LLM reply completion');
+    }
+    
     console.log('🎯 Clean system reply step completed');
 }
 
@@ -1118,6 +1125,13 @@ ${step.description || 'MCP tool execution completed successfully.'}`;
         
         // Use EXACT same word-reveal technique as endpoint messages (slightly faster for MCP results)
         await simulateWordByWordReveal(messageDiv, mcpResult, 20);
+    }
+    
+    // Automatically re-focus textarea after MCP tool response finishes (standard UX behavior)
+    const textarea = document.querySelector('textarea[name="msg"]');
+    if (textarea) {
+        textarea.focus();
+        console.log('🎯 Textarea re-focused after MCP tool completion');
     }
     
     console.log('🎯 Clean MCP tool step completed');
