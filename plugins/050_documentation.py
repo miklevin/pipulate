@@ -1241,9 +1241,9 @@ This system provides unprecedented debugging power:
         </div>
     </div>
 
-    <!-- Split.js and Splitter Init -->
-    <script src="/assets/split.js"></script>
-    <script src="/assets/splitter-init.js"></script>
+    <!-- Split.js and Initialization -->
+    <script src="/assets/js/split.js"></script>
+    <script src="/assets/init.js"></script>
     
     <!-- Prism JS -->
     <script src="/assets/js/prism.js"></script>

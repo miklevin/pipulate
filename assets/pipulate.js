@@ -62,7 +62,7 @@ window.initializeChatScripts = function(config) {
     console.log('✅ Chat scripts initialized (sortable handled separately)');
 };
 
-// setupSortable function removed - now handled by dedicated sortable-init.js
+// setupSortable function removed - now handled by consolidated init.js
 
 function setupWebSocketAndSSE() {
     // SSE Setup
@@ -337,7 +337,7 @@ function linkifyText(text) {
     });
 }
 
-// Splitter initialization removed - now handled by dedicated splitter-init.js
+// Splitter initialization removed - now handled by consolidated init.js
 
 function setupMenuFlashFeedback() {
     console.log('🔔 Setting up enhanced menu flash feedback system');
