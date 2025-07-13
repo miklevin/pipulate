@@ -380,18 +380,6 @@ class CrudUI(PluginIdentityManager):
                            "Deselect ALL", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/deselect_all",
                            cls="secondary outline role-badge"),
-                    Button(Img(src='/assets/feather/chevrons-down.svg', 
-                              alt='Expand all', 
-                              style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
-                           "Expand ALL", 
-                           onclick=f"document.querySelectorAll('#{self.CONTAINER_ID} details').forEach(function(details) {{ details.open = true; }});",
-                           cls="secondary role-badge"),
-                    Button(Img(src='/assets/feather/chevrons-up.svg', 
-                              alt='Collapse all', 
-                              style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
-                           "Collapse ALL", 
-                           onclick=f"document.querySelectorAll('#{self.CONTAINER_ID} details').forEach(function(details) {{ details.open = false; }});",
-                           cls="secondary outline role-badge"),
                     style="margin-bottom: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap; justify-content: center;"
                 ),
                 Ol(
