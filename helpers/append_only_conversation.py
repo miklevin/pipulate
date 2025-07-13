@@ -451,7 +451,7 @@ async def get_conversation_stats() -> Dict:
     
     return {
         'total_messages': len(all_messages),
-        'role_counts': role_counts,
+        'role_distribution': role_counts,  # Changed from role_counts to role_distribution
         'total_characters': total_chars,
         'database_path': str(conv_system.db_path)
     } 
