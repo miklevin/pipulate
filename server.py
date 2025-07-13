@@ -4984,40 +4984,14 @@ async def home(request):
     db['last_visited_url'] = request.url.path
     current_profile_id = get_current_profile_id()
     menux = db.get('last_app_choice', 'App')
-    response = await create_outer_container(current_profile_id, menux, request)
-    last_profile_name = get_profile_name()
-    page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
-    
-    # 🎬 CINEMATIC MAGIC: Check for Oz door grayscale state and apply immediately
+    # 🎬 CINEMATIC MAGIC: Check for Oz door grayscale state
     grayscale_enabled = db.get('oz_door_grayscale') == 'true'
     if grayscale_enabled:
-        # Add inline script to apply grayscale IMMEDIATELY - before any rendering
-        grayscale_script = Script(f"""
-            // 🎬 IMMEDIATE grayscale application - no delay, no flash
-            (function() {{
-                // Apply grayscale class immediately (CSS handles the visual effect)
-                document.documentElement.classList.add('demo-grayscale');
-                console.log('🎬 INSTANT grayscale applied from server - Kansas farmhouse mode activated!');
-                
-                // 🎬 AUTOMATIC TRANSITION: Start the fade to color after page loads
-                document.addEventListener('DOMContentLoaded', function() {{
-                    // Call the transition function if it exists
-                    if (window.executeOzDoorTransition) {{
-                        window.executeOzDoorTransition();
-                    }} else {{
-                        // Fallback: Start transition when the function becomes available
-                        const checkForTransition = setInterval(function() {{
-                            if (window.executeOzDoorTransition) {{
-                                clearInterval(checkForTransition);
-                                window.executeOzDoorTransition();
-                            }}
-                        }}, 100); // Check every 100ms
-                    }}
-                }});
-            }})();
-        """)
-        response = Div(grayscale_script, response)
-        logger.info("🎬 Oz door grayscale state applied immediately on page load")
+        logger.info("🎬 Oz door grayscale state detected - injecting script into Container")
+    
+    response = await create_outer_container(current_profile_id, menux, request, grayscale_enabled)
+    last_profile_name = get_profile_name()
+    page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
     
     # Backup mechanism: send endpoint message if not yet sent for this session
     current_env = get_current_environment()
@@ -5462,7 +5436,7 @@ def get_dynamic_role_css():
         logger.error(f"Error generating dynamic role CSS: {e}")
         return ""  # Fallback to static CSS if dynamic generation fails
 
-async def create_outer_container(current_profile_id, menux, request):
+async def create_outer_container(current_profile_id, menux, request, grayscale_enabled=False):
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for container creation")
@@ -5490,13 +5464,45 @@ async def create_outer_container(current_profile_id, menux, request):
             }}
         }});
     """)
-
-    return Container(
+    
+    # 🎬 CINEMATIC MAGIC: Prepare grayscale script if enabled
+    container_contents = [
         Style(dynamic_css),  # Dynamic CSS injection
         nav_group, 
         Div(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), 
         init_splitter_script  # Initialize the draggable splitter
-    )
+    ]
+    
+    if grayscale_enabled:
+        # Add grayscale script to Container (no extra wrapper div)
+        grayscale_script = Script(f"""
+            // 🎬 IMMEDIATE grayscale application - no delay, no flash
+            (function() {{
+                // Apply grayscale class immediately (CSS handles the visual effect)
+                document.documentElement.classList.add('demo-grayscale');
+                console.log('🎬 INSTANT grayscale applied from server - Kansas farmhouse mode activated!');
+                
+                // 🎬 AUTOMATIC TRANSITION: Start the fade to color after page loads
+                document.addEventListener('DOMContentLoaded', function() {{
+                    // Call the transition function if it exists
+                    if (window.executeOzDoorTransition) {{
+                        window.executeOzDoorTransition();
+                    }} else {{
+                        // Fallback: Start transition when the function becomes available
+                        const checkForTransition = setInterval(function() {{
+                            if (window.executeOzDoorTransition) {{
+                                clearInterval(checkForTransition);
+                                window.executeOzDoorTransition();
+                            }}
+                        }}, 100); // Check every 100ms
+                    }}
+                }});
+            }})();
+        """)
+        container_contents.insert(0, grayscale_script)  # Insert at the beginning
+        logger.info("🎬 Oz door grayscale script injected into Container structure")
+
+    return Container(*container_contents)
 
 
 def get_workflow_instance(workflow_name):
