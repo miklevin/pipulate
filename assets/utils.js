@@ -325,7 +325,7 @@ window.PipulateCopy = (function() {
     }
 
     function initializeInlineCodeCopy() {
-        document.querySelectorAll('code:not(.language-*):not([class*="language-"])').forEach(function(codeElement) {
+        document.querySelectorAll('code:not([class^="language-"]):not([class*="language-"])').forEach(function(codeElement) {
             const text = codeElement.textContent.trim();
             
             // Only add click-to-copy for command-like text
