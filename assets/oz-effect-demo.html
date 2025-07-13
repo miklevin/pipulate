@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 Dorothy Opens the Door to Oz - Visual Effects Demo</title>
+    <style>
+        :root {
+            /* Current over-exposed Kansas farmhouse settings */
+            --oz-grayscale-brightness: 1.5;
+            --oz-grayscale-contrast: 0.75;
+            --oz-grayscale-saturation: 0%;
+            --oz-transition-duration: 3s;
+            --oz-transition-easing: ease-in-out;
+        }
+
+        .demo-grayscale {
+            filter: 
+                grayscale(100%) 
+                contrast(var(--oz-grayscale-contrast)) 
+                brightness(var(--oz-grayscale-brightness))
+                saturate(var(--oz-grayscale-saturation));
+            -webkit-filter: 
+                grayscale(100%) 
+                contrast(var(--oz-grayscale-contrast)) 
+                brightness(var(--oz-grayscale-brightness))
+                saturate(var(--oz-grayscale-saturation));
+        }
+
+        .demo-grayscale.demo-fading-to-color {
+            filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
+            -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
+            transition: filter var(--oz-transition-duration) var(--oz-transition-easing);
+            -webkit-transition: -webkit-filter var(--oz-transition-duration) var(--oz-transition-easing);
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .preset-btn {
+            padding: 10px 15px;
+            border: 2px solid #333;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: #333;
+            color: white;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .control-group {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .value-display {
+            text-align: center;
+            padding: 5px;
+            background: white;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .demo-content {
+            background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            padding: 40px;
+            border-radius: 10px;
+            margin: 20px 0;
+            color: #333;
+            text-align: center;
+            position: relative;
+        }
+
+        .demo-content::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
+            border-radius: 10px;
+        }
+
+        .demo-content > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .transition-btn {
+            padding: 15px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px 10px;
+            transition: background 0.3s;
+        }
+
+        .transition-btn:hover {
+            background: #764ba2;
+        }
+
+        .code-display {
+            background: #2d3748;
+            color: #68d391;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            margin: 20px 0;
+            white-space: pre-line;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container" id="demo-container">
+        <div class="header">
+            <h1>🎬 Dorothy Opens the Door to Oz</h1>
+            <p>Interactive demo of the configurable over-exposed Kansas farmhouse effect</p>
+        </div>
+
+        <div class="preset-buttons">
+            <button class="preset-btn" onclick="setPreset('rich', 1.0, 1.2)">📷 Rich B&W Film</button>
+            <button class="preset-btn" onclick="setPreset('vintage', 1.3, 0.8)">📸 Vintage Faded Photo</button>
+            <button class="preset-btn" onclick="setPreset('overexposed', 1.5, 0.75)">🌤️ Over-exposed Film (Current)</button>
+            <button class="preset-btn" onclick="setPreset('sunbleached', 1.8, 0.6)">☀️ Sun-bleached Photograph</button>
+            <button class="preset-btn" onclick="setPreset('whitewashed', 2.0, 0.4)">🤍 Nearly White-washed</button>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="brightness">🔆 Brightness (Over-exposure Level)</label>
+                <input type="range" id="brightness" min="0.5" max="2.5" step="0.1" value="1.5" oninput="updateEffect()">
+                <div class="value-display" id="brightness-value">1.5</div>
+                <small>1.0 = normal, 1.5+ = over-exposed, 2.0+ = washed out</small>
+            </div>
+
+            <div class="control-group">
+                <label for="contrast">⚫ Contrast (Fade Level)</label>
+                <input type="range" id="contrast" min="0.2" max="1.5" step="0.05" value="0.75" oninput="updateEffect()">
+                <div class="value-display" id="contrast-value">0.75</div>
+                <small>1.0 = normal, 0.75 = softer, 0.5 = very faded</small>
+            </div>
+
+            <div class="control-group">
+                <label for="duration">⏱️ Transition Duration</label>
+                <input type="range" id="duration" min="1" max="8" step="0.5" value="3" oninput="updateEffect()">
+                <div class="value-display" id="duration-value">3s</div>
+                <small>How long the fade to color takes</small>
+            </div>
+        </div>
+
+        <div class="demo-content">
+            <h2>🌈 This is the colorful Land of Oz!</h2>
+            <p>Rich gradients, vibrant colors, and beautiful effects that should look dramatically different in grayscale vs color.</p>
+            <p>🏠 In Kansas (grayscale mode), this should appear washed out and over-exposed.</p>
+            <p>🌈 In Oz (color mode), this should be vibrant and full of life!</p>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="transition-btn" onclick="applyGrayscale()">🏠 Apply Kansas Farmhouse Effect</button>
+            <button class="transition-btn" onclick="transitionToColor()">🌈 Open Door to Oz</button>
+            <button class="transition-btn" onclick="resetToColor()">🔄 Reset to Full Color</button>
+        </div>
+
+        <div class="code-display" id="css-output">
+/* Current CSS Variables */
+--oz-grayscale-brightness: 1.5;
+--oz-grayscale-contrast: 0.75;
+--oz-transition-duration: 3s;
+        </div>
+    </div>
+
+    <script>
+        function updateEffect() {
+            const brightness = document.getElementById('brightness').value;
+            const contrast = document.getElementById('contrast').value;
+            const duration = document.getElementById('duration').value;
+
+            // Update CSS variables
+            document.documentElement.style.setProperty('--oz-grayscale-brightness', brightness);
+            document.documentElement.style.setProperty('--oz-grayscale-contrast', contrast);
+            document.documentElement.style.setProperty('--oz-transition-duration', duration + 's');
+
+            // Update displays
+            document.getElementById('brightness-value').textContent = brightness;
+            document.getElementById('contrast-value').textContent = contrast;
+            document.getElementById('duration-value').textContent = duration + 's';
+
+            // Update CSS code display
+            document.getElementById('css-output').textContent = 
+`/* Current CSS Variables */
+--oz-grayscale-brightness: ${brightness};
+--oz-grayscale-contrast: ${contrast};
+--oz-transition-duration: ${duration}s;
+
+/* Copy this to your styles.css :root section */`;
+        }
+
+        function setPreset(name, brightness, contrast) {
+            document.getElementById('brightness').value = brightness;
+            document.getElementById('contrast').value = contrast;
+            updateEffect();
+            
+            // Flash the preset name
+            const container = document.getElementById('demo-container');
+            const originalTitle = container.querySelector('h1').textContent;
+            container.querySelector('h1').textContent = `🎬 ${name.charAt(0).toUpperCase() + name.slice(1)} Preset Applied!`;
+            setTimeout(() => {
+                container.querySelector('h1').textContent = originalTitle;
+            }, 2000);
+        }
+
+        function applyGrayscale() {
+            const container = document.getElementById('demo-container');
+            container.classList.remove('demo-fading-to-color');
+            container.classList.add('demo-grayscale');
+        }
+
+        function transitionToColor() {
+            const container = document.getElementById('demo-container');
+            if (container.classList.contains('demo-grayscale')) {
+                container.classList.add('demo-fading-to-color');
+                setTimeout(() => {
+                    container.classList.remove('demo-grayscale', 'demo-fading-to-color');
+                }, parseFloat(document.getElementById('duration').value) * 1000);
+            }
+        }
+
+        function resetToColor() {
+            const container = document.getElementById('demo-container');
+            container.classList.remove('demo-grayscale', 'demo-fading-to-color');
+        }
+
+        // Initialize
+        updateEffect();
+    </script>
+</body>
+</html> 
