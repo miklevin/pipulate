@@ -5326,8 +5326,11 @@ async def demo_bookmark_check():
     try:
         demo_bookmark = db.get('demo_bookmark')
         if demo_bookmark:
+            logger.info(f"📖 Retrieved bookmark data type: {type(demo_bookmark)}")
+            logger.info(f"📖 Retrieved bookmark data: {demo_bookmark}")
             return JSONResponse({"has_bookmark": True, "bookmark": demo_bookmark})
         else:
+            logger.info("📖 No demo bookmark found")
             return JSONResponse({"has_bookmark": False})
     except Exception as e:
         logger.error(f"Error checking demo bookmark: {e}")
@@ -5338,8 +5341,10 @@ async def demo_bookmark_store(request):
     """Store demo bookmark before navigation"""
     try:
         data = await request.json()
+        logger.info(f"📖 About to store bookmark data type: {type(data)}")
+        logger.info(f"📖 About to store bookmark data: {data}")
         db['demo_bookmark'] = data
-        logger.info(f"📖 Demo bookmark stored: {data['script_name']}")
+        logger.info(f"📖 Demo bookmark stored: {data.get('script_name', 'UNKNOWN')}")
         return JSONResponse({"success": True})
     except Exception as e:
         logger.error(f"Error storing demo bookmark: {e}")
