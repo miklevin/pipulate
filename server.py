@@ -3631,7 +3631,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/assets/marked-init.js'),
         Script(src='/assets/js/prism.js'),
         Script(src='/assets/copy-functionality.js'),
-        Script(src='/assets/theme-init.js'),
+        Script(src='/assets/theme.js'),
         Script(src='/assets/widget-scripts.js'),
         create_chat_scripts('.sortable'),
         Script(type='module')
