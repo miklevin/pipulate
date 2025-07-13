@@ -185,9 +185,9 @@ async def home(request):
     # Check for Oz door grayscale state and apply immediately
     grayscale_enabled = db.get('oz_door_grayscale') == 'true'
     if grayscale_enabled:
-        # Add inline script to apply grayscale IMMEDIATELY
+        # Add inline script to apply grayscale IMMEDIATELY via CSS classes
         grayscale_script = Script(f"""
-            document.documentElement.style.filter = 'grayscale(100%) contrast(1.2) brightness(0.9)';
+            // Apply grayscale class immediately (CSS handles the visual effect)
             document.documentElement.classList.add('demo-grayscale');
             
             // Automatically call transition function when page loads
@@ -207,6 +207,15 @@ async def home(request):
         """)
         response = Div(grayscale_script, response)
 ```
+
+### CSS-Only Visual Effects
+
+The implementation uses **CSS classes only** (no inline styles) to ensure:
+- **Proper CSS transitions**: Classes can transition to other classes
+- **No layout issues**: Inline styles on `html` element can affect page width
+- **Clean state management**: CSS classes are easier to manage than inline styles
+
+**Key Principle**: Inline styles have higher specificity than CSS classes, so they prevent transitions from working. The solution uses only CSS classes for all visual effects.
 
 ### File Structure
 ```
