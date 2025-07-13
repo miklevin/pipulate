@@ -6661,6 +6661,14 @@ async def update_pipulate(request):
             await pipulate.stream('✅ Already up to date!', verbatim=True, role='system')
             return ""
         
+        # 🔒 UPDATES FOUND - Trigger full-screen restart effect now
+        await pipulate.stream('📦 Updates available! Applying changes...', verbatim=True, role='system')
+        await pipulate.stream('''
+            <script>
+                triggerFullScreenRestart("Applying Pipulate updates...", "UPDATE_APPLYING");
+            </script>
+        ''', verbatim=True, role='system')
+        
         # Stash any local changes to prevent conflicts
         await pipulate.stream('💾 Stashing local changes...', verbatim=True, role='system')
         stash_result = subprocess.run(['git', 'stash', 'push', '--quiet', '--include-untracked', '--message', 'Auto-stash before update'], 
@@ -6688,14 +6696,7 @@ async def update_pipulate(request):
         
         await pipulate.stream('✅ Update complete! Restarting server...', verbatim=True, role='system')
         
-        # Trigger full-screen restart effect for the actual restart
-        await pipulate.stream('''
-            <script>
-                triggerFullScreenRestart("Applying updates...", "UPDATE_RESTART");
-            </script>
-        ''', verbatim=True, role='system')
-        
-        # Restart the server to apply updates
+        # Restart the server to apply updates (full-screen effect already triggered)
         asyncio.create_task(delayed_restart(2))
         
         return ""
