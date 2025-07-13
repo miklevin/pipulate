@@ -474,24 +474,87 @@ let demoModeActive = false;
 let currentDemoScript = null;
 let currentDemoStepIndex = 0;
 
+// ============================================================================
+// UNIFIED RESTART SYSTEM - Consolidates all server restart scenarios
+// ============================================================================
+
+/**
+ * Triggers the full-screen restart effect for any server restart scenario.
+ * This ensures consistent user experience across all restart triggers.
+ * 
+ * @param {string} message - The message to display during restart
+ * @param {string} restartType - Type of restart for logging (optional)
+ */
+function triggerFullScreenRestart(message = "Restarting server...", restartType = "MANUAL") {
+    console.log(`🔄 ${restartType}: ${message}`);
+    
+    // Remove any existing restart overlay
+    const existingOverlay = document.getElementById('restart-overlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+    
+    // Create restart overlay with Pico CSS spinner
+    const overlay = document.createElement('div');
+    overlay.id = 'restart-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.85);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        color: white;
+        font-family: system-ui, sans-serif;
+        backdrop-filter: blur(2px);
+        font-size: 1.2rem;
+    `;
+    
+    // Use Pico CSS aria-busy spinner
+    overlay.innerHTML = `<span aria-busy="true">${message}</span>`;
+    
+    document.body.appendChild(overlay);
+    console.log(`🔄 Full-screen restart overlay displayed: ${restartType}`);
+    
+    // Make body non-interactive during restart
+    document.body.style.pointerEvents = 'none';
+    document.body.style.userSelect = 'none';
+}
+
+/**
+ * Send restart command via WebSocket (for immediate restarts)
+ */
+function sendRestartCommand(restartType = "WEBSOCKET") {
+    if (sidebarWs.readyState === WebSocket.OPEN) {
+        sidebarWs.send('%%RESTART_SERVER%%');
+        console.log(`🔄 ${restartType}: Restart command sent via WebSocket`);
+    } else {
+        console.error(`🔄 ${restartType}: WebSocket not connected, cannot send restart command`);
+        // If WebSocket fails, hide the spinner after a delay
+        setTimeout(() => {
+            hideRestartSpinner();
+        }, 3000);
+    }
+}
+
+/**
+ * Complete restart sequence: Show spinner + Send command
+ */
+function executeFullRestartSequence(message = "Restarting server...", restartType = "MANUAL") {
+    triggerFullScreenRestart(message, restartType);
+    sendRestartCommand(restartType);
+}
+
 // Global keyboard shortcuts
 document.addEventListener('keydown', function(event) {
     // Ctrl+Shift+R: Restart server
     if (event.ctrlKey && event.shiftKey && event.key === 'R') {
         event.preventDefault();
-        console.log('🔄 Server restart triggered via Ctrl+Shift+R');
-        
-        // Show immediate UI feedback
-        showRestartSpinner();
-        
-        // Send restart command via WebSocket
-        if (sidebarWs.readyState === WebSocket.OPEN) {
-            sidebarWs.send('%%RESTART_SERVER%%');
-            console.log('🔄 Restart command sent via WebSocket');
-        } else {
-            console.error('🔄 WebSocket not connected, cannot send restart command');
-            hideRestartSpinner();
-        }
+        executeFullRestartSequence("Restarting server...", "KEYBOARD_SHORTCUT");
     }
     
     // Ctrl+Shift+D: Start demo/regression prevention sequence
@@ -675,37 +738,7 @@ async function simulateTyping(textarea, message, speed) {
 
 // Show Pico CSS restart spinner
 function showRestartSpinner() {
-    // Remove any existing restart overlay
-    const existingOverlay = document.getElementById('restart-overlay');
-    if (existingOverlay) {
-        existingOverlay.remove();
-    }
-    
-    // Create restart overlay with Pico CSS spinner
-    const overlay = document.createElement('div');
-    overlay.id = 'restart-overlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.85);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-        color: white;
-        font-family: system-ui, sans-serif;
-        backdrop-filter: blur(2px);
-        font-size: 1.2rem;
-    `;
-    
-    // Use Pico CSS aria-busy spinner
-    overlay.innerHTML = '<span aria-busy="true">Restarting server...</span>';
-    
-    document.body.appendChild(overlay);
-    console.log('🔄 Restart spinner displayed');
+    triggerFullScreenRestart("Restarting server...", "LEGACY");
 }
 
 // Hide restart spinner (fallback)
@@ -716,6 +749,14 @@ function hideRestartSpinner() {
         console.log('🔄 Restart spinner hidden');
     }
 }
+
+// ============================================================================
+// GLOBAL FUNCTIONS - Available to server-side code via script tags
+// ============================================================================
+
+// Make restart functions globally available for server-side script execution
+window.triggerFullScreenRestart = triggerFullScreenRestart;
+window.executeFullRestartSequence = executeFullRestartSequence;
 
 // Form submission interceptor for demo mode
 function interceptFormSubmission() {
