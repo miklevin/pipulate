@@ -6,6 +6,8 @@ import os
 import re
 import sys
 import fastlite
+import aiohttp
+import asyncio
 from fasthtml.common import *
 from loguru import logger
 from server import DB_FILENAME, title_name
@@ -285,6 +287,26 @@ class CrudUI(PluginIdentityManager):
         except Exception:
             return "Pipulate"  # Fallback to default name
 
+    async def check_ollama_availability(self):
+        """Check if Ollama is running and has models available."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                # First check if Ollama server is running
+                try:
+                    async with session.get('http://localhost:11434/api/tags', timeout=2) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            models = data.get('models', [])
+                            return len(models) > 0  # Return True if models are available
+                        return False
+                except asyncio.TimeoutError:
+                    return False
+                except aiohttp.ClientError:
+                    return False
+        except Exception as e:
+            logger.debug(f"Error checking Ollama availability: {e}")
+            return False
+
     def ensure_roles_initialized(self):
         """Ensure all roles from config are initialized in the database."""
         try:
@@ -336,22 +358,37 @@ class CrudUI(PluginIdentityManager):
         
         items = sorted(items_query, key=lambda item: item.priority if item.priority is not None else 99)
 
+        # Check if Ollama is available
+        ollama_available = await self.check_ollama_availability()
+        
+        # Build the intro paragraph content
+        intro_content = [
+            "New to here? Here's an ",
+            A("Introduction", href="/redirect/introduction", 
+              cls="link-primary-bold",
+              onmouseover="this.style.color = 'var(--pico-primary-hover)';",
+              onmouseout="this.style.color = 'var(--pico-primary-color)';"),
+            "."
+        ]
+        
+        # Only show Ollama install suggestion if not available
+        if not ollama_available:
+            intro_content.extend([
+                " Optionally install ",
+                A("Ollama", 
+                  href="https://ollama.com/", target="_blank",
+                  cls="link-primary-bold",
+                  onmouseover="this.style.color = 'var(--pico-primary-hover)';",
+                  onmouseout="this.style.color = 'var(--pico-primary-color)';"),
+                " for local AI help."
+            ])
+
         return Div(
             Style(self.generate_role_css()),
             Card(
                 H3(self.H3_HEADER),
                 P(
-                    f"New to here? Here's an ",
-                    A("Introduction", href="/redirect/introduction", 
-                      cls="link-primary-bold",
-                      onmouseover="this.style.color = 'var(--pico-primary-hover)';",
-                      onmouseout="this.style.color = 'var(--pico-primary-color)';"),
-                    ". Chat not working? Optionally install ",
-                    A("Ollama", 
-                      href="https://ollama.com/", target="_blank",
-                      cls="link-primary-bold",
-                      onmouseover="this.style.color = 'var(--pico-primary-hover)';",
-                      onmouseout="this.style.color = 'var(--pico-primary-color)';"),
+                    *intro_content,
                     style="margin-bottom: 1rem; color: var(--pico-muted-color); font-size: 0.9em;"
                 ),
                 Div(
