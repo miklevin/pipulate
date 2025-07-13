@@ -45,8 +45,8 @@ async def docs_browser(request):
     <head>
         <title>{title}</title>
         <meta charset="utf-8">
-        <script src="/static/split.js"></script>        # Manual inclusion required
-        <script src="/static/splitter-init.js"></script> # Manual inclusion required
+        <script src="/assets/split.js"></script>        # Manual inclusion required
+        <script src="/assets/splitter-init.js"></script> # Manual inclusion required
         <style>{massive_css_string}</style>             # Embedded styles
     </head>
     <body>
@@ -97,8 +97,8 @@ grep -n "HTMLResponse(page_html)" plugins/050_documentation.py
 # Global headers from fast_app() automatically included
 app, rt, db = fast_app(
     hdrs=(
-        Script(src='/static/split.js'),           # Automatic inclusion
-        Script(src='/static/splitter-init.js'),  # Automatic inclusion
+        Script(src='/assets/split.js'),           # Automatic inclusion
+        Script(src='/assets/splitter-init.js'),  # Automatic inclusion
         # ... all other global scripts
     )
 )
@@ -107,8 +107,8 @@ app, rt, db = fast_app(
 **Docs Browser (Custom HTML Pattern):**
 ```html
 <!-- Must manually include every script -->
-<script src="/static/split.js"></script>
-<script src="/static/splitter-init.js"></script>
+<script src="/assets/split.js"></script>
+<script src="/assets/splitter-init.js"></script>
 <!-- Missing any scripts not explicitly included -->
 ```
 

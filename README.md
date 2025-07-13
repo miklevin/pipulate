@@ -1,6 +1,6 @@
 # Pipulate: Local First AI SEO Software
 
-![Pipulate Free & Open Source SEO with & for LLMs](https://github.com/miklevin/pipulate/raw/main/static/images/ai-seo-software.png)
+![Pipulate Free & Open Source SEO with & for LLMs](https://github.com/miklevin/pipulate/raw/main/assets/images/ai-seo-software.png)
 
 <!-- Don't forget to sync_ascii_art.py -->
 > **Your data. Your AI. Your machine. Your control.**  
@@ -312,13 +312,13 @@ HARDWARE:
 PROTOCOL:
   http: Uvicorn fast Asynchronous Server Gateway Interface (ASGI) web server
   html: Uvicorn talks to Python Starlette using anyio & httpx libraries
-  websocket: static/ws.js provides client bi-directional asynchronous communication
+  websocket: /assets/ws.js provides client bi-directional asynchronous communication
 LINGUA:
-  htmx: static/htmx.js JavaScript library to eliminate most need for JavaScript
+  htmx: /assets/htmx.js JavaScript library to eliminate most need for JavaScript
   Python: .venv/bin/python3.12 latest version AIs are well trained on
 UI/UX:
   browser: Obviously, but I guess it needs to be said. Like a looser Electron.
-  fasthtml: static/fasthtml.js for FT Components, Python functions as templating
+  fasthtml: /assets/fasthtml.js for FT Components, Python functions as templating
 APP:
   app: Flask-style Uvicorn factory instance instantiated by FastHTML fast_app
   db: Dict-like DB providing transparent server-side state (server cookies)
@@ -1077,7 +1077,7 @@ This structure enables AI assistants to programmatically interact with all UI co
     ├── logs/
     │   ├── server-1.log           # N-rotations of server log per run per config
     │   └── server.log             # The server log of most recent run, contains app state
-    ├── static/                    # JS, CSS, images, icons
+    ├── /assets/                    # JS, CSS, images, icons
     ├── plugins/                   # Workflow plugins (010_introduction.py, 400_trifecta.py, etc.)
     ├── pyproject.toml             # Python packaging configuration and metadata
     ├── training/                  # Markdown files for AI context/prompts
