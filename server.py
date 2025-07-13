@@ -1987,13 +1987,13 @@ global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}]
 
 def append_to_conversation(message=None, role='user'):
-    """Append a message to the global conversation history.
-
-    This function manages the conversation history by:
-    1. Ensuring a system message exists at the start of history
-    2. Appending new messages with specified roles
-    3. Maintaining conversation length limits via deque maxlen
-    4. Preventing duplicate consecutive messages
+    """Append a message to the conversation history using the append-only system.
+    
+    This function uses the bulletproof append-only conversation system that:
+    - Prevents overwrites and data loss
+    - Automatically handles deduplication
+    - Persists directly to database
+    - Maintains conversation integrity
 
     Args:
         message (str, optional): The message content to append. If None, returns current history.
@@ -2002,52 +2002,34 @@ def append_to_conversation(message=None, role='user'):
     Returns:
         list: The complete conversation history after appending.
     """
-    logger.debug(f"🔍 DEBUG: \1")
-    logger.debug(f"🔍 DEBUG: \1")
     
     if message is None:
-        logger.debug(f"🔍 DEBUG: \1")
-        return list(global_conversation_history)
+        # Return current conversation history from append-only system
+        try:
+            from helpers.append_only_conversation import get_conversation_system
+            conv_system = get_conversation_system()
+            return conv_system.get_conversation_list()
+        except Exception as e:
+            logger.error(f"Failed to get conversation history: {e}")
+            return []
     
-    logger.debug(f"🔍 DEBUG: \1")
-    
-    # Check if this would be a duplicate of any of the last 3 messages to prevent rapid duplicates
-    if global_conversation_history:
-        recent_messages = list(global_conversation_history)[-3:]  # Check last 3 messages
-        logger.debug(f"🔍 DEBUG: \1")
-        for i, recent_msg in enumerate(recent_messages):
-            logger.debug(f"🔍 DEBUG: \1")
-            if recent_msg['content'] == message and recent_msg['role'] == role:
-                logger.warning(f"🔍 DEBUG: DUPLICATE DETECTED! Skipping append. Message: '{message[:50]}...'")
-                return list(global_conversation_history)
-        logger.debug(f"🔍 DEBUG: \1")
-    else:
-        logger.debug(f"🔍 DEBUG: \1")
+    # Use the append-only system for new messages
+    try:
+        from helpers.append_only_conversation import get_conversation_system
+        conv_system = get_conversation_system()
         
-    needs_system_message = len(global_conversation_history) == 0 or global_conversation_history[0]['role'] != 'system'
-    logger.debug(f"🔍 DEBUG: \1")
-    if needs_system_message:
-        logger.debug(f"🔍 DEBUG: \1")
-        global_conversation_history.appendleft(conversation[0])
-        logger.debug(f"🔍 DEBUG: \1")
-    
-    logger.debug(f"🔍 DEBUG: \1")
-    global_conversation_history.append({'role': role, 'content': message})
-    logger.debug(f"🔍 DEBUG: \1")
-    
-    # 💾 CRITICAL: Save conversation to database after every message
-    # This ensures persistence across server restarts
-    save_conversation_to_db()
-    
-    # Log the last few messages for verification
-    history_list = list(global_conversation_history)
-    logger.debug(f"🔍 DEBUG: \1")
-    for i, msg in enumerate(history_list[-3:]):
-        idx = len(history_list) - 3 + i
-        logger.debug(f"🔍 DEBUG: \1")
-    
-    logger.debug(f"🔍 DEBUG: \1")
-    return list(global_conversation_history)
+        message_id = conv_system.append_message(role, message)
+        if message_id:
+            logger.info(f"💬 FINDER_TOKEN: MESSAGE_APPENDED - ID:{message_id}, Role:{role}, Content:{message[:50]}...")
+        else:
+            logger.debug(f"💬 Duplicate message skipped: {message[:50]}...")
+            
+        return conv_system.get_conversation_list()
+        
+    except Exception as e:
+        logger.error(f"💬 Failed to append message to conversation: {e}")
+        return []
+
 
 def title_name(word: str) -> str:
     """Format a string into a title case form."""
