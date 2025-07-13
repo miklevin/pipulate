@@ -1498,6 +1498,10 @@ async function resumeDemoFromBookmark(bookmark) {
         
         console.log('📖 Recreated demo script:', demoScript);
         
+        // Hair's breadth pause after URL change before phantom typing begins
+        console.log('📖 Waiting for dramatic pause before phantom typing...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         // Execute the demo steps starting from the bookmarked position
         await executeStepsWithBranching(demoScript.steps, demoScript);
         
