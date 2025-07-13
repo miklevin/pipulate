@@ -365,7 +365,7 @@ body > main:first-of-type > main.container {
     
     /* 🎯 COMPACT NAV SIZING - Proportionally scale down PicoCSS defaults to preserve evenness */
     --pico-form-element-spacing-vertical: 0.6rem;      /* Scaled down from 0.5rem (20% reduction) */
-    --pico-form-element-spacing-horizontal: 0.6rem;    /* Scaled down from 1rem (20% reduction) */
+    --pico-form-element-spacing-horizontal: 0.8rem;    /* Scaled down from 1rem (20% reduction) */
     --pico-line-height: 1.5;                           /* Scaled down from 1.5 (preserve proportions) */
 }
 
