@@ -36,7 +36,7 @@
         {
           "step_id": "03_yes_response",
           "type": "system_reply",
-          "message": "You hit yes! First let's set us to DEV mode so we can play with the database. Is that okay? **Ctrl+y** / **Ctrl+n**",
+          "message": "You hit yes! Hi, I'm Chip O'Theseus the local LLM in Pipulate. May I speak to you out loud? **Ctrl+y** / **Ctrl+n**",
           "timing": {
             "delay_before": 500,
             "display_speed": 25
