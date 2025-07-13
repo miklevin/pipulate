@@ -643,9 +643,16 @@ def render_item(item, app_instance):
         **htmx_attrs
     )
 
-    # Bold title followed by colon and description - all on same line
+    # Get plugin count for this role
+    plugin_list = get_plugin_list()
+    affected_plugins = [plugin for plugin in plugin_list if item.text in plugin['roles']]
+    plugin_count = len(affected_plugins)
+    
+    # Bold title with count in parentheses, followed by colon and description
     title_and_description = Div(
         Span(item.text, cls="role-title"),
+        " ",
+        Span(f"({plugin_count})", cls="role-title", style="color: var(--pico-muted-color); font-weight: normal;"),
         ": ",
         Span(description, cls="role-description"),
         cls="flex-1"
@@ -882,7 +889,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
 
     if not affected_plugins:
         return Details(
-            Summary(f"{len(affected_plugins)} APPs", cls="role-plugin-summary"),
+            Summary("Apps", cls="role-plugin-summary"),
             P("No plugins assigned to this role.", style="font-style: italic; color: var(--pico-muted-color); margin: 0.5rem 0;"),
             cls="role-plugin-details"
         )
@@ -914,7 +921,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
 
     return Details(
         Summary(
-            f"{len(affected_plugins)} APPs",
+            "Apps",
             cls="role-plugin-summary"
         ),
         Ol(*plugin_items, cls="role-plugin-ordered-list role-plugin-list"),
