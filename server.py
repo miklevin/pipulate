@@ -936,204 +936,6 @@ logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LL
 # Moving configuration here allows for easy white-labeling and configuration management.
 # Over time, more instance-specific "slag" will be skimmed from plugins to here.
 
-PCONFIG = {
-    # UI & Navigation
-    'HOME_MENU_ITEM': HOME_MENU_ITEM,
-    'DEFAULT_ACTIVE_ROLES': DEFAULT_ACTIVE_ROLES,
-    
-    # Role System Configuration
-    'ROLES_CONFIG': {
-        'Botify Employee': {
-            'priority': 0, 
-            'description': 'Connect with Botify to use Parameter Buster and Link Graph Visualizer.',
-            'emoji': '👔'
-        },
-        'Core': {
-            'priority': 1, 
-            'description': 'Essential plugins available to all users.',
-            'emoji': '⚙️'
-        },
-        'Tutorial': {
-            'priority': 2, 
-            'description': 'Guided workflows and introductory examples for learning the system.',
-            'emoji': '📚'
-        },
-        'Developer': {
-            'priority': 3, 
-            'description': 'Tools for creating, debugging, and managing workflows and plugins.',
-            'emoji': '⚡'
-        },
-        'Workshop': {
-            'priority': 4, 
-            'description': 'This is where we put works in progress, proof of concepts and crazy stuff not ready for release. Consider it the sausage factory.',
-            'emoji': '🔬'
-        },
-        'Components': {
-            'priority': 5, 
-            'description': 'UI and data widgets for building rich workflow interfaces.',
-            'emoji': '🧩'
-        }
-    },
-    
-    # Role Color Configuration
-    'ROLE_COLORS': {
-        'menu-role-core': {
-            'border': '#22c55e',            # GREEN
-            'background': 'rgba(34, 197, 94, 0.1)',
-            'background_light': 'rgba(34, 197, 94, 0.05)'
-        },
-        'menu-role-botify-employee': {
-            'border': '#a855f7',            # PURPLE
-            'background': 'rgba(168, 85, 247, 0.1)',
-            'background_light': 'rgba(168, 85, 247, 0.05)'
-        },
-        'menu-role-tutorial': {
-            'border': '#f97316',            # ORANGE
-            'background': 'rgba(249, 115, 22, 0.1)',
-            'background_light': 'rgba(249, 115, 22, 0.05)'
-        },
-        'menu-role-developer': {
-            'border': '#3b82f6',            # BLUE
-            'background': 'rgba(59, 130, 246, 0.1)',
-            'background_light': 'rgba(59, 130, 246, 0.05)'
-        },
-        'menu-role-components': {
-            'border': '#6b7280',            # GRAY
-            'background': 'rgba(107, 114, 128, 0.1)',
-            'background_light': 'rgba(107, 114, 128, 0.05)'
-        },
-        'menu-role-workshop': {
-            'border': '#eab308',            # YELLOW
-            'background': 'rgba(234, 179, 8, 0.1)',
-            'background_light': 'rgba(234, 179, 8, 0.05)'
-        }
-    },
-    
-    # Botify API Configuration
-    'BOTIFY_API': {
-        'MAX_EXPORT_SIZE': 1000000,  # Botify's maximum export size limit (1M rows)
-        'DEFAULT_EXPORT_SIZE': 1000000,  # Conservative default for testing/development
-        'GSC_EXPORT_SIZE': 1000000,  # GSC can handle full export size
-        'WEBLOG_EXPORT_SIZE': 1000000,  # Web logs can handle full export size
-        'CRAWL_EXPORT_SIZE': 1000000,  # Crawl exports can handle full export size
-    },
-    
-    # Chat & Streaming Configuration - Use typing delay from config.py
-    'CHAT_CONFIG': {
-        'TYPING_DELAY': CONFIG_PCONFIG['CHAT_CONFIG']['TYPING_DELAY'],  # Import from config.py (single source of truth)
-        'MAX_CONVERSATION_LENGTH': 100,  # Maximum number of conversation messages to keep
-    },
-    
-    # UI Constants for Workflows - Centralized button labels, emojis, and styles
-    'UI_CONSTANTS': {
-        'BUTTON_LABELS': {
-            'ENTER_KEY': '🔑 Enter Key',
-            'NEW_KEY': '🆕',
-            'NEXT_STEP': 'Next Step ▸',
-            'FINALIZE': '🔒 Finalize',
-            'UNLOCK': '🔓 Unlock',
-            'PROCEED': 'Proceed ▸',
-            'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
-            'VIEW_FOLDER': '📂 View Folder',
-            'DOWNLOAD_CSV': '⬇️ Copy to Downloads',
-            'VISUALIZE_GRAPH': '🌐 Visualize Graph',
-            'SKIP_STEP': 'Skip️'
-        },
-        'BUTTON_STYLES': {
-            'PRIMARY': 'primary',
-            'SECONDARY': 'secondary',
-            'OUTLINE': 'secondary outline',
-            'STANDARD': 'secondary outline',
-                    'FLEX_CONTAINER': 'display: flex; gap: var(--pipulate-gap-sm); flex-wrap: wrap; align-items: center;',
-        'BUTTON_ROW': 'display: flex; gap: var(--pipulate-gap-sm); align-items: center;',
-            'SKIP_BUTTON': 'secondary outline',
-            'SKIP_BUTTON_STYLE': 'padding: 0.5rem 1rem; width: 10%; min-width: 80px; white-space: nowrap;',
-            'BORDER_RADIUS': 'var(--pico-border-radius)'  # Global button roundedness control
-        },
-        'EMOJIS': {
-            # Process Status Indicators
-            'KEY': '🔑',
-            'SUCCESS': '🎯',
-            'WARNING': '⚠️',
-            'ERROR': '❌',
-            'COMPLETION': '✅',
-            'LOCKED': '🔒',
-            'UNLOCKED': '🔓',
-            
-            # Data Type Indicators  
-            'USER_INPUT': '👤',
-            'GREETING': '💬',
-            'WORKFLOW': '🔄',
-            'INPUT_FORM': '📝',
-            
-            # Code and Development Indicators
-            'PYTHON_CODE': '🐍',           # Python code snippets and headers
-            'CODE_SNIPPET': '✂️',         # Code snippet indicator
-            'JUPYTER_NOTEBOOK': '📓',     # Jupyter notebook related
-            'API_CALL': '🔌',             # API endpoint calls
-            'DEBUG_CODE': '🐛',           # Debugging code sections
-            
-            # File and Data Operations
-            'DOWNLOAD': '⬇️',             # Download operations
-            'UPLOAD': '⬆️',               # Upload operations
-            'FILE_FOLDER': '📂',          # File/folder operations
-            'CSV_FILE': '📊',             # CSV and data files
-            'JSON_DATA': '📄',            # JSON and structured data
-            
-            # Analysis and Processing
-            'ANALYSIS': '🔍',             # Data analysis and discovery
-            'PROCESSING': '⚙️',          # Background processing
-            'OPTIMIZATION': '🎯',        # Optimization results
-            'GRAPH_NETWORK': '🌐',       # Network/graph visualization
-            'VISUALIZATION': '📈',       # Charts and visualizations
-            
-            # Search Console and SEO
-            'SEARCH_CONSOLE': '🔍',      # Google Search Console
-            'SEO_DATA': '📊',            # SEO metrics and data
-            'CRAWL_DATA': '🕷️',         # Website crawling
-            'WEB_LOGS': '📝',            # Web server logs
-            
-            # Workflow Status
-            'STEP_COMPLETE': '✅',       # Step completion
-            'STEP_PROGRESS': '🔄',      # Step in progress
-            'STEP_ERROR': '❌',          # Step error
-            'STEP_WARNING': '⚠️',       # Step warning
-            'REVERT': '↩️',              # Revert action
-            'FINALIZE': '🔒',           # Finalize workflow
-            'UNFINALIZE': '🔓'          # Unfinalize workflow
-        },
-        'CONSOLE_MESSAGES': {
-            # Server console log messages - centralized for consistency
-            'PYTHON_SNIPPET_INTRO': '# {python_emoji} Python (httpx) Snippet BEGIN {snippet_emoji}:',
-            'PYTHON_SNIPPET_END': '# {python_emoji} Python (httpx) Snippet END {snippet_emoji}',
-            'API_CALL_LOG': 'API Call: {method} {url}',
-            'FILE_GENERATED': 'Generated file: {filename}',
-            'PROCESSING_COMPLETE': 'Processing complete for: {operation}',
-            'ERROR_OCCURRED': 'Error in {context}: {error_message}'
-        },
-        'CODE_FORMATTING': {
-            # Visual dividers and separators for generated code
-            'COMMENT_DIVIDER': '# ============================================================================='
-        },
-        'MESSAGES': {
-            'WORKFLOW_UNLOCKED': 'Workflow unfinalized! You can now revert to any step and make changes.',
-            'ALL_STEPS_COMPLETE': 'All steps complete. Ready to finalize workflow.',
-            'FINALIZE_QUESTION': 'All steps complete. Finalize?',
-            'FINALIZE_HELP': 'You can revert to any step and make changes.',
-            'WORKFLOW_LOCKED': 'Workflow is locked.'
-        },
-        'LANDING_PAGE': {
-            'INPUT_PLACEHOLDER': 'Existing or new 🗝 here (Enter for auto)',
-            'INIT_MESSAGE_WORKFLOW_ID': 'Workflow ID: {pipeline_id}',
-            'INIT_MESSAGE_RETURN_HINT': "Return later by selecting '{pipeline_id}' from the dropdown."
-        }
-    },
-    
-    # SVG Icons Configuration
-    'SVG_ICONS': {
-        'CLIPBOARD': '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
-    }
-}
 
 # 🎯 IMPROVED ARCHITECTURE: Independent Discussion Database
 # Conversation history is now stored in data/discussion.db (environment-independent)
@@ -2244,15 +2046,15 @@ class Pipulate:
     
     def get_ui_constants(self):
         """Access centralized UI constants through dependency injection."""
-        return PCONFIG['UI_CONSTANTS']
+        return CONFIG_PCONFIG['UI_CONSTANTS']
     
     def get_config(self):
         """Access centralized configuration through dependency injection."""
-        return PCONFIG
+        return CONFIG_PCONFIG
     
     def get_button_border_radius(self):
         """Get the global button border radius setting."""
-        return PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
+        return CONFIG_PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
 
     def register_workflow_routes(self, plugin_instance):
         """
@@ -2325,14 +2127,14 @@ class Pipulate:
             log_entry_parts.append(f'  cURL Command:\n{curl_command}')
         if python_command:
             # Use centralized emoji configuration for console messages
-            python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
-            snippet_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
-            comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
-            snippet_intro = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
+            python_emoji = CONFIG_PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
+            snippet_emoji = CONFIG_PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
+            comment_divider = CONFIG_PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+            snippet_intro = CONFIG_PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
                 python_emoji=python_emoji, 
                 snippet_emoji=snippet_emoji
             )
-            snippet_end = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
+            snippet_end = CONFIG_PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
                 python_emoji=python_emoji, 
                 snippet_emoji=snippet_emoji
             )
@@ -2518,14 +2320,14 @@ class Pipulate:
             )
             
             # Use centralized emoji configuration for console messages
-            python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
-            snippet_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
-            comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
-            snippet_intro = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
+            python_emoji = CONFIG_PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
+            snippet_emoji = CONFIG_PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
+            comment_divider = CONFIG_PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+            snippet_intro = CONFIG_PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
                 python_emoji=python_emoji, 
                 snippet_emoji=snippet_emoji
             )
-            snippet_end = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
+            snippet_end = CONFIG_PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
                 python_emoji=python_emoji, 
                 snippet_emoji=snippet_emoji
             )
@@ -2625,7 +2427,7 @@ class Pipulate:
         lines.append('                print(text)')
         lines.append('                return text')
         lines.append('')
-        divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+        divider = CONFIG_PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
         lines.append(divider)
         lines.append('# EXECUTION: Choose your environment')
         lines.append(divider)
@@ -2908,14 +2710,14 @@ class Pipulate:
                         words = base_message.split()
                         for i, word in enumerate(words):
                             await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                            await asyncio.sleep(CONFIG_PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
                         # Send the <br> tags after the words
                         await self.chat.broadcast(br_tags)
                     else:
                         words = message.split()
                         for i, word in enumerate(words):
                             await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                            await asyncio.sleep(CONFIG_PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
                 else:
                     await self.chat.broadcast(message)
                 
@@ -3157,7 +2959,7 @@ class Pipulate:
         
         # Add new key button if requested
         if show_new_key_button and app_name:
-            ui_constants = PCONFIG['UI_CONSTANTS']
+            ui_constants = CONFIG_PCONFIG['UI_CONSTANTS']
             # 🆕 New Key button styled via CSS class for maintainability
             new_key_button = Button(
                 ui_constants['BUTTON_LABELS']['NEW_KEY'],
@@ -3209,8 +3011,8 @@ class Pipulate:
         matching_records = [record.pkey for record in self.pipeline_table() if record.pkey.startswith(prefix)]
         
         # Standard form with centralized constants
-        ui_constants = PCONFIG['UI_CONSTANTS']
-        landing_constants = PCONFIG['UI_CONSTANTS']['LANDING_PAGE']
+        ui_constants = CONFIG_PCONFIG['UI_CONSTANTS']
+        landing_constants = CONFIG_PCONFIG['UI_CONSTANTS']['LANDING_PAGE']
         
         return Container(
             Card(
@@ -4517,7 +4319,7 @@ async def synchronize_roles_to_db():
     discovered_roles_set = set()
     
     # FIRST: Get roles from ROLES_CONFIG (this is the primary source of truth)
-    roles_config = PCONFIG.get('ROLES_CONFIG', {})
+    roles_config = CONFIG_PCONFIG.get('ROLES_CONFIG', {})
     if roles_config:
         logger.debug(f"SYNC_ROLES: Found {len(roles_config)} roles in ROLES_CONFIG: {list(roles_config.keys())}")
         discovered_roles_set.update(roles_config.keys())
@@ -4763,7 +4565,7 @@ for module_name, class_name, workflow_class in discovered_classes:
                             args_to_pass[param_name] = profiles
                         elif param_name == 'config':
                             # Inject centralized configuration for plugins that need it
-                            args_to_pass[param_name] = PCONFIG
+                            args_to_pass[param_name] = CONFIG_PCONFIG
                     logger.debug(f"Instantiating REGULAR plugin '{module_name}' with args: {args_to_pass.keys()}")
                     try:
                         instance = workflow_class(**args_to_pass)
@@ -5261,7 +5063,7 @@ def normalize_menu_path(path):
 
 def generate_menu_style():
     """Generate consistent menu styling for dropdown menus."""
-    border_radius = PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
+    border_radius = CONFIG_PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
     return f'white-space: nowrap; display: inline-block; min-width: max-content; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: {border_radius}; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s;'
 
 def create_app_menu(menux):
@@ -5409,9 +5211,9 @@ def create_menu_container(menu_items):
     return Details(Summary('⚡ APP', cls='inline-nowrap', id='app-id', aria_label='Application menu', aria_expanded='false', aria_haspopup='menu'), Ul(*menu_items, cls='dropdown-menu', role='menu', aria_label='Application options', aria_labelledby='app-id'), cls='dropdown', id='app-dropdown-menu', aria_label='Application selection')
 
 def get_dynamic_role_css():
-    """Generate dynamic role CSS from centralized PCONFIG - single source of truth."""
+    """Generate dynamic role CSS from centralized CONFIG_PCONFIG - single source of truth."""
     try:
-        role_colors = PCONFIG.get('ROLE_COLORS', {})
+        role_colors = CONFIG_PCONFIG.get('ROLE_COLORS', {})
         if not role_colors:
             return ""
         
@@ -5661,9 +5463,33 @@ def create_chat_interface(autofocus=False):
     if 'temp_message' in db:
         temp_message = db['temp_message']
         del db['temp_message']
-    init_script = f'\n    // Set global variables for the external script\n    window.PCONFIG = {{\n        tempMessage: {json.dumps(temp_message)},\n        clipboardSVG: {json.dumps(PCONFIG["SVG_ICONS"]["CLIPBOARD"])}\n    }};\n    '
+    init_script = f'\n    // Set global variables for the external script\n    window.CONFIG_PCONFIG = {{\n        tempMessage: {json.dumps(temp_message)},\n        clipboardSVG: {json.dumps(CONFIG_PCONFIG["SVG_ICONS"]["CLIPBOARD"])}\n    }};\n    '
+    
+    # Create voice toggle button
+    voice_mode = db.get('voice_mode', False)
+    voice_icon = CONFIG_PCONFIG["SVG_ICONS"]["VOLUME_ON"] if voice_mode else CONFIG_PCONFIG["SVG_ICONS"]["VOLUME_OFF"]
+    voice_tooltip = f"Voice mode: {'On' if voice_mode else 'Off'}"
+    
+    voice_toggle_button = Button(
+        voice_icon,
+        hx_post="/toggle_voice_mode",
+        hx_target="#voice-toggle-button",
+        hx_swap="outerHTML",
+        id="voice-toggle-button",
+        cls="secondary outline",
+        style="margin-left: 0.5rem; padding: 0.3rem 0.5rem; border: 1px solid var(--pico-secondary-border); border-radius: 0.25rem;",
+        title=voice_tooltip
+    )
+    
+    # Create chatbot title with voice toggle
+    chatbot_header = Div(
+        H2(f'{APP_NAME} Chatbot', style="display: inline-block; margin-right: 0.5rem;"),
+        voice_toggle_button,
+        style="display: flex; align-items: center; justify-content: flex-start;"
+    )
+    
     # Enter/Shift+Enter handling is now externalized in pipulate.js
-    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height, role='log', aria_label='Chat conversation', aria_live='polite'), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)', role='form', aria_label='Chat input form'), Script(init_script), Script(src='/assets/pipulate-init.js'), Script('initializeChatInterface();')), id='chat-interface', role='complementary', aria_label='AI Assistant Chat')
+    return Div(Card(chatbot_header, Div(id='msg-list', cls='overflow-auto', style=msg_list_height, role='log', aria_label='Chat conversation', aria_live='polite'), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)', role='form', aria_label='Chat input form'), Script(init_script), Script(src='/assets/pipulate-init.js'), Script('initializeChatInterface();')), id='chat-interface', role='complementary', aria_label='AI Assistant Chat')
 
 # Global variable to track streaming state
 is_streaming = False
@@ -6152,6 +5978,40 @@ async def sync_theme(request):
         db['theme_preference'] = theme
     
     return HTMLResponse('OK')
+
+@rt('/toggle_voice_mode', methods=['POST'])
+async def toggle_voice_mode(request):
+    """Toggle voice mode for Chip O'Theseus."""
+    try:
+        # Get current voice mode setting
+        current_voice_mode = db.get('voice_mode', False)
+        
+        # Toggle the voice mode
+        new_voice_mode = not current_voice_mode
+        db['voice_mode'] = new_voice_mode
+        
+        # Log the change
+        status = "ON" if new_voice_mode else "OFF"
+        logger.info(f"🎭 Voice mode toggled to: {status}")
+        
+        # Return updated toggle button
+        voice_icon = CONFIG_PCONFIG["SVG_ICONS"]["VOLUME_ON"] if new_voice_mode else CONFIG_PCONFIG["SVG_ICONS"]["VOLUME_OFF"]
+        tooltip = f"Voice mode: {'On' if new_voice_mode else 'Off'}"
+        
+        return Button(
+            voice_icon,
+            hx_post="/toggle_voice_mode",
+            hx_target="#voice-toggle-button",
+            hx_swap="outerHTML",
+            id="voice-toggle-button",
+            cls="secondary outline",
+            style="margin-left: 0.5rem; padding: 0.3rem 0.5rem; border: 1px solid var(--pico-secondary-border); border-radius: 0.25rem;",
+            title=tooltip
+        )
+        
+    except Exception as e:
+        logger.error(f"Error toggling voice mode: {e}")
+        return HTMLResponse('Error', status_code=500)
 
 @rt('/search-plugins', methods=['POST'])
 async def search_plugins(request):
