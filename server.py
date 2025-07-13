@@ -5320,6 +5320,43 @@ async def add_to_conversation_history_endpoint(request):
         logger.error(f"Error adding to conversation history: {e}")
         return ''
 
+@app.get('/demo-bookmark-check')
+async def demo_bookmark_check():
+    """Check if there's a demo bookmark to resume"""
+    try:
+        demo_bookmark = db.get('demo_bookmark')
+        if demo_bookmark:
+            return JSONResponse({"has_bookmark": True, "bookmark": demo_bookmark})
+        else:
+            return JSONResponse({"has_bookmark": False})
+    except Exception as e:
+        logger.error(f"Error checking demo bookmark: {e}")
+        return JSONResponse({"has_bookmark": False, "error": str(e)})
+
+@app.post('/demo-bookmark-store')
+async def demo_bookmark_store(request):
+    """Store demo bookmark before navigation"""
+    try:
+        data = await request.json()
+        db['demo_bookmark'] = data
+        logger.info(f"📖 Demo bookmark stored: {data['script_name']}")
+        return JSONResponse({"success": True})
+    except Exception as e:
+        logger.error(f"Error storing demo bookmark: {e}")
+        return JSONResponse({"success": False, "error": str(e)})
+
+@app.post('/demo-bookmark-clear')
+async def demo_bookmark_clear():
+    """Clear demo bookmark to prevent infinite loop"""
+    try:
+        if 'demo_bookmark' in db:
+            del db['demo_bookmark']
+            logger.info("📖 Demo bookmark cleared")
+        return JSONResponse({"success": True})
+    except Exception as e:
+        logger.error(f"Error clearing demo bookmark: {e}")
+        return JSONResponse({"success": False, "error": str(e)})
+
 @rt('/redirect/{path:path}')
 def redirect_handler(request):
     path = request.path_params['path']

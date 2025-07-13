@@ -925,24 +925,37 @@ async function executeInteractiveDemoSequence(demoScript) {
     // Add invisible demo start message to conversation history (for LLM context)
     await addToConversationHistory('system', `[DEMO SCRIPT STARTED: ${demoScript.name}] An automated interactive demo is now running. All following messages are part of the scripted demo sequence. The user triggered this demo and is interacting with it via keyboard input (Ctrl+y/Ctrl+n). Continue to respond naturally if asked about the demo.`);
     
-    // Navigate to home page (/) before demo begins - "There's no place like home!"
-    console.log('🏠 Navigating to home page before demo begins...');
-    
-    // Use HTMX to navigate without page reload
-    const mainContent = document.querySelector('#main-content') || document.querySelector('main') || document.body;
+    // Store demo bookmark before navigation - survives page reload and server restart
+    console.log('📖 Storing demo bookmark before navigation...');
     
     try {
-        // Trigger HTMX GET request to home page
-        htmx.ajax('GET', '/', {
-            target: mainContent,
-            swap: 'innerHTML'
+        const demoBookmark = {
+            script_name: demoScript.name,
+            steps: demoScript.steps,
+            timestamp: Date.now(),
+            current_step: 0
+        };
+        
+        // Store in server-side database (survives server restart)
+        const response = await fetch('/demo-bookmark-store', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(demoBookmark)
         });
         
-        // Brief pause to allow navigation to complete
-        await new Promise(resolve => setTimeout(resolve, 800));
+        if (response.ok) {
+            console.log('📖 Demo bookmark stored successfully');
+        } else {
+            console.warn('📖 Failed to store demo bookmark, continuing anyway');
+        }
+        
     } catch (error) {
-        console.warn('🏠 HTMX navigation failed, continuing with demo:', error);
+        console.warn('📖 Error storing demo bookmark:', error);
     }
+    
+    // Navigate to home page (/) - "There's no place like home!"
+    console.log('🏠 Navigating to home page before demo begins...');
+    window.location.href = '/';
     
     // Execute main steps with branching support
     await executeStepsWithBranching(demoScript.steps, demoScript);
@@ -1426,9 +1439,55 @@ async function addToConversationHistory(role, content) {
     }
 }
 
+// Check for demo bookmark and resume if exists
+async function checkAndResumeDemoBookmark() {
+    try {
+        const response = await fetch('/demo-bookmark-check');
+        const data = await response.json();
+        
+        if (data.has_bookmark && data.bookmark) {
+            console.log('📖 Demo bookmark found, resuming demo...');
+            const bookmark = data.bookmark;
+            
+            // Clear the bookmark to prevent infinite loop
+            await fetch('/demo-bookmark-clear', { method: 'POST' });
+            
+            // Small delay to allow page to fully load
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Resume the demo from where it left off
+            await resumeDemoFromBookmark(bookmark);
+        }
+    } catch (error) {
+        console.error('📖 Error checking demo bookmark:', error);
+    }
+}
+
+// Resume demo from bookmark
+async function resumeDemoFromBookmark(bookmark) {
+    try {
+        console.log('📖 Resuming demo:', bookmark.script_name);
+        
+        // Recreate the demo script from bookmark
+        const demoScript = {
+            name: bookmark.script_name,
+            steps: bookmark.steps
+        };
+        
+        // Execute the demo steps starting from the bookmarked position
+        await executeStepsWithBranching(demoScript.steps, demoScript);
+        
+    } catch (error) {
+        console.error('📖 Error resuming demo:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeChatInterface();
     initializeScrollObserver();
+    
+    // Check for demo bookmark and resume if exists
+    checkAndResumeDemoBookmark();
     
     // Send temp message when WebSocket is ready (with initial delay for page load)
     if (tempMessage && !tempMessageSent) {
