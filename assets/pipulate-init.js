@@ -959,10 +959,8 @@ async function executeInteractiveDemoSequence(demoScript) {
     console.log('🏠 Navigating to home page before demo begins...');
     window.location.href = '/';
     
-    // Execute main steps with branching support
-    await executeStepsWithBranching(demoScript.steps, demoScript);
-    
-    console.log('🎯 Interactive demo sequence completed!');
+    // Note: Demo execution will resume from bookmark after navigation
+    // No need to execute steps here - they'll be resumed by checkAndResumeDemoBookmark()
 }
 
 // Execute steps with branching logic
@@ -1510,13 +1508,18 @@ async function resumeDemoFromBookmark(bookmark) {
             return;
         }
         
-        // Recreate the demo script from bookmark
-        const demoScript = {
-            name: bookmark.script_name || 'Demo Script',
-            steps: bookmark.steps
-        };
+        // Reload the full demo script config to get branches
+        console.log('📖 Reloading full demo script config to get branches...');
+        const response = await fetch('/demo_script_config.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
-        console.log('📖 Recreated demo script:', demoScript);
+        const config = await response.json();
+        const demoScript = config.demo_script;
+        
+        console.log('📖 Full demo script reloaded:', demoScript.name);
+        console.log('📖 Available branches:', Object.keys(demoScript.branches || {}));
         
         // Add hair's breadth pause to first step when resuming from bookmark
         if (demoScript.steps && demoScript.steps.length > 0) {
