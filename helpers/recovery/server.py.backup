@@ -4152,7 +4152,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
             }});
         }}
         
-        // Initialize remaining chat functionality from chat-interactions.js
+        // Initialize remaining chat functionality from pipulate.js
         if (window.initializeChatScripts) {{
             window.initializeChatScripts({{
                 sortableSelector: '{sortable_selector}',
@@ -4161,7 +4161,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
         }}
     }});
     """
-    return (Script(src='/static/chat-interactions.js'), Script(python_generated_init_script), Link(rel='stylesheet', href='/static/styles.css'))
+    return (Script(src='/static/pipulate.js'), Script(python_generated_init_script), Link(rel='stylesheet', href='/static/styles.css'))
 
 # BaseCrud class moved to plugins/common.py to avoid circular imports
 from common import BaseCrud
@@ -5223,7 +5223,7 @@ def create_nav_menu():
             aria_describedby='search-results-dropdown',
             aria_autocomplete='list',
             aria_expanded='false'
-            # Keyboard navigation now handled by external JavaScript in chat-interactions.js
+            # Keyboard navigation now handled by external JavaScript in pipulate.js
         ),
         search_results_dropdown,
         cls='search-dropdown-container',
@@ -5661,7 +5661,7 @@ def create_chat_interface(autofocus=False):
         temp_message = db['temp_message']
         del db['temp_message']
     init_script = f'\n    // Set global variables for the external script\n    window.PCONFIG = {{\n        tempMessage: {json.dumps(temp_message)},\n        clipboardSVG: {json.dumps(PCONFIG["SVG_ICONS"]["CLIPBOARD"])}\n    }};\n    '
-    # Enter/Shift+Enter handling is now externalized in chat-interactions.js
+    # Enter/Shift+Enter handling is now externalized in pipulate.js
     return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height, role='log', aria_label='Chat conversation', aria_live='polite'), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)', role='form', aria_label='Chat input form'), Script(init_script), Script(src='/static/pipulate-init.js'), Script('initializeChatInterface();')), id='chat-interface', role='complementary', aria_label='AI Assistant Chat')
 
 # Global variable to track streaming state
