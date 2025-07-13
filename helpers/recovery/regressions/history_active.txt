@@ -1030,7 +1030,7 @@ d8f0498 2025-06-15 Here we go again with Quadfecta
 a75ee2b 2025-06-15 Showing Ctrl+K in Search Plugins field in nav
 9adedc0 2025-06-15 Made Ctrl+k activate Search Plugins
 952ed7d 2025-06-15 🧹 BABY STEP 3: Clean up server.py - externalize keyboard navigation
-d297381 2025-06-15 ⌨️ BABY STEP 2: Externalize Search Plugins keyboard navigation JavaScript - Added comprehensive keyboard navigation functions to chat-interactions.js - Follows Carson Gross HTMX approach with minimal JavaScript for UI interaction - Includes arrow key navigation, Enter selection, Escape dismissal, click-away handling - Uses MutationObserver to reset selection when HTMX updates dropdown content - Integrated into existing hybrid initialization pattern
+d297381 2025-06-15 ⌨️ BABY STEP 2: Externalize Search Plugins keyboard navigation JavaScript - Added comprehensive keyboard navigation functions to pipulate.js - Follows Carson Gross HTMX approach with minimal JavaScript for UI interaction - Includes arrow key navigation, Enter selection, Escape dismissal, click-away handling - Uses MutationObserver to reset selection when HTMX updates dropdown content - Integrated into existing hybrid initialization pattern
 f59bdb0 2025-06-15 🎨 BABY STEP 1: Externalize Search Plugins keyboard navigation CSS - Added comprehensive CSS for search plugins dropdown keyboard navigation - Includes arrow key selection states, hover states, and focus management - Follows Carson Gross HTMX approach with minimal CSS for interaction states - Positioned in styles.css after nav-search section for logical organization
 7ae6317 2025-06-15 Keyboard arrow-up and arrow-down and Enter to submit support added on Search Plugin feature on nav
 73b4a8c 2025-06-15 Removing old approach to CSV downloads. This knowledge can be repo-dived for or reconstructed from the new patterns in Trifecta-derived workflows if necessary.
@@ -1205,7 +1205,7 @@ e52abf4 2025-06-10 Fixed API log rotation
 b6e868e 2025-06-10 New Page 2 in Intro to explain the Ollama install
 4df70f4 2025-06-10 Added the Ollama link on Roles (Home) page
 b86d9b8 2025-06-10 Renaming blank placeholder from 910 to 900 (easier to remember)
-36451a5 2025-06-10 Did a git mv sortable-parameterized-init.js chat-interactions.js for semantics
+36451a5 2025-06-10 Did a git mv sortable-parameterized-init.js pipulate.js for semantics
 1ed6f50 2025-06-10 Splitting out SortableJS init to separate file
 7a49923 2025-06-10 Brought back sortable feature
 d5f85b0 2025-06-10 Added a Default selector and also the HTMX updates are happening to the APP menu from these selections, but we lost SortableJS drag-and-drop sorting
