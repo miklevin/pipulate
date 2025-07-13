@@ -343,6 +343,17 @@ body > main:first-of-type > main.container {
     max-width: none;
 }
 
+/* ============================================================================
+   NAVIGATION COMPONENT SIZING - Reduced Size for Compact Nav
+   ============================================================================
+   
+   🎯 PURPOSE: Consistently reduce all nav elements (search, dropdowns, buttons)
+   by overriding the PicoCSS spacing variables that control their size.
+   
+   This approach keeps everything in perfect sync since both search inputs and
+   dropdown summaries use the same underlying PicoCSS variables for sizing.
+   ============================================================================ */
+
 /* Navigation Components */
 #nav-group, fieldset#nav-group {
     position: sticky;
@@ -351,6 +362,11 @@ body > main:first-of-type > main.container {
     border-bottom: 1px solid var(--pico-muted-border-color);
     padding: 0 0 0 1vw;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    
+    /* 🎯 COMPACT NAV SIZING - Proportionally scale down PicoCSS defaults to preserve evenness */
+    --pico-form-element-spacing-vertical: 0.6rem;      /* Scaled down from 0.5rem (20% reduction) */
+    --pico-form-element-spacing-horizontal: 0.6rem;    /* Scaled down from 1rem (20% reduction) */
+    --pico-line-height: 1.5;                           /* Scaled down from 1.5 (preserve proportions) */
 }
 
 /* Make PROFILE and APP text bold in nav menus */
@@ -1882,6 +1898,20 @@ input[type="password"]:focus {
    
    USAGE: Add 'dropdown-tooltip' class to any tooltip span in dropdown menus
    ============================================================================ */
+
+details.dropdown summary:not([role]) {
+    height: calc(1rem * var(--pico-line-height) + var(--pico-form-element-spacing-vertical) * 2 + var(--pico-border-width) * 2);
+    padding: var(--pico-form-element-spacing-vertical) var(--pico-form-element-spacing-horizontal);
+    border-radius: var(--pico-border-radius);
+    background-color: var(--pico-form-element-background-color);
+    color: var(--pico-form-element-placeholder-color);
+    line-height: inherit;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    transition: background-color var(--pico-transition), border-color var(--pico-transition), color var(--pico-transition), box-shadow var(--pico-transition);
+}
 
 .dropdown-tooltip {
     display: inline-block;
