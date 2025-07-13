@@ -88,3 +88,6 @@ helpers/botify/*.json
 helpers/botify/*.csv
 # 🛡️ Survivable test harness - independent git repo
 tests/tools/__pycache__/
+
+# Voice synthesis models - auto-downloaded as needed
+piper_models/
