@@ -313,12 +313,12 @@ body {
 }
 
 /* Headline Size Adjustments */
-h1 { font-size: 1.6rem;  font-family: inherit}   /* Reduced further for better proportion */
-h2 { font-size: 1.35rem; font-family: inherit}  /* Reduced further for better proportion */
-h3 { font-size: 1.15rem; font-family: inherit}  /* Reduced further for better proportion */
-h4 { font-size: 1rem;    font-family: inherit}     /* Reduced further for better proportion */
-h5 { font-size: 0.9rem;  font-family: inherit}   /* Reduced further for better proportion */
-h6 { font-size: 0.85rem; font-family: inherit}  /* Reduced further for better proportion */
+h1 { font-size: 1.5rem;  font-family: inherit}   /* Reduced further for better proportion */
+h2 { font-size: 1.25rem; font-family: inherit}  /* Reduced further for better proportion */
+h3 { font-size: 1.05rem; font-family: inherit}  /* Reduced further for better proportion */
+h4 { font-size: 0.95rem; font-family: inherit}   /* Reduced further for better proportion */
+h5 { font-size: 0.85rem; font-family: inherit}   /* Reduced further for better proportion */
+h6 { font-size: 0.8rem;  font-family: inherit}   /* Reduced further for better proportion */
 
 /* Main Container Structure */
 body > main:first-of-type {
