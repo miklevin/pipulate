@@ -5471,7 +5471,7 @@ def create_chat_interface(autofocus=False):
     voice_tooltip = f"Voice mode: {'On' if voice_mode else 'Off'}"
     
     voice_toggle_button = Button(
-        voice_icon,
+        NotStr(voice_icon),
         hx_post="/toggle_voice_mode",
         hx_target="#voice-toggle-button",
         hx_swap="outerHTML",
@@ -5999,7 +5999,7 @@ async def toggle_voice_mode(request):
         tooltip = f"Voice mode: {'On' if new_voice_mode else 'Off'}"
         
         return Button(
-            voice_icon,
+            NotStr(voice_icon),
             hx_post="/toggle_voice_mode",
             hx_target="#voice-toggle-button",
             hx_swap="outerHTML",
