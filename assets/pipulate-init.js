@@ -936,6 +936,8 @@ async function executeInteractiveDemoSequence(demoScript) {
             current_step: 0
         };
         
+        console.log('📖 About to store demo bookmark:', demoBookmark);
+        
         // Store in server-side database (survives server restart)
         const response = await fetch('/demo-bookmark-store', {
             method: 'POST',
@@ -1447,6 +1449,7 @@ async function checkAndResumeDemoBookmark() {
         
         if (data.has_bookmark && data.bookmark) {
             console.log('📖 Demo bookmark found, resuming demo...');
+            console.log('📖 Retrieved bookmark data:', data.bookmark);
             const bookmark = data.bookmark;
             
             // Clear the bookmark to prevent infinite loop
@@ -1467,12 +1470,21 @@ async function checkAndResumeDemoBookmark() {
 async function resumeDemoFromBookmark(bookmark) {
     try {
         console.log('📖 Resuming demo:', bookmark.script_name);
+        console.log('📖 Bookmark structure:', bookmark);
+        
+        // Validate bookmark data
+        if (!bookmark || !bookmark.steps || !Array.isArray(bookmark.steps)) {
+            console.error('📖 Invalid bookmark data - missing or invalid steps array');
+            return;
+        }
         
         // Recreate the demo script from bookmark
         const demoScript = {
-            name: bookmark.script_name,
+            name: bookmark.script_name || 'Demo Script',
             steps: bookmark.steps
         };
+        
+        console.log('📖 Recreated demo script:', demoScript);
         
         // Execute the demo steps starting from the bookmarked position
         await executeStepsWithBranching(demoScript.steps, demoScript);
