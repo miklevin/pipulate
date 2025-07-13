@@ -6661,45 +6661,53 @@ async def update_pipulate(request):
             await pipulate.stream('✅ Already up to date!', verbatim=True, role='system')
             return ""
         
-        # 🔒 UPDATES FOUND - Trigger full-screen restart effect now
-        await pipulate.stream('📦 Updates available! Applying changes...', verbatim=True, role='system')
-        await pipulate.stream('''
+        # 🔒 UPDATES FOUND - Trigger full-screen restart effect immediately
+        # Create and schedule background update task  
+        async def continue_update_process():
+            try:
+                # Stash any local changes to prevent conflicts
+                await pipulate.stream('💾 Stashing local changes...', verbatim=True, role='system')
+                stash_result = subprocess.run(['git', 'stash', 'push', '--quiet', '--include-untracked', '--message', 'Auto-stash before update'], 
+                                            capture_output=True, text=True)
+                
+                # Perform the git pull
+                await pipulate.stream('⬇️ Pulling latest changes...', verbatim=True, role='system')
+                pull_result = subprocess.run(['git', 'pull', '--ff-only'], capture_output=True, text=True)
+                
+                if pull_result.returncode != 0:
+                    await pipulate.stream(f'❌ Failed to pull updates: {pull_result.stderr}', verbatim=True, role='system')
+                    # Try to restore stashed changes
+                    subprocess.run(['git', 'stash', 'pop', '--quiet'], capture_output=True)
+                    return
+                
+                # Try to restore stashed changes
+                stash_list = subprocess.run(['git', 'stash', 'list'], capture_output=True, text=True)
+                if 'Auto-stash before update' in stash_list.stdout:
+                    await pipulate.stream('🔄 Restoring local changes...', verbatim=True, role='system')
+                    stash_apply = subprocess.run(['git', 'stash', 'apply', '--quiet'], capture_output=True, text=True)
+                    if stash_apply.returncode == 0:
+                        subprocess.run(['git', 'stash', 'drop', '--quiet'], capture_output=True)
+                    else:
+                        await pipulate.stream('⚠️ Some local changes could not be restored automatically', verbatim=True, role='system')
+                
+                await pipulate.stream('✅ Update complete! Restarting server...', verbatim=True, role='system')
+                
+                # Restart the server to apply updates
+                asyncio.create_task(delayed_restart(2))
+                
+            except Exception as e:
+                logger.error(f"Error in background update process: {e}")
+                await pipulate.stream(f'❌ Update failed: {str(e)}', verbatim=True, role='system')
+        
+        # Start the background update process
+        asyncio.create_task(continue_update_process())
+        
+        # Return immediate script response to trigger lock screen
+        return HTMLResponse('''
             <script>
                 triggerFullScreenRestart("Applying Pipulate updates...", "UPDATE_APPLYING");
             </script>
-        ''', verbatim=True, role='system')
-        
-        # Stash any local changes to prevent conflicts
-        await pipulate.stream('💾 Stashing local changes...', verbatim=True, role='system')
-        stash_result = subprocess.run(['git', 'stash', 'push', '--quiet', '--include-untracked', '--message', 'Auto-stash before update'], 
-                                    capture_output=True, text=True)
-        
-        # Perform the git pull
-        await pipulate.stream('⬇️ Pulling latest changes...', verbatim=True, role='system')
-        pull_result = subprocess.run(['git', 'pull', '--ff-only'], capture_output=True, text=True)
-        
-        if pull_result.returncode != 0:
-            await pipulate.stream(f'❌ Failed to pull updates: {pull_result.stderr}', verbatim=True, role='system')
-            # Try to restore stashed changes
-            subprocess.run(['git', 'stash', 'pop', '--quiet'], capture_output=True)
-            return ""
-        
-        # Try to restore stashed changes
-        stash_list = subprocess.run(['git', 'stash', 'list'], capture_output=True, text=True)
-        if 'Auto-stash before update' in stash_list.stdout:
-            await pipulate.stream('🔄 Restoring local changes...', verbatim=True, role='system')
-            stash_apply = subprocess.run(['git', 'stash', 'apply', '--quiet'], capture_output=True, text=True)
-            if stash_apply.returncode == 0:
-                subprocess.run(['git', 'stash', 'drop', '--quiet'], capture_output=True)
-            else:
-                await pipulate.stream('⚠️ Some local changes could not be restored automatically', verbatim=True, role='system')
-        
-        await pipulate.stream('✅ Update complete! Restarting server...', verbatim=True, role='system')
-        
-        # Restart the server to apply updates (full-screen effect already triggered)
-        asyncio.create_task(delayed_restart(2))
-        
-        return ""
+        ''')
         
     except Exception as e:
         logger.error(f"Error updating Pipulate: {e}")
