@@ -4995,8 +4995,7 @@ async def home(request):
         grayscale_script = Script(f"""
             // 🎬 IMMEDIATE grayscale application - no delay, no flash
             (function() {{
-                document.documentElement.style.filter = 'grayscale(100%) contrast(1.2) brightness(0.9)';
-                document.documentElement.style.webkitFilter = 'grayscale(100%) contrast(1.2) brightness(0.9)';
+                // Apply grayscale class immediately (CSS handles the visual effect)
                 document.documentElement.classList.add('demo-grayscale');
                 console.log('🎬 INSTANT grayscale applied from server - Kansas farmhouse mode activated!');
                 
