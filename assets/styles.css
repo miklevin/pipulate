@@ -2466,26 +2466,75 @@ button.secondary.inline-button-submit {
    
    ============================================================================ */
 
-/* Initial grayscale state - the black and white Kansas farmhouse */
+/* 🎬 CONFIGURABLE CINEMATIC VARIABLES - Adjust the Kansas farmhouse look */
+:root {
+    /* Over-exposed Kansas farmhouse aesthetic - washed out and faded */
+    --oz-grayscale-brightness: 1.5;    /* Over-exposed brightness (1.0 = normal, 1.5 = washed out) */
+    --oz-grayscale-contrast: 0.75;     /* Reduced contrast for faded look (1.0 = normal, 0.75 = softer) */
+    --oz-grayscale-saturation: 0%;     /* Complete desaturation (0% = grayscale) */
+    
+    /* Transition timing */
+    --oz-transition-duration: 3s;      /* Time for fade to color */
+    --oz-transition-easing: ease-in-out; /* Transition curve */
+}
+
+/* 
+🎬 CUSTOMIZATION GUIDE:
+To adjust the over-exposed look, modify the CSS variables above:
+
+- --oz-grayscale-brightness: Controls how washed out the image appears
+  * 1.0 = normal brightness (like rich B&W photography)
+  * 1.2 = slightly over-exposed 
+  * 1.5 = very washed out (current setting)
+  * 1.8 = extremely faded
+  * 2.0+ = nearly white-washed
+
+- --oz-grayscale-contrast: Controls the contrast between light and dark areas
+  * 1.0 = normal contrast (crisp B&W)
+  * 0.75 = reduced contrast (current setting, softer look)
+  * 0.5 = very low contrast (flat, faded)
+  * 0.3 = extremely flat
+
+- --oz-transition-duration: How long the fade to color takes
+  * 2s = quick transition
+  * 3s = current setting
+  * 5s = slower, more dramatic
+
+Example presets:
+- Rich B&W Film: brightness: 1.0, contrast: 1.2
+- Vintage Faded Photo: brightness: 1.3, contrast: 0.8  
+- Over-exposed Film: brightness: 1.5, contrast: 0.75 (current)
+- Sun-bleached Photograph: brightness: 1.8, contrast: 0.6
+*/
+
+/* Initial grayscale state - the washed-out, over-exposed Kansas farmhouse */
 /* NO TRANSITION on initial grayscale - we want INSTANT dramatic effect */
 .demo-grayscale {
-    filter: grayscale(100%) contrast(1.2) brightness(0.9);
-    -webkit-filter: grayscale(100%) contrast(1.2) brightness(0.9);
+    filter: 
+        grayscale(100%) 
+        contrast(var(--oz-grayscale-contrast)) 
+        brightness(var(--oz-grayscale-brightness))
+        saturate(var(--oz-grayscale-saturation));
+    -webkit-filter: 
+        grayscale(100%) 
+        contrast(var(--oz-grayscale-contrast)) 
+        brightness(var(--oz-grayscale-brightness))
+        saturate(var(--oz-grayscale-saturation));
     /* No transition here - instant dramatic effect */
 }
 
 /* Transitioning state - when we're ready to fade back to color */
 .demo-grayscale.demo-fading-to-color {
-    filter: grayscale(0%) contrast(1.0) brightness(1.0);
-    -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0);
-    transition: filter 3s ease-in-out;
-    -webkit-transition: -webkit-filter 3s ease-in-out;
+    filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
+    -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
+    transition: filter var(--oz-transition-duration) var(--oz-transition-easing);
+    -webkit-transition: -webkit-filter var(--oz-transition-duration) var(--oz-transition-easing);
 }
 
 /* Full color state - the vibrant Land of Oz */
 .demo-color {
-    filter: grayscale(0%) contrast(1.0) brightness(1.0);
-    -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0);
+    filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
+    -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
     /* No transition needed here either */
 }
 
