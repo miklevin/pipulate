@@ -288,7 +288,7 @@ python -c "from helpers.ai_tool_discovery_simple_parser import execute_simple_co
 - `pipulate/server.py:3135-3195` - Stream monitoring and pattern matching
 - `pipulate/server.py:3244-3395` - Tool execution pipeline
 - `pipulate/server.py:3519-3587` - WebSocket handling  
-- `pipulate/static/websocket-config.js:472-483` - Ctrl+Shift+R restart
+- `pipulate/static/pipulate.js:472-483` - Ctrl+Shift+R restart
 
 ### **Working Terminal Code**
 - `pipulate/cli.py` - Terminal execution mechanism
