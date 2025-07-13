@@ -3631,7 +3631,25 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/assets/theme.js'),
         Script(src='/assets/utils.js'),
         create_chat_scripts('.sortable'),
-        Script(type='module')
+        Script(type='module'),
+        # 🎬 CINEMATIC MAGIC: Check for demo parameter and apply grayscale immediately
+        Script("""
+            // Check for demo=grayscale URL parameter and apply grayscale immediately
+            // This prevents the flash of color before JavaScript loads
+            (function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('demo') === 'grayscale') {
+                    // Apply grayscale filter immediately - no transition
+                    document.documentElement.style.filter = 'grayscale(100%) contrast(1.2) brightness(0.9)';
+                    document.documentElement.style.webkitFilter = 'grayscale(100%) contrast(1.2) brightness(0.9)';
+                    
+                    // Add class for JavaScript to detect
+                    document.documentElement.classList.add('demo-grayscale');
+                    
+                    console.log('🎬 INSTANT grayscale applied from URL parameter - Kansas farmhouse mode activated!');
+                }
+            })();
+        """)
     ),
     store={
         'key': str,
