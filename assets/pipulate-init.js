@@ -1498,9 +1498,13 @@ async function resumeDemoFromBookmark(bookmark) {
         
         console.log('📖 Recreated demo script:', demoScript);
         
-        // Hair's breadth pause after URL change before phantom typing begins
-        console.log('📖 Waiting for dramatic pause before phantom typing...');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Add hair's breadth pause to first step when resuming from bookmark
+        if (demoScript.steps && demoScript.steps.length > 0) {
+            const firstStep = demoScript.steps[0];
+            if (firstStep.timing) {
+                firstStep.timing.delay_before = 500; // Hair's breadth pause
+            }
+        }
         
         // Execute the demo steps starting from the bookmarked position
         await executeStepsWithBranching(demoScript.steps, demoScript);
