@@ -1321,6 +1321,20 @@ def save_conversation_to_db():
                 discussion_conn.commit()
                 discussion_conn.close()
                 logger.info(f"💬 FINDER_TOKEN: CONVERSATION_SAVED - {len(global_conversation_history)} messages saved to discussion.db")
+                
+                # 🌉 BRIDGE: Sync with append-only system for history plugin compatibility
+                try:
+                    from helpers.append_only_conversation import get_conversation_system
+                    conv_system = get_conversation_system()
+                    
+                    # Check if this is the most recent message and sync it
+                    if len(global_conversation_history) > 0:
+                        latest_msg = list(global_conversation_history)[-1]
+                        conv_system.append_message(latest_msg['role'], latest_msg['content'])
+                        logger.debug(f"💬 BRIDGE: Synced latest message to append-only system")
+                except Exception as bridge_error:
+                    logger.debug(f"💬 BRIDGE_ERROR: Could not sync to append-only system: {bridge_error}")
+                    
             else:
                 logger.error("💬 CONVERSATION_SAVE_ERROR - Discussion store is not available")
         else:
@@ -1359,6 +1373,19 @@ def load_conversation_from_db():
             global_conversation_history.extend(conversation_data)
             discussion_conn.close()
             logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORED - {len(conversation_data)} messages restored from discussion.db")
+            
+            # 🌉 BRIDGE: Sync restored conversation with append-only system
+            try:
+                from helpers.append_only_conversation import get_conversation_system
+                conv_system = get_conversation_system()
+                
+                # Sync all restored messages to append-only system
+                for msg in conversation_data:
+                    conv_system.append_message(msg['role'], msg['content'])
+                
+                logger.info(f"💬 BRIDGE: Synced {len(conversation_data)} restored messages to append-only system")
+            except Exception as bridge_error:
+                logger.debug(f"💬 BRIDGE_ERROR: Could not sync restored messages to append-only system: {bridge_error}")
             
             if migrated_count > 0:
                 logger.info(f"💬 FINDER_TOKEN: CONVERSATION_MIGRATION_SUCCESS - Migrated {migrated_count} messages from environment-specific databases")
@@ -1999,6 +2026,10 @@ def append_to_conversation(message=None, role='user'):
     logger.debug(f"🔍 DEBUG: \1")
     global_conversation_history.append({'role': role, 'content': message})
     logger.debug(f"🔍 DEBUG: \1")
+    
+    # 💾 CRITICAL: Save conversation to database after every message
+    # This ensures persistence across server restarts
+    save_conversation_to_db()
     
     # Log the last few messages for verification
     history_list = list(global_conversation_history)
@@ -4835,6 +4866,17 @@ async def startup_event():
     await synchronize_roles_to_db()
     
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:')
+    
+    # 💬 CONVERSATION HISTORY RESTORATION - Load persistent conversation from database
+    try:
+        logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_STARTUP - Attempting to restore conversation history from database")
+        conversation_restored = load_conversation_from_db()
+        if conversation_restored:
+            logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORE_SUCCESS - LLM conversation history restored from previous session")
+        else:
+            logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_NONE - Starting with fresh conversation history")
+    except Exception as e:
+        logger.error(f"💬 FINDER_TOKEN: CONVERSATION_RESTORE_ERROR - Failed to restore conversation history: {e}")
     
     # 🛡️ BACKUP SYSTEM INTEGRATION - Protect all critical data on startup
     try:
