@@ -996,6 +996,10 @@ async function executeStepsWithBranching(steps, demoScript) {
         // Check if this step requires user input and branching
         if (step.wait_for_input && step.branches) {
             console.log('🎯 Waiting for user input...');
+            console.log('🎯 Step has wait_for_input:', step.wait_for_input);
+            console.log('🎯 Step has branches:', step.branches);
+            console.log('🎯 Valid keys:', step.valid_keys);
+            console.log('🎯 Available demo branches:', Object.keys(demoScript.branches || {}));
             
             // Wait for keyboard input
             const userInput = await waitForKeyboardInput(step.valid_keys);
@@ -1003,14 +1007,20 @@ async function executeStepsWithBranching(steps, demoScript) {
             
             // Navigate to the appropriate branch
             const branchKey = step.branches[userInput];
+            console.log('🎯 Branch key for input:', branchKey);
+            
             if (branchKey && demoScript.branches[branchKey]) {
                 console.log('🎯 Navigating to branch:', branchKey);
+                console.log('🎯 Branch steps:', demoScript.branches[branchKey]);
                 
                 // Execute the branch steps
                 await executeStepsWithBranching(demoScript.branches[branchKey], demoScript);
                 
                 // Exit the current step sequence since we've branched
                 break;
+            } else {
+                console.error('🎯 No valid branch found for input:', userInput);
+                console.error('🎯 Available branches:', Object.keys(demoScript.branches || {}));
             }
         }
         
@@ -1398,12 +1408,20 @@ async function waitForKeyboardInput(validKeys) {
             const keyCombo = isCtrl ? `ctrl+${key}` : key;
             
             console.log('🎯 Key pressed:', keyCombo, 'Raw key:', key, 'Ctrl:', isCtrl);
+            console.log('🎯 Event details:', {
+                key: event.key,
+                code: event.code,
+                ctrlKey: event.ctrlKey,
+                shiftKey: event.shiftKey,
+                altKey: event.altKey
+            });
             
             if (validKeys.includes(keyCombo)) {
                 console.log('🎯 Valid key combination detected:', keyCombo);
                 
                 // Prevent default behavior for ctrl+y/ctrl+n
                 event.preventDefault();
+                event.stopPropagation();
                 
                 // Blur the textarea to prevent keystroke from appearing in message box
                 const textarea = document.querySelector('textarea[name="msg"]');
@@ -1416,6 +1434,8 @@ async function waitForKeyboardInput(validKeys) {
                 resolve(keyCombo);
             } else {
                 console.log('🎯 Invalid key combination, waiting for:', validKeys);
+                console.log('🎯 Expected one of:', validKeys);
+                console.log('🎯 Got:', keyCombo);
             }
         }
         
