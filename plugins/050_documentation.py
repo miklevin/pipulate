@@ -1058,7 +1058,7 @@ This system provides unprecedented debugging power:
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Prism CSS -->
-    <link href="/static/prism.css" rel="stylesheet" />
+    <link href="/assets/prism.css" rel="stylesheet" />
 
     <!-- Tree view styles -->
     <style>
@@ -1242,11 +1242,11 @@ This system provides unprecedented debugging power:
     </div>
 
     <!-- Split.js and Splitter Init -->
-    <script src="/static/split.js"></script>
-    <script src="/static/splitter-init.js"></script>
+    <script src="/assets/split.js"></script>
+    <script src="/assets/splitter-init.js"></script>
     
     <!-- Prism JS -->
-    <script src="/static/prism.js"></script>
+    <script src="/assets/prism.js"></script>
     
     <!-- Initialize Documentation Browser Splitter -->
     <script>
@@ -1685,7 +1685,7 @@ This system provides unprecedented debugging power:
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Prism CSS -->
-    <link href="/static/prism.css" rel="stylesheet" />
+    <link href="/assets/prism.css" rel="stylesheet" />
 
     <style>
         body {{
@@ -2105,7 +2105,7 @@ This system provides unprecedented debugging power:
     </div>
 
     <!-- Prism JS -->
-    <script src="/static/prism.js"></script>
+    <script src="/assets/prism.js"></script>
 
     <!-- Auto-highlight code blocks and Copy Markdown functionality -->
     <script>
@@ -2675,7 +2675,7 @@ This system provides unprecedented debugging power:
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
     <!-- Prism CSS -->
-    <link href="/static/prism.css" rel="stylesheet">
+    <link href="/assets/prism.css" rel="stylesheet">
     
     <style>
         body {{
@@ -2822,7 +2822,7 @@ This system provides unprecedented debugging power:
     </div>
 
     <!-- Prism JavaScript -->
-    <script src="/static/prism.js"></script>
+    <script src="/assets/prism.js"></script>
     <script>
         // Initialize Prism highlighting when page loads
         document.addEventListener('DOMContentLoaded', function() {{
@@ -3228,7 +3228,7 @@ This system provides unprecedented debugging power:
     <meta name="viewport" content="width=device-width, initial-scale=2">
 
     <!-- Prism CSS -->
-    <link href="/static/prism.css" rel="stylesheet" />
+    <link href="/assets/prism.css" rel="stylesheet" />
 
     <style>
         body {{
@@ -3656,7 +3656,7 @@ This system provides unprecedented debugging power:
     </div>
 
     <!-- Prism JS -->
-    <script src="/static/prism.js"></script>
+    <script src="/assets/prism.js"></script>
 
     <!-- Auto-highlight code blocks and Copy Markdown functionality -->
     <script>

@@ -5,7 +5,7 @@
  * Python calls window.initializeChatScripts(config) with dynamic parameters.
  * 
  * Usage:
- * 1. Static: <script src="/static/sortable-parameterized-init.js"></script>
+ * 1. Static: <script src="/assets/sortable-parameterized-init.js"></script>
  * 2. Dynamic: <script>initializeChatScripts({sortableSelector: '.sortable'})</script>
  * 
  * Benefits: Static caching + Python configuration without templates

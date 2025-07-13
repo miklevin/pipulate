@@ -196,7 +196,7 @@ class IntroductionPlugin:
                               cls='link-inherit-plain',
                               onmouseover='this.style.textDecoration="underline"; this.style.color="#007bff";',
                               onmouseout='this.style.textDecoration="none"; this.style.color="inherit";'),
-                            Img(src='/static/feather/external-link.svg', 
+                            Img(src='/assets/feather/external-link.svg', 
                                 alt='External link', 
                                 style='width: 14px; height: 14px; margin-left: 0.25rem; vertical-align: middle; filter: brightness(0) invert(1);'),
                             ':'
