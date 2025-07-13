@@ -6779,7 +6779,18 @@ async def reset_python_env(request):
             
             asyncio.create_task(clean_exit())
         
-        return ""
+        # Return HTML response that triggers the special Python environment reset screen
+        from starlette.responses import HTMLResponse
+        return HTMLResponse("""
+        <script>
+            // Trigger the Python environment reset overlay
+            if (typeof triggerPythonEnvironmentReset === 'function') {
+                triggerPythonEnvironmentReset();
+            } else {
+                console.error('triggerPythonEnvironmentReset function not found');
+            }
+        </script>
+        """)
         
     except Exception as e:
         logger.error(f"Error resetting Python environment: {e}")
