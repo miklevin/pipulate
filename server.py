@@ -924,7 +924,7 @@ TONE = 'neutral'
 MODEL = 'gemma3'
 MAX_LLM_RESPONSE_WORDS = 80
 MAX_CONVERSATION_LENGTH = 10000
-HOME_MENU_ITEM = '👥 Roles (Home)'
+HOME_MENU_ITEM = 'Home'
 DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
 
 logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}')
