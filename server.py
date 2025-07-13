@@ -5802,7 +5802,7 @@ async def poke_flyout(request):
                                 hx_confirm='⚠️ This will remove the .venv directory and require a manual restart. You will need to type "exit" then "nix develop" to rebuild the environment. Continue?', 
                                 cls='secondary outline dev-button-muted',
                                 **{'hx-on:click': '''
-                                    triggerFullScreenRestart("Resetting Python environment...", "RESET_PYTHON");
+                                    triggerPythonEnvironmentReset();
                                 '''}) if is_dev_mode else None
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
