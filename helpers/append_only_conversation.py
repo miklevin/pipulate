@@ -409,6 +409,9 @@ async def get_conversation_history(limit: int = 100, offset: int = 0, role_filte
     """
     conv_system = get_conversation_system()
     
+    # CRITICAL: Sync with database first to get latest messages
+    conv_system._sync_memory_from_database()
+    
     # Get all messages
     all_messages = conv_system.get_conversation_list()
     
@@ -416,7 +419,8 @@ async def get_conversation_history(limit: int = 100, offset: int = 0, role_filte
     if role_filter:
         all_messages = [msg for msg in all_messages if msg.get('role') == role_filter]
     
-    # Apply pagination
+    # Apply pagination (reverse to show most recent first)
+    all_messages.reverse()
     start_idx = offset
     end_idx = offset + limit
     
@@ -430,6 +434,10 @@ async def get_conversation_stats() -> Dict:
         Dictionary with conversation statistics
     """
     conv_system = get_conversation_system()
+    
+    # CRITICAL: Sync with database first to get latest stats
+    conv_system._sync_memory_from_database()
+    
     all_messages = conv_system.get_conversation_list()
     
     # Count messages by role
