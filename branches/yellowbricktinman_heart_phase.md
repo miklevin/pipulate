@@ -97,7 +97,7 @@ The secret sauce - inline script that runs before page renders:
 ### Timeline Breakdown
 
 1. **INSTANT (0s)**: **POP!** Dramatic grayscale effect (Kansas farmhouse) - punch in the nose obvious
-   - **Magic**: Page loads ALREADY in grayscale via URL parameter (`?demo=grayscale`)
+   - **Magic**: Page loads ALREADY in grayscale via server-side cookie check
    - **No flash**: Inline script applies grayscale before page renders
 2. **2 seconds**: Dramatic pause while user wonders what's happening
 3. **3 seconds**: Smooth transition to full color (opening the door to Oz)
@@ -155,6 +155,59 @@ if (step.end_demo) {
 
 ## 🛠️ Technical Architecture
 
+### Cookie-Based State Management
+
+The implementation uses server-side cookies for FastHTML-friendly state management:
+
+```python
+# Store grayscale state (called by Ctrl+Shift+D)
+@app.post('/oz-door-grayscale-store')
+async def oz_door_grayscale_store(request):
+    db['oz_door_grayscale'] = 'true'
+    return JSONResponse({"success": True})
+
+# Clear grayscale state (called when demo completes)
+@app.post('/oz-door-grayscale-clear')
+async def oz_door_grayscale_clear():
+    if 'oz_door_grayscale' in db:
+        del db['oz_door_grayscale']
+    return JSONResponse({"success": True})
+```
+
+### Inline Script Generation
+
+The home route checks for the grayscale state and generates an inline script:
+
+```python
+async def home(request):
+    # ... existing code ...
+    
+    # Check for Oz door grayscale state and apply immediately
+    grayscale_enabled = db.get('oz_door_grayscale') == 'true'
+    if grayscale_enabled:
+        # Add inline script to apply grayscale IMMEDIATELY
+        grayscale_script = Script(f"""
+            document.documentElement.style.filter = 'grayscale(100%) contrast(1.2) brightness(0.9)';
+            document.documentElement.classList.add('demo-grayscale');
+            
+            // Automatically call transition function when page loads
+            document.addEventListener('DOMContentLoaded', function() {{
+                if (window.executeOzDoorTransition) {{
+                    window.executeOzDoorTransition();
+                }} else {{
+                    // Fallback: Wait for function to become available
+                    const checkForTransition = setInterval(function() {{
+                        if (window.executeOzDoorTransition) {{
+                            clearInterval(checkForTransition);
+                            window.executeOzDoorTransition();
+                        }}
+                    }}, 100);
+                }}
+            }});
+        """)
+        response = Div(grayscale_script, response)
+```
+
 ### File Structure
 ```
 pipulate/
@@ -169,11 +222,11 @@ pipulate/
 ```
 
 ### Key Functions
-- `executeOzDoorTransition()` - Main cinematic orchestration with URL parameter awareness
+- `executeOzDoorTransition()` - Main cinematic orchestration with automatic transition calling
 - `applyDramaticGrayscaleFilter()` - Apply INSTANT dramatic Kansas farmhouse effect (fallback)
 - `fadeToColor()` - Transition to colorful Oz
 - `resetToNormalColor()` - Cleanup after demo completion
-- **Inline Script** (server.py) - Pre-render grayscale application via URL parameter
+- **Inline Script** (server.py) - Pre-render grayscale application via server-side cookie check
 
 ## 🎪 The Magic Behind the Curtain
 

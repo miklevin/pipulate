@@ -2476,16 +2476,16 @@ button.secondary.inline-button-submit {
 
 /* Transitioning state - when we're ready to fade back to color */
 .demo-grayscale.demo-fading-to-color {
-    filter: grayscale(0%);
-    -webkit-filter: grayscale(0%);
+    filter: grayscale(0%) contrast(1.0) brightness(1.0);
+    -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0);
     transition: filter 3s ease-in-out;
     -webkit-transition: -webkit-filter 3s ease-in-out;
 }
 
 /* Full color state - the vibrant Land of Oz */
 .demo-color {
-    filter: grayscale(0%);
-    -webkit-filter: grayscale(0%);
+    filter: grayscale(0%) contrast(1.0) brightness(1.0);
+    -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0);
     /* No transition needed here either */
 }
 
