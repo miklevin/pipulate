@@ -1246,7 +1246,7 @@ This system provides unprecedented debugging power:
     <script src="/assets/splitter-init.js"></script>
     
     <!-- Prism JS -->
-    <script src="/assets/prism.js"></script>
+    <script src="/assets/js/prism.js"></script>
     
     <!-- Initialize Documentation Browser Splitter -->
     <script>
@@ -2105,7 +2105,7 @@ This system provides unprecedented debugging power:
     </div>
 
     <!-- Prism JS -->
-    <script src="/assets/prism.js"></script>
+    <script src="/assets/js/prism.js"></script>
 
     <!-- Auto-highlight code blocks and Copy Markdown functionality -->
     <script>
@@ -2822,7 +2822,7 @@ This system provides unprecedented debugging power:
     </div>
 
     <!-- Prism JavaScript -->
-    <script src="/assets/prism.js"></script>
+    <script src="/assets/js/prism.js"></script>
     <script>
         // Initialize Prism highlighting when page loads
         document.addEventListener('DOMContentLoaded', function() {{
@@ -3656,7 +3656,7 @@ This system provides unprecedented debugging power:
     </div>
 
     <!-- Prism JS -->
-    <script src="/assets/prism.js"></script>
+    <script src="/assets/js/prism.js"></script>
 
     <!-- Auto-highlight code blocks and Copy Markdown functionality -->
     <script>
