@@ -679,16 +679,16 @@ def render_item(item, app_instance):
 
                     // Only process as click if user didn't drag beyond threshold
                     if (dragDistance < dragThreshold) {{
-                        const details = this.parentElement.querySelector('details');
-                        if (details) {{
-                            details.open = !details.open;
+                        const pluginList = this.parentElement.querySelector('.plugin-expandable');
+                        if (pluginList) {{
+                            pluginList.style.display = pluginList.style.display === 'none' ? 'block' : 'none';
                         }}
                     }}
                     this.parentElement._mouseDownPos = null;
                 }}
             """
         ),
-        # Discrete expandable plugin list
+        # Discrete expandable plugin list - hidden by default
         plugin_info,
         id=item_id,
         cls=f"card-container card-list-item {get_role_css_class(item.text)}",
@@ -704,9 +704,9 @@ def render_item(item, app_instance):
 
                 // Only process as click if user didn't drag beyond threshold
                 if (dragDistance < dragThreshold && event.target.type !== 'checkbox' && !event.target.closest('a')) {{
-                    const details = this.querySelector('details');
-                    if (details) {{
-                        details.open = !details.open;
+                    const pluginList = this.querySelector('.plugin-expandable');
+                    if (pluginList) {{
+                        pluginList.style.display = pluginList.style.display === 'none' ? 'block' : 'none';
                     }}
                 }}
                 this._mouseDownPos = null;
@@ -879,7 +879,7 @@ def get_plugin_emoji(module_name):
     return '⚡'  # Default emoji
 
 def create_plugin_visibility_table(role_name, ui_constants=None):
-    """Create a discrete expandable accordion showing plugins with real emojis."""
+    """Create a discrete expandable list showing plugins with real emojis."""
     plugin_list = get_plugin_list()
     affected_plugins = [plugin for plugin in plugin_list if role_name in plugin['roles']]
     
@@ -888,9 +888,10 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
         logger.debug(f"  - {plugin['display_name']} (from {plugin['filename']})")
 
     if not affected_plugins:
-        return Details(
+        return Div(
             P("No plugins assigned to this role.", style="font-style: italic; color: var(--pico-muted-color); margin: 0.5rem 0;"),
-            cls="role-plugin-details"
+            cls="plugin-expandable role-plugin-details",
+            style="display: none;"
         )
 
     # Create discrete plugin links using display names as-is
@@ -918,7 +919,8 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
                 )
         )
 
-    return Details(
+    return Div(
         Ol(*plugin_items, cls="role-plugin-ordered-list role-plugin-list"),
-        cls="role-plugin-details"
+        cls="plugin-expandable role-plugin-details",
+        style="display: none;"
     )
