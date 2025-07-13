@@ -2499,8 +2499,8 @@ button.secondary.inline-button-submit {
 /* 🎬 CONFIGURABLE CINEMATIC VARIABLES - Adjust the Kansas farmhouse look */
 :root {
     /* Over-exposed Kansas farmhouse aesthetic - washed out and faded */
-    --oz-grayscale-brightness: 1.5;    /* Over-exposed brightness (1.0 = normal, 1.5 = washed out) */
-    --oz-grayscale-contrast: 0.75;     /* Reduced contrast for faded look (1.0 = normal, 0.75 = softer) */
+    --oz-grayscale-brightness: 2;    /* Over-exposed brightness (1.0 = normal, 1.5 = washed out) */
+    --oz-grayscale-contrast: 0.4;     /* Reduced contrast for faded look (1.0 = normal, 0.75 = softer) */
     --oz-grayscale-saturation: 0%;     /* Complete desaturation (0% = grayscale) */
     
     /* Transition timing */
