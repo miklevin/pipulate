@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 try:
     from helpers.append_only_conversation import (
         get_conversation_history, 
-        get_conversation_stats
+        get_conversation_stats,
+        archive_message_by_id
     )
     CONVERSATION_SYSTEM_AVAILABLE = True
 except ImportError as e:
@@ -75,6 +76,7 @@ class HistoryViewer:
         app.route('/history/refresh', methods=['GET'])(self.refresh_history)
         app.route('/history/filter', methods=['POST'])(self.filter_messages)
         app.route('/history/copy', methods=['POST'])(self.copy_to_clipboard)
+        app.route('/history/delete', methods=['POST'])(self.delete_message)
 
     async def landing(self, request):
         """
@@ -152,18 +154,50 @@ class HistoryViewer:
                     return self.render_copy_error("Conversation system not available")
                 
                 messages = await get_conversation_history()
-                if 0 <= message_index < len(messages):
+                if message_index < len(messages):
                     message = messages[message_index]
                     content = self.format_message_for_clipboard(message)
-                    return self.render_copy_success(f"Message {message_index + 1} copied to clipboard!", content)
+                    return self.render_copy_success("Message copied to clipboard!", content)
                 else:
                     return self.render_copy_error("Message not found")
             
-            return self.render_copy_error("Invalid copy request")
+            return self.render_copy_error("Invalid copy type")
             
         except Exception as e:
             logger.error(f"Error copying to clipboard: {e}")
-            return self.render_copy_error(f"Error: {str(e)}")
+            return self.render_copy_error(f"Error copying: {str(e)}")
+
+    async def delete_message(self, request):
+        """Handle message deletion (archive) requests"""
+        try:
+            form_data = await request.form()
+            message_id = int(form_data.get('message_id'))
+            
+            if not CONVERSATION_SYSTEM_AVAILABLE:
+                return Div("❌ Conversation system not available", 
+                          style="color: var(--pico-del-color); padding: 1rem;")
+            
+            # Archive the message (soft delete)
+            success = await archive_message_by_id(message_id)
+            
+            if success:
+                # Return success response that will trigger UI refresh
+                return Div(
+                    "✅ Message archived successfully",
+                    hx_get="/history/refresh",
+                    hx_target="#history-container", 
+                    hx_swap="outerHTML",
+                    hx_trigger="load delay:500ms",
+                    style="color: var(--pico-primary); padding: 1rem;"
+                )
+            else:
+                return Div("❌ Failed to archive message", 
+                          style="color: var(--pico-del-color); padding: 1rem;")
+                
+        except Exception as e:
+            logger.error(f"Error deleting message: {e}")
+            return Div(f"❌ Error: {str(e)}", 
+                      style="color: var(--pico-del-color); padding: 1rem;")
 
     def render_history_page(self, messages, stats):
         """Render the complete history page"""
@@ -205,12 +239,16 @@ class HistoryViewer:
         total_messages = stats.get('total_messages', 0)
         total_characters = stats.get('total_characters', 0)
         avg_length = total_characters / total_messages if total_messages > 0 else 0
+        archived_count = stats.get('archived_messages', 0)
         
         return Card(
             H3("📊 Conversation Statistics", style=f"color: {self.UI_CONSTANTS['text_color']}; margin-bottom: 1rem;"),
             Div(
                 Div(f"📈 Total Messages: {total_messages}", style="margin-bottom: 0.5rem;"),
                 Div(f"📏 Average Length: {avg_length:.0f} characters", style="margin-bottom: 0.5rem;"),
+                Div(f"🗃️ Archived Messages: {archived_count}", 
+                    title="Messages you've deleted are safely archived and can be recovered",
+                    style="margin-bottom: 0.5rem; color: var(--pico-muted-color);"),
                 Div(*role_badges, style="margin-top: 1rem;"),
                 style=f"color: {self.UI_CONSTANTS['text_color']};"
             ),
@@ -312,6 +350,7 @@ class HistoryViewer:
         role = message.get('role', 'unknown')
         content = message.get('content', '')
         timestamp = message.get('timestamp', '')
+        message_id = message.get('id')  # Get database ID for deletion
         
         # Role-specific styling
         role_styles = {
@@ -372,20 +411,42 @@ class HistoryViewer:
                         line-height: 1.4;
                     """
                 ),
-                Button(
-                    "📋 Copy",
-                    onclick=f"copyMessage({index})",
-                    id=f"copy-btn-{index}",
-                    style=f"""
-                        margin-top: 0.5rem;
-                        padding: 0.25rem 0.5rem;
-                        font-size: 0.8rem;
-                        background-color: {self.UI_CONSTANTS['assistant_color']};
-                        border: 1px solid {self.UI_CONSTANTS['border_color']};
-                        color: white;
-                        border-radius: {self.UI_CONSTANTS['border_radius']};
-                        cursor: pointer;
-                    """
+                # Button container with copy and delete buttons
+                Div(
+                    Button(
+                        "📋 Copy",
+                        onclick=f"copyMessage({index})",
+                        id=f"copy-btn-{index}",
+                        style=f"""
+                            margin-right: 0.5rem;
+                            padding: 0.25rem 0.5rem;
+                            font-size: 0.8rem;
+                            background-color: {self.UI_CONSTANTS['assistant_color']};
+                            border: 1px solid {self.UI_CONSTANTS['border_color']};
+                            color: white;
+                            border-radius: {self.UI_CONSTANTS['border_radius']};
+                            cursor: pointer;
+                        """
+                    ),
+                    Button(
+                        "🗑️ Delete",
+                        hx_post="/history/delete",
+                        hx_vals=f'{{"message_id": {message_id}}}' if message_id else '{}',
+                        hx_target=f"#message-{index}",
+                        hx_swap="outerHTML",
+                        hx_confirm="Are you sure you want to delete this message? It will be archived but can be recovered.",
+                        id=f"delete-btn-{index}",
+                        style=f"""
+                            padding: 0.25rem 0.5rem;
+                            font-size: 0.8rem;
+                            background-color: var(--pico-del-color);
+                            border: 1px solid {self.UI_CONSTANTS['border_color']};
+                            color: white;
+                            border-radius: {self.UI_CONSTANTS['border_radius']};
+                            cursor: pointer;
+                        """
+                    ),
+                    style="margin-top: 0.5rem; display: flex; gap: 0.5rem;"
                 ),
                 style=f"""
                     padding: 1rem;
@@ -397,6 +458,8 @@ class HistoryViewer:
             ),
             data_message_index=str(index),
             data_message_content=content,  # Store full content for copying
+            data_message_id=str(message_id) if message_id else "",  # Store message ID for deletion
+            id=f"message-{index}",  # ID for HTMX targeting
             style="margin-bottom: 0.5rem;"
         )
 
