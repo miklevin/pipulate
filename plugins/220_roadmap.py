@@ -101,7 +101,7 @@ class RoadmapPlugin:
 
                 // Load Mermaid.js from local static file
                 var script = document.createElement('script');
-                script.src = "/assets/mermaid.min.js";
+                script.src = "/assets/js/mermaid.min.js";
                 script.onload = function() {{
                     console.log("Mermaid loaded from local static");
 
