@@ -5478,13 +5478,13 @@ def create_chat_interface(autofocus=False):
         hx_swap="outerHTML",
         id="voice-toggle-button",
         cls="",
-        style="margin-left: 0.5rem; padding: 0.2rem; background: none; border: none; color: inherit; cursor: pointer;",
+        style="margin-left: 0.5rem; padding: 0.2rem; background: none; border: none; color: inherit; cursor: pointer; vertical-align: baseline;",
         title=voice_tooltip
     )
     
     # Create chatbot title with voice toggle
     chatbot_header = Div(
-        H2(f'{APP_NAME} Chatbot', style="display: inline-block; margin-right: 0.5rem;"),
+        H2(f'{APP_NAME} Chatbot', style="display: inline-block; margin: 0; margin-right: 0.5rem;"),
         voice_toggle_button,
         style="display: flex; align-items: center; justify-content: flex-start;"
     )
@@ -6016,7 +6016,7 @@ async def toggle_voice_mode(request):
             hx_swap="outerHTML",
             id="voice-toggle-button",
             cls="",
-            style="margin-left: 0.5rem; padding: 0.2rem; background: none; border: none; color: inherit; cursor: pointer;",
+            style="margin-left: 0.5rem; padding: 0.2rem; background: none; border: none; color: inherit; cursor: pointer; vertical-align: baseline;",
             title=tooltip
         )
         
