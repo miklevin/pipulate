@@ -925,6 +925,25 @@ async function executeInteractiveDemoSequence(demoScript) {
     // Add invisible demo start message to conversation history (for LLM context)
     await addToConversationHistory('system', `[DEMO SCRIPT STARTED: ${demoScript.name}] An automated interactive demo is now running. All following messages are part of the scripted demo sequence. The user triggered this demo and is interacting with it via keyboard input (Ctrl+y/Ctrl+n). Continue to respond naturally if asked about the demo.`);
     
+    // Navigate to home page (/) before demo begins - "There's no place like home!"
+    console.log('🏠 Navigating to home page before demo begins...');
+    
+    // Use HTMX to navigate without page reload
+    const mainContent = document.querySelector('#main-content') || document.querySelector('main') || document.body;
+    
+    try {
+        // Trigger HTMX GET request to home page
+        htmx.ajax('GET', '/', {
+            target: mainContent,
+            swap: 'innerHTML'
+        });
+        
+        // Brief pause to allow navigation to complete
+        await new Promise(resolve => setTimeout(resolve, 800));
+    } catch (error) {
+        console.warn('🏠 HTMX navigation failed, continuing with demo:', error);
+    }
+    
     // Execute main steps with branching support
     await executeStepsWithBranching(demoScript.steps, demoScript);
     
