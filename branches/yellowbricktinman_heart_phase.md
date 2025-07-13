@@ -52,9 +52,14 @@ The cinematic sequence follows a precise timeline:
 async function executeOzDoorTransition() {
     console.log('🎬 Beginning "Dorothy Opens the Door to Oz" cinematic sequence...');
     
-    // Step 1: INSTANT dramatic grayscale filter (Kansas farmhouse) - POP!
-    applyDramaticGrayscaleFilter();
-    console.log('🎬 INSTANT dramatic grayscale applied - welcome to black and white Kansas!');
+    // Step 1: Check if grayscale already applied (from URL parameter)
+    if (document.documentElement.classList.contains('demo-grayscale')) {
+        console.log('🎬 Grayscale already applied from URL parameter - skipping application step');
+    } else {
+        // INSTANT dramatic grayscale filter (Kansas farmhouse) - POP!
+        applyDramaticGrayscaleFilter();
+        console.log('🎬 INSTANT dramatic grayscale applied - welcome to black and white Kansas!');
+    }
     
     // Step 2: Dramatic pause (2 seconds) - user wonders what's happening
     console.log('🎬 Dramatic pause - user wonders what\'s happening...');
@@ -68,9 +73,32 @@ async function executeOzDoorTransition() {
 }
 ```
 
+#### 3. Inline Script Magic (`server.py`)
+
+The secret sauce - inline script that runs before page renders:
+
+```javascript
+// Check for demo=grayscale URL parameter and apply grayscale immediately
+(function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('demo') === 'grayscale') {
+        // Apply grayscale filter immediately - no transition
+        document.documentElement.style.filter = 'grayscale(100%) contrast(1.2) brightness(0.9)';
+        document.documentElement.style.webkitFilter = 'grayscale(100%) contrast(1.2) brightness(0.9)';
+        
+        // Add class for JavaScript to detect
+        document.documentElement.classList.add('demo-grayscale');
+        
+        console.log('🎬 INSTANT grayscale applied from URL parameter!');
+    }
+})();
+```
+
 ### Timeline Breakdown
 
 1. **INSTANT (0s)**: **POP!** Dramatic grayscale effect (Kansas farmhouse) - punch in the nose obvious
+   - **Magic**: Page loads ALREADY in grayscale via URL parameter (`?demo=grayscale`)
+   - **No flash**: Inline script applies grayscale before page renders
 2. **2 seconds**: Dramatic pause while user wonders what's happening
 3. **3 seconds**: Smooth transition to full color (opening the door to Oz)
 4. **5 seconds total**: Phantom typing demo begins after color transition completes
@@ -141,20 +169,22 @@ pipulate/
 ```
 
 ### Key Functions
-- `executeOzDoorTransition()` - Main cinematic orchestration
-- `applyDramaticGrayscaleFilter()` - Apply INSTANT dramatic Kansas farmhouse effect
+- `executeOzDoorTransition()` - Main cinematic orchestration with URL parameter awareness
+- `applyDramaticGrayscaleFilter()` - Apply INSTANT dramatic Kansas farmhouse effect (fallback)
 - `fadeToColor()` - Transition to colorful Oz
 - `resetToNormalColor()` - Cleanup after demo completion
+- **Inline Script** (server.py) - Pre-render grayscale application via URL parameter
 
 ## 🎪 The Magic Behind the Curtain
 
 ### Why This Works
 
-1. **Immediate Impact**: The INSTANT dramatic grayscale effect is a punch-in-the-nose obvious signal
-2. **Emotional Priming**: The grayscale-to-color transition immediately signals "something special is happening"
-3. **Cultural Recognition**: The Wizard of Oz reference is universally understood
-4. **Perfect Timing**: The 5-second sequence creates anticipation without boredom
-5. **Seamless Integration**: Works perfectly with existing bookmark/reload system
+1. **Perfect Magic Trick**: No flash of color - page loads ALREADY in grayscale
+2. **Immediate Impact**: The INSTANT dramatic grayscale effect is a punch-in-the-nose obvious signal
+3. **Emotional Priming**: The grayscale-to-color transition immediately signals "something special is happening"
+4. **Cultural Recognition**: The Wizard of Oz reference is universally understood
+5. **Perfect Timing**: The 5-second sequence creates anticipation without boredom
+6. **Seamless Integration**: Works perfectly with existing bookmark/reload system
 
 ### The Storytelling Approach
 
@@ -198,6 +228,8 @@ The next phase will focus on **courage** - bold, transformative interactions tha
 The Tin Woodman sought a heart to feel love, compassion, and connection. Our demo system now has that heart - the ability to create emotional moments that transform technical demonstrations into memorable experiences.
 
 When users press **Ctrl+Shift+D**, they're not just starting a demo. They're opening the door from the mundane world of software into the magical realm of AI possibility. That's the heart beating in our system - the bridge between technical capability and human emotion.
+
+**The Perfect Magic Trick**: No flash of color. No hint of what's coming. Just the pure, dramatic transformation from Kansas to Oz that every user remembers from the movie. That's the heart - making users *feel* the magic from the very first moment.
 
 ---
 

@@ -955,9 +955,9 @@ async function executeInteractiveDemoSequence(demoScript) {
         console.warn('📖 Error storing demo bookmark:', error);
     }
     
-    // Navigate to home page (/) - "There's no place like home!"
-    console.log('🏠 Navigating to home page before demo begins...');
-    window.location.href = '/';
+    // Navigate to home page (/) with demo parameter - "There's no place like home!"
+    console.log('🏠 Navigating to home page with demo grayscale parameter...');
+    window.location.href = '/?demo=grayscale';
     
     // Note: Demo execution will resume from bookmark after navigation
     // No need to execute steps here - they'll be resumed by checkAndResumeDemoBookmark()
@@ -1553,7 +1553,7 @@ async function resumeDemoFromBookmark(bookmark) {
  * world of AI interaction.
  * 
  * Timeline:
- * 1. INSTANT dramatic grayscale filter (Kansas farmhouse) - POP!
+ * 1. Check if grayscale already applied (from URL parameter) - skip if so
  * 2. Wait 2 seconds (dramatic pause) - user wonders what's happening
  * 3. Fade to color over 3 seconds (opening the door to Oz)
  * 4. Wait for transition to complete before starting phantom typing
@@ -1561,9 +1561,14 @@ async function resumeDemoFromBookmark(bookmark) {
 async function executeOzDoorTransition() {
     console.log('🎬 Beginning "Dorothy Opens the Door to Oz" cinematic sequence...');
     
-    // Step 1: INSTANT dramatic grayscale filter (Kansas farmhouse) - POP!
-    applyDramaticGrayscaleFilter();
-    console.log('🎬 INSTANT dramatic grayscale applied - welcome to black and white Kansas!');
+    // Step 1: Check if grayscale already applied (from URL parameter)
+    if (document.documentElement.classList.contains('demo-grayscale')) {
+        console.log('🎬 Grayscale already applied from URL parameter - skipping application step');
+    } else {
+        // INSTANT dramatic grayscale filter (Kansas farmhouse) - POP!
+        applyDramaticGrayscaleFilter();
+        console.log('🎬 INSTANT dramatic grayscale applied - welcome to black and white Kansas!');
+    }
     
     // Step 2: Dramatic pause (2 seconds) - user wonders what's happening
     console.log('🎬 Dramatic pause - user wonders what\'s happening...');
