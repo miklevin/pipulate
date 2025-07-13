@@ -187,7 +187,7 @@ class CrudUI(PluginIdentityManager):
 
     @property
     def H3_HEADER(self):
-        return f"Customize APP menu."
+        return f"Customize the APP menu to your AI SEO needs."
 
     @property
     def ENDPOINT_MESSAGE(self):
@@ -348,9 +348,6 @@ class CrudUI(PluginIdentityManager):
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
                     ". Chat not working? Optionally install ",
                     A("Ollama", 
-                      Img(src='/assets/feather/external-link.svg', 
-                          alt='External link', 
-                          style='width: 14px; height: 14px; margin-left: 0.25rem; vertical-align: middle; filter: brightness(0) invert(1);'),
                       href="https://ollama.com/", target="_blank",
                       cls="link-primary-bold",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",
@@ -379,7 +376,7 @@ class CrudUI(PluginIdentityManager):
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
                            "Deselect ALL", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/deselect_all",
-                           cls="secondary outline role-badge"),
+                           cls="secondary role-badge"),
                     style="margin-bottom: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap; justify-content: center;"
                 ),
                 Ol(
