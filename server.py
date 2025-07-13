@@ -5477,8 +5477,8 @@ def create_chat_interface(autofocus=False):
         hx_target="#voice-toggle-button",
         hx_swap="outerHTML",
         id="voice-toggle-button",
-        cls="secondary outline",
-        style="margin-left: 0.5rem; padding: 0.3rem 0.5rem; border: 1px solid var(--pico-secondary-border); border-radius: 0.25rem;",
+        cls="",
+        style="margin-left: 0.5rem; padding: 0.2rem; background: none; border: none; color: inherit; cursor: pointer;",
         title=voice_tooltip
     )
     
@@ -6015,8 +6015,8 @@ async def toggle_voice_mode(request):
             hx_target="#voice-toggle-button",
             hx_swap="outerHTML",
             id="voice-toggle-button",
-            cls="secondary outline",
-            style="margin-left: 0.5rem; padding: 0.3rem 0.5rem; border: 1px solid var(--pico-secondary-border); border-radius: 0.25rem;",
+            cls="",
+            style="margin-left: 0.5rem; padding: 0.2rem; background: none; border: none; color: inherit; cursor: pointer;",
             title=tooltip
         )
         
