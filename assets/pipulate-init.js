@@ -1095,7 +1095,7 @@ async function executeCleanMcpToolCallStep(step) {
 - mcp_tools.py (MCP tool definitions)
 - cli.py (Command line interface)
 - plugins/ (41 plugin files)
-- static/ (Web assets)
+- /assets/ (Web assets)
 - browser_automation/ (Automation scripts)
 
 **Safe read-only operation completed!** 📖`;
