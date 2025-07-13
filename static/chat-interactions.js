@@ -132,7 +132,7 @@ function setupWebSocketAndSSE() {
         return lastMessage;
     }
     
-    console.log('SSE handlers initialized (WebSocket handled by websocket-config.js)');
+    console.log('SSE handlers initialized (WebSocket handled by pipulate.js)');
 }
 
 function setupInteractions() {
