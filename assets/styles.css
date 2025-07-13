@@ -2131,10 +2131,10 @@ span[data-tooltip] {
 
 /* Navigation search input */
 .nav-search-input {
-    width: 340px;
+    width: 365px;
     border-radius: 20px;
     min-width: 200px; /* Allow shrinking but maintain minimum usability */
-    max-width: 340px;
+    max-width: 365px;
 }
 
 /* Menu item base styling */
