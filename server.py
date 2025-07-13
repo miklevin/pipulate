@@ -5466,7 +5466,8 @@ def create_chat_interface(autofocus=False):
     init_script = f'\n    // Set global variables for the external script\n    window.CONFIG_PCONFIG = {{\n        tempMessage: {json.dumps(temp_message)},\n        clipboardSVG: {json.dumps(CONFIG_PCONFIG["SVG_ICONS"]["CLIPBOARD"])}\n    }};\n    '
     
     # Create voice toggle button
-    voice_mode = db.get('voice_mode', False)
+    voice_mode_raw = db.get('voice_mode', False)
+    voice_mode = voice_mode_raw in (True, '1', 1, 'true', 'True')  # Handle string/boolean conversion
     voice_icon = CONFIG_PCONFIG["SVG_ICONS"]["VOLUME_ON"] if voice_mode else CONFIG_PCONFIG["SVG_ICONS"]["VOLUME_OFF"]
     voice_tooltip = f"Voice mode: {'On' if voice_mode else 'Off'}"
     
@@ -5983,12 +5984,22 @@ async def sync_theme(request):
 async def toggle_voice_mode(request):
     """Toggle voice mode for Chip O'Theseus."""
     try:
-        # Get current voice mode setting
-        current_voice_mode = db.get('voice_mode', False)
+        # Get current voice mode setting and handle type conversion
+        current_voice_mode_raw = db.get('voice_mode', False)
+        # Convert to proper boolean (handles string '1'/'0' from database)
+        current_voice_mode = current_voice_mode_raw in (True, '1', 1, 'true', 'True')
+        
+        # DEBUG: Log the current state and types
+        logger.info(f"🎭 DEBUG: current_voice_mode_raw = {repr(current_voice_mode_raw)} (type: {type(current_voice_mode_raw)})")
+        logger.info(f"🎭 DEBUG: current_voice_mode = {repr(current_voice_mode)} (type: {type(current_voice_mode)})")
         
         # Toggle the voice mode
         new_voice_mode = not current_voice_mode
         db['voice_mode'] = new_voice_mode
+        
+        # DEBUG: Log the new state and what was saved
+        logger.info(f"🎭 DEBUG: new_voice_mode = {repr(new_voice_mode)} (type: {type(new_voice_mode)})")
+        logger.info(f"🎭 DEBUG: saved to db = {repr(db.get('voice_mode'))}")
         
         # Log the change
         status = "ON" if new_voice_mode else "OFF"
