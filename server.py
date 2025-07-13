@@ -3578,7 +3578,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
     - Chat message handling
     - Other UI interactions
 
-    Sortable functionality is now handled by the dedicated sortable-init.js file.
+    Third-party library initialization is now handled by the consolidated init.js file.
 
     Returns:
         tuple: (static_js_script, dynamic_init_script, stylesheet)
@@ -3623,12 +3623,10 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/assets/js/surreal.js'),
         Script(src='/assets/js/script.js'),
         Script(src='/assets/js/Sortable.js'),
-        Script(src='/assets/sortable-init.js'),
         Script(src='/assets/js/split.js'),
-        Script(src='/assets/splitter-init.js'),
         Script(src='/assets/js/mermaid.min.js'),
         Script(src='/assets/js/marked.min.js'),
-        Script(src='/assets/marked-init.js'),
+        Script(src='/assets/init.js'),
         Script(src='/assets/js/prism.js'),
         Script(src='/assets/copy-functionality.js'),
         Script(src='/assets/theme.js'),
