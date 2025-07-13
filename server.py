@@ -4835,6 +4835,33 @@ async def startup_event():
     await synchronize_roles_to_db()
     
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:')
+    
+    # 🛡️ BACKUP SYSTEM INTEGRATION - Protect all critical data on startup
+    try:
+        from helpers.durable_backup_system import DurableBackupManager
+        backup_manager = DurableBackupManager()
+        
+        # Get dynamic database paths
+        main_db_path = get_db_filename()
+        keychain_db_path = 'helpers/data/ai_keychain.db'
+        discussion_db_path = 'data/discussion.db'
+        
+        # Execute comprehensive backup
+        story_moment("Backup System", "Protecting critical data assets", BANNER_COLORS['data_protection'])
+        backup_results = backup_manager.backup_all_databases(main_db_path, keychain_db_path, discussion_db_path)
+        
+        # Log results
+        successful_backups = sum(1 for success in backup_results.values() if success)
+        total_backups = len(backup_results)
+        
+        if successful_backups == total_backups:
+            logger.info(f"🛡️ FINDER_TOKEN: BACKUP_STARTUP_SUCCESS - All {total_backups} databases backed up successfully")
+        else:
+            logger.warning(f"🛡️ FINDER_TOKEN: BACKUP_STARTUP_PARTIAL - {successful_backups}/{total_backups} databases backed up")
+            
+    except Exception as e:
+        logger.error(f"🛡️ FINDER_TOKEN: BACKUP_STARTUP_ERROR - Backup system failed: {e}")
+    
     story_moment("Workshop Ready", "All systems initialized and ready for creative exploration", BANNER_COLORS['workshop_ready'])
     
     # Status information now provided by Rich startup summary tables
@@ -6392,6 +6419,42 @@ async def clear_pipeline(request):
     html_response = HTMLResponse(str(response))
     html_response.headers['HX-Refresh'] = 'true'
     return html_response
+
+@rt('/backup-now', methods=['POST'])
+async def backup_now(request):
+    """Manually trigger backup of all critical databases."""
+    try:
+        from helpers.durable_backup_system import DurableBackupManager
+        backup_manager = DurableBackupManager()
+        
+        # Get dynamic database paths
+        main_db_path = get_db_filename()
+        keychain_db_path = 'helpers/data/ai_keychain.db'
+        discussion_db_path = 'data/discussion.db'
+        
+        # Execute comprehensive backup
+        logger.info("🛡️ MANUAL BACKUP INITIATED")
+        backup_results = backup_manager.backup_all_databases(main_db_path, keychain_db_path, discussion_db_path)
+        
+        # Prepare response
+        successful_backups = sum(1 for success in backup_results.values() if success)
+        total_backups = len(backup_results)
+        
+        backup_location = backup_manager.backup_root
+        
+        if successful_backups == total_backups:
+            message = f"✅ All {total_backups} databases backed up successfully to {backup_location}"
+            logger.info(f"🛡️ MANUAL BACKUP SUCCESS: {message}")
+            return {"success": True, "message": message, "backup_location": str(backup_location)}
+        else:
+            message = f"⚠️ Partial backup: {successful_backups}/{total_backups} databases backed up to {backup_location}"
+            logger.warning(f"🛡️ MANUAL BACKUP PARTIAL: {message}")
+            return {"success": False, "message": message, "backup_location": str(backup_location)}
+            
+    except Exception as e:
+        error_msg = f"❌ Manual backup failed: {str(e)}"
+        logger.error(f"🛡️ MANUAL BACKUP ERROR: {error_msg}")
+        return {"success": False, "message": error_msg}
 
 @rt('/clear-db', methods=['POST'])
 async def clear_db(request):
