@@ -2451,4 +2451,69 @@ button.secondary.inline-button-submit {
 }
 */
 
+/* ============================================================================
+   DEMO SYSTEM - CINEMATIC TRANSITIONS
+   ============================================================================
+   
+   🎬 "Dorothy Opens the Door to Oz" - Grayscale to Color Transition
+   
+   Inspired by the famous cinematic moment when Dorothy opens the door from
+   the black and white Kansas farmhouse into the vibrant, colorful Land of Oz.
+   
+   This creates the "heart" phase of our demo experience - the emotional
+   transition from the mechanical "brains" phase to the colorful, living
+   world of AI interaction.
+   
+   ============================================================================ */
+
+/* Initial grayscale state - the black and white Kansas farmhouse */
+/* NO TRANSITION on initial grayscale - we want INSTANT dramatic effect */
+.demo-grayscale {
+    filter: grayscale(100%) contrast(1.2) brightness(0.9);
+    -webkit-filter: grayscale(100%) contrast(1.2) brightness(0.9);
+    /* No transition here - instant dramatic effect */
+}
+
+/* Transitioning state - when we're ready to fade back to color */
+.demo-grayscale.demo-fading-to-color {
+    filter: grayscale(0%);
+    -webkit-filter: grayscale(0%);
+    transition: filter 3s ease-in-out;
+    -webkit-transition: -webkit-filter 3s ease-in-out;
+}
+
+/* Full color state - the vibrant Land of Oz */
+.demo-color {
+    filter: grayscale(0%);
+    -webkit-filter: grayscale(0%);
+    /* No transition needed here either */
+}
+
+/* Visual indicator for the transition (optional subtle overlay) */
+.demo-transition-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.05);
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 1;
+    transition: opacity 3s ease-in-out;
+}
+
+.demo-transition-overlay.fade-out {
+    opacity: 0;
+}
+
+/* Ensure the transition doesn't interfere with existing functionality */
+.demo-grayscale * {
+    transition: inherit;
+}
+
+/* ============================================================================
+   END DEMO SYSTEM - CINEMATIC TRANSITIONS
+   ============================================================================ */
+
 

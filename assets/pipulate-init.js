@@ -1025,6 +1025,9 @@ async function executeStepsWithBranching(steps, demoScript) {
         // Check if this step ends the demo
         if (step.end_demo) {
             console.log('🎯 Demo ended by step:', step.step_id);
+            // Reset page to normal color state after demo completion
+            console.log('🎬 Resetting page to normal color state after demo completion');
+            resetToNormalColor();
             break;
         }
         
@@ -1521,6 +1524,10 @@ async function resumeDemoFromBookmark(bookmark) {
         console.log('📖 Full demo script reloaded:', demoScript.name);
         console.log('📖 Available branches:', Object.keys(demoScript.branches || {}));
         
+        // 🎬 CINEMATIC MAGIC: "Dorothy Opens the Door to Oz"
+        // Apply grayscale immediately, then fade to color with perfect timing
+        await executeOzDoorTransition();
+        
         // Add hair's breadth pause to first step when resuming from bookmark
         if (demoScript.steps && demoScript.steps.length > 0) {
             const firstStep = demoScript.steps[0];
@@ -1535,6 +1542,79 @@ async function resumeDemoFromBookmark(bookmark) {
     } catch (error) {
         console.error('📖 Error resuming demo:', error);
     }
+}
+
+/**
+ * 🎬 CINEMATIC MAGIC: "Dorothy Opens the Door to Oz"
+ * 
+ * This function creates the iconic transition from black and white Kansas
+ * to the vibrant, colorful Land of Oz. It's the "heart" phase of our demo,
+ * where the mechanical "brains" phase gives way to the emotional, living
+ * world of AI interaction.
+ * 
+ * Timeline:
+ * 1. INSTANT dramatic grayscale filter (Kansas farmhouse) - POP!
+ * 2. Wait 2 seconds (dramatic pause) - user wonders what's happening
+ * 3. Fade to color over 3 seconds (opening the door to Oz)
+ * 4. Wait for transition to complete before starting phantom typing
+ */
+async function executeOzDoorTransition() {
+    console.log('🎬 Beginning "Dorothy Opens the Door to Oz" cinematic sequence...');
+    
+    // Step 1: INSTANT dramatic grayscale filter (Kansas farmhouse) - POP!
+    applyDramaticGrayscaleFilter();
+    console.log('🎬 INSTANT dramatic grayscale applied - welcome to black and white Kansas!');
+    
+    // Step 2: Dramatic pause (2 seconds) - user wonders what's happening
+    console.log('🎬 Dramatic pause - user wonders what\'s happening...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Step 3: Begin the transition to color (opening the door to Oz)
+    console.log('🎬 Opening the door to the vibrant Land of Oz...');
+    await fadeToColor();
+    
+    console.log('🎬 Cinematic transition complete - welcome to the colorful Land of Oz!');
+}
+
+/**
+ * Apply INSTANT dramatic grayscale filter to the entire page
+ * This creates the "Kansas farmhouse" black and white effect with POP!
+ * NO TRANSITION - immediate dramatic effect
+ */
+function applyDramaticGrayscaleFilter() {
+    document.documentElement.classList.add('demo-grayscale');
+    console.log('🎬 INSTANT dramatic grayscale filter applied - POP!');
+}
+
+/**
+ * Fade from grayscale to full color
+ * This creates the "opening the door to Oz" transition
+ * Returns a promise that resolves when the transition is complete
+ */
+async function fadeToColor() {
+    return new Promise((resolve) => {
+        // Add the transition class to enable smooth fade to color
+        document.documentElement.classList.add('demo-fading-to-color');
+        console.log('🎬 Color transition initiated - fading to vibrant Oz...');
+        
+        // Wait for the CSS transition to complete (3 seconds)
+        setTimeout(() => {
+            // Clean up all demo classes
+            document.documentElement.classList.remove('demo-grayscale', 'demo-fading-to-color');
+            document.documentElement.classList.add('demo-color');
+            console.log('🎬 Color transition complete - welcome to the Land of Oz!');
+            resolve();
+        }, 3000); // Match the CSS transition duration
+    });
+}
+
+/**
+ * Reset the page to normal color state
+ * This can be called to clean up after the demo
+ */
+function resetToNormalColor() {
+    document.documentElement.classList.remove('demo-grayscale', 'demo-fading-to-color', 'demo-color');
+    console.log('🎬 Reset to normal color state');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
