@@ -938,26 +938,33 @@ async function executeInteractiveDemoSequence(demoScript) {
         
         console.log('📖 About to store demo bookmark:', demoBookmark);
         
-        // Store in server-side database (survives server restart)
-        const response = await fetch('/demo-bookmark-store', {
+        // Store demo bookmark in server-side database
+        const bookmarkResponse = await fetch('/demo-bookmark-store', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(demoBookmark)
         });
         
-        if (response.ok) {
-            console.log('📖 Demo bookmark stored successfully');
+        // Store Oz door grayscale state for cinematic transition
+        const ozDoorResponse = await fetch('/oz-door-grayscale-store', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+        
+        if (bookmarkResponse.ok && ozDoorResponse.ok) {
+            console.log('📖 Demo bookmark and Oz door grayscale state stored successfully');
         } else {
-            console.warn('📖 Failed to store demo bookmark, continuing anyway');
+            console.warn('📖 Failed to store demo state, continuing anyway');
         }
         
     } catch (error) {
-        console.warn('📖 Error storing demo bookmark:', error);
+        console.warn('📖 Error storing demo state:', error);
     }
     
-    // Navigate to home page (/) with demo parameter - "There's no place like home!"
-    console.log('🏠 Navigating to home page with demo grayscale parameter...');
-    window.location.href = '/?demo=grayscale';
+    // Navigate to home page (/) - "There's no place like home!"
+    console.log('🏠 Navigating to home page for cinematic Oz door transition...');
+    window.location.href = '/';
     
     // Note: Demo execution will resume from bookmark after navigation
     // No need to execute steps here - they'll be resumed by checkAndResumeDemoBookmark()
@@ -1561,9 +1568,9 @@ async function resumeDemoFromBookmark(bookmark) {
 async function executeOzDoorTransition() {
     console.log('🎬 Beginning "Dorothy Opens the Door to Oz" cinematic sequence...');
     
-    // Step 1: Check if grayscale already applied (from URL parameter)
+    // Step 1: Check if grayscale already applied (from server-side cookie)
     if (document.documentElement.classList.contains('demo-grayscale')) {
-        console.log('🎬 Grayscale already applied from URL parameter - skipping application step');
+        console.log('🎬 Grayscale already applied from server cookie - skipping application step');
     } else {
         // INSTANT dramatic grayscale filter (Kansas farmhouse) - POP!
         applyDramaticGrayscaleFilter();
@@ -1577,6 +1584,18 @@ async function executeOzDoorTransition() {
     // Step 3: Begin the transition to color (opening the door to Oz)
     console.log('🎬 Opening the door to the vibrant Land of Oz...');
     await fadeToColor();
+    
+    // Step 4: Clean up the server-side cookie state
+    try {
+        await fetch('/oz-door-grayscale-clear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+        console.log('🎬 Oz door grayscale state cleared from server');
+    } catch (error) {
+        console.warn('🎬 Error clearing Oz door grayscale state:', error);
+    }
     
     console.log('🎬 Cinematic transition complete - welcome to the colorful Land of Oz!');
 }
