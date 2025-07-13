@@ -5793,21 +5793,25 @@ async def poke_flyout(request):
                             hx_swap='none',  # No immediate swap - let server restart handle the reload
                             cls='secondary outline',
                             **{'hx-on:click': '''
-                                this.setAttribute("aria-busy", "true"); 
-                                this.textContent = "Restarting server..."; 
-                                document.body.style.pointerEvents = "none";
-                                document.getElementById("poke-summary").innerHTML = '<div aria-busy="true" style="width: 22px; height: 22px; display: inline-block;"></div>';
+                                triggerFullScreenRestart("Resetting database...", "RESET_DATABASE");
                             '''}) if is_dev_mode else None
     reset_python_button = Button('🐍 Reset Python Environment', 
                                 hx_post='/reset-python-env', 
                                 hx_target='#msg-list', 
                                 hx_swap='beforeend', 
                                 hx_confirm='⚠️ This will remove the .venv directory and require a manual restart. You will need to type "exit" then "nix develop" to rebuild the environment. Continue?', 
-                                cls='secondary outline dev-button-muted') if is_dev_mode else None
+                                cls='secondary outline dev-button-muted',
+                                **{'hx-on:click': '''
+                                    triggerFullScreenRestart("Resetting Python environment...", "RESET_PYTHON");
+                                '''}) if is_dev_mode else None
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     
-    # Add Update button
-    update_button = Button(f'🔄 Update {APP_NAME}', hx_post='/update-pipulate', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
+    # Add Update button (full-screen effect only triggers on actual restart)
+    update_button = Button(f'🔄 Update {APP_NAME}', 
+                          hx_post='/update-pipulate', 
+                          hx_target='#msg-list', 
+                          hx_swap='beforeend', 
+                          cls='secondary outline')
     
     # Add version info display
     nix_version = get_nix_version()
@@ -6612,8 +6616,12 @@ async def clear_db(request):
     logger.info('CLEAR_DB: Scheduling server restart to ensure fresh application state')
     asyncio.create_task(delayed_restart(2))
     
-    # Return empty response - server restart will handle the reload
-    return HTMLResponse('')
+    # Return script that triggers full-screen restart effect for the actual restart
+    return HTMLResponse('''
+        <script>
+            triggerFullScreenRestart("Restarting with fresh database...", "DATABASE_RESET");
+        </script>
+    ''')
 
 @rt('/update-pipulate', methods=['POST'])
 async def update_pipulate(request):
@@ -6679,6 +6687,13 @@ async def update_pipulate(request):
                 await pipulate.stream('⚠️ Some local changes could not be restored automatically', verbatim=True, role='system')
         
         await pipulate.stream('✅ Update complete! Restarting server...', verbatim=True, role='system')
+        
+        # Trigger full-screen restart effect for the actual restart
+        await pipulate.stream('''
+            <script>
+                triggerFullScreenRestart("Applying updates...", "UPDATE_RESTART");
+            </script>
+        ''', verbatim=True, role='system')
         
         # Restart the server to apply updates
         asyncio.create_task(delayed_restart(2))
@@ -7042,20 +7057,11 @@ async def switch_environment(request):
         # Schedule server restart after a delay to allow HTMX to swap in the spinner
         asyncio.create_task(delayed_restart(2))
         
-        # Return PicoCSS spinner that will be swapped in via HTMX
+        # Return script that triggers full-screen restart effect
         return HTMLResponse(f"""
-            <div 
-                aria-busy='true'
-                class="loading-spinner"
-            >
-                Switching
-            </div>
-            <style>
-                body {{
-                    pointer-events: none;
-                    user-select: none;
-                }}
-            </style>
+            <script>
+                triggerFullScreenRestart("Switching to {environment} mode...", "ENVIRONMENT_SWITCH");
+            </script>
             """)
     except Exception as e:
         logger.error(f'Error switching environment: {e}')
