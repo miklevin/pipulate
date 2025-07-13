@@ -1327,11 +1327,14 @@ def save_conversation_to_db():
                     from helpers.append_only_conversation import get_conversation_system
                     conv_system = get_conversation_system()
                     
-                    # Check if this is the most recent message and sync it
+                    # Sync the latest message to append-only system
                     if len(global_conversation_history) > 0:
                         latest_msg = list(global_conversation_history)[-1]
-                        conv_system.append_message(latest_msg['role'], latest_msg['content'])
-                        logger.debug(f"💬 BRIDGE: Synced latest message to append-only system")
+                        message_id = conv_system.append_message(latest_msg['role'], latest_msg['content'])
+                        if message_id:
+                            logger.debug(f"💬 BRIDGE: Synced latest message to append-only system (ID: {message_id})")
+                        else:
+                            logger.debug(f"💬 BRIDGE: Message already exists in append-only system")
                 except Exception as bridge_error:
                     logger.debug(f"💬 BRIDGE_ERROR: Could not sync to append-only system: {bridge_error}")
                     
@@ -1379,11 +1382,16 @@ def load_conversation_from_db():
                 from helpers.append_only_conversation import get_conversation_system
                 conv_system = get_conversation_system()
                 
-                # Sync all restored messages to append-only system
-                for msg in conversation_data:
-                    conv_system.append_message(msg['role'], msg['content'])
+                # Clear append-only system and sync all restored messages
+                conv_system.conversation_memory.clear()
                 
-                logger.info(f"💬 BRIDGE: Synced {len(conversation_data)} restored messages to append-only system")
+                synced_count = 0
+                for msg in conversation_data:
+                    message_id = conv_system.append_message(msg['role'], msg['content'])
+                    if message_id:
+                        synced_count += 1
+                
+                logger.info(f"💬 BRIDGE: Synced {synced_count}/{len(conversation_data)} restored messages to append-only system")
             except Exception as bridge_error:
                 logger.debug(f"💬 BRIDGE_ERROR: Could not sync restored messages to append-only system: {bridge_error}")
             
