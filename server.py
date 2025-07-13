@@ -3616,7 +3616,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     hdrs=(
         Meta(charset='utf-8'),
         Link(rel='stylesheet', href='/assets/css/pico.css'),
-        Link(rel='stylesheet', href='/assets/prism.css'),
+        Link(rel='stylesheet', href='/assets/css/prism.css'),
         Link(rel='stylesheet', href='/assets/rich-table.css'),
         Script(src='/assets/js/htmx.js'),
         Script(src='/assets/js/fasthtml.js'),
@@ -3634,8 +3634,6 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/assets/theme-init.js'),
         Script(src='/assets/widget-scripts.js'),
         create_chat_scripts('.sortable'),
-        # Add menu flash demo script in development environments
-        Script(src='/assets/menu-flash-demo.js') if get_current_environment() == 'development' else Script(''),
         Script(type='module')
     ),
     store={

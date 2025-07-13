@@ -1058,7 +1058,7 @@ This system provides unprecedented debugging power:
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Prism CSS -->
-    <link href="/assets/prism.css" rel="stylesheet" />
+    <link href="/assets/css/prism.css" rel="stylesheet" />
 
     <!-- Tree view styles -->
     <style>
@@ -1685,7 +1685,7 @@ This system provides unprecedented debugging power:
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Prism CSS -->
-    <link href="/assets/prism.css" rel="stylesheet" />
+    <link href="/assets/css/prism.css" rel="stylesheet" />
 
     <style>
         body {{
@@ -2675,7 +2675,7 @@ This system provides unprecedented debugging power:
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
     <!-- Prism CSS -->
-    <link href="/assets/prism.css" rel="stylesheet">
+    <link href="/assets/css/prism.css" rel="stylesheet">
     
     <style>
         body {{
@@ -3228,7 +3228,7 @@ This system provides unprecedented debugging power:
     <meta name="viewport" content="width=device-width, initial-scale=2">
 
     <!-- Prism CSS -->
-    <link href="/assets/prism.css" rel="stylesheet" />
+    <link href="/assets/css/prism.css" rel="stylesheet" />
 
     <style>
         body {{
