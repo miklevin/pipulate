@@ -1198,7 +1198,7 @@ c0e6674 2025-06-10 HTMX has to do a full page refresh on Default, and I believe 
 237d86d 2025-06-10 Feather Icons in use on Roles buttons
 eb70ae5 2025-06-10 Added expand all and collapse all on Roles
 e71ed89 2025-06-10 Turned off table debug
-63cee3c 2025-06-10 Renamed mv websocket-global-config.js pipulate.js for brevity
+63cee3c 2025-06-10 Renamed mv websocket-global-config.js pipulate-init.js for brevity
 e52abf4 2025-06-10 Fixed API log rotation
 02be021 2025-06-10 It looks like the end of a long duplicate prevention balancing act is finally... uh... balanced.
 4967b31 2025-06-10 Further refinement attepts on endpoint message deduping and management
