@@ -1450,7 +1450,13 @@ async function checkAndResumeDemoBookmark() {
         if (data.has_bookmark && data.bookmark) {
             console.log('📖 Demo bookmark found, resuming demo...');
             console.log('📖 Retrieved bookmark data:', data.bookmark);
-            const bookmark = data.bookmark;
+            
+            // Parse bookmark if it's a string (JSON serialization issue)
+            let bookmark = data.bookmark;
+            if (typeof bookmark === 'string') {
+                console.log('📖 Bookmark is string, parsing JSON...');
+                bookmark = JSON.parse(bookmark);
+            }
             
             // Clear the bookmark to prevent infinite loop
             await fetch('/demo-bookmark-clear', { method: 'POST' });
@@ -1471,10 +1477,16 @@ async function resumeDemoFromBookmark(bookmark) {
     try {
         console.log('📖 Resuming demo:', bookmark.script_name);
         console.log('📖 Bookmark structure:', bookmark);
+        console.log('📖 Bookmark type:', typeof bookmark);
+        console.log('📖 Bookmark.steps type:', typeof bookmark.steps);
+        console.log('📖 Is bookmark.steps array?', Array.isArray(bookmark.steps));
         
         // Validate bookmark data
         if (!bookmark || !bookmark.steps || !Array.isArray(bookmark.steps)) {
             console.error('📖 Invalid bookmark data - missing or invalid steps array');
+            console.error('📖 Debug - bookmark exists:', !!bookmark);
+            console.error('📖 Debug - bookmark.steps exists:', !!bookmark.steps);
+            console.error('📖 Debug - bookmark.steps is array:', Array.isArray(bookmark.steps));
             return;
         }
         
