@@ -542,6 +542,79 @@ function sendRestartCommand(restartType = "WEBSOCKET") {
 }
 
 /**
+ * Special lock screen for Python environment reset - less opaque, shows terminal instructions
+ */
+function triggerPythonEnvironmentReset() {
+    console.log('🐍 PYTHON_RESET: Showing terminal instructions overlay');
+    
+    // Remove any existing restart overlay
+    const existingOverlay = document.getElementById('restart-overlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+    
+    // Create semi-transparent overlay with terminal instructions
+    const overlay = document.createElement('div');
+    overlay.id = 'restart-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        color: white;
+        font-family: system-ui, sans-serif;
+        backdrop-filter: blur(1px);
+        font-size: 1.2rem;
+    `;
+    
+    // Terminal instructions card
+    overlay.innerHTML = `
+        <div style="
+            background-color: rgba(0, 0, 0, 0.85);
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 500px;
+            margin: 1rem;
+            border: 2px solid #ffc107;
+        ">
+            <h3 style="color: #ffc107; margin-top: 0;">🐍 Python Environment Reset</h3>
+            <p style="margin-bottom: 1.5rem; line-height: 1.4;">
+                Return to the terminal and type:
+            </p>
+            <div style="
+                background-color: #1e1e1e;
+                padding: 1rem;
+                border-radius: 4px;
+                font-family: 'Courier New', monospace;
+                margin-bottom: 1rem;
+                border-left: 4px solid #ffc107;
+            ">
+                <div style="margin-bottom: 0.5rem;">exit</div>
+                <div style="color: #6c757d;">...and then type:</div>
+                <div style="margin-top: 0.5rem;">nix develop</div>
+            </div>
+            <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 0;">
+                This will rebuild the Python environment and restart the server.
+            </p>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    console.log('🐍 Python environment reset overlay displayed with terminal instructions');
+    
+    // Make body non-interactive during reset (but don't disable completely)
+    document.body.style.pointerEvents = 'none';
+    document.body.style.userSelect = 'none';
+}
+
+/**
  * Complete restart sequence: Show spinner + Send command
  */
 function executeFullRestartSequence(message = "Restarting server...", restartType = "MANUAL") {
@@ -757,6 +830,7 @@ function hideRestartSpinner() {
 // Make restart functions globally available for server-side script execution
 window.triggerFullScreenRestart = triggerFullScreenRestart;
 window.executeFullRestartSequence = executeFullRestartSequence;
+window.triggerPythonEnvironmentReset = triggerPythonEnvironmentReset;
 
 // Form submission interceptor for demo mode
 function interceptFormSubmission() {
