@@ -70,11 +70,32 @@ class AppendOnlyConversationSystem:
             )
         ''')
         
+        # Archive table for deleted messages
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS archived_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                original_message_id INTEGER NOT NULL,
+                timestamp TEXT NOT NULL,
+                role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+                content TEXT NOT NULL,
+                message_hash TEXT,
+                session_id TEXT DEFAULT 'default',
+                created_at DATETIME NOT NULL,
+                archived_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                archive_reason TEXT DEFAULT 'user_deleted'
+            )
+        ''')
+        
         # Create indexes for performance
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON conversation_messages(timestamp)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_role ON conversation_messages(role)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_session ON conversation_messages(session_id)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_created_at ON conversation_messages(created_at)')
+        
+        # Archive table indexes
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_archive_original_id ON archived_messages(original_message_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_archive_timestamp ON archived_messages(timestamp)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_archive_date ON archived_messages(archived_at)')
         
         conn.commit()
         conn.close()
@@ -315,6 +336,87 @@ class AppendOnlyConversationSystem:
             logger.error(f"💾 CRITICAL: Conversation restore failed: {e}")
             raise
 
+    def archive_message(self, message_id: int, archive_reason: str = "user_deleted") -> bool:
+        """
+        Archive a message by moving it from conversation_messages to archived_messages.
+        This preserves the data while removing it from active conversation.
+        
+        Args:
+            message_id: The ID of the message to archive
+            archive_reason: Reason for archiving (default: 'user_deleted')
+            
+        Returns:
+            True if message was archived successfully, False otherwise
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            # First, get the message to archive
+            cursor.execute('SELECT * FROM conversation_messages WHERE id = ?', (message_id,))
+            message = cursor.fetchone()
+            
+            if not message:
+                logger.warning(f"💾 Message ID {message_id} not found for archiving")
+                return False
+            
+            # Insert into archive table
+            cursor.execute('''
+                INSERT INTO archived_messages 
+                (original_message_id, timestamp, role, content, message_hash, session_id, created_at, archive_reason)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (message[0], message[1], message[2], message[3], message[4], message[5], message[6], archive_reason))
+            
+            # Delete from active conversation
+            cursor.execute('DELETE FROM conversation_messages WHERE id = ?', (message_id,))
+            
+            conn.commit()
+            
+            # Remove from memory cache
+            self.conversation_memory = deque([
+                msg for msg in self.conversation_memory 
+                if not (msg.get('content') == message[3] and msg.get('role') == message[2])
+            ], maxlen=self.max_messages)
+            
+            logger.info(f"💾 FINDER_TOKEN: MESSAGE_ARCHIVED - ID:{message_id}, Reason:{archive_reason}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"💾 Failed to archive message ID {message_id}: {e}")
+            conn.rollback()
+            return False
+        finally:
+            conn.close()
+
+    def get_archived_messages(self, limit: int = 100) -> List[Dict]:
+        """Get archived messages"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT original_message_id, timestamp, role, content, session_id, 
+                   created_at, archived_at, archive_reason
+            FROM archived_messages 
+            ORDER BY archived_at DESC 
+            LIMIT ?
+        ''', (limit,))
+        
+        archived = []
+        for row in cursor.fetchall():
+            archived.append({
+                'original_id': row[0],
+                'timestamp': row[1],
+                'role': row[2],
+                'content': row[3],
+                'session_id': row[4],
+                'created_at': row[5],
+                'archived_at': row[6],
+                'archive_reason': row[7]
+            })
+        
+        conn.close()
+        return archived
+
 # Global instance for backward compatibility
 _conversation_system = None
 
@@ -405,26 +507,50 @@ async def get_conversation_history(limit: int = 100, offset: int = 0, role_filte
         role_filter: Filter by role ('user', 'assistant', 'system') or None for all
         
     Returns:
-        List of conversation messages
+        List of conversation messages with database IDs for delete functionality (newest first)
     """
     conv_system = get_conversation_system()
     
-    # CRITICAL: Sync with database first to get latest messages
-    conv_system._sync_memory_from_database()
+    # CRITICAL: Fetch directly from database to get message IDs
+    conn = sqlite3.connect(conv_system.db_path)
+    cursor = conn.cursor()
     
-    # Get all messages
-    all_messages = conv_system.get_conversation_list()
-    
-    # Apply role filter if specified
-    if role_filter:
-        all_messages = [msg for msg in all_messages if msg.get('role') == role_filter]
-    
-    # Apply pagination (reverse to show most recent first)
-    all_messages.reverse()
-    start_idx = offset
-    end_idx = offset + limit
-    
-    return all_messages[start_idx:end_idx]
+    try:
+        # Build query with optional role filter - ORDER BY DESC for newest first
+        base_query = '''
+            SELECT id, timestamp, role, content, session_id, created_at
+            FROM conversation_messages
+        '''
+        
+        if role_filter:
+            base_query += ' WHERE role = ?'
+            cursor.execute(base_query + ' ORDER BY created_at DESC LIMIT ? OFFSET ?', 
+                         (role_filter, limit, offset))
+        else:
+            cursor.execute(base_query + ' ORDER BY created_at DESC LIMIT ? OFFSET ?', 
+                         (limit, offset))
+        
+        messages = []
+        for row in cursor.fetchall():
+            messages.append({
+                'id': row[0],  # Include database ID for delete functionality
+                'timestamp': row[1],
+                'role': row[2],
+                'content': row[3],
+                'session_id': row[4],
+                'created_at': row[5]
+            })
+        
+        # Messages are already in newest first order from the query
+        return messages
+        
+    finally:
+        conn.close()
+
+async def archive_message_by_id(message_id: int) -> bool:
+    """Archive a message by ID (async wrapper for UI)"""
+    conv_system = get_conversation_system()
+    return conv_system.archive_message(message_id)
 
 async def get_conversation_stats() -> Dict:
     """
@@ -449,9 +575,17 @@ async def get_conversation_stats() -> Dict:
     # Calculate total characters
     total_chars = sum(len(msg.get('content', '')) for msg in all_messages)
     
+    # Get archived message count
+    conn = sqlite3.connect(conv_system.db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM archived_messages")
+    archived_count = cursor.fetchone()[0]
+    conn.close()
+    
     return {
         'total_messages': len(all_messages),
         'role_distribution': role_counts,  # Changed from role_counts to role_distribution
         'total_characters': total_chars,
+        'archived_messages': archived_count,
         'database_path': str(conv_system.db_path)
     } 
