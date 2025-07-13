@@ -394,3 +394,56 @@ def migrate_to_append_only_system():
         logger.error("🏗️ FINDER_TOKEN: MIGRATION_FAILED - Staying with current system")
     
     return result 
+
+async def get_conversation_history(limit: int = 100, offset: int = 0, role_filter: str = None) -> List[Dict]:
+    """
+    Get conversation history for the history plugin.
+    
+    Args:
+        limit: Maximum number of messages to return
+        offset: Number of messages to skip
+        role_filter: Filter by role ('user', 'assistant', 'system') or None for all
+        
+    Returns:
+        List of conversation messages
+    """
+    conv_system = get_conversation_system()
+    
+    # Get all messages
+    all_messages = conv_system.get_conversation_list()
+    
+    # Apply role filter if specified
+    if role_filter:
+        all_messages = [msg for msg in all_messages if msg.get('role') == role_filter]
+    
+    # Apply pagination
+    start_idx = offset
+    end_idx = offset + limit
+    
+    return all_messages[start_idx:end_idx]
+
+async def get_conversation_stats() -> Dict:
+    """
+    Get conversation statistics for the history plugin.
+    
+    Returns:
+        Dictionary with conversation statistics
+    """
+    conv_system = get_conversation_system()
+    all_messages = conv_system.get_conversation_list()
+    
+    # Count messages by role
+    role_counts = {}
+    for msg in all_messages:
+        role = msg.get('role', 'unknown')
+        role_counts[role] = role_counts.get(role, 0) + 1
+    
+    # Calculate total characters
+    total_chars = sum(len(msg.get('content', '')) for msg in all_messages)
+    
+    return {
+        'total_messages': len(all_messages),
+        'role_counts': role_counts,
+        'total_characters': total_chars,
+        'database_path': str(conv_system.db_path)
+    } 
