@@ -312,7 +312,6 @@ HARDWARE:
 PROTOCOL:
   http: Uvicorn fast Asynchronous Server Gateway Interface (ASGI) web server
   html: Uvicorn talks to Python Starlette using anyio & httpx libraries
-  websocket: /assets/ws.js provides client bi-directional asynchronous communication
 LINGUA:
   htmx: /assets/htmx.js JavaScript library to eliminate most need for JavaScript
   Python: .venv/bin/python3.12 latest version AIs are well trained on
