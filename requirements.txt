@@ -8,6 +8,7 @@ extruct
 google-api-python-client
 google-auth
 httpx
+huggingface_hub
 ipynbname
 isort
 itables
@@ -22,6 +23,7 @@ nbstripout
 nltk
 openpyxl
 pandas
+piper-tts
 pyfiglet
 pylint
 python-minimizer
