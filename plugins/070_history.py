@@ -201,11 +201,16 @@ class HistoryViewer:
                 )
             )
         
+        # Calculate average length from stats
+        total_messages = stats.get('total_messages', 0)
+        total_characters = stats.get('total_characters', 0)
+        avg_length = total_characters / total_messages if total_messages > 0 else 0
+        
         return Card(
             H3("📊 Conversation Statistics", style=f"color: {self.UI_CONSTANTS['text_color']}; margin-bottom: 1rem;"),
             Div(
-                Div(f"📈 Total Messages: {stats.get('total_messages', 0)}", style="margin-bottom: 0.5rem;"),
-                Div(f"📏 Average Length: {stats.get('avg_length', 0):.0f} characters", style="margin-bottom: 0.5rem;"),
+                Div(f"📈 Total Messages: {total_messages}", style="margin-bottom: 0.5rem;"),
+                Div(f"📏 Average Length: {avg_length:.0f} characters", style="margin-bottom: 0.5rem;"),
                 Div(*role_badges, style="margin-top: 1rem;"),
                 style=f"color: {self.UI_CONSTANTS['text_color']};"
             ),
@@ -227,7 +232,7 @@ class HistoryViewer:
                     Select(
                         Option("All Messages", value="all"),
                         Option("👤 User Messages", value="user"),
-                        Option("🤖 Assistant Messages", value="assistant"),
+                        Option("🤖 Chip O'Theseus Messages", value="assistant"),
                         Option("⚙️ System Messages", value="system"),
                         name="role",
                         hx_post="/history/filter",
@@ -370,14 +375,16 @@ class HistoryViewer:
                 Button(
                     "📋 Copy",
                     onclick=f"copyMessage({index})",
+                    id=f"copy-btn-{index}",
                     style=f"""
                         margin-top: 0.5rem;
                         padding: 0.25rem 0.5rem;
                         font-size: 0.8rem;
-                        background-color: {role_style['color']};
-                        border: 1px solid {role_style['border_color']};
+                        background-color: {self.UI_CONSTANTS['assistant_color']};
+                        border: 1px solid {self.UI_CONSTANTS['border_color']};
                         color: white;
                         border-radius: {self.UI_CONSTANTS['border_radius']};
+                        cursor: pointer;
                     """
                 ),
                 style=f"""
@@ -399,14 +406,34 @@ class HistoryViewer:
             // Copy individual message
             function copyMessage(index) {{
                 const messageDiv = document.querySelector(`[data-message-index="${{index}}"]`);
-                if (messageDiv) {{
+                const copyBtn = document.querySelector(`#copy-btn-${{index}}`);
+                
+                if (messageDiv && copyBtn) {{
                     const content = messageDiv.getAttribute('data-message-content');
+                    const originalText = copyBtn.textContent;
+                    
                     if (content) {{
                         navigator.clipboard.writeText(content).then(() => {{
-                            showNotification('Message copied to clipboard!', 'success');
+                            // Success feedback in button
+                            copyBtn.textContent = '✅ Copied!';
+                            copyBtn.style.backgroundColor = '{self.UI_CONSTANTS['user_color']}';
+                            
+                            // Reset button after 2 seconds
+                            setTimeout(() => {{
+                                copyBtn.textContent = originalText;
+                                copyBtn.style.backgroundColor = '{self.UI_CONSTANTS['assistant_color']}';
+                            }}, 2000);
                         }}).catch(err => {{
                             console.error('Failed to copy message:', err);
-                            showNotification('Failed to copy message', 'error');
+                            // Error feedback in button
+                            copyBtn.textContent = '❌ Failed';
+                            copyBtn.style.backgroundColor = 'var(--pico-del-color)';
+                            
+                            // Reset button after 2 seconds
+                            setTimeout(() => {{
+                                copyBtn.textContent = originalText;
+                                copyBtn.style.backgroundColor = '{self.UI_CONSTANTS['assistant_color']}';
+                            }}, 2000);
                         }});
                     }}
                 }}
@@ -414,6 +441,14 @@ class HistoryViewer:
             
             // Copy entire conversation
             function copyConversation() {{
+                const copyAllBtn = document.querySelector('button[onclick="copyConversation()"]');
+                const originalText = copyAllBtn ? copyAllBtn.textContent : '📋 Copy All';
+                
+                if (copyAllBtn) {{
+                    copyAllBtn.textContent = '⏳ Copying...';
+                    copyAllBtn.disabled = true;
+                }}
+                
                 fetch('/history/copy', {{
                     method: 'POST',
                     headers: {{
@@ -425,61 +460,83 @@ class HistoryViewer:
                 .then(data => {{
                     if (data.success && data.content) {{
                         navigator.clipboard.writeText(data.content).then(() => {{
-                            showNotification('Entire conversation copied to clipboard!', 'success');
+                            if (copyAllBtn) {{
+                                copyAllBtn.textContent = '✅ All Copied!';
+                                copyAllBtn.style.backgroundColor = '{self.UI_CONSTANTS['user_color']}';
+                                
+                                // Reset button after 3 seconds
+                                setTimeout(() => {{
+                                    copyAllBtn.textContent = originalText;
+                                    copyAllBtn.style.backgroundColor = '{self.UI_CONSTANTS['assistant_color']}';
+                                    copyAllBtn.disabled = false;
+                                }}, 3000);
+                            }}
                         }}).catch(err => {{
                             console.error('Failed to copy conversation:', err);
-                            showNotification('Failed to copy conversation', 'error');
+                            if (copyAllBtn) {{
+                                copyAllBtn.textContent = '❌ Failed';
+                                copyAllBtn.style.backgroundColor = 'var(--pico-del-color)';
+                                
+                                // Reset button after 3 seconds
+                                setTimeout(() => {{
+                                    copyAllBtn.textContent = originalText;
+                                    copyAllBtn.style.backgroundColor = '{self.UI_CONSTANTS['assistant_color']}';
+                                    copyAllBtn.disabled = false;
+                                }}, 3000);
+                            }}
                         }});
                     }} else {{
-                        showNotification('Failed to copy conversation', 'error');
+                        if (copyAllBtn) {{
+                            copyAllBtn.textContent = '❌ Failed';
+                            copyAllBtn.style.backgroundColor = 'var(--pico-del-color)';
+                            
+                            // Reset button after 3 seconds
+                            setTimeout(() => {{
+                                copyAllBtn.textContent = originalText;
+                                copyAllBtn.style.backgroundColor = '{self.UI_CONSTANTS['assistant_color']}';
+                                copyAllBtn.disabled = false;
+                            }}, 3000);
+                        }}
                     }}
                 }})
                 .catch(err => {{
                     console.error('Error copying conversation:', err);
-                    showNotification('Error copying conversation', 'error');
+                    if (copyAllBtn) {{
+                        copyAllBtn.textContent = '❌ Error';
+                        copyAllBtn.style.backgroundColor = 'var(--pico-del-color)';
+                        
+                        // Reset button after 3 seconds
+                        setTimeout(() => {{
+                            copyAllBtn.textContent = originalText;
+                            copyAllBtn.style.backgroundColor = '{self.UI_CONSTANTS['assistant_color']}';
+                            copyAllBtn.disabled = false;
+                        }}, 3000);
+                    }}
                 }});
-            }}
-            
-            // Show notification
-            function showNotification(message, type) {{
-                const notification = document.createElement('div');
-                notification.textContent = message;
-                notification.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    padding: 1rem;
-                    border-radius: {self.UI_CONSTANTS['border_radius']};
-                    color: white;
-                    font-weight: bold;
-                    z-index: 1000;
-                    transition: opacity 0.3s ease;
-                    background-color: ${{type === 'success' ? '{self.UI_CONSTANTS['user_color']}' : 'var(--pico-del-color)'}};
-                `;
-                
-                document.body.appendChild(notification);
-                
-                setTimeout(() => {{
-                    notification.style.opacity = '0';
-                    setTimeout(() => {{
-                        document.body.removeChild(notification);
-                    }}, 300);
-                }}, 3000);
             }}
         """)
 
     def render_error_page(self, error_message):
-        """Render an error page"""
+        """Render error page"""
         return Card(
-            H3("❌ Error", style=f"color: var(--pico-del-color);"),
-            P(error_message, style=f"color: {self.UI_CONSTANTS['text_color']};"),
-            P("This may happen if the conversation system is not available.", style=f"color: {self.UI_CONSTANTS['muted_color']};"),
+            H3("❌ Error Loading History", style=f"color: {self.UI_CONSTANTS['text_color']}; margin-bottom: 1rem;"),
+            P(f"Error: {error_message}", style=f"color: {self.UI_CONSTANTS['text_color']};"),
+            Button(
+                "🔄 Retry",
+                hx_get="/history/refresh",
+                hx_target="#history-container",
+                hx_swap="outerHTML",
+                style=f"""
+                    background-color: {self.UI_CONSTANTS['user_color']};
+                    border: 1px solid {self.UI_CONSTANTS['border_color']};
+                    color: white;
+                """
+            ),
             style=f"""
                 background-color: {self.UI_CONSTANTS['card_background']};
-                border: 1px solid var(--pico-del-color);
+                border: 1px solid {self.UI_CONSTANTS['card_border']};
                 text-align: center;
-                margin: 2rem auto;
-                max-width: 500px;
+                padding: 2rem;
             """
         )
 
