@@ -45,11 +45,21 @@ class DurableBackupManager:
             self.backup_root = Path(backup_root)
         else:
             # 🎯 Cross-platform: ~/.pipulate/backups/
-            home = Path.home()
+            # Use OS-independent home directory resolution
+            home = Path.home().resolve()  # Resolve symlinks for consistent paths
             self.backup_root = home / '.pipulate' / 'backups'
         
-        # Ensure backup directory exists
+        # Ensure backup directory exists with proper permissions
         self.backup_root.mkdir(parents=True, exist_ok=True)
+        
+        # Set directory permissions (readable/writable by owner only for security)
+        if not backup_root:  # Only set permissions if we created the default location
+            try:
+                import stat
+                self.backup_root.chmod(stat.S_IRWXU)  # 700 permissions
+            except Exception as e:
+                logger.debug(f"Could not set backup directory permissions: {e}")
+        
         logger.info(f"🗃️ Rolling backup root: {self.backup_root}")
         
         # 🎯 CRITICAL DATABASES TO PROTECT
@@ -358,11 +368,84 @@ class DurableBackupManager:
             logger.error(f"❌ AI Keychain restore failed: {e}")
             return False
     
+    def backup_all_databases(self, main_db_path: str, keychain_db_path: str, discussion_db_path: str) -> Dict[str, bool]:
+        """
+        🚀 Perform complete backup of all critical databases.
+        
+        Called on server startup to ensure all data is protected.
+        """
+        results = {}
+        
+        # Backup main database (entire file)
+        if os.path.exists(main_db_path):
+            results['main_database'] = self._backup_entire_database(main_db_path)
+        else:
+            logger.warning(f"⚠️ Main database not found: {main_db_path}")
+            results['main_database'] = False
+        
+        # Backup AI keychain
+        if os.path.exists(keychain_db_path):
+            results['ai_keychain'] = self._backup_entire_database(keychain_db_path)
+        else:
+            logger.warning(f"⚠️ AI keychain not found: {keychain_db_path}")
+            results['ai_keychain'] = False
+        
+        # Backup discussion database
+        if os.path.exists(discussion_db_path):
+            results['discussion'] = self._backup_entire_database(discussion_db_path)
+        else:
+            logger.warning(f"⚠️ Discussion database not found: {discussion_db_path}")
+            results['discussion'] = False
+        
+        # Cleanup old backups (7-day retention as requested)
+        self.cleanup_old_backups(keep_days=7)
+        
+        successful = sum(1 for success in results.values() if success)
+        total = len(results)
+        logger.info(f"🛡️ Database backup complete: {successful}/{total} successful")
+        
+        return results
+    
+    def _backup_entire_database(self, source_db_path: str) -> bool:
+        """
+        📁 Backup an entire database file with original filename strategy.
+        
+        Creates two backup files:
+        - {original_filename} - Latest backup (for easy manual restore)
+        - {original_filename}_{YYYY-MM-DD} - Dated backup (for retention)
+        """
+        try:
+            source_path = Path(source_db_path)
+            original_filename = source_path.name
+            
+            # Create latest backup (original filename)
+            latest_backup = self.backup_root / original_filename
+            shutil.copy2(source_path, latest_backup)
+            logger.info(f"🛡️ Latest backup created: {latest_backup}")
+            
+            # Create dated backup (only if it doesn't exist for today)
+            today = datetime.now().strftime('%Y-%m-%d')
+            dated_filename = f"{source_path.stem}_{today}{source_path.suffix}"
+            dated_backup = self.backup_root / dated_filename
+            
+            if not dated_backup.exists():
+                shutil.copy2(source_path, dated_backup)
+                logger.info(f"🛡️ Dated backup created: {dated_backup}")
+            else:
+                logger.info(f"🛡️ Dated backup already exists: {dated_backup}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Database backup failed for {source_db_path}: {e}")
+            return False
+    
     def auto_backup_all(self, main_db_path: str, keychain_db_path: str) -> Dict[str, bool]:
         """
         🚀 Perform complete backup of all durable data.
         
         Called periodically to ensure data durability.
+        LEGACY METHOD - Use backup_all_databases for new implementations.
         """
         results = {}
         
@@ -401,26 +484,44 @@ class DurableBackupManager:
         
         return results
     
-    def cleanup_old_backups(self, keep_days: int = 30):
+    def cleanup_old_backups(self, keep_days: int = 7):
         """
-        🧹 Clean up backup files older than specified days.
+        🧹 Clean up dated backup files older than specified days.
+        
+        Only removes files with date pattern (filename_YYYY-MM-DD.db).
+        Preserves original filename backups (for manual restoration).
         """
         cutoff_date = datetime.now() - timedelta(days=keep_days)
+        cleaned_count = 0
         
         for backup_file in self.backup_root.glob("*.db"):
             try:
-                # Extract date from filename
+                # Only process files with date patterns (filename_YYYY-MM-DD.db)
                 name_parts = backup_file.stem.split('_')
                 if len(name_parts) >= 2:
                     date_str = name_parts[-1]  # Last part should be YYYY-MM-DD
-                    file_date = datetime.strptime(date_str, '%Y-%m-%d')
                     
-                    if file_date < cutoff_date:
-                        backup_file.unlink()
-                        logger.info(f"🧹 Cleaned up old backup: {backup_file}")
-                        
-            except (ValueError, IndexError) as e:
-                logger.warning(f"⚠️ Could not parse backup file date: {backup_file}")
+                    # Verify it's a valid date string
+                    if len(date_str) == 10 and date_str.count('-') == 2:
+                        try:
+                            file_date = datetime.strptime(date_str, '%Y-%m-%d')
+                            
+                            if file_date < cutoff_date:
+                                file_size = backup_file.stat().st_size
+                                backup_file.unlink()
+                                cleaned_count += 1
+                                logger.info(f"🧹 Cleaned up old backup: {backup_file} ({file_size / 1024:.1f} KB)")
+                        except ValueError:
+                            # Not a valid date format, skip (likely original filename backup)
+                            continue
+                            
+            except Exception as e:
+                logger.warning(f"⚠️ Error processing backup file {backup_file}: {e}")
+        
+        if cleaned_count > 0:
+            logger.info(f"🧹 Cleanup complete: Removed {cleaned_count} old backup files (>{keep_days} days)")
+        else:
+            logger.info(f"🧹 Cleanup complete: No old backup files found (>{keep_days} days)")
     
     def get_backup_counts(self) -> Dict[str, int]:
         """
