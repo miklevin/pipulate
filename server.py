@@ -6831,12 +6831,35 @@ async def select_profile(request):
 
 @rt('/demo_script_config.json', methods=['GET'])
 async def serve_demo_script_config(request):
-    """Serve the demo script configuration file"""
+    """Serve the demo script configuration file with dynamic Ollama messages"""
     try:
         demo_config_path = Path('demo_script_config.json')
         if demo_config_path.exists():
             with open(demo_config_path, 'r') as f:
                 config_data = json.load(f)
+            
+            # Check Ollama availability for dynamic messages
+            from common import check_ollama_availability
+            ollama_available = await check_ollama_availability()
+            
+            # Process dynamic messages in the config
+            def process_dynamic_messages(obj):
+                if isinstance(obj, dict):
+                    for key, value in obj.items():
+                        if isinstance(value, str):
+                            if value == "{dynamic_ollama_message}" and "ollama_messages" in obj:
+                                obj[key] = obj["ollama_messages"]["available"] if ollama_available else obj["ollama_messages"]["not_available"]
+                            elif value == "{dynamic_ollama_decline_message}" and "ollama_messages" in obj:
+                                obj[key] = obj["ollama_messages"]["available"] if ollama_available else obj["ollama_messages"]["not_available"]
+                        elif isinstance(value, (dict, list)):
+                            process_dynamic_messages(value)
+                elif isinstance(obj, list):
+                    for item in obj:
+                        process_dynamic_messages(item)
+            
+            # Apply dynamic message processing
+            process_dynamic_messages(config_data)
+            
             return JSONResponse(config_data)
         else:
             logger.error('🎯 Demo script config file not found')

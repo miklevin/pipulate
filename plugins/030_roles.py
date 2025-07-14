@@ -288,24 +288,9 @@ class CrudUI(PluginIdentityManager):
             return "Pipulate"  # Fallback to default name
 
     async def check_ollama_availability(self):
-        """Check if Ollama is running and has models available."""
-        try:
-            async with aiohttp.ClientSession() as session:
-                # First check if Ollama server is running
-                try:
-                    async with session.get('http://localhost:11434/api/tags', timeout=2) as response:
-                        if response.status == 200:
-                            data = await response.json()
-                            models = data.get('models', [])
-                            return len(models) > 0  # Return True if models are available
-                        return False
-                except asyncio.TimeoutError:
-                    return False
-                except aiohttp.ClientError:
-                    return False
-        except Exception as e:
-            logger.debug(f"Error checking Ollama availability: {e}")
-            return False
+        """Check if Ollama is running and has models available - uses centralized check."""
+        from common import check_ollama_availability
+        return await check_ollama_availability()
 
     def ensure_roles_initialized(self):
         """Ensure all roles from config are initialized in the database."""
