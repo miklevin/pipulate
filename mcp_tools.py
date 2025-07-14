@@ -858,6 +858,9 @@ def register_all_mcp_tools():
     register_mcp_tool("ui_flash_element", ui_flash_element)  
     register_mcp_tool("ui_list_elements", ui_list_elements)
     
+    # Voice synthesis tools
+    register_mcp_tool("voice_synthesis", voice_synthesis)
+    
     # Browser automation tools - THE AI'S EYES AND HANDS
     register_mcp_tool("browser_analyze_scraped_page", browser_analyze_scraped_page)
     register_mcp_tool("browser_scrape_page", browser_scrape_page)
