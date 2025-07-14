@@ -16,6 +16,7 @@ import logging
 from datetime import datetime
 from fasthtml.common import HTMLResponse, Li, A, Input, to_xml
 from loguru import logger
+import aiohttp
 
 # 🎯 Import the durable backup system
 try:
@@ -451,3 +452,26 @@ class BaseCrud:
         except Exception as e:
             logger.error(f"❌ Soft delete failed for {self.name} ID {item_id}: {e}")
             return False 
+
+async def check_ollama_availability():
+    """
+    Centralized Ollama availability check.
+    Returns True if Ollama is running and has models available.
+    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Check if Ollama server is running
+            try:
+                async with session.get('http://localhost:11434/api/tags', timeout=2) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        models = data.get('models', [])
+                        return len(models) > 0  # Return True if models are available
+                    return False
+            except asyncio.TimeoutError:
+                return False
+            except aiohttp.ClientError:
+                return False
+    except Exception as e:
+        logger.debug(f"Error checking Ollama availability: {e}")
+        return False 
