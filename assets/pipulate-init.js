@@ -1109,6 +1109,10 @@ async function executeStepsWithBranching(steps, demoScript) {
                 await executeCleanMcpToolCallStep(step);
                 break;
                 
+            case 'database_operation':
+                await executeDatabaseOperationStep(step);
+                break;
+                
             default:
                 console.warn('🎯 Unknown step type:', step.type);
         }
@@ -1314,6 +1318,36 @@ ${step.description || 'MCP tool execution completed successfully.'}`;
     }
     
     console.log('🎯 Clean MCP tool step completed');
+}
+
+// Execute database operation step - set/get database values
+async function executeDatabaseOperationStep(step) {
+    console.log('🎯 Executing database operation:', step.operation, step.key, step.value);
+    
+    try {
+        if (step.operation === 'set') {
+            // Create a form to submit the database operation
+            const formData = new FormData();
+            formData.append('key', step.key);
+            formData.append('value', step.value);
+            
+            const response = await fetch('/set-database-value', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                console.log('🎯 Database operation successful:', step.key, '=', step.value);
+            } else {
+                console.error('🎯 Database operation failed:', response.status);
+            }
+        }
+        // Add other operations (get, delete) here if needed
+    } catch (error) {
+        console.error('🎯 Database operation error:', error);
+    }
+    
+    console.log('🎯 Database operation step completed');
 }
 
 // Flash element with gold effect - real UI enhancement

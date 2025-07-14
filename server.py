@@ -2676,6 +2676,43 @@ class Pipulate:
         # CENTRALIZED: All messages entering the stream are now appended here
         append_to_conversation(message, role)
         
+        # 🎭 CHIP O'THESEUS VOICE SYSTEM INTEGRATION
+        # Check if voice mode is enabled for this user
+        voice_mode_enabled = False
+        try:
+            from common import db
+            voice_mode_enabled = db.get('voice_mode', False)
+            # Handle string boolean conversion from database
+            if isinstance(voice_mode_enabled, str):
+                voice_mode_enabled = voice_mode_enabled in (True, '1', 1, 'true', 'True')
+        except Exception as e:
+            logger.debug(f"Voice mode check failed: {e}")
+            voice_mode_enabled = False
+        
+        async def speak_message(text_content, content_type="response"):
+            """Helper to speak a message using ChipVoiceSystem when voice is enabled"""
+            if not voice_mode_enabled:
+                return
+            
+            try:
+                # Clean HTML and prepare text for speech
+                import re
+                clean_text = re.sub(r'<[^>]+>', '', text_content)  # Remove HTML tags
+                clean_text = clean_text.replace('&nbsp;', ' ')  # Replace HTML entities
+                clean_text = re.sub(r'\s+', ' ', clean_text).strip()  # Normalize whitespace
+                
+                if clean_text and len(clean_text.strip()) > 0:
+                    # Import voice system
+                    from helpers.voice_synthesis import chip_voice_system
+                    
+                    # Speak the cleaned text
+                    logger.debug(f"🎭 CHIP O'THESEUS: Speaking {content_type} ({len(clean_text)} chars)")
+                    await chip_voice_system.speak(clean_text)
+                    
+            except Exception as e:
+                logger.error(f"Voice synthesis error: {e}")
+                # Don't let voice errors break the streaming
+        
         if verbatim:
             try:
                 # Safety check: ensure chat instance is available
@@ -2692,6 +2729,9 @@ class Pipulate:
                     spaces_after = 2  # Default for verbatim messages - use 2 for more visible spacing
                 if spaces_after and spaces_after > 0:
                     message = message + '<br>' * spaces_after
+                
+                # 🎭 VOICE SYNTHESIS for verbatim messages
+                await speak_message(message, "verbatim")
                 
                 if simulate_typing:
                     logger.debug("🔍 DEBUG: Simulating typing for verbatim message")
@@ -2735,6 +2775,9 @@ class Pipulate:
             async for chunk in process_llm_interaction(MODEL, conversation_history):
                 await self.chat.broadcast(chunk)
                 response_text += chunk
+            
+            # 🎭 VOICE SYNTHESIS for LLM responses
+            await speak_message(response_text, "LLM")
             
             # Append the final response from the assistant
             append_to_conversation(response_text, 'assistant')
@@ -6023,6 +6066,38 @@ async def toggle_voice_mode(request):
     except Exception as e:
         logger.error(f"Error toggling voice mode: {e}")
         return HTMLResponse('Error', status_code=500)
+
+@rt('/set-database-value', methods=['POST'])
+async def set_database_value(request):
+    """Set a database value (used by demo script for voice_mode toggle)"""
+    try:
+        form_data = await request.form()
+        key = form_data.get('key')
+        value = form_data.get('value')
+        
+        if not key:
+            return JSONResponse({'error': 'Key is required'}, status_code=400)
+        
+        # Convert string values to appropriate types
+        if value == 'true':
+            value = True
+        elif value == 'false':
+            value = False
+        elif value == 'null':
+            value = None
+        elif value.isdigit():
+            value = int(value)
+        
+        # Set the database value
+        db[key] = value
+        
+        logger.info(f'🎭 Database value set: {key} = {value} (type: {type(value)})')
+        
+        return JSONResponse({'success': True, 'key': key, 'value': value})
+        
+    except Exception as e:
+        logger.error(f'Error setting database value: {e}')
+        return JSONResponse({'error': str(e)}, status_code=500)
 
 @rt('/search-plugins', methods=['POST'])
 async def search_plugins(request):

@@ -66,9 +66,16 @@
       ],
       "branch_dev_yes": [
         {
-          "step_id": "04_dev_mode_activated",
+          "step_id": "04_voice_mode_activated",
+          "type": "database_operation",
+          "operation": "set",
+          "key": "voice_mode",
+          "value": true
+        },
+        {
+          "step_id": "05_voice_activation_message",
           "type": "system_reply",
-          "message": "🚀 **DEV MODE ACTIVATED!**\n\nNow we can safely experiment with the database. Let me show you what's possible...",
+          "message": "🎭 **VOICE MODE ACTIVATED!**\n\nExcellent! I can now speak to you out loud. You'll hear my voice along with the text. Let me show you what's possible...",
           "timing": {
             "delay_before": 500,
             "display_speed": 25
