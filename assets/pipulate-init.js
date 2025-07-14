@@ -636,14 +636,14 @@ document.addEventListener('keydown', function(event) {
     }
     
     // Ctrl+Alt+R: Restart server
-    if (event.ctrlKey && event.altKey && event.key === 'R') {
+    if (event.ctrlKey && event.altKey && (event.key === 'R' || event.key === 'r')) {
         console.log('🎯 Ctrl+Alt+R detected - triggering server restart');
         event.preventDefault();
         executeFullRestartSequence("Restarting server...", "KEYBOARD_SHORTCUT");
     }
     
     // Ctrl+Alt+D: Start demo/regression prevention sequence
-    if (event.ctrlKey && event.altKey && event.key === 'D') {
+    if (event.ctrlKey && event.altKey && (event.key === 'D' || event.key === 'd')) {
         console.log('🎯 Ctrl+Alt+D detected - triggering demo sequence');
         event.preventDefault();
         console.log('🎯 Demo sequence triggered via Ctrl+Alt+D');
