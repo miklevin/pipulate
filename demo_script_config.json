@@ -71,7 +71,19 @@
       ],
       "branch_dev_yes": [
         {
-          "step_id": "04_ai_seo_show_intro",
+          "step_id": "04_voice_greeting",
+          "type": "mcp_tool_call",
+          "tool_name": "voice_synthesis",
+          "tool_args": {
+            "text": "Welcome to the Great and Secret AI SEO Show! I'm Chip O'Theseus, your local AI assistant, and I'm delighted to speak with you today!"
+          },
+          "timing": {
+            "delay_before": 300
+          },
+          "description": "🎤 Chip O'Theseus speaks his first words"
+        },
+        {
+          "step_id": "05_ai_seo_show_intro",
           "type": "system_reply",
           "message": "| 🎭 | **Welcome to** | 🎭 |\n|:---:|:---:|:---:|\n| 🪄 | **The Great & Secret** | 🪄 |\n| 🎩 | **AI SEO Show!** | 🎩 |",
           "timing": {
@@ -81,7 +93,7 @@
           "verbatim": true
         },
         {
-          "step_id": "05_ui_flash_demo",
+          "step_id": "06_ui_flash_demo",
           "type": "mcp_tool_call",
           "tool_name": "ui_flash_element",
           "tool_args": {
@@ -95,7 +107,7 @@
           "description": "✨ Twinkling the chat input with gold magic"
         },
         {
-          "step_id": "06_first_trick",
+          "step_id": "07_first_trick",
           "type": "system_reply",
           "message": "For my first trick I will put you into **DEV mode**, reset the database to blank the sample demo data. Is that okay? **Ctrl+Alt+y** / **Ctrl+Alt+n**",
           "timing": {
@@ -132,7 +144,7 @@
       ],
       "branch_dev_reset_yes": [
         {
-          "step_id": "07_dev_reset_confirmed",
+          "step_id": "08_dev_reset_confirmed",
           "type": "system_reply",
           "message": "🎩 **Excellent!** The magic begins...\n\n🚀 **DEV MODE ACTIVATED!**\n🗄️ **Database reset complete!**\n\n✨ **Ready for the next trick!**",
           "timing": {
@@ -144,7 +156,7 @@
       ],
       "branch_dev_reset_no": [
         {
-          "step_id": "07_dev_reset_declined",
+          "step_id": "08_dev_reset_declined",
           "type": "system_reply",
           "message": "🎩 **No worries!** The show must go on...\n\n✨ **Perhaps another time for that trick!**\n\n🌟 **Welcome to the future of local-first AI automation!**",
           "timing": {

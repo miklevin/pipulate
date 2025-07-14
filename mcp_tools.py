@@ -43,6 +43,13 @@ import tempfile
 import shutil
 import socket
 
+# Import voice synthesis system
+try:
+    from helpers.voice_synthesis import chip_voice_system, VOICE_SYNTHESIS_AVAILABLE
+except ImportError:
+    chip_voice_system = None
+    VOICE_SYNTHESIS_AVAILABLE = False
+
 # Get logger from server context
 logger = logging.getLogger(__name__)
 
@@ -1699,6 +1706,59 @@ async def ui_flash_element(params: dict) -> dict:
         return {
             "success": False,
             "error": f"Failed to flash element: {str(e)}"
+        }
+
+async def voice_synthesis(params: dict) -> dict:
+    """Synthesize speech using Chip O'Theseus voice system.
+    
+    Args:
+        params: Dictionary containing:
+            - text (str): Text to synthesize into speech
+            
+    Returns:
+        Dict with synthesis result and status
+    """
+    try:
+        text = params.get('text', '')
+        
+        if not text:
+            return {
+                "success": False,
+                "error": "No text provided for voice synthesis"
+            }
+        
+        if not VOICE_SYNTHESIS_AVAILABLE:
+            return {
+                "success": False,
+                "error": "Voice synthesis not available - missing dependencies"
+            }
+        
+        if not chip_voice_system or not chip_voice_system.voice_ready:
+            return {
+                "success": False,
+                "error": "Voice system not ready - check model initialization"
+            }
+        
+        # Synthesize speech
+        result = chip_voice_system.speak_text(text)
+        
+        if result.get("success"):
+            return {
+                "success": True,
+                "message": f"🎤 Chip O'Theseus spoke: {text[:50]}{'...' if len(text) > 50 else ''}",
+                "text": text,
+                "audio_file": result.get("audio_file")
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Voice synthesis failed: {result.get('error', 'Unknown error')}"
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Voice synthesis error: {str(e)}"
         }
 
 async def ui_list_elements(params: dict) -> dict:
