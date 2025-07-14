@@ -3996,14 +3996,16 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
                 # System state inspection
                 response_text = f"📊 **System State** 📊\n\n"
                 response_text += f"Pipeline state inspection completed.\n"
-                if 'result' in result:
-                    response_text += f"Result: {result['result']}\n"
+                # BLOCKED: Massive data dump into chat - causes HTML pollution
+                # if 'result' in result:
+                #     response_text += f"Result: {result['result']}\n"
                     
             else:
                 # Generic success handling
                 response_text = f"✅ **Command '{command}' completed!** ✅\n\n"
-                if 'result' in result:
-                    response_text += f"Result: {result['result']}\n"
+                # BLOCKED: Massive data dump into chat - causes HTML pollution
+                # if 'result' in result:
+                #     response_text += f"Result: {result['result']}\n"
             
             await pipulate.message_queue.add(pipulate, response_text, verbatim=True, role='assistant')
             
@@ -4918,7 +4920,7 @@ async def startup_event():
     asyncio.create_task(send_startup_environment_message())
     
     # Pre-seed local LLM context for immediate capability awareness
-    asyncio.create_task(prepare_local_llm_context())
+    # asyncio.create_task(prepare_local_llm_context())
 ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in ordered_plugins and module_name in plugin_instances:
