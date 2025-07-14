@@ -9,7 +9,6 @@
 ```bash
 # DON'T DO ENVIRONMENTAL DISCOVERY
 pwd
-cd pipulate
 ls -la
 ps aux | grep python
 python --version
@@ -20,32 +19,32 @@ alias mcp="python cli.py call"
 **✅ DO THIS INSTEAD:**
 ```bash
 # THE GOLDEN PATH - WORKS IMMEDIATELY
-cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
+.venv/bin/python cli.py call pipeline_state_inspector
 ```
 
 ### **🎯 GOLDEN PATH COMMAND STRUCTURE**
 **ALL MCP TOOLS USE THIS EXACT PATTERN:**
 ```bash
-cd pipulate && .venv/bin/python cli.py call <tool_name> --args
+.venv/bin/python cli.py call <tool_name> --args
 ```
 
 ### **🔧 IMMEDIATE WORKING COMMANDS**
 **Skip discovery - these work immediately:**
 ```bash
 # System state
-cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
+.venv/bin/python cli.py call pipeline_state_inspector
 
 # Log analysis
-cd pipulate && .venv/bin/python cli.py call local_llm_grep_logs --search_term FINDER_TOKEN
+.venv/bin/python cli.py call local_llm_grep_logs --search_term FINDER_TOKEN
 
 # Browser scraping
-cd pipulate && .venv/bin/python cli.py call browser_scrape_page --url http://localhost:5001
+.venv/bin/python cli.py call browser_scrape_page --url http://localhost:5001
 
 # Automation recipes
-cd pipulate && .venv/bin/python cli.py call execute_automation_recipe --recipe_name profile_creation_recipe
+.venv/bin/python cli.py call execute_automation_recipe --recipe_name profile_creation_recipe
 
 # Tool discovery
-cd pipulate && .venv/bin/python cli.py call ai_self_discovery_assistant
+.venv/bin/python cli.py call ai_self_discovery_assistant
 ```
 
 ### **⚠️ ENVIRONMENT AGNOSTIC DESIGN**
@@ -91,7 +90,7 @@ cd pipulate && .venv/bin/python cli.py call ai_self_discovery_assistant
 ### **💡 WHEN AI ASSISTANTS SAY "GO"**
 **Immediately respond with:**
 ```bash
-cd pipulate && .venv/bin/python cli.py call pipeline_state_inspector
+.venv/bin/python cli.py call pipeline_state_inspector
 ```
 
 **Then show them working tool usage, not diagnostic explanations.** 
