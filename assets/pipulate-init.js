@@ -624,38 +624,30 @@ function executeFullRestartSequence(message = "Restarting server...", restartTyp
 
 // Global keyboard shortcuts
 document.addEventListener('keydown', function(event) {
-    // Debug logging for keyboard events
-    if (event.ctrlKey || event.altKey) {
-        console.log('🔧 Keyboard event detected:', {
-            key: event.key,
-            ctrlKey: event.ctrlKey,
-            altKey: event.altKey,
-            shiftKey: event.shiftKey,
-            code: event.code
-        });
-    }
+    // Debug logging for keyboard events (can be removed after testing)
+    // if (event.ctrlKey || event.altKey) {
+    //     console.log('🔧 Keyboard event detected:', {
+    //         key: event.key,
+    //         ctrlKey: event.ctrlKey,
+    //         altKey: event.altKey,
+    //         shiftKey: event.shiftKey,
+    //         code: event.code
+    //     });
+    // }
     
     // Ctrl+Alt+R: Restart server
     if (event.ctrlKey && event.altKey && (event.key === 'R' || event.key === 'r')) {
-        console.log('🎯 Ctrl+Alt+R detected - triggering server restart');
         event.preventDefault();
         executeFullRestartSequence("Restarting server...", "KEYBOARD_SHORTCUT");
     }
     
     // Ctrl+Alt+D: Start demo/regression prevention sequence
     if (event.ctrlKey && event.altKey && (event.key === 'D' || event.key === 'd')) {
-        console.log('🎯 Ctrl+Alt+D detected - triggering demo sequence');
         event.preventDefault();
         console.log('🎯 Demo sequence triggered via Ctrl+Alt+D');
         
         // Load and execute the demo script sequence
         loadAndExecuteCleanDemoScript();
-    }
-    
-    // TEMPORARY: Test if F12 key works (to verify event listener is working)
-    if (event.key === 'F12') {
-        console.log('🔧 F12 key detected - keyboard event listener is working!');
-        // Don't prevent default for F12 so dev tools still work
     }
 });
 
