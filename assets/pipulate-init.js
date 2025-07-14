@@ -624,16 +624,16 @@ function executeFullRestartSequence(message = "Restarting server...", restartTyp
 
 // Global keyboard shortcuts
 document.addEventListener('keydown', function(event) {
-    // Ctrl+Shift+R: Restart server
-    if (event.ctrlKey && event.shiftKey && event.key === 'R') {
+    // Ctrl+Alt+R: Restart server
+    if (event.ctrlKey && event.altKey && event.key === 'R') {
         event.preventDefault();
         executeFullRestartSequence("Restarting server...", "KEYBOARD_SHORTCUT");
     }
     
-    // Ctrl+Shift+D: Start demo/regression prevention sequence
-    if (event.ctrlKey && event.shiftKey && event.key === 'D') {
+    // Ctrl+Alt+D: Start demo/regression prevention sequence
+    if (event.ctrlKey && event.altKey && event.key === 'D') {
         event.preventDefault();
-        console.log('🎯 Demo sequence triggered via Ctrl+Shift+D');
+        console.log('🎯 Demo sequence triggered via Ctrl+Alt+D');
         
         // Load and execute the demo script sequence
         loadAndExecuteCleanDemoScript();
@@ -1038,7 +1038,7 @@ async function executeInteractiveDemoSequence(demoScript) {
     console.log('🎯 Executing interactive demo sequence:', demoScript.name);
     
     // Add invisible demo start message to conversation history (for LLM context)
-    await addToConversationHistory('system', `[DEMO SCRIPT STARTED: ${demoScript.name}] An automated interactive demo is now running. All following messages are part of the scripted demo sequence. The user triggered this demo and is interacting with it via keyboard input (Ctrl+y/Ctrl+n). Continue to respond naturally if asked about the demo.`);
+    await addToConversationHistory('system', `[DEMO SCRIPT STARTED: ${demoScript.name}] An automated interactive demo is now running. All following messages are part of the scripted demo sequence. The user triggered this demo and is interacting with it via keyboard input (Ctrl+Alt+y/Ctrl+Alt+n). Continue to respond naturally if asked about the demo.`);
     
     // Store demo bookmark before navigation - survives page reload and server restart
     console.log('📖 Storing demo bookmark before navigation...');
@@ -1528,9 +1528,17 @@ async function waitForKeyboardInput(validKeys) {
         function handleKeyPress(event) {
             const key = event.key.toLowerCase();
             const isCtrl = event.ctrlKey;
-            const keyCombo = isCtrl ? `ctrl+${key}` : key;
+            const isAlt = event.altKey;
             
-            console.log('🎯 Key pressed:', keyCombo, 'Raw key:', key, 'Ctrl:', isCtrl);
+            // Build key combination string
+            let keyCombo = key;
+            if (isCtrl && isAlt) {
+                keyCombo = `ctrl+alt+${key}`;
+            } else if (isCtrl) {
+                keyCombo = `ctrl+${key}`;
+            }
+            
+            console.log('🎯 Key pressed:', keyCombo, 'Raw key:', key, 'Ctrl:', isCtrl, 'Alt:', isAlt);
             console.log('🎯 Event details:', {
                 key: event.key,
                 code: event.code,
@@ -1542,7 +1550,7 @@ async function waitForKeyboardInput(validKeys) {
             if (validKeys.includes(keyCombo)) {
                 console.log('🎯 Valid key combination detected:', keyCombo);
                 
-                // Prevent default behavior for ctrl+y/ctrl+n
+                // Prevent default behavior for ctrl+alt+y/ctrl+alt+n
                 event.preventDefault();
                 event.stopPropagation();
                 

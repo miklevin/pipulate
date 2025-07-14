@@ -232,8 +232,8 @@ Level 7: Advanced automation and UI tools
 - `"go"`, `"explore"`, `"discover"`, `"wake up"` - Trigger discovery
 
 ### **Demo Keyboard Shortcuts (Planned)**
-- `Ctrl+Shift+R` - Server restart ✅ IMPLEMENTED
-- `Ctrl+Shift+D` - Demo mode (Planned)
+- `Ctrl+Alt+R` - Server restart ✅ IMPLEMENTED
+- `Ctrl+Alt+D` - Demo mode (Planned)
 - `Ctrl+Alt+N` - Next demo step (Planned)
 
 ---
@@ -285,7 +285,7 @@ Level 7: Advanced automation and UI tools
 - [ ] Integrate with existing `helpers/dom_processing/` tools
 
 ### **Phase 3: Interactive Demo System**
-- [ ] Implement `Ctrl+Shift+D` demo mode
+- [ ] Implement `Ctrl+Alt+D` demo mode
 - [ ] Create dialog automation files
 - [ ] Build step-by-step profile demo sequence
 
