@@ -452,6 +452,20 @@ def get_nix_version():
             logger.debug(f"Could not parse version from __init__.py: {e}")
     
     return "Unknown version"
+
+def get_git_hash():
+    """Get the abbreviated git hash of the current commit"""
+    try:
+        import subprocess
+        result = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], 
+                              capture_output=True, text=True, cwd=Path(__file__).parent)
+        if result.returncode == 0:
+            return result.stdout.strip()
+        else:
+            return "unknown"
+    except Exception:
+        return "unknown"
+
 ENV_FILE = Path('data/current_environment.txt')
 
 APP_NAME = get_app_name()
@@ -878,39 +892,6 @@ def get_current_environment():
         ENV_FILE.write_text('Development')
         return 'Development'
 
-def get_nix_version():
-    """Get the version and description from the single source of truth: pipulate.__version__ and __version_description__"""
-    import os
-    
-    # Get version and description from single source of truth
-    try:
-        # Import the version and description from our package
-        from pipulate import __version__, __version_description__
-        return f"{__version__} ({__version_description__})"
-    except ImportError:
-        # Fallback to parsing __init__.py directly
-        try:
-            import re
-            from pathlib import Path
-            init_file = Path(__file__).parent / '__init__.py'
-            if init_file.exists():
-                content = init_file.read_text()
-                version_match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
-                description_match = re.search(r'__version_description__\s*=\s*["\']([^"\']+)["\']', content)
-                
-                if version_match and description_match:
-                    return f"{version_match.group(1)} ({description_match.group(1)})"
-                elif version_match:
-                    # Fallback to Nix environment context for backwards compatibility
-                    if not (os.environ.get('IN_NIX_SHELL') or 'nix' in os.environ.get('PS1', '')):
-                        env_context = " (Not in Nix environment)"
-                    else:
-                        env_context = " (Nix Environment)"
-                    return f"{version_match.group(1)}{env_context}"
-        except Exception as e:
-            logger.debug(f"Could not parse version from __init__.py: {e}")
-    
-    return "Unknown version"
 ENV_FILE = Path('data/current_environment.txt')
 
 APP_NAME = get_app_name()
@@ -5864,8 +5845,11 @@ async def poke_flyout(request):
     
     # Add version info display
     nix_version = get_nix_version()
+    git_hash = get_git_hash()
     version_info = Div(
         Span(f'🧊 Pipulate: {nix_version}', cls='version-info-text'),
+        Br(),
+        Span(f'📝 Git: {git_hash}', cls='version-info-text git-hash'),
         cls='version-info-container'
     )
     
