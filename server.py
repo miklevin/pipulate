@@ -4203,6 +4203,40 @@ class Chat:
             if websocket in self.active_chat_tasks:
                 del self.active_chat_tasks[websocket]
 
+    async def handle_demo_mcp_call(self, websocket: WebSocket, mcp_data: str):
+        """Handle MCP tool calls from demo script"""
+        try:
+            import json
+            call_data = json.loads(mcp_data)
+            tool_name = call_data.get('tool_name')
+            tool_args = call_data.get('tool_args', {})
+            description = call_data.get('description', '')
+            
+            self.logger.info(f"🎯 Demo MCP call: {tool_name} with args: {tool_args}")
+            
+            # Execute the MCP tool
+            if tool_name in MCP_TOOL_REGISTRY:
+                tool_handler = MCP_TOOL_REGISTRY[tool_name]
+                result = await tool_handler(tool_args)
+                
+                # Send result back to demo script
+                response_message = f"🔧 **MCP Tool Executed** 🔧\n\n**Tool**: {tool_name}\n**Args**: {json.dumps(tool_args)}\n**Result**: {result.get('success', False)}"
+                if description:
+                    response_message += f"\n**Description**: {description}"
+                
+                await websocket.send_text(response_message)
+                self.logger.info(f"🎯 Demo MCP call completed: {tool_name} -> {result.get('success', False)}")
+                
+            else:
+                error_message = f"❌ **MCP Tool Error** ❌\n\n**Tool**: {tool_name} not found"
+                await websocket.send_text(error_message)
+                self.logger.error(f"🎯 Demo MCP call failed: {tool_name} not found")
+                
+        except Exception as e:
+            self.logger.error(f"🎯 Error handling demo MCP call: {e}")
+            error_message = f"❌ **MCP Tool Error** ❌\n\n**Error**: {str(e)}"
+            await websocket.send_text(error_message)
+
     async def handle_websocket(self, websocket: WebSocket):
         try:
             await websocket.accept()
@@ -4234,6 +4268,11 @@ class Chat:
                     self.logger.info(f"🔄 Received server restart command from {websocket}.")
                     # Trigger server restart using existing restart_server function
                     restart_server()
+                elif message.startswith('%%DEMO_MCP_CALL%%:'):
+                    # Handle demo script MCP tool calls
+                    self.logger.info(f"🎯 Received demo MCP tool call from {websocket}.")
+                    mcp_data = message[len('%%DEMO_MCP_CALL%%:'):]
+                    asyncio.create_task(self.handle_demo_mcp_call(websocket, mcp_data))
                 else:
                     # Launch as a non-blocking background task
                     asyncio.create_task(self.handle_chat_message(websocket, message))
