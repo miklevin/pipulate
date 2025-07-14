@@ -922,12 +922,11 @@ logger.info(f'🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: {DB_FILENAME}
 
 TONE = 'neutral'
 MODEL = 'gemma3'
-MAX_LLM_RESPONSE_WORDS = 80
 MAX_CONVERSATION_LENGTH = 10000
 HOME_MENU_ITEM = 'Home'
 DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
 
-logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}')
+logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Conversation length: {MAX_CONVERSATION_LENGTH}')
 
 # ================================================================
 # INSTANCE-SPECIFIC CONFIGURATION - "The Crucible"
@@ -1979,10 +1978,7 @@ def read_training(prompt_or_filename):
                 logger.warning(f'No training file found for {prompt_or_filename}')
             return None  # Prevents writing noise to the conversation history
     return prompt_or_filename
-if MAX_LLM_RESPONSE_WORDS:
-    limiter = f'in under {MAX_LLM_RESPONSE_WORDS} {TONE} words'
-else:
-    limiter = ''
+
 global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}]
 
@@ -5861,7 +5857,7 @@ async def sse_endpoint(request):
 
 @app.post('/chat')
 async def chat_endpoint(request, message: str):
-    await pipulate.stream(f'Let the user know {limiter} {message}')
+    await pipulate.stream(message)
     return ''
 
 @app.post('/add-to-conversation-history')
