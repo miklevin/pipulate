@@ -451,8 +451,12 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Re-initialize copy functionality after HTMX swaps
-document.body.addEventListener('htmx:afterSwap', function() {
-    PipulateCopy.refresh();
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.body) {
+        document.body.addEventListener('htmx:afterSwap', function() {
+            PipulateCopy.refresh();
+        });
+    }
 });
 
 console.log('✅ Pipulate utilities loaded successfully'); 
