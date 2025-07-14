@@ -71,9 +71,9 @@
       ],
       "branch_dev_yes": [
         {
-          "step_id": "04_dev_mode_activated",
+          "step_id": "04_ai_seo_show_intro",
           "type": "system_reply",
-          "message": "🚀 **DEV MODE ACTIVATED!**\n\nNow we can safely experiment with the database. Let me show you what's possible...",
+          "message": "| 🎭 | **Welcome to** | 🎭 |\n|:---:|:---:|:---:|\n| 🪄 | **The Great & Secret** | 🪄 |\n| 🎩 | **AI SEO Show!** | 🎩 |",
           "timing": {
             "delay_before": 500,
             "display_speed": 25
@@ -81,17 +81,7 @@
           "verbatim": true
         },
         {
-          "step_id": "05_mcp_tool_demo",
-          "type": "mcp_tool_call",
-          "tool_name": "pipeline_state_inspector",
-          "tool_args": {},
-          "timing": {
-            "delay_before": 1500
-          },
-          "description": "🔍 Inspecting current pipeline state..."
-        },
-        {
-          "step_id": "06_ui_flash_demo",
+          "step_id": "05_ui_flash_demo",
           "type": "mcp_tool_call",
           "tool_name": "ui_flash_element",
           "tool_args": {
@@ -100,19 +90,26 @@
             "duration": 2500
           },
           "timing": {
-            "delay_before": 1000
+            "delay_before": 1500
           },
           "description": "✨ Twinkling the chat input with gold magic"
         },
         {
-          "step_id": "07_demo_complete",
+          "step_id": "06_first_trick",
           "type": "system_reply",
-          "message": "🎉 **DEMO COMPLETE!**\n\nYou've just experienced:\n\n✅ **Interactive keyboard input** - Real y/n branching\n✅ **MCP tool integration** - Pipeline inspection\n✅ **UI magic** - Gold twinkling effects\n\n🌟 **Welcome to the future of local-first AI automation!**",
+          "message": "For my first trick I will put you into **DEV mode**, reset the database to blank the sample demo data. Is that okay? **Ctrl+Alt+y** / **Ctrl+Alt+n**",
           "timing": {
             "delay_before": 3000,
             "display_speed": 20
           },
-          "verbatim": true
+          "verbatim": true,
+          "wait_for_input": true,
+          "input_type": "keyboard",
+          "valid_keys": ["ctrl+alt+y", "ctrl+alt+n"],
+          "branches": {
+            "ctrl+alt+y": "branch_dev_reset_yes",
+            "ctrl+alt+n": "branch_dev_reset_no"
+          }
         }
       ],
       "branch_dev_no": [
@@ -131,6 +128,30 @@
             "available": "Thank you. I will be here to answer any of your questions when you need. And you can always restart the demo with Ctrl+Alt+D at any time.",
             "not_available": "Thank you. You can always restart the demo with Ctrl+Alt+D at any time. Visit ollama.com for local LLM installation instructions."
           }
+        }
+      ],
+      "branch_dev_reset_yes": [
+        {
+          "step_id": "07_dev_reset_confirmed",
+          "type": "system_reply",
+          "message": "🎩 **Excellent!** The magic begins...\n\n🚀 **DEV MODE ACTIVATED!**\n🗄️ **Database reset complete!**\n\n✨ **Ready for the next trick!**",
+          "timing": {
+            "delay_before": 500,
+            "display_speed": 25
+          },
+          "verbatim": true
+        }
+      ],
+      "branch_dev_reset_no": [
+        {
+          "step_id": "07_dev_reset_declined",
+          "type": "system_reply",
+          "message": "🎩 **No worries!** The show must go on...\n\n✨ **Perhaps another time for that trick!**\n\n🌟 **Welcome to the future of local-first AI automation!**",
+          "timing": {
+            "delay_before": 500,
+            "display_speed": 25
+          },
+          "verbatim": true
         }
       ]
     },
