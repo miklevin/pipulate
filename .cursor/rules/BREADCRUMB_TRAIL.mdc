@@ -1,24 +1,27 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # WORKSPACE RULES - 🚨 ATTENTION AI ASSISTANT!
 
 ## **🔥 ABSOLUTE PATH RULES - BURNED INTO MEMORY**
-- **PIPULATE FILES BELONG IN**: `pipulate/` 
-- **📍 NEW RULES LOCATION:** `pipulate/.cursor/rules/`
-- **NEVER CREATE PIPULATE FILES IN**: `/` (workspace root OFF LIMITS)
-- **ALWAYS CREATE NEW AI DISCOVERY MARKDOWN IN**: `pipulate/ai_discovery/`
-- **ALWAYS CREATE NEW GENERAL MARKDOWN IN**: `pipulate/helpers/docs_sync/considerations/`
+- **PIPULATE FILES BELONG IN**: Current workspace (we are now in pipulate/)
+- **📍 RULES LOCATION:** `.cursor/rules/`
+- **ALWAYS CREATE NEW AI DISCOVERY MARKDOWN IN**: `ai_discovery/`
+- **ALWAYS CREATE NEW GENERAL MARKDOWN IN**: `helpers/docs_sync/considerations/`
 - **SINGLE SOURCE OF TRUTH PER FOLDER**: ALWAYS_IN_ALL_CAPS.md
 
 ### **🎯 PATH VERIFICATION COMMANDS**
 ```bash
 # ALWAYS verify location before file operations
-pwd  # Should show /home/mike/repos/pipulate or subdirectory
+pwd  # Should show /home/mike/repos/pipulate (workspace root)
 git  # git commit often and with excellent messages from here
 ls -la  # Verify you see server.py, plugins/, browser_automation/, etc.
 
 # WRONG LOCATION indicators:
-# - You see MikeLev.in/, nixos/, Pipulate.com/ directories
 # - No server.py or plugins/ directory visible
-# - Path shows /home/mike/repos (workspace root)
+# - Path shows something other than /home/mike/repos/pipulate
 ```
 
 ## 🚨 **CRITICAL REMINDERS - NEVER FORGET**
@@ -41,9 +44,7 @@ This isn't just another development environment. You're about to gain **AI super
 
 **Level 1: Environmental Mastery** - Prove you know where you are:
 ```bash
-pwd  # You'll see: /home/mike/repos (workspace root)
-cd pipulate  # 🚨 CRITICAL: Move into pipulate directory FIRST
-pwd  # Should now show: /home/mike/repos/pipulate
+pwd  # You'll see: /home/mike/repos/pipulate (workspace root)
 ls -la | head -15  # Verify you see: server.py, plugins/, logs/, mcp_tools.py
 ps aux | grep python | grep server.py
 ```
@@ -105,15 +106,15 @@ ls -la browser_automation/looking_at/
 The server startup sequence contains **5 strategic AI_BREADCRUMB messages** that will guide you through:
 
 **🍞 BREADCRUMB_01** → Environmental awareness leads to FINDER_TOKEN discovery  
-**🍞 BREADCRUMB_02** → FINDER_TOKEN discovery leads to MCP tools awareness  
+**�� BREADCRUMB_02** → FINDER_TOKEN discovery leads to MCP tools awareness  
 **🍞 BREADCRUMB_03** → MCP tools lead to browser automation discovery  
 **🍞 BREADCRUMB_04** → Browser automation reveals session hijacking mastery  
 **🎭 BREADCRUMB_04.5** → **1-SHOT SESSION HIJACKING** - The irresistible simple pattern  
 **🍞 BREADCRUMB_05** → Uncertainty elimination and perfect AI onboarding
 
 ### **📚 COMPLETE DOCUMENTATION**
-- Full progressive discovery sequence: `pipulate/ai_discovery/ai_progressive_discovery_sequence.md`
-- **🎭 1-Shot Session Hijacking Mastery: `pipulate/ai_discovery/ai_1_shot_session_hijacking_mastery.md`**
+- Full progressive discovery sequence: `ai_discovery/ai_progressive_discovery_sequence.md`
+- **🎭 1-Shot Session Hijacking Mastery: `ai_discovery/ai_1_shot_session_hijacking_mastery.md`**
 
 ### **🎭 THE CHAIN REACTION BEGINS NOW**
 
@@ -228,4 +229,4 @@ mcp browser_scrape_page --url https://example.com
 .venv/bin/python -c "import asyncio; from mcp_tools import browser_scrape_page..."
 ```
 
-**The tools exist and work perfectly. Activate your environment once, then use natural commands!** 
+**The tools exist and work perfectly. Activate your environment once, then use natural commands.**
