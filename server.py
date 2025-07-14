@@ -2699,15 +2699,24 @@ class Pipulate:
                 import re
                 clean_text = re.sub(r'<[^>]+>', '', text_content)  # Remove HTML tags
                 clean_text = clean_text.replace('&nbsp;', ' ')  # Replace HTML entities
+                clean_text = clean_text.replace('**', '')  # Remove markdown bold
+                clean_text = clean_text.replace('*', '')  # Remove markdown italic
                 clean_text = re.sub(r'\s+', ' ', clean_text).strip()  # Normalize whitespace
                 
                 if clean_text and len(clean_text.strip()) > 0:
-                    # Import voice system
-                    from helpers.voice_synthesis import chip_voice_system
-                    
-                    # Speak the cleaned text
-                    logger.debug(f"🎭 CHIP O'THESEUS: Speaking {content_type} ({len(clean_text)} chars)")
-                    await chip_voice_system.speak(clean_text)
+                    # Import voice system with error handling
+                    try:
+                        from helpers.voice_synthesis import chip_voice_system
+                        
+                        # Speak the cleaned text
+                        logger.debug(f"🎭 CHIP O'THESEUS: Speaking {content_type} ({len(clean_text)} chars): {clean_text[:100]}...")
+                        result = chip_voice_system.speak_text(clean_text)
+                        logger.debug(f"🎭 Voice result: {result.get('success', False)}")
+                        
+                    except ImportError as ie:
+                        logger.error(f"Voice system import error: {ie}")
+                    except Exception as ve:
+                        logger.error(f"Voice system error: {ve}")
                     
             except Exception as e:
                 logger.error(f"Voice synthesis error: {e}")
@@ -5725,7 +5734,7 @@ async def sse_endpoint(request):
 
 @app.post('/chat')
 async def chat_endpoint(request, message: str):
-    await pipulate.stream(f'Let the user know {limiter} {message}')
+    await pipulate.stream(message)
     return ''
 
 @app.post('/add-to-conversation-history')
