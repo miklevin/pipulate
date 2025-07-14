@@ -62,7 +62,7 @@ if match:
 2. ✅ Pattern matching for `<tool>` and `<mcp-request>` patterns
 3. ✅ Async command execution pipeline via `execute_and_respond_to_tool_call()`
 4. ✅ Result injection back into conversation via `message_queue`
-5. ✅ WebSocket integration with Ctrl+Shift+R server restart
+5. ✅ WebSocket integration with Ctrl+Alt+R server restart
 
 #### **✅ WORKING: XML Syntax (Syntax 1)**
 ```xml
@@ -171,7 +171,7 @@ print(result)
 # ✅ WORKING: XML/JSON parameter parsing (dual format support)
 # ✅ WORKING: Async execution pipeline (execute_and_respond_to_tool_call)
 # ✅ WORKING: Result injection system (message_queue.add)
-# ✅ WORKING: WebSocket integration with Ctrl+Shift+R restart
+# ✅ WORKING: WebSocket integration with Ctrl+Alt+R restart
 # ✅ WORKING: [cmd arg] bracket notation parsing (NEW: execute_bracket_notation_command)
 
 # 🔴 MISSING: python -c command parsing in message stream
@@ -201,7 +201,7 @@ print(result)
 ### **Phase 1: Document ACTUAL Reality** ✅
 - [x] Discover the working orchestrator (I missed this completely!)
 - [x] Understand XML/JSON parameter parsing (it works!)
-- [x] Find WebSocket integration (Ctrl+Shift+R restart)
+- [x] Find WebSocket integration (Ctrl+Alt+R restart)
 - [x] Identify what's actually missing vs working
 
 ### **Phase 2: Complete Terminal Syntax Support** 🎯 **NEXT**
@@ -288,7 +288,7 @@ python -c "from helpers.ai_tool_discovery_simple_parser import execute_simple_co
 - `pipulate/server.py:3135-3195` - Stream monitoring and pattern matching
 - `pipulate/server.py:3244-3395` - Tool execution pipeline
 - `pipulate/server.py:3519-3587` - WebSocket handling  
-- `pipulate/assets/pipulate-init.js:472-483` - Ctrl+Shift+R restart
+- `pipulate/assets/pipulate-init.js:472-483` - Ctrl+Alt+R restart
 
 ### **Working Terminal Code**
 - `pipulate/cli.py` - Terminal execution mechanism

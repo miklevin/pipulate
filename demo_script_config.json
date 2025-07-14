@@ -16,7 +16,7 @@
       {
         "step_id": "02_pipulate_intro",
         "type": "system_reply",
-        "message": "This is Pipulate, local first AI SEO automation software. Would you like a demo? Press **Ctrl+y** or **Ctrl+n** on the keyboard.",
+        "message": "This is Pipulate, local first AI SEO automation software. Would you like a demo? Press **Ctrl+Alt+y** or **Ctrl+Alt+n** on the keyboard.",
         "timing": {
           "delay_before": 1000,
           "display_speed": 30
@@ -24,10 +24,10 @@
         "verbatim": true,
         "wait_for_input": true,
         "input_type": "keyboard",
-        "valid_keys": ["ctrl+y", "ctrl+n"],
+        "valid_keys": ["ctrl+alt+y", "ctrl+alt+n"],
         "branches": {
-          "ctrl+y": "branch_yes",
-          "ctrl+n": "branch_no"
+          "ctrl+alt+y": "branch_yes",
+          "ctrl+alt+n": "branch_no"
         }
       }
     ],
@@ -44,15 +44,15 @@
           "verbatim": true,
           "wait_for_input": true,
           "input_type": "keyboard",
-          "valid_keys": ["ctrl+y", "ctrl+n"],
+          "valid_keys": ["ctrl+alt+y", "ctrl+alt+n"],
           "branches": {
-            "ctrl+y": "branch_dev_yes",
-            "ctrl+n": "branch_dev_no"
+            "ctrl+alt+y": "branch_dev_yes",
+            "ctrl+alt+n": "branch_dev_no"
           },
           "ollama_check": true,
           "ollama_messages": {
-            "available": "You hit yes! Hi, I'm Chip O'Theseus the local LLM built into Pipulate. Is it okay if I speak out loud to you? **Ctrl+y** / **Ctrl+n**",
-            "not_available": "You hit yes but you still need to install Ollama with Gemma 3. Would you like to proceed anyway with limited LLM assistance and me speaking out loud to you? **Ctrl+y** / **Ctrl+n**"
+            "available": "You hit yes! Hi, I'm Chip O'Theseus the local LLM built into Pipulate. Is it okay if I speak out loud to you? **Ctrl+Alt+y** / **Ctrl+Alt+n**",
+            "not_available": "You hit yes but you still need to install Ollama with Gemma 3. Would you like to proceed anyway with limited LLM assistance and me speaking out loud to you? **Ctrl+Alt+y** / **Ctrl+Alt+n**"
           }
         }
       ],
@@ -128,8 +128,8 @@
           "end_demo": true,
           "ollama_check": true,
           "ollama_messages": {
-            "available": "Thank you. I will be here to answer any of your questions when you need. And you can always restart the demo with Ctrl+Shift+D at any time.",
-            "not_available": "Thank you. You can always restart the demo with Ctrl+Shift+D at any time. Visit ollama.com for local LLM installation instructions."
+            "available": "Thank you. I will be here to answer any of your questions when you need. And you can always restart the demo with Ctrl+Alt+D at any time.",
+            "not_available": "Thank you. You can always restart the demo with Ctrl+Alt+D at any time. Visit ollama.com for local LLM installation instructions."
           }
         }
       ]
