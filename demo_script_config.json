@@ -36,7 +36,7 @@
         {
           "step_id": "03_yes_response",
           "type": "system_reply",
-          "message": "You hit yes! First let's set us to DEV mode so we can play with the database. Is that okay? **Ctrl+y** / **Ctrl+n**",
+          "message": "{dynamic_ollama_message}",
           "timing": {
             "delay_before": 500,
             "display_speed": 25
@@ -48,6 +48,11 @@
           "branches": {
             "ctrl+y": "branch_dev_yes",
             "ctrl+n": "branch_dev_no"
+          },
+          "ollama_check": true,
+          "ollama_messages": {
+            "available": "You hit yes! Hi, I'm Chip O'Theseus the local LLM built into Pipulate. Is it okay if I speak out loud to you? **Ctrl+y** / **Ctrl+n**",
+            "not_available": "You hit yes but you still need to install Ollama with Gemma 3. Would you like to proceed anyway with limited LLM assistance and me speaking out loud to you? **Ctrl+y** / **Ctrl+n**"
           }
         }
       ],
@@ -114,34 +119,18 @@
         {
           "step_id": "04_dev_mode_declined",
           "type": "system_reply",
-          "message": "No problem! We'll stick to safe, read-only operations. Let me show you a quick overview instead...",
+          "message": "{dynamic_ollama_decline_message}",
           "timing": {
             "delay_before": 500,
             "display_speed": 25
           },
-          "verbatim": true
-        },
-        {
-          "step_id": "05_safe_demo",
-          "type": "mcp_tool_call",
-          "tool_name": "local_llm_list_files",
-          "tool_args": {
-            "directory": "."
-          },
-          "timing": {
-            "delay_before": 1500
-          },
-          "description": "📁 Listing available files safely..."
-        },
-        {
-          "step_id": "06_safe_demo_complete",
-          "type": "system_reply",
-          "message": "🎯 **SAFE DEMO COMPLETE!**\n\nEven in read-only mode, Pipulate offers powerful automation capabilities. Thanks for being cautious!",
-          "timing": {
-            "delay_before": 2000,
-            "display_speed": 25
-          },
-          "verbatim": true
+          "verbatim": true,
+          "end_demo": true,
+          "ollama_check": true,
+          "ollama_messages": {
+            "available": "Thank you. I will be here to answer any of your questions when you need. And you can always restart the demo with Ctrl+Shift+D at any time.",
+            "not_available": "Thank you. You can always restart the demo with Ctrl+Shift+D at any time. Visit ollama.com for local LLM installation instructions."
+          }
         }
       ]
     },
