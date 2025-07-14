@@ -2680,7 +2680,7 @@ class Pipulate:
         # Check if voice mode is enabled for this user
         voice_mode_enabled = False
         try:
-            from common import db
+            # Use the global db object directly
             voice_mode_enabled = db.get('voice_mode', False)
             # Handle string boolean conversion from database
             if isinstance(voice_mode_enabled, str):
