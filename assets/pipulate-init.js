@@ -665,22 +665,26 @@ document.addEventListener('keydown', function(event) {
         }
     }
     
-    // Ctrl+Alt+V: Test voice synthesis
-    if (event.ctrlKey && event.altKey && (event.key === 'V' || event.key === 'v')) {
-        event.preventDefault();
-        console.log('🎤 Voice synthesis test triggered via Ctrl+Alt+V');
-        
-        // Call the voice synthesis test endpoint
-        testVoiceSynthesis();
+    // Ctrl+Alt+V (PC) or Cmd+Option+V (Mac): Test voice synthesis
+    if ((event.ctrlKey && event.altKey) || (event.metaKey && event.altKey)) {
+        if (event.key === 'V' || event.key === 'v') {
+            event.preventDefault();
+            console.log('🎤 Voice synthesis test triggered via Ctrl+Alt+V or Cmd+Option+V');
+            
+            // Call the voice synthesis test endpoint
+            testVoiceSynthesis();
+        }
     }
     
-    // Ctrl+Alt+W: Test WebSocket connection status
-    if (event.ctrlKey && event.altKey && (event.key === 'W' || event.key === 'w')) {
-        event.preventDefault();
-        console.log('🔧 WebSocket connection test triggered via Ctrl+Alt+W');
-        
-        // Test WebSocket connection
-        testWebSocketConnection();
+    // Ctrl+Alt+W (PC) or Cmd+Option+W (Mac): Test WebSocket connection status
+    if ((event.ctrlKey && event.altKey) || (event.metaKey && event.altKey)) {
+        if (event.key === 'W' || event.key === 'w') {
+            event.preventDefault();
+            console.log('🔧 WebSocket connection test triggered via Ctrl+Alt+W or Cmd+Option+W');
+            
+            // Test WebSocket connection
+            testWebSocketConnection();
+        }
     }
 });
 
