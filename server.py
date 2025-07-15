@@ -1242,9 +1242,9 @@ def read_training(prompt_or_filename):
                 return content
         except FileNotFoundError:
             plugin_name = None
-            for name, instance in plugin_instances.items():
-                if hasattr(instance, 'TRAINING_PROMPT') and instance.TRAINING_PROMPT == prompt_or_filename:
-                    plugin_name = instance.DISPLAY_NAME
+            for name, plugin_instance in plugin_instances.items():
+                if hasattr(plugin_instance, 'TRAINING_PROMPT') and plugin_instance.TRAINING_PROMPT == prompt_or_filename:
+                    plugin_name = plugin_instance.DISPLAY_NAME
                     break
             if plugin_name:
                 logger.warning(f'No training file found for {prompt_or_filename} (used by {plugin_name})')
@@ -4707,14 +4707,14 @@ def group_plugins_by_role(active_role_names):
     """Group plugins by their primary role for hierarchical menu organization."""
     plugins_by_role = {}
     for plugin_key in ordered_plugins:
-        instance = plugin_instances.get(plugin_key)
-        if not instance:
+        plugin_instance = plugin_instances.get(plugin_key)
+        if not plugin_instance:
             continue
         if plugin_key in ['profiles', 'roles']:
             continue
-        if not should_include_plugin(instance, active_role_names):
+        if not should_include_plugin(plugin_instance, active_role_names):
             continue
-        primary_role = get_plugin_primary_role(instance)
+        primary_role = get_plugin_primary_role(plugin_instance)
         if primary_role:
             role_name = primary_role.replace('-', ' ').title()
             if role_name not in plugins_by_role:
