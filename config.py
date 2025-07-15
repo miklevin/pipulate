@@ -194,8 +194,8 @@ PCONFIG = {
         },
         'CONSOLE_MESSAGES': {
             # Server console log messages - centralized for consistency
-            'PYTHON_SNIPPET_INTRO': '{python_emoji} Python Snippet BEGIN {snippet_emoji}:',
-            'PYTHON_SNIPPET_END': '{python_emoji} Python Snippet END {snippet_emoji}',
+            'PYTHON_SNIPPET_INTRO': '# {python_emoji} Python (httpx) Snippet BEGIN {snippet_emoji}:',
+            'PYTHON_SNIPPET_END': '# {python_emoji} Python (httpx) Snippet END {snippet_emoji}',
             'API_CALL_LOG': 'API Call: {method} {url}',
             'FILE_GENERATED': 'Generated file: {filename}',
             'PROCESSING_COMPLETE': 'Processing complete for: {operation}',
@@ -203,7 +203,7 @@ PCONFIG = {
         },
         'CODE_FORMATTING': {
             # Visual dividers and separators for generated code
-            'COMMENT_DIVIDER': '#' * 50
+            'COMMENT_DIVIDER': '# ============================================================================='
         },
         'MESSAGES': {
             'WORKFLOW_UNLOCKED': 'Workflow unfinalized! You can now revert to any step and make changes.',
