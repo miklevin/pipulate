@@ -4968,7 +4968,7 @@ def create_chat_interface(autofocus=False):
     if 'temp_message' in db:
         temp_message = db['temp_message']
         del db['temp_message']
-    init_script = f'\n    // Set global variables for the external script\n    window.PCONFIG = {{\n        tempMessage: {json.dumps(temp_message)},\n        clipboardSVG: {json.dumps(PCONFIG["SVG_ICONS"]["CLIPBOARD"])}\n    }};\n    '
+    init_script = f'\n    // Set global variables for the external script\n    window.PCONFIG = {{\n        tempMessage: {json.dumps(temp_message)},\n        clipboardSVG: {json.dumps(PCONFIG["SVG_ICONS"]["CLIPBOARD"])}\n    }};\n    window.APP_NAME = {json.dumps(APP_NAME)};\n    '
     # Enter/Shift+Enter handling is now externalized in pipulate.js
     return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height, role='log', aria_label='Chat conversation', aria_live='polite'), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)', role='form', aria_label='Chat input form'), Script(init_script), Script(src='/assets/pipulate-init.js'), Script('initializeChatInterface();')), id='chat-interface', role='complementary', aria_label='AI Assistant Chat')
 
@@ -6252,6 +6252,9 @@ async def serve_demo_script_config(request):
                                 obj[key] = obj["ollama_messages"]["available"] if ollama_available else obj["ollama_messages"]["not_available"]
                             elif value == "{dynamic_ollama_decline_message}" and "ollama_messages" in obj:
                                 obj[key] = obj["ollama_messages"]["available"] if ollama_available else obj["ollama_messages"]["not_available"]
+                            # Replace {app_name} placeholder with actual app name
+                            elif "{app_name}" in value:
+                                obj[key] = value.replace("{app_name}", APP_NAME)
                         elif isinstance(value, (dict, list)):
                             process_dynamic_messages(value)
                 elif isinstance(obj, list):

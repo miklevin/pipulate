@@ -1414,7 +1414,8 @@ async function loadAndExecuteCleanDemoScript() {
         // Fallback to simple phantom message
         displayPhantomUserMessage('What is this?');
         setTimeout(() => {
-            displayPhantomLLMMessage('This is Pipulate, local first AI SEO automation software.');
+            const appName = window.APP_NAME || 'Pipulate';
+            displayPhantomLLMMessage(`This is ${appName}, local first AI SEO automation software.`);
         }, 1500);
     }
 }
@@ -1633,7 +1634,7 @@ async function executeCleanMcpToolCallStep(step) {
 **Recent workflow keys:**
 - Undergarments-param_buster-03
 - Undergarments-param_buster-04
-- Pipulate-hello-01
+- ${window.APP_NAME || 'Pipulate'}-hello-01
 
 **Database Status**: DEV mode active, safe to experiment! 🧪`;
     } else if (step.tool_name === 'local_llm_list_files') {
