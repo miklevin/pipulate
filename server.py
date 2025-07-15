@@ -26,7 +26,6 @@ import aiohttp
 import uvicorn
 from fasthtml.common import *
 from loguru import logger
-from rich.console import Console
 from rich.json import JSON
 from rich.panel import Panel
 from rich.style import Style as RichStyle
@@ -53,9 +52,8 @@ from helpers.ascii_displays import (ai_breadcrumb_summary, chip_says,
                                     startup_environment_warnings,
                                     startup_summary_table, story_moment,
                                     system_diagram, white_rabbit)
-from helpers.server_logging import (DebugConsole, console, rich_dict_display,
-                                     rich_json_display, setup_logging)
-from mcp_tools import register_all_mcp_tools, register_mcp_tool
+from helpers.server_logging import console, rich_json_display, setup_logging
+from mcp_tools import register_all_mcp_tools
 
 # Import MCP tools module for enhanced AI assistant capabilities
 # Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
@@ -2070,10 +2068,6 @@ class Pipulate:
         return botify_code_generation.get_botify_analysis_path(app_name, username, project_name, analysis_slug, filename)
 
     def fmt(self, endpoint: str) -> str:
-        """Format an endpoint string into a human-readable form."""
-        if endpoint in friendly_names:
-            return friendly_names[endpoint]
-        return title_name(endpoint)
         """Format an endpoint string into a human-readable form."""
         if endpoint in friendly_names:
             return friendly_names[endpoint]
@@ -6925,7 +6919,7 @@ def check_server_already_running():
     return False
 
 
-def create_restart_response(restart_type: str, message: str) -> str:
+def create_restart_response():
     """Create HTML for restart notification with Pico CSS aria-busy spinner."""
     return f'<span aria-busy="true">{message}</span>'
 
