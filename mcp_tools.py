@@ -2409,16 +2409,9 @@ async def browser_scrape_page(params: dict) -> dict:
 
         # === SUBPROCESS BROWSER AUTOMATION TO AVOID THREADING ISSUES ===
         # Create a Python script to run the browser automation in a separate process
+        from config import get_browser_script_imports
         browser_script = f'''
-import json
-import os
-import time
-import sys
-from datetime import datetime
-from urllib.parse import urlparse
-
-# Add current directory to path to import modules
-sys.path.insert(0, '{os.getcwd()}')
+{get_browser_script_imports()}
 
 def run_browser_automation():
     try:
