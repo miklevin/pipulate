@@ -6025,15 +6025,26 @@ async def update_pipulate(request):
 
         # Fetch latest changes from remote
         await pipulate.stream('📡 Fetching latest changes...', verbatim=True, role='system')
-        fetch_result = subprocess.run(['git', 'fetch', 'origin'], capture_output=True, text=True)
+        fetch_result = subprocess.run(['git', 'fetch', 'origin', 'main'], capture_output=True, text=True)
 
         if fetch_result.returncode != 0:
             await pipulate.stream(f'❌ Failed to fetch updates: {fetch_result.stderr}', verbatim=True, role='system')
             return ""
 
-        # Check if there are updates available
+        # Get current branch name and determine target branch for updates
+        branch_result = subprocess.run(['git', 'branch', '--show-current'], capture_output=True, text=True)
+        if branch_result.returncode != 0:
+            await pipulate.stream('❌ Failed to determine current branch', verbatim=True, role='system')
+            return ""
+        
+        current_branch = branch_result.stdout.strip()
+        
+        # For development branches, only check main branch for updates
+        target_branch = 'main' if current_branch.startswith('yellowbrick') else current_branch
+
+        # Check if there are updates available on the target branch
         local_result = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True)
-        remote_result = subprocess.run(['git', 'rev-parse', '@{u}'], capture_output=True, text=True)
+        remote_result = subprocess.run(['git', 'rev-parse', f'origin/{target_branch}'], capture_output=True, text=True)
 
         if local_result.returncode != 0 or remote_result.returncode != 0:
             await pipulate.stream('❌ Failed to check for updates', verbatim=True, role='system')
@@ -6044,6 +6055,13 @@ async def update_pipulate(request):
 
         if local_hash == remote_hash:
             await pipulate.stream('✅ Already up to date!', verbatim=True, role='system')
+            return ""
+
+        # For development branches, inform user but don't auto-update
+        if current_branch.startswith('yellowbrick'):
+            await pipulate.stream(f'ℹ️  Updates available on {target_branch} branch.', verbatim=True, role='system')
+            await pipulate.stream(f'📝 Currently on development branch: {current_branch}', verbatim=True, role='system')
+            await pipulate.stream(f'💡 To update: git checkout {target_branch} && git pull origin {target_branch}', verbatim=True, role='system')
             return ""
 
         # 🔒 UPDATES FOUND - Trigger full-screen restart effect immediately
@@ -6057,7 +6075,7 @@ async def update_pipulate(request):
 
                 # Perform the git pull
                 await pipulate.stream('⬇️ Pulling latest changes...', verbatim=True, role='system')
-                pull_result = subprocess.run(['git', 'pull', '--ff-only'], capture_output=True, text=True)
+                pull_result = subprocess.run(['git', 'pull', '--ff-only', 'origin', target_branch], capture_output=True, text=True)
 
                 if pull_result.returncode != 0:
                     await pipulate.stream(f'❌ Failed to pull updates: {pull_result.stderr}', verbatim=True, role='system')
