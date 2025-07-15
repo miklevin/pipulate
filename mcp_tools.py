@@ -1644,69 +1644,103 @@ print(f'🎭 Hijack: {{result.get("success")}}')
 
 
 async def ui_flash_element(params: dict) -> dict:
-    """Flash a UI element by ID to draw user attention.
+    """Flash a UI element to draw user attention with customizable effects.
 
     Args:
         params: Dict containing:
-            - element_id: The DOM ID of the element to flash
+            - element_id: The DOM ID of the element to flash (legacy)
+            - selector: CSS selector for the element (preferred, supports #id, .class, etc.)
+            - color: Flash color (default: 'blue', supports 'gold', 'red', 'green', etc.)
+            - duration: Flash duration in milliseconds (default: 2500)
             - message: Optional message to display in chat
-            - delay: Optional delay in milliseconds (default: 0)
+            - delay: Optional delay before starting in milliseconds (default: 0)
 
     Returns:
         Dict with success status and details
     """
+    # Support both legacy element_id and new selector parameter
     element_id = params.get('element_id', '').strip()
+    selector = params.get('selector', '').strip()
+    color = params.get('color', 'blue').strip()
+    duration = params.get('duration', 2500)
     message = params.get('message', '').strip()
     delay = params.get('delay', 0)
 
-    if not element_id:
+    # Determine the target selector
+    if selector:
+        target_selector = selector
+        # Extract element ID from selector for logging (remove # if present)
+        display_id = selector.replace('#', '') if selector.startswith('#') else selector
+    elif element_id:
+        target_selector = f"#{element_id}" if not element_id.startswith('#') else element_id
+        display_id = element_id.replace('#', '')
+    else:
         return {
             "success": False,
-            "error": "element_id is required"
+            "error": "Either element_id or selector is required"
         }
 
     try:
-        # Create JavaScript to flash the element 10 times for teaching emphasis
+        # Create JavaScript for customizable flash effect
         flash_script = f"""
         <script>
-        console.log('🔔 UI Flash script received for element: {element_id} (10x teaching mode)');
+        console.log('✨ UI Flash script received for: {target_selector} (color: {color}, duration: {duration}ms)');
         setTimeout(() => {{
-            const element = document.getElementById('{element_id}');
-            console.log('🔔 Element lookup result:', element);
+            const element = document.querySelector('{target_selector}');
+            console.log('✨ Element lookup result:', element);
             if (element) {{
-                console.log('🔔 Element found, applying 10x flash effect for teaching');
+                console.log('✨ Element found, applying {color} flash effect');
                 
-                let flashCount = 0;
-                const maxFlashes = 10; // Hardcoded for teaching emphasis
-                
-                function doFlash() {{
-                    if (flashCount >= maxFlashes) {{
-                        console.log('🔔 10x Flash sequence completed for: {element_id}');
-                        return;
+                if ('{color}' === 'gold' && typeof flashElementWithGoldEffect === 'function') {{
+                    // Use the special gold twinkle effect function if available
+                    const elementId = element.id || 'temp-' + Date.now();
+                    if (!element.id) {{
+                        element.id = elementId;
+                    }}
+                    flashElementWithGoldEffect(element.id);
+                    console.log('✨ Applied special gold twinkle effect to: {target_selector}');
+                }} else {{
+                    // Apply custom color flash effect
+                    const originalBoxShadow = element.style.boxShadow;
+                    const originalBorder = element.style.border;
+                    const originalTransform = element.style.transform;
+                    const originalTransition = element.style.transition;
+                    
+                    // Apply flash effect
+                    element.style.transition = 'all 0.3s ease-in-out';
+                    element.style.boxShadow = `0 0 20px {color}, 0 0 40px {color}`;
+                    element.style.border = `2px solid {color}`;
+                    element.style.transform = 'scale(1.02)';
+                    
+                    // Create pulsing effect
+                    let pulseCount = 0;
+                    const maxPulses = Math.max(3, Math.floor({duration} / 800));
+                    
+                    function doPulse() {{
+                        if (pulseCount >= maxPulses) {{
+                            // Reset to original styles
+                            element.style.boxShadow = originalBoxShadow;
+                            element.style.border = originalBorder;
+                            element.style.transform = originalTransform;
+                            element.style.transition = originalTransition;
+                            console.log('✨ Flash sequence completed for: {target_selector}');
+                            return;
+                        }}
+                        
+                        // Pulse effect
+                        element.style.opacity = pulseCount % 2 === 0 ? '0.8' : '1';
+                        pulseCount++;
+                        
+                        setTimeout(doPulse, 400);
                     }}
                     
-                    // Remove and add class for flash effect
-                    element.classList.remove('menu-flash');
-                    element.offsetHeight; // Force reflow
-                    element.classList.add('menu-flash');
-                    
-                    flashCount++;
-                    console.log(`🔔 Flash ${{flashCount}}/10 for: {element_id}`);
-                    
-                    // Schedule next flash after this one completes
-                    setTimeout(() => {{
-                        element.classList.remove('menu-flash');
-                        // Small gap between flashes for visibility
-                        setTimeout(doFlash, 100);
-                    }}, 600);
+                    // Start pulsing after initial flash
+                    setTimeout(doPulse, 300);
                 }}
                 
-                // Start the 10x flash sequence
-                doFlash();
-                
             }} else {{
-                console.warn('⚠️ Element not found: {element_id}');
-                console.log('🔔 Available elements with IDs:', Array.from(document.querySelectorAll('[id]')).map(el => el.id));
+                console.warn('⚠️ Element not found: {target_selector}');
+                console.log('✨ Available elements:', Array.from(document.querySelectorAll('[id]')).map(el => `#${{el.id}}`));
             }}
         }}, {delay});
         </script>
@@ -1719,7 +1753,7 @@ async def ui_flash_element(params: dict) -> dict:
         if server_module and hasattr(server_module, 'chat'):
             chat = getattr(server_module, 'chat')
             if chat:
-                logger.info(f"🔔 UI FLASH: Broadcasting script via global chat for element: {element_id}")
+                logger.info(f"✨ UI FLASH: Broadcasting script via global chat for: {target_selector} (color: {color})")
                 # Send script to execute the flash
                 await chat.broadcast(flash_script)
 
@@ -1727,14 +1761,17 @@ async def ui_flash_element(params: dict) -> dict:
                 if message:
                     await chat.broadcast(message)
             else:
-                logger.warning(f"🔔 UI FLASH: Global chat not available for element: {element_id}")
+                logger.warning(f"✨ UI FLASH: Global chat not available for: {target_selector}")
         else:
-            logger.error(f"🔔 UI FLASH: No chat instance available for element: {element_id}")
+            logger.error(f"✨ UI FLASH: No chat instance available for: {target_selector}")
 
         return {
             "success": True,
-            "element_id": element_id,
-            "message": message if message else f"Flashed element: {element_id} (10x teaching mode)",
+            "element_id": display_id,
+            "selector": target_selector,
+            "color": color,
+            "duration": duration,
+            "message": message if message else f"Flashed element: {target_selector} with {color} effect",
             "delay": delay
         }
 
