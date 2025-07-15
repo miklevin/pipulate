@@ -2431,16 +2431,10 @@ def run_browser_automation():
         
         # Set up Chrome with simplified configuration
         import tempfile
-        chrome_options = Options()
+        from config import get_chrome_options
+        chrome_options = get_chrome_options()
         
-        # VISIBLE BROWSER - The popup is a FEATURE, not a bug!
-        chrome_options.add_argument('--start-maximized')
-        chrome_options.add_argument('--new-window')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--window-size=1920,1080')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--disable-extensions')
+        # Additional options specific to this use case
         chrome_options.add_argument('--disable-plugins')
         chrome_options.add_argument('--disable-web-security')
         chrome_options.add_argument('--allow-running-insecure-content')
