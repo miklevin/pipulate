@@ -7,18 +7,7 @@ from the monolithic mcp_tools.py into a focused botify_mcp_tools.py module.
 """
 
 import os
-from pathlib import Path
-
-def get_file_size(filename):
-    """Get file size in characters"""
-    try:
-        return Path(filename).stat().st_size
-    except FileNotFoundError:
-        return 0
-
-def estimate_tokens(char_count):
-    """Rough estimate: 1 token ≈ 4 characters for code"""
-    return char_count // 4
+from helpers.demo_utils import get_file_size, estimate_tokens
 
 def main():
     print("🎯 BOTIFY EXTRACTION DEMONSTRATION")
