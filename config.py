@@ -21,7 +21,7 @@ friendly_names = {
 }
 
 # Default configuration values (will be overridden by server.py with instance-specific values)
-DEFAULT_ACTIVE_ROLES = {'Core'}
+DEFAULT_ACTIVE_ROLES = {'Core', 'Botify Employee'}
 HOME_MENU_ITEM = '👥 Roles (Home)'
 
 # Complete centralized configuration - single source of truth
