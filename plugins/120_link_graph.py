@@ -2166,7 +2166,7 @@ class LinkGraphVisualizer:
                     await self.pipulate.log_api_call_details(
                         pipeline_id="fetch_analyses", step_id="analyses_list",
                         call_description="Fetch Analysis List (First Page)",
-                        method="GET", url=next_url, headers=headers,
+                        http_method="GET", url=next_url, headers=headers,
                         response_status=response.status_code,
                         response_preview=json.dumps(data),
                         curl_command=curl_cmd, python_command=python_cmd
@@ -2872,7 +2872,7 @@ await main()
             await self.pipulate.log_api_call_details(
                 pipeline_id="build_exports", step_id="gsc_export",
                 call_description="Search Console Export Job Creation",
-                method="POST", url=base_url, headers=headers, payload=export_job_payload,
+                http_method="POST", url=base_url, headers=headers, payload=export_job_payload,
                 curl_command=curl_cmd, python_command=python_cmd
             )
 
@@ -2947,7 +2947,7 @@ await main()
             await self.pipulate.log_api_call_details(
                 pipeline_id="build_exports", step_id="crawl_export",
                 call_description="Crawl Analysis Export Job Creation",
-                method="POST", url=base_url, headers=headers, payload=export_job_payload,
+                http_method="POST", url=base_url, headers=headers, payload=export_job_payload,
                 curl_command=curl_cmd, python_command=python_cmd
             )
 
@@ -3002,7 +3002,7 @@ await main()
             await self.pipulate.log_api_call_details(
                 pipeline_id="build_exports", step_id="weblog_export",
                 call_description="Web Logs Export Job Creation",
-                method="POST", url=base_url, headers=headers, payload=export_job_payload,
+                http_method="POST", url=base_url, headers=headers, payload=export_job_payload,
                 curl_command=curl_cmd, python_command=python_cmd
             )
 
@@ -3089,7 +3089,7 @@ await main()
                     await self.pipulate.log_api_call_details(
                         pipeline_id="poll_job_status", step_id=step_context or "polling",
                         call_description=f"Job Status Poll Attempt {attempt + 1}",
-                        method="GET", url=job_url, headers=headers,
+                        http_method="GET", url=job_url, headers=headers,
                         curl_command=curl_cmd, python_command=python_cmd
                     )
 
@@ -3125,7 +3125,7 @@ await main()
                         await self.pipulate.log_api_call_details(
                             pipeline_id="poll_job_status", step_id=step_context or "polling",
                             call_description=f"Job Status Poll Response {attempt + 1}",
-                            method="GET", url=job_url, headers=headers,
+                            http_method="GET", url=job_url, headers=headers,
                             response_status=response.status_code,
                             response_preview=json.dumps(job_data) if isinstance(job_data, dict) else str(job_data)
                         )
