@@ -3007,7 +3007,6 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
             params_text = params_match.group(1).strip()
             try:
                 # Try to parse as JSON first
-                import json
                 params = json.loads(params_text)
                 logger.debug(f"🔧 MCP CLIENT: Extracted JSON params: {params}")
             except json.JSONDecodeError:
