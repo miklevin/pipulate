@@ -24,28 +24,33 @@ Big models: Use any level, but Level 1 is often the most reliable
 🔍 BREADCRUMB TRAIL: Execute [mcp-discover] in the chat interface to begin your journey.
 """
 
-import os
-import json
-import time
-import random
 import asyncio
-import subprocess
-import aiohttp
-import re
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Optional, Dict, Any, List
-import logging
-import sqlite3
 import inspect
-from urllib.parse import urlparse
-import tempfile
+import json
+import logging
+import os
+import random
+import re
 import shutil
 import socket
+import sqlite3
+import subprocess
+import tempfile
+import time
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
+
+import aiohttp
+
+from tools import (browser_hijack_workflow_complete, execute_automation_recipe,
+                   execute_complete_session_hijacking, execute_mcp_cli_command)
 
 # Import voice synthesis system
 try:
-    from helpers.voice_synthesis import chip_voice_system, VOICE_SYNTHESIS_AVAILABLE
+    from helpers.voice_synthesis import (VOICE_SYNTHESIS_AVAILABLE,
+                                         chip_voice_system)
 except ImportError:
     chip_voice_system = None
     VOICE_SYNTHESIS_AVAILABLE = False
@@ -65,38 +70,34 @@ except ImportError:
     logger.warning("⚠️ FINDER_TOKEN: KEYCHAIN_IMPORT_FAILED - AI Keychain not available")
 
 # Import functions from extracted modules
-from tools import (
-    browser_hijack_workflow_complete,
-    execute_complete_session_hijacking,
-    execute_automation_recipe,
-    execute_mcp_cli_command,
-)
 
 # ================================================================
 # 🔧 GLOBAL WORKFLOW HIJACKING TIMING CONFIGURATION
 # 🏆 LIGHTNING IN A BOTTLE - HANDLE WITH CARE
 # ================================================================
+
+
 class WorkflowHijackTiming:
     """Centralized timing configuration for all workflow hijacking operations.
-    
+
     🎯 EASY TUNING: Change these values to adjust overall hijacking speed
     """
     # === CORE TIMING (adjust these to tune overall speed) ===
     PAGE_LOAD_WAIT = 2           # Time to wait for initial page load
-    FORM_INTERACTION_DELAY = 1   # Dramatic pause after filling forms  
+    FORM_INTERACTION_DELAY = 1   # Dramatic pause after filling forms
     POST_REQUEST_WAIT = 2        # Wait for POST request to complete
     CHAIN_REACTION_WAIT = 4      # Main chain reaction progression time
     FINAL_STABILIZATION = 1      # Final workflow stabilization
     HUMAN_OBSERVATION = 1        # Time for human to see final state
-    
+
     # === CALCULATED TOTALS ===
     @classmethod
     def total_browser_time(cls) -> int:
         """Calculate total expected browser visibility time"""
-        return (cls.PAGE_LOAD_WAIT + cls.FORM_INTERACTION_DELAY + 
-                cls.POST_REQUEST_WAIT + cls.CHAIN_REACTION_WAIT + 
+        return (cls.PAGE_LOAD_WAIT + cls.FORM_INTERACTION_DELAY +
+                cls.POST_REQUEST_WAIT + cls.CHAIN_REACTION_WAIT +
                 cls.FINAL_STABILIZATION + cls.HUMAN_OBSERVATION)
-    
+
     @classmethod
     def get_timing_summary(cls) -> str:
         """Get human-readable timing breakdown"""
@@ -111,13 +112,14 @@ class WorkflowHijackTiming:
    ⏱️  TOTAL: {cls.total_browser_time()}s
         """.strip()
 
+
 # 🚀 Quick timing presets for different use cases
 TIMING_PRESETS = {
     "lightning": {  # Ultra-fast for development
         "PAGE_LOAD_WAIT": 1, "FORM_INTERACTION_DELAY": 0, "POST_REQUEST_WAIT": 1,
         "CHAIN_REACTION_WAIT": 2, "FINAL_STABILIZATION": 0, "HUMAN_OBSERVATION": 1
     },
-    "fast": {  # Current optimized timing  
+    "fast": {  # Current optimized timing
         "PAGE_LOAD_WAIT": 2, "FORM_INTERACTION_DELAY": 1, "POST_REQUEST_WAIT": 2,
         "CHAIN_REACTION_WAIT": 3, "FINAL_STABILIZATION": 1, "HUMAN_OBSERVATION": 1
     },
@@ -126,6 +128,7 @@ TIMING_PRESETS = {
         "CHAIN_REACTION_WAIT": 5, "FINAL_STABILIZATION": 2, "HUMAN_OBSERVATION": 3
     }
 }
+
 
 def apply_timing_preset(preset_name: str):
     """Apply a timing preset to WorkflowHijackTiming class"""
@@ -137,6 +140,7 @@ def apply_timing_preset(preset_name: str):
     else:
         logger.warning(f"⚠️ Unknown timing preset: {preset_name}")
 
+
 # 🎯 Apply default timing preset (change this to tune global speed)
 apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
 
@@ -144,20 +148,21 @@ apply_timing_preset("fast")  # Options: "lightning", "fast", "dramatic"
 # DATABASE FILENAME UTILITIES - Use server.py functions directly
 # ================================================================
 
+
 def get_db_filename():
     """Get the database filename using the server.py functions (single source of truth)."""
     try:
         # Use dynamic import to avoid circular dependency
         import sys
         server_module = sys.modules.get('server') or sys.modules.get('__main__')
-        
+
         if server_module and hasattr(server_module, 'get_db_filename'):
             return server_module.get_db_filename()
         else:
             # Fallback: use server.py globals if available
             if server_module and hasattr(server_module, 'DB_FILENAME'):
                 return server_module.DB_FILENAME
-            
+
             # Last resort: basic logic matching server.py
             app_name = 'Pipulate'  # Default fallback
             current_env = 'Development'
@@ -179,29 +184,31 @@ def get_db_filename():
 # BROWSER AUTOMATION UTILITIES
 # ================================================================
 
+
 # Configuration for directory rotation
 MAX_ROLLED_LOOKING_AT_DIRS = 10  # Keep last 10 AI perception states
+
 
 def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: int = None) -> bool:
     """
     🔄 DIRECTORY ROTATION SYSTEM
-    
+
     Rotates the browser_automation/looking_at directory before each new browser scrape.
     This preserves AI perception history across multiple look-at operations.
-    
+
     Similar to log rotation but for entire directories:
     - looking_at becomes looking_at-1  
     - looking_at-1 becomes looking_at-2
     - etc. up to max_rolled_dirs
     - Oldest directories beyond limit are deleted
-    
+
     Args:
         looking_at_path: Path to the looking_at directory (default: browser_automation/looking_at)
         max_rolled_dirs: Maximum number of historical directories to keep
-        
+
     Returns:
         bool: True if rotation successful, False if failed
-        
+
     This prevents AI assistants from losing sight of previously captured states
     and allows them to review their automation history for better decisions.
     """
@@ -209,14 +216,14 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
         looking_at_path = Path('browser_automation') / 'looking_at'
     else:
         looking_at_path = Path(looking_at_path)
-    
+
     if max_rolled_dirs is None:
         max_rolled_dirs = MAX_ROLLED_LOOKING_AT_DIRS
-    
+
     try:
         # Ensure the parent directory exists
         looking_at_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Clean up old numbered directories beyond our limit
         for i in range(max_rolled_dirs + 1, 100):
             old_dir = looking_at_path.parent / f'{looking_at_path.name}-{i}'
@@ -226,7 +233,7 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
                     logger.info(f'🧹 FINDER_TOKEN: DIRECTORY_CLEANUP - Removed old directory: {old_dir.name}')
                 except Exception as e:
                     logger.warning(f'⚠️ Failed to delete old directory {old_dir}: {e}')
-        
+
         # Rotate existing directories: looking_at-1 → looking_at-2, etc.
         if looking_at_path.exists() and any(looking_at_path.iterdir()):  # Only rotate if directory exists and has contents
             for i in range(max_rolled_dirs - 1, 0, -1):
@@ -242,7 +249,7 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
                         logger.info(f'📁 FINDER_TOKEN: DIRECTORY_ROTATION - Rotated: {old_path.name} → {new_path.name}')
                     except Exception as e:
                         logger.warning(f'⚠️ Failed to rotate directory {old_path}: {e}')
-            
+
             # Move current looking_at to looking_at-1
             try:
                 archived_path = looking_at_path.parent / f'{looking_at_path.name}-1'
@@ -254,13 +261,13 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
             except Exception as e:
                 logger.warning(f'⚠️ Failed to archive current {looking_at_path}: {e}')
                 return False
-        
+
         # Create fresh looking_at directory
         looking_at_path.mkdir(parents=True, exist_ok=True)
         logger.info(f'✨ FINDER_TOKEN: DIRECTORY_REFRESH - Fresh perception directory ready: {looking_at_path}')
-        
+
         return True
-        
+
     except Exception as e:
         logger.error(f'❌ FINDER_TOKEN: DIRECTORY_ROTATION_ERROR - Failed to rotate directories: {e}')
         return False
@@ -269,9 +276,10 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
 # HELPER FUNCTIONS
 # ================================================================
 
+
 def _read_botify_api_token() -> str:
     """Read Botify API token from the standard token file location.
-    
+
     Returns the token string or None if file doesn't exist or can't be read.
     This follows the same pattern used by all other Botify integrations.
     """
@@ -290,24 +298,25 @@ def _read_botify_api_token() -> str:
 # CORE MCP TOOLS
 # ================================================================
 
+
 async def get_user_session_state(params: dict) -> dict:
     """
     MCP Tool: GET USER SESSION STATE - The session hijacking superpower.
-    
+
     Accesses the server-side DictLikeDB to read the user's current session state.
     This provides access to server-side "cookies" like last_profile_id, last_app_choice,
     current_environment, theme_preference, etc.
-    
+
     This is THE tool for understanding what the user was just doing and continuing
     their workflow seamlessly.
     """
     logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_START - {params}")
-    
+
     try:
         # Use dynamic import to avoid circular dependency
         import sys
         server_module = sys.modules.get('server') or sys.modules.get('__main__')
-        
+
         # Try to get the global db instance (DictLikeDB)
         if server_module and hasattr(server_module, 'db'):
             db = server_module.db
@@ -323,11 +332,12 @@ async def get_user_session_state(params: dict) -> dict:
         else:
             # Fallback: Try to initialize a new database connection
             try:
-                from fastlite import database
                 from pathlib import Path
+
+                from fastlite import database
                 Path('data').mkdir(parents=True, exist_ok=True)
                 db_file = get_db_filename()  # Use dynamic database filename
-                
+
                 # Check if the database file exists
                 if not Path(db_file).exists():
                     logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Database file {db_file} does not exist")
@@ -336,7 +346,7 @@ async def get_user_session_state(params: dict) -> dict:
                         "error": f"Database file {db_file} does not exist - server may not be fully initialized",
                         "recovery_suggestion": "Ensure server has started properly and created the database file"
                     }
-                
+
                 # Try to connect to the database directly
                 db_conn = database(db_file)
                 if not hasattr(db_conn, 'store'):
@@ -346,19 +356,19 @@ async def get_user_session_state(params: dict) -> dict:
                         "error": "Database structure is incorrect - missing 'store' table",
                         "recovery_suggestion": "Server may need to be restarted to create the proper database structure"
                     }
-                
+
                 # Create a temporary DictLikeDB wrapper
                 class TempDictLikeDB:
                     def __init__(self, store_table):
                         self.store = store_table
-                    
+
                     def get(self, key, default=None):
                         try:
                             item = self.store[key]
                             return item.value if hasattr(item, 'value') else default
                         except Exception:
                             return default
-                    
+
                     def items(self):
                         try:
                             for item in self.store():
@@ -367,13 +377,13 @@ async def get_user_session_state(params: dict) -> dict:
                         except Exception as e:
                             logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - Error iterating store: {e}")
                             return []
-                    
+
                     def __contains__(self, key):
                         try:
                             return key in self.store
                         except Exception:
                             return False
-                
+
                 db = TempDictLikeDB(db_conn.store)
                 logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ACCESS - Created fallback DictLikeDB wrapper")
             except Exception as e:
@@ -383,11 +393,11 @@ async def get_user_session_state(params: dict) -> dict:
                     "error": f"Server-side database not accessible and fallback failed: {str(e)}",
                     "recovery_suggestion": "Check if server is running and database file exists"
                 }
-        
+
         # Get specific keys if requested, otherwise get all
         specific_keys = params.get('keys', [])
         include_metadata = params.get('include_metadata', True)
-        
+
         if specific_keys:
             # Get only requested keys
             session_data = {}
@@ -409,8 +419,8 @@ async def get_user_session_state(params: dict) -> dict:
                 # Fallback to empty dict if items() fails
                 session_data = {}
                 # Try to get common keys individually
-                common_keys = ['last_profile_id', 'last_app_choice', 'current_environment', 
-                              'theme_preference', 'profile_locked', 'intro_current_page', 'split-sizes']
+                common_keys = ['last_profile_id', 'last_app_choice', 'current_environment',
+                               'theme_preference', 'profile_locked', 'intro_current_page', 'split-sizes']
                 for key in common_keys:
                     try:
                         value = db.get(key)
@@ -418,7 +428,7 @@ async def get_user_session_state(params: dict) -> dict:
                             session_data[key] = value
                     except Exception:
                         pass
-        
+
         # Add metadata about the session state
         result = {
             "success": True,
@@ -426,7 +436,7 @@ async def get_user_session_state(params: dict) -> dict:
             "total_keys": len(session_data),
             "timestamp": datetime.now().isoformat()
         }
-        
+
         if include_metadata:
             result["metadata"] = {
                 "current_profile_id": session_data.get('last_profile_id'),
@@ -437,10 +447,10 @@ async def get_user_session_state(params: dict) -> dict:
                 "intro_page": session_data.get('intro_current_page'),
                 "split-sizes": session_data.get('split-sizes')
             }
-        
+
         logger.info(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_SUCCESS - Retrieved {len(session_data)} session keys")
         return result
-        
+
     except Exception as e:
         logger.error(f"🎭 FINDER_TOKEN: MCP_SESSION_HIJACKING_ERROR - {e}")
         return {
@@ -448,6 +458,7 @@ async def get_user_session_state(params: dict) -> dict:
             "error": f"Failed to access user session state: {str(e)}",
             "recovery_suggestion": "Server may need to be restarted if this error persists"
         }
+
 
 async def builtin_get_cat_fact(params: dict) -> dict:
     """Built-in cat fact tool - demonstrates the MCP tool pattern."""
@@ -488,20 +499,21 @@ async def builtin_get_cat_fact(params: dict) -> dict:
             "source": "local_fallback"
         }
 
+
 async def pipeline_state_inspector(params: dict) -> dict:
     """
     MCP Tool: PIPELINE STATE INSPECTOR - The debugging game changer.
-    
+
     Complete workflow state visibility for AI assistants.
     This is THE tool for understanding what's happening in any workflow.
     """
     logger.info(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_START - {params}")
-    
+
     try:
         # Use dynamic import to avoid circular dependency
         import sys
         server_module = sys.modules.get('server') or sys.modules.get('__main__')
-        
+
         # Try to get the global pipeline table (the actual database table, not pipulate.pipeline_table)
         if server_module and hasattr(server_module, 'pipeline'):
             pipeline_table = server_module.pipeline
@@ -517,11 +529,12 @@ async def pipeline_state_inspector(params: dict) -> dict:
         else:
             # Alternative: use the database directly if pipeline not available
             try:
-                from fastlite import database
                 from pathlib import Path
+
+                from fastlite import database
                 db_file = get_db_filename()  # Use dynamic database filename
                 Path('data').mkdir(parents=True, exist_ok=True)
-                
+
                 # Check if the database file exists
                 if not Path(db_file).exists():
                     logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - Database file {db_file} does not exist")
@@ -530,7 +543,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
                         "error": f"Database file {db_file} does not exist - server may not be fully initialized",
                         "recovery_suggestion": "Ensure server has started properly and created the database file"
                     }
-                
+
                 db = database(db_file)
                 try:
                     pipeline_table = db.t.pipeline
@@ -551,12 +564,12 @@ async def pipeline_state_inspector(params: dict) -> dict:
                     "error": f"Pipeline table not accessible - server may not be fully initialized. Details: {e}",
                     "recovery_suggestion": "Check if server is running and database file exists"
                 }
-        
+
         pipeline_id = params.get('pipeline_id')
         app_name = params.get('app_name')
         show_data = params.get('show_data', True)
         format_type = params.get('format', 'detailed')
-        
+
         # Get all pipeline records with error handling
         try:
             all_pipelines = list(pipeline_table())
@@ -567,7 +580,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
                 "error": f"Failed to list pipeline records: {str(e)}",
                 "recovery_suggestion": "Database may be corrupted or server needs restart"
             }
-        
+
         # Filter by pipeline_id if specified
         if pipeline_id:
             try:
@@ -579,7 +592,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
                     "error": f"Error filtering by pipeline_id: {str(e)}",
                     "recovery_suggestion": "Pipeline records may have incorrect structure"
                 }
-        
+
         # Filter by app_name if specified
         if app_name:
             try:
@@ -591,7 +604,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
                     "error": f"Error filtering by app_name: {str(e)}",
                     "recovery_suggestion": "Pipeline records may have incorrect structure"
                 }
-        
+
         if not all_pipelines:
             return {
                 "success": True,
@@ -599,17 +612,17 @@ async def pipeline_state_inspector(params: dict) -> dict:
                 "criteria": {"pipeline_id": pipeline_id, "app_name": app_name},
                 "total_pipelines": 0
             }
-        
+
         # Process pipeline data
         pipeline_data = []
         missing_fields_count = 0
-        
+
         for pipeline in all_pipelines:
             try:
                 # Validate pipeline record has required fields
                 required_fields = ['pkey', 'data', 'created', 'updated']
                 missing_fields = [field for field in required_fields if not hasattr(pipeline, field)]
-                
+
                 if missing_fields:
                     missing_fields_count += 1
                     pipeline_data.append({
@@ -618,7 +631,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
                         "available_fields": [attr for attr in dir(pipeline) if not attr.startswith('_')][:10]
                     })
                     continue
-                
+
                 # Parse the data JSON (FastLite stores JSON in 'data' field, not 'state')
                 try:
                     state = json.loads(pipeline.data) if pipeline.data else {}
@@ -629,7 +642,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
                         "raw_state": pipeline.data[:200] if pipeline.data else None
                     })
                     continue
-                
+
                 pipeline_info = {
                     "pipeline_id": pipeline.pkey,  # Use pkey instead of pipeline_id
                     "created": pipeline.created,
@@ -637,7 +650,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
                     "finalized": getattr(pipeline, 'finalized', False),
                     "step_count": len(state) if isinstance(state, dict) else 0
                 }
-                
+
                 if show_data and format_type == 'detailed':
                     pipeline_info["state"] = state
                 elif show_data and format_type == 'summary':
@@ -653,9 +666,9 @@ async def pipeline_state_inspector(params: dict) -> dict:
                             else:
                                 step_summary[step_id] = {"raw_data": str(step_data)[:100]}
                         pipeline_info["step_summary"] = step_summary
-                
+
                 pipeline_data.append(pipeline_info)
-                
+
             except Exception as e:
                 # Catch any other errors during pipeline processing
                 logger.error(f"🔧 FINDER_TOKEN: MCP_PIPELINE_PROCESSING_ERROR - {e}")
@@ -663,15 +676,15 @@ async def pipeline_state_inspector(params: dict) -> dict:
                     pipeline_id_value = getattr(pipeline, 'pkey', 'unknown')
                 except:
                     pipeline_id_value = 'unknown'
-                    
+
                 pipeline_data.append({
                     "pipeline_id": pipeline_id_value,
                     "error": f"Error processing pipeline: {str(e)}"
                 })
-        
+
         # Check for errors in pipeline data
         error_count = sum(1 for p in pipeline_data if "error" in p)
-        
+
         result = {
             "success": True,
             "total_pipelines": len(pipeline_data),
@@ -683,7 +696,7 @@ async def pipeline_state_inspector(params: dict) -> dict:
                 "format": format_type
             }
         }
-        
+
         # Add error summary if there were any errors
         if error_count > 0:
             result["error_summary"] = {
@@ -692,10 +705,10 @@ async def pipeline_state_inspector(params: dict) -> dict:
                 "error_percentage": round(error_count / len(pipeline_data) * 100, 1) if pipeline_data else 0,
                 "recovery_suggestion": "Some pipeline records have errors but others were processed successfully"
             }
-        
+
         logger.info(f"🎯 FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_SUCCESS - Found {len(pipeline_data)} pipelines (with {error_count} errors)")
         return result
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_PIPELINE_INSPECTOR_ERROR - {e}")
         return {"success": False, "error": str(e)}
@@ -704,22 +717,23 @@ async def pipeline_state_inspector(params: dict) -> dict:
 # BOTIFY API MCP TOOLS
 # ================================================================
 
+
 async def botify_ping(params: dict) -> dict:
     """Test Botify API connectivity and authentication."""
     api_token = _read_botify_api_token()
     if not api_token:
         return {
-            "status": "error", 
+            "status": "error",
             "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
             "token_location": "helpers/botify/botify_token.txt"
         }
-    
+
     try:
         async with aiohttp.ClientSession() as session:
             # Use the user endpoint as a simple ping/auth test
             external_url = "https://api.botify.com/v1/user"
             headers = {"Authorization": f"Token {api_token}"}
-            
+
             async with session.get(external_url, headers=headers) as response:
                 if response.status == 200:
                     user_data = await response.json()
@@ -752,26 +766,27 @@ async def botify_ping(params: dict) -> dict:
             "external_api_method": "GET"
         }
 
+
 async def botify_list_projects(params: dict) -> dict:
     """List all projects for the authenticated user."""
     api_token = _read_botify_api_token()
     if not api_token:
         return {
-            "status": "error", 
+            "status": "error",
             "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
             "token_location": "helpers/botify/botify_token.txt"
         }
-    
+
     try:
         async with aiohttp.ClientSession() as session:
             external_url = "https://api.botify.com/v1/projects"
             headers = {"Authorization": f"Token {api_token}"}
-            
+
             async with session.get(external_url, headers=headers) as response:
                 if response.status == 200:
                     projects_data = await response.json()
                     projects = projects_data.get("results", [])
-                    
+
                     # Format for easy consumption
                     formatted_projects = []
                     for project in projects:
@@ -782,7 +797,7 @@ async def botify_list_projects(params: dict) -> dict:
                             "organization": project.get("organization", {}).get("name"),
                             "active": project.get("active", False)
                         })
-                    
+
                     return {
                         "status": "success",
                         "result": {
@@ -820,65 +835,67 @@ async def botify_list_projects(params: dict) -> dict:
 # MCP Tool Registry - Will be populated by register_mcp_tool calls
 MCP_TOOL_REGISTRY = {}
 
+
 def register_mcp_tool(tool_name: str, handler_func):
     """Register an MCP tool with the global registry."""
     logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
-    
+
     # Use the registry that was passed from server.py
     if MCP_TOOL_REGISTRY is not None:
         MCP_TOOL_REGISTRY[tool_name] = handler_func
     else:
         logger.error(f"🔧 MCP REGISTRY: ERROR - Registry not initialized for '{tool_name}'")
 
+
 def register_all_mcp_tools():
     """Register all MCP tools with the server."""
     logger.info("🔧 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_START")
     # Debug logging removed - registry working correctly
-    
+
     # Core tools
     register_mcp_tool("get_cat_fact", builtin_get_cat_fact)
     register_mcp_tool("pipeline_state_inspector", pipeline_state_inspector)
     register_mcp_tool("get_user_session_state", get_user_session_state)
-    
-    # Botify API tools  
+
+    # Botify API tools
     register_mcp_tool("botify_ping", botify_ping)
     register_mcp_tool("botify_list_projects", botify_list_projects)
     register_mcp_tool("botify_simple_query", botify_simple_query)
-    
+
     # Local LLM tools
     register_mcp_tool("local_llm_read_file", local_llm_read_file)
     register_mcp_tool("local_llm_grep_logs", local_llm_grep_logs)
     register_mcp_tool("local_llm_list_files", local_llm_list_files)
     register_mcp_tool("local_llm_get_context", local_llm_get_context)
-    
+
     # 🎭 MAGIC WORDS DEMONSTRATION TOOL
     register_mcp_tool("execute_ai_session_hijacking_demonstration", execute_ai_session_hijacking_demonstration)
-    
+
     # UI interaction tools
-    register_mcp_tool("ui_flash_element", ui_flash_element)  
+    register_mcp_tool("ui_flash_element", ui_flash_element)
     register_mcp_tool("ui_list_elements", ui_list_elements)
-    
+
     # Voice synthesis tools
     register_mcp_tool("voice_synthesis", voice_synthesis)
-    
+
     # Browser automation tools - THE AI'S EYES AND HANDS
     register_mcp_tool("browser_analyze_scraped_page", browser_analyze_scraped_page)
     register_mcp_tool("browser_scrape_page", browser_scrape_page)
     register_mcp_tool("browser_automate_workflow_walkthrough", browser_automate_workflow_walkthrough)
     register_mcp_tool("browser_interact_with_current_page", browser_interact_with_current_page)
     register_mcp_tool("browser_hijack_workflow_complete", browser_hijack_workflow_complete)
-    
+
     # 🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM - ONE TOOL TO RULE THEM ALL
     register_mcp_tool("execute_automation_recipe", execute_automation_recipe)
-    
+
     # 🔧 UNIFIED CLI INTERFACE FOR LOCAL LLM
     register_mcp_tool("execute_mcp_cli_command", execute_mcp_cli_command)
-    
+
     # Additional Botify tools
     register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
     register_mcp_tool("botify_list_available_analyses", botify_list_available_analyses)
     register_mcp_tool("botify_execute_custom_bql_query", botify_execute_custom_bql_query)
-    
+
     # 🧠 AI KEYCHAIN (PERSISTENT MEMORY) TOOLS - MESSAGE IN A BOTTLE SYSTEM
     if KEYCHAIN_AVAILABLE:
         register_mcp_tool("keychain_set", keychain_set)
@@ -889,13 +906,13 @@ def register_all_mcp_tools():
         logger.info("🧠 FINDER_TOKEN: KEYCHAIN_TOOLS_REGISTERED - 5 persistent memory tools available")
     else:
         logger.warning("⚠️ FINDER_TOKEN: KEYCHAIN_TOOLS_SKIPPED - AI Keychain not available")
-    
+
     # 🧠 AI SELF-DISCOVERY TOOLS - ELIMINATE UNCERTAINTY
     register_mcp_tool("ai_self_discovery_assistant", ai_self_discovery_assistant)
     register_mcp_tool("ai_capability_test_suite", ai_capability_test_suite)
     register_mcp_tool("browser_automate_instructions", browser_automate_instructions)
     register_mcp_tool("execute_complete_session_hijacking", execute_complete_session_hijacking)
-    
+
     # Get final count from server's registry
     import sys
     server_module = sys.modules.get('server')
@@ -903,10 +920,12 @@ def register_all_mcp_tools():
         tool_count = len(server_module.MCP_TOOL_REGISTRY)
     else:
         tool_count = len(MCP_TOOL_REGISTRY)
-    
+
     logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {tool_count} tools registered")
 
 # Additional Botify tools from server.py
+
+
 async def botify_simple_query(params: dict) -> dict:
     """Execute a simple BQL query against Botify API."""
     api_token = _read_botify_api_token()
@@ -916,26 +935,30 @@ async def botify_simple_query(params: dict) -> dict:
             "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
             "token_location": "helpers/botify/botify_token.txt"
         }
-    
-    org_slug = params.get("org_slug") 
+
+    org_slug = params.get("org_slug")
     project_slug = params.get("project_slug")
     analysis_slug = params.get("analysis_slug")
     query = params.get("query")
-    
+
     # Validate required parameters
     missing_params = []
-    if not org_slug: missing_params.append("org_slug") 
-    if not project_slug: missing_params.append("project_slug")
-    if not analysis_slug: missing_params.append("analysis_slug")
-    if not query: missing_params.append("query")
-    
+    if not org_slug:
+        missing_params.append("org_slug")
+    if not project_slug:
+        missing_params.append("project_slug")
+    if not analysis_slug:
+        missing_params.append("analysis_slug")
+    if not query:
+        missing_params.append("query")
+
     if missing_params:
         return {
-            "status": "error", 
+            "status": "error",
             "message": f"Missing required parameters: {', '.join(missing_params)}",
             "required_params": ["org_slug", "project_slug", "analysis_slug", "query"]
         }
-    
+
     try:
         async with aiohttp.ClientSession() as session:
             external_url = f"https://api.botify.com/v1/projects/{org_slug}/{project_slug}/query"
@@ -943,25 +966,25 @@ async def botify_simple_query(params: dict) -> dict:
                 "Authorization": f"Token {api_token}",
                 "Content-Type": "application/json"
             }
-            
+
             # Build the BQL query payload
             payload = {
                 "query": query,
                 "analysis": analysis_slug,
                 "size": params.get("size", 100)  # Default to 100 results
             }
-            
+
             async with session.post(external_url, headers=headers, json=payload) as response:
                 if response.status == 200:
                     query_result = await response.json()
-                    
+
                     # Extract result summary for easier consumption
                     result_summary = {
                         "total_results": len(query_result.get("results", [])),
                         "has_pagination": "next" in query_result,
                         "query_size_requested": payload.get("size", 100)
                     }
-                    
+
                     return {
                         "status": "success",
                         "result": query_result,
@@ -1007,48 +1030,50 @@ async def botify_simple_query(params: dict) -> dict:
         }
 
 # Local LLM tools for file system operations
+
+
 async def local_llm_read_file(params: dict) -> dict:
     """Read file contents for AI analysis."""
     logger.info(f"🔧 FINDER_TOKEN: MCP_READ_FILE_START - {params.get('file_path')}")
-    
+
     try:
         file_path = params.get('file_path')
         if not file_path:
             return {"success": False, "error": "file_path parameter is required"}
-        
+
         # Security check - ensure file is within project
         abs_path = os.path.abspath(file_path)
         project_root = os.path.abspath('.')
         if not abs_path.startswith(project_root):
             return {"success": False, "error": "File access outside project directory not allowed"}
-        
+
         if not os.path.exists(file_path):
             return {"success": False, "error": f"File not found: {file_path}"}
-        
+
         start_line = params.get('start_line', 1)
         end_line = params.get('end_line')
         max_lines = params.get('max_lines', 500)
-        
+
         with open(file_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
-        
+
         total_lines = len(lines)
-        
+
         # Apply line range if specified
         if start_line > 1 or end_line:
             start_idx = max(0, start_line - 1)
             end_idx = min(total_lines, end_line) if end_line else total_lines
             lines = lines[start_idx:end_idx]
-        
+
         # Apply max_lines limit
         if len(lines) > max_lines:
             lines = lines[:max_lines]
             truncated = True
         else:
             truncated = False
-        
+
         content = ''.join(lines)
-        
+
         result = {
             "success": True,
             "file_path": file_path,
@@ -1059,40 +1084,41 @@ async def local_llm_read_file(params: dict) -> dict:
             "start_line": start_line,
             "end_line": end_line or total_lines
         }
-        
+
         logger.info(f"🎯 FINDER_TOKEN: MCP_READ_FILE_SUCCESS - {file_path} ({len(lines)} lines)")
         return result
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_READ_FILE_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
+
 async def local_llm_grep_logs(params: dict) -> dict:
     """Search logs with FINDER_TOKENs for debugging."""
     logger.info(f"🔧 FINDER_TOKEN: MCP_GREP_LOGS_START - {params.get('pattern') or params.get('search_term')}")
-    
+
     try:
         # Accept both 'pattern' (legacy) and 'search_term' (bracket format) parameters
         pattern = params.get('pattern') or params.get('search_term')
         if not pattern:
             return {"success": False, "error": "pattern or search_term parameter is required"}
-        
+
         file_path = params.get('file_path', 'logs/server.log')
         max_results = params.get('max_results', 50)
         context_lines = params.get('context_lines', 2)
-        
+
         if not os.path.exists(file_path):
             return {"success": False, "error": f"Log file not found: {file_path}"}
-        
+
         # Use grep command for efficient searching
         try:
             cmd = ['grep', '-n']
             if context_lines > 0:
                 cmd.extend(['-C', str(context_lines)])
             cmd.extend([pattern, file_path])
-            
+
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            
+
             if result.returncode == 0:
                 lines = result.stdout.strip().split('\n')
                 # Limit results
@@ -1101,7 +1127,7 @@ async def local_llm_grep_logs(params: dict) -> dict:
                     truncated = True
                 else:
                     truncated = False
-                
+
                 return {
                     "success": True,
                     "pattern": pattern,
@@ -1120,47 +1146,48 @@ async def local_llm_grep_logs(params: dict) -> dict:
                     "match_count": 0,
                     "message": "No matches found"
                 }
-                
+
         except subprocess.TimeoutExpired:
             return {"success": False, "error": "Grep operation timed out"}
         except FileNotFoundError:
             return {"success": False, "error": "grep command not found"}
-            
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_GREP_LOGS_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
+
 async def local_llm_list_files(params: dict) -> dict:
     """List files and directories for AI exploration."""
     logger.info(f"🔧 FINDER_TOKEN: MCP_LIST_FILES_START - {params.get('directory', '.')}")
-    
+
     try:
         directory = params.get('directory', '.')
         pattern = params.get('pattern', '*')
         include_hidden = params.get('include_hidden', False)
         max_files = params.get('max_files', 100)
-        
+
         # Security check
         abs_path = os.path.abspath(directory)
         project_root = os.path.abspath('.')
         if not abs_path.startswith(project_root):
             return {"success": False, "error": "Directory access outside project not allowed"}
-        
+
         if not os.path.exists(directory):
             return {"success": False, "error": f"Directory not found: {directory}"}
-        
+
         files = []
         dirs = []
-        
+
         try:
             entries = os.listdir(directory)
             for entry in entries:
                 if not include_hidden and entry.startswith('.'):
                     continue
-                    
+
                 full_path = os.path.join(directory, entry)
                 relative_path = os.path.relpath(full_path)
-                
+
                 if os.path.isdir(full_path):
                     dirs.append({
                         "name": entry,
@@ -1176,18 +1203,18 @@ async def local_llm_list_files(params: dict) -> dict:
                         "size": file_size,
                         "modified": os.path.getmtime(full_path)
                     })
-            
+
             # Sort and limit results
             dirs.sort(key=lambda x: x['name'])
             files.sort(key=lambda x: x['name'])
-            
+
             all_entries = dirs + files
             if len(all_entries) > max_files:
                 all_entries = all_entries[:max_files]
                 truncated = True
             else:
                 truncated = False
-            
+
             return {
                 "success": True,
                 "directory": directory,
@@ -1197,43 +1224,44 @@ async def local_llm_list_files(params: dict) -> dict:
                 "files": len(files),
                 "truncated": truncated
             }
-            
+
         except PermissionError:
             return {"success": False, "error": f"Permission denied accessing: {directory}"}
-            
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_LIST_FILES_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
+
 async def local_llm_get_context(params: dict) -> dict:
     """Local LLM helper: Get pre-seeded system context for immediate capability awareness"""
     try:
-        from pathlib import Path
         import json
-        
+        from pathlib import Path
+
         context_file = Path('data/local_llm_context.json')
-        
+
         # Ensure the data directory exists
         context_file.parent.mkdir(parents=True, exist_ok=True)
-        
+
         if not context_file.exists():
             return {
                 "success": False,
                 "error": "Context file not found - system may still be initializing",
                 "suggestion": "Wait a few seconds and try again"
             }
-        
+
         with open(context_file, 'r') as f:
             context_data = json.load(f)
-        
+
         logger.info(f"🔍 FINDER_TOKEN: LOCAL_LLM_CONTEXT_ACCESS - Context retrieved for local LLM")
-        
+
         return {
             "success": True,
             "context": context_data,
             "usage_note": "This context provides system overview and available tools for local LLM assistance"
         }
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: LOCAL_LLM_CONTEXT_ERROR - {e}")
         return {
@@ -1246,111 +1274,113 @@ async def local_llm_get_context(params: dict) -> dict:
 # 🧠 AI KEYCHAIN TOOLS - PERSISTENT MEMORY SYSTEM
 # ================================================================
 
+
 async def keychain_set(params: dict) -> dict:
     """Saves a persistent key-value message for future AI instances.
-    
+
     This is THE tool for leaving "messages in a bottle" for your future selves.
     Unlike temporary application state (db, pipeline), this keychain survives
     application resets and lives outside the normal application lifecycle.
-    
+
     Args:
         params: Dict containing:
             - key: The unique key to store the message under
             - value: The message/data to store (will be converted to string)
-    
+
     Returns:
         Dict with success status and confirmation details
     """
     logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_SET_START - {params.get('key', 'NO_KEY')}")
-    
+
     if not KEYCHAIN_AVAILABLE:
         return {
-            "success": False, 
+            "success": False,
             "error": "AI Keychain not available - keychain.py may not be properly initialized",
             "recovery_suggestion": "Check that keychain.py exists and keychain_instance is properly imported"
         }
-    
+
     try:
         key = params.get('key')
         value = params.get('value')
-        
+
         if not key:
             return {
-                "success": False, 
+                "success": False,
                 "error": "The 'key' parameter is required",
                 "usage": "keychain_set({'key': 'your_key', 'value': 'your_message'})"
             }
-        
+
         if value is None:
             return {
-                "success": False, 
+                "success": False,
                 "error": "The 'value' parameter is required",
                 "usage": "keychain_set({'key': 'your_key', 'value': 'your_message'})"
             }
-        
+
         # Convert value to string for consistent storage
         value_str = str(value)
-        
+
         # Store the key-value pair
         keychain_instance[key] = value_str
-        
+
         logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_SET_SUCCESS - Key '{key}' stored with {len(value_str)} characters")
-        
+
         return {
-            "success": True, 
-            "key": key, 
+            "success": True,
+            "key": key,
             "message": f"Message stored in persistent keychain under key '{key}'",
             "value_length": len(value_str),
             "total_keys": keychain_instance.count(),
             "usage_note": "This message will persist across application resets and be available to future AI instances"
         }
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_SET_ERROR - {e}")
         return {
-            "success": False, 
+            "success": False,
             "error": str(e),
             "recovery_suggestion": "Check keychain database permissions and disk space"
         }
 
+
 async def keychain_get(params: dict) -> dict:
     """Retrieves a persistent message from the keychain by key.
-    
+
     This is THE tool for reading "messages in a bottle" left by previous AI instances.
-    
+
     Args:
         params: Dict containing:
             - key: The unique key to retrieve the message for
-    
+
     Returns:
         Dict with success status and the stored message (if found)
     """
     logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_START - {params.get('key', 'NO_KEY')}")
-    
+
     if not KEYCHAIN_AVAILABLE:
         return {
-            "success": False, 
+            "success": False,
             "error": "AI Keychain not available - keychain.py may not be properly initialized"
         }
-    
+
     try:
         key = params.get('key')
-        
+
         if not key:
             return {
-                "success": False, 
+                "success": False,
                 "error": "The 'key' parameter is required",
                 "usage": "keychain_get({'key': 'your_key'})"
             }
-        
+
         # Try to retrieve the value
         value = keychain_instance.get(key)
-        
+
         if value is not None:
             logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_SUCCESS - Key '{key}' found with {len(value)} characters")
             return {
-                "success": True, 
-                "key": key, 
+                "success": True,
+                "key": key,
                 "value": value,
                 "value_length": len(value),
                 "message": f"Retrieved message from persistent keychain for key '{key}'"
@@ -1358,219 +1388,223 @@ async def keychain_get(params: dict) -> dict:
         else:
             logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_NOT_FOUND - Key '{key}' not found")
             return {
-                "success": False, 
-                "key": key, 
+                "success": False,
+                "key": key,
                 "error": f"Key '{key}' not found in keychain",
                 "suggestion": "Use keychain_list_keys() to see available keys"
             }
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_GET_ERROR - {e}")
         return {
-            "success": False, 
+            "success": False,
             "error": str(e),
             "recovery_suggestion": "Check keychain database accessibility"
         }
 
+
 async def keychain_delete(params: dict) -> dict:
     """Deletes a message from the persistent keychain.
-    
+
     Use this to clean up old messages or correct mistakes.
-    
+
     Args:
         params: Dict containing:
             - key: The unique key to delete
-    
+
     Returns:
         Dict with success status and confirmation details
     """
     logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_START - {params.get('key', 'NO_KEY')}")
-    
+
     if not KEYCHAIN_AVAILABLE:
         return {
-            "success": False, 
+            "success": False,
             "error": "AI Keychain not available - keychain.py may not be properly initialized"
         }
-    
+
     try:
         key = params.get('key')
-        
+
         if not key:
             return {
-                "success": False, 
+                "success": False,
                 "error": "The 'key' parameter is required",
                 "usage": "keychain_delete({'key': 'your_key'})"
             }
-        
+
         # Check if key exists before deletion
         if key in keychain_instance:
             del keychain_instance[key]
             logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_SUCCESS - Key '{key}' deleted")
             return {
-                "success": True, 
-                "key": key, 
+                "success": True,
+                "key": key,
                 "message": f"Key '{key}' deleted from persistent keychain",
                 "remaining_keys": keychain_instance.count()
             }
         else:
             logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_NOT_FOUND - Key '{key}' not found")
             return {
-                "success": False, 
-                "key": key, 
+                "success": False,
+                "key": key,
                 "error": f"Key '{key}' not found in keychain",
                 "suggestion": "Use keychain_list_keys() to see available keys"
             }
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_DELETE_ERROR - {e}")
         return {
-            "success": False, 
+            "success": False,
             "error": str(e),
             "recovery_suggestion": "Check keychain database permissions"
         }
 
+
 async def keychain_list_keys(params: dict) -> dict:
     """Lists all keys currently in the persistent AI keychain.
-    
+
     This is for 'rifling through' your memories - seeing what messages 
     past instances of yourself (or other AIs) have left for you.
-    
+
     Args:
         params: Dict (no parameters required)
-    
+
     Returns:
         Dict with success status and list of all available keys
     """
     logger.info("🧠 FINDER_TOKEN: KEYCHAIN_LIST_KEYS_START")
-    
+
     if not KEYCHAIN_AVAILABLE:
         return {
-            "success": False, 
+            "success": False,
             "error": "AI Keychain not available - keychain.py may not be properly initialized"
         }
-    
+
     try:
         keys = keychain_instance.keys()
-        
+
         logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_LIST_KEYS_SUCCESS - Found {len(keys)} keys")
-        
+
         return {
-            "success": True, 
-            "keys": keys, 
+            "success": True,
+            "keys": keys,
             "count": len(keys),
             "message": f"Found {len(keys)} keys in persistent keychain",
             "usage_note": "Use keychain_get() with any of these keys to retrieve stored messages"
         }
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_LIST_KEYS_ERROR - {e}")
         return {
-            "success": False, 
+            "success": False,
             "error": str(e),
             "recovery_suggestion": "Check keychain database accessibility"
         }
 
+
 async def keychain_get_all(params: dict) -> dict:
     """Retrieves all key-value pairs from the keychain.
-    
+
     Use cautiously with large stores - this returns everything at once.
     Good for getting complete context or doing bulk analysis.
-    
+
     Args:
         params: Dict containing:
             - limit: Optional maximum number of items to return (default: no limit)
-    
+
     Returns:
         Dict with success status and all key-value pairs
     """
     logger.info("🧠 FINDER_TOKEN: KEYCHAIN_GET_ALL_START")
-    
+
     if not KEYCHAIN_AVAILABLE:
         return {
-            "success": False, 
+            "success": False,
             "error": "AI Keychain not available - keychain.py may not be properly initialized"
         }
-    
+
     try:
         items = dict(keychain_instance.items())
         limit = params.get('limit')
-        
+
         # Apply limit if specified
         if limit and isinstance(limit, int) and limit > 0:
             items = dict(list(items.items())[:limit])
             truncated = len(keychain_instance.items()) > limit
         else:
             truncated = False
-        
+
         logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_ALL_SUCCESS - Retrieved {len(items)} items")
-        
+
         return {
-            "success": True, 
-            "keychain": items, 
+            "success": True,
+            "keychain": items,
             "count": len(items),
             "total_available": keychain_instance.count(),
             "truncated": truncated,
             "message": f"Retrieved {len(items)} key-value pairs from persistent keychain"
         }
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: KEYCHAIN_GET_ALL_ERROR - {e}")
         return {
-            "success": False, 
+            "success": False,
             "error": str(e),
             "recovery_suggestion": "Check keychain database accessibility"
         }
 
+
 async def execute_ai_session_hijacking_demonstration(params: dict) -> dict:
     """
     🎭 MAGIC WORDS MCP TOOL: Execute AI session hijacking demonstration protocol
-    
+
     This tool triggers the SIMPLE AI session hijacking demonstration using our new
     execute_complete_session_hijacking function with NO parameters needed.
-    
+
     This is the "canned way" to demonstrate AI capabilities without any configuration.
     It loads the proper documentation automatically and provides context to LLM.
-    
+
     Returns:
     - Simple hijacking results and DOM injection for LLM context
     """
     try:
         trigger_source = params.get("trigger_source", "mcp_tool")
         logger.info(f"🎭 FINDER_TOKEN: MCP_MAGIC_WORDS - AI session hijacking demonstration triggered by {trigger_source}")
-        
+
         # 🚀 EXECUTE OUR NEW SIMPLE HIJACKING (no parameters, all defaults set correctly)
         logger.info("🎭 FINDER_TOKEN: MAGIC_WORDS_SIMPLE_HIJACK - Executing 1-shot session hijacking")
-        
+
         # Add dramatic delay so humans can see the breadcrumb sequence
         import asyncio
         await asyncio.sleep(2)  # Let humans read the startup sequence
-        
+
         hijack_result = await execute_complete_session_hijacking({})
-        
+
         # Check if server module is available for conversation injection
         import sys
         server_module = sys.modules.get('server')
         server_available = bool(server_module)
-        
+
         if server_available:
             # Server is running - inject into conversation
             read_training = getattr(server_module, 'read_training', None)
             append_to_conversation = getattr(server_module, 'append_to_conversation', None)
-            
+
             if read_training and append_to_conversation:
                 # 🎭 MAGIC WORDS ACKNOWLEDGMENT
                 append_to_conversation("🎭 **MAGIC WORDS DETECTED!** Executing session hijacking demonstration using the new SIMPLE pattern...", 'system')
-                
+
                 # Load our NEW simple documentation
                 simple_hijack_docs = read_training("ai_discovery/ai_1_shot_session_hijacking_mastery.md")
-                
+
                 # Load the updated session hijacking message
                 session_context = read_training("ai_discovery/ai_session_hijacking_message.md")
-                
+
                 # Add all context to conversation
                 append_to_conversation(simple_hijack_docs, 'system')
                 append_to_conversation(session_context, 'system')
-                
+
                 # Add the hijacking results summary
                 if hijack_result.get('success'):
                     success_msg = f"""🎭 **SESSION HIJACKING EXECUTED!** Result: Success = {hijack_result.get('success')}
@@ -1588,9 +1622,9 @@ print(f'🎭 Hijack: {{result.get("success")}}')
 ```
 
 ✅ **NO COMPLEX STEPS, NO ABILITY TO SCREW UP - JUST MAGIC!**"""
-                    
+
                     append_to_conversation(success_msg, 'assistant')
-        
+
         return {
             "success": True,
             "message": "🎭 Simple session hijacking demonstration completed!",
@@ -1601,7 +1635,7 @@ print(f'🎭 Hijack: {{result.get("success")}}')
             "instructions": "The simple pattern executed successfully. Use execute_complete_session_hijacking({}) for rigged success!",
             "next_step": "Check browser_automation/looking_at/ for evidence, then verify with user's data if available"
         }
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_MAGIC_WORDS_ERROR - {e}")
         return {
@@ -1610,28 +1644,29 @@ print(f'🎭 Hijack: {{result.get("success")}}')
             "message": "Failed to execute simple session hijacking demonstration"
         }
 
+
 async def ui_flash_element(params: dict) -> dict:
     """Flash a UI element by ID to draw user attention.
-    
+
     Args:
         params: Dict containing:
             - element_id: The DOM ID of the element to flash
             - message: Optional message to display in chat
             - delay: Optional delay in milliseconds (default: 0)
-    
+
     Returns:
         Dict with success status and details
     """
     element_id = params.get('element_id', '').strip()
     message = params.get('message', '').strip()
     delay = params.get('delay', 0)
-    
+
     if not element_id:
         return {
             "success": False,
             "error": "element_id is required"
         }
-    
+
     try:
         # Create JavaScript to flash the element 10 times for teaching emphasis
         flash_script = f"""
@@ -1678,7 +1713,7 @@ async def ui_flash_element(params: dict) -> dict:
         }}, {delay});
         </script>
         """
-        
+
         # Send the script via chat - use global chat instance
         # The chat instance is available globally after server startup
         import sys
@@ -1689,7 +1724,7 @@ async def ui_flash_element(params: dict) -> dict:
                 logger.info(f"🔔 UI FLASH: Broadcasting script via global chat for element: {element_id}")
                 # Send script to execute the flash
                 await chat.broadcast(flash_script)
-                
+
                 # Send optional message
                 if message:
                     await chat.broadcast(message)
@@ -1697,54 +1732,55 @@ async def ui_flash_element(params: dict) -> dict:
                 logger.warning(f"🔔 UI FLASH: Global chat not available for element: {element_id}")
         else:
             logger.error(f"🔔 UI FLASH: No chat instance available for element: {element_id}")
-        
+
         return {
             "success": True,
             "element_id": element_id,
             "message": message if message else f"Flashed element: {element_id} (10x teaching mode)",
             "delay": delay
         }
-        
+
     except Exception as e:
         return {
             "success": False,
             "error": f"Failed to flash element: {str(e)}"
         }
 
+
 async def voice_synthesis(params: dict) -> dict:
     """Synthesize speech using Chip O'Theseus voice system.
-    
+
     Args:
         params: Dictionary containing:
             - text (str): Text to synthesize into speech
-            
+
     Returns:
         Dict with synthesis result and status
     """
     try:
         text = params.get('text', '')
-        
+
         if not text:
             return {
                 "success": False,
                 "error": "No text provided for voice synthesis"
             }
-        
+
         if not VOICE_SYNTHESIS_AVAILABLE:
             return {
                 "success": False,
                 "error": "Voice synthesis not available - missing dependencies"
             }
-        
+
         if not chip_voice_system or not chip_voice_system.voice_ready:
             return {
                 "success": False,
                 "error": "Voice system not ready - check model initialization"
             }
-        
+
         # Synthesize speech
         result = chip_voice_system.speak_text(text)
-        
+
         if result.get("success"):
             return {
                 "success": True,
@@ -1757,16 +1793,17 @@ async def voice_synthesis(params: dict) -> dict:
                 "success": False,
                 "error": f"Voice synthesis failed: {result.get('error', 'Unknown error')}"
             }
-            
+
     except Exception as e:
         return {
             "success": False,
             "error": f"Voice synthesis error: {str(e)}"
         }
 
+
 async def ui_list_elements(params: dict) -> dict:
     """List common UI element IDs that can be flashed for user guidance.
-    
+
     Returns:
         Dict with categorized UI element IDs and descriptions
     """
@@ -1774,7 +1811,7 @@ async def ui_list_elements(params: dict) -> dict:
         ui_elements = {
             "navigation": {
                 "profile-id": "Profile dropdown menu summary",
-                "app-id": "App dropdown menu summary", 
+                "app-id": "App dropdown menu summary",
                 "nav-plugin-search": "Plugin search input field",
                 "search-results-dropdown": "Plugin search results dropdown"
             },
@@ -1797,45 +1834,46 @@ async def ui_list_elements(params: dict) -> dict:
                 "default-button": "Reset to default roles button"
             }
         }
-        
+
         return {
             "success": True,
             "ui_elements": ui_elements,
             "note": "Use ui_flash_element tool with any of these IDs to guide users"
         }
-        
+
     except Exception as e:
         return {
             "success": False,
             "error": f"Failed to list UI elements: {str(e)}"
         }
 
+
 async def browser_analyze_scraped_page(params: dict) -> dict:
     """
     MCP Tool: AI BRAIN - Analyze current /looking_at/ page state for automation opportunities.
-    
+
     Analyzes the current page state captured in /browser_automation/looking_at/
     to identify automation targets, form elements, and interaction opportunities.
-    
+
     Now includes ENHANCED DOM PROCESSING for automation assistant functionality!
-    
+
     Args:
         params: {
             "analysis_type": "form_elements" | "navigation" | "automation_targets" | "all" | "enhanced",
             "use_backup_id": "domain_com_2025-01-11_14-30-15",  # Optional: analyze backup instead
             "include_automation_assistant": True  # Optional: generate automation shortcuts
         }
-    
+
     Returns:
         dict: Analysis results with actionable automation data + automation assistant files
     """
     logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_ANALYZE_START - Analysis: {params.get('analysis_type', 'automation_targets')}")
-    
+
     try:
         analysis_type = params.get('analysis_type', 'automation_targets')
         backup_id = params.get('use_backup_id')
         include_automation_assistant = params.get('include_automation_assistant', True)
-        
+
         # Determine which HTML file to analyze
         if backup_id:
             # Analyze backup file
@@ -1847,25 +1885,25 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
             html_file = "browser_automation/looking_at/simple_dom.html"
             if not os.path.exists(html_file):
                 return {"success": False, "error": "No current page state found. Use browser_scrape_page first to capture page state."}
-        
+
         with open(html_file, 'r', encoding='utf-8') as f:
             html_content = f.read()
-            
+
         try:
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(html_content, 'html.parser')
         except ImportError:
             return {"success": False, "error": "BeautifulSoup not available for HTML parsing"}
-        
+
         # === ACCESSIBILITY TREE LOADING (optional) ===
         accessibility_tree_data = None
         accessibility_tree_file = None
-        
+
         if backup_id:
             accessibility_tree_file = f"downloads/browser_scrapes/{backup_id}/accessibility_tree.json"
         else:
             accessibility_tree_file = "browser_automation/looking_at/accessibility_tree.json"
-            
+
         if os.path.exists(accessibility_tree_file):
             try:
                 with open(accessibility_tree_file, 'r', encoding='utf-8') as f:
@@ -1877,18 +1915,19 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
         else:
             logger.info(f"🌳 FINDER_TOKEN: ACCESSIBILITY_TREE_NOT_FOUND - No accessibility tree available at {accessibility_tree_file}")
             accessibility_tree_data = None
-        
+
         # === ENHANCED DOM PROCESSING INTEGRATION ===
         automation_assistant_result = None
         if include_automation_assistant and analysis_type in ["all", "enhanced"]:
             try:
-                from helpers.dom_processing.enhanced_dom_processor import process_current_looking_at
+                from helpers.dom_processing.enhanced_dom_processor import \
+                    process_current_looking_at
                 logger.info("🎯 FINDER_TOKEN: ENHANCED_DOM_PROCESSING_START - Generating automation assistant files")
                 automation_assistant_result = process_current_looking_at()
                 logger.info(f"✅ FINDER_TOKEN: ENHANCED_DOM_PROCESSING_SUCCESS - Generated {len(automation_assistant_result.get('cleaned_files', []))} automation files")
             except Exception as e:
                 logger.warning(f"⚠️ FINDER_TOKEN: ENHANCED_DOM_PROCESSING_WARNING - Could not generate automation assistant: {e}")
-        
+
         if analysis_type == "enhanced":
             # Return enhanced automation assistant analysis
             if automation_assistant_result:
@@ -1905,7 +1944,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                 }
             else:
                 return {"success": False, "error": "Enhanced DOM processing failed"}
-        
+
         elif analysis_type == "form_elements":
             # Find all forms and their elements
             forms = []
@@ -1916,7 +1955,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                     'method': form.get('method', 'GET'),
                     'elements': []
                 }
-                
+
                 for element in form.find_all(['input', 'button', 'select', 'textarea']):
                     element_data = {
                         'tag': element.name,
@@ -1929,16 +1968,16 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                         'text': element.get_text(strip=True)
                     }
                     form_data['elements'].append(element_data)
-                    
+
                 forms.append(form_data)
-                
+
             result = {
                 "success": True,
                 "analysis_type": analysis_type,
                 "forms": forms,
                 "form_count": len(forms)
             }
-            
+
         elif analysis_type == "automation_targets":
             # Find all elements with automation-friendly attributes
             targets = []
@@ -1954,7 +1993,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                         'selector_priority': 'high' if element.get('data-testid') else 'medium' if element.get('id') else 'low'
                     }
                     targets.append(target)
-                    
+
             result = {
                 "success": True,
                 "analysis_type": analysis_type,
@@ -1962,7 +2001,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                 "target_count": len(targets),
                 "high_priority_targets": len([t for t in targets if t['selector_priority'] == 'high'])
             }
-            
+
         elif analysis_type == "accessibility":
             # Accessibility analysis using accessibility tree if available
             if not accessibility_tree_data:
@@ -1970,7 +2009,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                     "success": False,
                     "error": "No accessibility tree data available. Accessibility tree extraction may have failed during page scrape."
                 }
-            
+
             # Extract accessibility information from the tree
             accessibility_info = {
                 "nodes": [],
@@ -1978,10 +2017,10 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                 "issues": [],
                 "screen_reader_friendly": True
             }
-            
+
             if accessibility_tree_data.get("success"):
                 nodes = accessibility_tree_data.get("accessibility_tree", [])
-                
+
                 for node in nodes:
                     # Extract key accessibility properties
                     node_info = {
@@ -1992,7 +2031,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                         "value": node.get("value", {}).get("value"),
                         "properties": []
                     }
-                    
+
                     # Extract properties
                     for prop in node.get("properties", []):
                         prop_info = {
@@ -2000,17 +2039,17 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                             "value": prop.get("value", {}).get("value")
                         }
                         node_info["properties"].append(prop_info)
-                    
+
                     accessibility_info["nodes"].append(node_info)
-                    
+
                     # Count roles for analysis
                     role = node_info["role"]
                     if role:
                         accessibility_info["roles"][role] = accessibility_info["roles"].get(role, 0) + 1
-                
+
                 # Basic accessibility analysis
                 issues = []
-                
+
                 # Check for images without alt text
                 for node in accessibility_info["nodes"]:
                     if node.get("role") == "image":
@@ -2022,7 +2061,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                                 "message": "Image without accessible name (alt text)",
                                 "node_id": node.get("nodeId")
                             })
-                
+
                 # Check for buttons without labels
                 for node in accessibility_info["nodes"]:
                     if node.get("role") == "button":
@@ -2034,7 +2073,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                                 "message": "Button without accessible name",
                                 "node_id": node.get("nodeId")
                             })
-                
+
                 # Check for form inputs without labels
                 for node in accessibility_info["nodes"]:
                     if node.get("role") in ["textbox", "combobox", "checkbox", "radio"]:
@@ -2046,10 +2085,10 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                                 "message": f"Form input ({node.get('role')}) without accessible name",
                                 "node_id": node.get("nodeId")
                             })
-                
+
                 accessibility_info["issues"] = issues
                 accessibility_info["screen_reader_friendly"] = len([i for i in issues if i["severity"] == "error"]) == 0
-                
+
                 result = {
                     "success": True,
                     "analysis_type": "accessibility",
@@ -2075,11 +2114,11 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                     "success": False,
                     "error": f"Accessibility tree extraction failed: {accessibility_tree_data.get('error', 'Unknown error')}"
                 }
-            
+
         elif analysis_type == "all":
             # Comprehensive analysis - all types
             all_results = {}
-            
+
             # Forms analysis
             forms = []
             for form in soup.find_all('form'):
@@ -2089,7 +2128,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                     'method': form.get('method', 'GET'),
                     'elements': []
                 }
-                
+
                 for element in form.find_all(['input', 'button', 'select', 'textarea']):
                     element_data = {
                         'tag': element.name,
@@ -2102,9 +2141,9 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                         'text': element.get_text(strip=True)
                     }
                     form_data['elements'].append(element_data)
-                    
+
                 forms.append(form_data)
-            
+
             # Automation targets
             targets = []
             for element in soup.find_all():
@@ -2119,7 +2158,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                         'selector_priority': 'high' if element.get('data-testid') else 'medium' if element.get('id') else 'low'
                     }
                     targets.append(target)
-            
+
             result = {
                 "success": True,
                 "analysis_type": "comprehensive",
@@ -2130,7 +2169,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                 "high_priority_targets": len([t for t in targets if t['selector_priority'] == 'high']),
                 "analyzed_file": html_file
             }
-            
+
             # Add accessibility analysis to comprehensive results
             if accessibility_tree_data and accessibility_tree_data.get("success"):
                 accessibility_info = {
@@ -2138,9 +2177,9 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                     "roles": {},
                     "issues": []
                 }
-                
+
                 nodes = accessibility_tree_data.get("accessibility_tree", [])
-                
+
                 for node in nodes:
                     # Extract key accessibility properties
                     node_info = {
@@ -2151,7 +2190,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                         "value": node.get("value", {}).get("value"),
                         "properties": []
                     }
-                    
+
                     # Extract properties
                     for prop in node.get("properties", []):
                         prop_info = {
@@ -2159,17 +2198,17 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                             "value": prop.get("value", {}).get("value")
                         }
                         node_info["properties"].append(prop_info)
-                    
+
                     accessibility_info["nodes"].append(node_info)
-                    
+
                     # Count roles for analysis
                     role = node_info["role"]
                     if role:
                         accessibility_info["roles"][role] = accessibility_info["roles"].get(role, 0) + 1
-                
+
                 # Basic accessibility analysis
                 issues = []
-                
+
                 # Check for images without alt text
                 for node in accessibility_info["nodes"]:
                     if node.get("role") == "image":
@@ -2181,7 +2220,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                                 "message": "Image without accessible name (alt text)",
                                 "node_id": node.get("nodeId")
                             })
-                
+
                 # Check for buttons without labels
                 for node in accessibility_info["nodes"]:
                     if node.get("role") == "button":
@@ -2193,7 +2232,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                                 "message": "Button without accessible name",
                                 "node_id": node.get("nodeId")
                             })
-                
+
                 # Check for form inputs without labels
                 for node in accessibility_info["nodes"]:
                     if node.get("role") in ["textbox", "combobox", "checkbox", "radio"]:
@@ -2201,13 +2240,13 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                         if not has_name:
                             issues.append({
                                 "type": "unlabeled_form_input",
-                                "severity": "error", 
+                                "severity": "error",
                                 "message": f"Form input ({node.get('role')}) without accessible name",
                                 "node_id": node.get("nodeId")
                             })
-                
+
                 accessibility_info["issues"] = issues
-                
+
                 result["accessibility"] = {
                     "available": True,
                     "total_nodes": len(accessibility_info["nodes"]),
@@ -2230,40 +2269,41 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                     "available": False,
                     "reason": "No accessibility tree data available or extraction failed"
                 }
-            
+
             # Add automation assistant data if available
             if automation_assistant_result:
                 result["automation_assistant"] = automation_assistant_result
                 result["automation_ready"] = automation_assistant_result.get('automation_ready', False)
                 result["automation_strategy"] = automation_assistant_result.get('automation_hints', {}).get('automation_strategy', 'unknown')
                 result["generated_files"] = automation_assistant_result.get('cleaned_files', [])
-        
+
         else:
             result = {"success": False, "error": f"Unknown analysis_type: {analysis_type}"}
-            
+
         logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_ANALYZE_SUCCESS - {result.get('target_count', 0)} targets, {result.get('form_count', 0)} forms")
         return result
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_ANALYZE_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
+
 async def browser_scrape_page(params: dict) -> dict:
     """
     MCP Tool: AI EYES - Scrape a web page and save to /looking_at/ for AI perception.
-    
+
     This is the AI's primary sensory interface - captures current browser state
     into the /browser_automation/looking_at/ directory for AI analysis.
-    
+
     Uses subprocess to avoid threading conflicts with the main server event loop.
-    
+
     Saves to /looking_at/:
     - headers.json - HTTP headers and metadata
     - source.html - Raw page source before JavaScript  
     - dom.html - Full JavaScript-rendered DOM state (HTMX and all)
     - simple_dom.html - Distilled DOM for context window consumption
     - screenshot.png - Visual representation (if enabled)
-    
+
     Args:
         params: {
             "url": "https://example.com",  # Required: URL to scrape
@@ -2271,7 +2311,7 @@ async def browser_scrape_page(params: dict) -> dict:
             "take_screenshot": True,       # Optional: capture visual state
             "update_looking_at": True      # Optional: update /looking_at/ directory
         }
-    
+
     Returns:
         dict: {
             "success": True,
@@ -2290,59 +2330,50 @@ async def browser_scrape_page(params: dict) -> dict:
             }
         }
     """
+    import asyncio
     import json
     import os
-    import asyncio
     import subprocess
     import tempfile
     from datetime import datetime
     from pathlib import Path
-    
+
     logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_SCRAPE_START - URL: {params.get('url')} (subprocess mode)")
-    
+
     try:
         url = params.get('url')
         wait_seconds = params.get('wait_seconds', 3)
         take_screenshot = params.get('take_screenshot', True)
         update_looking_at = params.get('update_looking_at', True)
-        
+
         # === AGGRESSIVE URL VALIDATION BEFORE BROWSER OPENING ===
         if not url:
             return {"success": False, "error": "URL parameter is required"}
-        
+
         # Validate URL format BEFORE opening browser
         if not isinstance(url, str):
             return {"success": False, "error": f"URL must be a string, got: {type(url)}"}
-        
+
         if not url.strip():
             return {"success": False, "error": "URL is empty or whitespace only"}
-        
-        # Check for invalid URL patterns that cause data: URLs
-        invalid_patterns = [
-            'data:',
-            'about:',
-            'chrome:',
-            'file:',
-            'javascript:',
-            'mailto:',
-            'tel:',
-            'ftp:'
-        ]
-        
-        for pattern in invalid_patterns:
+
+            # Check for invalid URL patterns that cause data: URLs
+        from config import INVALID_URL_PATTERNS
+
+        for pattern in INVALID_URL_PATTERNS:
             if url.lower().startswith(pattern):
                 return {"success": False, "error": f"Invalid URL scheme detected: {pattern}. URL: {url}"}
-        
+
         # Validate URL structure
         if not url.startswith(('http://', 'https://')):
             return {"success": False, "error": f"URL must start with http:// or https://. Got: {url}"}
-        
+
         # Check for malformed localhost URLs
         import re
         if 'localhost' in url or '127.0.0.1' in url:
             if not re.match(r'^https?://(localhost|127\.0\.0\.1)(:\d+)?(/.*)?$', url):
                 return {"success": False, "error": f"Malformed localhost URL: {url}"}
-        
+
         # Check for empty hostname
         try:
             from urllib.parse import urlparse
@@ -2351,25 +2382,25 @@ async def browser_scrape_page(params: dict) -> dict:
                 return {"success": False, "error": f"URL has no hostname: {url}"}
         except Exception as e:
             return {"success": False, "error": f"URL parsing failed: {url}. Error: {e}"}
-        
+
         logger.info(f"✅ FINDER_TOKEN: URL_VALIDATION_PASSED | URL validated: {url}")
-            
+
         # === DIRECTORY ROTATION BEFORE NEW BROWSER SCRAPE ===
         # Rotate looking_at directory to preserve AI perception history
         # rotate_looking_at_directory is now defined locally in this module
-        
+
         rotation_success = rotate_looking_at_directory(
             looking_at_path=Path('browser_automation/looking_at'),
             max_rolled_dirs=MAX_ROLLED_LOOKING_AT_DIRS
         )
-        
+
         if not rotation_success:
             logger.warning("⚠️ FINDER_TOKEN: DIRECTORY_ROTATION_WARNING - Directory rotation failed, continuing with scrape")
-            
+
         # Set up the /looking_at/ directory - AI's primary perception interface
         looking_at_dir = 'browser_automation/looking_at'
         os.makedirs(looking_at_dir, exist_ok=True)
-        
+
         # Also create timestamped backup in downloads for history
         parsed = urlparse(url)
         domain_safe = parsed.netloc.replace('.', '_').replace(':', '_')
@@ -2377,7 +2408,7 @@ async def browser_scrape_page(params: dict) -> dict:
         scrape_id = f"{domain_safe}_{timestamp}"
         backup_dir = os.path.join('downloads/browser_scrapes', scrape_id)
         os.makedirs(backup_dir, exist_ok=True)
-        
+
         # === SUBPROCESS BROWSER AUTOMATION TO AVOID THREADING ISSUES ===
         # Create a Python script to run the browser automation in a separate process
         browser_script = f'''
@@ -2606,16 +2637,16 @@ if __name__ == "__main__":
     result = run_browser_automation()
     print(f"SUBPROCESS_RESULT:{{json.dumps(result)}}")
 '''
-        
+
         # Write the browser script to a temporary file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as script_file:
             script_file.write(browser_script)
             script_path = script_file.name
-        
+
         try:
             # Run the browser automation in subprocess
             logger.info(f"🔄 FINDER_TOKEN: SUBPROCESS_BROWSER_START - Running browser automation in separate process")
-            
+
             # Use asyncio.create_subprocess_exec for async subprocess
             process = await asyncio.create_subprocess_exec(
                 '.venv/bin/python', script_path,
@@ -2623,7 +2654,7 @@ if __name__ == "__main__":
                 stderr=asyncio.subprocess.PIPE,
                 cwd=os.getcwd()
             )
-            
+
             # Wait for completion with timeout
             try:
                 stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60.0)
@@ -2634,11 +2665,11 @@ if __name__ == "__main__":
                     "success": False,
                     "error": "Browser automation timed out after 60 seconds"
                 }
-            
+
             # Parse the result from subprocess output
             output = stdout.decode('utf-8')
             error_output = stderr.decode('utf-8')
-            
+
             if process.returncode != 0:
                 logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_ERROR - Return code: {process.returncode}")
                 logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_STDERR - {error_output}")
@@ -2646,20 +2677,20 @@ if __name__ == "__main__":
                     "success": False,
                     "error": f"Subprocess failed with return code {process.returncode}: {error_output}"
                 }
-            
+
             # Extract result from subprocess output
             result_line = None
             for line in output.split('\n'):
                 if line.startswith('SUBPROCESS_RESULT:'):
                     result_line = line.replace('SUBPROCESS_RESULT:', '')
                     break
-            
+
             if result_line:
                 subprocess_result = json.loads(result_line)
-                
+
                 if subprocess_result.get('success'):
                     logger.info(f"✅ FINDER_TOKEN: SUBPROCESS_BROWSER_SUCCESS - Browser automation completed")
-                    
+
                     # Build the final result structure
                     looking_at_files = {
                         "headers": f"{looking_at_dir}/headers.json",
@@ -2668,10 +2699,10 @@ if __name__ == "__main__":
                         "simple_dom": f"{looking_at_dir}/simple_dom.html",
                         "accessibility_tree": f"{looking_at_dir}/accessibility_tree.json"
                     }
-                    
+
                     if take_screenshot:
                         looking_at_files["screenshot"] = f"{looking_at_dir}/screenshot.png"
-                    
+
                     return {
                         "success": True,
                         "url": subprocess_result.get('url', url),
@@ -2691,14 +2722,14 @@ if __name__ == "__main__":
                     "success": False,
                     "error": f"No result found in subprocess output: {output}"
                 }
-                
+
         finally:
             # Clean up the temporary script file
             try:
                 os.unlink(script_path)
             except:
                 pass
-                
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_BROWSER_EXCEPTION - {e}")
         return {
@@ -2706,22 +2737,23 @@ if __name__ == "__main__":
             "error": f"Browser automation subprocess failed: {str(e)}"
         }
 
+
 async def browser_automate_workflow_walkthrough(params: dict) -> dict:
     """
     MCP Tool: AI HANDS - Complete Workflow Automation Walkthrough
-    
+
     This is the AI's motor interface - uses browser automation to walk through
     entire plugin workflows from start to finish. Updates /looking_at/ directory
     at each step for continuous AI perception.
-    
+
     The ultimate test of automation readiness - actually USING the improved components
     and providing real-time feedback on automation success/failure.
     """
     try:
+        import re
         import tempfile
         import time
         from pathlib import Path
-        import re
         from urllib.parse import urlparse
 
         from selenium import webdriver
@@ -2729,15 +2761,15 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         from selenium.webdriver.common.by import By
         from selenium.webdriver.support import expected_conditions as EC
         from selenium.webdriver.support.ui import WebDriverWait
-        
+
         plugin_filename = params.get("plugin_filename", "")
         base_url = params.get("base_url", "http://localhost:5001")
         take_screenshots = params.get("take_screenshots", True)
         use_existing_pipeline_id = params.get("use_existing_pipeline_id", False)
-        
+
         if not plugin_filename:
             return {"success": False, "error": "plugin_filename is required"}
-        
+
         # === AGGRESSIVE URL VALIDATION BEFORE BROWSER OPENING ===
         # Map plugin filename to app name and construct URL
         plugin_name = plugin_filename.replace('plugins/', '').replace('.py', '')
@@ -2767,7 +2799,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         app_name = plugin_to_app_mapping.get(plugin_name, plugin_name)
         plugin_url = f"{base_url}/{app_name}"
         logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_MAPPING | Plugin: {plugin_name} -> App: {app_name} -> URL: {plugin_url}")
-        
+
         # Aggressive URL validation
         if not plugin_url:
             return {"success": False, "error": "No valid plugin URL could be determined"}
@@ -2775,10 +2807,8 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             return {"success": False, "error": f"Plugin URL must be a string, got: {type(plugin_url)}"}
         if not plugin_url.strip():
             return {"success": False, "error": "Plugin URL is empty or whitespace only"}
-        invalid_patterns = [
-            'data:', 'about:', 'chrome:', 'file:', 'javascript:', 'mailto:', 'tel:', 'ftp:'
-        ]
-        for pattern in invalid_patterns:
+        from config import INVALID_URL_PATTERNS
+        for pattern in INVALID_URL_PATTERNS:
             if plugin_url.lower().startswith(pattern):
                 return {"success": False, "error": f"Invalid URL scheme detected: {pattern}. URL: {plugin_url}"}
         if not plugin_url.startswith(('http://', 'https://')):
@@ -2799,28 +2829,28 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         # Rotate looking_at directory to preserve AI workflow history
         # rotate_looking_at_directory is now defined locally in this module
         from pathlib import Path
-        
+
         rotation_success = rotate_looking_at_directory(
             looking_at_path=Path('browser_automation/looking_at'),
             max_rolled_dirs=MAX_ROLLED_LOOKING_AT_DIRS
         )
-        
+
         if not rotation_success:
             logger.warning("⚠️ FINDER_TOKEN: WORKFLOW_DIRECTORY_ROTATION_WARNING - Directory rotation failed, continuing with workflow")
-            
+
         logger.info(f"🚀 FINDER_TOKEN: WORKFLOW_AUTOMATION_START | Starting workflow walkthrough for {plugin_filename}")
-        
+
         # KILL ALL HUNG CHROMIUM INSTANCES FIRST - BUT ONLY AUTOMATION INSTANCES
-        import subprocess
         import signal
-        
+        import subprocess
+
         try:
             # Kill any existing chromedriver processes
             subprocess.run(['pkill', '-f', 'chromedriver'], capture_output=True)
             logger.info("🔪 FINDER_TOKEN: WORKFLOW_CHROMEDRIVER_CLEANUP - Killed existing chromedriver processes")
         except Exception as e:
             logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CHROMEDRIVER_CLEANUP_WARNING - Error killing chromedriver: {e}")
-        
+
         try:
             # Kill only hung Chromium automation instances (not user's main Chrome)
             # Look for automation-specific patterns in command line
@@ -2831,8 +2861,8 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                     if pid.strip():
                         try:
                             # Verify this is actually an automation instance before killing
-                            cmdline_check = subprocess.run(['ps', '-p', pid, '-o', 'cmd', '--no-headers'], 
-                                                         capture_output=True, text=True)
+                            cmdline_check = subprocess.run(['ps', '-p', pid, '-o', 'cmd', '--no-headers'],
+                                                           capture_output=True, text=True)
                             if 'temp' in cmdline_check.stdout and '--user-data-dir' in cmdline_check.stdout:
                                 os.kill(int(pid), signal.SIGKILL)
                                 logger.info(f"🔪 FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP - Killed automation Chromium PID: {pid}")
@@ -2840,14 +2870,14 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                             logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error killing PID {pid}: {e}")
         except Exception as e:
             logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_AUTOMATION_CHROMIUM_CLEANUP_WARNING - Error finding automation Chromium processes: {e}")
-        
+
         # ENHANCED CHROME OPTIONS FOR WORKFLOW AUTOMATION ISOLATION
         options = Options()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--window-size=1920,1080')
         options.add_argument('--start-maximized')  # Ensure browser is visible
-        
+
         # CRITICAL ISOLATION PARAMETERS FOR WORKFLOW AUTOMATION
         options.add_argument('--no-first-run')  # Skip first run setup
         options.add_argument('--no-default-browser-check')  # Skip default browser check
@@ -2859,19 +2889,19 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         options.add_argument('--disable-ipc-flooding-protection')  # Allow rapid IPC
         options.add_argument('--disable-web-security')  # Allow localhost access
         options.add_argument('--allow-running-insecure-content')  # Allow HTTP
-        
+
         # UNIQUE SESSION ISOLATION FOR WORKFLOW
         workflow_profile_dir = tempfile.mkdtemp(prefix='pipulate_workflow_automation_')
         options.add_argument(f'--user-data-dir={workflow_profile_dir}')
-        
+
         # REMOTE DEBUGGING PORT FOR WORKFLOW ISOLATION (find an unused port)
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind(('', 0))
             workflow_debug_port = s.getsockname()[1]
         options.add_argument(f'--remote-debugging-port={workflow_debug_port}')
-        
+
         logger.info(f"🔧 FINDER_TOKEN: WORKFLOW_BROWSER_ISOLATION - Profile: {workflow_profile_dir}, Debug port: {workflow_debug_port}")
-        
+
         # Create browser with enhanced error handling
         try:
             driver = webdriver.Chrome(options=options)
@@ -2879,12 +2909,12 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         except Exception as browser_error:
             logger.error(f"❌ FINDER_TOKEN: WORKFLOW_BROWSER_CREATION_FAILED - {browser_error}")
             return {"success": False, "error": f"Failed to create workflow browser instance: {browser_error}"}
-        
+
         # Verify browser is responsive before proceeding
         try:
             initial_url = driver.current_url
             logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_BROWSER_INITIAL_STATE - Initial URL: {initial_url}")
-            
+
             # Check if browser window is valid
             if initial_url.startswith('data:'):
                 logger.error(f"❌ FINDER_TOKEN: WORKFLOW_INVALID_INITIAL_STATE - Browser started with data: URL: {initial_url}")
@@ -2901,25 +2931,25 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             return {"success": False, "error": f"Workflow browser state check failed: {state_error}"}
         driver.maximize_window()
         driver.set_page_load_timeout(30)  # Increased timeout for localhost
-        driver.implicitly_wait(10)  # Increased implicit wait 
+        driver.implicitly_wait(10)  # Increased implicit wait
         driver.set_script_timeout(15)  # Increased script timeout
-        
+
         screenshots = []
         workflow_steps = []
-        
+
         # Helper function to update /looking_at/ during automation
         def update_looking_at_state(step_name: str):
             """Update /looking_at/ directory with current browser state"""
             try:
                 looking_at_dir = 'browser_automation/looking_at'
                 os.makedirs(looking_at_dir, exist_ok=True)
-                
+
                 # Capture current state
                 current_url = driver.current_url
                 page_title = driver.title
                 source_html = driver.page_source
                 dom_html = driver.execute_script("return document.documentElement.outerHTML;")
-                
+
                 # Save state files
                 state_data = {
                     'step': step_name,
@@ -2927,16 +2957,16 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                     'title': page_title,
                     'timestamp': datetime.now().isoformat()
                 }
-                
+
                 with open(os.path.join(looking_at_dir, 'headers.json'), 'w') as f:
                     json.dump(state_data, f, indent=2)
-                    
+
                 with open(os.path.join(looking_at_dir, 'source.html'), 'w', encoding='utf-8') as f:
                     f.write(source_html)
-                    
+
                 with open(os.path.join(looking_at_dir, 'dom.html'), 'w', encoding='utf-8') as f:
                     f.write(dom_html)
-                
+
                 # Create simple DOM
                 try:
                     from bs4 import BeautifulSoup
@@ -2952,23 +2982,23 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                     simple_dom_html = str(soup)
                 except:
                     simple_dom_html = dom_html
-                    
+
                 with open(os.path.join(looking_at_dir, 'simple_dom.html'), 'w', encoding='utf-8') as f:
                     f.write(simple_dom_html)
-                
+
                 # Take screenshot
                 driver.save_screenshot(os.path.join(looking_at_dir, 'screenshot.png'))
-                
+
                 logger.info(f"🎯 FINDER_TOKEN: AUTOMATION_PERCEPTION_UPDATE - Step: {step_name}, URL: {current_url}")
-                
+
             except Exception as e:
                 logger.warning(f"⚠️ FINDER_TOKEN: AUTOMATION_PERCEPTION_ERROR - {e}")
-        
+
         try:
             # Step 1: Navigate to the specific plugin requested
             # Extract plugin name from filename and construct URL
             plugin_name = plugin_filename.replace('plugins/', '').replace('.py', '')
-            
+
             # Map plugin filename to app name (this is the key fix!)
             plugin_to_app_mapping = {
                 '010_introduction': 'introduction',
@@ -2993,78 +3023,78 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 '190_browser_automation': 'browser_automation',
                 '200_stream_simulator': 'stream_simulator'
             }
-            
+
             app_name = plugin_to_app_mapping.get(plugin_name, plugin_name)
             plugin_url = f"{base_url}/{app_name}"
-            
+
             logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_MAPPING | Plugin: {plugin_name} -> App: {app_name} -> URL: {plugin_url}")
-            
+
             # Validate URL before navigation to prevent data: URLs
             if not plugin_url.startswith(('http://', 'https://')):
                 return {"success": False, "error": f"Invalid URL format: {plugin_url}. Expected http:// or https://"}
-            
+
             try:
                 logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_NAVIGATION_ATTEMPT | About to navigate to: {plugin_url}")
-                
+
                 # Check current URL before navigation
                 try:
                     current_url_before = driver.current_url
                     logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_CURRENT_URL_BEFORE | {current_url_before}")
                 except Exception as e:
                     logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_CURRENT_URL_ERROR | Could not get current URL: {e}")
-                
+
                 # Attempt navigation with detailed logging
                 logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_DRIVER_GET_START | Calling driver.get('{plugin_url}')")
                 driver.get(plugin_url)
                 logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_DRIVER_GET_COMPLETE | driver.get() returned")
-                
+
                 # Immediate URL check after navigation
                 time.sleep(1)  # Brief pause to let navigation settle
                 current_url = driver.current_url
                 logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_CURRENT_URL_AFTER | {current_url}")
-                
+
                 # Verify we didn't end up with a data: URL
                 if current_url.startswith('data:'):
                     logger.error(f"❌ FINDER_TOKEN: WORKFLOW_DATA_URL_DETECTED | Navigation resulted in data: URL: {current_url}")
                     return {"success": False, "error": f"Browser navigation resulted in data: URL: {current_url}. Original URL: {plugin_url}"}
-                
+
                 if current_url == 'about:blank':
                     logger.error(f"❌ FINDER_TOKEN: WORKFLOW_ABOUT_BLANK_DETECTED | Navigation resulted in about:blank")
                     return {"success": False, "error": f"Browser navigation resulted in about:blank. Original URL: {plugin_url}"}
-                
+
                 if not current_url or current_url == current_url_before:
                     logger.error(f"❌ FINDER_TOKEN: WORKFLOW_NO_NAVIGATION | URL unchanged: {current_url}")
                     return {"success": False, "error": f"Browser navigation failed - URL unchanged: {current_url}. Original URL: {plugin_url}"}
-                
+
                 logger.info(f"✅ FINDER_TOKEN: WORKFLOW_NAVIGATION_SUCCESS | Navigated to: {current_url}")
             except Exception as nav_error:
                 logger.error(f"❌ FINDER_TOKEN: WORKFLOW_NAVIGATION_EXCEPTION | {nav_error}")
                 return {"success": False, "error": f"Navigation failed: {nav_error}. URL: {plugin_url}"}
-            
+
             # Update /looking_at/ with landing page state
             update_looking_at_state("landing")
-            
+
             if take_screenshots:
                 screenshot_path = f"workflow_step_01_landing.png"
                 driver.save_screenshot(screenshot_path)
                 screenshots.append(screenshot_path)
                 logger.info(f"📸 FINDER_TOKEN: WORKFLOW_SCREENSHOT | Captured landing page")
-            
+
             # Step 2: Wait for page load and look for pipeline input
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
-            
+
             workflow_steps.append({
                 "step": "landing",
                 "status": "success",
                 "description": "Successfully loaded plugin landing page"
             })
-            
+
             # Step 3: Look for and fill pipeline ID input
             try:
                 pipeline_input = driver.find_element(By.NAME, "pipeline_id")
-                
+
                 # Use existing pipeline ID from session if requested and available, otherwise generate new one
                 from server import db
                 existing_pipeline_id = db.get('pipeline_id')
@@ -3074,33 +3104,33 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 else:
                     pipeline_id = f"automation-test-{int(time.time())}"
                     logger.info(f"🆕 FINDER_TOKEN: WORKFLOW_NEW | Generated new pipeline ID: {pipeline_id}")
-                
+
                 pipeline_input.clear()
                 pipeline_input.send_keys(pipeline_id)
-                
+
                 logger.info(f"📝 FINDER_TOKEN: WORKFLOW_INPUT | Entered pipeline ID: {pipeline_id}")
-                
+
                 # Submit the form
                 submit_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit'], input[type='submit']")
                 submit_button.click()
-                
+
                 workflow_steps.append({
                     "step": "init",
-                    "status": "success", 
+                    "status": "success",
                     "description": f"Initialized workflow with ID: {pipeline_id}"
                 })
-                
+
                 # Wait for workflow to load
                 time.sleep(3)
-                
+
                 # Update /looking_at/ with initialized state
                 update_looking_at_state("initialized")
-                
+
                 if take_screenshots:
                     screenshot_path = f"workflow_step_02_initialized.png"
                     driver.save_screenshot(screenshot_path)
                     screenshots.append(screenshot_path)
-                    
+
             except Exception as e:
                 logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_INIT_SKIP | No pipeline input found, continuing: {e}")
                 workflow_steps.append({
@@ -3108,16 +3138,16 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                     "status": "skipped",
                     "description": "No pipeline initialization needed"
                 })
-            
+
             # Step 4: Check if this plugin has file upload capabilities and test them
             try:
                 # Determine if this plugin supports file uploads by checking the plugin name
                 plugin_supports_uploads = "upload" in plugin_filename.lower() or "file" in plugin_filename.lower()
-                
+
                 if plugin_supports_uploads:
                     # For file upload plugins, we need to initialize the workflow first
                     logger.info(f"📋 FINDER_TOKEN: WORKFLOW_UPLOAD_INIT | Initializing file upload workflow")
-                    
+
                     # Look for pipeline initialization form
                     try:
                         pipeline_input = driver.find_element(By.CSS_SELECTOR, "input[name='pipeline_id']")
@@ -3131,62 +3161,62 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                                 pipeline_id = f"automation-test-{uuid.uuid4().hex[:8]}"
                                 logger.info(f"🔧 FINDER_TOKEN: WORKFLOW_PIPELINE_ID | Generated new pipeline ID: {pipeline_id}")
                             pipeline_input.send_keys(pipeline_id)
-                            
+
                             # Look for and click the initialize button
                             init_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
                             init_button.click()
                             logger.info(f"🚀 FINDER_TOKEN: WORKFLOW_INIT_CLICK | Clicked initialize button")
-                            
+
                             # Wait for page to load
                             time.sleep(3)
-                            
+
                             # Update /looking_at/ with post-init state
                             update_looking_at_state("workflow_initialized")
                     except Exception as init_error:
                         logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_INIT_SKIP | Workflow initialization failed: {init_error}")
-                    
+
                     # Now look for file input using our automation attribute
                     try:
                         file_input = driver.find_element(By.CSS_SELECTOR, "[data-testid='file-upload-widget-file-input']")
                         logger.info(f"📁 FINDER_TOKEN: WORKFLOW_FILE_INPUT | Found file input with automation attribute")
-                        
+
                         # Create a test file
                         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as temp_file:
                             temp_file.write(f"Test file content for automation walkthrough\\nGenerated at: {time.ctime()}\\nPlugin: {plugin_filename}")
                             test_file_path = temp_file.name
-                        
+
                         # Upload the test file
                         file_input.send_keys(test_file_path)
                         logger.info(f"📤 FINDER_TOKEN: WORKFLOW_FILE_UPLOAD | Uploaded test file: {test_file_path}")
-                        
+
                         # Look for upload button using automation attribute
                         upload_button = driver.find_element(By.CSS_SELECTOR, "[data-testid='file-upload-widget-upload-button']")
                         upload_button.click()
                         logger.info(f"🎯 FINDER_TOKEN: WORKFLOW_SUBMIT | Clicked upload button")
-                        
+
                         # Wait for processing
                         time.sleep(5)
-                        
+
                         # Update /looking_at/ with post-upload state
                         update_looking_at_state("file_uploaded")
-                        
+
                         if take_screenshots:
                             screenshot_path = f"workflow_step_03_uploaded.png"
                             driver.save_screenshot(screenshot_path)
                             screenshots.append(screenshot_path)
-                        
+
                         workflow_steps.append({
                             "step": "file_upload",
                             "status": "success",
                             "description": f"Successfully uploaded file using automation attributes"
                         })
-                        
+
                         # Clean up test file
                         try:
                             Path(test_file_path).unlink()
                         except:
                             pass
-                            
+
                     except Exception as upload_error:
                         logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_UPLOAD_ELEMENT_NOT_FOUND | File upload elements not found: {upload_error}")
                         workflow_steps.append({
@@ -3202,7 +3232,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                         "status": "skipped",
                         "description": f"Plugin {plugin_filename} doesn't support file uploads"
                     })
-                    
+
             except Exception as e:
                 logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_FILE_SKIP | File upload step failed: {e}")
                 workflow_steps.append({
@@ -3210,17 +3240,17 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                     "status": "failed",
                     "description": f"File upload failed: {str(e)}"
                 })
-            
+
             # Final state update and screenshot
             update_looking_at_state("workflow_complete")
-            
+
             if take_screenshots:
                 screenshot_path = f"workflow_final_state.png"
                 driver.save_screenshot(screenshot_path)
                 screenshots.append(screenshot_path)
-            
+
             logger.info(f"✅ FINDER_TOKEN: WORKFLOW_AUTOMATION_SUCCESS | Completed walkthrough of {plugin_filename}")
-            
+
             return {
                 "success": True,
                 "plugin": plugin_filename,
@@ -3229,7 +3259,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 "total_steps": len(workflow_steps),
                 "successful_steps": len([s for s in workflow_steps if s["status"] == "success"])
             }
-            
+
         finally:
             # Clean up browser and profile directory
             try:
@@ -3237,7 +3267,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 logger.info(f"🧹 FINDER_TOKEN: WORKFLOW_BROWSER_CLEANUP | Browser quit successfully")
             except Exception as browser_quit_error:
                 logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_BROWSER_CLEANUP_WARNING | Browser quit failed: {browser_quit_error}")
-            
+
             # Clean up temporary profile directory
             try:
                 if 'workflow_profile_dir' in locals():
@@ -3245,7 +3275,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                     logger.info(f"🧹 FINDER_TOKEN: WORKFLOW_PROFILE_CLEANUP | Cleaned up profile directory: {workflow_profile_dir}")
             except Exception as cleanup_error:
                 logger.warning(f"⚠️ FINDER_TOKEN: WORKFLOW_PROFILE_CLEANUP_WARNING | Profile cleanup failed: {cleanup_error}")
-            
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: WORKFLOW_AUTOMATION_ERROR | {e}")
         # Ensure cleanup even on exception
@@ -3263,9 +3293,10 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
 register_mcp_tool("ui_flash_element", ui_flash_element)
 register_mcp_tool("ui_list_elements", ui_list_elements)
 
+
 async def botify_get_full_schema(params: dict) -> dict:
     """Discover complete Botify API schema using the true_schema_discoverer.py module.
-    
+
     This tool fetches the comprehensive schema from Botify's official datamodel endpoints,
     providing access to all 4,449+ fields for building advanced queries. Implements intelligent
     caching for instant access to support "radical transparency" AI context bootstrapping.
@@ -3278,25 +3309,28 @@ async def botify_get_full_schema(params: dict) -> dict:
             "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
             "token_location": "helpers/botify/botify_token.txt"
         }
-    
+
     org = params.get("org")
     project = params.get("project")
     analysis = params.get("analysis")
     force_refresh = params.get("force_refresh", False)
-    
+
     # Validate required parameters (token no longer required as param)
     missing_params = []
-    if not org: missing_params.append("org")
-    if not project: missing_params.append("project")
-    if not analysis: missing_params.append("analysis")
-    
+    if not org:
+        missing_params.append("org")
+    if not project:
+        missing_params.append("project")
+    if not analysis:
+        missing_params.append("analysis")
+
     if missing_params:
         return {
             "status": "error",
             "message": f"Missing required parameters: {', '.join(missing_params)}",
             "required_params": ["org", "project", "analysis"]
         }
-    
+
     # Implement intelligent caching for instant schema access
     try:
         import json
@@ -3307,22 +3341,22 @@ async def botify_get_full_schema(params: dict) -> dict:
         cache_dir = Path("downloads/botify_schema_cache")
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_file = cache_dir / f"{org}_{project}_{analysis}_schema.json"
-        
+
         # Check if cached file exists and is recent (within 24 hours)
         if cache_file.exists() and not force_refresh:
             try:
                 with open(cache_file, 'r') as f:
                     cached_data = json.load(f)
-                
+
                 # Check cache age
                 cache_timestamp = datetime.fromisoformat(cached_data.get("cache_metadata", {}).get("cached_at", "1970-01-01"))
                 cache_age = datetime.now() - cache_timestamp
-                
+
                 if cache_age < timedelta(hours=24):
                     # Return fresh cached data
                     cached_data["cache_metadata"]["cache_hit"] = True
                     cached_data["cache_metadata"]["cache_age_hours"] = round(cache_age.total_seconds() / 3600, 2)
-                    
+
                     return {
                         "status": "success",
                         "result": cached_data,
@@ -3338,17 +3372,17 @@ async def botify_get_full_schema(params: dict) -> dict:
             except (json.JSONDecodeError, KeyError, ValueError):
                 # Cache file corrupted, proceed with fresh discovery
                 pass
-        
+
         # Perform live schema discovery
         from helpers.botify.true_schema_discoverer import \
             BotifySchemaDiscoverer
 
         # Create discoverer instance
         discoverer = BotifySchemaDiscoverer(org, project, analysis, api_token)
-        
+
         # Execute the discovery
         schema_results = await discoverer.discover_complete_schema()
-        
+
         # Add cache metadata
         schema_results["cache_metadata"] = {
             "cached_at": datetime.now().isoformat(),
@@ -3357,7 +3391,7 @@ async def botify_get_full_schema(params: dict) -> dict:
             "project": project,
             "analysis": analysis
         }
-        
+
         # Save to cache for future use
         try:
             with open(cache_file, 'w') as f:
@@ -3365,7 +3399,7 @@ async def botify_get_full_schema(params: dict) -> dict:
         except Exception as cache_error:
             # Don't fail the main operation if caching fails
             logger.warning(f"Failed to save schema cache: {cache_error}")
-        
+
         return {
             "status": "success",
             "result": schema_results,
@@ -3378,7 +3412,7 @@ async def botify_get_full_schema(params: dict) -> dict:
                 "cache_saved": cache_file.exists()
             }
         }
-        
+
     except Exception as e:
         return {
             "status": "error",
@@ -3388,32 +3422,33 @@ async def botify_get_full_schema(params: dict) -> dict:
             "analysis": analysis
         }
 
+
 async def botify_list_available_analyses(params: dict) -> dict:
     """List available analyses from the local analyses.json file.
-    
+
     This tool reads the cached analyses data to help LLMs select the correct
     analysis_slug for queries without requiring live API calls.
     """
     username = params.get("username", "michaellevin-org")
     project_name = params.get("project_name", "mikelev.in")
-    
+
     try:
         # Construct the path to the analyses.json file
         from pathlib import Path
         analyses_path = Path(f"downloads/quadfecta/{username}/{project_name}/analyses.json")
-        
+
         if not analyses_path.exists():
             return {
                 "status": "error",
                 "message": f"Analyses file not found at {analyses_path}",
                 "file_path": str(analyses_path)
             }
-        
+
         # Read and parse the analyses file
         with open(analyses_path, 'r') as f:
             import json
             analyses_data = json.load(f)
-        
+
         # Extract simplified analysis info for LLM consumption
         analyses_list = []
         for analysis in analyses_data.get("results", []):
@@ -3425,10 +3460,10 @@ async def botify_list_available_analyses(params: dict) -> dict:
                 "status": analysis.get("status"),
                 "id": analysis.get("id")
             })
-        
+
         # Sort by date_finished (most recent first)
         analyses_list.sort(key=lambda x: x.get("date_finished", ""), reverse=True)
-        
+
         return {
             "status": "success",
             "result": {
@@ -3442,19 +3477,20 @@ async def botify_list_available_analyses(params: dict) -> dict:
                 "file_checked": str(analyses_path)
             }
         }
-        
+
     except Exception as e:
         return {
-            "status": "error", 
+            "status": "error",
             "message": f"Error reading analyses: {str(e)}",
             "username": username,
             "project_name": project_name,
             "attempted_path": str(analyses_path) if 'analyses_path' in locals() else None
         }
 
+
 async def botify_execute_custom_bql_query(params: dict) -> dict:
     """Execute a custom BQL query with full parameter control.
-    
+
     This is the core 'query wizard' tool that enables LLMs to construct and execute
     sophisticated BQL queries with custom dimensions, metrics, and filters.
     """
@@ -3466,33 +3502,37 @@ async def botify_execute_custom_bql_query(params: dict) -> dict:
             "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
             "token_location": "helpers/botify/botify_token.txt"
         }
-    
+
     org_slug = params.get("org_slug")
-    project_slug = params.get("project_slug") 
+    project_slug = params.get("project_slug")
     analysis_slug = params.get("analysis_slug")
     query_json = params.get("query_json")
-    
+
     # Validate required parameters (token no longer required as param)
     missing_params = []
-    if not org_slug: missing_params.append("org_slug")
-    if not project_slug: missing_params.append("project_slug")
-    if not analysis_slug: missing_params.append("analysis_slug")
-    if not query_json: missing_params.append("query_json")
-    
+    if not org_slug:
+        missing_params.append("org_slug")
+    if not project_slug:
+        missing_params.append("project_slug")
+    if not analysis_slug:
+        missing_params.append("analysis_slug")
+    if not query_json:
+        missing_params.append("query_json")
+
     if missing_params:
         return {
             "status": "error",
             "message": f"Missing required parameters: {', '.join(missing_params)}",
             "required_params": ["org_slug", "project_slug", "analysis_slug", "query_json"]
         }
-    
+
     # Validate query_json structure
     if not isinstance(query_json, dict):
         return {
-            "status": "error", 
+            "status": "error",
             "message": "query_json must be a dictionary containing the BQL query structure"
         }
-    
+
     try:
         async with aiohttp.ClientSession() as session:
             external_url = f"https://api.botify.com/v1/projects/{org_slug}/{project_slug}/query"
@@ -3500,26 +3540,26 @@ async def botify_execute_custom_bql_query(params: dict) -> dict:
                 "Authorization": f"Token {api_token}",
                 "Content-Type": "application/json"
             }
-            
+
             # Build the complete payload with analysis
             payload = dict(query_json)  # Copy the query structure
             payload["analysis"] = analysis_slug
-            
+
             # Set default size if not specified
             if "size" not in payload:
                 payload["size"] = 100
-            
+
             async with session.post(external_url, headers=headers, json=payload) as response:
                 if response.status == 200:
                     query_result = await response.json()
-                    
+
                     # Extract result summary for easier consumption
                     result_summary = {
                         "total_results": len(query_result.get("results", [])),
                         "has_pagination": "next" in query_result,
                         "query_size_requested": payload.get("size", 100)
                     }
-                    
+
                     return {
                         "status": "success",
                         "result": query_result,
@@ -3564,14 +3604,15 @@ async def botify_execute_custom_bql_query(params: dict) -> dict:
             }
         }
 
+
 async def browser_interact_with_current_page(params: dict) -> dict:
     """
     MCP Tool: AI INTERACTION - Interact with the current page using /looking_at/ state.
-    
+
     This tool allows the AI to interact with the current page that's captured
     in /browser_automation/looking_at/ directory. It can click elements, fill forms,
     and perform other interactions based on the current DOM state.
-    
+
     Args:
         params: {
             "action": "click" | "type" | "submit" | "screenshot" | "navigate",
@@ -3585,16 +3626,16 @@ async def browser_interact_with_current_page(params: dict) -> dict:
             "wait_seconds": 3,
             "update_looking_at": True
         }
-    
+
     Returns:
         dict: Interaction results with updated page state
     """
     logger.info(f"🔧 FINDER_TOKEN: MCP_BROWSER_INTERACT_START - Action: {params.get('action')}")
-    
+
     try:
-        import time
         import json
         import os
+        import time
         from datetime import datetime
 
         from selenium import webdriver
@@ -3603,17 +3644,17 @@ async def browser_interact_with_current_page(params: dict) -> dict:
         from selenium.webdriver.common.keys import Keys
         from selenium.webdriver.support import expected_conditions as EC
         from selenium.webdriver.support.ui import WebDriverWait
-        
+
         action = params.get('action')
         target = params.get('target', {})
         input_text = params.get('input_text', '')
         url = params.get('url', '')
         wait_seconds = params.get('wait_seconds', 3)
         update_looking_at = params.get('update_looking_at', True)
-        
+
         if not action:
             return {"success": False, "error": "action parameter is required"}
-        
+
         # Set up Chrome driver
         chrome_options = Options()
         if action != "screenshot":
@@ -3621,63 +3662,63 @@ async def browser_interact_with_current_page(params: dict) -> dict:
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--window-size=1920,1080')
-        
+
         driver = webdriver.Chrome(options=chrome_options)
-        
+
         try:
             # Get current URL from /looking_at/ state
             headers_file = 'browser_automation/looking_at/headers.json'
             current_url = None
-            
+
             if os.path.exists(headers_file):
                 with open(headers_file, 'r') as f:
                     headers_data = json.load(f)
                     current_url = headers_data.get('url')
-            
+
             if action == "navigate":
                 target_url = url or current_url
                 if not target_url:
                     return {"success": False, "error": "No URL provided and no current URL in /looking_at/"}
-                
+
                 driver.get(target_url)
                 time.sleep(wait_seconds)
-                
+
                 result = {
                     "success": True,
                     "action": "navigate",
                     "url": driver.current_url,
                     "title": driver.title
                 }
-                
+
             elif action == "screenshot":
                 if current_url:
                     driver.get(current_url)
                     time.sleep(wait_seconds)
-                
+
                 screenshot_path = 'browser_automation/looking_at/screenshot.png'
                 driver.save_screenshot(screenshot_path)
-                
+
                 result = {
                     "success": True,
                     "action": "screenshot",
                     "screenshot_path": screenshot_path,
                     "url": driver.current_url
                 }
-                
+
             elif action in ["click", "type", "submit"]:
                 if not current_url:
                     return {"success": False, "error": "No current URL found in /looking_at/. Use browser_scrape_page first."}
-                
+
                 driver.get(current_url)
                 time.sleep(wait_seconds)
-                
+
                 # Find the target element
                 selector_type = target.get('selector_type', 'id')
                 selector_value = target.get('selector_value')
-                
+
                 if not selector_value:
                     return {"success": False, "error": "target.selector_value is required for interaction"}
-                
+
                 # Map selector types to Selenium By types
                 by_mapping = {
                     'id': By.ID,
@@ -3686,19 +3727,19 @@ async def browser_interact_with_current_page(params: dict) -> dict:
                     'xpath': By.XPATH,
                     'name': By.NAME
                 }
-                
+
                 if selector_type == 'data-testid':
                     # Convert data-testid to CSS selector
                     selector_value = f'[data-testid="{selector_value}"]'
                     by_type = By.CSS_SELECTOR
                 else:
                     by_type = by_mapping.get(selector_type, By.ID)
-                
+
                 try:
                     element = WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located((by_type, selector_value))
                     )
-                    
+
                     if action == "click":
                         element.click()
                         result = {
@@ -3707,7 +3748,7 @@ async def browser_interact_with_current_page(params: dict) -> dict:
                             "element_found": True,
                             "element_text": element.text[:100] if element.text else ""
                         }
-                        
+
                     elif action == "type":
                         element.clear()
                         element.send_keys(input_text)
@@ -3717,7 +3758,7 @@ async def browser_interact_with_current_page(params: dict) -> dict:
                             "element_found": True,
                             "text_entered": input_text
                         }
-                        
+
                     elif action == "submit":
                         element.submit()
                         result = {
@@ -3725,10 +3766,10 @@ async def browser_interact_with_current_page(params: dict) -> dict:
                             "action": "submit",
                             "element_found": True
                         }
-                    
+
                     # Wait for any page changes
                     time.sleep(wait_seconds)
-                    
+
                 except Exception as e:
                     result = {
                         "success": False,
@@ -3737,22 +3778,22 @@ async def browser_interact_with_current_page(params: dict) -> dict:
                         "selector_type": selector_type,
                         "selector_value": selector_value
                     }
-            
+
             else:
                 return {"success": False, "error": f"Unknown action: {action}"}
-            
+
             # Update /looking_at/ state if requested
             if update_looking_at and result.get("success"):
                 try:
                     looking_at_dir = 'browser_automation/looking_at'
                     os.makedirs(looking_at_dir, exist_ok=True)
-                    
+
                     # Capture current state
                     page_title = driver.title
                     current_url = driver.current_url
                     source_html = driver.page_source
                     dom_html = driver.execute_script("return document.documentElement.outerHTML;")
-                    
+
                     # Save updated state
                     state_data = {
                         'action_performed': action,
@@ -3760,16 +3801,16 @@ async def browser_interact_with_current_page(params: dict) -> dict:
                         'title': page_title,
                         'timestamp': datetime.now().isoformat()
                     }
-                    
+
                     with open(os.path.join(looking_at_dir, 'headers.json'), 'w') as f:
                         json.dump(state_data, f, indent=2)
-                        
+
                     with open(os.path.join(looking_at_dir, 'source.html'), 'w', encoding='utf-8') as f:
                         f.write(source_html)
-                        
+
                     with open(os.path.join(looking_at_dir, 'dom.html'), 'w', encoding='utf-8') as f:
                         f.write(dom_html)
-                    
+
                     # Create simple DOM
                     try:
                         from bs4 import BeautifulSoup
@@ -3785,22 +3826,22 @@ async def browser_interact_with_current_page(params: dict) -> dict:
                         simple_dom_html = str(soup)
                     except:
                         simple_dom_html = dom_html
-                        
+
                     with open(os.path.join(looking_at_dir, 'simple_dom.html'), 'w', encoding='utf-8') as f:
                         f.write(simple_dom_html)
-                    
+
                     logger.info(f"🎯 FINDER_TOKEN: MCP_BROWSER_INTERACTION_UPDATE - Action '{action}' completed, /looking_at/ updated")
-                    
+
                 except Exception as e:
                     logger.warning(f"⚠️ FINDER_TOKEN: MCP_BROWSER_INTERACTION_STATE_UPDATE_ERROR - {e}")
-                    
+
             result["current_url"] = driver.current_url
             result["page_title"] = driver.title
             return result
-            
+
         finally:
             driver.quit()
-            
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_BROWSER_INTERACT_ERROR - {e}")
         return {"success": False, "error": str(e)}
@@ -3812,20 +3853,21 @@ async def browser_interact_with_current_page(params: dict) -> dict:
 # AI SELF-DISCOVERY TOOLS - ELIMINATE UNCERTAINTY
 # ================================================================
 
+
 async def ai_self_discovery_assistant(params: dict) -> dict:
     """
     🧠 AI SELF-DISCOVERY ASSISTANT - The uncertainty eliminator.
-    
+
     This tool provides instant capability awareness and usage patterns for AI assistants.
     It eliminates the "what tools do I have?" and "how do I use them?" uncertainty.
-    
+
     Args:
         params: {
             "discovery_type": "capabilities" | "usage_patterns" | "success_stories" | "all",
             "include_examples": True,  # Include concrete usage examples
             "include_troubleshooting": True  # Include common failure modes
         }
-    
+
     Returns:
         dict: Complete AI capability map with usage guidance
     """
@@ -3845,10 +3887,10 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
         discovery_type = params.get('discovery_type', 'all')
         include_examples = params.get('include_examples', True)
         include_troubleshooting = params.get('include_troubleshooting', True)
-        
+
         # Get current MCP tool registry - try multiple sources
         available_tools = []
-        
+
         # Try to discover tools using the same method as discover_mcp_tools.py
         try:
             # Get all functions that are MCP tool handlers (test functions and main tools)
@@ -3857,15 +3899,15 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
             mcp_module = sys.modules.get('mcp_tools')
             if mcp_module:
                 for name, obj in inspect.getmembers(mcp_module):
-                    if (callable(obj) and 
+                    if (callable(obj) and
                         not name.startswith('__') and
-                        ('test_' in name or 'ai_' in name or 'botify_' in name or 
-                         'browser_' in name or 'ui_' in name or 'local_llm_' in name or 
+                        ('test_' in name or 'ai_' in name or 'botify_' in name or
+                         'browser_' in name or 'ui_' in name or 'local_llm_' in name or
                          'pipeline_' in name or 'execute_' in name)):
                         available_tools.append(name)
         except Exception as e:
             logger.warning(f"Could not discover tools dynamically: {e}")
-            
+
         # If dynamic discovery failed, fall back to registry methods
         if not available_tools:
             # Try server module first
@@ -3880,17 +3922,17 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                 else:
                     # Fallback to local registry
                     available_tools = list(MCP_TOOL_REGISTRY.keys()) if MCP_TOOL_REGISTRY else []
-        
+
         # Categorize tools by capability - use actual function names with underscores
         tool_categories = {
             "environment_mastery": [
                 "_pipeline_state_inspector",
-                "_local_llm_list_files", 
+                "_local_llm_list_files",
                 "_local_llm_read_file"
             ],
             "browser_embodiment": [
                 "_browser_scrape_page",
-                "_browser_analyze_scraped_page", 
+                "_browser_analyze_scraped_page",
                 "_browser_automate_workflow_walkthrough",
                 "_browser_interact_with_current_page"
             ],
@@ -3913,7 +3955,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                 "_builtin_get_cat_fact"
             ]
         }
-        
+
         # Build capability map
         capabilities = {}
         for category, tools in tool_categories.items():
@@ -3924,14 +3966,14 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                     "count": len(available_in_category),
                     "description": get_category_description(category)
                 }
-        
+
         # Usage patterns for common AI tasks
         usage_patterns = {
             "web_scraping_workflow": {
                 "description": "Complete web scraping with analysis",
                 "steps": [
                     "1. browser_scrape_page - Capture page state",
-                    "2. browser_analyze_scraped_page - Find automation targets", 
+                    "2. browser_analyze_scraped_page - Find automation targets",
                     "3. local_llm_read_file - Examine captured content",
                     "4. ui_flash_element - Guide user attention"
                 ],
@@ -3961,7 +4003,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                 ]
             }
         }
-        
+
         # Success stories from real usage
         success_stories = {
             "bbc_news_headlines": {
@@ -3983,7 +4025,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                 "key_insight": "Complete session visibility enables seamless AI assistance"
             }
         }
-        
+
         # Common failure modes and solutions
         troubleshooting = {
             "tool_not_found": {
@@ -4007,7 +4049,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                 "prevention": "Use botify_ping to test connectivity before complex operations"
             }
         }
-        
+
         # Build response based on discovery type
         result = {
             "success": True,
@@ -4015,24 +4057,24 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
             "total_tools_available": len(available_tools),
             "timestamp": datetime.now().isoformat()
         }
-        
+
         if discovery_type in ["capabilities", "all"]:
             result["capabilities"] = capabilities
-            
+
         if discovery_type in ["usage_patterns", "all"] and include_examples:
             result["usage_patterns"] = usage_patterns
-            
+
         if discovery_type in ["success_stories", "all"]:
             result["success_stories"] = success_stories
-            
+
         if discovery_type in ["troubleshooting", "all"] and include_troubleshooting:
             result["troubleshooting"] = troubleshooting
-        
+
         # Add quick reference for immediate use
         result["quick_reference"] = {
             "most_powerful_tools": [
                 "browser_scrape_page",      # AI eyes
-                "browser_analyze_scraped_page",  # AI brain  
+                "browser_analyze_scraped_page",  # AI brain
                 "pipeline_state_inspector",  # Workflow awareness
                 "execute_ai_session_hijacking_demonstration"  # Session takeover
             ],
@@ -4043,13 +4085,14 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                 "Provide user guidance with ui_flash_element"
             ]
         }
-        
+
         logger.info(f"🎯 FINDER_TOKEN: AI_SELF_DISCOVERY_SUCCESS - {len(available_tools)} tools mapped, {len(capabilities)} categories")
         return result
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: AI_SELF_DISCOVERY_ERROR - {e}")
         return {"success": False, "error": str(e)}
+
 
 def get_category_description(category: str) -> str:
     """Get human-readable description for tool category."""
@@ -4063,28 +4106,29 @@ def get_category_description(category: str) -> str:
     }
     return descriptions.get(category, "Unknown category")
 
+
 async def ai_capability_test_suite(params: dict) -> dict:
     """
     🧪 AI CAPABILITY TEST SUITE - Prove your superpowers.
-    
+
     This tool runs a comprehensive test of all AI capabilities to verify
     that the system is working correctly and the AI has full access.
-    
+
     Args:
         params: {
             "test_type": "quick" | "comprehensive" | "specific_tool" | "context_aware",
             "specific_tool": "tool_name"  # Only for specific_tool test
         }
-    
+
     Returns:
         dict: Test results with success/failure details
     """
     logger.info(f"🧪 FINDER_TOKEN: AI_CAPABILITY_TEST_START - Type: {params.get('test_type', 'quick')}")
-    
+
     try:
         test_type = params.get('test_type', 'quick')
         specific_tool = params.get('specific_tool')
-        
+
         test_results = {
             "timestamp": datetime.now().isoformat(),
             "test_type": test_type,
@@ -4094,14 +4138,14 @@ async def ai_capability_test_suite(params: dict) -> dict:
             "results": {},
             "context_analysis": {}
         }
-        
+
         if test_type == "specific_tool" and specific_tool:
             # Test specific tool
             test_results["results"][specific_tool] = await _test_specific_tool(specific_tool)
             test_results["tests_run"] = 1
             test_results["tests_passed"] = 1 if test_results["results"][specific_tool]["success"] else 0
             test_results["tests_failed"] = 1 - test_results["tests_passed"]
-            
+
         elif test_type == "quick":
             # Quick test of core capabilities (context-aware)
             quick_tests = [
@@ -4110,7 +4154,7 @@ async def ai_capability_test_suite(params: dict) -> dict:
                 ("mcp_registry", test_mcp_registry_context_aware),
                 ("basic_browser", test_basic_browser_capability)
             ]
-            
+
             for test_name, test_func in quick_tests:
                 test_results["tests_run"] += 1
                 result = await test_func()
@@ -4119,7 +4163,7 @@ async def ai_capability_test_suite(params: dict) -> dict:
                     test_results["tests_passed"] += 1
                 else:
                     test_results["tests_failed"] += 1
-                    
+
         elif test_type == "comprehensive":
             # Comprehensive test of all capabilities (context-aware)
             comprehensive_tests = [
@@ -4132,7 +4176,7 @@ async def ai_capability_test_suite(params: dict) -> dict:
                 ("ui_interaction", test_ui_interaction_context_aware),
                 ("botify_connectivity", test_botify_connectivity)
             ]
-            
+
             for test_name, test_func in comprehensive_tests:
                 test_results["tests_run"] += 1
                 result = await test_func()
@@ -4141,33 +4185,34 @@ async def ai_capability_test_suite(params: dict) -> dict:
                     test_results["tests_passed"] += 1
                 else:
                     test_results["tests_failed"] += 1
-                    
+
         elif test_type == "context_aware":
             # New context-aware test that provides intelligent assessment
             test_results.update(await _run_context_aware_test_suite())
             # Add assessment for context-aware test
             test_results["assessment"] = _generate_context_aware_assessment(test_results)
             return test_results
-        
+
         # Calculate success rate
         if test_results["tests_run"] > 0:
             test_results["success_rate"] = round((test_results["tests_passed"] / test_results["tests_run"]) * 100, 2)
         else:
             test_results["success_rate"] = 0
-            
+
         # Add overall assessment with context awareness
         test_results["assessment"] = _generate_context_aware_assessment(test_results)
-        
+
         logger.info(f"🎯 FINDER_TOKEN: AI_CAPABILITY_TEST_COMPLETE - {test_results['tests_passed']}/{test_results['tests_run']} passed ({test_results['success_rate']}%)")
         return test_results
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: AI_CAPABILITY_TEST_ERROR - {e}")
         return {"success": False, "error": str(e)}
 
+
 async def _run_context_aware_test_suite() -> dict:
     """Run a context-aware test suite that provides intelligent assessment."""
-    
+
     test_results = {
         "tests_run": 0,
         "tests_passed": 0,
@@ -4176,7 +4221,7 @@ async def _run_context_aware_test_suite() -> dict:
         "context_analysis": {},
         "capability_assessment": {}
     }
-    
+
     # Test 1: Environment and File System (Always available)
     test_results["tests_run"] += 1
     env_result = await test_environment_access()
@@ -4185,7 +4230,7 @@ async def _run_context_aware_test_suite() -> dict:
         test_results["tests_passed"] += 1
     else:
         test_results["tests_failed"] += 1
-    
+
     # Test 2: File System Access
     test_results["tests_run"] += 1
     fs_result = await test_file_system_access()
@@ -4194,7 +4239,7 @@ async def _run_context_aware_test_suite() -> dict:
         test_results["tests_passed"] += 1
     else:
         test_results["tests_failed"] += 1
-    
+
     # Test 3: MCP Tools Availability (Context-aware)
     test_results["tests_run"] += 1
     mcp_result = await test_mcp_tools_availability()
@@ -4203,7 +4248,7 @@ async def _run_context_aware_test_suite() -> dict:
         test_results["tests_passed"] += 1
     else:
         test_results["tests_failed"] += 1
-    
+
     # Test 4: Browser Automation (Always available if Selenium installed)
     test_results["tests_run"] += 1
     browser_result = await test_basic_browser_capability()
@@ -4212,7 +4257,7 @@ async def _run_context_aware_test_suite() -> dict:
         test_results["tests_passed"] += 1
     else:
         test_results["tests_failed"] += 1
-    
+
     # Test 5: Pipeline Functionality (Test actual functionality, not just context)
     test_results["tests_run"] += 1
     pipeline_result = await test_pipeline_functionality()
@@ -4221,7 +4266,7 @@ async def _run_context_aware_test_suite() -> dict:
         test_results["tests_passed"] += 1
     else:
         test_results["tests_failed"] += 1
-    
+
     # Test 6: Botify API (Test actual connectivity)
     test_results["tests_run"] += 1
     botify_result = await test_botify_actual_connectivity()
@@ -4230,7 +4275,7 @@ async def _run_context_aware_test_suite() -> dict:
         test_results["tests_passed"] += 1
     else:
         test_results["tests_failed"] += 1
-    
+
     # Test 7: Log Access
     test_results["tests_run"] += 1
     log_result = await test_log_access()
@@ -4239,7 +4284,7 @@ async def _run_context_aware_test_suite() -> dict:
         test_results["tests_passed"] += 1
     else:
         test_results["tests_failed"] += 1
-    
+
     # Test 8: UI Interaction (Test if server is running and accessible)
     test_results["tests_run"] += 1
     ui_result = await test_ui_accessibility()
@@ -4248,17 +4293,18 @@ async def _run_context_aware_test_suite() -> dict:
         test_results["tests_passed"] += 1
     else:
         test_results["tests_failed"] += 1
-    
+
     # Calculate success rate
     if test_results["tests_run"] > 0:
         test_results["success_rate"] = round((test_results["tests_passed"] / test_results["tests_run"]) * 100, 2)
     else:
         test_results["success_rate"] = 0
-    
+
     # Generate capability assessment
     test_results["capability_assessment"] = _generate_detailed_capability_assessment(test_results)
-    
+
     return test_results
+
 
 async def test_mcp_tools_availability() -> dict:
     """Test MCP tools availability with context awareness."""
@@ -4266,6 +4312,7 @@ async def test_mcp_tools_availability() -> dict:
         # Test if we can import and access MCP tools directly
         try:
             from mcp_tools import builtin_get_cat_fact
+
             # Test a simple tool call
             result = await builtin_get_cat_fact({})
             if result.get("status") == "success" or result.get("fact"):
@@ -4277,7 +4324,7 @@ async def test_mcp_tools_availability() -> dict:
                 }
         except ImportError:
             pass
-        
+
         # Fallback: Check if tools are available through server context
         import sys
         server_module = sys.modules.get('server')
@@ -4290,7 +4337,7 @@ async def test_mcp_tools_availability() -> dict:
                 "tool_count": tool_count,
                 "test_result": f"MCP tools accessible via server context ({tool_count} tools)"
             }
-        
+
         # Final fallback: Check if we're in the right environment
         if os.path.exists("mcp_tools.py") and os.path.exists("server.py"):
             return {
@@ -4299,21 +4346,23 @@ async def test_mcp_tools_availability() -> dict:
                 "environment_ready": True,
                 "test_result": "MCP tools environment ready (tools should work in server context)"
             }
-        
+
         return {"success": False, "error": "MCP tools not accessible in any context"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 async def test_pipeline_functionality() -> dict:
     """Test actual pipeline functionality, not just context availability."""
     try:
         # Test if we can access the database directly
         try:
-            from fastlite import database
             from pathlib import Path
+
+            from fastlite import database
             Path('data').mkdir(parents=True, exist_ok=True)
             db = database('data/data.db')
-            
+
             # Test if pipeline table exists and is accessible
             if hasattr(db, 'pipeline'):
                 pipeline_count = len(list(db.pipeline()))
@@ -4326,7 +4375,7 @@ async def test_pipeline_functionality() -> dict:
                 }
         except Exception as db_error:
             pass
-        
+
         # Fallback: Test if we can use the pipeline inspector tool
         try:
             result = await _pipeline_state_inspector({'format': 'summary'})
@@ -4339,7 +4388,7 @@ async def test_pipeline_functionality() -> dict:
                 }
         except Exception as inspector_error:
             pass
-        
+
         # Final fallback: Check if pipeline files exist
         if os.path.exists("data/") and (os.path.exists("data/data.db") or os.path.exists("data/botifython_dev.db")):
             return {
@@ -4348,10 +4397,11 @@ async def test_pipeline_functionality() -> dict:
                 "files_exist": True,
                 "test_result": "Pipeline files exist (should work in server context)"
             }
-        
+
         return {"success": False, "error": "Pipeline functionality not accessible"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 async def test_botify_actual_connectivity() -> dict:
     """Test actual Botify API connectivity."""
@@ -4364,7 +4414,7 @@ async def test_botify_actual_connectivity() -> dict:
                 "error": "Botify API token not available",
                 "suggestion": "Configure Botify API token in helpers/botify/botify_token.txt"
             }
-        
+
         # Test actual API call
         try:
             result = await _botify_ping({})
@@ -4379,7 +4429,7 @@ async def test_botify_actual_connectivity() -> dict:
                 # Analyze the error to provide better context
                 error_msg = result.get("message", "Unknown error")
                 status = result.get("external_api_status", "Unknown")
-                
+
                 if "404" in str(status) or "404" in error_msg:
                     return {
                         "success": False,
@@ -4408,16 +4458,18 @@ async def test_botify_actual_connectivity() -> dict:
                 "token_available": True,
                 "suggestion": "Check network connectivity and Botify API availability"
             }
-            
+
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 async def test_ui_accessibility() -> dict:
     """Test if the UI is accessible via HTTP."""
     try:
-        import aiohttp
         import asyncio
-        
+
+        import aiohttp
+
         # Test if server is running and accessible
         try:
             async with aiohttp.ClientSession() as session:
@@ -4447,20 +4499,21 @@ async def test_ui_accessibility() -> dict:
                 "error": f"HTTP connection failed: {str(http_error)}",
                 "suggestion": "Check if server is running on port 5001"
             }
-            
+
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 def _generate_context_aware_assessment(test_results: dict) -> str:
     """Generate context-aware assessment based on test results."""
     success_rate = test_results.get("success_rate", 0)
-    
+
     # Analyze context-specific failures
     context_failures = []
     for test_name, result in test_results.get("results", {}).items():
         if not result.get("success") and "context" in result.get("error", "").lower():
             context_failures.append(test_name)
-    
+
     if success_rate >= 90:
         return "🎯 EXCELLENT - AI superpowers fully operational"
     elif success_rate >= 75:
@@ -4476,6 +4529,7 @@ def _generate_context_aware_assessment(test_results: dict) -> str:
     else:
         return "❌ POOR - Significant issues detected, requires investigation"
 
+
 def _generate_detailed_capability_assessment(test_results: dict) -> dict:
     """Generate detailed capability assessment."""
     assessment = {
@@ -4483,7 +4537,7 @@ def _generate_detailed_capability_assessment(test_results: dict) -> dict:
         "context_dependent": {},
         "recommendations": []
     }
-    
+
     for test_name, result in test_results.get("results", {}).items():
         if result.get("success"):
             if "context" in test_name.lower() or "server" in result.get("test_result", "").lower():
@@ -4497,20 +4551,24 @@ def _generate_detailed_capability_assessment(test_results: dict) -> dict:
                 assessment["recommendations"].append(f"Use {test_name} through server context")
             else:
                 assessment["core_capabilities"][test_name] = f"❌ Failed ({error})"
-    
+
     return assessment
+
 
 async def test_mcp_registry_context_aware() -> dict:
     """Context-aware MCP registry test."""
     return await test_mcp_tools_availability()
 
+
 async def test_pipeline_inspection_context_aware() -> dict:
     """Context-aware pipeline inspection test."""
     return await test_pipeline_functionality()
 
+
 async def test_ui_interaction_context_aware() -> dict:
     """Context-aware UI interaction test."""
     return await test_ui_accessibility()
+
 
 async def test_environment_access() -> dict:
     """Test basic environment access."""
@@ -4519,7 +4577,7 @@ async def test_environment_access() -> dict:
         current_dir = os.getcwd()
         server_exists = os.path.exists("server.py")
         plugins_exists = os.path.exists("plugins/")
-        
+
         return {
             "success": True,
             "current_directory": current_dir,
@@ -4530,12 +4588,13 @@ async def test_environment_access() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
 async def test_file_system_access() -> dict:
     """Test file system access capabilities."""
     try:
         import os
         from pathlib import Path
-        
+
         # Test reading a simple file
         test_file = "mcp_tools.py"
         if os.path.exists(test_file):
@@ -4551,6 +4610,7 @@ async def test_file_system_access() -> dict:
             return {"success": False, "error": f"Test file {test_file} not found"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 async def test_mcp_registry() -> dict:
     """Test MCP tool registry access."""
@@ -4570,6 +4630,7 @@ async def test_mcp_registry() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
 async def test_basic_browser_capability() -> dict:
     """Test basic browser automation capability."""
     try:
@@ -4587,6 +4648,7 @@ async def test_basic_browser_capability() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
 async def test_pipeline_inspection() -> dict:
     """Test pipeline inspection capability."""
     try:
@@ -4602,6 +4664,7 @@ async def test_pipeline_inspection() -> dict:
             return {"success": False, "error": "Pipeline table not accessible"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 async def test_log_access() -> dict:
     """Test log file access capability."""
@@ -4621,6 +4684,7 @@ async def test_log_access() -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
 async def test_ui_interaction() -> dict:
     """Test UI interaction capability."""
     try:
@@ -4636,6 +4700,7 @@ async def test_ui_interaction() -> dict:
             return {"success": False, "error": "Chat system not accessible"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 async def test_botify_connectivity() -> dict:
     """Test Botify API connectivity."""
@@ -4654,6 +4719,7 @@ async def test_botify_connectivity() -> dict:
             return {"success": False, "error": "Botify token file not found"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 async def test_specific_tool(tool_name: str) -> dict:
     """Test a specific MCP tool."""
@@ -4679,59 +4745,60 @@ async def test_specific_tool(tool_name: str) -> dict:
 register_mcp_tool("ai_self_discovery_assistant", ai_self_discovery_assistant)
 register_mcp_tool("ai_capability_test_suite", ai_capability_test_suite)
 
+
 async def browser_automate_instructions(params: dict) -> dict:
     """
     MCP Tool: AI HANDS - Natural Language Browser Automation
-    
+
     This tool parses natural language instructions and converts them into browser automation actions.
     It provides a user-friendly interface for browser automation without requiring technical knowledge.
-    
+
     Args:
         params: {
             "instructions": "click search input and type hello world",
             "target_url": "http://localhost:5001",
             "wait_seconds": 3
         }
-    
+
     Returns:
         dict: Automation results with success rate and feedback
     """
     logger.info(f"🤖 FINDER_TOKEN: INSTRUCTION_AUTOMATION_START | Instructions: {params.get('instructions')}")
-    
+
     try:
         import re
         import time
         from pathlib import Path
-        
+
         instructions = params.get('instructions', '')
         target_url = params.get('target_url', 'http://localhost:5001')
         wait_seconds = params.get('wait_seconds', 3)
-        
+
         if not instructions:
             return {
                 'success': False,
                 'error': 'No instructions provided',
                 'suggestions': ['Try: "click search input and type hello world"', 'Try: "navigate to dashboard"', 'Try: "click login button"']
             }
-        
+
         # First, capture the current page state
         scrape_result = await browser_scrape_page({
             'url': target_url,
             'wait_seconds': 2,
             'take_screenshot': True
         })
-        
+
         if not scrape_result.get('success'):
             return {
                 'success': False,
                 'error': f'Failed to capture page state: {scrape_result.get("error")}',
                 'suggestions': ['Check if the target URL is accessible', 'Verify the server is running']
             }
-        
+
         # Parse instructions into actions
         actions = []
         instruction_lower = instructions.lower()
-        
+
         # Simple instruction parsing
         if 'click' in instruction_lower:
             # Extract what to click
@@ -4756,7 +4823,7 @@ async def browser_automate_instructions(params: dict) -> dict:
                         'target': {'selector_type': 'css', 'selector_value': f'[data-testid*="{click_target}"]'},
                         'description': f'Click {click_target}'
                     })
-        
+
         if 'type' in instruction_lower:
             # Extract what to type
             type_match = re.search(r'type\s+([^,\s]+(?:\s+[^,\s]+)*)', instruction_lower)
@@ -4777,7 +4844,7 @@ async def browser_automate_instructions(params: dict) -> dict:
                         'input_text': text_to_type,
                         'description': f'Type "{text_to_type}" in input field'
                     })
-        
+
         if 'wait' in instruction_lower:
             # Extract wait time
             wait_match = re.search(r'wait\s+(\d+)\s*seconds?', instruction_lower)
@@ -4788,7 +4855,7 @@ async def browser_automate_instructions(params: dict) -> dict:
                     'wait_seconds': wait_time,
                     'description': f'Wait {wait_time} seconds'
                 })
-        
+
         if not actions:
             return {
                 'success': False,
@@ -4799,14 +4866,14 @@ async def browser_automate_instructions(params: dict) -> dict:
                     'Try: "click search input and type hello world"'
                 ]
             }
-        
+
         # Execute actions
         action_results = []
         successful_actions = 0
-        
+
         for i, action in enumerate(actions):
-            logger.info(f"🎯 FINDER_TOKEN: INSTRUCTION_ACTION_{i+1} | {action['description']}")
-            
+            logger.info(f"🎯 FINDER_TOKEN: INSTRUCTION_ACTION_{i + 1} | {action['description']}")
+
             if action['action'] == 'wait':
                 time.sleep(action['wait_seconds'])
                 result = {'success': True, 'action': 'wait', 'description': action['description']}
@@ -4819,24 +4886,24 @@ async def browser_automate_instructions(params: dict) -> dict:
                     'wait_seconds': wait_seconds
                 })
                 result['description'] = action['description']
-            
+
             action_results.append(result)
-            
+
             if result.get('success'):
                 successful_actions += 1
                 logger.info(f"✅ FINDER_TOKEN: INSTRUCTION_SUCCESS | {action['description']}")
             else:
                 logger.warning(f"⚠️ FINDER_TOKEN: INSTRUCTION_FAILURE | {action['description']}: {result.get('error')}")
-        
+
         # Take final screenshot
         final_screenshot = await browser_interact_with_current_page({
             'action': 'screenshot',
             'wait_seconds': 1
         })
-        
+
         # Calculate success rate
         success_rate = (successful_actions / len(actions)) * 100 if actions else 0
-        
+
         return {
             'success': success_rate > 50,  # More than 50% success
             'success_rate': round(success_rate, 1),
@@ -4852,7 +4919,7 @@ async def browser_automate_instructions(params: dict) -> dict:
                 'Add wait times: "wait 2 seconds"'
             ] if success_rate < 100 else ['All actions completed successfully!']
         }
-        
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: INSTRUCTION_AUTOMATION_ERROR | {e}")
         return {
@@ -4868,6 +4935,7 @@ async def browser_automate_instructions(params: dict) -> dict:
 
 # Register the new browser automation tool
 register_mcp_tool("browser_automate_instructions", browser_automate_instructions)
+
 
 def get_available_tools():
     """
@@ -4911,4 +4979,3 @@ def get_available_tools():
                 'doc': doc
             })
     return tools
-

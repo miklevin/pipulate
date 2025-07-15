@@ -194,18 +194,9 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
             return {"success": False, "error": "Endpoint URL is empty or whitespace only"}
         
         # Check for invalid URL patterns that cause data: URLs
-        invalid_patterns = [
-            'data:',
-            'about:',
-            'chrome:',
-            'file:',
-            'javascript:',
-            'mailto:',
-            'tel:',
-            'ftp:'
-        ]
+        from config import INVALID_URL_PATTERNS
         
-        for pattern in invalid_patterns:
+        for pattern in INVALID_URL_PATTERNS:
             if endpoint_url.lower().startswith(pattern):
                 return {"success": False, "error": f"Invalid URL scheme detected: {pattern}. URL: {endpoint_url}"}
         

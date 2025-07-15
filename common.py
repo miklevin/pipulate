@@ -14,9 +14,10 @@ import inspect
 import json
 import logging
 from datetime import datetime
-from fasthtml.common import HTMLResponse, Li, A, Input, to_xml
-from loguru import logger
+
 import aiohttp
+from fasthtml.common import A, HTMLResponse, Input, Li, to_xml
+from loguru import logger
 
 # 🎯 Import the durable backup system
 try:
@@ -29,7 +30,7 @@ except ImportError:
 class BaseCrud:
     """
     CRUD base class for all Apps. The CRUD is DRY and the Workflows are WET!
-    
+
     🎯 ENHANCED with Durable Backup Support:
     - Auto-triggers backups on data changes
     - Soft delete support (mark as deleted_at instead of hard delete)
@@ -45,20 +46,20 @@ class BaseCrud:
         self.item_name_field = 'name'
         self.sort_dict = sort_dict or {}
         self.pipulate_instance = pipulate_instance
-        
+
         # 🎯 DURABLE BACKUP INTEGRATION
         self.backup_enabled = backup_manager is not None
         self.table_name = getattr(table, 'name', name.lower())
-        
+
         # 🎯 SOFT DELETE CONFIGURATION
         self.soft_delete_enabled = True  # Enable soft deletes by default
         self.deleted_field = 'deleted_at'
         self.updated_field = 'updated_at'
-        
+
         if self.backup_enabled:
             logger.info(f"🗃️ {name} CRUD initialized with durable backup support")
             self._ensure_backup_schema()
-        
+
         # Existing pipeline_instance method wrapper
         def safe_send_message(message, verbatim=True):
             """Safely send message through pipulate without breaking if not available."""
@@ -73,7 +74,7 @@ class BaseCrud:
                         print(f"Message: {message}")
             except Exception as e:
                 print(f"Failed to send message: {message} (Error: {e})")
-        
+
         self.safe_send_message = safe_send_message
 
     def get_global_border_radius(self):
@@ -95,38 +96,38 @@ class BaseCrud:
     def render_item(self, item):
         item_name = getattr(item, self.item_name_field, 'Item')
         toggle_state = getattr(item, self.toggle_field, False) if self.toggle_field else False
-        
+
         return Li(
-            A('🗑', 
-              href='#', 
-              hx_swap='outerHTML', 
-              hx_delete=f'/task/delete/{item.id}', 
-              hx_target=f'#todo-{item.id}', 
-              _class='delete-icon', 
+            A('🗑',
+              href='#',
+              hx_swap='outerHTML',
+              hx_delete=f'/task/delete/{item.id}',
+              hx_target=f'#todo-{item.id}',
+              _class='delete-icon',
               style=('cursor: pointer; ', 'display: inline'),
               role='button',
               aria_label=f'Delete {self.name} item: {item_name}',
               title=f'Delete {item_name}'
-            ), 
+              ),
             Input(
-                type='checkbox', 
-                checked='1' if toggle_state else '0', 
-                hx_post=f'/task/toggle/{item.id}', 
-                hx_swap='outerHTML', 
+                type='checkbox',
+                checked='1' if toggle_state else '0',
+                hx_post=f'/task/toggle/{item.id}',
+                hx_swap='outerHTML',
                 hx_target=f'#todo-{item.id}',
                 aria_label=f'Toggle {self.name} item: {item_name}',
                 aria_describedby=f'todo-{item.id}-label'
-            ), 
-            A(item_name, 
-              href='#', 
-              _class='todo-title', 
+            ),
+            A(item_name,
+              href='#',
+              _class='todo-title',
               style=('color: inherit; ', 'text-decoration: none'),
               id=f'todo-{item.id}-label',
               aria_label=f'{self.name.capitalize()} item: {item_name}'
-            ), 
-            data_id=item.id, 
-            data_priority=getattr(item, self.sort_field, 0) if self.sort_field else 0, 
-            id=f'todo-{item.id}', 
+              ),
+            data_id=item.id,
+            data_priority=getattr(item, self.sort_field, 0) if self.sort_field else 0,
+            id=f'todo-{item.id}',
             cls='list-style-none',
             role='listitem',
             aria_label=f'{self.name.capitalize()} item {item.id}: {item_name}'
@@ -136,22 +137,22 @@ class BaseCrud:
         try:
             item = self.table[item_id]
             item_name = getattr(item, self.item_name_field, f'Item {item_id}')
-            
+
             # 🎯 ENHANCED: Use soft delete when enabled and supported
             soft_delete_attempted = False
             if self.soft_delete_enabled:
                 soft_delete_attempted = self._soft_delete_item(item_id)
-            
+
             if soft_delete_attempted:
                 action_verb = "soft deleted"
             else:
                 # Traditional hard delete as fallback
                 self.table.delete(item_id)
                 action_verb = "removed"
-            
+
             # 🎯 TRIGGER BACKUP after successful delete
             self._trigger_backup()
-            
+
             action_details = f"The {self.name} item '{item_name}' was {action_verb}."
             prompt = action_details
             self.safe_send_message(prompt, verbatim=True)
@@ -210,7 +211,7 @@ class BaseCrud:
             values = await request.form()
             items = json.loads(values.get('items', '[]'))
             logger.debug(f'Parsed items: {items}')
-            
+
             # CRITICAL: Server-side validation to prevent meaningless sort requests
             current_order_changed = False
             for item in items:
@@ -221,13 +222,13 @@ class BaseCrud:
                 if current_priority != new_priority:
                     current_order_changed = True
                     break
-            
+
             if not current_order_changed:
                 logger.debug(f'🚫 SMART SORT BLOCKED: No actual changes detected for {self.name} - current order already matches requested order')
                 return HTMLResponse('')  # Return empty response without triggers
-            
+
             logger.debug(f'✅ SMART SORT ALLOWED: Actual changes detected for {self.name}')
-            
+
             # Update all items and collect their names in new order
             updated_items = []
             for item in sorted(items, key=lambda x: int(x['priority'])):
@@ -236,7 +237,7 @@ class BaseCrud:
                 self.table.update({self.sort_field: priority}, item_id)
                 item_name = getattr(self.table[item_id], self.item_name_field, 'Item')
                 updated_items.append(item_name)
-            
+
             # Create a concise, human-friendly message showing the new order
             items_list = ', '.join(updated_items)
             action_details = f'Reordered {self.name}: {items_list}'
@@ -275,23 +276,23 @@ class BaseCrud:
             insert_data = self.prepare_insert_data(form)
             if insert_data is None:
                 return HTMLResponse(f"<div style='color:red;'>Invalid {self.name} data</div>", status_code=400)
-            
+
             # 🎯 ENHANCED: Add timestamp fields for backup tracking (only if table supports it)
             if self.backup_enabled and self._has_backup_fields():
                 current_time = datetime.now().isoformat()
                 insert_data[self.updated_field] = current_time
                 # Don't set deleted_at on insert (should be NULL for active records)
-            
+
             logger.debug(f'[DEBUG] Attempting to insert data into {self.name}: {insert_data}')
             # 🔥 CRITICAL: MiniDataAPI requires keyword argument unpacking with **insert_data
             # ❌ NEVER CHANGE TO: self.table.insert(insert_data) - This will break!
             # ✅ ALWAYS USE: self.table.insert(**insert_data) - This unpacks the dict
             new_item = self.table.insert(**insert_data)
             logger.debug(f'[DEBUG] Successfully inserted item into {self.name}: {new_item}')
-            
+
             # 🎯 TRIGGER BACKUP after successful insert
             self._trigger_backup()
-            
+
             item_name = getattr(new_item, self.item_name_field, 'Item')
             action_details = f"A new {self.name} item '{item_name}' was added."
             self.safe_send_message(action_details, verbatim=True)
@@ -312,43 +313,43 @@ class BaseCrud:
             update_data = self.prepare_update_data(form)
             if update_data is None:
                 return HTMLResponse(f"<div style='color:red;'>Invalid {self.name} data</div>", status_code=400)
-            
+
             # 🎯 ENHANCED: Add updated timestamp for backup tracking (only if table supports it)
             if self.backup_enabled and self._has_backup_fields():
                 update_data[self.updated_field] = datetime.now().isoformat()
-            
+
             original_item = self.table[item_id]
             old_values = {field: getattr(original_item, field, None) for field in update_data.keys()}
-            
+
             # Update the item
             updated_item = self.table.update(update_data, item_id)
-            
+
             # 🎯 TRIGGER BACKUP after successful update
             self._trigger_backup()
-            
+
             # Track changes for logging
             changes = {}
             for field, new_value in update_data.items():
                 old_value = old_values.get(field)
                 if old_value != new_value:
                     changes[field] = {'old': old_value, 'new': new_value}
-            
+
             if changes:
                 item_name_display = getattr(updated_item, self.item_name_field, f'Item {item_id}')
                 changes_str = ', '.join([f"{field}: '{change['old']}' → '{change['new']}'" for field, change in changes.items()])
-                
+
                 if hasattr(self.pipulate_instance, 'fmt'):
                     formatted_changes = self.pipulate_instance.fmt(changes_str)
                 else:
                     formatted_changes = changes_str
-                    
+
                 action_details = f"The {self.name} item '{item_name_display}' was updated. Changes: {formatted_changes}"
                 self.safe_send_message(action_details, verbatim=True)
                 logger.debug(f'Updated {self.name} item {item_id}. Changes: {changes_str}')
-            
+
             rendered_item_ft = self.render_item(updated_item)
             return rendered_item_ft
-            
+
         except Exception as e:
             import traceback
             logger.exception(f'Detailed error updating item {item_id} in {self.name}:')
@@ -382,7 +383,7 @@ class BaseCrud:
         """Check if the table has the required backup fields."""
         if not self.backup_enabled:
             return False
-            
+
         try:
             # Check if the table has updated_at and deleted_at fields
             # For now, we'll assume tables don't have these fields by default
@@ -391,12 +392,12 @@ class BaseCrud:
         except Exception as e:
             logger.debug(f"Error checking backup fields for {self.table_name}: {e}")
             return False
-    
+
     def _ensure_backup_schema(self):
         """Ensure table has the required fields for backup integration."""
         if not self.backup_enabled:
             return
-            
+
         try:
             # For now, just log that we're checking the schema
             # Later we can add actual schema migration logic here
@@ -409,12 +410,12 @@ class BaseCrud:
         except Exception as e:
             logger.error(f"❌ Error ensuring backup schema for {self.table_name}: {e}")
             self.backup_enabled = False
-    
+
     def _trigger_backup(self):
         """Trigger a backup operation for this table."""
         if not self.backup_enabled:
             return
-            
+
         try:
             # Get the database path from the table or use default
             db_path = getattr(self.table, 'db_path', 'data/app.db')
@@ -425,33 +426,34 @@ class BaseCrud:
                 logger.warning(f"⚠️ Backup failed for {self.table_name}")
         except Exception as e:
             logger.error(f"❌ Error triggering backup for {self.table_name}: {e}")
-    
+
     def _soft_delete_item(self, item_id: int):
         """Perform soft delete by setting deleted_at timestamp."""
         # Only do soft delete if table supports backup fields
         if not self.backup_enabled or not self._has_backup_fields():
             return False
-            
+
         try:
             # Update the item with deleted_at timestamp
             update_data = {
                 self.deleted_field: datetime.now().isoformat(),
                 self.updated_field: datetime.now().isoformat()
             }
-            
+
             # Update the database record
             item = self.table[item_id]
             for field, value in update_data.items():
                 if hasattr(item, field):
                     setattr(item, field, value)
-            
+
             # Save changes (FastLite should handle this automatically)
             logger.info(f"🗑️ Soft deleted {self.name} ID {item_id}")
             return True
-            
+
         except Exception as e:
             logger.error(f"❌ Soft delete failed for {self.name} ID {item_id}: {e}")
-            return False 
+            return False
+
 
 async def check_ollama_availability():
     """
@@ -474,4 +476,4 @@ async def check_ollama_availability():
                 return False
     except Exception as e:
         logger.debug(f"Error checking Ollama availability: {e}")
-        return False 
+        return False
