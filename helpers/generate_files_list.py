@@ -270,10 +270,15 @@ def generate_files_list():
         FileEntry(".gitignore", False, "Lets data stay in the repo"),
         FileEntry("flake.nix", False, "IaC - Infrastructure as Code"),
         FileEntry("requirements.txt", False, "Python dependencies"),
+        FileEntry("__init__.py", False, "Package init with version info - single source of truth"),
         FileEntry("config.py", False, "Centralized configuration - single source of truth"),
         FileEntry("server.py", False, "Server entrypoint"),
-        FileEntry("common.py", False, "CRUD base class"),
+        FileEntry("common.py", False, "CRUD base class and shared utilities"),
+        FileEntry("database.py", False, "Database utilities and DictLikeDB wrapper"),
         FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
+        FileEntry("cli.py", False, "CLI interface for PyPI package and local execution"),
+        FileEntry("logging_utils.py", False, "Logging utilities and DebugConsole"),
+        FileEntry("plugin_system.py", False, "Plugin discovery and loading system"),
         FileEntry("helpers/ascii_displays.py", True, "Externalized ASCII art functions"),
     ]
 
@@ -281,6 +286,8 @@ def generate_files_list():
     important_files = [
         FileEntry("keychain.py", True, "AI Keychain - Persistent memory for Chip O'Theseus"),
         FileEntry("discover_mcp_tools.py", True, "MCP tool discovery and validation"),
+        FileEntry("botify_extraction_demo.py", True, "Demo script showing Botify tools extraction success"),
+        FileEntry("vulture_whitelist.py", True, "Dead code detection whitelist for development"),
         FileEntry("tools/__init__.py", False, "Modular tools package interface"),
     ]
     
