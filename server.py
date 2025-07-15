@@ -6849,9 +6849,9 @@ Use these tools to assist users within your guided capabilities. Remember that a
 
 ALL_ROUTES = list(set([''] + MENU_ITEMS))
 for route in ALL_ROUTES:
-    path = f'/{route}' if route else '/'
+    route_path = f'/{route}' if route else '/'
 
-    @app.route(path)
+    @app.route(route_path)
     async def home_route(request):
         return await home(request)
 app.add_middleware(DOMSkeletonMiddleware)
