@@ -938,15 +938,25 @@ async function executeSystemReplyStep(step) {
 async function executeMcpToolCallStep(step) {
     console.log('🎯 Executing MCP tool call:', step.tool_name);
     
-    // 🔧 DEBUG: Log WebSocket connection status
-    console.log('🔧 WebSocket status:', {
+    // 🔧 DEBUG: Enhanced WebSocket connection status
+    console.log('🔧 DEMO MCP DEBUG - WebSocket status:', {
         readyState: sidebarWs.readyState,
         readyStateText: getWebSocketStateText(sidebarWs.readyState),
-        url: sidebarWs.url
+        url: sidebarWs.url,
+        isOpen: sidebarWs.readyState === WebSocket.OPEN
+    });
+    
+    // 🔧 DEBUG: Log step details
+    console.log('🔧 DEMO MCP DEBUG - Step details:', {
+        tool_name: step.tool_name,
+        tool_args: step.tool_args,
+        description: step.description
     });
     
     // Send MCP tool call via WebSocket
     if (sidebarWs.readyState === WebSocket.OPEN) {
+        console.log('🔧 DEMO MCP DEBUG - Taking REAL WebSocket execution path');
+        
         const mcpCall = {
             type: 'mcp_tool_call',
             tool_name: step.tool_name,
@@ -954,15 +964,17 @@ async function executeMcpToolCallStep(step) {
             description: step.description || ''
         };
         
+        console.log('🔧 DEMO MCP DEBUG - Sending MCP call:', mcpCall);
         sidebarWs.send('%%DEMO_MCP_CALL%%:' + JSON.stringify(mcpCall));
-        console.log('🎯 Sent MCP tool call via WebSocket');
+        console.log('✅ DEMO MCP DEBUG - Sent MCP tool call via WebSocket');
     } else {
-        console.error('🎯 WebSocket not connected, cannot send MCP tool call');
-        console.error('🎯 WebSocket state:', getWebSocketStateText(sidebarWs.readyState));
+        console.error('🔧 DEMO MCP DEBUG - WebSocket not connected, cannot send MCP tool call');
+        console.error('🔧 DEMO MCP DEBUG - WebSocket state:', getWebSocketStateText(sidebarWs.readyState));
+        console.log('🔧 DEMO MCP DEBUG - Will attempt reconnection or fall back to phantom execution');
         
         // Try to reconnect if disconnected
         if (sidebarWs.readyState === WebSocket.CLOSED) {
-            console.log('🔄 Attempting to reconnect WebSocket...');
+            console.log('🔧 DEMO MCP DEBUG - WebSocket is CLOSED, attempting to reconnect...');
             await attemptWebSocketReconnection();
             
             // Retry sending the MCP tool call after reconnection
@@ -977,9 +989,15 @@ async function executeMcpToolCallStep(step) {
                 sidebarWs.send('%%DEMO_MCP_CALL%%:' + JSON.stringify(mcpCall));
                 console.log('🎯 Sent MCP tool call via reconnected WebSocket');
             } else {
-                console.error('🎯 WebSocket reconnection failed, falling back to phantom execution');
+                console.error('🔧 DEMO MCP DEBUG - WebSocket reconnection failed, falling back to phantom execution');
+                console.log('🔧 DEMO MCP DEBUG - About to call executeCleanMcpToolCallStep with:', step);
                 await executeCleanMcpToolCallStep(step);
+                console.log('🔧 DEMO MCP DEBUG - executeCleanMcpToolCallStep completed');
             }
+        } else {
+            console.log('🔧 DEMO MCP DEBUG - WebSocket not CLOSED (state:', getWebSocketStateText(sidebarWs.readyState), '), falling back to phantom execution immediately');
+            await executeCleanMcpToolCallStep(step);
+            console.log('🔧 DEMO MCP DEBUG - executeCleanMcpToolCallStep completed (immediate fallback)');
         }
     }
 }
@@ -1636,7 +1654,17 @@ The element is now sparkling with golden light!`;
             // Extract ID from selector (remove # if present)
             elementId = step.tool_args.selector.replace('#', '');
         }
+        
+        // 🔧 DEBUG: Log golden glow execution details
+        console.log('✨ PHANTOM GOLDEN GLOW DEBUG:');
+        console.log('  - step.tool_args:', step.tool_args);
+        console.log('  - extracted elementId:', elementId);
+        console.log('  - target element:', document.getElementById(elementId));
+        console.log('  - calling flashElementWithGoldEffect...');
+        
         flashElementWithGoldEffect(elementId);
+        
+        console.log('✅ flashElementWithGoldEffect called in phantom execution');
     } else {
         mcpResult = `🔧 **MCP Tool Executed** 🔧
 
