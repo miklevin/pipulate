@@ -4977,7 +4977,7 @@ def get_workflow_instance(workflow_name):
     return plugin_instances.get(workflow_name)
 
 
-async def create_grid_left(menux, request, render_items=None):
+async def create_grid_left(menux, request):
     """Create the left grid content based on the selected menu item.
 
     Args:
