@@ -689,7 +689,7 @@ document.addEventListener('keydown', function(event) {
 });
 
 // Add a console log to confirm this script section loaded
-console.log('🔧 Pipulate keyboard shortcuts initialized - listening for Ctrl+Alt+R, Ctrl+Alt+D, and Ctrl+Alt+V');
+console.log('🔧 Pipulate keyboard shortcuts initialized - listening for Ctrl+Alt+R/D/V/W (PC) or Cmd+Option+R/D/V/W (Mac)');
 
 // Function to test voice synthesis via web endpoint
 async function testVoiceSynthesis() {
