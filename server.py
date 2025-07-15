@@ -4747,7 +4747,7 @@ def create_home_menu_item(menux):
     return menu_items
 
 
-def get_plugin_primary_role(instance):
+def get_plugin_primary_role(plugin_instance):
     """Get the primary role for a plugin for UI styling purposes.
 
     Uses a simple 80/20 approach: if plugin has multiple roles, 
@@ -4756,32 +4756,32 @@ def get_plugin_primary_role(instance):
 
     Returns lowercase role name with spaces replaced by hyphens for CSS classes.
     """
-    plugin_module_path = instance.__module__
+    plugin_module_path = plugin_instance.__module__
     plugin_module = sys.modules.get(plugin_module_path)
     plugin_defined_roles = getattr(plugin_module, 'ROLES', []) if plugin_module else []
     if not plugin_defined_roles:
         return None
     primary_role = plugin_defined_roles[0]
     css_role = primary_role.lower().replace(' ', '-')
-    logger.debug(f"Plugin '{instance.__class__.__name__}' primary role: '{primary_role}' -> CSS class: 'menu-role-{css_role}'")
+    logger.debug(f"Plugin '{plugin_instance.__class__.__name__}' primary role: '{primary_role}' -> CSS class: 'menu-role-{css_role}'")
     return css_role
 
 
 def create_plugin_menu_item(plugin_key, menux, active_role_names):
     """Create menu item for a plugin if it should be included based on roles."""
-    instance = plugin_instances.get(plugin_key)
-    if not instance:
+    plugin_instance = plugin_instances.get(plugin_key)
+    if not plugin_instance:
         logger.warning(f"Instance for plugin_key '{plugin_key}' not found. Skipping.")
         return None
     if plugin_key in ['profiles', 'roles']:
         return None
 
-    if not should_include_plugin(instance, active_role_names):
+    if not should_include_plugin(plugin_instance, active_role_names):
         return None
-    display_name = getattr(instance, 'DISPLAY_NAME', title_name(plugin_key))
+    display_name = getattr(plugin_instance, 'DISPLAY_NAME', title_name(plugin_key))
     is_selected = menux == plugin_key
     redirect_url = f"/redirect/{(plugin_key if plugin_key else '')}"
-    primary_role = get_plugin_primary_role(instance)
+    primary_role = get_plugin_primary_role(plugin_instance)
     role_class = f'menu-role-{primary_role}' if primary_role else ''
     css_classes = f'dropdown-item {role_class}'.strip()
     if is_selected:
@@ -4790,15 +4790,15 @@ def create_plugin_menu_item(plugin_key, menux, active_role_names):
     return Li(Label(radio_input, display_name, cls=css_classes))
 
 
-def should_include_plugin(instance, active_role_names):
+def should_include_plugin(plugin_instance, active_role_names):
     """Determine if plugin should be included based on its roles."""
-    plugin_module_path = instance.__module__
+    plugin_module_path = plugin_instance.__module__
     plugin_module = sys.modules.get(plugin_module_path)
     plugin_defined_roles = getattr(plugin_module, 'ROLES', []) if plugin_module else []
     is_core_plugin = 'Core' in plugin_defined_roles
     has_matching_active_role = any((p_role in active_role_names for p_role in plugin_defined_roles))
     should_include = is_core_plugin or has_matching_active_role
-    logger.debug(f"Plugin '{instance.__class__.__name__}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Active Roles: {active_role_names}, Match: {has_matching_active_role}, Include: {should_include}")
+    logger.debug(f"Plugin '{plugin_instance.__class__.__name__}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Active Roles: {active_role_names}, Match: {has_matching_active_role}, Include: {should_include}")
     return should_include
 
 
