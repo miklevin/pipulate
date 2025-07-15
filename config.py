@@ -239,4 +239,12 @@ INVALID_URL_PATTERNS = [
     'mailto:',
     'tel:',
     'ftp:'
-] 
+]
+
+# Botify API helper functions
+def get_botify_headers(api_token):
+    """Get standard Botify API headers."""
+    return {
+        "Authorization": f"Token {api_token}",
+        "Content-Type": "application/json"
+    } 

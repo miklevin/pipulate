@@ -962,10 +962,8 @@ async def botify_simple_query(params: dict) -> dict:
     try:
         async with aiohttp.ClientSession() as session:
             external_url = f"https://api.botify.com/v1/projects/{org_slug}/{project_slug}/query"
-            headers = {
-                "Authorization": f"Token {api_token}",
-                "Content-Type": "application/json"
-            }
+            from config import get_botify_headers
+            headers = get_botify_headers(api_token)
 
             # Build the BQL query payload
             payload = {
