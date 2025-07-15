@@ -220,8 +220,6 @@ def get_current_environment():
 
 def get_nix_version():
     """Get the version and description from the single source of truth: pipulate.__version__ and __version_description__"""
-    import os
-
     # Get version and description from single source of truth
     try:
         # Import the version and description from our package
@@ -256,7 +254,6 @@ def get_nix_version():
 def get_git_hash():
     """Get the abbreviated git hash of the current commit"""
     try:
-        import subprocess
         result = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'],
                                 capture_output=True, text=True, cwd=Path(__file__).parent)
         if result.returncode == 0:
@@ -5447,8 +5444,8 @@ async def poke_chatbot():
 
     # 2. Create and run the specific tool-use task in the background.
     import random
-    import time
-    timestamp = int(time.time())
+    import time as time_module
+    timestamp = int(time_module.time())
     session_id = random.randint(1000, 9999)
 
     one_shot_mcp_prompt = f"""You are a helpful assistant with a tool that can fetch random cat facts. When the user wants a cat fact, you must use this tool.
@@ -5501,8 +5498,8 @@ async def poke_botify_test():
 
     # 2. Create Botify-specific MCP prompt
     import random
-    import time
-    timestamp = int(time.time())
+    import time as time_module
+    timestamp = int(time_module.time())
     session_id = random.randint(1000, 9999)
 
     botify_mcp_prompt = f"""You are a helpful assistant with access to Botify API tools. When the user wants to test Botify connectivity, you must use the botify_ping tool.
@@ -7001,8 +6998,8 @@ def restart_server():
         logger.warning(f'Could not broadcast restart notification: {e}')
 
     # Reduced delay for faster restart with typing speed compensation
-    import time
-    time.sleep(0.5)
+    import time as time_module
+    time_module.sleep(0.5)
 
     max_retries = 3
     for attempt in range(max_retries):
