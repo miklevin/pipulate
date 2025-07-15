@@ -3072,9 +3072,9 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
     - [mcp-discover] - Level 1: Ultra-simple bracket notation for small models
     - <tool name="..."> - Level 4/5: XML/JSON for sophisticated models
     """
-    import uuid
+    import uuid as uuid_lib
     start_time = time.time()
-    operation_id = str(uuid.uuid4())[:8]
+    operation_id = str(uuid_lib.uuid4())[:8]
 
     try:
         logger.debug("🔍 DEBUG: === STARTING execute_and_respond_to_tool_call ===")
@@ -4417,9 +4417,9 @@ async def home(request):
     Returns:
         tuple: (Title, Main) containing the page title and main content
     """
-    path = request.url.path.strip('/')
-    logger.debug(f'Received request for path: {path}')
-    menux = normalize_menu_path(path)
+    url_path = request.url.path.strip('/')
+    logger.debug(f'Received request for path: {url_path}')
+    menux = normalize_menu_path(url_path)
     logger.debug(f'Selected explore item: {menux}')
     db['last_app_choice'] = menux
     db['last_visited_url'] = request.url.path
@@ -5801,9 +5801,9 @@ async def mcp_tool_executor_endpoint(request):
     🔧 FINDER_TOKEN: MCP_TOOL_EXECUTOR_GENERIC_DISPATCH
     This endpoint now uses the MCP_TOOL_REGISTRY for dynamic tool dispatch.
     """
-    import uuid
+    import uuid as uuid_lib
     start_time = time.time()
-    operation_id = str(uuid.uuid4())[:8]
+    operation_id = str(uuid_lib.uuid4())[:8]
 
     try:
         data = await request.json()
