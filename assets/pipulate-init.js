@@ -678,10 +678,19 @@ document.addEventListener('keydown', function(event) {
         // Test WebSocket connection
         testWebSocketConnection();
     }
+    
+    // Ctrl+Alt+G: Test golden glow effect
+    if (event.ctrlKey && event.altKey && (event.key === 'G' || event.key === 'g')) {
+        event.preventDefault();
+        console.log('✨ Golden glow test triggered via Ctrl+Alt+G');
+        
+        // Test golden glow effect directly
+        testGoldenGlow();
+    }
 });
 
 // Add a console log to confirm this script section loaded
-console.log('🔧 Pipulate keyboard shortcuts initialized - listening for Ctrl+Alt+R, Ctrl+Alt+D, and Ctrl+Alt+V');
+console.log('🔧 Pipulate keyboard shortcuts initialized - listening for Ctrl+Alt+R, Ctrl+Alt+D, Ctrl+Alt+V, Ctrl+Alt+W, and Ctrl+Alt+G');
 
 // Function to test voice synthesis via web endpoint
 async function testVoiceSynthesis() {
@@ -720,6 +729,36 @@ async function testVoiceSynthesis() {
         
     } catch (error) {
         console.error('🎤 Error testing voice synthesis:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Test golden glow effect directly
+function testGoldenGlow() {
+    console.log('✨ Testing golden glow effect on chat textarea...');
+    
+    try {
+        // Test both element ID approaches
+        const textareaById = document.getElementById('msg');
+        const textareaBySelector = document.querySelector('#msg');
+        
+        console.log('✨ Element lookup results:');
+        console.log('  - getElementById("msg"):', textareaById);
+        console.log('  - querySelector("#msg"):', textareaBySelector);
+        
+        if (textareaById) {
+            console.log('✨ Found textarea, applying golden glow effect...');
+            flashElementWithGoldEffect('msg');
+            console.log('✅ Golden glow effect triggered successfully!');
+            return { success: true, element: 'msg', method: 'flashElementWithGoldEffect' };
+        } else {
+            console.log('❌ Textarea element not found');
+            console.log('Available elements with IDs:', Array.from(document.querySelectorAll('[id]')).map(el => el.id));
+            return { success: false, error: 'Textarea element not found' };
+        }
+        
+    } catch (error) {
+        console.error('✨ Error testing golden glow:', error);
         return { success: false, error: error.message };
     }
 }
