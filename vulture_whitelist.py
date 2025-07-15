@@ -1,9 +1,9 @@
 # Whitelist for vulture to ignore functions used through FastHTML/HTMX routes and plugin system
 
--# autopep8 --ignore E501,F405,F403,F541 --in-place server.py
--# isort server.py
--# vulture server.py
--# pylint --disable=all --enable=redefined-outer-name server.py
+# autopep8 --ignore E501,F405,F403,F541 --in-place server.py
+# isort server.py
+# vulture server.py
+# pylint --disable=all --enable=redefined-outer-name server.py
 
 from server import (  # noqa
     # Core classes used by plugins

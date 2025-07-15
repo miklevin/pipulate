@@ -26,9 +26,6 @@ import aiohttp
 import uvicorn
 from fasthtml.common import *
 from loguru import logger
-from pyfiglet import Figlet
-from rich.align import Align
-from rich.box import ASCII, DOUBLE, HEAVY, ROUNDED
 from rich.console import Console
 from rich.json import JSON
 from rich.panel import Panel
@@ -43,42 +40,33 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
+import mcp_tools
+from common import BaseCrud
 # Import centralized configuration to eliminate duplication
 from config import PCONFIG as CONFIG_PCONFIG
+from helpers import botify_code_generation
+from helpers.ascii_displays import (ai_breadcrumb_summary, ascii_banner,
+                                    chip_says, falling_alice, fig,
+                                    figlet_banner, log_reading_legend,
+                                    radical_transparency_banner,
+                                    section_header, server_whisper,
+                                    share_ascii_with_ai,
+                                    startup_environment_warnings,
+                                    startup_summary_table, status_banner,
+                                    story_moment, strip_rich_formatting,
+                                    system_diagram, white_rabbit)
+from mcp_tools import register_all_mcp_tools, register_mcp_tool
 
 # Import MCP tools module for enhanced AI assistant capabilities
 # Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
 MCP_TOOL_REGISTRY = {}
 
-from mcp_tools import register_all_mcp_tools, register_mcp_tool
 # Pass our registry to mcp_tools so they use the same instance
-import mcp_tools
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
 # Import ASCII display functions (externalized from server.py for token reduction)
-from helpers.ascii_displays import (
-    log_reading_legend,
-    strip_rich_formatting, 
-    share_ascii_with_ai,
-    falling_alice,
-    white_rabbit, 
-    system_diagram,
-    figlet_banner,
-    fig,
-    chip_says,
-    story_moment,
-    server_whisper,
-    ascii_banner,
-    section_header,
-    radical_transparency_banner,
-    status_banner,
-    startup_summary_table,
-    ai_breadcrumb_summary,
-    startup_environment_warnings
-)
 
 # Import Botify code generation utilities (externalized from server.py for token reduction)
-from helpers import botify_code_generation
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
@@ -100,19 +88,19 @@ BANNER_COLORS = {
     # Main banner colors
     'figlet_primary': 'bright_cyan',
     'figlet_subtitle': 'dim white',
-    
-    # ASCII banner colors  
+
+    # ASCII banner colors
     'ascii_title': 'bright_cyan',
     'ascii_subtitle': 'dim cyan',
-    
+
     # Section headers
     'section_header': 'bright_yellow',
-    
+
     # Story moments and messages
     'chip_narrator': 'bold cyan',
-    'story_moment': 'bright_magenta', 
+    'story_moment': 'bright_magenta',
     'server_whisper': 'dim italic',
-    
+
     # Startup sequence colors
     'server_awakening': 'bright_cyan',
     'mcp_arsenal': 'bright_blue',
@@ -120,21 +108,22 @@ BANNER_COLORS = {
     'plugin_registry_warning': 'bright_yellow',
     'workshop_ready': 'bright_blue',
     'server_restart': 'yellow',
-    
+
     # Special banners
     'white_rabbit': 'white on default',
     'transparency_banner': 'bright_cyan',
     'system_diagram': 'bright_blue',
     'status_banner': 'bright_green',
-    
+
     # Box styles (Rich box drawing)
     'heavy_box': 'HEAVY',
-    'rounded_box': 'ROUNDED', 
+    'rounded_box': 'ROUNDED',
     'double_box': 'DOUBLE',
     'ascii_box': 'ASCII'
 }
 
 custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
+
 
 class DebugConsole(Console):
 
@@ -142,22 +131,24 @@ class DebugConsole(Console):
         # Filter out AI Creative Vision messages from console (they're for log files only)
         # Convert args to string to check for AI markers
         message_str = ' '.join(str(arg) for arg in args)
-        
+
         # Skip console output for AI-specific messages (they go to logs only)
         if '🎭 AI_CREATIVE_VISION' in message_str:
             return
-            
+
         super().print(*args, **kwargs)
+
+
 console = DebugConsole(theme=custom_theme)
 
 
 def rich_json_display(data, title=None, console_output=True, log_output=True, ai_log_output=True, log_prefix=""):
     """🎨 RICH JSON DISPLAY: Beautiful syntax-highlighted JSON for dicts and JSON data
-    
+
     DUAL LOGGING SYSTEM:
     - Humans see Rich JSON syntax highlighting in console  
     - AI assistants see JSON data in log files for debugging assistance
-    
+
     Args:
         data: Dict, list, or JSON-serializable data to display
         title: Optional title for the JSON display
@@ -165,7 +156,7 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, ai
         log_output: Whether to log plain JSON for general logging (default: True)
         ai_log_output: Whether to log JSON for AI assistant visibility (default: True)
         log_prefix: Prefix for log messages (default: "")
-    
+
     Returns:
         str: The formatted JSON string for logging
     """
@@ -185,29 +176,29 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, ai
             # Use Rich JSON for syntax highlighting
             rich_json = JSON(json.dumps(data, indent=2, default=str))
             json_str = json.dumps(data, indent=2, default=str)
-        
+
         # Console output with Rich syntax highlighting (for humans)
         if console_output:
             if title:
                 console.print(f"\n🎨 {title}", style="bold cyan")
-            
+
             # Use Rich's JSON class for beautiful syntax highlighting
             rich_json = JSON(json_str)
             console.print(rich_json)
             console.print()  # Add spacing
-        
+
         # AI assistant logging - always log JSON data for AI visibility using WARNING level
         if ai_log_output:
             ai_title = f"AI_JSON_DATA: {title}" if title else "AI_JSON_DATA"
             # Use WARNING level so AI assistants can easily grep for "WARNING.*AI_JSON_DATA"
             logger.warning(f"🤖 {ai_title}:\n{json_str}")
-        
-        # Standard log output 
+
+        # Standard log output
         if log_output and json_str:
             return json_str
-            
+
         return json_str
-        
+
     except Exception as e:
         error_msg = f"[Error formatting JSON for display: {e}] Data: {str(data)}"
         if console_output:
@@ -219,7 +210,7 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, ai
 
 def rich_dict_display(data, title=None, console_output=True):
     """🎨 RICH DICT DISPLAY: Beautiful syntax-highlighted display for dictionaries
-    
+
     Simplified version for when you just want to show dict data beautifully
     """
     return rich_json_display(data, title=title, console_output=console_output, log_output=False)
@@ -232,10 +223,10 @@ def rich_dict_display(data, title=None, console_output=True):
 def setup_logging():
     """
     🔧 UNIFIED LOGGING SYSTEM
-    
+
     Single source of truth logging with rolling server logs.
     Designed for optimal debugging experience with surgical search capabilities.
-    
+
     Features:
     - server.log (current run, live tail-able)
     - server-1.log, server-2.log, etc. (previous runs for context across restarts)
@@ -245,13 +236,13 @@ def setup_logging():
     logger.remove()
     logs_dir = Path('logs')
     logs_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # === ROLLING LOG ROTATION SYSTEM ===
     # This preserves debugging context across server restarts
     server_log_path = logs_dir / 'server.log'
     MAX_ROLLED_LOGS = 10  # Keep last 10 server runs
     # 🔧 FINDER_TOKEN: MAX_ROLLED_LOOKING_AT_DIRS moved to mcp_tools.py (used by rotate_looking_at_directory)
-    
+
     # Clean up old numbered logs beyond our limit
     for i in range(MAX_ROLLED_LOGS + 1, 100):
         old_log = logs_dir / f'server-{i}.log'
@@ -261,7 +252,7 @@ def setup_logging():
                 print(f'🧹 Cleaned up old server log: {old_log}')
             except Exception as e:
                 print(f'⚠️ Failed to delete old server log {old_log}: {e}')
-    
+
     # Rotate existing logs: server-1.log → server-2.log, etc.
     if server_log_path.exists():
         for i in range(MAX_ROLLED_LOGS - 1, 0, -1):
@@ -273,14 +264,14 @@ def setup_logging():
                     logger.info(f'📁 Rotated: {old_path.name} → {new_path.name}')
                 except Exception as e:
                     logger.warning(f'⚠️ Failed to rotate {old_path}: {e}')
-        
+
         # Move current server.log to server-1.log
         try:
             server_log_path.rename(logs_dir / 'server-1.log')
             logger.info(f'📁 Archived current run: server.log → server-1.log')
         except Exception as e:
             logger.warning(f'⚠️ Failed to archive current server.log: {e}')
-    
+
     # === CLEAN UP LEGACY LOG FILES ===
     # Remove the old fragmented log system
     legacy_files = ['api.log', 'lifecycle.log', 'table_lifecycle.log'] + [f'api-{i}.log' for i in range(1, 20)]
@@ -292,38 +283,38 @@ def setup_logging():
                 print(f'🧹 Removed legacy log: {legacy_file}')
             except Exception as e:
                 print(f'⚠️ Failed to remove legacy log {legacy_file}: {e}')
-    
+
     # === UNIFIED LOG FORMAT ===
     log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
     time_format = '{time:HH:mm:ss}'
-    
+
     # File logging - comprehensive for debugging
     file_format = f'{time_format} | {{level: <8}} | {{name: <15}} | {{message}}'
     logger.add(
-        server_log_path, 
-        level=log_level, 
-        format=file_format, 
+        server_log_path,
+        level=log_level,
+        format=file_format,
         enqueue=True,
         backtrace=True,
         diagnose=True
     )
-    
+
     # Console logging - clean for live monitoring (exclude AI JSON data)
     console_format = '<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}'
     logger.add(
-        sys.stderr, 
-        level=log_level, 
-        format=console_format, 
-        colorize=True, 
+        sys.stderr,
+        level=log_level,
+        format=console_format,
+        colorize=True,
         filter=lambda record: (
             # Exclude AI JSON data from console (humans see Rich display instead)
             '🤖 AI_JSON' not in record['message'] and
             # Exclude AI Creative Vision from console (humans see Rich display instead)
             'AI_CREATIVE_VISION' not in record['message'] and
             (
-                record['level'].name != 'DEBUG' or 
+                record['level'].name != 'DEBUG' or
                 any(key in record['message'] for key in [
-                    'FINDER_TOKEN', 'MCP', 'BOTIFY', 'API', 'Pipeline ID:', 
+                    'FINDER_TOKEN', 'MCP', 'BOTIFY', 'API', 'Pipeline ID:',
                     'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'
                 ])
             )
@@ -332,11 +323,11 @@ def setup_logging():
     # === STARTUP MESSAGES ===
     if STATE_TABLES:
         logger.info('🔍 FINDER_TOKEN: STATE_TABLES_ENABLED - Console will show 🍪 and ➡️ table snapshots')
-    
+
     # Welcome message for the new unified system
     logger.info('🚀 FINDER_TOKEN: UNIFIED_LOGGING_ACTIVE - Single source of truth logging initialized')
     logger.info(f'📁 FINDER_TOKEN: LOG_ROTATION_READY - Keeping last {MAX_ROLLED_LOGS} server runs for debugging context')
-    
+
     return logger
 
 
@@ -368,18 +359,22 @@ message_coordination = {
     'startup_in_progress': False,     # Flag to coordinate startup vs page load
 }
 
+
 class GracefulRestartException(SystemExit):
     """Custom exception to signal a restart requested by Watchdog."""
     pass
+
 
 def is_critical_operation_in_progress():
     """Check if a critical operation is in progress via file flag."""
     return os.path.exists('.critical_operation_lock')
 
+
 def set_critical_operation_flag():
     """Set the critical operation flag via file."""
     with open('.critical_operation_lock', 'w') as f:
         f.write('critical operation in progress')
+
 
 def clear_critical_operation_flag():
     """Clear the critical operation flag."""
@@ -387,6 +382,7 @@ def clear_critical_operation_flag():
         os.remove('.critical_operation_lock')
     except FileNotFoundError:
         pass
+
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -403,12 +399,14 @@ def get_app_name(force_app_name=None):
             name = name[:-5] if name.endswith('-main') else name
     return name.capitalize()
 
+
 def get_db_filename():
     current_env = get_current_environment()
     if current_env == 'Development':
         return f'data/{APP_NAME.lower()}_dev.db'
     else:
         return f'data/{APP_NAME.lower()}.db'
+
 
 def get_current_environment():
     if ENV_FILE.exists():
@@ -419,10 +417,11 @@ def get_current_environment():
         ENV_FILE.write_text('Development')
         return 'Development'
 
+
 def get_nix_version():
     """Get the version and description from the single source of truth: pipulate.__version__ and __version_description__"""
     import os
-    
+
     # Get version and description from single source of truth
     try:
         # Import the version and description from our package
@@ -438,7 +437,7 @@ def get_nix_version():
                 content = init_file.read_text()
                 version_match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
                 description_match = re.search(r'__version_description__\s*=\s*["\']([^"\']+)["\']', content)
-                
+
                 if version_match and description_match:
                     return f"{version_match.group(1)} ({description_match.group(1)})"
                 elif version_match:
@@ -450,15 +449,16 @@ def get_nix_version():
                     return f"{version_match.group(1)}{env_context}"
         except Exception as e:
             logger.debug(f"Could not parse version from __init__.py: {e}")
-    
+
     return "Unknown version"
+
 
 def get_git_hash():
     """Get the abbreviated git hash of the current commit"""
     try:
         import subprocess
-        result = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], 
-                              capture_output=True, text=True, cwd=Path(__file__).parent)
+        result = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'],
+                                capture_output=True, text=True, cwd=Path(__file__).parent)
         if result.returncode == 0:
             return result.stdout.strip()
         else:
@@ -466,97 +466,32 @@ def get_git_hash():
     except Exception:
         return "unknown"
 
+
 ENV_FILE = Path('data/current_environment.txt')
 
 APP_NAME = get_app_name()
 logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
 
-import argparse
-import ast
-import asyncio
-import functools
-import importlib
-import inspect
-import json
-import os
-import platform
-import re
-import socket
-import sqlite3
-import subprocess
-import sys
-import time
-import traceback
-import urllib.parse
 # Suppress deprecation warnings from third-party packages
-import warnings
-from collections import deque
-from datetime import datetime
-from pathlib import Path
-from typing import AsyncGenerator, Optional
 
-import aiohttp
-import uvicorn
-from fasthtml.common import *
-from loguru import logger
-from pyfiglet import Figlet
-from rich.align import Align
-from rich.box import ASCII, DOUBLE, HEAVY, ROUNDED
-from rich.console import Console
-from rich.json import JSON
-from rich.panel import Panel
-from rich.style import Style as RichStyle
-from rich.table import Table, Text
-from rich.theme import Theme
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse, JSONResponse
-from starlette.routing import Route
-from starlette.websockets import WebSocket, WebSocketDisconnect
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
 
 # Import centralized configuration to eliminate duplication
-from config import PCONFIG as CONFIG_PCONFIG
 
 PCONFIG = CONFIG_PCONFIG
 MAX_CONVERSATION_LENGTH = PCONFIG['CHAT_CONFIG']['MAX_CONVERSATION_LENGTH']
-HOME_MENU_ITEM = PCONFIG['HOME_MENU_ITEM']  
+HOME_MENU_ITEM = PCONFIG['HOME_MENU_ITEM']
 DEFAULT_ACTIVE_ROLES = PCONFIG['DEFAULT_ACTIVE_ROLES']
 
 # Import MCP tools module for enhanced AI assistant capabilities
 # Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
 MCP_TOOL_REGISTRY = {}
 
-from mcp_tools import register_all_mcp_tools, register_mcp_tool
 # Pass our registry to mcp_tools so they use the same instance
-import mcp_tools
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
 # Import ASCII display functions (externalized from server.py for token reduction)
-from helpers.ascii_displays import (
-    log_reading_legend,
-    strip_rich_formatting, 
-    share_ascii_with_ai,
-    falling_alice,
-    white_rabbit, 
-    system_diagram,
-    figlet_banner,
-    fig,
-    chip_says,
-    story_moment,
-    server_whisper,
-    ascii_banner,
-    section_header,
-    radical_transparency_banner,
-    status_banner,
-    startup_summary_table,
-    ai_breadcrumb_summary,
-    startup_environment_warnings
-)
 
 # Import Botify code generation utilities (externalized from server.py for token reduction)
-from helpers import botify_code_generation
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
@@ -578,19 +513,19 @@ BANNER_COLORS = {
     # Main banner colors
     'figlet_primary': 'bright_cyan',
     'figlet_subtitle': 'dim white',
-    
-    # ASCII banner colors  
+
+    # ASCII banner colors
     'ascii_title': 'bright_cyan',
     'ascii_subtitle': 'dim cyan',
-    
+
     # Section headers
     'section_header': 'bright_yellow',
-    
+
     # Story moments and messages
     'chip_narrator': 'bold cyan',
-    'story_moment': 'bright_magenta', 
+    'story_moment': 'bright_magenta',
     'server_whisper': 'dim italic',
-    
+
     # Startup sequence colors
     'server_awakening': 'bright_cyan',
     'mcp_arsenal': 'bright_blue',
@@ -598,21 +533,22 @@ BANNER_COLORS = {
     'plugin_registry_warning': 'bright_yellow',
     'workshop_ready': 'bright_blue',
     'server_restart': 'yellow',
-    
+
     # Special banners
     'white_rabbit': 'white on default',
     'transparency_banner': 'bright_cyan',
     'system_diagram': 'bright_blue',
     'status_banner': 'bright_green',
-    
+
     # Box styles (Rich box drawing)
     'heavy_box': 'HEAVY',
-    'rounded_box': 'ROUNDED', 
+    'rounded_box': 'ROUNDED',
     'double_box': 'DOUBLE',
     'ascii_box': 'ASCII'
 }
 
 custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
+
 
 class DebugConsole(Console):
 
@@ -620,22 +556,24 @@ class DebugConsole(Console):
         # Filter out AI Creative Vision messages from console (they're for log files only)
         # Convert args to string to check for AI markers
         message_str = ' '.join(str(arg) for arg in args)
-        
+
         # Skip console output for AI-specific messages (they go to logs only)
         if '🎭 AI_CREATIVE_VISION' in message_str:
             return
-            
+
         super().print(*args, **kwargs)
+
+
 console = DebugConsole(theme=custom_theme)
 
 
 def rich_json_display(data, title=None, console_output=True, log_output=True, ai_log_output=True, log_prefix=""):
     """🎨 RICH JSON DISPLAY: Beautiful syntax-highlighted JSON for dicts and JSON data
-    
+
     DUAL LOGGING SYSTEM:
     - Humans see Rich JSON syntax highlighting in console  
     - AI assistants see JSON data in log files for debugging assistance
-    
+
     Args:
         data: Dict, list, or JSON-serializable data to display
         title: Optional title for the JSON display
@@ -643,7 +581,7 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, ai
         log_output: Whether to log plain JSON for general logging (default: True)
         ai_log_output: Whether to log JSON for AI assistant visibility (default: True)
         log_prefix: Prefix for log messages (default: "")
-    
+
     Returns:
         str: The formatted JSON string for logging
     """
@@ -663,29 +601,29 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, ai
             # Use Rich JSON for syntax highlighting
             rich_json = JSON(json.dumps(data, indent=2, default=str))
             json_str = json.dumps(data, indent=2, default=str)
-        
+
         # Console output with Rich syntax highlighting (for humans)
         if console_output:
             if title:
                 console.print(f"\n🎨 {title}", style="bold cyan")
-            
+
             # Use Rich's JSON class for beautiful syntax highlighting
             rich_json = JSON(json_str)
             console.print(rich_json)
             console.print()  # Add spacing
-        
+
         # AI assistant logging - always log JSON data for AI visibility using WARNING level
         if ai_log_output:
             ai_title = f"AI_JSON_DATA: {title}" if title else "AI_JSON_DATA"
             # Use WARNING level so AI assistants can easily grep for "WARNING.*AI_JSON_DATA"
             logger.warning(f"🤖 {ai_title}:\n{json_str}")
-        
-        # Standard log output 
+
+        # Standard log output
         if log_output and json_str:
             return json_str
-            
+
         return json_str
-        
+
     except Exception as e:
         error_msg = f"[Error formatting JSON for display: {e}] Data: {str(data)}"
         if console_output:
@@ -729,6 +667,7 @@ PCONFIG = CONFIG_PCONFIG
 
 DISCUSSION_DB_PATH = 'data/discussion.db'
 
+
 def get_discussion_db():
     """Get dedicated discussion database using direct SQLite connection."""
     import sqlite3
@@ -748,9 +687,11 @@ def get_discussion_db():
         logger.error(f"💬 DISCUSSION_DB_ERROR - Failed to create discussion database: {e}")
         return None
 
+
 def get_discussion_store():
     """Get conversation store from dedicated discussion database."""
     return get_discussion_db()
+
 
 def migrate_existing_conversations():
     """Migrate existing conversation history from environment-specific databases to discussion.db."""
@@ -758,7 +699,7 @@ def migrate_existing_conversations():
         # Check both environment databases for existing conversations
         existing_conversations = []
         migrated_from = []
-        
+
         for db_file in [f'data/{APP_NAME.lower()}.db', f'data/{APP_NAME.lower()}_dev.db']:
             if Path(db_file).exists():
                 try:
@@ -774,7 +715,7 @@ def migrate_existing_conversations():
                     conn.close()
                 except Exception as e:
                     logger.warning(f"💬 MIGRATION_WARNING - Could not read {db_file}: {e}")
-        
+
         if existing_conversations:
             # Remove duplicates while preserving order
             seen = set()
@@ -784,7 +725,7 @@ def migrate_existing_conversations():
                 if msg_key not in seen:
                     seen.add(msg_key)
                     unique_conversations.append(msg)
-            
+
             # Save to discussion.db
             discussion_conn = get_discussion_store()
             if discussion_conn:
@@ -803,7 +744,7 @@ def migrate_existing_conversations():
         else:
             logger.info("💬 MIGRATION_NONE - No existing conversation history found to migrate")
             return 0
-            
+
     except Exception as e:
         logger.error(f"💬 MIGRATION_ERROR - Failed to migrate conversations: {e}")
         return 0
@@ -812,7 +753,9 @@ def migrate_existing_conversations():
 # Conversation history is now stored in data/discussion.db (environment-independent)
 # This solves the problem of split conversation history across DEV/PROD environments
 
+
 DISCUSSION_DB_PATH = 'data/discussion.db'
+
 
 def get_discussion_db():
     """Get dedicated discussion database using direct SQLite connection."""
@@ -833,9 +776,11 @@ def get_discussion_db():
         logger.error(f"💬 DISCUSSION_DB_ERROR - Failed to create discussion database: {e}")
         return None
 
+
 def get_discussion_store():
     """Get conversation store from dedicated discussion database."""
     return get_discussion_db()
+
 
 def migrate_existing_conversations():
     """Migrate existing conversation history from environment-specific databases to discussion.db."""
@@ -843,7 +788,7 @@ def migrate_existing_conversations():
         # Check both environment databases for existing conversations
         existing_conversations = []
         migrated_from = []
-        
+
         for db_file in [f'data/{APP_NAME.lower()}.db', f'data/{APP_NAME.lower()}_dev.db']:
             if Path(db_file).exists():
                 try:
@@ -859,7 +804,7 @@ def migrate_existing_conversations():
                     conn.close()
                 except Exception as e:
                     logger.warning(f"💬 MIGRATION_WARNING - Could not read {db_file}: {e}")
-        
+
         if existing_conversations:
             # Remove duplicates while preserving order
             seen = set()
@@ -869,7 +814,7 @@ def migrate_existing_conversations():
                 if msg_key not in seen:
                     seen.add(msg_key)
                     unique_conversations.append(msg)
-            
+
             # Save to discussion.db
             discussion_conn = get_discussion_store()
             if discussion_conn:
@@ -888,10 +833,11 @@ def migrate_existing_conversations():
         else:
             logger.info("💬 MIGRATION_NONE - No existing conversation history found to migrate")
             return 0
-            
+
     except Exception as e:
         logger.error(f"💬 MIGRATION_ERROR - Failed to migrate conversations: {e}")
         return 0
+
 
 def save_conversation_to_db():
     """Save the current conversation history to the independent discussion database."""
@@ -909,12 +855,13 @@ def save_conversation_to_db():
                 discussion_conn.commit()
                 discussion_conn.close()
                 logger.info(f"💬 FINDER_TOKEN: CONVERSATION_SAVED - {len(global_conversation_history)} messages saved to discussion.db")
-                
+
                 # 🌉 BRIDGE: Sync with append-only system for history plugin compatibility
                 try:
-                    from helpers.append_only_conversation import get_conversation_system
+                    from helpers.append_only_conversation import \
+                        get_conversation_system
                     conv_system = get_conversation_system()
-                    
+
                     # Sync the latest message to append-only system
                     if len(global_conversation_history) > 0:
                         latest_msg = list(global_conversation_history)[-1]
@@ -925,7 +872,7 @@ def save_conversation_to_db():
                             logger.debug(f"💬 BRIDGE: Message already exists in append-only system")
                 except Exception as bridge_error:
                     logger.debug(f"💬 BRIDGE_ERROR: Could not sync to append-only system: {bridge_error}")
-                    
+
             else:
                 logger.error("💬 CONVERSATION_SAVE_ERROR - Discussion store is not available")
         else:
@@ -942,50 +889,52 @@ def save_conversation_to_db():
     except Exception as e:
         logger.error(f"💬 CONVERSATION_SAVE_ERROR - Failed to save conversation history to discussion.db: {e}")
 
+
 def load_conversation_from_db():
     """Load conversation history from the independent discussion database."""
     try:
         # First, attempt migration from old environment-specific databases
         migrated_count = migrate_existing_conversations()
-        
+
         # Load from discussion.db
         discussion_conn = get_discussion_store()
         if not discussion_conn:
             logger.error("💬 CONVERSATION_RESTORE_ERROR - Discussion store is not available")
             return False
-        
+
         cursor = discussion_conn.cursor()
         cursor.execute('SELECT value FROM store WHERE key = ?', ('llm_conversation_history',))
         result = cursor.fetchone()
-        
+
         if result:
             conversation_data = json.loads(result[0])
             global_conversation_history.clear()
             global_conversation_history.extend(conversation_data)
             discussion_conn.close()
             logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORED - {len(conversation_data)} messages restored from discussion.db")
-            
+
             # 🌉 BRIDGE: Sync restored conversation with append-only system
             try:
-                from helpers.append_only_conversation import get_conversation_system
+                from helpers.append_only_conversation import \
+                    get_conversation_system
                 conv_system = get_conversation_system()
-                
+
                 # Clear append-only system and sync all restored messages
                 conv_system.conversation_memory.clear()
-                
+
                 synced_count = 0
                 for msg in conversation_data:
                     message_id = conv_system.append_message(msg['role'], msg['content'])
                     if message_id:
                         synced_count += 1
-                
+
                 logger.info(f"💬 BRIDGE: Synced {synced_count}/{len(conversation_data)} restored messages to append-only system")
             except Exception as bridge_error:
                 logger.debug(f"💬 BRIDGE_ERROR: Could not sync restored messages to append-only system: {bridge_error}")
-            
+
             if migrated_count > 0:
                 logger.info(f"💬 FINDER_TOKEN: CONVERSATION_MIGRATION_SUCCESS - Migrated {migrated_count} messages from environment-specific databases")
-            
+
             return True
         else:
             discussion_conn.close()
@@ -994,10 +943,11 @@ def load_conversation_from_db():
             else:
                 logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_NONE - No conversation history found in discussion.db")
             return False
-            
+
     except Exception as e:
         logger.error(f"💬 CONVERSATION_RESTORE_ERROR - Failed to load conversation history from discussion.db: {e}")
         return False
+
 
 # Centralized SVG definitions for reuse across the application
 INFO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'''
@@ -1025,7 +975,7 @@ SETTINGS_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
 
 # ================================================================
 # 🔧 FINDER_TOKEN: MCP_TOOLS_CONSOLIDATED
-# All MCP tools (including _botify_ping, _botify_list_projects, _botify_simple_query, 
+# All MCP tools (including _botify_ping, _botify_list_projects, _botify_simple_query,
 # _pipeline_state_inspector, etc.) have been moved to mcp_tools.py for better organization.
 # See register_all_mcp_tools() in mcp_tools.py for complete tool registration.
 
@@ -1034,51 +984,53 @@ SETTINGS_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
 # 🔧 FINDER_TOKEN: BOTIFY_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY
 # All Botify MCP tools moved to mcp_tools.py for better maintainability:
 # - _botify_get_full_schema (125 lines) - The 4,449 field discovery revolution
-# - _botify_list_available_analyses (65 lines) - Local analyses.json reading  
+# - _botify_list_available_analyses (65 lines) - Local analyses.json reading
 # - _botify_execute_custom_bql_query (120 lines) - Core query wizard tool
 # This removes 310 lines of duplicate code from server.py
 
 # 🔧 FINDER_TOKEN: ALL_BOTIFY_TOOLS_MOVED_TO_MCP_TOOLS_PY
 # ALL Botify tools are now registered via register_all_mcp_tools() in mcp_tools.py:
-# - botify_ping, botify_list_projects, botify_simple_query  
+# - botify_ping, botify_list_projects, botify_simple_query
 # - botify_get_full_schema, botify_list_available_analyses, botify_execute_custom_bql_query
 
 # Register Local LLM Helper Tools (Limited file access for local LLMs)
-# 🔧 FINDER_TOKEN: LOCAL_LLM_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY  
+# 🔧 FINDER_TOKEN: LOCAL_LLM_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY
 # ALL local_llm tools (read_file, grep_logs, list_files, get_context)
 # are now registered via register_all_mcp_tools() in mcp_tools.py
 # The sophisticated implementations with better security, performance, and features
 # are in mcp_tools.py. The simple duplicate versions have been removed from server.py.
 
 # 🔧 FINDER_TOKEN: UI_TOOLS_MOVED_TO_MCP_TOOLS_PY
-# UI interaction tools (ui_flash_element, ui_list_elements) 
+# UI interaction tools (ui_flash_element, ui_list_elements)
 # are now registered via register_all_mcp_tools() in mcp_tools.py
 
 # 🌐 FINDER_TOKEN: BROWSER_MCP_TOOLS_CORE - AI EYES AND HANDS
 # 🎯 FINDER_TOKEN: AI_CURRENT_PAGE_INTERACTION
+
+
 def print_and_log_table(table, title_prefix=""):
     """Print rich table to console AND log structured data to server.log for radical transparency.
-    
+
     This single function ensures both console display and log transparency happen together,
     preventing the mistake of using one without the other.
-    
+
     Args:
         table: Rich Table object to display and log
         title_prefix: Optional prefix for the log entry
     """
     # First, display the rich table in console with full formatting
     console.print(table)
-    
+
     # Then, extract and log the table data for server.log transparency
     try:
         # Extract table data for logging
         table_title = getattr(table, 'title', 'Table')
         if table_title:
             table_title = str(table_title)
-        
+
         # Start with title and add extra line for visibility
         log_lines = [f"\n📊 {title_prefix}RICH TABLE: {table_title}"]
-        
+
         # Add column headers if available
         if hasattr(table, 'columns') and table.columns:
             headers = []
@@ -1089,32 +1041,34 @@ def print_and_log_table(table, title_prefix=""):
                     headers.append(str(col._header))
             if headers:
                 log_lines.append(f"Headers: {' | '.join(headers)}")
-        
+
         # Add rows if available
         if hasattr(table, '_rows') and table._rows:
             for i, row in enumerate(table._rows):
                 if hasattr(row, '_cells'):
                     cells = [str(cell) if cell else '' for cell in row._cells]
-                    log_lines.append(f"Row {i+1}: {' | '.join(cells)}")
+                    log_lines.append(f"Row {i + 1}: {' | '.join(cells)}")
                 else:
-                    log_lines.append(f"Row {i+1}: {str(row)}")
-        
+                    log_lines.append(f"Row {i + 1}: {str(row)}")
+
         # Log the complete table representation with extra spacing
         logger.info('\n'.join(log_lines) + '\n')
-        
+
     except Exception as e:
         logger.error(f"Error logging rich table: {e}")
         logger.info(f"📊 {title_prefix}RICH TABLE: [Unable to extract table data]")
+
 
 def set_current_environment(environment):
     ENV_FILE.write_text(environment)
     logger.info(f'Environment set to: {environment}')
 
+
 def _recursively_parse_json_strings(obj):
     """
     🔧 RECURSIVE JSON PARSER: Recursively parse JSON strings in nested data structures.
     This makes deeply nested workflow data much more readable in logs.
-    
+
     Handles:
     - Dict values that are JSON strings
     - List items that are JSON strings  
@@ -1168,6 +1122,7 @@ def _recursively_parse_json_strings(obj):
         # For non-dict/list objects, return as-is
         return obj
 
+
 def _format_records_for_lifecycle_log(records_iterable):
     """Format records (list of dicts or objects) into a readable JSON string for logging.
     Handles empty records, dataclass-like objects, dictionaries, and attempts to convert SQLite rows to dicts.
@@ -1192,20 +1147,21 @@ def _format_records_for_lifecycle_log(records_iterable):
         else:
             processed_records.append(str(r))
             continue
-            
+
         # 🔧 SMART JSON PARSING: Recursively parse JSON strings for maximum readability
         if record_dict and isinstance(record_dict, dict):
             record_dict = _recursively_parse_json_strings(record_dict)
-                
+
         processed_records.append(record_dict)
-    
+
     try:
         # Use Rich JSON display for formatted records
         return rich_json_display(processed_records, title="Formatted Records", console_output=False, log_output=True)
     except Exception as e:
         return f'[Error formatting records for JSON: {e}] Processed: {str(processed_records)}'
 
-def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str=''):
+
+def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str = ''):
     """
     🔧 CLAUDE'S UNIFIED LOGGING: Logs table state to unified server.log
     Simplified from the old lifecycle logging system.
@@ -1230,17 +1186,18 @@ def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix:
                     records_data.append(dict(record))
                 except:
                     records_data.append(str(record))
-        
-        # Use Rich JSON display for table data - show in console with beautiful formatting  
+
+        # Use Rich JSON display for table data - show in console with beautiful formatting
         # Enable AI logging so AI assistants can see the JSON data
         rich_json_display(records_data, title=f"Table State: {table_name}", console_output=True, log_output=False, ai_log_output=True)
-        
+
         # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
         logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_{table_name.upper()} - {title_prefix} Snapshot: [Rich JSON displayed to console]")
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: TABLE_STATE_ERROR - Failed to log '{table_name}' ({title_prefix}): {e}")
 
-def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''):
+
+def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str = ''):
     """
     🔧 CLAUDE'S UNIFIED LOGGING: Logs DictLikeDB state to unified server.log
     Enhanced with semantic meaning for AI assistant understanding.
@@ -1250,7 +1207,7 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
         # Use Rich JSON display for database items - show in console with beautiful formatting
         # Enable AI logging so AI assistants can see the JSON data
         rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=False, ai_log_output=True)
-        
+
         # Add semantic context for AI assistants
         semantic_info = []
         for key, value in items.items():
@@ -1274,18 +1231,19 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''
                 semantic_info.append(f"📨 Startup message sent for {env}: {value}")
             elif key == "temp_message":
                 semantic_info.append(f"💬 Temporary UI message: {value}")
-        
+
         # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
         logger.info(f"🔍 FINDER_TOKEN: DB_STATE_{db_name.upper()} - {title_prefix} Key-Value Store: [Rich JSON displayed to console]")
-        
+
         if semantic_info:
             semantic_summary = "\n".join(f"    {info}" for info in semantic_info)
             logger.info(f"🔍 SEMANTIC_DB_{db_name.upper()}: {title_prefix} Human-readable state:\n{semantic_summary}")
-            
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: DB_STATE_ERROR - Failed to log DictLikeDB '{db_name}' ({title_prefix}): {e}")
 
-def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str=''):
+
+def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str = ''):
     """
     🔧 CLAUDE'S UNIFIED LOGGING: Logs raw SQL table state to unified server.log
     Simplified from the old lifecycle logging system.
@@ -1304,14 +1262,14 @@ def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str='
         db_conn.row_factory = original_row_factory
 
 
-def log_pipeline_summary(title_prefix: str=''):
+def log_pipeline_summary(title_prefix: str = ''):
     """
     🔧 PIPELINE SUMMARY: User-friendly summary of pipeline state for startup logging.
     Provides just enough information to be super useful without terrifying newbs.
     """
     try:
         records = list(pipeline())
-        
+
         # 🐰 WHITE RABBIT WELCOME - Show during startup or when no records exist (clean startup)
         if 'STARTUP' in title_prefix.upper() or not records:
             print()
@@ -1319,8 +1277,8 @@ def log_pipeline_summary(title_prefix: str=''):
             white_rabbit()
             logger.info("🔧 LEGEND_MARKER_2: white_rabbit displayed")
             print()
-            
-            # 📚 LOG LEGEND: Use the comprehensive version from ascii_displays.py 
+
+            # 📚 LOG LEGEND: Use the comprehensive version from ascii_displays.py
             logger.info("🔧 LEGEND_MARKER_3: About to call log_reading_legend")
             legend_content = log_reading_legend()
             logger.info("🔧 LEGEND_MARKER_4: log_reading_legend returned content")
@@ -1329,37 +1287,36 @@ def log_pipeline_summary(title_prefix: str=''):
                 legend_content,
                 title="📖 [bold bright_blue]Log Reading Guide[/bold bright_blue]",
                 subtitle="[dim]Understanding what you're seeing in the logs[/dim]",
-                box=ROUNDED,
                 style="bright_blue",
                 padding=(1, 2)
             )
             logger.info("🔧 LEGEND_MARKER_5: About to print legend_panel with Rich")
             console.print(legend_panel)
             logger.info("🔧 LEGEND_MARKER_6: legend_panel printed to console")
-            
+
             # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
             logger.info("🔧 LEGEND_MARKER_7: About to call share_ascii_with_ai")
             share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
             logger.info("🔧 LEGEND_MARKER_8: share_ascii_with_ai completed")
             print()
-        
+
         if not records:
             logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} No active workflows")
             return
-            
+
         total_workflows = len(records)
-        
+
         # Group by app_name for summary
         app_counts = {}
         finalized_count = 0
         recent_activity = []
-        
+
         for record in records:
             # SQLite Row objects support direct attribute access
             try:
                 app_name = getattr(record, 'app_name', 'unknown')
                 app_counts[app_name] = app_counts.get(app_name, 0) + 1
-                
+
                 # Check if finalized
                 data_str = getattr(record, 'data', '{}')
                 if isinstance(data_str, str):
@@ -1371,10 +1328,10 @@ def log_pipeline_summary(title_prefix: str=''):
                         data = {}
                 else:
                     data = data_str
-                
+
                 if data.get('finalize', {}).get('finalized'):
                     finalized_count += 1
-                    
+
                 # Track recent activity (last 24 hours)
                 updated = getattr(record, 'updated', '')
                 if updated:
@@ -1392,29 +1349,27 @@ def log_pipeline_summary(title_prefix: str=''):
             except Exception as e:
                 logger.debug(f"Error processing pipeline record: {e}")
                 continue
-        
+
         # Create friendly summary
         summary_lines = [
             f"📊 Total workflows: {total_workflows}",
             f"🔒 Finalized: {finalized_count}",
             f"⚡ Active: {total_workflows - finalized_count}"
         ]
-        
+
         # Add app breakdown
         if app_counts:
             app_summary = ", ".join([f"{app}({count})" for app, count in sorted(app_counts.items())])
             summary_lines.append(f"📱 Apps: {app_summary}")
-        
-
 
         # Add recent activity
         if recent_activity:
             recent_count = len(recent_activity)
             summary_lines.append(f"🕒 Recent activity (24h): {recent_count} workflows")
-            
+
         summary = "\n    ".join(summary_lines)
         logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} Workflow Overview:\n    {summary}")
-        
+
         # For AI assistants: log a few recent workflow keys for context
         if records:
             recent_keys = []
@@ -1425,7 +1380,7 @@ def log_pipeline_summary(title_prefix: str=''):
                 except:
                     recent_keys.append('unknown')
             logger.info(f"🔍 SEMANTIC_PIPELINE_CONTEXT: {title_prefix} Recent workflow keys: {', '.join(recent_keys)}")
-            
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: PIPELINE_SUMMARY_ERROR - Failed to create pipeline summary ({title_prefix}): {e}")
         # Fallback to original detailed logging if summary fails
@@ -1435,6 +1390,7 @@ def log_pipeline_summary(title_prefix: str=''):
             logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_PIPELINE - {title_prefix} Fallback Snapshot:\n{content}")
         except Exception as fallback_error:
             logger.error(f"❌ FINDER_TOKEN: PIPELINE_FALLBACK_ERROR - Both summary and fallback failed: {fallback_error}")
+
 
 class LogManager:
     """Central logging coordinator for artistic control of console and file output.
@@ -1507,7 +1463,10 @@ class LogManager:
     def debug(self, category, message, details=None):
         """Log debug information that only appears in DEBUG mode."""
         self.logger.debug(self.format_message(category, message, details))
+
+
 log = LogManager(logger)
+
 
 class SSEBroadcaster:
     _instance = None
@@ -1530,7 +1489,7 @@ class SSEBroadcaster:
         if not hasattr(self, 'event_loop') or self.event_loop is None:
             self.event_loop = asyncio.get_running_loop()
             logger.bind(name='sse').info('🔄 SSE event loop reference stored for restart notifications')
-        
+
         while True:
             try:
                 message = await asyncio.wait_for(self.queue.get(), timeout=5.0)
@@ -1545,7 +1504,10 @@ class SSEBroadcaster:
     async def send(self, message):
         logger.bind(name='sse').debug(f'Queueing: {message}')
         await self.queue.put(message)
+
+
 broadcaster = SSEBroadcaster()
+
 
 def read_training(prompt_or_filename):
     if isinstance(prompt_or_filename, str) and prompt_or_filename.endswith('.md'):
@@ -1567,14 +1529,17 @@ def read_training(prompt_or_filename):
                 logger.warning(f'No training file found for {prompt_or_filename}')
             return None  # Prevents writing noise to the conversation history
     return prompt_or_filename
+
+
 if MAX_LLM_RESPONSE_WORDS:
     limiter = f'in under {MAX_LLM_RESPONSE_WORDS} {TONE} words'
 else:
     limiter = ''
 
+
 def monitor_conversation_efficiency():
     """Monitor conversation history efficiency for Gemma 3:4B (128k context window)
-    
+
     This function analyzes the current conversation history to provide insights
     on context window usage and deque efficiency.
     """
@@ -1583,37 +1548,39 @@ def monitor_conversation_efficiency():
         context_window_size = 128000  # 128k tokens
         conservative_usage = 0.7  # Use 70% for history
         available_tokens = context_window_size * conservative_usage
-        
+
         # Calculate current usage if conversation history exists
         if 'global_conversation_history' in globals():
             current_messages = len(global_conversation_history)
             total_chars = sum(len(msg.get('content', '')) for msg in global_conversation_history)
             estimated_tokens = total_chars * 0.25  # 4 chars per token estimate
             context_usage = (estimated_tokens / context_window_size) * 100
-            
+
             logger.info(f"📊 CONVERSATION_MONITOR: Current usage: {current_messages} messages, ~{estimated_tokens:.0f} tokens ({context_usage:.1f}% of 128k)")
         else:
             logger.info(f"📊 CONVERSATION_MONITOR: Context window optimized for Gemma 3:4B")
             logger.info(f"📊 CONVERSATION_MONITOR: Max conversation length: {MAX_CONVERSATION_LENGTH} messages")
             logger.info(f"📊 CONVERSATION_MONITOR: Available tokens for history: {available_tokens:,.0f} tokens")
-            
+
             # Calculate theoretical efficiency
             theoretical_tokens = MAX_CONVERSATION_LENGTH * 150
             theoretical_usage = (theoretical_tokens / context_window_size) * 100
             logger.info(f"📊 CONVERSATION_MONITOR: Theoretical usage: {theoretical_tokens:,.0f} tokens ({theoretical_usage:.1f}% of context)")
-        
+
         return True
-        
+
     except Exception as e:
         logger.error(f"📊 CONVERSATION_MONITOR: Error monitoring conversation efficiency: {e}")
         return False
 
+
 global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}]
 
+
 def append_to_conversation(message=None, role='user'):
     """Append a message to the conversation history using the append-only system.
-    
+
     This function uses the bulletproof append-only conversation system that:
     - Prevents overwrites and data loss
     - Automatically handles deduplication
@@ -1627,30 +1594,31 @@ def append_to_conversation(message=None, role='user'):
     Returns:
         list: The complete conversation history after appending.
     """
-    
+
     if message is None:
         # Return current conversation history from append-only system
         try:
-            from helpers.append_only_conversation import get_conversation_system
+            from helpers.append_only_conversation import \
+                get_conversation_system
             conv_system = get_conversation_system()
             return conv_system.get_conversation_list()
         except Exception as e:
             logger.error(f"Failed to get conversation history: {e}")
             return []
-    
+
     # Use the append-only system for new messages
     try:
         from helpers.append_only_conversation import get_conversation_system
         conv_system = get_conversation_system()
-        
+
         message_id = conv_system.append_message(role, message)
         if message_id:
             logger.info(f"💬 FINDER_TOKEN: MESSAGE_APPENDED - ID:{message_id}, Role:{role}, Content:{message[:50]}...")
         else:
             logger.debug(f"💬 Duplicate message skipped: {message[:50]}...")
-            
+
         return conv_system.get_conversation_list()
-        
+
     except Exception as e:
         logger.error(f"💬 Failed to append message to conversation: {e}")
         return []
@@ -1672,12 +1640,14 @@ def title_name(word: str) -> str:
             processed_words.append(word.capitalize())
     return ' '.join(processed_words)
 
+
 def endpoint_name(endpoint: str) -> str:
     if not endpoint:
         return HOME_MENU_ITEM
     if endpoint in friendly_names:
         return friendly_names[endpoint]
     return title_name(endpoint)
+
 
 def pipeline_operation(func):
 
@@ -1701,6 +1671,7 @@ def pipeline_operation(func):
                 log.debug('pipeline', f"Pipeline '{url}' detailed changes", formatted_changes)
         return result
     return wrapper
+
 
 class Pipulate:
     """Central coordinator for pipelines and chat functionality.
@@ -1733,7 +1704,7 @@ class Pipulate:
         self.chat = chat_instance
         self.message_queue = self.OrderedMessageQueue()
 
-    def append_to_history(self, message: str, role: str='system') -> None:
+    def append_to_history(self, message: str, role: str = 'system') -> None:
         """Add a message to the LLM conversation history without triggering a response.
 
         This is the preferred way for workflows to update the LLM's context about:
@@ -1776,7 +1747,7 @@ class Pipulate:
 
         async def add(self, pipulate, message, **kwargs):
             """Add a message to the queue and process if not already processing.
-            
+
             This method no longer handles conversation history - that's now managed by pipulate.stream.
             """
             logger.info(f'[🔄 QUEUEING] {message[:100]}...')
@@ -1786,13 +1757,13 @@ class Pipulate:
 
         async def _process_queue(self):
             """Process messages in the queue.
-            
+
             This method now focuses solely on queue processing and streaming,
             leaving conversation history management to pipulate.stream.
             """
             if self._processing:
                 return
-            
+
             self._processing = True
             try:
                 while self.queue:
@@ -1849,7 +1820,7 @@ class Pipulate:
         """Return the message queue instance for ordered message delivery."""
         return self.message_queue
 
-    def step_button(self, visual_step_number: str, preserve: bool=False, revert_label: str=None) -> str:
+    def step_button(self, visual_step_number: str, preserve: bool = False, revert_label: str = None) -> str:
         """
         Formats the revert button text.
         Uses visual_step_number for "Step X" numbering if revert_label is not provided.
@@ -1866,15 +1837,14 @@ class Pipulate:
             button_text = f'{symbol}\xa0Step\xa0{visual_step_number}'
         return button_text
 
-    
     def get_ui_constants(self):
         """Access centralized UI constants through dependency injection."""
         return PCONFIG['UI_CONSTANTS']
-    
+
     def get_config(self):
         """Access centralized configuration through dependency injection."""
         return PCONFIG
-    
+
     def get_button_border_radius(self):
         """Get the global button border radius setting."""
         return PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
@@ -1882,23 +1852,23 @@ class Pipulate:
     def register_workflow_routes(self, plugin_instance):
         """
         Register standard and step-specific routes for a workflow plugin.
-        
+
         This helper extracts the common route registration boilerplate from workflow __init__ methods,
         while maintaining the WET principle - each workflow still explicitly calls this method.
-        
+
         Args:
             plugin_instance: The workflow plugin instance with app, APP_NAME, and steps attributes
         """
         app_name = plugin_instance.APP_NAME
         steps = plugin_instance.steps
-        
+
         # Standard workflow lifecycle routes
         routes = [
             (f'/{app_name}/init', plugin_instance.init, ['POST']),
             (f'/{app_name}/revert', plugin_instance.handle_revert, ['POST']),
             (f'/{app_name}/unfinalize', plugin_instance.unfinalize, ['POST'])
         ]
-        
+
         # Dynamically create routes for each step from the plugin's steps list
         for step_obj in steps:
             step_id = step_obj.id
@@ -1908,7 +1878,7 @@ class Pipulate:
                 if step_id == 'finalize':
                     current_methods.append('POST')
                 routes.append((f'/{app_name}/{step_id}', handler_method, current_methods))
-            
+
             # Only data steps (not 'finalize') have explicit _submit handlers
             if step_id != 'finalize':
                 submit_handler_method = getattr(plugin_instance, f'{step_id}_submit', None)
@@ -1920,9 +1890,9 @@ class Pipulate:
             current_methods = methods_list_arg[0] if methods_list_arg else ['GET']
             plugin_instance.app.route(path, methods=current_methods)(handler)
 
-    async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str, method: str, url: str, headers: dict, payload: Optional[dict]=None, response_status: Optional[int]=None, response_preview: Optional[str]=None, response_data: Optional[dict]=None, curl_command: Optional[str]=None, python_command: Optional[str]=None, estimated_rows: Optional[int]=None, actual_rows: Optional[int]=None, file_path: Optional[str]=None, file_size: Optional[str]=None, notes: Optional[str]=None):
+    async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str, method: str, url: str, headers: dict, payload: Optional[dict] = None, response_status: Optional[int] = None, response_preview: Optional[str] = None, response_data: Optional[dict] = None, curl_command: Optional[str] = None, python_command: Optional[str] = None, estimated_rows: Optional[int] = None, actual_rows: Optional[int] = None, file_path: Optional[str] = None, file_size: Optional[str] = None, notes: Optional[str] = None):
         """Log complete API call details for extreme observability and Jupyter reproduction.
-        
+
         This provides the same level of transparency for API calls as is used in BQL query logging,
         including copy-paste ready Python code for Jupyter notebook reproduction.
         """
@@ -1954,11 +1924,11 @@ class Pipulate:
             snippet_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
             comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
             snippet_intro = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
-                python_emoji=python_emoji, 
+                python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
             snippet_end = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
-                python_emoji=python_emoji, 
+                python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
             # Add Python snippet with complete BEGIN/END block
@@ -1980,7 +1950,7 @@ class Pipulate:
                 log_entry_parts.append(f'  Response Preview:\n{pretty_preview}')
             except Exception:
                 log_entry_parts.append(f'  Response Preview:\n{response_preview}')
-        
+
         # Enhanced transparency for discovery endpoints - log full response data
         is_discovery_endpoint = self._is_discovery_endpoint(url)
         if response_data and is_discovery_endpoint:
@@ -1988,31 +1958,31 @@ class Pipulate:
                 # Use Rich JSON display for discovery response
                 pretty_response = rich_json_display(response_data, title=f"🔍 Discovery Response: {call_description}", console_output=True, log_output=True)
                 log_entry_parts.append(f'  🔍 FULL RESPONSE DATA (Discovery Endpoint):\n{pretty_response}')
-                
+
             except Exception as e:
                 log_entry_parts.append(f'  🔍 FULL RESPONSE DATA (Discovery Endpoint): [Error formatting JSON: {e}]\n{response_data}')
-                
+
                 # Still display in console even if JSON formatting fails
                 console.print(f"❌ Discovery Response Error: {e}", style="red")
                 console.print(f"Raw data: {str(response_data)}", style="dim")
-        
+
         if file_path:
             log_entry_parts.append(f'  Associated File Path: {file_path}')
         if file_size:
             log_entry_parts.append(f'  Associated File Size: {file_size}')
         if notes:
             log_entry_parts.append(f'  Notes: {notes}')
-        
+
         full_log_message = '\n'.join(log_entry_parts)
         logger.info(f'\n🚀 === API CALL TRANSPARENCY ===\n{full_log_message}\n🚀 === END API TRANSPARENCY ===')
         is_bql = 'bql' in (call_description or '').lower() or 'botify query language' in (call_description or '').lower()
-    
+
     def _is_discovery_endpoint(self, url: str) -> bool:
         """Detect if this is a key discovery endpoint that should have full response logging.
-        
+
         Args:
             url: The API endpoint URL
-            
+
         Returns:
             bool: True if this is a discovery endpoint that should log full response data
         """
@@ -2020,15 +1990,15 @@ class Pipulate:
             '/analyses/',  # Covers both /analyses/{username}/{project}/light and regular analyses
             '/advanced_export',  # Field discovery endpoint
         ]
-        
+
         return any(pattern in url for pattern in discovery_patterns)
 
-    async def log_mcp_call_details(self, operation_id: str, tool_name: str, operation_type: str, mcp_block: str=None, request_payload: Optional[dict]=None, response_data: Optional[dict]=None, response_status: Optional[int]=None, external_api_url: Optional[str]=None, external_api_method: str='GET', external_api_headers: Optional[dict]=None, external_api_payload: Optional[dict]=None, external_api_response: Optional[dict]=None, external_api_status: Optional[int]=None, execution_time_ms: Optional[float]=None, notes: Optional[str]=None):
+    async def log_mcp_call_details(self, operation_id: str, tool_name: str, operation_type: str, mcp_block: str = None, request_payload: Optional[dict] = None, response_data: Optional[dict] = None, response_status: Optional[int] = None, external_api_url: Optional[str] = None, external_api_method: str = 'GET', external_api_headers: Optional[dict] = None, external_api_payload: Optional[dict] = None, external_api_response: Optional[dict] = None, external_api_status: Optional[int] = None, execution_time_ms: Optional[float] = None, notes: Optional[str] = None):
         """Log complete MCP operation details for extreme observability and Jupyter reproduction.
-        
+
         This provides the same level of transparency for MCP operations as the BQL query logging,
         including copy-paste ready Python code for external API reproduction.
-        
+
         Args:
             operation_id: Unique identifier for this MCP operation
             tool_name: Name of the MCP tool being executed
@@ -2052,17 +2022,17 @@ class Pipulate:
         log_entry_parts.append(f'  Tool Name: {tool_name}')
         log_entry_parts.append(f'  Operation Type: {operation_type}')
         log_entry_parts.append(f'  Timestamp: {self.get_timestamp()}')
-        
+
         if execution_time_ms is not None:
             log_entry_parts.append(f'  Execution Time: {execution_time_ms:.2f}ms')
-        
+
         # MCP Block Details
         if mcp_block:
             log_entry_parts.append(f'  MCP Block:')
             # Indent each line of the MCP block for better readability
             indented_block = '\n'.join(f'    {line}' for line in mcp_block.strip().split('\n'))
             log_entry_parts.append(indented_block)
-        
+
         # Internal MCP Tool Executor Request
         if request_payload:
             log_entry_parts.append('')  # Extra space for visual separation
@@ -2077,7 +2047,7 @@ class Pipulate:
                 log_entry_parts.append(f'    Payload:\n{indented_payload}')
             except Exception:
                 log_entry_parts.append(f'    Payload: {request_payload}')
-        
+
         # Internal MCP Tool Executor Response
         if response_data or response_status:
             log_entry_parts.append('')  # Extra space for visual separation
@@ -2093,14 +2063,14 @@ class Pipulate:
                     log_entry_parts.append(f'    Response:\n{indented_response}')
                 except Exception:
                     log_entry_parts.append(f'    Response: {response_data}')
-        
+
         # External API Call Details (the actual external service)
         if external_api_url:
             log_entry_parts.append('')  # Extra space for visual separation
             log_entry_parts.append(f'  External API Call:')
             log_entry_parts.append(f'    URL: {external_api_url}')
             log_entry_parts.append(f'    Method: {external_api_method}')
-            
+
             if external_api_headers:
                 # Redact sensitive headers
                 headers_preview = {k: v for k, v in external_api_headers.items() if k.lower() not in ['authorization', 'cookie', 'x-api-key']}
@@ -2109,7 +2079,7 @@ class Pipulate:
                 # Use Rich JSON display for external API headers
                 pretty_headers = rich_json_display(headers_preview, title="External API Headers", console_output=True, log_output=True)
                 log_entry_parts.append(f'    Headers: {pretty_headers}')
-            
+
             if external_api_payload:
                 try:
                     # Use Rich JSON display for external API payload
@@ -2118,10 +2088,10 @@ class Pipulate:
                     log_entry_parts.append(f'    Payload:\n{indented_payload}')
                 except Exception:
                     log_entry_parts.append(f'    Payload: {external_api_payload}')
-            
+
             if external_api_status:
                 log_entry_parts.append(f'    Response Status: {external_api_status}')
-            
+
             if external_api_response:
                 try:
                     # Use Rich JSON display for external API response
@@ -2130,7 +2100,7 @@ class Pipulate:
                     log_entry_parts.append(f'    Response:\n{indented_response}')
                 except Exception:
                     log_entry_parts.append(f'    Response: {external_api_response}')
-        
+
         # Generate copy-paste ready Python code for Jupyter reproduction
         if external_api_url:
             python_code = self._generate_mcp_python_code(
@@ -2141,20 +2111,20 @@ class Pipulate:
                 external_api_payload=external_api_payload,
                 operation_id=operation_id
             )
-            
+
             # Use centralized emoji configuration for console messages
             python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
             snippet_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
             comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
             snippet_intro = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
-                python_emoji=python_emoji, 
+                python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
             snippet_end = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
-                python_emoji=python_emoji, 
+                python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
-            
+
             # Add Python snippet with complete BEGIN/END block and visual separation
             log_entry_parts.append('')  # Extra space before Python code
             log_entry_parts.append(f'{snippet_intro}')
@@ -2164,16 +2134,16 @@ class Pipulate:
             log_entry_parts.append(f'{comment_divider}')
             log_entry_parts.append(f'{snippet_end}')
             log_entry_parts.append('')  # Extra space after Python code
-        
+
         if notes:
             log_entry_parts.append(f'  Notes: {notes}')
-        
+
         full_log_message = '\n'.join(log_entry_parts)
         logger.info(f'\n🚀 === MCP OPERATION TRANSPARENCY ===\n{full_log_message}\n🚀 === END MCP TRANSPARENCY ===')
 
-    def _generate_mcp_python_code(self, tool_name: str, external_api_url: str, external_api_method: str='GET', external_api_headers: Optional[dict]=None, external_api_payload: Optional[dict]=None, operation_id: str=None) -> str:
+    def _generate_mcp_python_code(self, tool_name: str, external_api_url: str, external_api_method: str = 'GET', external_api_headers: Optional[dict] = None, external_api_payload: Optional[dict] = None, operation_id: str = None) -> str:
         """Generate copy-paste ready Python code for reproducing MCP external API calls in Jupyter.
-        
+
         This mirrors the pattern used in BQL query logging but for MCP operations.
         """
         lines = []
@@ -2193,7 +2163,7 @@ class Pipulate:
         lines.append(f'    url = "{external_api_url}"')
         lines.append(f'    method = "{external_api_method.upper()}"')
         lines.append('    ')
-        
+
         # Headers
         if external_api_headers:
             lines.append('    headers = {')
@@ -2206,7 +2176,7 @@ class Pipulate:
         else:
             lines.append('    headers = {}')
         lines.append('    ')
-        
+
         # Payload
         if external_api_payload and external_api_method.upper() in ['POST', 'PUT', 'PATCH']:
             lines.append('    payload = {')
@@ -2222,7 +2192,7 @@ class Pipulate:
         else:
             lines.append('    payload = None')
         lines.append('    ')
-        
+
         # Async session and request
         lines.append('    async with aiohttp.ClientSession() as session:')
         if external_api_method.upper() == 'GET':
@@ -2235,7 +2205,7 @@ class Pipulate:
             lines.append('        async with session.delete(url, headers=headers) as response:')
         else:
             lines.append(f'        async with session.request("{external_api_method.upper()}", url, headers=headers, json=payload) as response:')
-        
+
         lines.append('            print(f"Status: {response.status}")')
         lines.append('            print(f"Headers: {dict(response.headers)}")')
         lines.append('            ')
@@ -2265,17 +2235,17 @@ class Pipulate:
         lines.append('#     result = asyncio.run(reproduce_mcp_call())')
         lines.append('#     print("\\nFinal result:")')
         lines.append('#     pprint(result)')
-        
+
         return '\n'.join(lines)
 
     # ========================================
     # REUSABLE BOTIFY PYTHON CODE GENERATION
     # ========================================
-    
-    def generate_botify_code_header(self, display_name: str, step_name: str, username: str, project_name: str, 
-                                  template_info: dict = None, qualifier_config: dict = None) -> list:
+
+    def generate_botify_code_header(self, display_name: str, step_name: str, username: str, project_name: str,
+                                    template_info: dict = None, qualifier_config: dict = None) -> list:
         """Generate standardized header for Botify Python debugging code.
-        
+
         Delegates to external botify_code_generation module to reduce server.py size.
         """
         return botify_code_generation.generate_botify_code_header(
@@ -2286,40 +2256,41 @@ class Pipulate:
             template_info=template_info,
             qualifier_config=qualifier_config
         )
-    
+
     def generate_botify_token_loader(self) -> str:
         """Generate the standard Botify token loading function.
-        
+
         Delegates to external botify_code_generation module to reduce server.py size.
         """
         return botify_code_generation.generate_botify_token_loader()
-    
+
     def generate_botify_http_client(self, client_name: str, description: str) -> str:
         """Generate the standard HTTP client function for Botify APIs.
-        
+
         Delegates to external botify_code_generation module to reduce server.py size.
         """
         return botify_code_generation.generate_botify_http_client(client_name, description)
-    
+
     def generate_botify_main_executor(self, client_function_name: str, api_description: str) -> str:
         """Generate the main execution function for Botify APIs.
-        
+
         Delegates to external botify_code_generation module to reduce server.py size.
         """
         return botify_code_generation.generate_botify_main_executor(client_function_name, api_description)
-    
-    def create_folder_button(self, folder_path: str, icon: str = "📁", text: str = "Open Folder", 
-                           title_prefix: str = "Open folder") -> object:
+
+    def create_folder_button(self, folder_path: str, icon: str = "📁", text: str = "Open Folder",
+                             title_prefix: str = "Open folder") -> object:
         """Generate a standardized folder opening button.
-        
+
         Centralizes the folder button pattern used across many plugins.
         """
         import urllib.parse
+
         from fasthtml.common import A
-        
+
         quoted_path = urllib.parse.quote(str(folder_path))
         title = f"{title_prefix}: {folder_path}"
-        
+
         return A(
             f"{icon} {text}",
             hx_get=f"/open-folder?path={quoted_path}",
@@ -2331,11 +2302,11 @@ class Pipulate:
     # ========================================
     # ADVANCED BOTIFY CODE GENERATION UTILITIES
     # ========================================
-    
+
     def generate_botify_bqlv2_python_code(self, query_payload, username, project_name, page_size, jobs_payload, display_name, get_step_name_from_payload_func, get_configured_template_func=None, query_templates=None):
         """
         🚀 REUSABLE UTILITY: Generate complete Python code for BQLv2 queries (crawl, GSC)
-        
+
         Delegates to external botify_code_generation module to reduce server.py size.
         """
         return botify_code_generation.generate_botify_bqlv2_python_code(
@@ -2353,7 +2324,7 @@ class Pipulate:
     def generate_botify_bqlv1_python_code(self, query_payload, username, project_name, jobs_payload, display_name, get_step_name_from_payload_func):
         """
         🚀 REUSABLE UTILITY: Generate complete Python code for BQLv1 queries (web logs)
-        
+
         Delegates to external botify_code_generation module to reduce server.py size.
         """
         return botify_code_generation.generate_botify_bqlv1_python_code(
@@ -2368,7 +2339,7 @@ class Pipulate:
     def get_botify_analysis_path(self, app_name, username, project_name, analysis_slug, filename=None):
         """
         🚀 REUSABLE UTILITY: Construct standardized Botify analysis file paths
-        
+
         Delegates to external botify_code_generation module to reduce server.py size.
         """
         return botify_code_generation.get_botify_analysis_path(app_name, username, project_name, analysis_slug, filename)
@@ -2425,7 +2396,7 @@ class Pipulate:
         return {'plugin_name': display_name or plugin_name, 'internal_name': plugin_name, 'profile_id': profile_id, 'profile_name': profile_name}
 
     @pipeline_operation
-    def initialize_if_missing(self, pkey: str, initial_step_data: dict=None) -> tuple[Optional[dict], Optional[Card]]:
+    def initialize_if_missing(self, pkey: str, initial_step_data: dict = None) -> tuple[Optional[dict], Optional[Card]]:
         try:
             state = self.read_state(pkey)
             if state:
@@ -2490,22 +2461,21 @@ class Pipulate:
 
     async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=None, simulate_typing=True):
         """Stream a message to the chat interface.
-        
+
         This is now the single source of truth for conversation history management.
         All messages entering the chat system must go through this method.
         """
         logger.debug(f"🔍 DEBUG: === STARTING pipulate.stream (role: {role}) ===")
-        
+
         # CENTRALIZED: All messages entering the stream are now appended here
         append_to_conversation(message, role)
-        
+
         if verbatim:
             try:
                 # Safety check: ensure chat instance is available
                 if self.chat is None:
                     logger.warning("Chat instance not available yet, queuing message for later")
                     return message
-                
 
                 # Handle spacing before the message
                 if spaces_before:
@@ -2515,14 +2485,14 @@ class Pipulate:
                     spaces_after = 2  # Default for verbatim messages - use 2 for more visible spacing
                 if spaces_after and spaces_after > 0:
                     message = message + '<br>' * spaces_after
-                
+
                 if simulate_typing:
                     logger.debug("🔍 DEBUG: Simulating typing for verbatim message")
                     # Handle both single-line and multi-line messages with typing simulation
                     # Convert newlines to <br> tags first, then simulate typing
                     if '\n' in message:
                         message = message.replace('\n', '<br>')
-                    
+
                     # Handle <br> tags at the end of the message properly
                     import re
                     br_match = re.search(r'(<br>+)$', message)
@@ -2543,13 +2513,13 @@ class Pipulate:
                             await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
                 else:
                     await self.chat.broadcast(message)
-                
+
                 logger.debug(f'Verbatim message sent: {message}')
                 return message
             except Exception as e:
                 logger.error(f'Error in verbatim stream: {e}', exc_info=True)
                 raise
-        
+
         # Logic for interruptible LLM streams
         try:
             await self.chat.broadcast('%%STREAM_START%%')
@@ -2558,7 +2528,7 @@ class Pipulate:
             async for chunk in process_llm_interaction(MODEL, conversation_history):
                 await self.chat.broadcast(chunk)
                 response_text += chunk
-            
+
             # Append the final response from the assistant
             append_to_conversation(response_text, 'assistant')
             logger.debug(f'LLM message streamed: {response_text[:100]}...')
@@ -2573,9 +2543,9 @@ class Pipulate:
             logger.debug("LLM stream finished or cancelled, sent %%STREAM_END%%")
             logger.debug(f"🔍 DEBUG: === ENDING pipulate.stream ({'verbatim' if verbatim else 'LLM'}) ===")
 
-    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str=None, target_id: str=None, revert_label: str=None, remove_padding: bool=False, show_when_finalized: bool=False):
+    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str = None, target_id: str = None, revert_label: str = None, remove_padding: bool = False, show_when_finalized: bool = False):
         """Create a UI control for reverting to a previous workflow step.
-        
+
         The button label uses the visual sequence number of the step.
 
         Args:
@@ -2618,19 +2588,19 @@ class Pipulate:
             article_style += ' padding: 0;'
         return Card(Div(message, style='flex: 1', role='status', aria_label=f'Step result: {message}'), Div(form, style='flex: 0'), style=article_style, role='region', aria_label=f'Step {visual_step_number} controls')
 
-    def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str=None, widget=None, target_id: str=None, revert_label: str=None, widget_style=None, finalized_content=None, next_step_id: str=None):
+    def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str = None, widget=None, target_id: str = None, revert_label: str = None, widget_style=None, finalized_content=None, next_step_id: str = None):
         """Create a standardized container for widgets and visualizations.
-        
+
         Core pattern for displaying rich content below workflow steps with consistent
         styling and DOM targeting for dynamic updates.
-        
+
         Features:
         - Consistent padding/spacing with revert controls
         - Unique DOM addressing for targeted updates
         - Support for function-based widgets and AnyWidget components
         - Standard styling with override capability
         - Automatic finalized state handling with chain reaction preservation
-        
+
         Args:
             step_id: ID of the step this widget belongs to
             app_name: Workflow app name
@@ -2642,7 +2612,7 @@ class Pipulate:
             widget_style: Optional custom widget container style
             finalized_content: Content to show when workflow is finalized (if None, uses message with 🔒)
             next_step_id: Next step ID for chain reaction when finalized
-            
+
         Returns:
             Div: FastHTML container with revert control and widget content, or locked Card when finalized
         """
@@ -2653,22 +2623,22 @@ class Pipulate:
         if pipeline_id and finalize_step:
             final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
             is_finalized = finalize_step.done in final_data
-        
+
         if is_finalized:
             # Create locked view for finalized workflow
             step = next((s for s in steps if s.id == step_id), None)
             step_title = step.show if step else step_id
-            
+
             if finalized_content is None:
                 finalized_content = P(f"Step completed: {message or step_title}")
-            
+
             locked_card = Card(
                 H3(f"🔒 {step_title}", role='heading', aria_level='3'),
                 Div(finalized_content, cls='custom-card-padding-bg', role='status', aria_label=f'Finalized content for {step_title}'),
                 role='region',
                 aria_label=f'Finalized step: {step_title}'
             )
-            
+
             # Add next step trigger if provided
             if next_step_id:
                 return Div(
@@ -2678,12 +2648,12 @@ class Pipulate:
                 )
             else:
                 return Div(locked_card, id=step_id)
-        
+
         # Normal revert widget behavior for non-finalized workflows
         revert_row = self.display_revert_header(step_id=step_id, app_name=app_name, steps=steps, message=message, target_id=target_id, revert_label=revert_label, remove_padding=True)
         if widget is None or revert_row is None:
             return revert_row
-        
+
         # Use CSS class for widget content styling, allow custom widget_style override
         widget_container_attrs = {
             'id': f'{step_id}-widget-{hash(str(widget))}',
@@ -2694,18 +2664,18 @@ class Pipulate:
             widget_container_attrs['style'] = widget_style
         else:
             widget_container_attrs['cls'] = 'widget-content'
-            
+
         return Div(revert_row, Div(widget, **widget_container_attrs), id=f'{step_id}-content', cls='card-container', role='article', aria_label=f'Step content: {step_id}')
 
     def tree_display(self, content):
         """Create a styled display for file paths in tree or box format.
-        
+
         Example widget function demonstrating reusable, styled components
         with consistent spacing in workflow displays.
-        
+
         Args:
             content: Content to display (tree-formatted or plain path)
-            
+
         Returns:
             Pre: Styled Pre component
         """
@@ -2717,69 +2687,69 @@ class Pipulate:
 
     def finalized_content(self, message: str, content=None, heading_tag=H4, content_style=None):
         """Create a finalized step display with optional content.
-        
+
         Companion to display_revert_widget_advanced for finalized workflows,
         providing consistent styling for both states.
-        
+
         Args:
             message: Message to display (typically with 🔒 lock icon)
             content: FastHTML component to display below message
             heading_tag: Tag to use for message (default: H4)
             content_style: Optional custom content container style
-            
+
         Returns:
             Card: FastHTML Card component for finalized state
         """
         if content is None:
             return Card(message)
-        
+
         # Use CSS class for finalized content styling, allow custom content_style override
         content_container_attrs = {}
         if content_style:
             content_container_attrs['style'] = content_style
         else:
             content_container_attrs['cls'] = 'finalized-content'
-            
+
         return Card(heading_tag(message), Div(content, **content_container_attrs), cls='card-container')
 
-    def wrap_with_inline_button(self, input_element: Input, button_label: str='Next ▸', button_class: str='primary', show_new_key_button: bool=False, app_name: str=None) -> Div:
+    def wrap_with_inline_button(self, input_element: Input, button_label: str = 'Next ▸', button_class: str = 'primary', show_new_key_button: bool = False, app_name: str = None) -> Div:
         """Wrap an input element with an inline button in a flex container.
-        
+
         Args:
             input_element: The input element to wrap
             button_label: Text to display on the button (default: 'Next ▸')
             button_class: CSS class for the button (default: 'primary')
             show_new_key_button: Whether to show the 🆕 new key button (default: False)
             app_name: App name for new key generation (required if show_new_key_button=True)
-            
+
         Returns:
             Div: A flex container with the input and button(s)
         """
         # Styles are now externalized to CSS classes for maintainability
-        
+
         # Generate unique IDs for input-button association
         input_id = input_element.attrs.get('id') or f'input-{hash(str(input_element))}'
         button_id = f'btn-{input_id}'
-        
+
         # Enhance input element with semantic attributes if not already present
         if 'aria_describedby' not in input_element.attrs:
             input_element.attrs['aria_describedby'] = button_id
         if 'id' not in input_element.attrs:
             input_element.attrs['id'] = input_id
-            
+
         # Create enhanced button with semantic attributes
         enhanced_button = Button(
-            button_label, 
-            type='submit', 
+            button_label,
+            type='submit',
             cls=f'{button_class} inline-button-submit',
             id=button_id,
             aria_label=f'Submit {input_element.attrs.get("placeholder", "input")}',
             title=f'Submit form ({button_label})'
         )
-        
+
         # Prepare elements for container
         elements = [input_element, enhanced_button]
-        
+
         # Add new key button if requested
         if show_new_key_button and app_name:
             ui_constants = PCONFIG['UI_CONSTANTS']
@@ -2796,7 +2766,7 @@ class Pipulate:
                 title='Generate a new auto-incremented pipeline key'
             )
             elements.append(new_key_button)
-        
+
         return Div(
             *elements,
             cls='inline-button-container',
@@ -2807,13 +2777,13 @@ class Pipulate:
     def create_standard_landing_page(self, plugin_instance):
         """
         Creates a standardized landing page for workflows using centralized UI constants.
-        
+
         This helper reduces boilerplate while maintaining WET workflow explicitness.
         Each workflow still explicitly calls this method and can customize the result.
-        
+
         Args:
             plugin_instance: The workflow plugin instance
-            
+
         Returns:
             Container: Standard landing page structure
         """
@@ -2825,18 +2795,18 @@ class Pipulate:
             public_app_name_for_display = derive_public_endpoint_from_filename(Path(module_file).name)
         except (TypeError, AttributeError, ImportError):
             public_app_name_for_display = plugin_instance.APP_NAME
-            
+
         title = plugin_instance.DISPLAY_NAME or public_app_name_for_display.replace("_", " ").title()
-        
+
         # Standard pipeline key generation and matching records
         full_key, prefix, _ = self.generate_pipeline_key(plugin_instance)
         self.pipeline_table.xtra(app_name=plugin_instance.APP_NAME)
         matching_records = [record.pkey for record in self.pipeline_table() if record.pkey.startswith(prefix)]
-        
+
         # Standard form with centralized constants
         ui_constants = PCONFIG['UI_CONSTANTS']
         landing_constants = PCONFIG['UI_CONSTANTS']['LANDING_PAGE']
-        
+
         return Container(
             Card(
                 H2(title, role='heading', aria_level='2'),
@@ -3213,21 +3183,22 @@ class Pipulate:
     async def process_llm_interaction(self, model: str, messages: list, base_app=None):
         """
         Process LLM interaction through dependency injection pattern.
-        
+
         This method wraps the standalone process_llm_interaction function,
         making it available through the Pipulate instance for clean
         dependency injection in workflows.
-        
+
         Args:
             model: The LLM model name
             messages: List of message dictionaries
             base_app: Optional base app parameter
-            
+
         Returns:
             AsyncGenerator[str, None]: Stream of response chunks
         """
         async for chunk in process_llm_interaction(model, messages, base_app):
             yield chunk
+
 
 async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
     url = 'http://localhost:11434/api/chat'
@@ -3237,27 +3208,26 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     word_buffer = ""  # Buffer for word-boundary detection
     mcp_detected = False
     chunk_count = 0
-    
+
     # 🎯 GOLDEN PATH EXECUTION MATRIX - ORCHESTRATOR STATUS:
     # ✅ WORKING: XML syntax <tool><params><url>value</url></params></tool>
-    # ✅ WORKING: JSON syntax <tool><params>{"url": "value"}</params></tool>  
+    # ✅ WORKING: JSON syntax <tool><params>{"url": "value"}</params></tool>
     # 🟡 INTEGRATING: [cmd arg] bracket notation syntax (parser exists, integrating now)
     # 🔴 NOT YET: python -c "..." inline code execution
     # 🔴 NOT YET: python cli.py call forwarding from message stream
     #
     # 🎓 PROGRESSIVE REVEAL DESIGN FOR LLMs (simplest first):
     # Level 1: [mcp-discover] - Ultra-simple for small models
-    # Level 2: .venv/bin/python cli.py mcp-discover - Terminal proficiency  
+    # Level 2: .venv/bin/python cli.py mcp-discover - Terminal proficiency
     # Level 3: python -c "from helpers.ai_tool_discovery_simple_parser import execute_simple_command..."
     # Level 4: <tool name="ai_self_discovery_assistant"><params>{"discovery_type":"capabilities"}</params></tool>
     # Level 5: <tool name="ai_self_discovery_assistant"><params><discovery_type>capabilities</discovery_type></params></tool>
     #
     # This orchestrator monitors LLM response streams for MCP tool calls.
     # When found, tools are executed asynchronously and results injected back.
-    
+
     # Match XML/JSON tool tags AND bracket notation commands
     mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>|\[[^\]]+\])', re.DOTALL)
-    
 
     logger.debug("🔍 DEBUG: === STARTING process_llm_interaction ===")
     logger.debug(f"🔍 DEBUG: MODEL='{MODEL}', messages_count={len(messages)}")
@@ -3265,7 +3235,7 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     # 🚨 TRANSPARENCY: Show COMPLETE conversation history being sent to LLM
     logger.info("🔍 TRANSPARENCY: === COMPLETE CONVERSATION HISTORY ===")
     for i, msg in enumerate(messages):
-        role = msg.get('role', 'unknown')  
+        role = msg.get('role', 'unknown')
         content = msg.get('content', '')
         logger.info(f"🔍 TRANSPARENCY: Message {i}: [{role}] {content}")
     logger.info("🔍 TRANSPARENCY: === END CONVERSATION HISTORY ===")
@@ -3293,15 +3263,16 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                     logger.error(f"🔍 DEBUG: HTTP Error {response.status}: {error_text}")
                     yield error_msg
                     return
-                
-                yield '\n' # Start with a newline for better formatting in UI
-                
+
+                yield '\n'  # Start with a newline for better formatting in UI
+
                 async for line in response.content:
-                    if not line: continue
+                    if not line:
+                        continue
                     try:
                         chunk = json.loads(line)
                         chunk_count += 1
-                        
+
                         if chunk.get('done', False):
                             logger.debug(f"🔍 DEBUG: Stream complete (done=True)")
                             break
@@ -3312,32 +3283,32 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                                 continue
 
                             full_content_buffer += content
-                            
+
                             # Use regex to find a complete MCP block
                             match = mcp_pattern.search(full_content_buffer)
                             if match:
                                 mcp_block = match.group(1)
-                                mcp_detected = True # Flag that we've found our tool call
-                                
+                                mcp_detected = True  # Flag that we've found our tool call
+
                                 logger.info(f"🔧 MCP CLIENT: Complete MCP tool call extracted.")
                                 logger.debug(f"🔧 MCP BLOCK:\n{mcp_block}")
-                                
+
                                 # Offload the tool execution to a background task
                                 asyncio.create_task(
                                     execute_and_respond_to_tool_call(messages, mcp_block)
                                 )
                                 # Now that we have the tool call, we ignore all subsequent content from this stream
-                                continue 
-                            
+                                continue
+
                             # If no MCP block is detected yet, stream the content normally.
                             # This handles regular, non-tool-call conversations.
                             word_buffer += content
-                            
+
                             # Check if word_buffer contains start of potential MCP/tool tag or markdown code block
                             if '<tool' in word_buffer or '<mcp-request' in word_buffer or '```xml' in word_buffer:
                                 # Hold off on yielding if we might be building a tool call
                                 continue
-                            
+
                             parts = re.split(r'(\s+)', word_buffer)
                             if len(parts) > 1:
                                 complete_parts = parts[:-1]
@@ -3349,7 +3320,7 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                     except json.JSONDecodeError:
                         logger.warning(f"🔍 DEBUG: JSON decode error on chunk #{chunk_count}")
                         continue
-                
+
                 # After the loop, if there's remaining content in the buffer and no tool was called, flush it.
                 if word_buffer and not mcp_detected:
                     accumulated_response.append(word_buffer)
@@ -3377,7 +3348,7 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
     """
     Parses an MCP block (XML/JSON/bracket notation), executes the tool, and directly formats and sends
     the result to the UI, bypassing a second LLM call for reliability.
-    
+
     🎓 PROGRESSIVE REVEAL SUPPORT:
     - [mcp-discover] - Level 1: Ultra-simple bracket notation for small models
     - <tool name="..."> - Level 4/5: XML/JSON for sophisticated models
@@ -3385,19 +3356,19 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
     import uuid
     start_time = time.time()
     operation_id = str(uuid.uuid4())[:8]
-    
+
     try:
         logger.debug("🔍 DEBUG: === STARTING execute_and_respond_to_tool_call ===")
-        
+
         # Check if this is bracket notation (Level 1: simplest)
         if mcp_block.startswith('[') and mcp_block.endswith(']'):
             logger.debug("🔍 DEBUG: Detected bracket notation command")
             return await execute_bracket_notation_command(mcp_block, operation_id, start_time)
-        
+
         # Handle XML/JSON tool syntax (Level 4/5: more complex)
         tool_name_match = re.search(r'<tool name="([^"]+)"', mcp_block)
         tool_name = tool_name_match.group(1) if tool_name_match else None
-        
+
         if not tool_name:
             logger.error("🔧 MCP CLIENT: Could not parse tool name from block.")
             await chat.broadcast("Error: Could not understand the tool request.")
@@ -3421,11 +3392,11 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
                     # Wrap in a root element to make it valid XML
                     xml_text = f"<root>{params_text}</root>"
                     root = ET.fromstring(xml_text)
-                    
+
                     # Extract all child elements as key-value pairs
                     for child in root:
                         params[child.tag] = child.text
-                    
+
                     logger.debug(f"🔧 MCP CLIENT: Extracted XML params: {params}")
                 except ET.ParseError as e:
                     logger.error(f"🔧 MCP CLIENT: Failed to parse params as XML: {e}")
@@ -3437,14 +3408,14 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
         async with aiohttp.ClientSession() as session:
             url = "http://127.0.0.1:5001/mcp-tool-executor"
             payload = {"tool": tool_name, "params": params}
-            
+
             mcp_request_start = time.time()
             async with session.post(url, json=payload) as response:
                 mcp_request_end = time.time()
                 execution_time_ms = (mcp_request_end - start_time) * 1000
-                
+
                 tool_result = await response.json() if response.status == 200 else {}
-                
+
                 # Log the complete MCP operation with extreme observability
                 await pipulate.log_mcp_call_details(
                     operation_id=operation_id,
@@ -3463,21 +3434,21 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
                     execution_time_ms=execution_time_ms,
                     notes=f"MCP tool execution for {tool_name} via poke endpoint"
                 )
-                
+
                 if response.status == 200:
                     logger.info(f"🎯 FINDER_TOKEN: MCP_SUCCESS - Tool '{tool_name}' executed successfully")
 
                     # Check for success in multiple formats: "success": true OR "status": "success"
-                    is_success = (tool_result.get("success") is True or 
-                                 tool_result.get("status") == "success")
-                    
+                    is_success = (tool_result.get("success") is True or
+                                  tool_result.get("status") == "success")
+
                     if is_success:
                         # Handle different tool types
                         if tool_name == "get_cat_fact":
                             # Cat fact specific handling
                             fact_data = tool_result.get("result", {})
                             the_fact = fact_data.get("fact")
-                            
+
                             if the_fact:
                                 logger.success(f"✅ RELIABLE FORMATTING: Directly formatting fact: {the_fact}")
                                 final_message = f"🐱 **Cat Fact Alert!** 🐱\n\n{the_fact}\n\nWould you like another fact?"
@@ -3486,7 +3457,7 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
                                 error_message = "The cat fact API returned a success, but the fact was missing."
                                 logger.warning(f"🔧 MCP CLIENT: {error_message}")
                                 await pipulate.message_queue.add(pipulate, error_message, verbatim=True, role='system')
-                        
+
                         elif tool_name == "ui_flash_element":
                             # UI flash specific handling
                             element_id = tool_result.get("element_id")
@@ -3494,7 +3465,7 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
                             logger.success(f"✅ UI FLASH: Element '{element_id}' flashed successfully")
                             final_message = f"✨ **UI Element Flashed!** ✨\n\n🎯 **Element:** {element_id}\n💬 **Message:** {message}\n\nThe element should now be glowing on your screen!"
                             await pipulate.message_queue.add(pipulate, final_message, verbatim=True, role='assistant')
-                        
+
                         elif tool_name == "ui_list_elements":
                             # UI list elements specific handling
                             elements = tool_result.get("ui_elements", {})
@@ -3510,7 +3481,7 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
                                 final_message += "\n"
                             final_message += "You can flash any of these elements using the `ui_flash_element` tool!"
                             await pipulate.message_queue.add(pipulate, final_message, verbatim=True, role='assistant')
-                        
+
                         else:
                             # Generic success handling for other tools
                             success_message = f"✅ Tool '{tool_name}' executed successfully!"
@@ -3540,10 +3511,10 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
 async def execute_bracket_notation_command(mcp_block: str, operation_id: str, start_time: float):
     """
     Execute bracket notation commands - Level 1 of progressive reveal.
-    
+
     🎓 PROGRESSIVE REVEAL LEVEL 1: Ultra-simple for small models
     Examples: [mcp-discover], [pipeline], [search FINDER_TOKEN]
-    
+
     This is the simplest possible syntax, designed for quantized models
     that can't handle complex tool calling but can embed simple commands.
     """
@@ -3553,44 +3524,44 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
         from pathlib import Path
         sys.path.insert(0, str(Path(__file__).parent / 'helpers'))
         from ai_tool_discovery_simple_parser import execute_simple_command
-        
+
         # Remove brackets and execute
         command = mcp_block.strip('[]')
         logger.info(f"🔧 FINDER_TOKEN: BRACKET_COMMAND_START - Command '{command}'")
-        
+
         # Execute using the simple parser
         result = await execute_simple_command(command)
-        
+
         if result.get('success'):
             logger.info(f"🎯 FINDER_TOKEN: BRACKET_SUCCESS - Command '{command}' executed successfully")
-            
+
             # 🔧 TRANSPARENCY DISABLED: Commented out to prevent response stream pollution
             # This was causing massive amounts of pipeline data to be logged, making chat unusable
-            # 
+            #
             # logger.info(f"🔧 MCP_TRANSPARENCY: === COMPLETE TOOL EXECUTION DETAILS ===")
             # logger.info(f"🔧 MCP_TRANSPARENCY: Command: '{command}'")
             # logger.info(f"🔧 MCP_TRANSPARENCY: Result Success: {result.get('success')}")
             # logger.info(f"🔧 MCP_TRANSPARENCY: Result Keys: {list(result.keys())}")
-            # 
+            #
             # # Log the full result structure for debugging
             # if 'result' in result:
             #     logger.info(f"🔧 MCP_TRANSPARENCY: Result Data: {result['result']}")
-            # 
+            #
             # # Log any pattern matches or search results
             # if 'pattern' in result:
             #     logger.info(f"🔧 MCP_TRANSPARENCY: Search Pattern: {result['pattern']}")
             # if 'matches' in result:
             #     logger.info(f"🔧 MCP_TRANSPARENCY: Match Count: {len(result['matches'])}")
             #     logger.info(f"🔧 MCP_TRANSPARENCY: First 3 Matches: {result['matches'][:3]}")
-            # 
+            #
             # # Log file operations
             # if 'file_path' in result:
             #     logger.info(f"🔧 MCP_TRANSPARENCY: File Path: {result['file_path']}")
             # if 'match_count' in result:
             #     logger.info(f"🔧 MCP_TRANSPARENCY: Total Match Count: {result['match_count']}")
-            # 
+            #
             # logger.info(f"🔧 MCP_TRANSPARENCY: === END TRANSPARENCY LOG ===")
-            
+
             # Format response based on command type
             if command in ['mcp', 'mcp-discover']:
                 # Special handling for discovery commands
@@ -3606,7 +3577,7 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
                 response_text += f"\nLevel 3: `python -c \"from helpers.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))\"`"
                 response_text += f"\nLevel 4: `<tool name=\"ai_self_discovery_assistant\"><params>{{\"discovery_type\":\"capabilities\"}}</params></tool>`"
                 response_text += f"\nLevel 5: `<tool name=\"ai_self_discovery_assistant\"><params><discovery_type>capabilities</discovery_type></params></tool>`"
-                
+
             elif command == 'tools':
                 # List tools by category
                 tools = result.get('tools', {})
@@ -3616,7 +3587,7 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
                     for tool in tool_list:
                         response_text += f"• {tool}\n"
                     response_text += "\n"
-                    
+
             elif command == 'pipeline':
                 # System state inspection
                 response_text = f"📊 **System State** 📊\n\n"
@@ -3624,24 +3595,24 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
                 # BLOCKED: Massive data dump into chat - causes HTML pollution
                 # if 'result' in result:
                 #     response_text += f"Result: {result['result']}\n"
-                    
+
             else:
                 # Generic success handling
                 response_text = f"✅ **Command '{command}' completed!** ✅\n\n"
                 # BLOCKED: Massive data dump into chat - causes HTML pollution
                 # if 'result' in result:
                 #     response_text += f"Result: {result['result']}\n"
-            
+
             await pipulate.message_queue.add(pipulate, response_text, verbatim=True, role='assistant')
-            
+
         else:
             # Handle errors with enhanced transparency
             error_msg = result.get('error', 'Unknown error')
             suggestion = result.get('suggestion', '')
-            
+
             # 🔧 ERROR TRANSPARENCY DISABLED: Commented out to prevent response stream pollution
             # This was also causing excessive error logging that polluted the chat
-            # 
+            #
             # logger.error(f"🔧 MCP_TRANSPARENCY: === COMMAND FAILURE DETAILS ===")
             # logger.error(f"🔧 MCP_TRANSPARENCY: Failed Command: '{command}'")
             # logger.error(f"🔧 MCP_TRANSPARENCY: Error Message: {error_msg}")
@@ -3649,17 +3620,17 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
             # if suggestion:
             #     logger.error(f"🔧 MCP_TRANSPARENCY: Suggested Fix: {suggestion}")
             # logger.error(f"🔧 MCP_TRANSPARENCY: === END ERROR LOG ===")
-            
+
             response_text = f"❌ **Command Error** ❌\n\n"
             response_text += f"Command: `{command}`\n"
             response_text += f"Error: {error_msg}\n"
             if suggestion:
                 response_text += f"Suggestion: {suggestion}\n"
             response_text += f"\n💡 Try [mcp] for available commands"
-            
+
             logger.error(f"🔧 BRACKET CLIENT: Command '{command}' failed: {error_msg}")
             await pipulate.message_queue.add(pipulate, response_text, verbatim=True, role='system')
-            
+
     except Exception as e:
         logger.error(f"🔧 BRACKET CLIENT: Error in bracket notation execution: {e}", exc_info=True)
         await pipulate.message_queue.add(pipulate, f"An error occurred executing bracket command: {str(e)}", verbatim=True, role='system')
@@ -3678,6 +3649,7 @@ def get_current_profile_id():
         else:
             logger.warning('No profiles found in the database')
     return profile_id
+
 
 def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-background-class'):
     """
@@ -3715,8 +3687,8 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
     """
     return (Script(src='/assets/pipulate.js'), Script(python_generated_init_script), Link(rel='stylesheet', href='/assets/styles.css'))
 
+
 # BaseCrud class moved to plugins/common.py to avoid circular imports
-from common import BaseCrud
 
 # Initialize FastApp with database and configuration
 app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
@@ -3769,6 +3741,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     }
 )
 
+
 class Chat:
     def __init__(self, app, id_suffix='', pipulate_instance=None):
         self.app = app
@@ -3812,27 +3785,27 @@ class Chat:
             tool_name = call_data.get('tool_name')
             tool_args = call_data.get('tool_args', {})
             description = call_data.get('description', '')
-            
+
             self.logger.info(f"🎯 Demo MCP call: {tool_name} with args: {tool_args}")
-            
+
             # Execute the MCP tool
             if tool_name in MCP_TOOL_REGISTRY:
                 tool_handler = MCP_TOOL_REGISTRY[tool_name]
                 result = await tool_handler(tool_args)
-                
+
                 # Send result back to demo script
                 response_message = f"🔧 **MCP Tool Executed** 🔧\n\n**Tool**: {tool_name}\n**Args**: {json.dumps(tool_args)}\n**Result**: {result.get('success', False)}"
                 if description:
                     response_message += f"\n**Description**: {description}"
-                
+
                 await websocket.send_text(response_message)
                 self.logger.info(f"🎯 Demo MCP call completed: {tool_name} -> {result.get('success', False)}")
-                
+
             else:
                 error_message = f"❌ **MCP Tool Error** ❌\n\n**Tool**: {tool_name} not found"
                 await websocket.send_text(error_message)
                 self.logger.error(f"🎯 Demo MCP call failed: {tool_name} not found")
-                
+
         except Exception as e:
             self.logger.error(f"🎯 Error handling demo MCP call: {e}")
             error_message = f"❌ **MCP Tool Error** ❌\n\n**Error**: {str(e)}"
@@ -3843,7 +3816,7 @@ class Chat:
             await websocket.accept()
             self.active_websockets.add(websocket)
             self.logger.debug('Chat WebSocket connected')
-            
+
             # Send any stored startup messages to the first connecting client
             if not self.first_connection_handled and self.startup_messages:
                 self.logger.debug(f'Sending {len(self.startup_messages)} stored startup messages to first client')
@@ -3852,7 +3825,7 @@ class Chat:
                 self.first_connection_handled = True
                 # Clear startup messages after sending to avoid re-sending to other clients
                 self.startup_messages.clear()
-            
+
             while True:
                 message = await websocket.receive_text()
                 self.logger.debug(f'Received message: {message}')
@@ -3920,6 +3893,7 @@ class Chat:
         except Exception as e:
             self.logger.error(f'Error in broadcast: {e}')
 
+
 pipulate = Pipulate(pipeline)
 logger.info('🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized')
 
@@ -3939,6 +3913,7 @@ logger.info('💬 FINDER_TOKEN: CHAT_INIT - Chat instance initialized')
 pipulate.set_chat(chat)
 logger.info('🔗 FINDER_TOKEN: CHAT_LINK - Chat reference set in pipulate instance')
 
+
 def build_endpoint_messages(endpoint):
     logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Called with endpoint='{endpoint}'")
     endpoint_messages = {}
@@ -3951,9 +3926,9 @@ def build_endpoint_messages(endpoint):
             else:
                 class_name = plugin_instance.__class__.__name__
                 endpoint_messages[plugin_name] = f'{class_name} app is where you manage your {plugin_name}.'
-    
+
     logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Built {len(endpoint_messages)} endpoint messages")
-    
+
     # Special handling for empty endpoint (homepage) - check if roles plugin exists
     if not endpoint:
         logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Empty endpoint - using roles homepage logic")
@@ -3968,7 +3943,7 @@ def build_endpoint_messages(endpoint):
                 endpoint_messages[''] = f'{class_name} app is where you manage your roles.'
         else:
             endpoint_messages[''] = f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. Select an app from the menu to get started.'
-    
+
     if endpoint in plugin_instances:
         plugin_instance = plugin_instances[endpoint]
         logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Found plugin for endpoint '{endpoint}'")
@@ -3977,10 +3952,11 @@ def build_endpoint_messages(endpoint):
         logger.debug(f"Checking if {endpoint} has ENDPOINT_MESSAGE: {hasattr(plugin_instance, 'ENDPOINT_MESSAGE')}")
     else:
         logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: No plugin found for endpoint '{endpoint}' in {list(plugin_instances.keys())}")
-    
+
     result = endpoint_messages.get(endpoint, None)
     logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Returning message for '{endpoint}': {result[:100] if result else 'None'}...")
     return result
+
 
 def build_endpoint_training(endpoint):
     endpoint_training = {}
@@ -3992,7 +3968,7 @@ def build_endpoint_training(endpoint):
             else:
                 class_name = workflow_instance.__class__.__name__
                 endpoint_training[workflow_name] = f'{class_name} app is where you manage your workflows.'
-    
+
     # Special handling for empty endpoint (homepage) - check if roles plugin exists
     if not endpoint:
         roles_instance = plugin_instances.get('roles')
@@ -4005,10 +3981,13 @@ def build_endpoint_training(endpoint):
                 endpoint_training[''] = f'{class_name} app is where you manage your workflows.'
         else:
             endpoint_training[''] = 'You were just switched to the home page.'
-    
+
     append_to_conversation(endpoint_training.get(endpoint, ''), 'system')
     return
+
+
 COLOR_MAP = {'key': 'yellow', 'value': 'white', 'error': 'red', 'warning': 'yellow', 'success': 'green', 'debug': 'blue'}
+
 
 def db_operation(func):
 
@@ -4032,6 +4011,7 @@ def db_operation(func):
                 log.error(f'Database operation {func.__name__} failed', e)
             raise
     return wrapper
+
 
 class DictLikeDB:
 
@@ -4107,8 +4087,11 @@ class DictLikeDB:
     def set(self, key, value):
         self[key] = value
         return value
+
+
 db = DictLikeDB(store, Store)
 logger.info('💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized')
+
 
 def populate_initial_data():
     """Populate initial data in the database."""
@@ -4162,7 +4145,10 @@ def populate_initial_data():
         log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles AFTER')
         log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db AFTER')
         logger.bind(lifecycle=True).info('POPULATE_INITIAL_DATA: Finished.')
+
+
 populate_initial_data()
+
 
 async def synchronize_roles_to_db():
     """Ensure all roles defined in plugin ROLES constants and ROLES_CONFIG exist in the 'roles' database table."""
@@ -4179,19 +4165,19 @@ async def synchronize_roles_to_db():
         return
     roles_table_handler = roles_plugin_instance.table
     logger.debug(f'SYNC_ROLES: Obtained roles_table_handler: {type(roles_table_handler)}')
-    
+
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('SYNC_ROLES: Starting global role synchronization.')
         log_dynamic_table_state('roles', lambda: roles_table_handler(), title_prefix='SYNC_ROLES: Global BEFORE')
     logger.debug('SYNC_ROLES: Synchronizing roles globally')
     discovered_roles_set = set()
-    
+
     # FIRST: Get roles from ROLES_CONFIG (this is the primary source of truth)
     roles_config = PCONFIG.get('ROLES_CONFIG', {})
     if roles_config:
         logger.debug(f"SYNC_ROLES: Found {len(roles_config)} roles in ROLES_CONFIG: {list(roles_config.keys())}")
         discovered_roles_set.update(roles_config.keys())
-    
+
     # SECOND: Get roles from plugin ROLES constants (for backward compatibility)
     for plugin_key, plugin_instance_obj in plugin_instances.items():
         plugin_module = sys.modules.get(plugin_instance_obj.__module__)
@@ -4206,7 +4192,7 @@ async def synchronize_roles_to_db():
             for role_name in roles_to_add_from_plugin:
                 if isinstance(role_name, str) and role_name.strip():
                     discovered_roles_set.add(role_name.strip())
-    
+
     if not discovered_roles_set:
         logger.info('SYNC_ROLES: No roles were discovered in ROLES_CONFIG or plugin ROLES constants. Role table will not be modified.')
     else:
@@ -4275,6 +4261,7 @@ async def synchronize_roles_to_db():
         logger.bind(lifecycle=True).info('SYNC_ROLES: Finished global role synchronization.')
         log_dynamic_table_state('roles', lambda: roles_table_handler(), title_prefix='SYNC_ROLES: Global AFTER')
 
+
 def discover_plugin_files():
     """Discover and import all Python files in the plugins directory.
 
@@ -4323,6 +4310,7 @@ def discover_plugin_files():
     logger.debug(f'Discovered plugin modules: {list(plugin_modules.keys())}')
     return plugin_modules
 
+
 def find_plugin_classes(plugin_modules, discovered_modules):
     """Find all plugin classes in the given modules."""
     plugin_classes = []
@@ -4359,6 +4347,8 @@ def find_plugin_classes(plugin_modules, discovered_modules):
             continue
     logger.debug(f'Discovered plugin classes: {plugin_classes}')
     return plugin_classes
+
+
 # 🎨 PLUGINS BANNER - Right before plugin discovery begins (only when running as main script)
 if __name__ == '__main__':
     figlet_banner("plugins", "Pipulate Workflows and CRUD Apps", font='standard', color='orange3')
@@ -4368,6 +4358,7 @@ discovered_modules = discover_plugin_files()
 discovered_classes = find_plugin_classes(discovered_modules, discovered_modules)
 friendly_names = {'': HOME_MENU_ITEM}
 endpoint_training = {}
+
 
 def get_display_name(workflow_name):
     instance = plugin_instances.get(workflow_name)
@@ -4381,6 +4372,7 @@ def get_display_name(workflow_name):
             # Circular import or other error - fall back to default
             pass
     return workflow_name.replace('_', ' ').title()
+
 
 def get_endpoint_message(workflow_name):
     instance = plugin_instances.get(workflow_name)
@@ -4404,6 +4396,8 @@ def get_endpoint_message(workflow_name):
             # Circular import or other error - fall back to default
             pass
     return f"{workflow_name.replace('_', ' ').title()} app is where you manage your workflows."
+
+
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in plugin_instances:
         try:
@@ -4501,6 +4495,7 @@ for workflow_name, workflow_instance in plugin_instances.items():
 base_menu_items = ['']
 additional_menu_items = []
 
+
 @app.on_event('startup')
 async def startup_event():
     """Initialize the application on startup.
@@ -4520,13 +4515,13 @@ async def startup_event():
     tool_count = len(MCP_TOOL_REGISTRY)
     if tool_count > 0:
         logger.info(f"🔧 FINDER_TOKEN: STARTUP_EVENT_MCP_READY - {tool_count} MCP tools available for async startup")
-    
+
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.')
     server_whisper("Synchronizing roles and permissions", "🔐")
     await synchronize_roles_to_db()
-    
+
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:')
-    
+
     # 💬 CONVERSATION HISTORY RESTORATION - Load persistent conversation from database
     try:
         logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_STARTUP - Attempting to restore conversation history from database")
@@ -4537,52 +4532,50 @@ async def startup_event():
             logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORE_NONE - Starting with fresh conversation history")
     except Exception as e:
         logger.error(f"💬 FINDER_TOKEN: CONVERSATION_RESTORE_ERROR - Failed to restore conversation history: {e}")
-    
+
     # 🛡️ BACKUP SYSTEM INTEGRATION - Protect all critical data on startup
     try:
         from helpers.durable_backup_system import DurableBackupManager
         backup_manager = DurableBackupManager()
-        
+
         # Get dynamic database paths
         main_db_path = get_db_filename()
         keychain_db_path = 'helpers/data/ai_keychain.db'
         discussion_db_path = 'data/discussion.db'
-        
+
         # Execute comprehensive backup
         story_moment("Backup System", "Protecting critical data assets", BANNER_COLORS['data_protection'])
         backup_results = backup_manager.backup_all_databases(main_db_path, keychain_db_path, discussion_db_path)
-        
+
         # Log results
         successful_backups = sum(1 for success in backup_results.values() if success)
         total_backups = len(backup_results)
-        
+
         if successful_backups == total_backups:
             logger.info(f"🛡️ FINDER_TOKEN: BACKUP_STARTUP_SUCCESS - All {total_backups} databases backed up successfully")
         else:
             logger.warning(f"🛡️ FINDER_TOKEN: BACKUP_STARTUP_PARTIAL - {successful_backups}/{total_backups} databases backed up")
-            
+
     except Exception as e:
         logger.error(f"🛡️ FINDER_TOKEN: BACKUP_STARTUP_ERROR - Backup system failed: {e}")
-    
+
     story_moment("Workshop Ready", "All systems initialized and ready for creative exploration", BANNER_COLORS['workshop_ready'])
-    
+
     # Status information now provided by Rich startup summary tables
-    
+
     log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
     log_pipeline_summary(title_prefix='STARTUP FINAL')
 
-
-    
     # Clear any stale coordination data on startup
     message_coordination['endpoint_messages_sent'].clear()
     message_coordination['last_endpoint_message_time'].clear()
     message_coordination['startup_in_progress'] = False
     logger.debug("Cleared message coordination state on startup")
-    
+
     # Send environment mode message after a short delay to let UI initialize
     asyncio.create_task(send_startup_environment_message())
-    
+
     # Pre-seed local LLM context for immediate capability awareness
     # asyncio.create_task(prepare_local_llm_context())
 ordered_plugins = []
@@ -4594,9 +4587,7 @@ for module_name, class_name, workflow_class in discovered_classes:
 logger.info("🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools")
 
 # Ensure mcp_tools has the correct registry reference
-import mcp_tools
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
-from mcp_tools import register_all_mcp_tools
 register_all_mcp_tools()
 logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
 
@@ -4630,19 +4621,19 @@ if __name__ == '__main__':
     # Show beautiful startup summary for humans
     startup_summary = startup_summary_table(
         plugins_discovered=discovered_count,
-        plugins_registered=registered_count, 
+        plugins_registered=registered_count,
         mcp_tools_count=tool_count,
         app_name=current_app,
         environment=current_env
     )
     print(startup_summary)
     logger.info("🔧 STARTUP_MARKER_3: startup_summary_table displayed")
-    
+
     # Show AI capabilities summary
     ai_summary = ai_breadcrumb_summary(tool_count)
     print(ai_summary)
     logger.info("🔧 STARTUP_MARKER_4: ai_breadcrumb_summary displayed")
-    
+
     # Show critical environment warnings
     warnings_summary = startup_environment_warnings()
     print(warnings_summary)
@@ -4684,6 +4675,7 @@ else:
 MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
 
+
 def get_profile_name():
     profile_id = get_current_profile_id()
     logger.debug(f'Retrieving profile name for ID: {profile_id}')
@@ -4695,6 +4687,7 @@ def get_profile_name():
     except NotFoundError:
         logger.warning(f'No profile found for ID: {profile_id}')
         return 'Unknown Profile'
+
 
 async def home(request):
     """Handle the main home route request.
@@ -4717,38 +4710,38 @@ async def home(request):
     grayscale_enabled = db.get('oz_door_grayscale') == 'true'
     if grayscale_enabled:
         logger.info("🎬 Oz door grayscale state detected - injecting script into Container")
-    
+
     response = await create_outer_container(current_profile_id, menux, request, grayscale_enabled)
     last_profile_name = get_profile_name()
     page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
-    
+
     # Backup mechanism: send endpoint message if not yet sent for this session
     current_env = get_current_environment()
     session_key = f'endpoint_message_sent_{menux}_{current_env}'
-    
+
     # Check coordination system to prevent duplicates
     endpoint_message = build_endpoint_messages(menux)
     if endpoint_message and session_key not in db:
         # Create unique message identifier for coordination
         message_id = f'{menux}_{current_env}_{hash(endpoint_message) % 10000}'
-        
+
         # Check if this message was recently sent through any pathway
         current_time = time.time()
         last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
-        
+
         # Only send if not recently sent and startup is not in progress
-        if (current_time - last_sent > 10 and 
+        if (current_time - last_sent > 10 and
             not message_coordination['startup_in_progress'] and
-            message_id not in message_coordination['endpoint_messages_sent']):
-            
+                message_id not in message_coordination['endpoint_messages_sent']):
+
             try:
                 # Add training to conversation history
                 build_endpoint_training(menux)
-                
+
                 # Mark as being sent to prevent other systems from sending
                 message_coordination['last_endpoint_message_time'][message_id] = current_time
                 message_coordination['endpoint_messages_sent'].add(message_id)
-                
+
                 # Send endpoint message with coordination
                 asyncio.create_task(send_delayed_endpoint_message(endpoint_message, session_key))
                 logger.debug(f"Scheduled backup endpoint message: {message_id}")
@@ -4756,9 +4749,10 @@ async def home(request):
                 logger.error(f'Error sending backup endpoint message: {e}')
         else:
             logger.debug(f"Skipping backup endpoint message - coordination check failed: {message_id}")
-    
+
     logger.debug('Returning response for main GET request.')
     return (Title(page_title), Main(response))
+
 
 def create_nav_group():
     """Create the navigation group containing the main nav menu and refresh listeners.
@@ -4774,6 +4768,7 @@ def create_nav_group():
     refresh_listener = Div(id='profile-menu-refresh-listener', hx_get='/refresh-profile-menu', hx_trigger='refreshProfileMenu from:body', hx_target='#profile-dropdown-menu', hx_swap='outerHTML', cls='hidden')
     app_menu_refresh_listener = Div(id='app-menu-refresh-listener', hx_get='/refresh-app-menu', hx_trigger='refreshAppMenu from:body', hx_target='#app-dropdown-menu', hx_swap='outerHTML', cls='hidden')
     return Div(nav, refresh_listener, app_menu_refresh_listener, id='nav-group', role='navigation', aria_label='Main navigation')
+
 
 def create_env_menu():
     """Create environment selection dropdown menu."""
@@ -4797,25 +4792,26 @@ def create_env_menu():
     menu_items.append(prod_item)
     return Details(
         Summary(
-            display_env, 
-            cls=env_summary_classes, 
+            display_env,
+            cls=env_summary_classes,
             id='env-id',
             aria_label='Environment selection menu',
             aria_expanded='false',
             aria_haspopup='menu'
-        ), 
+        ),
         Ul(
-            *menu_items, 
+            *menu_items,
             cls='dropdown-menu env-dropdown-menu',
             role='menu',
             aria_label='Environment options',
             aria_labelledby='env-id'
-        ), 
-        cls='dropdown', 
+        ),
+        cls='dropdown',
         id='env-dropdown-menu',
         aria_label='Environment management',
         data_testid='environment-dropdown-menu'
     )
+
 
 def create_nav_menu():
     logger.debug('Creating navigation menu.')
@@ -4845,7 +4841,7 @@ def create_nav_menu():
     # HTMX real-time search implementation with keyboard navigation
     # Search container with dropdown results
     search_results_dropdown = Div(id='search-results-dropdown', cls='search-dropdown', role='listbox', aria_label='Search results')
-    
+
     nav_search_container = Div(
         Input(
             type='search',
@@ -4869,11 +4865,12 @@ def create_nav_menu():
         role='search',
         aria_label='Plugin search'
     )
-    
+
     menus = Div(nav_search_container, create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu(), poke_section, cls='nav-menu-group')
     nav = Div(breadcrumb, menus, cls='nav-breadcrumb')
     logger.debug('Navigation menu created.')
     return nav
+
 
 def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
@@ -4925,14 +4922,17 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     summary_profile_name_to_display = summary_profile_name_to_display or 'Select'
     return Details(Summary('👤 PROFILE', cls='inline-nowrap', id='profile-id', aria_label='Profile selection menu', aria_expanded='false', aria_haspopup='menu'), Ul(*menu_items, cls='dropdown-menu profile-dropdown-menu', role='menu', aria_label='Profile options', aria_labelledby='profile-id'), cls='dropdown', id='profile-dropdown-menu', aria_label='Profile management')
 
+
 def normalize_menu_path(path):
     """Convert empty paths to empty string and return the path otherwise."""
     return '' if path == '' else path
+
 
 def generate_menu_style():
     """Generate consistent menu styling for dropdown menus."""
     border_radius = PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
     return f'white-space: nowrap; display: inline-block; min-width: max-content; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: {border_radius}; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s;'
+
 
 def create_app_menu(menux):
     """Create the App dropdown menu with hierarchical role-based sorting."""
@@ -4951,6 +4951,7 @@ def create_app_menu(menux):
                     menu_items.append(menu_item)
     return create_menu_container(menu_items)
 
+
 def get_active_roles():
     """Get set of active role names from roles plugin."""
     active_role_names = set()
@@ -4966,6 +4967,7 @@ def get_active_roles():
         logger.warning("Could not fetch active roles: 'roles' plugin or its table not found.")
     return active_role_names
 
+
 def get_role_priorities():
     """Get role priorities from the roles plugin for hierarchical sorting."""
     role_priorities = {}
@@ -4980,6 +4982,7 @@ def get_role_priorities():
     else:
         logger.warning("Could not fetch role priorities: 'roles' plugin or its table not found.")
     return role_priorities
+
 
 def group_plugins_by_role(active_role_names):
     """Group plugins by their primary role for hierarchical menu organization."""
@@ -5001,6 +5004,7 @@ def group_plugins_by_role(active_role_names):
     logger.debug(f'Plugins grouped by role: {plugins_by_role}')
     return plugins_by_role
 
+
 def get_plugin_numeric_prefix(plugin_key):
     """Extract numeric prefix from plugin filename for sorting within role groups."""
     if plugin_key in discovered_modules:
@@ -5009,6 +5013,7 @@ def get_plugin_numeric_prefix(plugin_key):
         if match:
             return int(match.group(1))
     return 9999
+
 
 def create_home_menu_item(menux):
     """Create menu items list starting with Home option."""
@@ -5022,13 +5027,14 @@ def create_home_menu_item(menux):
     menu_items.append(Li(home_label))
     return menu_items
 
+
 def get_plugin_primary_role(instance):
     """Get the primary role for a plugin for UI styling purposes.
-    
+
     Uses a simple 80/20 approach: if plugin has multiple roles, 
     we take the first one as primary. This creates a clean win/loss
     scenario for coloring without complex blending logic.
-    
+
     Returns lowercase role name with spaces replaced by hyphens for CSS classes.
     """
     plugin_module_path = instance.__module__
@@ -5040,6 +5046,7 @@ def get_plugin_primary_role(instance):
     css_role = primary_role.lower().replace(' ', '-')
     logger.debug(f"Plugin '{instance.__class__.__name__}' primary role: '{primary_role}' -> CSS class: 'menu-role-{css_role}'")
     return css_role
+
 
 def create_plugin_menu_item(plugin_key, menux, active_role_names):
     """Create menu item for a plugin if it should be included based on roles."""
@@ -5063,6 +5070,7 @@ def create_plugin_menu_item(plugin_key, menux, active_role_names):
     radio_input = Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML', aria_label=f'Navigate to {display_name}')
     return Li(Label(radio_input, display_name, cls=css_classes))
 
+
 def should_include_plugin(instance, active_role_names):
     """Determine if plugin should be included based on its roles."""
     plugin_module_path = instance.__module__
@@ -5074,9 +5082,11 @@ def should_include_plugin(instance, active_role_names):
     logger.debug(f"Plugin '{instance.__class__.__name__}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Active Roles: {active_role_names}, Match: {has_matching_active_role}, Include: {should_include}")
     return should_include
 
+
 def create_menu_container(menu_items):
     """Create the final menu container with all items."""
     return Details(Summary('⚡ APP', cls='inline-nowrap', id='app-id', aria_label='Application menu', aria_expanded='false', aria_haspopup='menu'), Ul(*menu_items, cls='dropdown-menu', role='menu', aria_label='Application options', aria_labelledby='app-id'), cls='dropdown', id='app-dropdown-menu', aria_label='Application selection')
+
 
 def get_dynamic_role_css():
     """Generate dynamic role CSS from centralized PCONFIG - single source of truth."""
@@ -5084,9 +5094,9 @@ def get_dynamic_role_css():
         role_colors = PCONFIG.get('ROLE_COLORS', {})
         if not role_colors:
             return ""
-        
+
         css_rules = []
-        
+
         # Generate main role CSS with role-specific hover/focus states
         for role_class, colors in role_colors.items():
             # Extract RGB values from border color for darker hover state
@@ -5097,16 +5107,16 @@ def get_dynamic_role_css():
                 r = int(hex_color[0:2], 16)
                 g = int(hex_color[2:4], 16)
                 b = int(hex_color[4:6], 16)
-                
+
                 # Create hover state with 20% background opacity
                 hover_bg = f"rgba({r}, {g}, {b}, 0.2)"
-                
-                # Create focus state with 25% background opacity 
+
+                # Create focus state with 25% background opacity
                 focus_bg = f"rgba({r}, {g}, {b}, 0.25)"
-                
+
                 # Create SELECTED state with 35% background opacity (more prominent)
                 selected_bg = f"rgba({r}, {g}, {b}, 0.35)"
-                
+
                 css_rules.append(f"""
 .{role_class} {{
     background-color: {colors['background']} !important;
@@ -5125,7 +5135,7 @@ def get_dynamic_role_css():
 .{role_class}[style*="background-color: var(--pico-primary-focus)"] {{
     background-color: {selected_bg} !important;
 }}""")
-        
+
         # Generate light theme adjustments with matching hover states
         for role_class, colors in role_colors.items():
             if role_class != 'menu-role-core':  # Core doesn't need light theme adjustment
@@ -5135,12 +5145,12 @@ def get_dynamic_role_css():
                     r = int(hex_color[0:2], 16)
                     g = int(hex_color[2:4], 16)
                     b = int(hex_color[4:6], 16)
-                    
+
                     # Lighter hover for light theme (15% opacity)
                     light_hover_bg = f"rgba({r}, {g}, {b}, 0.15)"
                     light_focus_bg = f"rgba({r}, {g}, {b}, 0.2)"
                     light_selected_bg = f"rgba({r}, {g}, {b}, 0.3)"
-                    
+
                     css_rules.append(f"""
 [data-theme="light"] .{role_class} {{
     background-color: {colors['background_light']} !important;
@@ -5158,26 +5168,27 @@ def get_dynamic_role_css():
 [data-theme="light"] .{role_class}[style*="background-color: var(--pico-primary-focus)"] {{
     background-color: {light_selected_bg} !important;
 }}""")
-        
+
         return '\n'.join(css_rules)
-        
+
     except Exception as e:
         logger.error(f"Error generating dynamic role CSS: {e}")
         return ""  # Fallback to static CSS if dynamic generation fails
+
 
 async def create_outer_container(current_profile_id, menux, request, grayscale_enabled=False):
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for container creation")
         return Container(H1('Error: Profiles plugin not found', cls='text-invalid'))
-    
+
     # Inject dynamic role CSS - single source of truth
     dynamic_css = get_dynamic_role_css()
     nav_group = create_nav_group()
-    
+
     # Get saved sizes from DB, with a default of [65, 35]
     saved_sizes_str = db.get('split-sizes', '[65, 35]')
-    
+
     # Initialize splitter script with server-provided sizes
     init_splitter_script = Script(f"""
         document.addEventListener('DOMContentLoaded', function() {{
@@ -5193,15 +5204,15 @@ async def create_outer_container(current_profile_id, menux, request, grayscale_e
             }}
         }});
     """)
-    
+
     # 🎬 CINEMATIC MAGIC: Prepare grayscale script if enabled
     container_contents = [
         Style(dynamic_css),  # Dynamic CSS injection
-        nav_group, 
-        Div(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), 
+        nav_group,
+        Div(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'),
         init_splitter_script  # Initialize the draggable splitter
     ]
-    
+
     if grayscale_enabled:
         # Add grayscale script to Container (no extra wrapper div)
         grayscale_script = Script(f"""
@@ -5246,14 +5257,15 @@ def get_workflow_instance(workflow_name):
     """
     return plugin_instances.get(workflow_name)
 
+
 async def create_grid_left(menux, request, render_items=None):
     """Create the left grid content based on the selected menu item.
-    
+
     Args:
         menux: The selected menu item key
         request: The HTTP request object
         render_items: Optional items to render (unused)
-        
+
     Returns:
         Div: Container with the rendered content and scroll controls
     """
@@ -5268,7 +5280,7 @@ async def create_grid_left(menux, request, render_items=None):
         else:
             logger.error(f"Plugin '{profiles_plugin_key}' not found in plugin_instances for create_grid_left.")
             content_to_render = Card(H3('Error'), P(f"Plugin '{profiles_plugin_key}' not found."))
-    
+
     # Handle workflow plugin selection
     elif menux:
         workflow_instance = get_workflow_instance(menux)
@@ -5276,7 +5288,7 @@ async def create_grid_left(menux, request, render_items=None):
             if hasattr(workflow_instance, 'ROLES') and DEBUG_MODE:
                 logger.debug(f'Selected plugin {menux} has roles: {workflow_instance.ROLES}')
             content_to_render = await workflow_instance.landing(request)
-    
+
     # Handle homepage (no menu selection)
     else:
         roles_instance = plugin_instances.get('roles')
@@ -5289,18 +5301,18 @@ async def create_grid_left(menux, request, render_items=None):
     # Fallback content if nothing was rendered
     if content_to_render is None:
         content_to_render = Card(
-            H3('Welcome'), 
-            P('Select an option from the menu to begin.'), 
+            H3('Welcome'),
+            P('Select an option from the menu to begin.'),
             style='min-height: 400px'
         )
 
     # Create scroll-to-top button
     scroll_to_top = Div(
-        A('↑ Scroll To Top', 
+        A('↑ Scroll To Top',
           href='javascript:void(0)',
           onclick='scrollToTop()',
           style='text-decoration: none'
-        ),
+          ),
         style=(
             'border-top: 1px solid var(--pico-muted-border-color); '
             'display: none; '
@@ -5316,6 +5328,7 @@ async def create_grid_left(menux, request, render_items=None):
         scroll_to_top,
         id='grid-left-content'
     )
+
 
 def create_chat_interface(autofocus=False):
     """Creates the chat interface component with message list and input form.
@@ -5335,8 +5348,10 @@ def create_chat_interface(autofocus=False):
     # Enter/Shift+Enter handling is now externalized in pipulate.js
     return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height, role='log', aria_label='Chat conversation', aria_live='polite'), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)', role='form', aria_label='Chat input form'), Script(init_script), Script(src='/assets/pipulate-init.js'), Script('initializeChatInterface();')), id='chat-interface', role='complementary', aria_label='AI Assistant Chat')
 
+
 # Global variable to track streaming state
 is_streaming = False
+
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
     """
@@ -5396,6 +5411,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
 
 # Old create_poke_button function removed - now using nav poke button
 
+
 @rt('/poke-flyout', methods=['GET'])
 async def poke_flyout(request):
     current_app = db.get('last_app_choice', '')
@@ -5404,26 +5420,26 @@ async def poke_flyout(request):
     profile_locked = db.get('profile_locked', '0') == '1'
     lock_button_text = '🔓 Unlock Profile' if profile_locked else '🔒 Lock Profile'
     is_dev_mode = get_current_environment() == 'Development'
-    
+
     # Get current theme setting (default to 'dark' for new users)
     current_theme = db.get('theme_preference', 'dark')
     theme_is_dark = current_theme == 'dark'
-    
+
     # Create buttons
     lock_button = Button(lock_button_text, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline')
-    
+
     # Theme toggle switch
     theme_switch = Div(
         Label(
             Input(
-                type='checkbox', 
-                role='switch', 
-                name='theme_switch', 
+                type='checkbox',
+                role='switch',
+                name='theme_switch',
                 checked=theme_is_dark,
                 hx_post='/toggle_theme',
                 hx_target='#theme-switch-container',
                 hx_swap='outerHTML'
-            ), 
+            ),
             Span('🌙 Dark Mode', cls='ml-quarter')
         ),
         Script(f"""
@@ -5456,33 +5472,33 @@ async def poke_flyout(request):
         cls='theme-switch-container'
     )
     delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
-    reset_db_button = Button('🔄 Reset Entire DEV Database', 
-                            hx_post='/clear-db', 
-                            hx_target='body', 
-                            hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?', 
-                            hx_swap='none',  # No immediate swap - let server restart handle the reload
-                            cls='secondary outline',
-                            **{'hx-on:click': '''
+    reset_db_button = Button('🔄 Reset Entire DEV Database',
+                             hx_post='/clear-db',
+                             hx_target='body',
+                             hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?',
+                             hx_swap='none',  # No immediate swap - let server restart handle the reload
+                             cls='secondary outline',
+                             **{'hx-on:click': '''
                                 triggerFullScreenRestart("Resetting database...", "RESET_DATABASE");
                             '''}) if is_dev_mode else None
-    reset_python_button = Button('🐍 Reset Python Environment', 
-                                hx_post='/reset-python-env', 
-                                hx_target='#msg-list', 
-                                hx_swap='beforeend', 
-                                hx_confirm='⚠️ This will remove the .venv directory and require a manual restart. You will need to type "exit" then "nix develop" to rebuild the environment. Continue?', 
-                                cls='secondary outline dev-button-muted',
-                                **{'hx-on:click': '''
+    reset_python_button = Button('🐍 Reset Python Environment',
+                                 hx_post='/reset-python-env',
+                                 hx_target='#msg-list',
+                                 hx_swap='beforeend',
+                                 hx_confirm='⚠️ This will remove the .venv directory and require a manual restart. You will need to type "exit" then "nix develop" to rebuild the environment. Continue?',
+                                 cls='secondary outline dev-button-muted',
+                                 **{'hx-on:click': '''
                                     triggerPythonEnvironmentReset();
                                 '''}) if is_dev_mode else None
     mcp_test_button = Button(f'🤖 MCP Test {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
-    
+
     # Add Update button (full-screen effect only triggers on actual restart)
-    update_button = Button(f'🔄 Update {APP_NAME}', 
-                          hx_post='/update-pipulate', 
-                          hx_target='#msg-list', 
-                          hx_swap='beforeend', 
-                          cls='secondary outline')
-    
+    update_button = Button(f'🔄 Update {APP_NAME}',
+                           hx_post='/update-pipulate',
+                           hx_target='#msg-list',
+                           hx_swap='beforeend',
+                           cls='secondary outline')
+
     # Add version info display
     nix_version = get_nix_version()
     git_hash = get_git_hash()
@@ -5492,7 +5508,7 @@ async def poke_flyout(request):
         Span(f'📝 Git: {git_hash}', cls='version-info-text git-hash'),
         cls='version-info-container'
     )
-    
+
     # Build list items in the requested order: Theme Toggle, Lock Profile, Update, Clear Workflows, Reset Database, MCP Test
     list_items = [
         Li(theme_switch, cls='flyout-list-item'),
@@ -5505,11 +5521,12 @@ async def poke_flyout(request):
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
         list_items.append(Li(reset_python_button, cls='flyout-list-item'))
     list_items.append(Li(mcp_test_button, cls='flyout-list-item'))
-    
+
     # Always use nav flyout now - no more fallback to old flyout
     target_id = 'nav-flyout-panel'
     css_class = 'nav-flyout-panel visible'
     return Div(id=target_id, cls=css_class, hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Settings'), Ul(*list_items), version_info, cls='flyout-content'))
+
 
 @rt('/poke-flyout-hide', methods=['GET'])
 async def poke_flyout_hide(request):
@@ -5522,14 +5539,17 @@ async def poke_flyout_hide(request):
     css_class = 'nav-flyout-panel hidden'
     return Div(id=target_id, cls=css_class)
 
+
 @rt('/sse')
 async def sse_endpoint(request):
     return EventStream(broadcaster.generator())
+
 
 @app.post('/chat')
 async def chat_endpoint(request, message: str):
     await pipulate.stream(f'Let the user know {limiter} {message}')
     return ''
+
 
 @app.post('/add-to-conversation-history')
 async def add_to_conversation_history_endpoint(request):
@@ -5541,16 +5561,17 @@ async def add_to_conversation_history_endpoint(request):
         form_data = await request.form()
         role = form_data.get('role', 'user')
         content = form_data.get('content', '')
-        
+
         if content:
             # Use the existing append_to_conversation function that adds to history without triggering LLM
             append_to_conversation(content, role)
             logger.info(f"🎯 DEMO: Added to conversation history - {role}: {content[:100]}...")
-        
+
         return ''
     except Exception as e:
         logger.error(f"Error adding to conversation history: {e}")
         return ''
+
 
 @app.get('/demo-bookmark-check')
 async def demo_bookmark_check():
@@ -5568,6 +5589,7 @@ async def demo_bookmark_check():
         logger.error(f"Error checking demo bookmark: {e}")
         return JSONResponse({"has_bookmark": False, "error": str(e)})
 
+
 @app.post('/demo-bookmark-store')
 async def demo_bookmark_store(request):
     """Store demo bookmark before navigation"""
@@ -5582,6 +5604,7 @@ async def demo_bookmark_store(request):
         logger.error(f"Error storing demo bookmark: {e}")
         return JSONResponse({"success": False, "error": str(e)})
 
+
 @app.post('/demo-bookmark-clear')
 async def demo_bookmark_clear():
     """Clear demo bookmark to prevent infinite loop"""
@@ -5594,6 +5617,7 @@ async def demo_bookmark_clear():
         logger.error(f"Error clearing demo bookmark: {e}")
         return JSONResponse({"success": False, "error": str(e)})
 
+
 @app.post('/oz-door-grayscale-store')
 async def oz_door_grayscale_store(request):
     """Store Oz door grayscale state for cinematic transition"""
@@ -5604,6 +5628,7 @@ async def oz_door_grayscale_store(request):
     except Exception as e:
         logger.error(f"Error storing Oz door grayscale state: {e}")
         return JSONResponse({"success": False, "error": str(e)})
+
 
 @app.post('/oz-door-grayscale-clear')
 async def oz_door_grayscale_clear():
@@ -5617,35 +5642,37 @@ async def oz_door_grayscale_clear():
         logger.error(f"Error clearing Oz door grayscale state: {e}")
         return JSONResponse({"success": False, "error": str(e)})
 
+
 @app.post('/test-voice-synthesis')
 async def test_voice_synthesis_endpoint(request):
     """Test voice synthesis endpoint for debugging - callable via Ctrl+Alt+v"""
     try:
         # Import voice synthesis system
-        from helpers.voice_synthesis import chip_voice_system, VOICE_SYNTHESIS_AVAILABLE
-        
+        from helpers.voice_synthesis import (VOICE_SYNTHESIS_AVAILABLE,
+                                             chip_voice_system)
+
         # Get test text from request or use default
         form_data = await request.form()
         test_text = form_data.get('text', 'This is a voice synthesis test from the web interface.')
-        
+
         logger.info(f"🎤 Voice synthesis test endpoint called with text: {test_text}")
-        
+
         # Check if voice synthesis is available
         if not VOICE_SYNTHESIS_AVAILABLE:
             logger.error("🎤 Voice synthesis not available")
             return JSONResponse({"success": False, "error": "Voice synthesis not available"})
-        
+
         # Check if voice system is ready
         if not chip_voice_system.voice_ready:
             logger.error("🎤 Voice system not ready")
             return JSONResponse({"success": False, "error": "Voice system not ready"})
-        
+
         # Test voice synthesis
         logger.info("🎤 Attempting voice synthesis...")
         result = chip_voice_system.speak_text(test_text)
-        
+
         logger.info(f"🎤 Voice synthesis result: {result}")
-        
+
         return JSONResponse({
             "success": result.get("success", False),
             "message": result.get("message", "Unknown result"),
@@ -5654,7 +5681,7 @@ async def test_voice_synthesis_endpoint(request):
             "voice_ready": chip_voice_system.voice_ready,
             "voice_synthesis_available": VOICE_SYNTHESIS_AVAILABLE
         })
-        
+
     except Exception as e:
         logger.error(f"🎤 Voice synthesis test endpoint error: {e}")
         import traceback
@@ -5666,7 +5693,6 @@ async def test_voice_synthesis_endpoint(request):
         })
 
 
-
 @rt('/redirect/{path:path}')
 def redirect_handler(request):
     path = request.path_params['path']
@@ -5676,14 +5702,15 @@ def redirect_handler(request):
     if message:
         prompt = read_training(message)
         append_to_conversation(prompt, role='system')
-        
+
         # Always set temp_message for redirects - this is legitimate navigation
         # The coordination system will prevent race condition duplicates in other pathways
         db['temp_message'] = message
         logger.debug(f"Set temp_message for redirect to: {path}")
-            
+
     build_endpoint_training(path)
     return Redirect(f'/{path}')
+
 
 @rt('/poke', methods=['POST'])
 async def poke_chatbot():
@@ -5704,7 +5731,7 @@ async def poke_chatbot():
     import time
     timestamp = int(time.time())
     session_id = random.randint(1000, 9999)
-    
+
     one_shot_mcp_prompt = f"""You are a helpful assistant with a tool that can fetch random cat facts. When the user wants a cat fact, you must use this tool.
 To use the tool, you MUST stop generating conversational text and output an MCP request block.
 Here is the only tool you have available:
@@ -5729,19 +5756,20 @@ Do not say anything else. Just output the exact MCP block above."""
                 pass
         except Exception as e:
             logger.error(f"Error in MCP tool call: {e}")
-    
+
     asyncio.create_task(consume_mcp_response())
-    
+
     # 3. Return an empty response to the HTMX request.
     return ""
+
 
 @rt('/poke-botify', methods=['POST'])
 async def poke_botify_test():
     """
     🔧 FINDER_TOKEN: BOTIFY_MCP_TEST_ENDPOINT
-    
+
     🚀 Botify MCP Integration Test - Demonstrates end-to-end Botify API tool execution
-    
+
     Tests the complete Botify MCP pipeline by prompting the LLM to use the 
     botify_ping tool with test credentials, showcasing authentication, error 
     handling, and full MCP transparency logging.
@@ -5757,7 +5785,7 @@ async def poke_botify_test():
     import time
     timestamp = int(time.time())
     session_id = random.randint(1000, 9999)
-    
+
     botify_mcp_prompt = f"""You are a helpful assistant with access to Botify API tools. When the user wants to test Botify connectivity, you must use the botify_ping tool.
 To use the tool, you MUST stop generating conversational text and output an MCP request block.
 Here are the available Botify tools:
@@ -5785,11 +5813,12 @@ Do not say anything else. Just output the exact MCP block above."""
                 pass
         except Exception as e:
             logger.error(f"Error in Botify MCP tool call: {e}")
-    
+
     asyncio.create_task(consume_botify_mcp_response())
-    
+
     # 4. Return empty response to HTMX request
     return ""
+
 
 @rt('/open-folder', methods=['GET'])
 async def open_folder_endpoint(request):
@@ -5821,34 +5850,36 @@ async def open_folder_endpoint(request):
     except Exception as e:
         return HTMLResponse(f'An unexpected error occurred: {str(e)}', status_code=500)
 
+
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):
     current = db.get('profile_locked', '0')
     db['profile_locked'] = '1' if current == '0' else '0'
     return HTMLResponse('', headers={'HX-Refresh': 'true'})
 
+
 @rt('/toggle_theme', methods=['POST'])
 async def toggle_theme(request):
     """Toggle between light and dark theme."""
     current_theme = db.get('theme_preference', 'auto')
-    
+
     # Toggle between light and dark (we'll skip 'auto' for simplicity)
     new_theme = 'dark' if current_theme != 'dark' else 'light'
     db['theme_preference'] = new_theme
-    
+
     # Create the updated switch component
     theme_is_dark = new_theme == 'dark'
     theme_switch = Div(
         Label(
             Input(
-                type='checkbox', 
-                role='switch', 
-                name='theme_switch', 
+                type='checkbox',
+                role='switch',
+                name='theme_switch',
                 checked=theme_is_dark,
                 hx_post='/toggle_theme',
                 hx_target='#theme-switch-container',
                 hx_swap='outerHTML'
-            ), 
+            ),
             Span('🌙 Dark Mode', cls='ml-quarter')
         ),
         Script(f"""
@@ -5860,19 +5891,21 @@ async def toggle_theme(request):
         id='theme-switch-container',
         cls='theme-switch-container'
     )
-    
+
     return theme_switch
+
 
 @rt('/sync_theme', methods=['POST'])
 async def sync_theme(request):
     """Sync theme preference from client to server."""
     form = await request.form()
     theme = form.get('theme', 'auto')
-    
+
     if theme in ['light', 'dark']:
         db['theme_preference'] = theme
-    
+
     return HTMLResponse('OK')
+
 
 @rt('/search-plugins', methods=['POST'])
 async def search_plugins(request):
@@ -5880,18 +5913,18 @@ async def search_plugins(request):
     try:
         form = await request.form()
         search_term = form.get('search', '').strip().lower()
-        
+
         # Build searchable plugin data from discovered modules
         searchable_plugins = []
-        
+
         for module_name, instance in plugin_instances.items():
             if module_name in ['profiles', 'roles']:  # Skip system plugins
                 continue
-                
+
             # Get clean display name (remove numeric prefix, underscores, .py)
             clean_name = module_name.replace('_', ' ').title()
             display_name = getattr(instance, 'DISPLAY_NAME', clean_name)
-            
+
             # Create searchable entry
             plugin_entry = {
                 'module_name': module_name,
@@ -5900,38 +5933,38 @@ async def search_plugins(request):
                 'url': f'/redirect/{module_name}'
             }
             searchable_plugins.append(plugin_entry)
-        
+
         # Filter plugins based on search term
         if search_term:
             filtered_plugins = []
             for plugin in searchable_plugins:
                 # Search in display name and clean name
-                if (search_term in plugin['display_name'].lower() or 
+                if (search_term in plugin['display_name'].lower() or
                     search_term in plugin['clean_name'].lower() or
-                    search_term in plugin['module_name'].lower()):
+                        search_term in plugin['module_name'].lower()):
                     filtered_plugins.append(plugin)
         else:
             # Show ALL plugins on empty search (dropdown menu behavior)
             filtered_plugins = searchable_plugins
-        
+
         # Generate HTML results
         if filtered_plugins:
             result_html = ""
             # Check if there's only one result for auto-selection
             auto_select_single = len(filtered_plugins) == 1
-            
+
             for i, plugin in enumerate(filtered_plugins):  # Show all results - no artificial limit
                 # Add auto-select class for single results
                 item_class = "search-result-item"
                 if auto_select_single:
                     item_class += " auto-select-single"
-                    
+
                 # Smart mouse hover handler - don't clear selection on auto-selected single results
                 if auto_select_single:
                     mouse_handler = "if (!this.classList.contains('auto-select-single') || event.movementX !== 0 || event.movementY !== 0) { this.classList.remove('selected'); }"
                 else:
                     mouse_handler = "this.classList.remove('selected');"
-                    
+
                 result_html += f"""
                 <div class="{item_class}" 
                      onclick="document.getElementById('search-results-dropdown').style.display='none'; document.getElementById('nav-plugin-search').value=''; window.location.href='{plugin['url']}';"
@@ -5940,7 +5973,7 @@ async def search_plugins(request):
                     <div class="search-result-module">{plugin['module_name']}</div>
                 </div>
                 """
-            
+
             # Show dropdown with JavaScript (styles now in external CSS)
             result_html += """
             <script>
@@ -5962,9 +5995,9 @@ async def search_plugins(request):
                 if (current) current.classList.remove('selected');
             </script>
             """
-        
+
         return HTMLResponse(result_html)
-        
+
     except Exception as e:
         logger.error(f"Error in search_plugins: {e}")
         return HTMLResponse(f"""
@@ -5976,22 +6009,23 @@ async def search_plugins(request):
         </script>
         """)
 
+
 @rt('/generate-new-key/{app_name}')
 async def generate_new_key(request):
     """Generate a new auto-incremented pipeline key for the specified app."""
     app_name = request.path_params['app_name']
-    
+
     # Find the plugin instance by APP_NAME attribute (not module name)
     plugin_instance = None
     for module_name, instance in plugin_instances.items():
         if hasattr(instance, 'APP_NAME') and instance.APP_NAME == app_name:
             plugin_instance = instance
             break
-    
+
     if not plugin_instance:
         # Fallback: try direct module name lookup
         plugin_instance = get_workflow_instance(app_name)
-    
+
     if not plugin_instance:
         return Input(
             placeholder='Error: Plugin not found',
@@ -6001,16 +6035,17 @@ async def generate_new_key(request):
             style='border-color: var(--pico-color-red-500);',
             aria_label='Pipeline ID input (error)'
         )
-    
+
     # Generate new key
     full_key, prefix, _ = pipulate.generate_pipeline_key(plugin_instance)
-    
+
     # Force page reload to initialize the new workflow
     # This ensures run_all_cells() is triggered and old workflow content is cleared
     from starlette.responses import Response
     response = Response('')
     response.headers['HX-Refresh'] = 'true'
     return response
+
 
 @rt('/refresh-app-menu')
 async def refresh_app_menu_endpoint(request):
@@ -6019,6 +6054,7 @@ async def refresh_app_menu_endpoint(request):
     menux = db.get('last_app_choice', '')
     app_menu_details_component = create_app_menu(menux)
     return HTMLResponse(to_xml(app_menu_details_component))
+
 
 @rt('/save-split-sizes', methods=['POST'])
 async def save_split_sizes(request):
@@ -6042,19 +6078,19 @@ async def save_split_sizes(request):
 async def mcp_tool_executor_endpoint(request):
     """
     Generic MCP tool executor that dispatches to registered tools.
-    
+
     🔧 FINDER_TOKEN: MCP_TOOL_EXECUTOR_GENERIC_DISPATCH
     This endpoint now uses the MCP_TOOL_REGISTRY for dynamic tool dispatch.
     """
     import uuid
     start_time = time.time()
     operation_id = str(uuid.uuid4())[:8]
-    
+
     try:
         data = await request.json()
         tool_name = data.get("tool")
         params = data.get("params", {})
-        
+
         # Enhanced MCP call transparency
         logger.info(f"🔧 MCP_CALL_START: Tool '{tool_name}' | Operation ID: {operation_id}")
         logger.info(f"🔧 MCP_PARAMS: {params}")
@@ -6065,24 +6101,24 @@ async def mcp_tool_executor_endpoint(request):
             available_tools = list(MCP_TOOL_REGISTRY.keys())
             logger.warning(f"🔧 MCP_ERROR: Unknown tool '{tool_name}'. Available: {available_tools}")
             return JSONResponse({
-                "status": "error", 
+                "status": "error",
                 "message": f"Tool '{tool_name}' not found. Available tools: {available_tools}"
             }, status_code=404)
 
         # Execute the registered tool with enhanced logging
         tool_handler = MCP_TOOL_REGISTRY[tool_name]
         logger.info(f"🔧 MCP_EXECUTE: Starting '{tool_name}' via registry handler")
-        
+
         external_start_time = time.time()
         tool_result = await tool_handler(params)
         external_end_time = time.time()
         external_execution_time = (external_end_time - external_start_time) * 1000
-        
+
         # Log the actual result with semantic context
         result_status = tool_result.get("status", "unknown")
         result_size = len(str(tool_result.get("result", "")))
         logger.info(f"🔧 MCP_RESULT: Tool '{tool_name}' | Status: {result_status} | Response size: {result_size} chars | Time: {external_execution_time:.1f}ms")
-        
+
         # Add semantic meaning to common tool results
         if tool_name == "pipeline_state_inspector":
             pipeline_count = len(tool_result.get("result", {}).get("pipelines", []))
@@ -6099,13 +6135,13 @@ async def mcp_tool_executor_endpoint(request):
             elif tool_name == "local_llm_list_files":
                 files = tool_result.get("result", {}).get("files", [])
                 logger.info(f"🔧 MCP_SEMANTIC: File listing returned {len(files)} files")
-        
+
         # Extract external API details from tool result for logging
         external_api_url = tool_result.get("external_api_url")
         external_api_method = tool_result.get("external_api_method", "UNKNOWN")
         external_api_status = tool_result.get("external_api_status")
         external_api_response = tool_result.get("result")
-        
+
         # Log the tool execution with full transparency
         is_success_for_logging = (tool_result.get("status") == "success" or tool_result.get("success") is True)
         operation_type = "external_api_call" if is_success_for_logging else "external_api_call_failed"
@@ -6126,11 +6162,11 @@ async def mcp_tool_executor_endpoint(request):
             execution_time_ms=external_execution_time,
             notes=f"MCP tool '{tool_name}' executed via registry"
         )
-        
+
         # Check for success in multiple formats
-        is_success = (tool_result.get("status") == "success" or 
-                     tool_result.get("success") is True)
-        
+        is_success = (tool_result.get("status") == "success" or
+                      tool_result.get("success") is True)
+
         if is_success:
             logger.info(f"🔧 MCP_SUCCESS: Tool '{tool_name}' completed successfully | Operation ID: {operation_id}")
             return JSONResponse(tool_result)
@@ -6142,6 +6178,7 @@ async def mcp_tool_executor_endpoint(request):
     except Exception as e:
         logger.error(f"🔧 MCP_EXCEPTION: Tool execution failed | Operation ID: {operation_id} | Error: {e}", exc_info=True)
         return JSONResponse({"status": "error", "message": f"Tool execution failed: {str(e)}"}, status_code=500)
+
 
 @rt('/clear-pipeline', methods=['POST'])
 async def clear_pipeline(request):
@@ -6177,28 +6214,29 @@ async def clear_pipeline(request):
     html_response.headers['HX-Refresh'] = 'true'
     return html_response
 
+
 @rt('/backup-now', methods=['POST'])
 async def backup_now(request):
     """Manually trigger backup of all critical databases."""
     try:
         from helpers.durable_backup_system import DurableBackupManager
         backup_manager = DurableBackupManager()
-        
+
         # Get dynamic database paths
         main_db_path = get_db_filename()
         keychain_db_path = 'helpers/data/ai_keychain.db'
         discussion_db_path = 'data/discussion.db'
-        
+
         # Execute comprehensive backup
         logger.info("🛡️ MANUAL BACKUP INITIATED")
         backup_results = backup_manager.backup_all_databases(main_db_path, keychain_db_path, discussion_db_path)
-        
+
         # Prepare response
         successful_backups = sum(1 for success in backup_results.values() if success)
         total_backups = len(backup_results)
-        
+
         backup_location = backup_manager.backup_root
-        
+
         if successful_backups == total_backups:
             message = f"✅ All {total_backups} databases backed up successfully to {backup_location}"
             logger.info(f"🛡️ MANUAL BACKUP SUCCESS: {message}")
@@ -6207,11 +6245,12 @@ async def backup_now(request):
             message = f"⚠️ Partial backup: {successful_backups}/{total_backups} databases backed up to {backup_location}"
             logger.warning(f"🛡️ MANUAL BACKUP PARTIAL: {message}")
             return {"success": False, "message": message, "backup_location": str(backup_location)}
-            
+
     except Exception as e:
         error_msg = f"❌ Manual backup failed: {str(e)}"
         logger.error(f"🛡️ MANUAL BACKUP ERROR: {error_msg}")
         return {"success": False, "message": error_msg}
+
 
 @rt('/clear-db', methods=['POST'])
 async def clear_db(request):
@@ -6221,12 +6260,12 @@ async def clear_db(request):
         log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB INITIAL')
         log_pipeline_summary(title_prefix='CLEAR_DB INITIAL')
         log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB INITIAL')
-    
+
     # Safely preserve certain values before clearing
     last_app_choice = db.get('last_app_choice')
     last_visited_url = db.get('last_visited_url')
     temp_message = db.get('temp_message')
-    
+
     # 💬 PRESERVE CONVERSATION HISTORY - Backup conversation before database reset
     conversation_backup = None
     if 'llm_conversation_history' in db:
@@ -6253,7 +6292,7 @@ async def clear_db(request):
             cursor.execute('DELETE FROM store')
             cursor.execute('DELETE FROM pipeline')
             cursor.execute('DELETE FROM profile')
-            
+
             # Only delete from sqlite_sequence if it exists
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'")
             if cursor.fetchone():
@@ -6261,7 +6300,7 @@ async def clear_db(request):
                 logger.debug('Cleared sqlite_sequence table')
             else:
                 logger.debug('sqlite_sequence table does not exist, skipping')
-            
+
             conn.commit()
     except Exception as e:
         logger.error(f'Error clearing core tables: {e}')
@@ -6313,7 +6352,7 @@ async def clear_db(request):
         db['last_visited_url'] = last_visited_url
     if temp_message:
         db['temp_message'] = temp_message
-    
+
     # 💬 RESTORE CONVERSATION HISTORY - Restore conversation after database reset
     if conversation_backup:
         db['llm_conversation_history'] = conversation_backup
@@ -6332,11 +6371,11 @@ async def clear_db(request):
     if TABLE_LIFECYCLE_LOGGING:
         log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB FINAL (post key restoration)')
         logger.bind(lifecycle=True).info('CLEAR_DB: Operation fully complete.')
-    
+
     # Schedule server restart after database reset to ensure fresh state
     logger.info('CLEAR_DB: Scheduling server restart to ensure fresh application state')
     asyncio.create_task(delayed_restart(2))
-    
+
     # Return script that triggers full-screen restart effect for the actual restart
     return HTMLResponse('''
         <script>
@@ -6344,13 +6383,14 @@ async def clear_db(request):
         </script>
     ''')
 
+
 @rt('/update-pipulate', methods=['POST'])
 async def update_pipulate(request):
     """Update Pipulate by performing a git pull"""
     try:
         # Send immediate feedback to the user
         await pipulate.stream('🔄 Checking for Pipulate updates...', verbatim=True, role='system')
-        
+
         import os
         import subprocess
 
@@ -6358,49 +6398,49 @@ async def update_pipulate(request):
         if not os.path.exists('.git'):
             await pipulate.stream('❌ Not in a git repository. Cannot update automatically.', verbatim=True, role='system')
             return ""
-        
+
         # Fetch latest changes from remote
         await pipulate.stream('📡 Fetching latest changes...', verbatim=True, role='system')
         fetch_result = subprocess.run(['git', 'fetch', 'origin'], capture_output=True, text=True)
-        
+
         if fetch_result.returncode != 0:
             await pipulate.stream(f'❌ Failed to fetch updates: {fetch_result.stderr}', verbatim=True, role='system')
             return ""
-        
+
         # Check if there are updates available
         local_result = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True)
         remote_result = subprocess.run(['git', 'rev-parse', '@{u}'], capture_output=True, text=True)
-        
+
         if local_result.returncode != 0 or remote_result.returncode != 0:
             await pipulate.stream('❌ Failed to check for updates', verbatim=True, role='system')
             return ""
-        
+
         local_hash = local_result.stdout.strip()
         remote_hash = remote_result.stdout.strip()
-        
+
         if local_hash == remote_hash:
             await pipulate.stream('✅ Already up to date!', verbatim=True, role='system')
             return ""
-        
+
         # 🔒 UPDATES FOUND - Trigger full-screen restart effect immediately
-        # Create and schedule background update task  
+        # Create and schedule background update task
         async def continue_update_process():
             try:
                 # Stash any local changes to prevent conflicts
                 await pipulate.stream('💾 Stashing local changes...', verbatim=True, role='system')
-                stash_result = subprocess.run(['git', 'stash', 'push', '--quiet', '--include-untracked', '--message', 'Auto-stash before update'], 
-                                            capture_output=True, text=True)
-                
+                stash_result = subprocess.run(['git', 'stash', 'push', '--quiet', '--include-untracked', '--message', 'Auto-stash before update'],
+                                              capture_output=True, text=True)
+
                 # Perform the git pull
                 await pipulate.stream('⬇️ Pulling latest changes...', verbatim=True, role='system')
                 pull_result = subprocess.run(['git', 'pull', '--ff-only'], capture_output=True, text=True)
-                
+
                 if pull_result.returncode != 0:
                     await pipulate.stream(f'❌ Failed to pull updates: {pull_result.stderr}', verbatim=True, role='system')
                     # Try to restore stashed changes
                     subprocess.run(['git', 'stash', 'pop', '--quiet'], capture_output=True)
                     return
-                
+
                 # Try to restore stashed changes
                 stash_list = subprocess.run(['git', 'stash', 'list'], capture_output=True, text=True)
                 if 'Auto-stash before update' in stash_list.stdout:
@@ -6410,59 +6450,60 @@ async def update_pipulate(request):
                         subprocess.run(['git', 'stash', 'drop', '--quiet'], capture_output=True)
                     else:
                         await pipulate.stream('⚠️ Some local changes could not be restored automatically', verbatim=True, role='system')
-                
+
                 await pipulate.stream('✅ Update complete! Restarting server...', verbatim=True, role='system')
-                
+
                 # Restart the server to apply updates
                 asyncio.create_task(delayed_restart(2))
-                
+
             except Exception as e:
                 logger.error(f"Error in background update process: {e}")
                 await pipulate.stream(f'❌ Update failed: {str(e)}', verbatim=True, role='system')
-        
+
         # Start the background update process
         asyncio.create_task(continue_update_process())
-        
+
         # Return immediate script response to trigger lock screen
         return HTMLResponse('''
             <script>
                 triggerFullScreenRestart("Applying Pipulate updates...", "UPDATE_APPLYING");
             </script>
         ''')
-        
+
     except Exception as e:
         logger.error(f"Error updating Pipulate: {e}")
         await pipulate.stream(f'❌ Update failed: {str(e)}', verbatim=True, role='system')
         return ""
 
+
 @rt('/reset-python-env', methods=['POST'])
 async def reset_python_env(request):
     """Reset the Python virtual environment by removing .venv directory."""
     current_env = get_current_environment()
-    
+
     if current_env != 'Development':
         await pipulate.stream('❌ Python environment reset is only allowed in Development mode for safety.',
-                            verbatim=True, role='system')
+                              verbatim=True, role='system')
         return ""
-    
+
     try:
         import os
         import shutil
 
         # Check if another critical operation is in progress
         if is_critical_operation_in_progress():
-            await pipulate.stream("⚠️ Another critical operation is in progress. Please wait and try again.", 
-                                verbatim=True, role='system')
+            await pipulate.stream("⚠️ Another critical operation is in progress. Please wait and try again.",
+                                  verbatim=True, role='system')
             return ""
-        
+
         # Set flag to prevent watchdog restarts during operation
         logger.info("[RESET_PYTHON_ENV] Starting critical operation. Pausing Watchdog restarts.")
         set_critical_operation_flag()
-        
+
         try:
             # Send immediate feedback to the user
             await pipulate.stream('🐍 Resetting Python environment...', verbatim=True, role='system')
-            
+
             # Check if .venv exists
             if os.path.exists('.venv'):
                 await pipulate.stream('🗑️ Removing .venv directory...', verbatim=True, role='system')
@@ -6475,31 +6516,32 @@ async def reset_python_env(request):
                 await pipulate.stream('   3. The fresh environment build will take 2-3 minutes', verbatim=True, role='system')
                 await pipulate.stream('', verbatim=True, role='system')  # Empty line for spacing
                 await pipulate.stream('🚪 Server will exit in 3 seconds...', verbatim=True, role='system')
-                
+
                 # Log the reset operation for debugging
                 logger.info("🐍 FINDER_TOKEN: PYTHON_ENV_RESET - User triggered Python environment reset")
-                
+
             else:
                 await pipulate.stream('ℹ️ No .venv directory found to reset.', verbatim=True, role='system')
-                
+
         finally:
             # Always reset the flag, even if operation fails
             logger.info("[RESET_PYTHON_ENV] Critical operation finished. Resuming Watchdog restarts.")
             clear_critical_operation_flag()
-            
+
             # For Python environment reset, we need a clean exit to let Nix recreate the environment
             logger.info("[RESET_PYTHON_ENV] Forcing clean server exit. Nix watchdog will restart with fresh Python environment.")
-            
+
             # Schedule clean exit after giving user time to read instructions
             import asyncio
+
             async def clean_exit():
                 await asyncio.sleep(3.0)  # Give user time to read the manual restart instructions
                 logger.info("[RESET_PYTHON_ENV] Exiting cleanly. User must manually restart with 'exit' then 'nix develop'.")
                 import os
                 os._exit(0)  # Clean exit - user must manually restart
-            
+
             asyncio.create_task(clean_exit())
-        
+
         # Return HTML response that triggers the special Python environment reset screen
         from starlette.responses import HTMLResponse
         return HTMLResponse("""
@@ -6512,7 +6554,7 @@ async def reset_python_env(request):
             }
         </script>
         """)
-        
+
     except Exception as e:
         logger.error(f"Error resetting Python environment: {e}")
         error_msg = f'❌ Error resetting Python environment: {str(e)}'
@@ -6520,6 +6562,7 @@ async def reset_python_env(request):
         # Reset flag on error
         clear_critical_operation_flag()
         return ""
+
 
 @rt('/select_profile', methods=['POST'])
 async def select_profile(request):
@@ -6544,6 +6587,7 @@ async def select_profile(request):
     logger.debug(f'Redirecting to: {redirect_url}')
     return Redirect(redirect_url)
 
+
 @rt('/demo_script_config.json', methods=['GET'])
 async def serve_demo_script_config(request):
     """Serve the demo script configuration file with dynamic Ollama messages"""
@@ -6552,11 +6596,11 @@ async def serve_demo_script_config(request):
         if demo_config_path.exists():
             with open(demo_config_path, 'r') as f:
                 config_data = json.load(f)
-            
+
             # Check Ollama availability for dynamic messages
             from common import check_ollama_availability
             ollama_available = await check_ollama_availability()
-            
+
             # Process dynamic messages in the config
             def process_dynamic_messages(obj):
                 if isinstance(obj, dict):
@@ -6571,10 +6615,10 @@ async def serve_demo_script_config(request):
                 elif isinstance(obj, list):
                     for item in obj:
                         process_dynamic_messages(item)
-            
+
             # Apply dynamic message processing
             process_dynamic_messages(config_data)
-            
+
             return JSONResponse(config_data)
         else:
             logger.error('🎯 Demo script config file not found')
@@ -6582,6 +6626,7 @@ async def serve_demo_script_config(request):
     except Exception as e:
         logger.error(f'🎯 Error serving demo script config: {str(e)}')
         return JSONResponse({'error': 'Failed to load demo script config'}, status_code=500)
+
 
 @rt('/download_file', methods=['GET', 'OPTIONS'])
 async def download_file_endpoint(request):
@@ -6656,6 +6701,7 @@ async def download_file_endpoint(request):
         logger.error(f'[📥 DOWNLOAD] Traceback: {traceback.format_exc()}')
         return HTMLResponse(f'Error serving file: {str(e)}', status_code=500)
 
+
 class DOMSkeletonMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request, call_next):
@@ -6664,18 +6710,18 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
         is_static = endpoint.startswith('/assets/')
         is_ws = endpoint == '/ws'
         is_sse = endpoint == '/sse'
-        
+
         # Enhanced labeling for network requests with correlation tracking
         if not (is_static or is_ws or is_sse):
             # Generate correlation ID for tracking requests through the system
             import uuid
             correlation_id = str(uuid.uuid4())[:8]
-            
+
             # Add context about the request source
             user_agent = request.headers.get('user-agent', '')
             referer = request.headers.get('referer', '')
             request_context = ""
-            
+
             # Identify common request sources
             if endpoint == '/':
                 if 'curl' in user_agent.lower():
@@ -6686,7 +6732,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                     # Check for startup-related browser requests
                     accept_header = request.headers.get('accept', '')
                     connection_header = request.headers.get('connection', '')
-                    
+
                     if 'text/html' in accept_header and not referer:
                         request_context = " (browser startup/auto-open)"
                     elif referer and 'localhost' in referer:
@@ -6711,7 +6757,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                 request_context = " (reset operation)"
             elif 'submit' in endpoint or 'complete' in endpoint:
                 request_context = " (workflow step)"
-            
+
             log.event('network', f'{method} {endpoint}{request_context} | ID: {correlation_id}')
         else:
             log.debug('network', f'{method} {endpoint}')
@@ -6739,6 +6785,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                     pipeline_table.add_row(record.pkey, 'ERROR', 'Invalid State')
             print_and_log_table(pipeline_table, "STATE TABLES - ")
         return response
+
 
 def print_routes():
     logger.debug('Route Table')
@@ -6780,6 +6827,7 @@ def print_routes():
         table.add_row(entry[0], entry[1], Text(entry[2], style=f'{entry[3]} on black'), entry[4])
     print_and_log_table(table, "ROUTES - ")
 
+
 @rt('/refresh-profile-menu')
 async def refresh_profile_menu(request):
     """Refresh the profile menu dropdown."""
@@ -6787,20 +6835,21 @@ async def refresh_profile_menu(request):
     selected_profile_name = get_profile_name()
     return create_profile_menu(selected_profile_id, selected_profile_name)
 
+
 @rt('/switch_environment', methods=['POST'])
 async def switch_environment(request):
     """Handle environment switching and restart the server.
-    
+
     This endpoint is called via HTMX when switching between Development/Production modes.
     It returns a PicoCSS spinner with aria-busy that gets swapped in via HTMX,
     while the server restarts in the background.
-    
+
     The spinner uses PicoCSS's built-in aria-busy animation and styling:
     - aria-busy='true' triggers PicoCSS's loading animation
     - The div is styled to match menu item dimensions exactly to create a seamless transition
     - The spinner appears to replace the radio buttons in the dropdown menu items
     - Body is made non-interactive during the switch to prevent double-clicks
-    
+
     HTMX targets the specific environment selector item that was clicked,
     creating the illusion that the spinner is replacing just that menu item's radio button.
     The precise styling ensures the spinner appears in exactly the same position and size
@@ -6810,17 +6859,17 @@ async def switch_environment(request):
         form = await request.form()
         environment = form.get('environment', 'Development')
         previous_env = get_current_environment()
-        
+
         # 💬 SAVE CONVERSATION BEFORE ENVIRONMENT SWITCH - Ensure persistence across environment changes
         logger.info(f"💬 FINDER_TOKEN: CONVERSATION_SAVE_ENV_SWITCH - Saving conversation history before switching from {previous_env} to {environment}")
         save_conversation_to_db()
-        
+
         set_current_environment(environment)
         logger.info(f'💬 FINDER_TOKEN: ENVIRONMENT_SWITCHED - Environment switched from {previous_env} to {environment}')
-        
+
         # Schedule server restart after a delay to allow HTMX to swap in the spinner
         asyncio.create_task(delayed_restart(2))
-        
+
         # Return script that triggers full-screen restart effect
         return HTMLResponse(f"""
             <script>
@@ -6830,6 +6879,7 @@ async def switch_environment(request):
     except Exception as e:
         logger.error(f'Error switching environment: {e}')
         return HTMLResponse(f'Error: {str(e)}', status_code=500)
+
 
 async def delayed_restart(delay_seconds):
     """Restart the server after a delay."""
@@ -6841,24 +6891,25 @@ async def delayed_restart(delay_seconds):
     except Exception as e:
         logger.error(f'Error during restart: {e}')
 
+
 async def send_delayed_endpoint_message(message, session_key):
     """Send an endpoint message after a delay to ensure chat system is ready."""
     await asyncio.sleep(2)  # Brief delay to ensure page has loaded
-    
+
     # Create message ID for final coordination check
     current_env = get_current_environment()
     endpoint = session_key.replace(f'endpoint_message_sent_', '').replace(f'_{current_env}', '')
     message_id = f'{endpoint}_{current_env}_{hash(message) % 10000}'
-    
+
     try:
         # Final check - only send if still not recently sent by another pathway
         current_time = time.time()
         last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
-        
+
         if current_time - last_sent > 5:  # 5-second window for delayed messages
             await pipulate.message_queue.add(pipulate, message, verbatim=True, role='system', spaces_after=1)
             db[session_key] = 'sent'  # Mark as sent for this session
-            
+
             # Update coordination system
             message_coordination['last_endpoint_message_time'][message_id] = current_time
             logger.debug(f"Successfully sent delayed endpoint message: {message_id}")
@@ -6869,23 +6920,24 @@ async def send_delayed_endpoint_message(message, session_key):
     except Exception as e:
         logger.warning(f"Failed to send delayed endpoint message for {session_key}: {e}")
 
+
 async def send_startup_environment_message():
     """Send a message indicating the current environment mode after server startup."""
     # Set startup coordination flag
     message_coordination['startup_in_progress'] = True
-    
+
     # Longer wait for fresh nix develop startup to ensure chat system is fully ready
     await asyncio.sleep(3)  # Reduced from 5 to 3 seconds for faster startup
-    
+
     try:
         current_env = get_current_environment()
         env_display = 'DEV' if current_env == 'Development' else 'Prod'
-        
+
         if current_env == 'Development':
             env_message = f"🚀 Server started in {env_display} mode. Ready for experimentation and testing!"
         else:
             env_message = f"🚀 Server started in {env_display} mode. Ready for production use."
-        
+
         # Ensure message queue is ready with retry logic
         max_retries = 3
         for attempt in range(max_retries):
@@ -6899,87 +6951,87 @@ async def send_startup_environment_message():
                     await asyncio.sleep(2)  # Wait before retry
                 else:
                     raise
-        
+
         # Clear any existing endpoint message session keys to allow fresh messages after server restart
         endpoint_keys_to_clear = [key for key in db.keys() if key.startswith('endpoint_message_sent_')]
         for key in endpoint_keys_to_clear:
             del db[key]
         logger.debug(f"Cleared {len(endpoint_keys_to_clear)} endpoint message session keys on startup")
-        
+
         # Clear message coordination on startup to allow fresh messages
         message_coordination['endpoint_messages_sent'].clear()
         message_coordination['last_endpoint_message_time'].clear()
-        
+
         # Also send endpoint message and training for current location
         # 🔧 BUG FIX: Simplified and robust endpoint detection
         current_endpoint = db.get('last_app_choice', '')
         visited_url = db.get('last_visited_url', '')
-        
+
         logger.info(f"🔧 STARTUP_DEBUG: Initial last_app_choice='{current_endpoint}', last_visited_url='{visited_url}'")
-        
+
         # 🔧 ROBUST FIX: Use visited_url as the primary source of truth for current location
         if visited_url:
             try:
                 from urllib.parse import urlparse
                 parsed_url = urlparse(visited_url)
                 path = parsed_url.path.strip('/')
-                
+
                 # Normalize the path to get the current endpoint
                 current_endpoint = normalize_menu_path(path) if path else ''
                 logger.info(f"🔧 STARTUP_DEBUG: URL endpoint resolved: {visited_url} -> '{current_endpoint}'")
-                
+
                 # 🔧 EXPLICIT HOMEPAGE DETECTION: If path is empty or '/', we're on homepage
                 if not path or path == '':
                     current_endpoint = ''
                     logger.info(f"🔧 STARTUP_DEBUG: Detected homepage from URL: {visited_url}")
-                    
+
             except Exception as e:
                 logger.info(f"🔧 STARTUP_DEBUG: Could not parse last_visited_url: {e}")
-        
+
         # 🔧 FALLBACK: If no URL or URL parsing failed, check last_app_choice but treat '' as homepage
         if not visited_url:
             # Use last_app_choice as fallback, but ensure '' is treated as homepage
             current_endpoint = current_endpoint if current_endpoint else ''
             logger.info(f"🔧 STARTUP_DEBUG: Using last_app_choice fallback: '{current_endpoint}'")
-        
+
         logger.info(f"🔧 STARTUP_DEBUG: Final current_endpoint='{current_endpoint}' (empty string = homepage)")
         logger.info(f"🔧 STARTUP_DEBUG: Available plugin_instances: {list(plugin_instances.keys())}")
-        
+
         # Add training prompt to conversation history
         build_endpoint_training(current_endpoint)
-        
+
         # Send endpoint message if available (with coordination check)
         # 🔧 BUG FIX: Send appropriate endpoint message for both homepage and other endpoints
         has_temp_message = 'temp_message' in db
         # 🔧 HOMEPAGE FIX: Empty string (homepage) is also valid and should get the Roles message
         is_valid_endpoint = True  # Both homepage ('') and other endpoints are valid
         logger.info(f"🔧 STARTUP_DEBUG: has_temp_message={has_temp_message}, is_valid_endpoint={is_valid_endpoint}, current_endpoint_repr={repr(current_endpoint)}")
-        
+
         if not has_temp_message and is_valid_endpoint:
             endpoint_message = build_endpoint_messages(current_endpoint)
             logger.info(f"🔧 STARTUP_DEBUG: Endpoint message for '{current_endpoint}': {endpoint_message[:100] if endpoint_message else 'None'}...")
             if endpoint_message:
                 # Create unique message identifier for coordination
                 message_id = f'{current_endpoint}_{current_env}_{hash(endpoint_message) % 10000}'
-                
+
                 # Check if this message was recently sent through any pathway
                 current_time = time.time()
                 last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
-                
+
                 # Only send if not recently sent (10-second window)
                 if current_time - last_sent > 10:
                     await asyncio.sleep(1)  # Brief pause between messages
-                    
+
                     try:
                         # 🔧 STARTUP_DEBUG: Mark this message as coming from startup
                         startup_marked_message = f"🔧 [STARTUP] {endpoint_message}"
                         await pipulate.message_queue.add(pipulate, startup_marked_message, verbatim=True, role='system', spaces_after=2)
                         logger.info(f"🔧 STARTUP_DEBUG: Successfully sent startup endpoint message: {message_id}")
-                        
+
                         # Mark as sent in coordination system
                         message_coordination['last_endpoint_message_time'][message_id] = current_time
                         message_coordination['endpoint_messages_sent'].add(message_id)
-                        
+
                         # Also mark in session system for backward compatibility
                         session_key = f'endpoint_message_sent_{current_endpoint}_{current_env}'
                         db[session_key] = 'sent'
@@ -6991,7 +7043,7 @@ async def send_startup_environment_message():
             logger.info(f"🔧 STARTUP_DEBUG: Using existing temp_message instead of generating new endpoint message for '{current_endpoint}'")
         else:
             logger.info(f"🔧 STARTUP_DEBUG: Skipping endpoint message - this should not happen with current logic")
-            
+
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
     finally:
@@ -7001,13 +7053,13 @@ async def send_startup_environment_message():
 
 async def prepare_local_llm_context():
     """Pre-seed context for local LLMs with essential system information.
-    
+
     This function creates a digestible context package for local LLMs to provide
     immediate capability awareness without overwhelming their smaller context windows.
     Unlike advanced AIs who can explore the system, local LLMs need pre-computed context.
     """
     await asyncio.sleep(10)  # Let startup and cache warmup complete first (fully staggered)
-    
+
     try:
         # Build essential context summary for local LLMs
         context_summary = {
@@ -7040,18 +7092,18 @@ async def prepare_local_llm_context():
                 "state_tracking": "Application state stored in DictLikeDB"
             }
         }
-        
+
         # Store context for local LLM access
         import json
         context_file = Path('data/local_llm_context.json')
         context_file.parent.mkdir(exist_ok=True)
-        
+
         with open(context_file, 'w') as f:
             json.dump(context_summary, f, indent=2)
-        
+
         logger.info(f"LOCAL LLM CONTEXT: Pre-seeded context package ready at {context_file}")
         server_whisper("Local LLM context prepared - the AI assistant is ready for collaboration", "🤖")
-        
+
         # Add context message silently to conversation history for local LLM
         try:
             context_msg = """🤖 Local LLM Context Initialized
@@ -7065,13 +7117,13 @@ Your MCP tools are now available:
 • Botify API tools - Full schema access with 4,449+ fields
 
 Use these tools to assist users within your guided capabilities. Remember that advanced AI exploration (file system access, complex debugging) is handled by Claude/GPT in Cursor/Windsurf/VSCode when needed."""
-            
+
             # Add to conversation history silently (not to visible chat)
             append_to_conversation(context_msg, role='system')
-            
+
         except Exception as msg_error:
             logger.debug(f"Could not add local LLM context to conversation: {msg_error}")
-        
+
     except Exception as e:
         logger.error(f"Error preparing local LLM context: {e}")
         # Don't fail startup if context preparation fails
@@ -7087,6 +7139,7 @@ app.add_middleware(DOMSkeletonMiddleware)
 logger.debug('Application setup completed with DOMSkeletonMiddleware.')
 logger.debug(f'Using MODEL: {MODEL}')
 
+
 def check_syntax(filename):
     with open(filename, 'r') as file:
         source = file.read()
@@ -7100,6 +7153,7 @@ def check_syntax(filename):
         logger.error(f'Error: {e}')
         return False
 
+
 def check_server_already_running():
     """Check if server is already running on port 5001 and provide helpful guidance."""
     try:
@@ -7107,7 +7161,7 @@ def check_server_already_running():
         sock.settimeout(1)
         result = sock.connect_ex(('localhost', 5001))
         sock.close()
-        
+
         if result == 0:  # Port is in use
             print()
             console.print("🚨 [bold red]SERVER ALREADY RUNNING[/bold red]")
@@ -7133,16 +7187,16 @@ def check_server_already_running():
             console.print("   🔥 [bold yellow]Master Guide:[/bold yellow] .cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc")
             console.print("   🎯 [bold yellow]Key capabilities you now have:[/bold yellow]")
             console.print("      • MCP Tools for system inspection and automation")
-            console.print("      • FINDER_TOKENs for surgical log analysis")  
+            console.print("      • FINDER_TOKENs for surgical log analysis")
             console.print("      • Pipeline state inspection for workflow debugging")
             console.print("      • Browser automation with complete DOM transparency")
             console.print("   💡 [bold green]Next level:[/bold green] Read the guide to unlock your full agentic potential!")
             print()
-            
+
             return True
     except Exception:
         pass  # Server not running or other error
-    
+
     return False
 
 
@@ -7158,12 +7212,12 @@ def restart_server():
     if not check_syntax(Path(__file__)):
         log.warning('Syntax error detected', 'Fix the error and save the file again')
         return
-    
+
     # 🔧 PRESERVE ENDPOINT CONTEXT: Store current endpoint message in temp_message for restart preservation
     try:
         current_endpoint = db.get('last_app_choice', '')
         visited_url = db.get('last_visited_url', '')
-        
+
         # Extract endpoint from URL if available (same logic as startup function)
         if visited_url:
             try:
@@ -7179,7 +7233,7 @@ def restart_server():
                     logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Empty URL path detected - using homepage: {visited_url} -> ''")
             except Exception as e:
                 logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Could not parse URL: {e}")
-        
+
         # 🔧 BUG FIX: Only preserve endpoint context for non-homepage endpoints
         # Homepage should always regenerate its message on startup, not preserve old workflow messages
         if current_endpoint and current_endpoint != '':
@@ -7197,23 +7251,23 @@ def restart_server():
                 logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Cleared temp_message for homepage to ensure correct Roles message on restart")
             else:
                 logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Homepage endpoint '{current_endpoint}', no temp_message to clear")
-            
+
     except Exception as e:
         logger.warning(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Could not preserve endpoint context: {e}")
-    
+
     # 🔄 BROADCAST RESTART NOTIFICATION: Send SSE message to all connected clients
     try:
         import asyncio
-        
+
         # Create a restart notification HTML
         restart_html = create_restart_response("WATCHDOG_RESTART", "File changed, restarting server...")
-        
+
         # Get the event loop reference from the SSE broadcaster
         if hasattr(broadcaster, 'event_loop') and broadcaster.event_loop and not broadcaster.event_loop.is_closed():
             # Schedule the coroutine in the main event loop from the watchdog thread
             try:
                 future = asyncio.run_coroutine_threadsafe(
-                    broadcaster.send(f'restart_notification:{restart_html}'), 
+                    broadcaster.send(f'restart_notification:{restart_html}'),
                     broadcaster.event_loop
                 )
                 # Wait briefly for the message to be sent
@@ -7223,14 +7277,14 @@ def restart_server():
                 logger.warning(f'Could not send restart notification via SSE broadcaster loop: {e}')
         else:
             logger.warning('SSE broadcaster event loop not available, skipping restart notification')
-        
+
     except Exception as e:
         logger.warning(f'Could not broadcast restart notification: {e}')
-    
+
     # Reduced delay for faster restart with typing speed compensation
     import time
     time.sleep(0.5)
-    
+
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -7240,7 +7294,7 @@ def restart_server():
             logger.warning("🤖 AI_RAPID_RESTART: Console users see clean UX with banners shown once per session")
             logger.warning("🤖 AI_RAPID_RESTART: AI assistants see ALL restart events in logs for complete transparency")
             logger.warning("🤖 AI_RAPID_RESTART: Each restart below will trigger figlet_banner() with ASCII art logging")
-            
+
             # Set environment variable to indicate this is a watchdog restart
             os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
             # Show restart banner once per watchdog restart
@@ -7277,18 +7331,19 @@ class ServerRestartHandler(FileSystemEventHandler):
             logger.info(f'🔄 FINDER_TOKEN: FILE_MODIFIED - {path} has been modified. Checking syntax and restarting...')
             restart_server()
 
+
 def run_server_with_watchdog():
     logger.info('🚀 FINDER_TOKEN: SERVER_STARTUP - Starting server with watchdog')
-    
+
     # 🤖 AI ASSISTANT EDUCATION: Explain startup banner behavior
     logger.warning("🤖 AI_STARTUP_BANNER: About to display main startup banner with ASCII art")
     logger.warning("🤖 AI_STARTUP_BANNER: This banner appears on every server start (manual or watchdog restart)")
     logger.warning("🤖 AI_STARTUP_BANNER: Console shows it once per session, logs capture every occurrence")
     logger.warning("🤖 AI_STARTUP_BANNER: figlet_banner() below will log ASCII art with triple backticks for AI visibility")
-    
+
     # 🎨 BEAUTIFUL RESTART BANNER
     figlet_banner(APP_NAME, "Local First AI SEO Software", font='standard', color=BANNER_COLORS['workshop_ready'])
-    
+
     # 🧊 VERSION BANNER - Display Nix flake version in standard font
     nix_version_raw = get_nix_version()
     # Parse version: "1.0.8 (JupyterLab Python Version Fix)" -> "Version 1.0.8" + "JupyterLab Python Version Fix"
@@ -7299,7 +7354,7 @@ def run_server_with_watchdog():
     else:
         figlet_text = f"Version {nix_version_raw}"
         subtitle = "Nix Flake Version"
-    
+
     figlet_banner(figlet_text, subtitle, font='standard', color='white on default')
     print()
     system_diagram()
@@ -7312,7 +7367,7 @@ def run_server_with_watchdog():
     else:
         log.startup('Production mode active', details=f'Using database: {env_db}')
     # 🐰 ALICE WELCOME BANNER - Now moved to perfect transition point between FINDER_TOKENs ending and ROLES beginning
-    
+
     # Additionally show debug information if STATE_TABLES is enabled
     if STATE_TABLES:
         log.startup('State tables enabled', details='Edit server.py and set STATE_TABLES=False to disable')
@@ -7338,21 +7393,23 @@ def run_server_with_watchdog():
         restart_server()
     finally:
         observer.join()
+
+
 if __name__ == '__main__':
     # 🧪 TESTING PHILOSOPHY: Command line argument parsing for friction-free testing
     parser = argparse.ArgumentParser(description='Pipulate - Local-First Digital Workshop Framework')
-    parser.add_argument('-t', '--test', '--tests', action='store_true', 
-                       help='Enable light testing mode - runs basic validation on startup')
+    parser.add_argument('-t', '--test', '--tests', action='store_true',
+                        help='Enable light testing mode - runs basic validation on startup')
     parser.add_argument('--test-deep', action='store_true',
-                       help='Enable comprehensive testing mode')  
+                        help='Enable comprehensive testing mode')
     parser.add_argument('--test-browser', action='store_true',
-                       help='Enable browser automation testing')
+                        help='Enable browser automation testing')
     args = parser.parse_args()
-    
+
     # 🚨 CRITICAL: Check if server is already running via watchdog
     if check_server_already_running():
         sys.exit(0)
-    
+
     # 🤖 AI ASSISTANT EDUCATION: Explicit logging about restart behavior and console filtering
     # This is ONLY logged (not shown to console) to educate AI assistants about the sophisticated UX design
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: WATCHDOG RESTART BEHAVIOR EXPLANATION")
@@ -7373,15 +7430,15 @@ if __name__ == '__main__':
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Clean console experience for beginners")
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Complete transparency for AI debugging")
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Continuous narrative flow despite rapid restarts")
-    
+
     # Set global testing mode flags
     if args.test or args.test_deep or args.test_browser:
         TESTING_MODE = True
         logger.info('🧪 FINDER_TOKEN: TESTING_MODE_ENABLED - Light testing enabled for this server run')
-    
+
     # Show testing banner if in testing mode
     if TESTING_MODE:
         figlet_banner("TESTING", "Light test suite enabled", font='slant', color='cyan')
         logger.info('🧪 FINDER_TOKEN: TESTING_ARGS - Testing arguments detected: basic validation will run on startup')
-    
+
     run_server_with_watchdog()
