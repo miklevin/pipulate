@@ -44,15 +44,14 @@ import mcp_tools
 # Import centralized configuration to eliminate duplication
 from config import PCONFIG as CONFIG_PCONFIG
 from helpers import botify_code_generation
-from helpers.ascii_displays import (ai_breadcrumb_summary,
-                                    chip_says, falling_alice,
-                                    figlet_banner, log_reading_legend,
+from helpers.ascii_displays import (ai_breadcrumb_summary, chip_says,
+                                    falling_alice, figlet_banner,
+                                    log_reading_legend,
                                     radical_transparency_banner,
                                     section_header, server_whisper,
                                     share_ascii_with_ai,
                                     startup_environment_warnings,
-                                    startup_summary_table,
-                                    story_moment, 
+                                    startup_summary_table, story_moment,
                                     system_diagram, white_rabbit)
 from mcp_tools import register_all_mcp_tools, register_mcp_tool
 
