@@ -16,7 +16,7 @@
       {
         "step_id": "02_pipulate_intro",
         "type": "system_reply",
-        "message": "This is Pipulate, local first AI SEO automation software. Would you like a demo? Press **Ctrl+Alt+y** or **Ctrl+Alt+n** on the keyboard.",
+        "message": "This is {app_name}, local first AI SEO automation software. Would you like a demo? Press **Ctrl+Alt+y** or **Ctrl+Alt+n** on the keyboard.",
         "timing": {
           "delay_before": 1000,
           "display_speed": 30
@@ -51,7 +51,7 @@
           },
           "ollama_check": true,
           "ollama_messages": {
-            "available": "You hit yes! Hi, I'm Chip O'Theseus the local LLM built into Pipulate. Is it okay if I speak out loud to you? **Ctrl+Alt+y** / **Ctrl+Alt+n**",
+            "available": "You hit yes! Hi, I'm Chip O'Theseus the local LLM built into {app_name}. Is it okay if I speak out loud to you? **Ctrl+Alt+y** / **Ctrl+Alt+n**",
             "not_available": "You hit yes but you still need to install Ollama with Gemma 3. Would you like to proceed anyway with limited LLM assistance and me speaking out loud to you? **Ctrl+Alt+y** / **Ctrl+Alt+n**"
           }
         }
