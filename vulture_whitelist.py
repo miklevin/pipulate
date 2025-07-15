@@ -6,6 +6,7 @@
 # autopep8 --ignore E501,F405,F403,F541 --in-place server.py
 # isort server.py
 # vulture server.py vulture_whitelist.py
+# vulture server.py --ignore-names "*TESTING,custom_theme,*_SVG,GracefulRestartException,monitor_conversation_efficiency,startup_event,generate_menu_style,UNLOCK_BUTTON_LABEL,workflow,append_to_history,get_message_queue,get_ui_constants,get_config,get_button_border_radius,register_workflow_routes,log_api_call_details,create_folder_button,display_revert_widget,tree_display,create_standard_landing_page,parse_pipeline_key,validate_step_input,set_step_data,check_finalize_needed,chain_reverter,handle_finalized_step,finalize_workflow,unfinalize_workflow,make_singular,_current_step,_step_started,_step_complete,_workflow_context,mark_step_complete,mark_step_started,is_bql,mcp_request_start,existing_role_done_states,role_priority,current_url,stash_result,conversation,demo_bookmark_check,prepare_local_llm_context"
 # pylint --disable=all --enable=redefined-outer-name server.py
 # pylint --disable=all --enable=similarities .
 
