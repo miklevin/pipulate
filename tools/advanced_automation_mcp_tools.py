@@ -446,16 +446,9 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
         human_view = timing.HUMAN_OBSERVATION
         total_time = timing.total_browser_time()
         
+        from config import get_browser_script_imports
         hijack_script = f'''
-import json
-import os
-import time
-import sys
-from datetime import datetime
-from urllib.parse import urlparse
-
-# Add current directory to path
-sys.path.insert(0, '{os.getcwd()}')
+{get_browser_script_imports()}
 
 def run_workflow_hijacking():
     try:
