@@ -6015,7 +6015,6 @@ async def update_pipulate(request):
         # Send immediate feedback to the user
         await pipulate.stream('🔄 Checking for Pipulate updates...', verbatim=True, role='system')
 
-        import os
         import subprocess
 
         # Check if we're in a git repository
@@ -6110,9 +6109,8 @@ async def reset_python_env(request):
                               verbatim=True, role='system')
         return ""
 
-    try:
-        import os
-        import shutil
+            try:
+            import shutil
 
         # Check if another critical operation is in progress
         if is_critical_operation_in_progress():
@@ -6161,7 +6159,6 @@ async def reset_python_env(request):
             async def clean_exit():
                 await asyncio.sleep(3.0)  # Give user time to read the manual restart instructions
                 logger.info("[RESET_PYTHON_ENV] Exiting cleanly. User must manually restart with 'exit' then 'nix develop'.")
-                import os
                 os._exit(0)  # Clean exit - user must manually restart
 
             asyncio.create_task(clean_exit())
