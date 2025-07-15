@@ -328,8 +328,6 @@ class CrudUI(PluginIdentityManager):
         routes = [
             (f'{prefix}/toggle/{{item_id:int}}', self.app_instance.toggle_role, ['POST']),
             (f"{prefix}_sort", self.app_instance.sort_items, ['POST']),
-            (f"{prefix}/select_all", self.select_all_roles, ['POST']),
-            (f"{prefix}/deselect_all", self.deselect_all_roles, ['POST']),
             (f"{prefix}/select_default", self.select_default_roles, ['POST']),
             (f"{prefix}/update_default_button", self.update_default_button, ['POST']),
         ]
@@ -387,18 +385,6 @@ class CrudUI(PluginIdentityManager):
                            disabled=self.is_in_default_state(),
                            title="Reset to default roles and order" + (" (already at default)" if self.is_in_default_state() else ""),
                            id="default-button"),
-                    Button(Img(src='/assets/feather/check-square.svg', 
-                              alt='Select all', 
-                              style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
-                           "Select ALL", 
-                           hx_post=f"{self.ENDPOINT_PREFIX}/select_all",
-                           cls="secondary role-badge"),
-                    Button(Img(src='/assets/feather/square.svg', 
-                              alt='Deselect all', 
-                              style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
-                           "Deselect ALL", 
-                           hx_post=f"{self.ENDPOINT_PREFIX}/deselect_all",
-                           cls="secondary role-badge"),
                     style="margin-bottom: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap; justify-content: center;"
                 ),
                 Ol(
@@ -415,75 +401,7 @@ class CrudUI(PluginIdentityManager):
         """Render method for compatibility."""
         return await self.landing()
 
-    async def select_all_roles(self, request):
-        """Select all roles except Core (which is always selected)."""
-        try:
-            # Get all roles except Core
-            all_roles = self.table()
-            enabled_roles = []
-            for role in all_roles:
-                if role.text != "Core" and not role.done:
-                    # Update using proper fastlite syntax
-                    role.done = True
-                    self.table.update(role)
-                    enabled_roles.append(role.text)
-            
-            # Send message via temp_message system (survives page refresh)
-            if enabled_roles:
-                roles_list = ', '.join(enabled_roles)
-                action_details = f"Enabled all roles: {roles_list}"
-                self.db_dictlike['temp_message'] = action_details
-            else:
-                action_details = "All roles were already enabled."
-                self.db_dictlike['temp_message'] = action_details
-            
-            # Return HX-Refresh header to trigger full page reload
-            from fasthtml.common import HTMLResponse
-            response = HTMLResponse('')
-            response.headers['HX-Refresh'] = 'true'
-            return response
-        except Exception as e:
-            logger.error(f"Error in select_all_roles: {e}")
-            # Even on error, trigger page refresh to show current state
-            from fasthtml.common import HTMLResponse
-            response = HTMLResponse('')
-            response.headers['HX-Refresh'] = 'true'
-            return response
 
-    async def deselect_all_roles(self, request):
-        """Deselect all roles except Core (which stays selected)."""  
-        try:
-            # Get all roles except Core
-            all_roles = self.table()
-            disabled_roles = []
-            for role in all_roles:
-                if role.text != "Core" and role.done:
-                    # Update using proper fastlite syntax
-                    role.done = False
-                    self.table.update(role)
-                    disabled_roles.append(role.text)
-            
-            # Send message via temp_message system (survives page refresh)
-            if disabled_roles:
-                roles_list = ', '.join(disabled_roles)
-                action_details = f"Disabled all roles: {roles_list}"
-                self.db_dictlike['temp_message'] = action_details
-            else:
-                action_details = "All roles were already disabled (except Core)."
-                self.db_dictlike['temp_message'] = action_details
-            
-            # Return HX-Refresh header to trigger full page reload
-            from fasthtml.common import HTMLResponse
-            response = HTMLResponse('')
-            response.headers['HX-Refresh'] = 'true'
-            return response
-        except Exception as e:
-            logger.error(f"Error in deselect_all_roles: {e}")
-            # Even on error, trigger page refresh to show current state
-            from fasthtml.common import HTMLResponse
-            response = HTMLResponse('')
-            response.headers['HX-Refresh'] = 'true'
-            return response
 
     async def select_default_roles(self, request):
         """Reset roles to DEFAULT_ACTIVE_ROLES configuration and original sort order."""
