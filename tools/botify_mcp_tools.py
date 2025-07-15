@@ -457,14 +457,18 @@ def get_botify_tools():
     
     return tools
 
-# --- EXPORT ALL FUNCTIONS ---
-__all__ = [
+# Shared constants for export lists
+CORE_BOTIFY_TOOLS = [
     'botify_ping',
     'botify_list_projects',
     'botify_simple_query',
     'botify_get_full_schema',
     'botify_list_available_analyses',
     'botify_execute_custom_bql_query',
+]
+
+# --- EXPORT ALL FUNCTIONS ---
+__all__ = CORE_BOTIFY_TOOLS + [
     'test_botify_actual_connectivity',
     'test_botify_connectivity',
     'get_botify_tools'

@@ -34,14 +34,16 @@ except ImportError:
     pass
 
 __version__ = "1.0.0"
-__all__ = [
-    'botify_ping',
-    'botify_list_projects',
-    'botify_simple_query',
-    'botify_get_full_schema',
-    'botify_list_available_analyses',
-    'botify_execute_custom_bql_query',
-    'get_botify_tools',
+
+# Import shared constants to eliminate duplication
+try:
+    from .botify_mcp_tools import CORE_BOTIFY_TOOLS
+    botify_exports = CORE_BOTIFY_TOOLS + ['get_botify_tools']
+except ImportError:
+    # Fallback if import fails
+    botify_exports = ['get_botify_tools']
+
+__all__ = botify_exports + [
     'execute_complete_session_hijacking',
     'browser_hijack_workflow_complete',
     'execute_automation_recipe',
