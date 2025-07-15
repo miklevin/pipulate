@@ -6016,6 +6016,54 @@ async def oz_door_grayscale_clear():
         logger.error(f"Error clearing Oz door grayscale state: {e}")
         return JSONResponse({"success": False, "error": str(e)})
 
+@app.post('/test-voice-synthesis')
+async def test_voice_synthesis_endpoint(request):
+    """Test voice synthesis endpoint for debugging - callable via Ctrl+Alt+v"""
+    try:
+        # Import voice synthesis system
+        from helpers.voice_synthesis import chip_voice_system, VOICE_SYNTHESIS_AVAILABLE
+        
+        # Get test text from request or use default
+        form_data = await request.form()
+        test_text = form_data.get('text', 'This is a voice synthesis test from the web interface.')
+        
+        logger.info(f"🎤 Voice synthesis test endpoint called with text: {test_text}")
+        
+        # Check if voice synthesis is available
+        if not VOICE_SYNTHESIS_AVAILABLE:
+            logger.error("🎤 Voice synthesis not available")
+            return JSONResponse({"success": False, "error": "Voice synthesis not available"})
+        
+        # Check if voice system is ready
+        if not chip_voice_system.voice_ready:
+            logger.error("🎤 Voice system not ready")
+            return JSONResponse({"success": False, "error": "Voice system not ready"})
+        
+        # Test voice synthesis
+        logger.info("🎤 Attempting voice synthesis...")
+        result = chip_voice_system.speak_text(test_text)
+        
+        logger.info(f"🎤 Voice synthesis result: {result}")
+        
+        return JSONResponse({
+            "success": result.get("success", False),
+            "message": result.get("message", "Unknown result"),
+            "text": test_text,
+            "voice_model": result.get("voice_model", "unknown"),
+            "voice_ready": chip_voice_system.voice_ready,
+            "voice_synthesis_available": VOICE_SYNTHESIS_AVAILABLE
+        })
+        
+    except Exception as e:
+        logger.error(f"🎤 Voice synthesis test endpoint error: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        })
+
 
 
 @rt('/redirect/{path:path}')

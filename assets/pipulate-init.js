@@ -21,7 +21,7 @@ const tempMessage = config.tempMessage;
 let tempMessageSent = false;
 
 // Match the WebSocket route from Chat
-const sidebarWs = new WebSocket('ws://' + window.location.host + '/ws');
+let sidebarWs = new WebSocket('ws://' + window.location.host + '/ws');
 const sidebarMsgList = document.getElementById('msg-list');
 let sidebarCurrentMessage = document.createElement('div');
 sidebarCurrentMessage.className = 'message assistant';
@@ -41,12 +41,23 @@ sidebarWs.onopen = function() {
     }
 };
 
-sidebarWs.onclose = function() {
+sidebarWs.onclose = function(event) {
     console.log('Sidebar WebSocket closed');
+    console.log('🔧 WebSocket close details:', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+        timestamp: new Date().toISOString()
+    });
 };
 
 sidebarWs.onerror = function(error) {
     console.error('Sidebar WebSocket error:', error);
+    console.error('🔧 WebSocket error details:', {
+        type: error.type,
+        target: error.target,
+        timestamp: new Date().toISOString()
+    });
 };
 
 // Removed linkifyText function - no automatic URL linking
@@ -649,10 +660,101 @@ document.addEventListener('keydown', function(event) {
         // Load and execute the demo script sequence
         loadAndExecuteCleanDemoScript();
     }
+    
+    // Ctrl+Alt+V: Test voice synthesis
+    if (event.ctrlKey && event.altKey && (event.key === 'V' || event.key === 'v')) {
+        event.preventDefault();
+        console.log('🎤 Voice synthesis test triggered via Ctrl+Alt+V');
+        
+        // Call the voice synthesis test endpoint
+        testVoiceSynthesis();
+    }
+    
+    // Ctrl+Alt+W: Test WebSocket connection status
+    if (event.ctrlKey && event.altKey && (event.key === 'W' || event.key === 'w')) {
+        event.preventDefault();
+        console.log('🔧 WebSocket connection test triggered via Ctrl+Alt+W');
+        
+        // Test WebSocket connection
+        testWebSocketConnection();
+    }
 });
 
 // Add a console log to confirm this script section loaded
-console.log('🔧 Pipulate keyboard shortcuts initialized - listening for Ctrl+Alt+R and Ctrl+Alt+D');
+console.log('🔧 Pipulate keyboard shortcuts initialized - listening for Ctrl+Alt+R, Ctrl+Alt+D, and Ctrl+Alt+V');
+
+// Function to test voice synthesis via web endpoint
+async function testVoiceSynthesis() {
+    try {
+        console.log('🎤 Testing voice synthesis via web endpoint...');
+        
+        // Call the voice synthesis test endpoint
+        const response = await fetch('/test-voice-synthesis', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                text: 'Voice synthesis test from Ctrl+Alt+V shortcut'
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        console.log('🎤 Voice synthesis test result:', result);
+        
+        // Display result in console for debugging
+        if (result.success) {
+            console.log('✅ Voice synthesis test successful!');
+            console.log('🎤 Voice model:', result.voice_model);
+            console.log('🎤 Text spoken:', result.text);
+        } else {
+            console.log('❌ Voice synthesis test failed:', result.error);
+        }
+        
+        return result;
+        
+    } catch (error) {
+        console.error('🎤 Error testing voice synthesis:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Test WebSocket connection status
+function testWebSocketConnection() {
+    console.log('🔧 Testing WebSocket connection...');
+    
+    console.log('🔧 WebSocket Details:', {
+        readyState: sidebarWs.readyState,
+        readyStateText: getWebSocketStateText(sidebarWs.readyState),
+        url: sidebarWs.url,
+        protocol: sidebarWs.protocol,
+        binaryType: sidebarWs.binaryType
+    });
+    
+    if (sidebarWs.readyState === WebSocket.OPEN) {
+        console.log('✅ WebSocket is connected and ready');
+        
+        // Test sending a simple message
+        try {
+            sidebarWs.send('%%TEST_MESSAGE%%');
+            console.log('✅ Test message sent successfully');
+        } catch (error) {
+            console.error('❌ Failed to send test message:', error);
+        }
+    } else {
+        console.error('❌ WebSocket is NOT connected');
+        console.error('🔧 Current state:', getWebSocketStateText(sidebarWs.readyState));
+        
+        if (sidebarWs.readyState === WebSocket.CLOSED) {
+            console.log('🔄 WebSocket is closed, would need to reconnect');
+        }
+    }
+}
 
 // Function to simulate user input for demo/regression prevention sequences
 function simulateUserInput(message) {
@@ -797,6 +899,13 @@ async function executeSystemReplyStep(step) {
 async function executeMcpToolCallStep(step) {
     console.log('🎯 Executing MCP tool call:', step.tool_name);
     
+    // 🔧 DEBUG: Log WebSocket connection status
+    console.log('🔧 WebSocket status:', {
+        readyState: sidebarWs.readyState,
+        readyStateText: getWebSocketStateText(sidebarWs.readyState),
+        url: sidebarWs.url
+    });
+    
     // Send MCP tool call via WebSocket
     if (sidebarWs.readyState === WebSocket.OPEN) {
         const mcpCall = {
@@ -810,6 +919,197 @@ async function executeMcpToolCallStep(step) {
         console.log('🎯 Sent MCP tool call via WebSocket');
     } else {
         console.error('🎯 WebSocket not connected, cannot send MCP tool call');
+        console.error('🎯 WebSocket state:', getWebSocketStateText(sidebarWs.readyState));
+        
+        // Try to reconnect if disconnected
+        if (sidebarWs.readyState === WebSocket.CLOSED) {
+            console.log('🔄 Attempting to reconnect WebSocket...');
+            await attemptWebSocketReconnection();
+            
+            // Retry sending the MCP tool call after reconnection
+            if (sidebarWs.readyState === WebSocket.OPEN) {
+                const mcpCall = {
+                    type: 'mcp_tool_call',
+                    tool_name: step.tool_name,
+                    tool_args: step.tool_args || {},
+                    description: step.description || ''
+                };
+                
+                sidebarWs.send('%%DEMO_MCP_CALL%%:' + JSON.stringify(mcpCall));
+                console.log('🎯 Sent MCP tool call via reconnected WebSocket');
+            } else {
+                console.error('🎯 WebSocket reconnection failed, falling back to phantom execution');
+                await executeCleanMcpToolCallStep(step);
+            }
+        }
+    }
+}
+
+// Attempt to reconnect WebSocket
+async function attemptWebSocketReconnection() {
+    console.log('🔄 Attempting WebSocket reconnection...');
+    
+    try {
+        // Close the existing WebSocket if it's in an invalid state
+        if (sidebarWs.readyState !== WebSocket.CLOSED) {
+            sidebarWs.close();
+        }
+        
+        // Create new WebSocket connection
+        const newSidebarWs = new WebSocket('ws://' + window.location.host + '/ws');
+        
+        // Wait for connection to open
+        await new Promise((resolve, reject) => {
+            newSidebarWs.onopen = () => {
+                console.log('🔄 WebSocket reconnection successful');
+                resolve();
+            };
+            
+            newSidebarWs.onerror = (error) => {
+                console.error('🔄 WebSocket reconnection failed:', error);
+                reject(error);
+            };
+            
+            // Timeout after 5 seconds
+            setTimeout(() => {
+                reject(new Error('WebSocket reconnection timeout'));
+            }, 5000);
+        });
+        
+        // Replace the global WebSocket reference
+        sidebarWs = newSidebarWs;
+        
+        // Set up event handlers for the new connection
+        sidebarWs.onclose = function(event) {
+            console.log('Sidebar WebSocket closed');
+            console.log('🔧 WebSocket close details:', {
+                code: event.code,
+                reason: event.reason,
+                wasClean: event.wasClean,
+                timestamp: new Date().toISOString()
+            });
+        };
+
+        sidebarWs.onerror = function(error) {
+            console.error('Sidebar WebSocket error:', error);
+            console.error('🔧 WebSocket error details:', {
+                type: error.type,
+                target: error.target,
+                timestamp: new Date().toISOString()
+            });
+        };
+        
+        sidebarWs.onmessage = function(event) {
+            // Handle UI control messages first
+            if (event.data === '%%STREAM_START%%') {
+                updateStreamingUI(true);
+                return; // Do not display this message
+            }
+            if (event.data === '%%STREAM_END%%') {
+                updateStreamingUI(false);
+                
+                // PERFORMANCE OPTIMIZATION: Ensure final render happens and clear any pending renders
+                if (renderThrottleTimer) {
+                    clearTimeout(renderThrottleTimer);
+                    renderThrottleTimer = null;
+                }
+                // Force final render of the complete message
+                renderCurrentMessage();
+                
+                // Add clipboard functionality to the completed assistant message
+                if (sidebarCurrentMessage && sidebarCurrentMessage.dataset.rawText) {
+                    addClipboardToAssistantMessage(sidebarCurrentMessage);
+                }
+                // Reset message buffer for next stream
+                sidebarCurrentMessage = document.createElement('div');
+                sidebarCurrentMessage.className = 'message assistant';
+                return; // Do not display this message
+            }
+
+            console.log('Sidebar received:', event.data);
+            
+            // Check if the message is a script
+            if (event.data.trim().startsWith('<script>')) {
+                const scriptContent = event.data.replace(/<\/?script>/g, '').trim();
+                console.log('Executing script:', scriptContent);
+                try {
+                    eval(scriptContent);
+                } catch (e) {
+                    console.error('Error executing script:', e);
+                }
+                return;
+            }
+            
+            // Check if the response contains a plugin list item
+            if (event.data.includes('data-plugin-item="true"')) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = event.data.trim();
+                const newItem = tempDiv.firstElementChild;
+                
+                if (newItem && newItem.hasAttribute('data-list-target')) {
+                    const listId = newItem.getAttribute('data-list-target');
+                    const targetList = document.getElementById(listId);
+                    
+                    if (targetList) {
+                        targetList.appendChild(newItem);
+                        htmx.process(newItem);
+                        
+                        // Initialize sortable if needed
+                        if (window.Sortable && !targetList.classList.contains('sortable-initialized')) {
+                            new Sortable(targetList, {
+                                animation: 150,
+                                ghostClass: 'blue-background-class'
+                            });
+                            targetList.classList.add('sortable-initialized');
+                        }
+                    }
+                }
+                return;
+            }
+            
+            // Handle regular chat messages
+            if (!sidebarCurrentMessage.parentElement) {
+                sidebarMsgList.appendChild(sidebarCurrentMessage);
+            }
+            
+            // Initialize or update the raw text buffer
+            if (!sidebarCurrentMessage.dataset.rawText) {
+                sidebarCurrentMessage.dataset.rawText = '';
+            }
+            sidebarCurrentMessage.dataset.rawText += event.data;
+            
+            // PERFORMANCE OPTIMIZATION: Throttle Markdown rendering to prevent exponential slowdown
+            // Clear existing timer if one exists
+            if (renderThrottleTimer) {
+                clearTimeout(renderThrottleTimer);
+            }
+            
+            // Schedule a throttled render
+            renderThrottleTimer = setTimeout(() => {
+                renderCurrentMessage();
+                renderThrottleTimer = null;
+            }, RENDER_THROTTLE_DELAY);
+            
+            // Keep the latest message in view
+            sidebarMsgList.scrollTop = sidebarMsgList.scrollHeight;
+        };
+        
+        console.log('🔄 WebSocket reconnection and event setup complete');
+        
+    } catch (error) {
+        console.error('🔄 WebSocket reconnection failed:', error);
+        throw error;
+    }
+}
+
+// Helper function to get human-readable WebSocket state
+function getWebSocketStateText(readyState) {
+    switch(readyState) {
+        case WebSocket.CONNECTING: return 'CONNECTING';
+        case WebSocket.OPEN: return 'OPEN';
+        case WebSocket.CLOSING: return 'CLOSING';
+        case WebSocket.CLOSED: return 'CLOSED';
+        default: return 'UNKNOWN';
     }
 }
 
@@ -1120,7 +1420,7 @@ async function executeStepsWithBranching(steps, demoScript) {
                 break;
                 
             case 'mcp_tool_call':
-                await executeCleanMcpToolCallStep(step);
+                await executeMcpToolCallStep(step);
                 break;
                 
             default:
