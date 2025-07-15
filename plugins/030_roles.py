@@ -186,6 +186,8 @@ class CrudCustomizer(BaseCrud):
 
 class CrudUI(PluginIdentityManager):
     EMOJI = ''
+    DEFAULT_BUTTON_TEXT = "Restore Default Selections"
+    DEFAULT_BUTTON_TOOLTIP = "Restore default role selections and order"
 
     @property
     def H3_HEADER(self):
@@ -378,12 +380,12 @@ class CrudUI(PluginIdentityManager):
                     Button(Img(src='/assets/feather/rewind.svg', 
                               alt='Reset', 
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
-                           "Restore Default Selections", 
+                           self.DEFAULT_BUTTON_TEXT, 
                            hx_post=f"{self.ENDPOINT_PREFIX}/select_default",
                            cls="secondary",
                            style=f"font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; opacity: {'0.4' if self.is_in_default_state() else '1.0'};",
                            disabled=self.is_in_default_state(),
-                           title="Restore default role selections and order" + (" (already at default)" if self.is_in_default_state() else ""),
+                           title=self.DEFAULT_BUTTON_TOOLTIP + (" (already at default)" if self.is_in_default_state() else ""),
                            id="default-button"),
                     style="margin-bottom: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap; justify-content: center;"
                 ),
@@ -523,12 +525,12 @@ class CrudUI(PluginIdentityManager):
         button = Button(Img(src='/assets/feather/rewind.svg', 
                          alt='Reset', 
                          style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
-                      "Default", 
+                      self.DEFAULT_BUTTON_TEXT, 
                       hx_post=f"{self.ENDPOINT_PREFIX}/select_default",
                       cls="secondary",
                       style=f"font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; opacity: {'0.4' if is_default else '1.0'};",
                       disabled=is_default,
-                      title="Reset to default roles and order" + (" (already at default)" if is_default else ""),
+                      title=self.DEFAULT_BUTTON_TOOLTIP + (" (already at default)" if is_default else ""),
                       id="default-button")
         
         return button
