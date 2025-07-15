@@ -4,6 +4,7 @@
 # isort server.py
 # vulture server.py
 # pylint --disable=all --enable=redefined-outer-name server.py
+# pylint --disable=all --enable=similarities .
 
 from server import (  # noqa
     # Core classes used by plugins
