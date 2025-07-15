@@ -1613,7 +1613,7 @@ class Pipulate:
             current_methods = methods_list_arg[0] if methods_list_arg else ['GET']
             plugin_instance.app.route(path, methods=current_methods)(handler)
 
-    async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str, method: str, url: str, headers: dict, payload: Optional[dict] = None, response_status: Optional[int] = None, response_preview: Optional[str] = None, response_data: Optional[dict] = None, curl_command: Optional[str] = None, python_command: Optional[str] = None, estimated_rows: Optional[int] = None, actual_rows: Optional[int] = None, file_path: Optional[str] = None, file_size: Optional[str] = None, notes: Optional[str] = None):
+    async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str, http_method: str, url: str, headers: dict, payload: Optional[dict] = None, response_status: Optional[int] = None, response_preview: Optional[str] = None, response_data: Optional[dict] = None, curl_command: Optional[str] = None, python_command: Optional[str] = None, estimated_rows: Optional[int] = None, actual_rows: Optional[int] = None, file_path: Optional[str] = None, file_size: Optional[str] = None, notes: Optional[str] = None):
         """Log complete API call details for extreme observability and Jupyter reproduction.
 
         This provides the same level of transparency for API calls as is used in BQL query logging,
@@ -1623,7 +1623,7 @@ class Pipulate:
         log_entry_parts.append(f'  [API Call] {call_description or "API Request"}')
         log_entry_parts.append(f'  Pipeline ID: {pipeline_id}')
         log_entry_parts.append(f'  Step ID: {step_id}')
-        log_entry_parts.append(f'  Method: {method}')
+        log_entry_parts.append(f'  Method: {http_method}')
         log_entry_parts.append(f'  URL: {url}')
         if headers:
             headers_preview = {k: v for k, v in headers.items() if k.lower() not in ['authorization', 'cookie', 'x-api-key']}
@@ -2678,7 +2678,7 @@ class Pipulate:
             return {'profile_part': parts[0] if len(parts) > 0 else '', 'plugin_part': parts[1] if len(parts) > 1 else '', 'user_part': ''}
         return {'profile_part': parts[0], 'plugin_part': parts[1], 'user_part': parts[2]}
 
-    def update_datalist(self, datalist_id, options=None, clear=False):
+    def update_datalist(self, datalist_id, options=None, should_clear=False):
         """Create a datalist with out-of-band swap for updating dropdown options.
 
         This helper method allows easy updates to datalist options using HTMX's
@@ -2687,12 +2687,12 @@ class Pipulate:
         Args:
             datalist_id: The ID of the datalist to update
             options: List of option values to include, or None to clear
-            clear: If True, force clear all options regardless of options parameter
+            should_clear: If True, force clear all options regardless of options parameter
 
         Returns:
             Datalist: A FastHTML Datalist object with out-of-band swap attribute
         """
-        if clear or options is None:
+        if should_clear or options is None:
             return Datalist(id=datalist_id, _hx_swap_oob='true')
         else:
             return Datalist(*[Option(value=opt) for opt in options], id=datalist_id, _hx_swap_oob='true')
@@ -5928,7 +5928,7 @@ async def clear_pipeline(request):
     logger.debug(f'{workflow_display_name} table cleared')
     db['temp_message'] = f'{workflow_display_name} cleared. Next ID will be 01.'
     logger.debug(f'{workflow_display_name} DictLikeDB cleared for debugging')
-    response = Div(pipulate.update_datalist('pipeline-ids', clear=True), P(f'{workflow_display_name} cleared.'), cls='clear-message')
+    response = Div(pipulate.update_datalist('pipeline-ids', should_clear=True), P(f'{workflow_display_name} cleared.'), cls='clear-message')
     html_response = HTMLResponse(str(response))
     html_response.headers['HX-Refresh'] = 'true'
     return html_response
