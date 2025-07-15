@@ -546,15 +546,23 @@
             echo "Temporarily stashing local JupyterLab settings..."
             git stash push --quiet --include-untracked --message "Auto-stash JupyterLab settings" -- .jupyter/lab/user-settings/ 2>/dev/null || true
 
-            # Fetch and check for updates
-            git fetch origin
+            # Fetch and check for updates (always target main branch)
+            git fetch origin main
             LOCAL=$(git rev-parse HEAD)
-            REMOTE=$(git rev-parse @{u})
+            REMOTE=$(git rev-parse origin/main)
+            CURRENT_BRANCH=$(git branch --show-current)
             
             if [ "$LOCAL" != "$REMOTE" ]; then
-              echo "Updates found. Pulling latest changes..."
-              git pull --ff-only
-              echo "Update complete!"
+              # Only auto-update if on main branch
+              if [ "$CURRENT_BRANCH" = "main" ]; then
+                echo "Updates found. Pulling latest changes..."
+                git pull --ff-only origin main
+                echo "Update complete!"
+              else
+                echo "Updates available on main branch."
+                echo "Currently on development branch: $CURRENT_BRANCH"
+                echo "To update: git checkout main && git pull origin main"
+              fi
             else
               echo "Already up to date."
             fi
