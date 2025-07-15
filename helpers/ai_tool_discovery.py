@@ -319,7 +319,7 @@ Let's work together to make this system as efficient and responsive as possible.
             
             results['system_prompt'] = True
             print(f"✅ Updated {system_prompt_path}")
-    except Exception as e:
+        except Exception as e:
             results['system_prompt'] = False
             print(f"❌ Failed to update system prompt: {e}")
         
