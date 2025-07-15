@@ -967,6 +967,21 @@ async function executeMcpToolCallStep(step) {
         console.log('🔧 DEMO MCP DEBUG - Sending MCP call:', mcpCall);
         sidebarWs.send('%%DEMO_MCP_CALL%%:' + JSON.stringify(mcpCall));
         console.log('✅ DEMO MCP DEBUG - Sent MCP tool call via WebSocket');
+        
+        // 🔧 SPECIAL CASE: ui_flash_element needs local DOM manipulation
+        if (step.tool_name === 'ui_flash_element') {
+            console.log('✨ REAL WEBSOCKET UI FLASH: Applying local golden glow effect');
+            
+            // Handle both selector and element_id parameters (same logic as phantom execution)
+            let elementId = step.tool_args?.element_id || 'msg';
+            if (step.tool_args?.selector) {
+                elementId = step.tool_args.selector.replace('#', '');
+            }
+            
+            console.log('✨ REAL WEBSOCKET DEBUG: elementId =', elementId, 'element =', document.getElementById(elementId));
+            flashElementWithGoldEffect(elementId);
+            console.log('✅ REAL WEBSOCKET: flashElementWithGoldEffect called');
+        }
     } else {
         console.error('🔧 DEMO MCP DEBUG - WebSocket not connected, cannot send MCP tool call');
         console.error('🔧 DEMO MCP DEBUG - WebSocket state:', getWebSocketStateText(sidebarWs.readyState));
