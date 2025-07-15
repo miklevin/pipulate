@@ -264,4 +264,18 @@ def get_chrome_options():
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--disable-extensions')
     
-    return chrome_options 
+    return chrome_options
+
+# Common script templates for browser automation
+def get_browser_script_imports():
+    """Get common import block for generated browser automation scripts."""
+    import os
+    return f'''import json
+import os
+import time
+import sys
+from datetime import datetime
+from urllib.parse import urlparse
+
+# Add current directory to path to import modules
+sys.path.insert(0, '{os.getcwd()}')''' 
