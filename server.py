@@ -41,19 +41,18 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 import mcp_tools
-from common import BaseCrud
 # Import centralized configuration to eliminate duplication
 from config import PCONFIG as CONFIG_PCONFIG
 from helpers import botify_code_generation
-from helpers.ascii_displays import (ai_breadcrumb_summary, ascii_banner,
-                                    chip_says, falling_alice, fig,
+from helpers.ascii_displays import (ai_breadcrumb_summary,
+                                    chip_says, falling_alice,
                                     figlet_banner, log_reading_legend,
                                     radical_transparency_banner,
                                     section_header, server_whisper,
                                     share_ascii_with_ai,
                                     startup_environment_warnings,
-                                    startup_summary_table, status_banner,
-                                    story_moment, strip_rich_formatting,
+                                    startup_summary_table,
+                                    story_moment, 
                                     system_diagram, white_rabbit)
 from mcp_tools import register_all_mcp_tools, register_mcp_tool
 
@@ -142,7 +141,7 @@ class DebugConsole(Console):
 console = DebugConsole(theme=custom_theme)
 
 
-def rich_json_display(data, title=None, console_output=True, log_output=True, ai_log_output=True, log_prefix=""):
+def rich_json_display(data, title=None, console_output=True, log_output=True, ai_log_output=True):
     """🎨 RICH JSON DISPLAY: Beautiful syntax-highlighted JSON for dicts and JSON data
 
     DUAL LOGGING SYSTEM:
@@ -155,7 +154,6 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, ai
         console_output: Whether to display Rich JSON to console for humans (default: True)
         log_output: Whether to log plain JSON for general logging (default: True)
         ai_log_output: Whether to log JSON for AI assistant visibility (default: True)
-        log_prefix: Prefix for log messages (default: "")
 
     Returns:
         str: The formatted JSON string for logging
@@ -567,7 +565,7 @@ class DebugConsole(Console):
 console = DebugConsole(theme=custom_theme)
 
 
-def rich_json_display(data, title=None, console_output=True, log_output=True, ai_log_output=True, log_prefix=""):
+def rich_json_display(data, title=None, console_output=True, log_output=True, ai_log_output=True):
     """🎨 RICH JSON DISPLAY: Beautiful syntax-highlighted JSON for dicts and JSON data
 
     DUAL LOGGING SYSTEM:
