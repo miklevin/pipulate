@@ -355,70 +355,7 @@ custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='ma
 # DebugConsole and console now imported from helpers.server_logging
 
 
-def rich_json_display(data, title=None, console_output=True, log_output=True, ai_log_output=True):
-    """🎨 RICH JSON DISPLAY: Beautiful syntax-highlighted JSON for dicts and JSON data
-
-    DUAL LOGGING SYSTEM:
-    - Humans see Rich JSON syntax highlighting in console  
-    - AI assistants see JSON data in log files for debugging assistance
-
-    Args:
-        data: Dict, list, or JSON-serializable data to display
-        title: Optional title for the JSON display
-        console_output: Whether to display Rich JSON to console for humans (default: True)
-        log_output: Whether to log plain JSON for general logging (default: True)
-        ai_log_output: Whether to log JSON for AI assistant visibility (default: True)
-        log_prefix: Prefix for log messages (default: "")
-
-    Returns:
-        str: The formatted JSON string for logging
-    """
-    try:
-        # Convert data to JSON string if it's not already
-        if isinstance(data, str):
-            # Try to parse and re-format for consistency
-            try:
-                parsed_data = json.loads(data)
-                # Use Rich JSON for syntax highlighting
-                rich_json = JSON(json.dumps(parsed_data, indent=2, default=str))
-                json_str = json.dumps(parsed_data, indent=2, default=str)
-            except json.JSONDecodeError:
-                json_str = data
-                rich_json = data
-        else:
-            # Use Rich JSON for syntax highlighting
-            rich_json = JSON(json.dumps(data, indent=2, default=str))
-            json_str = json.dumps(data, indent=2, default=str)
-
-        # Console output with Rich syntax highlighting (for humans)
-        if console_output:
-            if title:
-                console.print(f"\n🎨 {title}", style="bold cyan")
-
-            # Use Rich's JSON class for beautiful syntax highlighting
-            rich_json = JSON(json_str)
-            console.print(rich_json)
-            console.print()  # Add spacing
-
-        # AI assistant logging - always log JSON data for AI visibility using WARNING level
-        if ai_log_output:
-            ai_title = f"AI_JSON_DATA: {title}" if title else "AI_JSON_DATA"
-            # Use WARNING level so AI assistants can easily grep for "WARNING.*AI_JSON_DATA"
-            logger.warning(f"🤖 {ai_title}:\n{json_str}")
-
-        # Standard log output
-        if log_output and json_str:
-            return json_str
-
-        return json_str
-
-    except Exception as e:
-        error_msg = f"[Error formatting JSON for display: {e}] Data: {str(data)}"
-        if console_output:
-            console.print(f"❌ {error_msg}", style="red")
-        if ai_log_output:
-            logger.warning(f"🤖 AI_JSON_ERROR: {error_msg}")
-        return error_msg
+# rich_json_display now imported from helpers.server_logging
 
 
 ENV_FILE = Path('data/current_environment.txt')
