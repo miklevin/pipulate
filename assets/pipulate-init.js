@@ -646,19 +646,23 @@ document.addEventListener('keydown', function(event) {
     //     });
     // }
     
-    // Ctrl+Alt+R: Restart server
-    if (event.ctrlKey && event.altKey && (event.key === 'R' || event.key === 'r')) {
-        event.preventDefault();
-        executeFullRestartSequence("Restarting server...", "KEYBOARD_SHORTCUT");
+    // Ctrl+Alt+R (PC) or Cmd+Option+R (Mac): Restart server
+    if ((event.ctrlKey && event.altKey) || (event.metaKey && event.altKey)) {
+        if (event.key === 'R' || event.key === 'r') {
+            event.preventDefault();
+            executeFullRestartSequence("Restarting server...", "KEYBOARD_SHORTCUT");
+        }
     }
     
-    // Ctrl+Alt+D: Start demo/regression prevention sequence
-    if (event.ctrlKey && event.altKey && (event.key === 'D' || event.key === 'd')) {
-        event.preventDefault();
-        console.log('🎯 Demo sequence triggered via Ctrl+Alt+D');
-        
-        // Load and execute the demo script sequence
-        loadAndExecuteCleanDemoScript();
+    // Ctrl+Alt+D (PC) or Cmd+Option+D (Mac): Start demo/regression prevention sequence
+    if ((event.ctrlKey && event.altKey) || (event.metaKey && event.altKey)) {
+        if (event.key === 'D' || event.key === 'd') {
+            event.preventDefault();
+            console.log('🎯 Demo sequence triggered via Ctrl+Alt+D or Cmd+Option+D');
+            
+            // Load and execute the demo script sequence
+            loadAndExecuteCleanDemoScript();
+        }
     }
     
     // Ctrl+Alt+V: Test voice synthesis
