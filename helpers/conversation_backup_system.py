@@ -24,10 +24,25 @@ class ConversationBackupManager:
     - Grandfather: Oldest backup (rotated when new father is created)
     """
     
-    def __init__(self, source_db_path="data/discussion.db", backup_dir="/home/mike/.pipulate"):
+    def __init__(self, source_db_path="data/discussion.db", backup_dir=None):
         self.source_db_path = Path(source_db_path)
-        self.backup_dir = Path(backup_dir)
-        self.backup_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Cross-platform backup directory
+        if backup_dir is None:
+            # Use a local backup directory instead of hardcoded path
+            backup_dir = Path.cwd() / "data" / "backups"
+        else:
+            backup_dir = Path(backup_dir)
+            
+        self.backup_dir = backup_dir
+        
+        try:
+            self.backup_dir.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError) as e:
+            # Fallback to local directory if the preferred path fails
+            logger.warning(f"Could not create backup directory {self.backup_dir}: {e}")
+            self.backup_dir = Path.cwd() / "data" / "backups"
+            self.backup_dir.mkdir(parents=True, exist_ok=True)
         
         # Define backup file names
         self.son_backup = self.backup_dir / "discussion_son.db"
