@@ -247,4 +247,21 @@ def get_botify_headers(api_token):
     return {
         "Authorization": f"Token {api_token}",
         "Content-Type": "application/json"
-    } 
+    }
+
+# Browser automation helper functions
+def get_chrome_options():
+    """Get standard Chrome options for browser automation."""
+    from selenium.webdriver.chrome.options import Options
+    chrome_options = Options()
+    
+    # VISIBLE BROWSER - The popup is a FEATURE, not a bug!
+    chrome_options.add_argument('--start-maximized')
+    chrome_options.add_argument('--new-window')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--disable-extensions')
+    
+    return chrome_options 
