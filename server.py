@@ -2456,7 +2456,7 @@ class Pipulate:
                         show_new_key_button=True,
                         app_name=plugin_instance.APP_NAME
                     ),
-                    self.update_datalist('pipeline-ids', options=matching_records, clear=not matching_records),
+                    self.update_datalist('pipeline-ids', options=matching_records, should_clear=not matching_records),
                     Small('Enter a new ID or select from existing pipelines', id='pipeline-help', cls='text-muted'),
                     hx_post=f'/{plugin_instance.APP_NAME}/init',
                     hx_target=f'#{plugin_instance.APP_NAME}-container',
