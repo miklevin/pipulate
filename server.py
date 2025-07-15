@@ -228,7 +228,6 @@ def get_nix_version():
     except ImportError:
         # Fallback to parsing __init__.py directly
         try:
-            import re
             from pathlib import Path
             init_file = Path(__file__).parent / '__init__.py'
             if init_file.exists():
