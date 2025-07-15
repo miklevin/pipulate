@@ -1591,7 +1591,12 @@ async function executeCleanMcpToolCallStep(step) {
 The element is now sparkling with golden light!`;
         
         // Actually flash the element for real
-        const elementId = step.tool_args?.element_id || 'msg';
+        // Handle both selector and element_id parameters
+        let elementId = step.tool_args?.element_id || 'msg';
+        if (step.tool_args?.selector) {
+            // Extract ID from selector (remove # if present)
+            elementId = step.tool_args.selector.replace('#', '');
+        }
         flashElementWithGoldEffect(elementId);
     } else {
         mcpResult = `🔧 **MCP Tool Executed** 🔧
