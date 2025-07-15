@@ -823,23 +823,23 @@ def _recursively_parse_json_strings(obj):
         return result
     elif isinstance(obj, list):
         result = []
-        for item in obj:
-            if isinstance(item, str):
+        for list_item in obj:
+            if isinstance(list_item, str):
                 # Try to parse JSON strings in lists
                 try:
-                    if (item.startswith('{') and item.endswith('}')) or \
-                       (item.startswith('[') and item.endswith(']')):
-                        parsed_item = json.loads(item)
+                    if (list_item.startswith('{') and list_item.endswith('}')) or \
+                       (list_item.startswith('[') and list_item.endswith(']')):
+                        parsed_item = json.loads(list_item)
                         result.append(_recursively_parse_json_strings(parsed_item))
                     else:
-                        result.append(item)
+                        result.append(list_item)
                 except (json.JSONDecodeError, TypeError):
-                    result.append(item)
-            elif isinstance(item, (dict, list)):
+                    result.append(list_item)
+            elif isinstance(list_item, (dict, list)):
                 # Recursively process nested structures
-                result.append(_recursively_parse_json_strings(item))
+                result.append(_recursively_parse_json_strings(list_item))
             else:
-                result.append(item)
+                result.append(list_item)
         return result
     else:
         # For non-dict/list objects, return as-is
@@ -3777,13 +3777,13 @@ class DictLikeDB:
 
     @db_operation
     def __iter__(self):
-        for item in self.store():
-            yield item.key
+        for record in self.store():
+            yield record.key
 
     @db_operation
     def items(self):
-        for item in self.store():
-            yield (item.key, item.value)
+        for record in self.store():
+            yield (record.key, record.value)
 
     @db_operation
     def keys(self):
@@ -3791,8 +3791,8 @@ class DictLikeDB:
 
     @db_operation
     def values(self):
-        for item in self.store():
-            yield item.value
+        for record in self.store():
+            yield record.value
 
     @db_operation
     def get(self, key, default=None):
@@ -6848,8 +6848,8 @@ Use these tools to assist users within your guided capabilities. Remember that a
         # Don't fail startup if context preparation fails
 
 ALL_ROUTES = list(set([''] + MENU_ITEMS))
-for item in ALL_ROUTES:
-    path = f'/{item}' if item else '/'
+for route in ALL_ROUTES:
+    path = f'/{route}' if route else '/'
 
     @app.route(path)
     async def home_route(request):
