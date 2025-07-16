@@ -39,8 +39,26 @@ try:
         _read_botify_api_token
     )
 except ImportError:
-    # Fallback for standalone usage
-    logger.warning("Could not import from mcp_tools - some functionality may be limited")
+    # Fallback for standalone usage - define stubs to avoid circular imports
+    # (This is normal during startup - tools will be available when server is fully initialized)
+    
+    # Stub functions to avoid circular imports
+    async def get_user_session_state(params: dict) -> dict:
+        return {"success": False, "error": "mcp_tools not available"}
+    
+    def rotate_looking_at_directory(looking_at_path=None, max_rolled_dirs=None) -> bool:
+        return False
+    
+    class WorkflowHijackTiming:
+        PAGE_LOAD_WAIT = 2
+        FORM_INTERACTION_DELAY = 1
+        POST_REQUEST_WAIT = 2
+        CHAIN_REACTION_WAIT = 4
+        FINAL_STABILIZATION = 1
+        HUMAN_OBSERVATION = 1
+    
+    def _read_botify_api_token() -> str:
+        return ""
 
 # Stub function for register_mcp_tool calls in extracted code
 def register_mcp_tool(tool_name: str, handler_func):

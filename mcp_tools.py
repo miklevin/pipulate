@@ -44,8 +44,16 @@ from urllib.parse import urlparse
 
 import aiohttp
 
-from tools import (browser_hijack_workflow_complete, execute_automation_recipe,
-                   execute_complete_session_hijacking, execute_mcp_cli_command)
+# Import tools with graceful fallback
+try:
+    from tools import (browser_hijack_workflow_complete, execute_automation_recipe,
+                       execute_complete_session_hijacking, execute_mcp_cli_command)
+except ImportError:
+    # Graceful fallback - tools will be available when server is fully initialized
+    browser_hijack_workflow_complete = None
+    execute_automation_recipe = None
+    execute_complete_session_hijacking = None
+    execute_mcp_cli_command = None
 
 # Import voice synthesis system
 try:
