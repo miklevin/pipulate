@@ -657,10 +657,8 @@ document.addEventListener('keydown', function(event) {
         event.preventDefault();
         console.log('🎯 Demo sequence triggered via Ctrl+Alt+D');
         
-        // Play "Somewhere Over the Rainbow" intro
-        playSomewhereOverTheRainbow();
-        
         // Load and execute the demo script sequence
+        // Music will play during the Oz door transition, not here
         loadAndExecuteCleanDemoScript();
     }
     
