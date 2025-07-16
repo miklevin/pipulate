@@ -1682,31 +1682,13 @@ The element is now sparkling with golden light!`;
         
         console.log('✅ flashElementWithGoldEffect called in phantom execution');
     } else {
-        mcpResult = `🔧 **MCP Tool Executed** 🔧
-
-**Tool**: ${step.tool_name}
-**Args**: ${JSON.stringify(step.tool_args || {})}
-**Status**: Success ✅
-
-${step.description || 'MCP tool execution completed successfully.'}`;
+        // Log MCP tool execution to browser console instead of displaying in UI
+        console.log('🔧 **MCP Tool Executed** 🔧');
+        console.log(`   Tool: ${step.tool_name}`);
+        console.log(`   Args: ${JSON.stringify(step.tool_args || {})}`);
+        console.log(`   Status: Success ✅`);
+        console.log(`   Description: ${step.description || 'MCP tool execution completed successfully.'}`);
     }
-    
-    // Display MCP result using EXACT same technique as endpoint messages
-    const msgList = document.getElementById('msg-list');
-    if (msgList) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message assistant';
-        messageDiv.innerHTML = `<div class="message-container"><div class="message-content"><p></p></div></div>`;
-        messageDiv.dataset.rawText = ''; // Initialize raw text tracking
-        msgList.appendChild(messageDiv);
-        msgList.scrollTop = msgList.scrollHeight;
-        
-        // Use EXACT same word-reveal technique as endpoint messages (slightly faster for MCP results)
-        await simulateWordByWordReveal(messageDiv, mcpResult, 20);
-    }
-    
-    // Add to conversation history for LLM context
-    await addToConversationHistory('assistant', mcpResult);
     
     // Automatically re-focus textarea after MCP tool response finishes (standard UX behavior)
     const textarea = document.querySelector('textarea[name="msg"]');
