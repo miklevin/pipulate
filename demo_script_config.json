@@ -107,6 +107,18 @@
           "description": "✨ Twinkling the chat input with gold magic"
         },
         {
+          "step_id": "06b_voice_continue_prompt",
+          "type": "mcp_tool_call",
+          "tool_name": "voice_synthesis",
+          "tool_args": {
+            "text": "Press control alt y to continue."
+          },
+          "timing": {
+            "delay_before": 500
+          },
+          "description": "🎤 Voice prompt to continue"
+        },
+        {
           "step_id": "07_first_trick",
           "type": "system_reply",
           "message": "For my first trick I will put you into **DEV mode**, reset the database to blank the sample demo data. Is that okay? **Ctrl+Alt+y** / **Ctrl+Alt+n**",
