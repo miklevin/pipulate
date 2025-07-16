@@ -102,7 +102,7 @@
             "duration": 2500
           },
           "timing": {
-            "delay_before": 1500
+            "delay_before": 0
           },
           "description": "✨ Twinkling the chat input with gold magic"
         },
