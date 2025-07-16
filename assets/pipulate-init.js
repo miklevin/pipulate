@@ -2061,28 +2061,28 @@ async function resumeDemoFromBookmark(bookmark) {
 /**
  * 🎬 CINEMATIC MAGIC: "Dorothy Opens the Door to Oz"
  * 
- * This function creates the iconic transition from black and white Kansas
+ * This function creates the iconic transition from sepia Kansas farmhouse
  * to the vibrant, colorful Land of Oz. It's the "heart" phase of our demo,
  * where the mechanical "brains" phase gives way to the emotional, living
  * world of AI interaction.
  * 
  * Timeline:
- * 1. Check if grayscale already applied (from URL parameter) - skip if so
- * 2. Wait 2 seconds (dramatic pause) - user wonders what's happening
- * 3. Fade to color over 3 seconds (opening the door to Oz)
- * 4. Wait for transition to complete before starting phantom typing
+ * 1. Reset to clean state (works regardless of previous state)
+ * 2. INSTANT dramatic sepia filter (Kansas farmhouse) - POP!
+ * 3. Wait 2 seconds (dramatic pause) - user wonders what's happening
+ * 4. Fade to color over 3 seconds (opening the door to Oz)
+ * 5. Wait for transition to complete before starting phantom typing
  */
 async function executeOzDoorTransition() {
     console.log('🎬 Beginning "Dorothy Opens the Door to Oz" cinematic sequence...');
     
-    // Step 1: Check if grayscale already applied (from server-side cookie)
-    if (document.documentElement.classList.contains('demo-grayscale')) {
-        console.log('🎬 Grayscale already applied from server cookie - skipping application step');
-    } else {
-        // INSTANT dramatic grayscale filter (Kansas farmhouse) - POP!
-        applyDramaticGrayscaleFilter();
-        console.log('🎬 INSTANT dramatic grayscale applied - welcome to black and white Kansas!');
-    }
+    // Step 0: Reset to clean state (works regardless of previous state)
+    document.documentElement.classList.remove('demo-grayscale', 'demo-fading-to-color', 'demo-color');
+    console.log('🎬 Reset to clean state - ready for dramatic transition');
+    
+    // Step 1: INSTANT dramatic sepia filter (Kansas farmhouse) - POP!
+    applyDramaticSepiaFilter();
+    console.log('🎬 INSTANT dramatic sepia applied - welcome to Kansas farmhouse!');
     
     // Step 2: Dramatic pause (2 seconds) - user wonders what's happening
     console.log('🎬 Dramatic pause - user wonders what\'s happening...');
@@ -2099,22 +2099,22 @@ async function executeOzDoorTransition() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
         });
-        console.log('🎬 Oz door grayscale state cleared from server');
+        console.log('🎬 Oz door sepia state cleared from server');
     } catch (error) {
-        console.warn('🎬 Error clearing Oz door grayscale state:', error);
+        console.warn('🎬 Error clearing Oz door sepia state:', error);
     }
     
     console.log('🎬 Cinematic transition complete - welcome to the colorful Land of Oz!');
 }
 
 /**
- * Apply INSTANT dramatic grayscale filter to the entire page
- * This creates the "Kansas farmhouse" black and white effect with POP!
+ * Apply INSTANT dramatic sepia filter to the entire page
+ * This creates the "Kansas farmhouse" sepia effect with POP!
  * NO TRANSITION - immediate dramatic effect
  */
-function applyDramaticGrayscaleFilter() {
+function applyDramaticSepiaFilter() {
     document.documentElement.classList.add('demo-grayscale');
-    console.log('🎬 INSTANT dramatic grayscale filter applied - POP!');
+    console.log('🎬 INSTANT dramatic sepia filter applied - POP!');
 }
 
 /**
