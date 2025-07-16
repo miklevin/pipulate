@@ -4839,13 +4839,13 @@ async def create_outer_container(current_profile_id, menux, request, grayscale_e
     ]
 
     if grayscale_enabled:
-        # Add grayscale script to Container (no extra wrapper div)
-        grayscale_script = Script(f"""
-            // 🎬 IMMEDIATE grayscale application - no delay, no flash
+        # Add sepia script to Container (no extra wrapper div)
+        sepia_script = Script(f"""
+            // 🎬 IMMEDIATE sepia application - no delay, no flash
             (function() {{
-                // Apply grayscale class immediately (CSS handles the visual effect)
+                // Apply sepia class immediately (CSS handles the visual effect)
                 document.documentElement.classList.add('demo-grayscale');
-                console.log('🎬 INSTANT grayscale applied from server - Kansas farmhouse mode activated!');
+                console.log('🎬 INSTANT sepia applied from server - Kansas farmhouse mode activated!');
                 
                 // 🎬 AUTOMATIC TRANSITION: Start the fade to color after page loads
                 document.addEventListener('DOMContentLoaded', function() {{
@@ -4864,8 +4864,8 @@ async def create_outer_container(current_profile_id, menux, request, grayscale_e
                 }});
             }})();
         """)
-        container_contents.insert(0, grayscale_script)  # Insert at the beginning
-        logger.info("🎬 Oz door grayscale script injected into Container structure")
+        container_contents.insert(0, sepia_script)  # Insert at the beginning
+        logger.info("🎬 Oz door sepia script injected into Container structure")
 
     return Container(*container_contents)
 
