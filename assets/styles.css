@@ -2499,9 +2499,9 @@ button.secondary.inline-button-submit {
 /* 🎬 CONFIGURABLE CINEMATIC VARIABLES - Adjust the Kansas farmhouse look */
 :root {
     /* Over-exposed Kansas farmhouse aesthetic - washed out and faded */
-    --oz-grayscale-brightness: 2;    /* Over-exposed brightness (1.0 = normal, 1.5 = washed out) */
-    --oz-grayscale-contrast: 0.4;     /* Reduced contrast for faded look (1.0 = normal, 0.75 = softer) */
-    --oz-grayscale-saturation: 0%;     /* Complete desaturation (0% = grayscale) */
+    --oz-grayscale-brightness: 0.5;    /* Over-exposed brightness (1.0 = normal, 1.5 = washed out) */
+    --oz-grayscale-contrast: 0.5;     /* Reduced contrast for faded look (1.0 = normal, 0.75 = softer) */
+    --oz-grayscale-saturation: 20%;     /* Complete desaturation (0% = grayscale) */
     
     /* Transition timing */
     --oz-transition-duration: 3s;      /* Time for fade to color */
@@ -2537,16 +2537,16 @@ Example presets:
 - Sun-bleached Photograph: brightness: 1.8, contrast: 0.6
 */
 
-/* Initial grayscale state - the washed-out, over-exposed Kansas farmhouse */
-/* NO TRANSITION on initial grayscale - we want INSTANT dramatic effect */
+/* Initial sepia state - the washed-out, over-exposed Kansas farmhouse */
+/* NO TRANSITION on initial sepia - we want INSTANT dramatic effect */
 .demo-grayscale {
     filter: 
-        grayscale(100%) 
+        sepia(1) 
         contrast(var(--oz-grayscale-contrast)) 
         brightness(var(--oz-grayscale-brightness))
         saturate(var(--oz-grayscale-saturation));
     -webkit-filter: 
-        grayscale(100%) 
+        sepia(1) 
         contrast(var(--oz-grayscale-contrast)) 
         brightness(var(--oz-grayscale-brightness))
         saturate(var(--oz-grayscale-saturation));
@@ -2555,16 +2555,16 @@ Example presets:
 
 /* Transitioning state - when we're ready to fade back to color */
 .demo-grayscale.demo-fading-to-color {
-    filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
-    -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
+    filter: sepia(0%) contrast(1.0) brightness(1.0) saturate(100%);
+    -webkit-filter: sepia(0%) contrast(1.0) brightness(1.0) saturate(100%);
     transition: filter var(--oz-transition-duration) var(--oz-transition-easing);
     -webkit-transition: -webkit-filter var(--oz-transition-duration) var(--oz-transition-easing);
 }
 
 /* Full color state - the vibrant Land of Oz */
 .demo-color {
-    filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
-    -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
+    filter: sepia(0%) contrast(1.0) brightness(1.0) saturate(100%);
+    -webkit-filter: sepia(0%) contrast(1.0) brightness(1.0) saturate(100%);
     /* No transition needed here either */
 }
 
