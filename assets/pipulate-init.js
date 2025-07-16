@@ -1813,18 +1813,30 @@ function flashElementWithGoldEffect(elementId) {
     }
 }
 
-// Simulate typing in textarea - pure animation, no submission
+// Simulate word-by-word typing in textarea - matches LLM streaming methodology
 async function simulateTypingInTextarea(textarea, message, speed) {
     textarea.value = '';
     textarea.focus();
     
-    for (let i = 0; i < message.length; i++) {
-        textarea.value += message[i];
+    // Split message into word chunks (same pattern as LLM generation)
+    const words = message.split(/(\s+)/); // Keep whitespace
+    
+    let accumulatedText = '';
+    
+    for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        accumulatedText += word;
+        
+        // Update textarea value with accumulated text
+        textarea.value = accumulatedText;
         
         // Scroll textarea if needed
         textarea.scrollTop = textarea.scrollHeight;
         
-        await new Promise(resolve => setTimeout(resolve, speed));
+        // Timing matches natural typing speed
+        // Shorter delay for whitespace, longer for actual words
+        const delay = word.trim() ? speed + Math.random() * 20 : speed / 3;
+        await new Promise(resolve => setTimeout(resolve, delay));
     }
 }
 
