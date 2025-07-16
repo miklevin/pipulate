@@ -3417,23 +3417,24 @@ class Chat:
                 tool_handler = MCP_TOOL_REGISTRY[tool_name]
                 result = await tool_handler(tool_args)
 
-                # Send result back to demo script
-                response_message = f"🔧 **MCP Tool Executed** 🔧\n\n**Tool**: {tool_name}\n**Args**: {json.dumps(tool_args)}\n**Result**: {result.get('success', False)}"
+                # Log detailed MCP execution to server console
+                self.logger.info(f"🔧 **MCP Tool Executed** 🔧")
+                self.logger.info(f"   Tool: {tool_name}")
+                self.logger.info(f"   Args: {json.dumps(tool_args)}")
+                self.logger.info(f"   Result: {result.get('success', False)}")
                 if description:
-                    response_message += f"\n**Description**: {description}"
-
-                await websocket.send_text(response_message)
+                    self.logger.info(f"   Description: {description}")
                 self.logger.info(f"🎯 Demo MCP call completed: {tool_name} -> {result.get('success', False)}")
 
             else:
-                error_message = f"❌ **MCP Tool Error** ❌\n\n**Tool**: {tool_name} not found"
-                await websocket.send_text(error_message)
+                self.logger.error(f"🔧 **MCP Tool Error** 🔧")
+                self.logger.error(f"   Tool: {tool_name} not found")
                 self.logger.error(f"🎯 Demo MCP call failed: {tool_name} not found")
 
         except Exception as e:
+            self.logger.error(f"🔧 **MCP Tool Error** 🔧")
+            self.logger.error(f"   Error handling demo MCP call: {e}")
             self.logger.error(f"🎯 Error handling demo MCP call: {e}")
-            error_message = f"❌ **MCP Tool Error** ❌\n\n**Error**: {str(e)}"
-            await websocket.send_text(error_message)
 
     async def handle_websocket(self, websocket: WebSocket):
         try:
@@ -6248,13 +6249,16 @@ async def serve_demo_script_config(request):
                 if isinstance(obj, dict):
                     for key, value in obj.items():
                         if isinstance(value, str):
+                            # First pass: Replace {app_name} placeholder with actual app name
+                            if "{app_name}" in value:
+                                obj[key] = value.replace("{app_name}", APP_NAME)
+                                value = obj[key]  # Update value for potential dynamic message processing
+                            
+                            # Second pass: Replace dynamic ollama messages
                             if value == "{dynamic_ollama_message}" and "ollama_messages" in obj:
                                 obj[key] = obj["ollama_messages"]["available"] if ollama_available else obj["ollama_messages"]["not_available"]
                             elif value == "{dynamic_ollama_decline_message}" and "ollama_messages" in obj:
                                 obj[key] = obj["ollama_messages"]["available"] if ollama_available else obj["ollama_messages"]["not_available"]
-                            # Replace {app_name} placeholder with actual app name
-                            elif "{app_name}" in value:
-                                obj[key] = value.replace("{app_name}", APP_NAME)
                         elif isinstance(value, (dict, list)):
                             process_dynamic_messages(value)
                 elif isinstance(obj, list):
@@ -6262,6 +6266,9 @@ async def serve_demo_script_config(request):
                         process_dynamic_messages(item)
 
             # Apply dynamic message processing
+            process_dynamic_messages(config_data)
+            
+            # Second pass: ensure all dynamic replacements are fully processed
             process_dynamic_messages(config_data)
 
             return JSONResponse(config_data)
