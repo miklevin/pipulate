@@ -9,7 +9,7 @@
             /* Current over-exposed Kansas farmhouse settings */
             --oz-grayscale-brightness: 1.5;
             --oz-grayscale-contrast: 0.75;
-            --oz-grayscale-saturation: 0%;
+            --oz-grayscale-saturation: 20%;
             --oz-sepia-intensity: 0.8;
             --oz-transition-duration: 3s;
             --oz-transition-easing: ease-in-out;
@@ -217,8 +217,8 @@
 
             <div class="control-group">
                 <label for="sepia">🟫 Sepia Intensity (Kansas Warmth)</label>
-                <input type="range" id="sepia" min="0" max="1" step="0.05" value="0.8" oninput="updateEffect()">
-                <div class="value-display" id="sepia-value">0.8</div>
+                <input type="range" id="sepia" min="0" max="1" step="0.05" value="1.0" oninput="updateEffect()">
+                <div class="value-display" id="sepia-value">1.0</div>
                 <small>0 = no sepia (colorful), 0.8 = movie sepia, 1.0 = deep sepia</small>
             </div>
         </div>
