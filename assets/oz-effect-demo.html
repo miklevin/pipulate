@@ -10,26 +10,25 @@
             --oz-grayscale-brightness: 1.5;
             --oz-grayscale-contrast: 0.75;
             --oz-grayscale-saturation: 0%;
+            --oz-sepia-intensity: 0.8;
             --oz-transition-duration: 3s;
             --oz-transition-easing: ease-in-out;
         }
 
         .demo-grayscale {
             filter: 
-                grayscale(100%) 
+                sepia(var(--oz-sepia-intensity))
                 contrast(var(--oz-grayscale-contrast)) 
-                brightness(var(--oz-grayscale-brightness))
-                saturate(var(--oz-grayscale-saturation));
+                brightness(var(--oz-grayscale-brightness));
             -webkit-filter: 
-                grayscale(100%) 
+                sepia(var(--oz-sepia-intensity))
                 contrast(var(--oz-grayscale-contrast)) 
-                brightness(var(--oz-grayscale-brightness))
-                saturate(var(--oz-grayscale-saturation));
+                brightness(var(--oz-grayscale-brightness));
         }
 
         .demo-grayscale.demo-fading-to-color {
-            filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
-            -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
+            filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%) sepia(0%);
+            -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%) sepia(0%);
             transition: filter var(--oz-transition-duration) var(--oz-transition-easing);
             -webkit-transition: -webkit-filter var(--oz-transition-duration) var(--oz-transition-easing);
         }
@@ -50,6 +49,8 @@
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
+
+
 
         .header {
             text-align: center;
@@ -171,15 +172,16 @@
     <div class="demo-container" id="demo-container">
         <div class="header">
             <h1>🎬 Dorothy Opens the Door to Oz</h1>
-            <p>Interactive demo of the configurable over-exposed Kansas farmhouse effect</p>
+            <p>Interactive demo of the configurable sepia Kansas farmhouse effect (like the real movie!)</p>
         </div>
 
         <div class="preset-buttons">
-            <button class="preset-btn" onclick="setPreset('rich', 1.0, 1.2)">📷 Rich B&W Film</button>
-            <button class="preset-btn" onclick="setPreset('vintage', 1.3, 0.8)">📸 Vintage Faded Photo</button>
-            <button class="preset-btn" onclick="setPreset('overexposed', 1.5, 0.75)">🌤️ Over-exposed Film (Current)</button>
-            <button class="preset-btn" onclick="setPreset('sunbleached', 1.8, 0.6)">☀️ Sun-bleached Photograph</button>
-            <button class="preset-btn" onclick="setPreset('whitewashed', 2.0, 0.4)">🤍 Nearly White-washed</button>
+            <button class="preset-btn" onclick="setPreset('movie', 1.5, 0.75, 0.8)">🎬 Original Movie Sepia</button>
+            <button class="preset-btn" onclick="setPreset('rich', 1.0, 1.2, 0.3)">📷 Rich B&W Film</button>
+            <button class="preset-btn" onclick="setPreset('vintage', 1.3, 0.8, 0.6)">📸 Vintage Faded Photo</button>
+            <button class="preset-btn" onclick="setPreset('overexposed', 1.5, 0.75, 0.8)">🌤️ Over-exposed Film (Current)</button>
+            <button class="preset-btn" onclick="setPreset('sunbleached', 1.8, 0.6, 0.9)">☀️ Sun-bleached Photograph</button>
+            <button class="preset-btn" onclick="setPreset('whitewashed', 2.0, 0.4, 0.5)">🤍 Nearly White-washed</button>
         </div>
 
         <div class="controls">
@@ -203,6 +205,13 @@
                 <div class="value-display" id="duration-value">3s</div>
                 <small>How long the fade to color takes</small>
             </div>
+
+            <div class="control-group">
+                <label for="sepia">🟫 Sepia Intensity (Kansas Warmth)</label>
+                <input type="range" id="sepia" min="0" max="1" step="0.05" value="0.8" oninput="updateEffect()">
+                <div class="value-display" id="sepia-value">0.8</div>
+                <small>0 = no sepia (colorful), 0.8 = movie sepia, 1.0 = deep sepia</small>
+            </div>
         </div>
 
         <div class="demo-content">
@@ -214,6 +223,7 @@
 
         <div style="text-align: center;">
             <button class="transition-btn" onclick="applyGrayscale()">🏠 Apply Kansas Farmhouse Effect</button>
+            <button class="transition-btn" onclick="showSepiaNow()">🟫 Show Sepia Now</button>
             <button class="transition-btn" onclick="transitionToColor()">🌈 Open Door to Oz</button>
             <button class="transition-btn" onclick="resetToColor()">🔄 Reset to Full Color</button>
         </div>
@@ -231,15 +241,18 @@
             const brightness = document.getElementById('brightness').value;
             const contrast = document.getElementById('contrast').value;
             const duration = document.getElementById('duration').value;
+            const sepia = document.getElementById('sepia').value;
 
             // Update CSS variables
             document.documentElement.style.setProperty('--oz-grayscale-brightness', brightness);
             document.documentElement.style.setProperty('--oz-grayscale-contrast', contrast);
+            document.documentElement.style.setProperty('--oz-sepia-intensity', sepia);
             document.documentElement.style.setProperty('--oz-transition-duration', duration + 's');
 
             // Update displays
             document.getElementById('brightness-value').textContent = brightness;
             document.getElementById('contrast-value').textContent = contrast;
+            document.getElementById('sepia-value').textContent = sepia;
             document.getElementById('duration-value').textContent = duration + 's';
 
             // Update CSS code display
@@ -247,14 +260,16 @@
 `/* Current CSS Variables */
 --oz-grayscale-brightness: ${brightness};
 --oz-grayscale-contrast: ${contrast};
+--oz-sepia-intensity: ${sepia};
 --oz-transition-duration: ${duration}s;
 
 /* Copy this to your styles.css :root section */`;
         }
 
-        function setPreset(name, brightness, contrast) {
+        function setPreset(name, brightness, contrast, sepia) {
             document.getElementById('brightness').value = brightness;
             document.getElementById('contrast').value = contrast;
+            document.getElementById('sepia').value = sepia;
             updateEffect();
             
             // Flash the preset name
@@ -270,6 +285,19 @@
             const container = document.getElementById('demo-container');
             container.classList.remove('demo-fading-to-color');
             container.classList.add('demo-grayscale');
+        }
+
+        function showSepiaNow() {
+            const container = document.getElementById('demo-container');
+            container.classList.remove('demo-fading-to-color');
+            container.classList.add('demo-grayscale');
+            
+            // Flash a message
+            const originalTitle = container.querySelector('h1').textContent;
+            container.querySelector('h1').textContent = '🟫 Sepia Effect Applied!';
+            setTimeout(() => {
+                container.querySelector('h1').textContent = originalTitle;
+            }, 2000);
         }
 
         function transitionToColor() {
