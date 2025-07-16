@@ -17,20 +17,29 @@
 
         .demo-grayscale {
             filter: 
-                sepia(var(--oz-sepia-intensity))
+                grayscale(100%) 
                 contrast(var(--oz-grayscale-contrast)) 
-                brightness(var(--oz-grayscale-brightness));
+                brightness(var(--oz-grayscale-brightness))
+                saturate(var(--oz-grayscale-saturation));
             -webkit-filter: 
-                sepia(var(--oz-sepia-intensity))
+                grayscale(100%) 
                 contrast(var(--oz-grayscale-contrast)) 
-                brightness(var(--oz-grayscale-brightness));
+                brightness(var(--oz-grayscale-brightness))
+                saturate(var(--oz-grayscale-saturation));
+            /* No transition here - instant dramatic effect */
         }
 
         .demo-grayscale.demo-fading-to-color {
-            filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%) sepia(0%);
-            -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%) sepia(0%);
+            filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
+            -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
             transition: filter var(--oz-transition-duration) var(--oz-transition-easing);
             -webkit-transition: -webkit-filter var(--oz-transition-duration) var(--oz-transition-easing);
+        }
+
+        .demo-color {
+            filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
+            -webkit-filter: grayscale(0%) contrast(1.0) brightness(1.0) saturate(100%);
+            /* No transition needed here either */
         }
 
         body {
@@ -224,6 +233,7 @@
         <div style="text-align: center;">
             <button class="transition-btn" onclick="applyGrayscale()">🏠 Apply Kansas Farmhouse Effect</button>
             <button class="transition-btn" onclick="showSepiaNow()">🟫 Show Sepia Now</button>
+            <button class="transition-btn" onclick="dramaticTransition()">🎬 Dramatic Transition</button>
             <button class="transition-btn" onclick="transitionToColor()">🌈 Open Door to Oz</button>
             <button class="transition-btn" onclick="resetToColor()">🔄 Reset to Full Color</button>
         </div>
@@ -282,17 +292,18 @@
         }
 
         function applyGrayscale() {
-            const container = document.getElementById('demo-container');
-            container.classList.remove('demo-fading-to-color');
-            container.classList.add('demo-grayscale');
+            // Apply to document.documentElement like the real demo
+            document.documentElement.classList.remove('demo-fading-to-color');
+            document.documentElement.classList.add('demo-grayscale');
         }
 
         function showSepiaNow() {
-            const container = document.getElementById('demo-container');
-            container.classList.remove('demo-fading-to-color');
-            container.classList.add('demo-grayscale');
+            // Apply to document.documentElement like the real demo
+            document.documentElement.classList.remove('demo-fading-to-color');
+            document.documentElement.classList.add('demo-grayscale');
             
             // Flash a message
+            const container = document.getElementById('demo-container');
             const originalTitle = container.querySelector('h1').textContent;
             container.querySelector('h1').textContent = '🟫 Sepia Effect Applied!';
             setTimeout(() => {
@@ -301,18 +312,74 @@
         }
 
         function transitionToColor() {
-            const container = document.getElementById('demo-container');
-            if (container.classList.contains('demo-grayscale')) {
-                container.classList.add('demo-fading-to-color');
+            // Apply to document.documentElement like the real demo
+            if (document.documentElement.classList.contains('demo-grayscale')) {
+                document.documentElement.classList.add('demo-fading-to-color');
                 setTimeout(() => {
-                    container.classList.remove('demo-grayscale', 'demo-fading-to-color');
+                    document.documentElement.classList.remove('demo-grayscale', 'demo-fading-to-color');
                 }, parseFloat(document.getElementById('duration').value) * 1000);
             }
         }
 
         function resetToColor() {
-            const container = document.getElementById('demo-container');
-            container.classList.remove('demo-grayscale', 'demo-fading-to-color');
+            // Apply to document.documentElement like the real demo
+            document.documentElement.classList.remove('demo-grayscale', 'demo-fading-to-color');
+        }
+
+        /**
+         * 🎬 CINEMATIC MAGIC: "Dorothy Opens the Door to Oz"
+         * 
+         * This function creates the iconic transition from black and white Kansas
+         * to the vibrant, colorful Land of Oz. It matches the real demo's behavior.
+         * 
+         * Timeline:
+         * 1. INSTANT dramatic grayscale filter (Kansas farmhouse) - POP!
+         * 2. Wait 2 seconds (dramatic pause) - user wonders what's happening
+         * 3. Fade to color over 3 seconds (opening the door to Oz)
+         */
+        async function dramaticTransition() {
+            const startTime = Date.now();
+            const duration = parseFloat(document.getElementById('duration').value) * 1000;
+            
+            console.log(`🎬 [${Date.now() - startTime}ms] Beginning "Dorothy Opens the Door to Oz" cinematic sequence...`);
+            console.log(`🎬 [${Date.now() - startTime}ms] Transition duration set to: ${duration}ms`);
+            
+            // Step 1: INSTANT dramatic grayscale filter (Kansas farmhouse) - POP!
+            document.documentElement.classList.remove('demo-fading-to-color');
+            document.documentElement.classList.add('demo-grayscale');
+            console.log(`🎬 [${Date.now() - startTime}ms] INSTANT dramatic grayscale applied - welcome to black and white Kansas!`);
+            
+            // Step 2: Dramatic pause (2 seconds) - user wonders what's happening
+            console.log(`🎬 [${Date.now() - startTime}ms] Dramatic pause - user wonders what's happening...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log(`🎬 [${Date.now() - startTime}ms] Pause complete, starting color transition...`);
+            
+            // Step 3: Begin the transition to color (opening the door to Oz)
+            console.log(`🎬 [${Date.now() - startTime}ms] Opening the door to the vibrant Land of Oz...`);
+            await fadeToColor(duration);
+            console.log(`🎬 [${Date.now() - startTime}ms] Cinematic transition complete - welcome to the colorful Land of Oz!`);
+        }
+
+        /**
+         * Fade from grayscale to full color
+         * This creates the "opening the door to Oz" transition
+         * Returns a promise that resolves when the transition is complete
+         */
+        async function fadeToColor(duration = 3000) {
+            return new Promise((resolve) => {
+                // Add the transition class to enable smooth fade to color
+                document.documentElement.classList.add('demo-fading-to-color');
+                console.log('🎬 Color transition initiated - fading to vibrant Oz...');
+                
+                // Wait for the CSS transition to complete
+                setTimeout(() => {
+                    // Clean up all demo classes
+                    document.documentElement.classList.remove('demo-grayscale', 'demo-fading-to-color');
+                    document.documentElement.classList.add('demo-color');
+                    console.log('🎬 Color transition complete - welcome to the Land of Oz!');
+                    resolve();
+                }, duration);
+            });
         }
 
         // Initialize
