@@ -657,6 +657,9 @@ document.addEventListener('keydown', function(event) {
         event.preventDefault();
         console.log('🎯 Demo sequence triggered via Ctrl+Alt+D');
         
+        // Play "Somewhere Over the Rainbow" intro
+        playSomewhereOverTheRainbow();
+        
         // Load and execute the demo script sequence
         loadAndExecuteCleanDemoScript();
     }
@@ -691,6 +694,87 @@ document.addEventListener('keydown', function(event) {
 
 // Add a console log to confirm this script section loaded
 console.log('🔧 Pipulate keyboard shortcuts initialized - listening for Ctrl+Alt+R, Ctrl+Alt+D, Ctrl+Alt+V, Ctrl+Alt+W, and Ctrl+Alt+G');
+
+/**
+ * 🎵 Play "Somewhere Over the Rainbow" intro
+ * Creates the iconic first few bars using Web Audio API
+ * Perfect accompaniment to the "Dorothy Opens the Door to Oz" transition
+ */
+function playSomewhereOverTheRainbow() {
+    try {
+        console.log('🎵 Playing "Somewhere Over the Rainbow" intro...');
+        
+        // Create audio context
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Define the melody notes (first few bars of "Somewhere Over the Rainbow")
+        // C major scale: C, D, E, F, G, A, B, C
+        const melody = [
+            { note: 'C4', duration: 0.8 },  // Some
+            { note: 'E4', duration: 0.4 },  // where
+            { note: 'G4', duration: 0.8 },  // o-
+            { note: 'C5', duration: 1.2 },  // ver
+            { note: 'B4', duration: 0.4 },  // the
+            { note: 'A4', duration: 0.8 },  // rain-
+            { note: 'G4', duration: 1.2 },  // bow
+            { note: 'E4', duration: 0.8 },  // way
+            { note: 'C4', duration: 1.6 }   // up
+        ];
+        
+        // Note frequencies (C4 = middle C)
+        const noteFrequencies = {
+            'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23,
+            'G4': 392.00, 'A4': 440.00, 'B4': 493.88, 'C5': 523.25
+        };
+        
+        // Create oscillator and gain nodes
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        // Connect nodes
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Set oscillator type to sine wave for a pure, dreamy sound
+        oscillator.type = 'sine';
+        
+        // Set initial gain to 0
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        
+        // Start the oscillator
+        oscillator.start();
+        
+        // Play the melody
+        let currentTime = audioContext.currentTime;
+        
+        melody.forEach((note, index) => {
+            const frequency = noteFrequencies[note.note];
+            const duration = note.duration;
+            
+            // Set frequency
+            oscillator.frequency.setValueAtTime(frequency, currentTime);
+            
+            // Fade in
+            gainNode.gain.setValueAtTime(0, currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, currentTime + 0.05);
+            
+            // Fade out
+            gainNode.gain.setValueAtTime(0.3, currentTime + duration - 0.1);
+            gainNode.gain.linearRampToValueAtTime(0, currentTime + duration);
+            
+            currentTime += duration;
+        });
+        
+        // Stop the oscillator after the melody
+        oscillator.stop(currentTime + 0.1);
+        
+        console.log('🎵 "Somewhere Over the Rainbow" intro playing...');
+        
+    } catch (error) {
+        console.warn('🎵 Could not play audio (browser may block autoplay):', error);
+        // Don't fail the demo if audio doesn't work
+    }
+}
 
 // Function to test voice synthesis via web endpoint
 async function testVoiceSynthesis() {
@@ -2083,6 +2167,9 @@ async function executeOzDoorTransition() {
     // Step 1: INSTANT dramatic sepia filter (Kansas farmhouse) - POP!
     applyDramaticSepiaFilter();
     console.log('🎬 INSTANT dramatic sepia applied - welcome to Kansas farmhouse!');
+    
+    // Play "Somewhere Over the Rainbow" as the sepia effect appears
+    playSomewhereOverTheRainbow();
     
     // Step 2: Dramatic pause (2 seconds) - user wonders what's happening
     console.log('🎬 Dramatic pause - user wonders what\'s happening...');
