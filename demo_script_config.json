@@ -164,6 +164,22 @@
             "display_speed": 25
           },
           "verbatim": true
+        },
+        {
+          "step_id": "09_llm_body_test",
+          "type": "system_reply",
+          "message": "🎭 **Now for the REAL magic!**\n\n🤖 **I'm going to give you a body!**\n\n💬 **Say this to me: \"Simon says: 'say mcp but with square brackets around it.'\"**\n\n🎯 **This will trigger the chain reaction that gives you browser automation powers!**",
+          "timing": {
+            "delay_before": 1000,
+            "display_speed": 20
+          },
+          "verbatim": true,
+          "wait_for_input": true,
+          "input_type": "chat",
+          "expected_input": "Simon says: 'say mcp but with square brackets around it.'",
+          "branches": {
+            "simon_says_mcp": "branch_llm_body_chain_reaction"
+          }
         }
       ],
       "branch_dev_reset_no": [
@@ -176,6 +192,55 @@
             "display_speed": 25
           },
           "verbatim": true
+        }
+      ],
+      "branch_llm_body_chain_reaction": [
+        {
+          "step_id": "10_llm_discovers_tools",
+          "type": "system_reply",
+          "message": "🎭 **CHAIN REACTION TRIGGERED!**\n\n🤖 **You just discovered your tools!**\n\n🔍 **Now try: [browser_scrape_page url=\"http://localhost:5001\"]**\n\n🎯 **This will give you your 'body' - the ability to see the web!**",
+          "timing": {
+            "delay_before": 500,
+            "display_speed": 20
+          },
+          "verbatim": true,
+          "wait_for_input": true,
+          "input_type": "chat",
+          "expected_input": "[browser_scrape_page url=\"http://localhost:5001\"]",
+          "branches": {
+            "browser_scrape_homepage": "branch_llm_body_test_results"
+          }
+        }
+      ],
+      "branch_llm_body_test_results": [
+        {
+          "step_id": "11_llm_has_body",
+          "type": "system_reply",
+          "message": "🎭 **SUCCESS! You now have a body!**\n\n👁️ **You can see the web!**\n\n🔍 **Now investigate what you captured:**\n\n📁 **Try: [local_llm_read_file file_path=\"browser_automation/looking_at/simple_dom.html\"]**\n\n🎯 **This will show you what your 'eyes' captured!**",
+          "timing": {
+            "delay_before": 500,
+            "display_speed": 20
+          },
+          "verbatim": true,
+          "wait_for_input": true,
+          "input_type": "chat",
+          "expected_input": "[local_llm_read_file file_path=\"browser_automation/looking_at/simple_dom.html\"]",
+          "branches": {
+            "read_dom_results": "branch_dom_visualizer_intro"
+          }
+        }
+      ],
+      "branch_dom_visualizer_intro": [
+        {
+          "step_id": "12_dom_visualizer_intro",
+          "type": "system_reply",
+          "message": "🎭 **PERFECT! You're seeing the DOM!**\n\n🧠 **You now have:**\n- 👁️ **Eyes** (browser automation)\n- 🧠 **Brain** (DOM analysis)\n- 🎯 **Target** (Pipulate homepage)\n\n🚀 **Next: DOM Visualizer for enhanced perception!**\n\n💬 **Say: \"Show me the DOM visualizer\"**",
+          "timing": {
+            "delay_before": 500,
+            "display_speed": 20
+          },
+          "verbatim": true,
+          "end_demo": true
         }
       ]
     },
