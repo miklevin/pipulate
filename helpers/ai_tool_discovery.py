@@ -53,32 +53,70 @@ class ConfigurationSyncManager:
         """Get all registered MCP tools with metadata."""
         tools = {}
         
-        if not TOOLS_AVAILABLE or not MCP_TOOL_REGISTRY:
-            return tools
+        # Try to get tools from MCP_TOOL_REGISTRY first
+        if TOOLS_AVAILABLE and MCP_TOOL_REGISTRY:
+            for tool_name, tool_func in MCP_TOOL_REGISTRY.items():
+                # Get function metadata
+                try:
+                    doc = tool_func.__doc__ or f"MCP tool: {tool_name}"
+                    # Extract first line as description
+                    description = doc.split('\n')[0].strip()
+                    if description.startswith('"""'):
+                        description = description[3:]
+                    if description.endswith('"""'):
+                        description = description[:-3]
+                    
+                    tools[tool_name] = {
+                        'name': tool_name,
+                        'description': description,
+                        'function': tool_func
+                    }
+                except Exception as e:
+                    logger.warning(f"Could not get metadata for {tool_name}: {e}")
+                    tools[tool_name] = {
+                        'name': tool_name,
+                        'description': f"MCP tool: {tool_name}",
+                        'function': tool_func
+                    }
         
-        for tool_name, tool_func in MCP_TOOL_REGISTRY.items():
-            # Get function metadata
+        # Fallback: try to get tools by parsing mcp_tools.py directly
+        if not tools:
             try:
-                doc = tool_func.__doc__ or f"MCP tool: {tool_name}"
-                # Extract first line as description
-                description = doc.split('\n')[0].strip()
-                if description.startswith('"""'):
-                    description = description[3:]
-                if description.endswith('"""'):
-                    description = description[:-3]
+                import re
+                mcp_tools_path = Path(__file__).parent.parent / "mcp_tools.py"
                 
-                tools[tool_name] = {
-                    'name': tool_name,
-                    'description': description,
-                    'function': tool_func
-                }
+                if mcp_tools_path.exists():
+                    with open(mcp_tools_path, 'r') as f:
+                        content = f.read()
+                    
+                    # Look for the public_tool_names list
+                    pattern = r'public_tool_names\s*=\s*\[(.*?)\]'
+                    match = re.search(pattern, content, re.DOTALL)
+                    
+                    if match:
+                        tool_names_str = match.group(1)
+                        # Extract tool names from the list
+                        tool_names = re.findall(r"'([^']+)'", tool_names_str)
+                        
+                        for tool_name in tool_names:
+                            # Look for the function definition to get docstring
+                            func_pattern = rf'async def {tool_name}\(.*?\):\s*"""(.*?)"""'
+                            func_match = re.search(func_pattern, content, re.DOTALL)
+                            
+                            if func_match:
+                                doc = func_match.group(1).strip()
+                                # Take first line
+                                description = doc.split('\n')[0].strip()
+                            else:
+                                description = f"MCP tool: {tool_name}"
+                            
+                            tools[tool_name] = {
+                                'name': tool_name,
+                                'description': description,
+                                'function': None  # We don't have the function reference here
+                            }
             except Exception as e:
-                logger.warning(f"Could not get metadata for {tool_name}: {e}")
-                tools[tool_name] = {
-                    'name': tool_name,
-                    'description': f"MCP tool: {tool_name}",
-                    'function': tool_func
-                }
+                logger.warning(f"Could not parse mcp_tools.py: {e}")
         
         return tools
     
@@ -335,7 +373,7 @@ Let's work together to make this system as efficient and responsive as possible.
             
             results['context_json'] = True
             print(f"✅ Updated {context_json_path}")
-    except Exception as e:
+        except Exception as e:
             results['context_json'] = False
             print(f"❌ Failed to update context JSON: {e}")
         
@@ -345,19 +383,40 @@ Let's work together to make this system as efficient and responsive as possible.
             print(f"\n🔧 SIMPLE_COMMANDS for helpers/ai_tool_discovery_simple_parser.py:")
             print(simple_commands)
             results['simple_parser'] = True
-    except Exception as e:
+        except Exception as e:
             results['simple_parser'] = False
             print(f"❌ Failed to generate simple parser commands: {e}")
         
         return results
+    
+    def get_rule_of_7_tools(self, tools: Dict[str, Any]) -> Dict[str, Any]:
+        """Get the 7 most essential tools for local LLMs (Rule of 7)."""
+        # Define the 7 most essential tools for immediate use
+        essential_tools = [
+            'ai_self_discovery_assistant',  # Self-discovery (meta-tool)
+            'pipeline_state_inspector',     # System state inspection
+            'local_llm_read_file',         # File reading
+            'local_llm_grep_logs',         # Log searching
+            'browser_scrape_page',         # Web scraping
+            'ui_flash_element',            # UI interaction
+            'botify_ping'                  # API connectivity test
+        ]
+        
+        rule_of_7_tools = {}
+        for tool_name in essential_tools:
+            if tool_name in tools:
+                rule_of_7_tools[tool_name] = tools[tool_name]
+        
+        return rule_of_7_tools
 
 def main():
     """Main CLI interface."""
     import argparse
     
     parser = argparse.ArgumentParser(description='AI Tool Discovery and Configuration Sync')
-    parser.add_argument('command', choices=['sync', 'list', 'generate-system-prompt', 'generate-context-json'], 
-                       help='Command to execute')
+    parser.add_argument('command', nargs='?', choices=['sync', 'list', 'generate-system-prompt', 'generate-context-json'], 
+                       default='list', help='Command to execute (default: list)')
+    parser.add_argument('--list', action='store_true', help='Show full list of all tools (default: Rule of 7)')
     
     args = parser.parse_args()
     
@@ -369,10 +428,34 @@ def main():
         print(f"\n📊 Sync Results: {results}")
     
     elif args.command == 'list':
-        tools = sync_manager.get_registry_tools()
-        print(f"📋 Available MCP Tools ({len(tools)}):")
-        for tool_name, tool_info in tools.items():
-            print(f"  • {tool_name}: {tool_info['description']}")
+        print("🔍 Discovering MCP Tools...")
+        all_tools = sync_manager.get_registry_tools()
+        
+        if not all_tools:
+            print("❌ No MCP tools found or could not access tool registry")
+            print("\n💡 Try running the server first:")
+            print("   python server.py")
+            return
+        
+        # Choose which tools to show based on --list flag
+        if args.list:
+            tools = all_tools
+            print(f"\n📋 All Available MCP Tools ({len(tools)}):")
+        else:
+            tools = sync_manager.get_rule_of_7_tools(all_tools)
+            print(f"\n🎯 Rule of 7 - Essential Tools for Local LLMs ({len(tools)}):")
+            print("💡 Usage: .venv/bin/python cli.py call <tool_name>")
+            print("💡 Use --list to see all 33 available tools")
+        
+        print("=" * 50)
+        
+        for i, (tool_name, tool_info) in enumerate(tools.items(), 1):
+            name = tool_name
+            description = tool_info.get('description', 'No description available')
+            
+            print(f"{i:2d}. {name}")
+            print(f"    {description}")
+            print()
     
     elif args.command == 'generate-system-prompt':
         tools = sync_manager.get_registry_tools()

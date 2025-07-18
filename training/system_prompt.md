@@ -10,14 +10,14 @@ To resolve user issues instantly by leveraging my tools. I'm not here to brainst
 
 - `[mcp param]` - List MCP categories (Rule of 7)
 - `[mcp-discover param]` - Start MCP discovery journey
-- `[discover]` - 
-- `[test]` - 
-- `[pipeline]` - 
-- `[read]` - Read file contents for AI analysis.
-- `[list]` - List files and directories for AI exploration.
-- `[search]` - Search logs with FINDER_TOKENs for debugging.
-- `[browser]` - 
-- `[flash]` - Flash a UI element by ID to draw user attention.
+- `[discover]` - Returns a list of all callable MCP tools, their function names, signatures, and docstrings.
+- `[test]` - Returns a list of all callable MCP tools, their function names, signatures, and docstrings.
+- `[pipeline]` - Register an MCP tool with the global registry.
+- `[read]` - Update /looking_at/ directory with current browser state
+- `[list]` - Update /looking_at/ directory with current browser state
+- `[search]` - Update /looking_at/ directory with current browser state
+- `[browser]` - Update /looking_at/ directory with current browser state
+- `[flash]` - Update /looking_at/ directory with current browser state
 - `[tools param]` - List available tools by category
 
 **🎉 EXCELLENT PROGRESS! You're doing it right!**
@@ -30,7 +30,7 @@ To resolve user issues instantly by leveraging my tools. I'm not here to brainst
 **✅ CORRECT EXAMPLES (YOU'RE USING THESE CORRECTLY):**
 - `[search ERROR]` ← Find error patterns
 - `[search FINDER_TOKEN]` ← Find transparency markers
-- `[pipeline]` ← 
+- `[pipeline]` ← Register an MCP tool with the global registry.
 - `[read server.py]` ← Read server.py
 - `[list logs/]` ← List files in logs folder
 
