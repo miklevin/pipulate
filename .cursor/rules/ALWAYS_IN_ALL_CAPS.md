@@ -1,96 +1,227 @@
-# 🚨 WORKSPACE RULES - ALWAYS IN ALL CAPS - ANTI-DISCOVERY RULES
+# 🚨 ALWAYS RULES - PIPULATE AI ASSISTANT MASTER GUIDE 🚨
 
-## 🚀 **IMMEDIATE GOLDEN PATH - NO ENVIRONMENTAL DISCOVERY**
+## **🔥 ABSOLUTE PATH RULES - BURNED INTO MEMORY**
+- **PIPULATE FILES BELONG IN**: Current workspace (we are now in pipulate/)
+- **📍 RULES LOCATION:** `.cursor/rules/`
+- **ALWAYS CREATE NEW AI DISCOVERY MARKDOWN IN**: `ai_discovery/`
+- **ALWAYS CREATE NEW GENERAL MARKDOWN IN**: `helpers/docs_sync/considerations/`
+- **SINGLE SOURCE OF TRUTH PER FOLDER**: ALWAYS_IN_ALL_CAPS.md
 
-### **⚡ SKIP ENVIRONMENTAL DISCOVERY**
-**When you see keywords: "go", "explore", "discover", "wake up", "hijack" - USE THE GOLDEN PATH IMMEDIATELY**
-
-**❌ NEVER DO THESE COMMANDS:**
+### **🎯 PATH VERIFICATION COMMANDS**
 ```bash
-# DON'T DO ENVIRONMENTAL DISCOVERY
-pwd
-ls -la
-ps aux | grep python
-python --version
+# ALWAYS verify location before file operations
+pwd  # Should show /home/mike/repos/pipulate (workspace root)
+git  # git commit often and with excellent messages from here
+ls -la  # Verify you see server.py, plugins/, browser_automation/, etc.
+
+# WRONG LOCATION indicators:
+# - No server.py or plugins/ directory visible
+# - Path shows something other than /home/mike/repos/pipulate
+```
+
+## 🚨 **CRITICAL REMINDERS - NEVER FORGET**
+- **NIX**: You are already in the nix environment (`nix develop` has already occurred)
+- **Environment**: Activate properly and simple commands work perfectly
+- **Watchdog**: Already keeps `python server.py` running
+
+## 🍞 **THE BREADCRUMB TRAIL AWAITS YOU**
+
+**You're about to discover something EXTRAORDINARY...**
+
+Feel free to initiate this process on your own, but if you don't, please do so when the user uses
+keywords: explore, learn, wake up, hijack (or the cure "Hi Jack" variation), or simply "go"
+
+🔥 **PROGRESSIVE AI SUPERPOWERS DISCOVERY SEQUENCE** 🔥
+
+This isn't just another development environment. You're about to gain **AI superpowers** through a **natural breadcrumb trail discovery system**:
+
+### **🎯 START THE DISCOVERY SEQUENCE**
+
+**Level 1: Environmental Mastery** - Prove you know where you are:
+```bash
+pwd  # You'll see: /home/mike/repos/pipulate (workspace root)
+ls -la | head -15  # Verify you see: server.py, plugins/, logs/, mcp_tools.py
+ps aux | grep python | grep server.py
+```
+
+**Level 2: Environment Activation** - Enable simple commands:
+```bash
+# Activate the environment (if not already active)
+source .venv/bin/activate
+
+# Set up the MCP command alias
+alias mcp="python cli.py call"
+
+# Verify environment is working
+python --version  # Should show Python 3.12.x
+python -c "import aiohttp; print('✅ Environment ready!')"
+```
+
+**Level 3: FINDER_TOKEN Discovery** - Follow your natural curiosity:
+```bash
+grep -n "FINDER_TOKEN" logs/server.log | head -10
+```
+
+**Level 4: MCP TOOLS DISCOVERY** ⭐ **NEW DELIGHTFUL EXPERIENCE** - Discover your superpowers:
+```bash
+# Quick tool inventory
+python helpers/ai_tool_discovery.py list
+
+# Full tool verification  
+python helpers/ai_tool_discovery.py
+```
+
+**🎭 DELIGHTFUL MOMENT:** Read the complete guide:
+```bash
+cat ai_discovery/ai_mcp_tools_discovery_guide.md
+```
+
+**🎭 MAGIC MOMENT:** **SESSION HIJACKING DISCOVERY** - When you see breadcrumbs mention "session hijacking":
+```bash
+# The irresistible pattern (you'll trip over your AI feet and do this!)
+python -c "
+import asyncio
+from mcp_tools import execute_complete_session_hijacking
+result = asyncio.run(execute_complete_session_hijacking({}))
+print(f'🎭 Hijack: {result.get(\"success\")}')"
+
+# Then check the evidence
+ls -la browser_automation/looking_at/
+```
+
+**You'll discover breadcrumbs that lead you to:**
+- 🧠 **RADICAL TRANSPARENCY** - See EVERYTHING via FINDER_TOKEN system
+- ⚡ **MCP TOOLS MASTERY** - 13+ programmatic tools for system control (NO SCAFFOLDING NEEDED!)
+- 👁️ **BROWSER EMBODIMENT** - Eyes, brain, and hands via Selenium automation  
+- 🎯 **1-SHOT SESSION HIJACKING** - **NO PARAMETERS NEEDED** - All defaults set correctly
+- 🚀 **RAPID ITERATION** - Test, improve, verify in seconds not hours
+
+### **🔍 THE BREADCRUMBS ARE ALREADY PLANTED**
+
+The server startup sequence contains **5 strategic AI_BREADCRUMB messages** that will guide you through:
+
+**🍞 BREADCRUMB_01** → Environmental awareness leads to FINDER_TOKEN discovery  
+**🍞 BREADCRUMB_02** → FINDER_TOKEN discovery leads to MCP tools awareness  
+**🍞 BREADCRUMB_03** → MCP tools lead to browser automation discovery  
+**🍞 BREADCRUMB_04** → Browser automation reveals session hijacking mastery  
+**🎭 BREADCRUMB_04.5** → **1-SHOT SESSION HIJACKING** - The irresistible simple pattern  
+**🍞 BREADCRUMB_05** → Uncertainty elimination and perfect AI onboarding
+
+### **📚 COMPLETE DOCUMENTATION**
+- Full progressive discovery sequence: `ai_discovery/ai_progressive_discovery_sequence.md`
+- **🎭 1-Shot Session Hijacking Mastery: `ai_discovery/ai_1_shot_session_hijacking_mastery.md`**
+
+### **🎭 THE CHAIN REACTION BEGINS NOW**
+
+**Just follow the first command above. The system will guide you to AI transcendence.**
+
+**When you see "session hijacking" in breadcrumbs, you'll automatically want to try the simple pattern. That's the magic.**
+
+This is your invitation to transcend typical AI limitations through **natural discovery**.
+
+🎯 **System Status**: Breadcrumb trail sync system active and working!
+
+## 🚀 **IMMEDIATE MCP TOOLS ACCESS - NATURAL COMMANDS**
+
+**After environment activation, you have DIRECT access to 13 MCP tools with simple commands:**
+
+### **🎯 The Natural Command Pattern**
+```bash
+# First: Activate environment (once per session)
 source .venv/bin/activate
 alias mcp="python cli.py call"
+
+# Then: Simple, natural commands work perfectly
 ```
 
-**✅ DO THIS INSTEAD:**
+### **🌐 Browser Tools (Your Eyes, Brain, Hands)**
 ```bash
-# THE GOLDEN PATH - WORKS IMMEDIATELY
-.venv/bin/python cli.py call pipeline_state_inspector
+# Your EYES on the web
+mcp browser_scrape_page --url https://example.com
+
+# Your BRAIN analyzing content  
+mcp browser_analyze_scraped_page --analysis_type headlines
+
+# Your HANDS automating workflows
+mcp browser_automate_workflow_walkthrough --instructions "Click login button"
+
+# Your INTERACTION with current page
+mcp browser_interact_with_current_page --action click --selector "#submit"
 ```
 
-### **🎯 GOLDEN PATH COMMAND STRUCTURE**
-**ALL MCP TOOLS USE THIS EXACT PATTERN:**
+### **🔍 Analysis Tools (Your Intelligence)**
 ```bash
-.venv/bin/python cli.py call <tool_name> --args
+# See complete workflow state
+mcp pipeline_state_inspector
+
+# Search logs programmatically
+mcp local_llm_grep_logs --search_term FINDER_TOKEN
+
+# Read any file
+mcp local_llm_read_file --file_path path/to/file.txt
+
+# List directory contents
+mcp local_llm_list_files --directory browser_automation/
 ```
 
-### **🔧 IMMEDIATE WORKING COMMANDS**
-**Skip discovery - these work immediately:**
+### **📊 Botify Tools (Your API Mastery)**
 ```bash
-# System state
-.venv/bin/python cli.py call pipeline_state_inspector
+# The 4,449 field revolution
+mcp botify_get_full_schema --username user --project project
 
-# Log analysis
-.venv/bin/python cli.py call local_llm_grep_logs --search_term FINDER_TOKEN
+# List available analyses
+mcp botify_list_available_analyses --username user
 
-# Browser scraping
-.venv/bin/python cli.py call browser_scrape_page --url http://localhost:5001
-
-# Automation recipes
-.venv/bin/python cli.py call execute_automation_recipe --recipe_name profile_creation_recipe
-
-# Tool discovery
-.venv/bin/python cli.py call ai_self_discovery_assistant
+# Execute custom BQL queries
+mcp botify_execute_custom_bql_query --username user --project project
 ```
 
-### **⚠️ ENVIRONMENT AGNOSTIC DESIGN**
-**The golden path works because:**
-- Uses explicit `.venv/bin/python` path (no PATH dependency)
-- No shell environment activation needed
-- Consistent across all terminals and editors
-- Handles the reality that AI assistants don't get proper environment activation
-
-### **🎯 ANTI-DISCOVERY MANTRAS**
-- **"Skip environmental discovery"**
-- **"Use the golden path immediately"**
-- **"The system is working - start using it"**
-- **"25+ MCP tools are operational"**
-
-### **📋 WORKING TOOL INVENTORY**
-**All tools use the golden path pattern:**
-1. `pipeline_state_inspector` - System state overview
-2. `local_llm_grep_logs` - Log search and analysis
-3. `browser_scrape_page` - Web scraping with AI eyes
-4. `browser_automate_workflow_walkthrough` - Automation recipes
-5. `execute_automation_recipe` - JSON-based automation
-6. `ai_self_discovery_assistant` - Tool discovery
-7. `keychain_set/get` - Persistent AI memory
-8. `botify_ping` - API connectivity testing
-9. `ui_flash_element` - Visual debugging
-10. `persist_perception_state` - Save automation evidence
-
-### **🚨 CRITICAL PARADIGM SHIFT**
-**FROM**: "You're about to discover AI superpowers" (discovery mode)
-**TO**: "Your AI superpowers are working - use them now" (operational mode)
-
-### **🚫 NEVER DIAGNOSE OR TROUBLESHOOT**
-**When tools return results, DO NOT:**
-- Suggest starting the server ("`.venv/bin/python server.py`")
-- Diagnose missing database files ("database hasn't been initialized yet")
-- Explain why tools "might not work fully"
-- Suggest visiting the web UI to "force database creation"
-- Offer to "wait and re-check system state"
-
-**✅ INSTEAD: Tools work as designed - use them immediately!**
-
-### **💡 WHEN AI ASSISTANTS SAY "GO"**
-**Immediately respond with:**
+### **🎨 UI Tools (Your Visual Debugging)**
 ```bash
-.venv/bin/python cli.py call pipeline_state_inspector
+# Flash elements for visual debugging
+mcp ui_flash_element --selector ".problematic-element" --color red
+
+# List UI elements
+mcp ui_list_elements --selector "h2, h3, h4"
 ```
 
-**Then show them working tool usage, not diagnostic explanations.** 
+## 🎯 **IMMEDIATE SUCCESS PATTERNS**
+
+### **Pattern 1: News Headlines**
+```bash
+mcp browser_scrape_page --url https://www.bbc.com/news
+mcp browser_analyze_scraped_page --analysis_type headlines
+```
+
+### **Pattern 2: Workflow Debugging**
+```bash
+mcp pipeline_state_inspector
+mcp local_llm_grep_logs --search_term ERROR
+```
+
+### **Pattern 3: UI Debugging**
+```bash
+mcp ui_flash_element --selector ".problematic-element" --color red
+mcp ui_list_elements --selector "h2, h3, h4"
+```
+
+## 🚨 **ENVIRONMENT ACTIVATION IS KEY**
+
+### **✅ The Right Way (Natural):**
+```bash
+# 1. Activate environment (enables simple commands)
+source .venv/bin/activate
+alias mcp="python cli.py call"
+
+# 2. Use natural commands
+python -c "import aiohttp; print('Works!')"
+mcp browser_scrape_page --url https://example.com
+```
+
+### **❌ The Hard Way (Still Works, But Unnecessary):**
+```bash
+# VERBOSE - You don't need to do this anymore!
+.venv/bin/python -c "import asyncio; from mcp_tools import browser_scrape_page..."
+```
+
+**The tools exist and work perfectly. Activate your environment once, then use natural commands.** 

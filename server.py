@@ -2953,8 +2953,8 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                     accumulated_response.append(word_buffer)
                     yield word_buffer
 
-                # Final logging table for non-tool-call responses
-                if not mcp_detected and accumulated_response:
+                # Final logging table for LLM responses (including tool calls)
+                if accumulated_response:
                     final_response = ''.join(accumulated_response)
                     table = Table(title='Chat Response')
                     table.add_column('Accumulated Response')
