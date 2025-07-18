@@ -2148,7 +2148,8 @@ class Pipulate:
         # Logic for interruptible LLM streams
         try:
             await self.chat.broadcast('%%STREAM_START%%')
-            conversation_history = list(global_conversation_history)
+            # Use the append-only conversation system instead of global deque
+            conversation_history = append_to_conversation()  # Get current conversation history
             response_text = ''
             async for chunk in process_llm_interaction(MODEL, conversation_history):
                 await self.chat.broadcast(chunk)
@@ -2869,14 +2870,15 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     table.add_column('Role', style='cyan')
     table.add_column('Content', style='orange3')
     if messages:
-        last_message = messages[-1]
-        role = last_message.get('role', 'unknown')
-        content = last_message.get('content', '')
+        # Show the current user input (last message should be the current user's message)
+        current_message = messages[-1]
+        role = current_message.get('role', 'unknown')
+        content = current_message.get('content', '')
         if isinstance(content, dict):
             # Use Rich JSON display for LLM content formatting
             content = rich_json_display(content, console_output=False, log_output=True)
         table.add_row(role, content)
-        logger.debug(f"🔍 DEBUG: Last message - role: {role}, content: '{content[:100]}...'")
+        logger.debug(f"🔍 DEBUG: Current user input - role: {role}, content: '{content[:100]}...'")
     print_and_log_table(table, "LLM DEBUG - ")
 
     try:
