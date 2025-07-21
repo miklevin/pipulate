@@ -332,4 +332,18 @@ ESSENTIAL_TOOLS = [
     "server_reboot",
     "conversation_history_view",
     "conversation_history_stats"
-] 
+]
+
+# 👥 Plugin Role System (STANDARDIZED ROLES)
+AVAILABLE_ROLES = {
+    'Core': 'Core system functionality and essential workflows',
+    'Developer': 'Development tools and debugging utilities', 
+    'Components': 'UI widget examples and form components',
+    'Botify Employee': 'Botify API workflows and data extraction',
+    'Tutorial': 'Learning materials and documentation',
+    'Workshop': 'Experimental and workshop content'
+}
+
+# 🔑 API Token Configuration (STANDARDIZED FILE PATHS)
+BOTIFY_TOKEN_FILE = 'botify_token.txt'  # Root level token file
+BOTIFY_HELPERS_TOKEN_FILE = 'helpers/botify/botify_token.txt'  # Helper scripts token file 
