@@ -1,16 +1,16 @@
 # File: plugins/300_blank_placeholder.py
 import asyncio
-from collections import namedtuple
 from datetime import datetime
 from fasthtml.common import * # type: ignore
 from loguru import logger
 import inspect
 from pathlib import Path
 import re
+from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
 
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None, None, None, False, None))
+# 🎯 STEP DEFINITION: Now imported from common.py (eliminates 34+ duplications)
 
 class BlankPlaceholder:
     """

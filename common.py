@@ -13,6 +13,11 @@ import asyncio
 import inspect
 import json
 import logging
+from collections import namedtuple
+
+# 🎯 STANDARDIZED STEP DEFINITION - Used by all workflow plugins
+# Eliminates 34+ identical namedtuple definitions across plugins
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 from datetime import datetime
 
 import aiohttp

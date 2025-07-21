@@ -1,8 +1,8 @@
-from collections import namedtuple
 from datetime import datetime
 
 from fasthtml.common import *
 from loguru import logger
+from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Core']
 
@@ -127,7 +127,7 @@ Note: These patterns could potentially be extended to support more sophisticated
 interaction modalities while maintaining the same underlying state management principles.
 """
 
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+# 🎯 STEP DEFINITION: Now imported from common.py (eliminates 34+ duplications)
 
 
 class HelloFlow:
