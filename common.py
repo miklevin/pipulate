@@ -493,3 +493,45 @@ async def check_ollama_availability():
     except Exception as e:
         logger.debug(f"Error checking Ollama availability: {e}")
         return False
+
+# =============================================================================
+# 📦 TIERED PLUGIN IMPORTS - Eliminates Copy-Paste Import Chaos
+# =============================================================================
+# Different plugin types need different import sets. These provide clean,
+# purposeful imports instead of copying massive import blocks from templates.
+
+# 🎯 BASIC WORKFLOW IMPORTS - For simple step-by-step workflows
+# Simple import pattern - plugins can copy these lines instead of massive import blocks
+
+# Basic workflow imports (copy these 4 lines):
+# import asyncio
+# from datetime import datetime  
+# from fasthtml.common import *
+# from loguru import logger
+
+# 🌐 API WORKFLOW IMPORTS - For plugins that call external APIs
+# Extended import pattern for Botify/API workflows (copy these lines):
+# import asyncio, json, os, time
+# from datetime import datetime, timedelta
+# from pathlib import Path  
+# from urllib.parse import urlparse, parse_qs
+# import httpx
+# import pandas as pd
+# from fasthtml.common import *
+# from loguru import logger
+
+# 🎨 WIDGET IMPORTS - For UI component demonstration plugins
+# Minimal import pattern for widget examples (copy these lines):
+# import asyncio
+# from datetime import datetime
+# from fasthtml.common import *
+# from loguru import logger
+# from common import Step
+
+# 🛠️ USAGE PATTERN:
+# Instead of copying massive import blocks from complex plugins,
+# use the appropriate pattern above for your plugin type:
+# 
+# ✅ Widget plugins: Use the 5-line widget import pattern
+# ✅ API plugins: Use the 8-line API workflow pattern  
+# ✅ Basic plugins: Use the 4-line basic workflow pattern
