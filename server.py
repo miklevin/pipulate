@@ -4219,19 +4219,20 @@ async def startup_event():
     except Exception as e:
         logger.error(f"🎭 FINDER_TOKEN: DEMO_CONTINUATION_ERROR - Failed to check demo continuation state: {e}")
 
-    # 🎭 DEMO RESTART FLAG CHECK - Detect if we're coming back from a demo-triggered restart
+    # 🎭 DEMO RESTART FLAG CHECK - Detect if we're coming back from a demo-triggered restart (file-based)
     try:
-        demo_restart_flag = db.get('demo_restart_flag')
-        if demo_restart_flag == 'true':
+        demo_state = get_demo_state()
+        if demo_state:
             logger.info("🎭 FINDER_TOKEN: DEMO_RESTART_DETECTED - Server is coming back from a demo-triggered restart")
-            # Set flag for special startup message and clear the restart flag
+            # Set demo comeback message with the actual demo state for continuation
             db['demo_comeback_message'] = 'true'
-            del db['demo_restart_flag']  # Clear the flag (flipflop behavior)
-            logger.info("🎭 FINDER_TOKEN: DEMO_RESTART_FLIPFLOP - Demo comeback message set, restart flag cleared")
+            db['demo_comeback_state'] = demo_state  # Store the demo state for continuation
+            clear_demo_state()  # Clear the file after transferring to database
+            logger.info(f"🎭 FINDER_TOKEN: DEMO_RESTART_FLIPFLOP - Demo comeback message set with state: {demo_state}, file cleared")
         else:
-            logger.info("🎭 FINDER_TOKEN: DEMO_RESTART_NONE - Normal server restart, no demo comeback message")
+            logger.info("🎭 FINDER_TOKEN: DEMO_RESTART_NONE - Normal server restart, no demo state found")
     except Exception as e:
-        logger.error(f"🎭 FINDER_TOKEN: DEMO_RESTART_ERROR - Failed to check demo restart flag: {e}")
+        logger.error(f"🎭 FINDER_TOKEN: DEMO_RESTART_ERROR - Failed to check demo state file: {e}")
 
     # 🛡️ BACKUP SYSTEM INTEGRATION - Protect all critical data on startup
     try:
@@ -6433,25 +6434,30 @@ async def check_demo_resume(request):
 
 @rt('/check-demo-comeback', methods=['GET'])
 async def check_demo_comeback(request):
-    """Check if we're coming back from a demo-triggered restart and show special message.
-    
-    NOTE: This endpoint is now superseded by integrated demo comeback messaging 
-    via the startup environment message system. The demo comeback message is now 
-    displayed as the main endpoint message instead of requiring separate polling.
-    
-    This endpoint is maintained for backward compatibility but should return 
-    no-action responses since the comeback message is handled by startup messaging.
-    """
+    """Check if we're coming back from a demo-triggered restart and return demo state for continuation."""
     try:
-        # Always return no action since comeback is handled via startup messaging
-        return JSONResponse({
-            "show_comeback_message": False,
-            "message": None,
-            "subtitle": None,
-            "note": "Demo comeback now handled via integrated startup messaging"
-        })
+        # Check if we have demo comeback state for continuation
+        demo_comeback_state = db.get('demo_comeback_state')
+        
+        if demo_comeback_state:
+            # Clear the state after reading it (single use)
+            del db['demo_comeback_state']
+            logger.info(f"🎭 Demo comeback detected with state: {demo_comeback_state}")
+            
+            return JSONResponse({
+                "show_comeback_message": True,
+                "demo_state": demo_comeback_state,
+                "message": "🎭 Demo server restart complete! Ready for the next trick...",
+                "subtitle": "Press Ctrl+Alt+Y to continue or Ctrl+Alt+N to stop"
+            })
+        else:
+            return JSONResponse({
+                "show_comeback_message": False,
+                "message": None,
+                "subtitle": None
+            })
     except Exception as e:
-        logger.error(f"🎭 Error in legacy demo comeback endpoint: {e}")
+        logger.error(f"🎭 Error checking demo comeback state: {e}")
         return JSONResponse({
             "show_comeback_message": False,
             "message": None,

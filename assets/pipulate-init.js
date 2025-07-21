@@ -2401,14 +2401,65 @@ async function checkDemoComeback() {
         
         if (data.show_comeback_message) {
             console.log('🎭 Demo comeback message detected:', data.message);
+            console.log('🎭 Demo state for continuation:', data.demo_state);
             
-            // Show the demo comeback message with special styling
+            // Show the demo comeback message and continue the demo
             await showDemoComebackMessage(data.message, data.subtitle);
+            
+            // 🔧 DEMO CONTINUATION: Resume demo from the stored state
+            if (data.demo_state) {
+                console.log('🎭 Resuming demo from state:', data.demo_state);
+                await resumeDemoFromState(data.demo_state);
+            }
         } else {
             console.log('🎭 No demo comeback message to show');
         }
     } catch (error) {
         console.error('🎭 Error checking demo comeback message:', error);
+    }
+}
+
+// Resume demo from stored state after server restart
+async function resumeDemoFromState(demoState) {
+    try {
+        console.log('🎭 DEMO CONTINUATION: Resuming demo from state:', demoState);
+        
+        // Load the demo script
+        const demoScript = await loadDemoScript();
+        if (!demoScript) {
+            console.error('🎭 Could not load demo script for continuation');
+            return;
+        }
+        
+        // Find the next step based on the stored state
+        const currentStepId = demoState.step_id;
+        console.log('🎭 Current step ID from state:', currentStepId);
+        
+        // Look for the continuation step (next step after database reset)
+        if (currentStepId === '08_dev_reset_confirmed') {
+            // Continue with the next trick after database reset
+            const nextSteps = demoScript.steps.filter(step => 
+                step.step_id === '09_second_trick_intro' || 
+                step.step_id.startsWith('09_')
+            );
+            
+            if (nextSteps.length > 0) {
+                console.log('🎭 Found continuation steps:', nextSteps);
+                // Execute the next part of the demo
+                await executeStepsWithBranching(nextSteps, demoScript);
+            } else {
+                console.log('🎭 No specific continuation steps found, showing generic continuation message');
+                await addDemoMessage('assistant', '🎭 **Demo continuation ready!** What would you like to see next?');
+            }
+        } else {
+            console.log('🎭 Unknown demo state, showing generic continuation');
+            await addDemoMessage('assistant', '🎭 **Demo server restart complete!** Ready for the next trick...');
+        }
+        
+    } catch (error) {
+        console.error('🎭 Error resuming demo from state:', error);
+        // Fallback to generic continuation message
+        await addDemoMessage('assistant', '🎭 **Demo continuation failed.** You can start a new demo if needed.');
     }
 }
 
