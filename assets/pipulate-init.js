@@ -1625,6 +1625,13 @@ async function executeStepsWithBranching(steps, demoScript) {
                     console.error('🎭 Error storing demo continuation state:', error);
                 }
                 
+                // 🎭 TRIGGER GLORIOUS FULL-SCREEN DEMO RESTART EXPERIENCE!
+                console.log('🎭 Triggering glorious full-screen demo restart experience...');
+                triggerFullScreenRestart("🎭 Demo is performing its first trick... Resetting the entire database!", "DEMO_RESTART");
+                
+                // Small delay to let the full-screen effect appear before calling the endpoint
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
                 // Call the /clear-db endpoint to trigger server restart
                 console.log('🎭 Calling /clear-db endpoint to reset database...');
                 try {
@@ -1638,9 +1645,13 @@ async function executeStepsWithBranching(steps, demoScript) {
                         return; // Exit the demo execution - server restart will handle continuation
                     } else {
                         console.error('🎭 Failed to reset database');
+                        // Hide the spinner if there's an error
+                        hideRestartSpinner();
                     }
                 } catch (error) {
                     console.error('🎭 Error calling /clear-db endpoint:', error);
+                    // Hide the spinner if there's an error
+                    hideRestartSpinner();
                 }
             }
             
