@@ -278,4 +278,50 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 # Add current directory to path to import modules
-sys.path.insert(0, '{os.getcwd()}')''' 
+sys.path.insert(0, '{os.getcwd()}')'''
+
+# =============================================================================
+# 🎯 SYSTEM CONSTANTS - FUNDAMENTAL TRUTHS (NEVER QUESTION THESE)
+# =============================================================================
+# These constants define the absolute system truths for Pipulate.
+# Use these for deterministic testing, browser automation, and system verification.
+
+# 🌐 Server Configuration (IMMUTABLE)
+SERVER_HOST = "localhost"
+SERVER_PORT = 5001
+SERVER_URL = "http://localhost:5001"
+CHAT_ENDPOINT = "/chat"
+MCP_ENDPOINT = "/mcp-tool-executor"
+
+# 📁 Directory Structure (FIXED PATHS) 
+WORKSPACE_ROOT = "/home/mike/repos"
+PIPULATE_ROOT = "/home/mike/repos/pipulate"
+AI_DISCOVERY_DIR = "pipulate/ai_discovery"
+BROWSER_AUTOMATION_DIR = "pipulate/browser_automation"
+LOGS_DIR = "pipulate/logs"
+DATA_DIR = "pipulate/data"
+
+# 🎭 Chat Interface Constants (UI SELECTORS FOR BROWSER AUTOMATION)
+CHAT_TEXTAREA = 'textarea[name="msg"]'
+CHAT_SUBMIT_BUTTON = 'button[type="submit"]'
+CHAT_MESSAGES_CONTAINER = '.messages'
+CHAT_INPUT_FORM = 'form'
+
+# ⏰ LLM Streaming Timing (CRITICAL FOR BROWSER AUTOMATION)
+LLM_RESPONSE_INITIAL_WAIT = 3      # Wait for response to start
+LLM_RESPONSE_STREAMING_WAIT = 15   # Wait for streaming to complete
+LLM_RESPONSE_FINALIZATION_WAIT = 3 # Wait for conversation save
+BROWSER_INTERACTION_DELAY = 2      # Delay between browser actions
+SERVER_RESTART_WAIT = 8            # Wait for server restart
+
+# 🔧 MCP Tool Registry (ESSENTIAL TOOLS FOR AI ASSISTANTS)
+ESSENTIAL_TOOLS = [
+    "pipeline_state_inspector",
+    "browser_scrape_page", 
+    "browser_interact_with_current_page",
+    "local_llm_grep_logs",
+    "execute_shell_command",
+    "server_reboot",
+    "conversation_history_view",
+    "conversation_history_stats"
+] 
