@@ -8,7 +8,7 @@ import inspect
 from pathlib import Path
 import re
 
-ROLES = ['Core'] # Defines which user roles can see this plugin
+ROLES = ['Workspace'] # Defines which user roles can see this plugin
 
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None, None, None, False, None))
 
