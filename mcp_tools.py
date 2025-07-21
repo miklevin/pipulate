@@ -886,10 +886,14 @@ def register_all_mcp_tools():
     # Voice synthesis tools
     register_mcp_tool("voice_synthesis", voice_synthesis)
 
-    # Browser automation tools - THE AI'S EYES AND HANDS
-    register_mcp_tool("browser_analyze_scraped_page", browser_analyze_scraped_page)
-    register_mcp_tool("browser_scrape_page", browser_scrape_page)
-    register_mcp_tool("browser_automate_workflow_walkthrough", browser_automate_workflow_walkthrough)
+    # 👁️🤲🧠 AI BROWSER EMBODIMENT BREAKTHROUGH - The Revolutionary Trinity
+    # EYES: browser_scrape_page - AI can SEE current page state via /looking_at/
+    # HANDS: browser_automate_workflow_walkthrough - AI can EXECUTE multi-step workflows  
+    # BRAIN: browser_analyze_scraped_page - AI can UNDERSTAND DOM structure for automation
+    # BREAKTHROUGH: Ends blind automation guesswork with surgical precision
+    register_mcp_tool("browser_analyze_scraped_page", browser_analyze_scraped_page)    # AI BRAIN
+    register_mcp_tool("browser_scrape_page", browser_scrape_page)                      # AI EYES  
+    register_mcp_tool("browser_automate_workflow_walkthrough", browser_automate_workflow_walkthrough)  # AI HANDS
     register_mcp_tool("browser_interact_with_current_page", browser_interact_with_current_page)
     register_mcp_tool("browser_hijack_workflow_complete", browser_hijack_workflow_complete)
 
