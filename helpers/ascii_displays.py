@@ -16,7 +16,13 @@ logger = logging.getLogger(__name__)
 console = Console()
 
 def safe_console_print(*args, **kwargs):
-    """Safe wrapper for console.print that handles I/O errors gracefully"""
+    """
+    🛡️ BLOCKING I/O ERROR PREVENTION - Safe wrapper for console.print
+    
+    CRITICAL: Prevents BlockingIOError crashes during demo restarts and high-frequency output
+    CONTEXT: Nix shells, containers, SSH sessions have different I/O constraints  
+    SOLUTION: Graceful fallback from Rich console to simple print on I/O errors
+    """
     try:
         console.print(*args, **kwargs)
     except (BlockingIOError, BrokenPipeError, OSError) as e:
