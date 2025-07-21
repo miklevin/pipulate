@@ -29,155 +29,16 @@ Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], default
 
 class Trifecta:
     """
-    Botify Trifecta Workflow - Multi-Export Data Collection
-
-    A comprehensive workflow that downloads three types of Botify data (link
-    graph/crawl analysis, web logs, and Search Console) and
-    generates Jupyter-friendly Python code for API debugging. This workflow
-    demonstrates:
-
-    - Multi-step form collection with chain reaction progression
-    - Data fetching from external APIs with proper retry and error handling
-    - File caching and management for large datasets
-    - Background processing with progress indicators
-
-    CRITICAL INSIGHT: Botify API Evolution & Business Logic
-    =======================================================
-
-    This workflow handles a PAINFUL reality: Botify's API has evolved from BQLv1 to BQLv2, but
-    BOTH versions coexist and are required for different data types based on BUSINESS LOGIC:
-
-    - Web Logs: Uses BQLv1 with collections/periods structure (OUTER JOIN - all Googlebot visits)
-    - Crawl/GSC: Uses BQLv2 with standard endpoint (INNER JOIN - crawled/indexed URLs only)
-
-    CRITICAL BUSINESS LOGIC: Web logs require the complete universe of URLs that Googlebot
-    discovered, including those never crawled. BQLv2 crawl collection only provides crawled
-    URLs, fundamentally breaking web logs analysis value proposition (finding crawl gaps).
-
-    The workflow generates Python code for BOTH patterns to enable Jupyter debugging, which is
-    essential because the /jobs endpoint is for CSV exports while /query is for quick debugging.
-
-    PAINFUL LESSONS LEARNED:
-    1. Web logs API uses different base URL (app.botify.com vs api.botify.com)
-    2. BQLv1 puts dates at payload level, BQLv2 puts them in periods array
-    3. Same job_type can have different payload structures (legacy vs modern)
-    4. Missing dates = broken URLs = 404 errors
-    5. PrismJS syntax highlighting requires explicit language classes and manual triggers
-
-    IMPORTANT: This workflow implements the standard chain reaction pattern where steps trigger
-    the next step via explicit `hx_trigger="load"` statements. See Step Flow Pattern below.
-
-    ## Step Flow Pattern
-    Each step follows this pattern for reliable chain reaction:
-    1. GET handler returns a div containing the step UI plus an empty div for the next step
-    2. SUBMIT handler returns a revert control plus explicit next step trigger:
-       `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`
-
-    ## Key Implementation Notes
-    - Background tasks use Script tags with htmx.ajax for better UX during long operations
-    - File paths are deterministic based on username/project/analysis to enable caching
-    - All API errors are handled with specific error messages for better troubleshooting
-    - Python code generation optimized for Jupyter Notebook debugging workflow
-    - Dual BQL version support (v1 for web logs, v2 for crawl/GSC) with proper conversion
-
-    ## Workflow Modularity & Flexibility
-    ===================================
-
-    While this is called the "Botify Trifecta" and downloads from four main data sources,
-    the workflow is highly modular:
-
-    **REQUIRED STEP**: Only Step 2 (crawl data) is actually required because it:
-    - Establishes the analysis slug that Steps 3 & 4 depend on
-    - Provides the core site structure data that most analyses need
-
-    **OPTIONAL STEPS**: Steps 3 (Web Logs) and 4 (Search Console) are completely optional:
-    - Can be commented out or deleted without breaking the workflow
-    - The chain reaction pattern will automatically flow through uninterrupted
-    - Step 5 (finalize) will still work correctly with just crawl data
-
-    **PRACTICAL USAGE**: Many users only need crawl data, making this essentially a
-    "Crawl Analysis Downloader" that can optionally become a full trifecta when needed.
-
-    This modularity makes the workflow perfect as a template for various Botify data
-    collection needs - from simple crawl analysis to comprehensive multi-source exports.
-
-    ## HTMX Dynamic Menu Implementation - CRITICAL PATTERN
-    =====================================================
-
-    🚨 **PRESERVATION WARNING**: This HTMX pattern is essential for dynamic button text
-    and must be preserved during any refactoring. LLMs often strip this out during
-    "creative" refactoring because they don't understand the pattern.
-
-    ### Core Components That Must Never Be Removed:
-
-    **1. Route Registration (in __init__ method):**
-    ```python
-    app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
-    ```
-
-    **2. Form HTMX Attributes (in step templates):**
-    ```python
-    Form(
-        # ... form fields ...
-        hx_post=f'/{app_name}/update_button_text',
-        hx_target='#submit-button',
-        hx_trigger='change',
-        hx_include='closest form',
-        hx_swap='outerHTML'
-    )
-    ```
-
-    **3. Button ID Consistency:**
-    ```python
-    # Initial button in form
-    Button("Process Data", id='submit-button', ...)
+    Botify Trifecta Workflow - Base Template for Multi-Export Data Collection
     
-    # Updated button in update_button_text method
-    return Button("Download Existing File", id='submit-button', ...)
-    ```
-
-    **4. File Check Method (check_cached_file_for_button_text):**
-    ```python
-    async def check_cached_file_for_button_text(self, username, project_name, analysis_slug, data_type):
-        filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, data_type)
-        exists, file_info = await self.check_file_exists(filepath)  # CRITICAL: Proper tuple unpacking
-        return exists, file_info if exists else None
-    ```
-
-    **5. Dynamic Button Text Method (update_button_text):**
-    ```python
-    async def update_button_text(self, request):
-        try:
-            # Extract form data and determine file status
-            # Return updated button with proper id='submit-button'
-            return Button("Updated Text", id='submit-button', ...)
-        except Exception as e:
-            # Always return fallback button with proper ID
-            return Button("Process Data", id='submit-button', ...)
-    ```
-
-    ### How The Pattern Works:
-    1. User changes any form field (hx_trigger='change')
-    2. HTMX sends POST to /update_button_text with full form data (hx_include='closest form')
-    3. Method checks if cached file exists for current form state
-    4. Returns updated button text: "Process Data" vs "Download Existing File"
-    5. Button gets swapped in place (hx_target='#submit-button', hx_swap='outerHTML')
-
-    ### Critical Implementation Details:
-    - The `check_file_exists` method returns a tuple: `(exists: bool, file_info: dict|None)`
-    - Must unpack properly: `exists, file_info = await self.check_file_exists(filepath)`
-    - Button ID must be consistent: `id='submit-button'` in both initial and updated versions
-    - Template-aware: Button text considers current template selection for accurate filepath generation
-    - Error handling: Always return a valid button with proper ID, even on exceptions
-
-    ### Why LLMs Break This Pattern:
-    1. They don't understand the HTMX request/response cycle
-    2. They see the route registration as "unused" and remove it
-    3. They "simplify" the button ID thinking it's redundant
-    4. They break the tuple unpacking in check_cached_file_for_button_text
-    5. They remove the try/except wrapper thinking it's unnecessary
-
-    **DO NOT REFACTOR THIS PATTERN WITHOUT UNDERSTANDING IT COMPLETELY**
+    📚 Complete documentation: helpers/docs_sync/botify_workflow_patterns.md
+    
+    Downloads three types of Botify data (crawl analysis, web logs, Search Console)
+    and generates Jupyter-friendly Python code for API debugging.
+    
+    🔧 Template Config: {} (base template)
+    🏗️ Derivatives: 110_parameter_buster.py, 120_link_graph.py  
+    🎯 WET Inheritance: Uses helpers/rebuild_trifecta_derivatives.sh for propagation
     """
     APP_NAME = 'trifecta'
     DISPLAY_NAME = 'Trifecta 🏇'
