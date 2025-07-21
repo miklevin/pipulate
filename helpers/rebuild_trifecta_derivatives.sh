@@ -4,6 +4,17 @@
 # Trifecta Derivatives Reconstruction Script
 # ==============================================================================
 # 
+# 🏗️ WET INHERITANCE MASTERY: OOP philosophy with WET explicitness
+# ═══════════════════════════════════════════════════════════════════════════════════
+# BREAKTHROUGH: Deterministic template inheritance for Pipulate workflows
+# PHILOSOPHY: WET (Write Everything Twice) for radical transparency + AI collaboration
+# METHOD: AST-based surgical code manipulation for bulletproof reliability
+# 
+# REVOLUTIONARY CAPABILITY:
+# • Update Botify Trifecta template → Automatic reconstruction of derivatives
+# • Zero manual synchronization → Complete automation via surgical AST manipulation
+# • Self-contained plugins with no runtime dependencies
+# 
 # This script deterministically rebuilds Parameter Buster and Link Graph 
 # Visualizer plugins from the Botify Trifecta template using AST-based 
 # workflow reconstruction.
