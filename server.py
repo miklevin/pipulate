@@ -4203,6 +4203,20 @@ async def startup_event():
     except Exception as e:
         logger.error(f"🎭 FINDER_TOKEN: DEMO_CONTINUATION_ERROR - Failed to check demo continuation state: {e}")
 
+    # 🎭 DEMO RESTART FLAG CHECK - Detect if we're coming back from a demo-triggered restart
+    try:
+        demo_restart_flag = db.get('demo_restart_flag')
+        if demo_restart_flag == 'true':
+            logger.info("🎭 FINDER_TOKEN: DEMO_RESTART_DETECTED - Server is coming back from a demo-triggered restart")
+            # Set flag for special startup message and clear the restart flag
+            db['demo_comeback_message'] = 'true'
+            del db['demo_restart_flag']  # Clear the flag (flipflop behavior)
+            logger.info("🎭 FINDER_TOKEN: DEMO_RESTART_FLIPFLOP - Demo comeback message set, restart flag cleared")
+        else:
+            logger.info("🎭 FINDER_TOKEN: DEMO_RESTART_NONE - Normal server restart, no demo comeback message")
+    except Exception as e:
+        logger.error(f"🎭 FINDER_TOKEN: DEMO_RESTART_ERROR - Failed to check demo restart flag: {e}")
+
     # 🛡️ BACKUP SYSTEM INTEGRATION - Protect all critical data on startup
     try:
         from helpers.durable_backup_system import DurableBackupManager
@@ -6056,14 +6070,34 @@ async def clear_db(request):
         log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB FINAL (post key restoration)')
         logger.bind(lifecycle=True).info('CLEAR_DB: Operation fully complete.')
 
+    # 🎭 DEMO RESTART DETECTION - Check if this was triggered by a demo
+    user_agent = request.headers.get('user-agent', '').lower()
+    referer = request.headers.get('referer', '')
+    
+    # Set flag if this appears to be a demo-triggered restart
+    # This enables special "coming back from demo" messaging
+    demo_triggered = False
+    try:
+        demo_continuation_state = db.get('demo_continuation_state')
+        if demo_continuation_state:
+            demo_triggered = True
+            db['demo_restart_flag'] = 'true'
+            logger.info('🎭 DEMO_RESTART: Setting demo restart flag for enhanced UX on server return')
+    except Exception as e:
+        logger.error(f'🎭 DEMO_RESTART: Error checking demo state: {e}')
+
     # Schedule server restart after database reset to ensure fresh state
+    restart_message = "Restarting with fresh database..."
+    if demo_triggered:
+        restart_message = "🎭 Demo is restarting the server... Almost there!"
+    
     logger.info('CLEAR_DB: Scheduling server restart to ensure fresh application state')
     asyncio.create_task(delayed_restart(2))
 
     # Return script that triggers full-screen restart effect for the actual restart
-    return HTMLResponse('''
+    return HTMLResponse(f'''
         <script>
-            triggerFullScreenRestart("Restarting with fresh database...", "DATABASE_RESET");
+            triggerFullScreenRestart("{restart_message}", "DATABASE_RESET");
         </script>
     ''')
 
@@ -6338,6 +6372,38 @@ async def check_demo_resume(request):
     except Exception as e:
         logger.error(f"🎭 Error checking demo resume: {e}")
         return JSONResponse({"should_resume": False, "error": str(e)}, status_code=500)
+
+
+@rt('/check-demo-comeback', methods=['GET'])
+async def check_demo_comeback(request):
+    """Check if we're coming back from a demo-triggered restart and show special message."""
+    try:
+        demo_comeback = db.get('demo_comeback_message', 'false')
+        
+        if demo_comeback == 'true':
+            # Clear the flag after checking (flipflop behavior)
+            del db['demo_comeback_message']
+            logger.info("🎭 FINDER_TOKEN: DEMO_COMEBACK_DISPLAYED - Demo comeback message shown, flag cleared")
+            
+            return JSONResponse({
+                "show_comeback_message": True,
+                "message": "🎭 Demo server restart complete! The magic continues...",
+                "subtitle": "Database has been reset and the demo environment is fresh and ready."
+            })
+        else:
+            return JSONResponse({
+                "show_comeback_message": False,
+                "message": None,
+                "subtitle": None
+            })
+    except Exception as e:
+        logger.error(f"🎭 Error checking demo comeback: {e}")
+        return JSONResponse({
+            "show_comeback_message": False,
+            "message": None,
+            "subtitle": None,
+            "error": str(e)
+        })
 
 
 @rt('/demo_script_config.json', methods=['GET'])

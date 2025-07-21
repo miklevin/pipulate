@@ -2351,6 +2351,99 @@ async function resumeDemoFromContinuationState(continuationState) {
     }
 }
 
+// Check for demo comeback message after server restart
+async function checkDemoComeback() {
+    try {
+        console.log('🎭 Checking for demo comeback message...');
+        
+        const response = await fetch('/check-demo-comeback');
+        const data = await response.json();
+        
+        if (data.show_comeback_message) {
+            console.log('🎭 Demo comeback message detected:', data.message);
+            
+            // Show the demo comeback message with special styling
+            await showDemoComebackMessage(data.message, data.subtitle);
+        } else {
+            console.log('🎭 No demo comeback message to show');
+        }
+    } catch (error) {
+        console.error('🎭 Error checking demo comeback message:', error);
+    }
+}
+
+// Show demo comeback message with special UX
+async function showDemoComebackMessage(message, subtitle) {
+    try {
+        console.log('🎭 Displaying demo comeback message...');
+        
+        // Add message to conversation with special styling
+        const msgList = document.querySelector('.messages-list') || document.querySelector('#chat-messages');
+        if (!msgList) {
+            console.warn('🎭 Messages container not found');
+            return;
+        }
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message assistant demo-comeback';
+        messageDiv.innerHTML = `
+            <div class="message-container">
+                <div class="message-content demo-comeback-content">
+                    <div class="demo-comeback-main">${message}</div>
+                    ${subtitle ? `<div class="demo-comeback-subtitle">${subtitle}</div>` : ''}
+                </div>
+            </div>
+        `;
+        
+        // Add special styling
+        messageDiv.style.cssText = `
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border: 2px solid #8b5cf6;
+            border-radius: 12px;
+            margin: 16px 8px;
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+            animation: demoGlow 2s ease-in-out;
+        `;
+        
+        msgList.appendChild(messageDiv);
+        msgList.scrollTop = msgList.scrollHeight;
+        
+        // Add CSS animation
+        if (!document.querySelector('#demo-comeback-styles')) {
+            const style = document.createElement('style');
+            style.id = 'demo-comeback-styles';
+            style.textContent = `
+                @keyframes demoGlow {
+                    0% { transform: scale(0.95); opacity: 0; box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3); }
+                    50% { transform: scale(1.02); opacity: 1; box-shadow: 0 12px 35px rgba(139, 92, 246, 0.6); }
+                    100% { transform: scale(1); opacity: 1; box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3); }
+                }
+                .demo-comeback-content {
+                    color: white !important;
+                    text-align: center;
+                    padding: 16px;
+                }
+                .demo-comeback-main {
+                    font-size: 1.1em;
+                    font-weight: 600;
+                    margin-bottom: 8px;
+                }
+                .demo-comeback-subtitle {
+                    font-size: 0.9em;
+                    opacity: 0.9;
+                    font-style: italic;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        console.log('🎭 Demo comeback message displayed with special styling');
+        
+    } catch (error) {
+        console.error('🎭 Error showing demo comeback message:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeChatInterface();
     initializeScrollObserver();
@@ -2360,6 +2453,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Check for demo resume after server restart
     checkDemoResumeAfterRestart();
+    
+    // Check for demo comeback message after restart
+    checkDemoComeback();
     
     // Send temp message when WebSocket is ready (with initial delay for page load)
     if (tempMessage && !tempMessageSent) {
