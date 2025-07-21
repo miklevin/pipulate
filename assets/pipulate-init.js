@@ -1632,8 +1632,36 @@ async function executeStepsWithBranching(steps, demoScript) {
                 // Small delay to let the full-screen effect appear before calling the endpoint
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                // Call the /clear-db endpoint to trigger server restart
-                console.log('🎭 Calling /clear-db endpoint to reset database...');
+                // First switch to DEV mode, then clear the database
+                console.log('🎭 Step 1: Switching to DEV mode...');
+                try {
+                    const envResponse = await fetch('/switch_environment', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'environment=Development'
+                    });
+                    
+                    if (envResponse.ok) {
+                        console.log('🎭 Environment switch initiated - server will restart in DEV mode');
+                        // The server will restart and the demo will continue from stored state
+                        // The database clear will happen after restart when in DEV mode
+                        return;
+                    } else {
+                        console.error('🎭 Failed to switch environment');
+                        hideRestartSpinner();
+                        return;
+                    }
+                } catch (error) {
+                    console.error('🎭 Error switching environment:', error);
+                    hideRestartSpinner();
+                    return;
+                }
+                
+                // NOTE: This code below should never execute due to the return above,
+                // but kept for fallback if environment switch fails
+                console.log('🎭 Fallback: Calling /clear-db endpoint directly...');
                 try {
                     const resetResponse = await fetch('/clear-db', {
                         method: 'POST'
@@ -2437,6 +2465,30 @@ async function resumeDemoFromState(demoState) {
         
         // Look for the continuation step (next step after database reset)
         if (currentStepId === '08_dev_reset_confirmed') {
+            console.log('🎭 Demo continuation after environment switch - now clearing DEV database...');
+            
+            // Check if we're in DEV mode now, and if so, clear the database
+            try {
+                console.log('🎭 Step 2: Clearing DEV database...');
+                const resetResponse = await fetch('/clear-db', {
+                    method: 'POST'
+                });
+                
+                if (resetResponse.ok) {
+                    console.log('🎭 DEV database reset initiated successfully');
+                    // The server will restart again and demo will continue
+                    return;
+                } else {
+                    console.error('🎭 Failed to reset DEV database');
+                    // Fallback to continuing demo without database reset
+                    await addDemoMessage('assistant', '🎭 **Note:** Database reset skipped. Continuing demo...');
+                }
+            } catch (error) {
+                console.error('🎭 Error clearing DEV database:', error);
+                // Fallback to continuing demo
+                await addDemoMessage('assistant', '🎭 **Note:** Database reset skipped. Continuing demo...');
+            }
+            
             // Continue with the next trick after database reset
             const nextSteps = demoScript.steps.filter(step => 
                 step.step_id === '09_second_trick_intro' || 
