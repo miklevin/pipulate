@@ -2348,6 +2348,15 @@ async def browser_scrape_page(params: dict) -> dict:
 
     Uses subprocess to avoid threading conflicts with the main server event loop.
 
+    🔍 PROGRESSIVE DEBUGGING PATTERN: Trace automation history across states
+    ═══════════════════════════════════════════════════════════════════════
+    # Check last 5 automation states for debugging progression:
+    for i in range(1, 6):
+        metadata_file = f"browser_automation/looking_at-{i}/headers.json"
+        if os.path.exists(metadata_file):
+            data = json.load(open(metadata_file))
+            print(f"State {i}: {data.get('step', 'unknown')} at {data.get('url', 'unknown')}")
+
     Saves to /looking_at/:
     - headers.json - HTTP headers and metadata
     - source.html - Raw page source before JavaScript  
