@@ -6,7 +6,7 @@ from loguru import logger
 import inspect
 from pathlib import Path
 import re
-from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from common import Step, with_workflow_context  # 🎯 STANDARDIZED: Import centralized Step definition + ritual elimination
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
 
@@ -71,9 +71,10 @@ class BlankPlaceholder:
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
 
-    async def init(self, request):
+    @with_workflow_context  # 🎭 RITUAL ELIMINATION: No more pip, db, steps, app_name = (...)
+    async def init(self, request, ctx):
         """ Handles the key submission, initializes state, and renders the step UI placeholders. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.APP_NAME)
+        # 🎯 RITUAL ELIMINATED: ctx.pip, ctx.db, ctx.steps, ctx.app_name automatically available
         form = await request.form()
         user_input = form.get('pipeline_id', '').strip()
         if not user_input:
@@ -81,8 +82,8 @@ class BlankPlaceholder:
             response = Response('')
             response.headers['HX-Refresh'] = 'true'
             return response
-        context = pip.get_plugin_context(self)
-        plugin_name = app_name  # Use app_name directly to ensure consistency
+        context = ctx.pip.get_plugin_context(self)
+        plugin_name = ctx.app_name  # Use app_name directly to ensure consistency
         profile_name = context['profile_name'] or 'default'
         profile_part = profile_name.replace(' ', '_')
         plugin_part = plugin_name.replace(' ', '_')
@@ -90,37 +91,37 @@ class BlankPlaceholder:
         if user_input.startswith(expected_prefix):
             pipeline_id = user_input
         else:
-            _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
+            _, prefix, user_provided_id = ctx.pip.generate_pipeline_key(self, user_input)
             pipeline_id = f'{prefix}{user_provided_id}'
-        db['pipeline_id'] = pipeline_id
+        ctx.db['pipeline_id'] = pipeline_id
         logger.debug(f'Using pipeline ID: {pipeline_id}')
-        state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
+        state, error = ctx.pip.initialize_if_missing(pipeline_id, {'app_name': ctx.app_name})
         if error:
             return error
-        all_steps_complete = all((step.id in state and step.done in state[step.id] for step in steps[:-1]))
+        all_steps_complete = all((step.id in state and step.done in state[step.id] for step in ctx.steps[:-1]))
         is_finalized = 'finalize' in state and 'finalized' in state['finalize']
 
         # Progressive feedback with emoji conventions
-        await self.message_queue.add(pip, f'{self.ui["EMOJIS"]["WORKFLOW"]} Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
-        await self.message_queue.add(pip, f"{self.ui["EMOJIS"]["KEY"]} Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
+        await self.message_queue.add(ctx.pip, f'{self.ui["EMOJIS"]["WORKFLOW"]} Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
+        await self.message_queue.add(ctx.pip, f"{self.ui["EMOJIS"]["KEY"]} Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
 
         if all_steps_complete:
             if is_finalized:
                 status_msg = f'{self.ui["EMOJIS"]["LOCKED"]} Workflow is complete and finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'
             else:
                 status_msg = f'{self.ui["EMOJIS"]["SUCCESS"]} Workflow is complete but not finalized. Press Finalize to lock your data.'
-            await self.message_queue.add(pip, status_msg, verbatim=True)
+            await self.message_queue.add(ctx.pip, status_msg, verbatim=True)
         elif not any((step.id in state for step in self.steps)):
-            await self.message_queue.add(pip, f'{self.ui["EMOJIS"]["INPUT_FORM"]} Please complete each step in sequence. Your progress will be saved automatically.', verbatim=True)
+            await self.message_queue.add(ctx.pip, f'{self.ui["EMOJIS"]["INPUT_FORM"]} Please complete each step in sequence. Your progress will be saved automatically.', verbatim=True)
 
-        parsed = pip.parse_pipeline_key(pipeline_id)
+        parsed = ctx.pip.parse_pipeline_key(pipeline_id)
         prefix = f"{parsed['profile_part']}-{parsed['plugin_part']}-"
-        self.pipeline.xtra(app_name=app_name)
+        self.pipeline.xtra(app_name=ctx.app_name)
         matching_records = [record.pkey for record in self.pipeline() if record.pkey.startswith(prefix)]
         if pipeline_id not in matching_records:
             matching_records.append(pipeline_id)
-        updated_datalist = pip.update_datalist('pipeline-ids', options=matching_records)
-        return pip.run_all_cells(app_name, steps)
+        updated_datalist = ctx.pip.update_datalist('pipeline-ids', options=matching_records)
+        return ctx.pip.run_all_cells(ctx.app_name, ctx.steps)
 
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
