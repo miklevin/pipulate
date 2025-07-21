@@ -121,7 +121,7 @@
         {
           "step_id": "07_first_trick",
           "type": "system_reply",
-          "message": "For my first trick I will put you into **DEV mode**, reset the database to blank the sample demo data. Is that okay? **Ctrl+Alt+y** / **Ctrl+Alt+n**",
+          "message": "For my first trick I will **Reset Entire DEV Database** to blank the sample demo data. Is that okay? **Ctrl+Alt+y** / **Ctrl+Alt+n**",
           "timing": {
             "delay_before": 3000,
             "display_speed": 20
@@ -158,7 +158,7 @@
         {
           "step_id": "08_dev_reset_confirmed",
           "type": "system_reply",
-          "message": "🎩 **Excellent!** The magic begins...\n\n🚀 **DEV MODE ACTIVATED!**\n🗄️ **Database reset complete!**\n\n✨ **Ready for the next trick!**",
+          "message": "🎩 **Excellent!** The magic begins...\n\n🗄️ **Database reset complete!**\n\n✨ **Ready for the next trick!**",
           "timing": {
             "delay_before": 500,
             "display_speed": 25
