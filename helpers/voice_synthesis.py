@@ -116,31 +116,64 @@ class ChipVoiceSystem:
                 self.voice.synthesize_wav(text, wav_file)
             
             # Play audio using sox (Mike's tested approach)
+            # First try to find play command in Nix environment
+            play_cmd = None
             try:
-                subprocess.run(
-                    ["play", output_path], 
-                    check=True, 
-                    stderr=subprocess.DEVNULL, 
-                    stdout=subprocess.DEVNULL
+                # Check if we're in Nix environment and can find play
+                result = subprocess.run(
+                    ["which", "play"], 
+                    capture_output=True, 
+                    text=True, 
+                    check=True
                 )
-                logger.info(f"🎤 Successfully spoke: {text[:50]}...")
-                return True
-            except FileNotFoundError:
-                logger.error("🎤 'play' command not found. Install sox package for audio playback.")
-                return False
-            except subprocess.CalledProcessError as e:
-                logger.error(f"🎤 Audio playback failed: {e}")
-                return False
-            finally:
-                # Clean up temporary file
+                play_cmd = result.stdout.strip()
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                # Try to use nix-shell to run play if we're in a Nix environment
+                if os.environ.get('IN_NIX_SHELL') or 'nix' in os.environ.get('PATH', ''):
+                    try:
+                        # Use nix-shell to ensure sox is available
+                        subprocess.run(
+                            ["nix-shell", "-p", "sox", "--run", f"play {output_path}"], 
+                            check=True, 
+                            stderr=subprocess.DEVNULL, 
+                            stdout=subprocess.DEVNULL
+                        )
+                        logger.info(f"🎤 Successfully spoke (via nix-shell): {text[:50]}...")
+                        return True
+                    except (subprocess.CalledProcessError, FileNotFoundError):
+                        logger.error("🎤 'play' command not found. Sox package may not be properly installed.")
+                        return False
+                else:
+                    logger.error("🎤 'play' command not found. Install sox package for audio playback.")
+                    return False
+            
+            # If we found the play command, use it directly
+            if play_cmd:
                 try:
-                    os.unlink(output_path)
-                except:
-                    pass
+                    subprocess.run(
+                        [play_cmd, output_path], 
+                        check=True, 
+                        stderr=subprocess.DEVNULL, 
+                        stdout=subprocess.DEVNULL
+                    )
+                    logger.info(f"🎤 Successfully spoke: {text[:50]}...")
+                    return True
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"🎤 Audio playback failed: {e}")
+                    return False
+            else:
+                logger.error("🎤 'play' command not found in any location.")
+                return False
                     
         except Exception as e:
             logger.error(f"🎤 Voice synthesis failed: {e}")
             return False
+        finally:
+            # Clean up temporary file
+            try:
+                os.unlink(output_path)
+            except:
+                pass
     
     def speak_text(self, text: str) -> Dict[str, Any]:
         """

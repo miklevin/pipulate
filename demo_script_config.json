@@ -2,12 +2,12 @@
   "demo_script": {
     "name": "Interactive Pipulate Demo",
     "description": "An interactive demo that responds to keyboard input and branches based on user choices",
-    "trigger_message": "What is this?",
+    "trigger_message": "Where am I?",
     "steps": [
       {
         "step_id": "01_user_trigger",
         "type": "user_input",
-        "message": "What is this?",
+        "message": "Where am I?",
         "timing": {
           "delay_before": 0,
           "typing_speed": 50
