@@ -6082,6 +6082,16 @@ async def clear_db(request):
         if demo_continuation_state:
             demo_triggered = True
             db['demo_restart_flag'] = 'true'
+            
+            # 🎯 CRITICAL: Demo must ALWAYS restart in DEV mode for data safety
+            current_env = get_current_environment()
+            if current_env != 'Development':
+                logger.info(f'🎭 DEMO_RESTART: Switching from {current_env} to Development mode for demo safety')
+                set_current_environment('Development')
+                logger.info('🎭 DEMO_RESTART: Environment switched to Development mode for demo')
+            else:
+                logger.info('🎭 DEMO_RESTART: Already in Development mode for demo')
+            
             logger.info('🎭 DEMO_RESTART: Setting demo restart flag for enhanced UX on server return')
     except Exception as e:
         logger.error(f'🎭 DEMO_RESTART: Error checking demo state: {e}')
@@ -6090,7 +6100,7 @@ async def clear_db(request):
     restart_message = "Restarting with fresh database..."
     restart_type = "DATABASE_RESET"
     if demo_triggered:
-        restart_message = "🎭 The magic continues... Server restart in progress!"
+        restart_message = "🎭 Switching to DEV mode for demo magic... Server restart in progress!"
         restart_type = "DEMO_MAGIC"
     
     logger.info('CLEAR_DB: Scheduling server restart to ensure fresh application state')
