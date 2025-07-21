@@ -36,7 +36,7 @@ import shutil
 import socket
 import time
 import zipfile
-from collections import Counter, namedtuple
+from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse, quote
@@ -49,24 +49,17 @@ from loguru import logger
 
 class LinkGraphVisualizer:
     """
-    Link Graph Visualizer Workflow - Botify Data to Cosmograph Integration
+    Botify Link Graph Visualizer - Trifecta Derivative for Network Analysis
 
-    A comprehensive workflow that downloads Botify data (crawl analysis, web logs,
-    and Search Console) and transforms it into an interactive network visualization
-    using Cosmograph. This workflow demonstrates:
+    📚 Complete documentation: helpers/docs_sync/botify_workflow_patterns.md
 
-    - Multi-step data collection from Botify APIs
-    - Data transformation using Pandas for visualization compatibility
-    - Integration with external visualization tools (Cosmograph)
-    - File management and URL generation for web-based visualizations
+    Transforms Botify data into interactive network visualizations using Cosmograph.
+    Downloads crawl data, web logs, and Search Console metrics to create colored/sized nodes
+    representing link structure and performance patterns.
 
-    The workflow produces two key outputs:
-    1. cosmo_links.csv - Edge list (source -> target URLs) for the network structure
-    2. cosmo_nodes.csv - Node metadata with visual properties (color, size) based on GSC metrics
-
-    The final step generates a Cosmograph URL that opens an interactive network visualization
-    where nodes are colored by GSC impressions and sized by clicks, providing immediate
-    insight into the site's link structure and performance patterns.
+    🔧 Template Config: {'analysis': 'link_graph_edges'} (network visualization focus)
+    🏗️ Base Template: 400_botify_trifecta.py  
+    🎯 WET Inheritance: Auto-updated via helpers/rebuild_trifecta_derivatives.sh
     """
     APP_NAME = 'link_graph_visualizer'
     DISPLAY_NAME = 'Link Graph Visualizer 🌐'
