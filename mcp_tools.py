@@ -193,7 +193,11 @@ def get_db_filename():
 # ================================================================
 
 
-# Configuration for directory rotation
+# 🔄 PERCEPTION HISTORY SYSTEM - AI Memory Across Browser Operations
+# Each /looking_at/ rotation preserves complete AI perception state:
+# • headers.json, source.html, dom.html, simple_dom.html, screenshot.png
+# • 1-5MB per perception state, automatic cleanup prevents unlimited growth  
+# • Directory renames are fast, graceful fallback if rotation fails
 MAX_ROLLED_LOOKING_AT_DIRS = 10  # Keep last 10 AI perception states
 
 
