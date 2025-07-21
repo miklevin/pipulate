@@ -5975,6 +5975,26 @@ async def clear_db(request):
     last_visited_url = db.get('last_visited_url')
     temp_message = db.get('temp_message')
 
+    # 🎭 DEMO RESTART DETECTION - Check BEFORE clearing database
+    demo_triggered = False
+    demo_continuation_state = None
+    try:
+        demo_continuation_state = db.get('demo_continuation_state')
+        if demo_continuation_state:
+            demo_triggered = True
+            logger.info(f'🎭 DEMO_RESTART: Demo continuation state detected before DB clear: {demo_continuation_state}')
+            
+            # 🎯 CRITICAL: Demo must ALWAYS restart in DEV mode for data safety
+            current_env = get_current_environment()
+            if current_env != 'Development':
+                logger.info(f'🎭 DEMO_RESTART: Switching from {current_env} to Development mode for demo safety')
+                set_current_environment('Development')
+                logger.info('🎭 DEMO_RESTART: Environment switched to Development mode for demo')
+            else:
+                logger.info('🎭 DEMO_RESTART: Already in Development mode for demo')
+    except Exception as e:
+        logger.error(f'🎭 DEMO_RESTART: Error checking demo state before DB clear: {e}')
+
     # 💬 PRESERVE CONVERSATION HISTORY - Backup conversation before database reset
     conversation_backup = None
     if 'llm_conversation_history' in db:
@@ -6062,6 +6082,12 @@ async def clear_db(request):
     if temp_message:
         db['temp_message'] = temp_message
 
+    # 🎭 RESTORE DEMO STATE - Preserve demo flags after database reset for restart detection
+    if demo_triggered and demo_continuation_state:
+        db['demo_continuation_state'] = demo_continuation_state
+        db['demo_restart_flag'] = 'true'
+        logger.info('🎭 DEMO_RESTART: Demo flags preserved after database reset for restart detection')
+
     # 💬 RESTORE CONVERSATION HISTORY - Restore conversation after database reset
     if conversation_backup:
         db['llm_conversation_history'] = conversation_backup
@@ -6081,31 +6107,9 @@ async def clear_db(request):
         log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB FINAL (post key restoration)')
         logger.bind(lifecycle=True).info('CLEAR_DB: Operation fully complete.')
 
-    # 🎭 DEMO RESTART DETECTION - Check if this was triggered by a demo
-    user_agent = request.headers.get('user-agent', '').lower()
-    referer = request.headers.get('referer', '')
-    
-    # Set flag if this appears to be a demo-triggered restart
-    # This enables special "coming back from demo" messaging
-    demo_triggered = False
-    try:
-        demo_continuation_state = db.get('demo_continuation_state')
-        if demo_continuation_state:
-            demo_triggered = True
-            db['demo_restart_flag'] = 'true'
-            
-            # 🎯 CRITICAL: Demo must ALWAYS restart in DEV mode for data safety
-            current_env = get_current_environment()
-            if current_env != 'Development':
-                logger.info(f'🎭 DEMO_RESTART: Switching from {current_env} to Development mode for demo safety')
-                set_current_environment('Development')
-                logger.info('🎭 DEMO_RESTART: Environment switched to Development mode for demo')
-            else:
-                logger.info('🎭 DEMO_RESTART: Already in Development mode for demo')
-            
-            logger.info('🎭 DEMO_RESTART: Setting demo restart flag for enhanced UX on server return')
-    except Exception as e:
-        logger.error(f'🎭 DEMO_RESTART: Error checking demo state: {e}')
+    # 🎭 DEMO RESTART LOGGING - Demo detection already completed before database clear
+    if demo_triggered:
+        logger.info('🎭 DEMO_RESTART: Demo-triggered restart confirmed - flags set for comeback detection')
 
     # Schedule server restart after database reset to ensure fresh state
     restart_message = "Restarting with fresh database..."
@@ -6784,7 +6788,26 @@ async def send_startup_environment_message():
         current_env = get_current_environment()
         env_display = 'DEV' if current_env == 'Development' else 'Prod'
 
-        if current_env == 'Development':
+        # 🎭 DEMO COMEBACK INTEGRATION - Check for demo comeback message
+        demo_comeback_message = None
+        demo_comeback_detected = False
+        try:
+            if db.get('demo_comeback_message') == 'true':
+                demo_comeback_detected = True
+                # Clear the flag immediately (flipflop behavior)
+                del db['demo_comeback_message']
+                logger.info("🎭 FINDER_TOKEN: DEMO_COMEBACK_DISPLAYED - Demo comeback message shown via endpoint message, flag cleared")
+                
+                # Create special demo comeback message
+                demo_comeback_message = "🎭 **Demo server restart complete!** The magic continues...\n\n🗄️ **Database has been reset** and the demo environment is fresh and ready.\n\n✨ **Ready for the next trick!**"
+        except Exception as e:
+            logger.error(f"🎭 DEMO_COMEBACK_ERROR - Failed to check demo comeback state: {e}")
+
+        # Choose the appropriate startup message
+        if demo_comeback_detected and demo_comeback_message:
+            env_message = demo_comeback_message
+            logger.info("🎭 DEMO_COMEBACK: Using special demo comeback message as startup message")
+        elif current_env == 'Development':
             env_message = f"🚀 Server started in {env_display} mode. Ready for experimentation and testing!"
         else:
             env_message = f"🚀 Server started in {env_display} mode. Ready for production use."
