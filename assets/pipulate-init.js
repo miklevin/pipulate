@@ -2348,17 +2348,46 @@ async function resumeDemoFromContinuationState(continuationState) {
         
         console.log('🎭 Demo mode activated for resume');
         
-        // Execute the continuation branch
+        // 🎭 ADD NATURAL CONTINUATION MESSAGE TO CHAT
+        // This makes the demo feel like a seamless conversation continuation
+        await addMessageToConversation('assistant', '🎩 **Excellent!** The magic begins...\n\n🗄️ **Database reset complete!**\n\n✨ **Ready for the next trick!**');
+        
+        // Small delay to let the continuation message appear
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Execute the continuation branch starting from the next step after database reset
         const branchKey = continuationState.branch;
         if (branchKey && demoScript.branches[branchKey]) {
             console.log('🎭 Executing continuation branch:', branchKey);
-            await executeStepsWithBranching(demoScript.branches[branchKey], demoScript);
+            const branchSteps = demoScript.branches[branchKey];
+            
+            // Find the step after the database reset confirmation (08_dev_reset_confirmed)
+            const startIndex = branchSteps.findIndex(step => step.step_id === '08_dev_reset_confirmed');
+            if (startIndex >= 0 && startIndex + 1 < branchSteps.length) {
+                // Execute steps starting from the next step (09_llm_body_test)
+                const continuationSteps = branchSteps.slice(startIndex + 1);
+                console.log('🎭 Continuing from step after database reset:', continuationSteps[0]?.step_id);
+                await executeStepsWithBranching(continuationSteps, demoScript);
+            } else {
+                console.log('🎭 No continuation steps found after database reset');
+            }
         } else {
             console.error('🎭 Invalid continuation branch:', branchKey);
         }
         
     } catch (error) {
         console.error('🎭 Error resuming demo from continuation state:', error);
+    }
+}
+
+// Add message to conversation UI (helper function for demo continuation)
+async function addMessageToConversation(role, message) {
+    try {
+        // Add message using the same mechanism as the demo steps
+        await addToConversationHistory(role, message);
+        console.log(`🎭 Added ${role} message to conversation: ${message.substring(0, 50)}...`);
+    } catch (error) {
+        console.error('🎭 Error adding message to conversation:', error);
     }
 }
 
