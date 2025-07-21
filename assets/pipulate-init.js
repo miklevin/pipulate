@@ -1627,7 +1627,7 @@ async function executeStepsWithBranching(steps, demoScript) {
                 
                 // 🎭 TRIGGER GLORIOUS FULL-SCREEN DEMO RESTART EXPERIENCE!
                 console.log('🎭 Triggering glorious full-screen demo restart experience...');
-                triggerFullScreenRestart("🎭 Demo is performing its first trick... Resetting the entire database!", "DEMO_RESTART");
+                triggerFullScreenRestart("🎭 Demo is performing its first trick... Switching to DEV mode & resetting database!", "DEMO_RESTART");
                 
                 // Small delay to let the full-screen effect appear before calling the endpoint
                 await new Promise(resolve => setTimeout(resolve, 1000));
