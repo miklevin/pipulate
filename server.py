@@ -88,6 +88,17 @@ from mcp_tools import register_all_mcp_tools
 # Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
 MCP_TOOL_REGISTRY = {}
 
+def safe_print(*args, **kwargs):
+    """Safe wrapper for print() that handles I/O errors gracefully"""
+    try:
+        print(*args, **kwargs)
+    except (BlockingIOError, BrokenPipeError, OSError) as e:
+        # Handle terminal I/O errors gracefully - print failed but continue
+        logger.warning(f"🖨️ SAFE_PRINT: Print output failed ({type(e).__name__}: {e}), continuing silently")
+    except Exception as e:
+        # Catch any other unexpected errors
+        logger.error(f"🖨️ SAFE_PRINT: Unexpected error during print: {type(e).__name__}: {e}")
+
 # Pass our registry to mcp_tools so they use the same instance
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
@@ -930,11 +941,11 @@ def log_pipeline_summary(title_prefix: str = ''):
 
         # 🐰 WHITE RABBIT WELCOME - Show during startup or when no records exist (clean startup)
         if 'STARTUP' in title_prefix.upper() or not records:
-            print()
+            safe_print()
             logger.info("🔧 LEGEND_MARKER_1: Displaying white_rabbit for startup")
             white_rabbit()
             logger.info("🔧 LEGEND_MARKER_2: white_rabbit displayed")
-            print()
+            safe_print()
 
             # 📚 LOG LEGEND: Use the comprehensive version from ascii_displays.py
             logger.info("🔧 LEGEND_MARKER_3: About to call log_reading_legend")
@@ -956,7 +967,7 @@ def log_pipeline_summary(title_prefix: str = ''):
             logger.info("🔧 LEGEND_MARKER_7: About to call share_ascii_with_ai")
             share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
             logger.info("🔧 LEGEND_MARKER_8: share_ascii_with_ai completed")
-            print()
+            safe_print()
 
         if not records:
             logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} No active workflows")
@@ -4310,17 +4321,17 @@ if __name__ == '__main__':
         app_name=current_app,
         environment=current_env
     )
-    print(startup_summary)
+    safe_print(startup_summary)
     logger.info("🔧 STARTUP_MARKER_3: startup_summary_table displayed")
 
     # Show AI capabilities summary
     ai_summary = ai_breadcrumb_summary(tool_count)
-    print(ai_summary)
+    safe_print(ai_summary)
     logger.info("🔧 STARTUP_MARKER_4: ai_breadcrumb_summary displayed")
 
     # Show critical environment warnings
     warnings_summary = startup_environment_warnings()
-    print(warnings_summary)
+    safe_print(warnings_summary)
     logger.info("🔧 STARTUP_MARKER_5: startup_environment_warnings displayed")
 else:
     logger.info("🔧 STARTUP_MARKER_X: NOT in __name__ == '__main__' block - Rich tables skipped")
@@ -7003,25 +7014,25 @@ def check_server_already_running():
         sock.close()
 
         if result == 0:  # Port is in use
-            print()
+            safe_print()
             console.print("🚨 [bold red]SERVER ALREADY RUNNING[/bold red]")
-            print()
+            safe_print()
             console.print("✅ [bold green]AI ASSISTANT SUMMARY:[/bold green]")
             console.print("   The Pipulate server is ALREADY RUNNING with watchdog auto-restart enabled.")
             console.print("   There is NO NEED to manually start the server.")
-            print()
+            safe_print()
             console.print("🎯 [bold yellow]KEY INSIGHTS:[/bold yellow]")
             console.print("   • Server running at: [bold cyan]http://localhost:5001[/bold cyan]")
             console.print("   • Watchdog auto-restarts on ANY .py file changes")
             console.print("   • Force restart if needed: [bold white]touch server.py[/bold white]")
             console.print("   • Check logs: [bold white]cat logs/server.log[/bold white]")
-            print()
+            safe_print()
             console.print("🤖 [bold magenta]EXPECTED AI RESPONSE:[/bold magenta]")
             console.print('   "I attempted to start the server with `python server.py` but it informed me')
             console.print('    another instance is already running with watchdog auto-restart enabled.')
             console.print('    No manual restart needed. Server available at http://localhost:5001.')
             console.print('    Use `touch server.py` to trigger restart if testing changes."')
-            print()
+            safe_print()
             console.print("🎣 [bold cyan]TEACH YOURSELF TO FISH - RADICAL TRANSPARENCY SYSTEM:[/bold cyan]")
             console.print("   You just discovered Pipulate's Radical Transparency & Agentic AI system!")
             console.print("   🔥 [bold yellow]Master Guide:[/bold yellow] .cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc")
@@ -7031,7 +7042,7 @@ def check_server_already_running():
             console.print("      • Pipeline state inspection for workflow debugging")
             console.print("      • Browser automation with complete DOM transparency")
             console.print("   💡 [bold green]Next level:[/bold green] Read the guide to unlock your full agentic potential!")
-            print()
+            safe_print()
 
             return True
     except Exception:
@@ -7196,7 +7207,7 @@ def run_server_with_watchdog():
         subtitle = "Nix Flake Version"
 
     figlet_banner(figlet_text, subtitle, font='standard', color='white on default')
-    print()
+    safe_print()
     system_diagram()
     chip_says("Hello! The server is restarting. I'll be right back online.", BANNER_COLORS['workshop_ready'])
     env = get_current_environment()
