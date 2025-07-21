@@ -400,6 +400,11 @@ logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
 DB_FILENAME = get_db_filename()
 logger.info(f'🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: {DB_FILENAME}')
 
+# 🚨 CRITICAL WARNING: DB_FILENAME is static and can become stale!
+if get_current_environment() == 'Production':
+    logger.warning(f'🚨 PRODUCTION_DATABASE_WARNING: Server starting in Production mode with database: {DB_FILENAME}')
+    logger.warning(f'🚨 PRODUCTION_DATABASE_WARNING: If demo is triggered, plugins using static DB_FILENAME may cause issues!')
+
 
 TONE = 'neutral'
 MODEL = 'gemma3'
@@ -6005,7 +6010,9 @@ async def clear_db(request):
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('CLEAR_DB: Table states BEFORE plugin table wipe:')
         try:
-            conn_temp = sqlite3.connect(DB_FILENAME)
+            # 🚨 CRITICAL FIX: Use current environment's database file for logging too
+            current_db_filename_for_logging = get_db_filename()
+            conn_temp = sqlite3.connect(current_db_filename_for_logging)
             conn_temp.row_factory = sqlite3.Row
             cursor_temp = conn_temp.cursor()
             cursor_temp.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
@@ -6024,6 +6031,11 @@ async def clear_db(request):
     if demo_triggered and current_env != 'Development':
         logger.error(f'🚨 CRITICAL SAFETY ERROR: Demo triggered but still in {current_env} mode! Aborting database clear.')
         return HTMLResponse(f'SAFETY ERROR: Cannot clear database - still in {current_env} mode', status_code=500)
+    
+    # 🚨 EMERGENCY SAFETY: Check if database filename still points to production
+    if demo_triggered and 'botifython.db' in current_db_filename and 'dev' not in current_db_filename:
+        logger.error(f'🚨 EMERGENCY ABORT: Demo triggered but database filename still points to production: {current_db_filename}')
+        return HTMLResponse(f'EMERGENCY SAFETY ABORT: Cannot clear production database {current_db_filename}', status_code=500)
     
     try:
         with sqlite3.connect(current_db_filename) as conn:
@@ -7247,7 +7259,7 @@ def run_server_with_watchdog():
     system_diagram()
     chip_says("Hello! The server is restarting. I'll be right back online.", BANNER_COLORS['workshop_ready'])
     env = get_current_environment()
-    env_db = DB_FILENAME
+    env_db = get_db_filename()  # 🚨 CRITICAL FIX: Use current environment's database file
     logger.info(f'🌍 FINDER_TOKEN: ENVIRONMENT - Current environment: {env}')
     if env == 'Development':
         log.warning('Development mode active', details=f'Using database: {env_db}')

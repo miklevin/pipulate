@@ -6,7 +6,7 @@ import sys
 import fastlite
 from fasthtml.common import *
 from loguru import logger
-from server import DB_FILENAME
+from server import get_db_filename
 from common import BaseCrud
 
 ROLES = ['Core']
@@ -222,7 +222,7 @@ class CrudUI(PluginIdentityManager):
         self.pipeline_table = pipeline
         self.db_dictlike = db_dictlike
         logger.debug(f'{self.DISPLAY_NAME} Plugin initializing...')
-        db_path = os.path.join(os.path.dirname(__file__), '..', DB_FILENAME)
+        db_path = os.path.join(os.path.dirname(__file__), '..', get_db_filename())  # 🚨 CRITICAL FIX: Use dynamic database resolution
         logger.debug(f'Using database path: {db_path}')
         self.plugin_db = fastlite.database(db_path)
         schema = {'id': int, 'text': str, 'done': bool, 'priority': int, 'profile_id': int, 'pk': 'id'}
