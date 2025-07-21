@@ -377,6 +377,20 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
     """
     MCP Tool: COMPLETE WORKFLOW HIJACKING - Navigate + Enter + Chain Reaction + Capture
     
+    🎭 "HI JACK" MAGIC WORDS PATTERN - The Irresistible Simple Way
+    ═══════════════════════════════════════════════════════════════════════════════════
+    SIMPLEST METHOD: Just type "Hi Jack" in chat → Complete hijacking happens automatically
+    
+    PROGRAMMATIC METHOD for AI understanding:
+    python -c "
+    import asyncio
+    from mcp_tools import browser_hijack_workflow_complete
+    result = asyncio.run(browser_hijack_workflow_complete({
+        'url': 'http://localhost:5001/hello_workflow',
+        'pipeline_id': 'Default_Profile-hello-16'
+    }))
+    print(f'🎭 Hijack: {result.get(\"success\")}')"
+    
     This is the common pattern for all session hijacking that handles:
     1. Navigate to workflow URL (e.g., http://localhost:5001/hello_workflow)
     2. Fill in pipeline key input field  
