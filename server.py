@@ -6403,28 +6403,25 @@ async def check_demo_resume(request):
 
 @rt('/check-demo-comeback', methods=['GET'])
 async def check_demo_comeback(request):
-    """Check if we're coming back from a demo-triggered restart and show special message."""
+    """Check if we're coming back from a demo-triggered restart and show special message.
+    
+    NOTE: This endpoint is now superseded by integrated demo comeback messaging 
+    via the startup environment message system. The demo comeback message is now 
+    displayed as the main endpoint message instead of requiring separate polling.
+    
+    This endpoint is maintained for backward compatibility but should return 
+    no-action responses since the comeback message is handled by startup messaging.
+    """
     try:
-        demo_comeback = db.get('demo_comeback_message', 'false')
-        
-        if demo_comeback == 'true':
-            # Clear the flag after checking (flipflop behavior)
-            del db['demo_comeback_message']
-            logger.info("🎭 FINDER_TOKEN: DEMO_COMEBACK_DISPLAYED - Demo comeback message shown, flag cleared")
-            
-            return JSONResponse({
-                "show_comeback_message": True,
-                "message": "🎭 Demo server restart complete! The magic continues...",
-                "subtitle": "Database has been reset and the demo environment is fresh and ready."
-            })
-        else:
-            return JSONResponse({
-                "show_comeback_message": False,
-                "message": None,
-                "subtitle": None
-            })
+        # Always return no action since comeback is handled via startup messaging
+        return JSONResponse({
+            "show_comeback_message": False,
+            "message": None,
+            "subtitle": None,
+            "note": "Demo comeback now handled via integrated startup messaging"
+        })
     except Exception as e:
-        logger.error(f"🎭 Error checking demo comeback: {e}")
+        logger.error(f"🎭 Error in legacy demo comeback endpoint: {e}")
         return JSONResponse({
             "show_comeback_message": False,
             "message": None,
