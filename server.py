@@ -1337,6 +1337,14 @@ def append_to_conversation(message=None, role='user'):
     connections that caused database locking conflicts, leading to silent failures in 
     profile creation and other database operations.
     
+    🔍 DEBUGGING: Conversation History Verification Commands
+    ═══════════════════════════════════════════════════════════════════════════════════
+    If conversation history seems missing after restart/environment switch:
+    
+    # Check in-memory vs database conversation count:
+    python -c "from server import global_conversation_history; print(f'Memory: {len(global_conversation_history)} messages')"
+    python -c "import sqlite3, json; from server import get_db_filename; conn = sqlite3.connect(get_db_filename()); cursor = conn.cursor(); cursor.execute('SELECT value FROM store WHERE key=\"llm_conversation_history\"'); result = cursor.fetchone(); print(f'Database: {len(json.loads(result[0])) if result else 0} messages'); conn.close()"
+    
     Root Cause: helpers.append_only_conversation.get_conversation_system() creates a
     separate SQLite connection to data/discussion.db while the main app uses 
     data/botifython.db. SQLite doesn't handle concurrent connections well, causing
