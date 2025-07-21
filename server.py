@@ -6088,8 +6088,10 @@ async def clear_db(request):
 
     # Schedule server restart after database reset to ensure fresh state
     restart_message = "Restarting with fresh database..."
+    restart_type = "DATABASE_RESET"
     if demo_triggered:
-        restart_message = "🎭 Demo is restarting the server... Almost there!"
+        restart_message = "🎭 The magic continues... Server restart in progress!"
+        restart_type = "DEMO_MAGIC"
     
     logger.info('CLEAR_DB: Scheduling server restart to ensure fresh application state')
     asyncio.create_task(delayed_restart(2))
@@ -6097,7 +6099,7 @@ async def clear_db(request):
     # Return script that triggers full-screen restart effect for the actual restart
     return HTMLResponse(f'''
         <script>
-            triggerFullScreenRestart("{restart_message}", "DATABASE_RESET");
+            triggerFullScreenRestart("{restart_message}", "{restart_type}");
         </script>
     ''')
 
