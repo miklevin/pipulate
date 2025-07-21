@@ -71,6 +71,14 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
     """
     MCP Tool: COMPLETE SESSION HIJACKING - Full end-to-end user session takeover
     
+    🧠 CRITICAL: BROWSER EYES ARE PRIMARY - Check browser_automation/looking_at/ FIRST!
+    
+    COMMON MISTAKE: Focusing on return values (Success: True, Steps: 0, Final URL: None)
+    instead of checking browser evidence. Return values can be misleading - visual evidence
+    in /looking_at/ files is your PRIMARY source of truth for session hijacking success.
+    
+    PARADIGM SHIFT: Trust visual evidence over return values. Check files FIRST!
+    
     This is the ultimate session hijacking tool that:
     1. Gets the user's current session state from server-side "cookies"
     2. Maps the internal app name to the user-facing URL using the endpoint registry
