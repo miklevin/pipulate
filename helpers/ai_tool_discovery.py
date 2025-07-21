@@ -55,29 +55,29 @@ class ConfigurationSyncManager:
         
         # Try to get tools from MCP_TOOL_REGISTRY first
         if TOOLS_AVAILABLE and MCP_TOOL_REGISTRY:
-            for tool_name, tool_func in MCP_TOOL_REGISTRY.items():
-                # Get function metadata
-                try:
-                    doc = tool_func.__doc__ or f"MCP tool: {tool_name}"
-                    # Extract first line as description
-                    description = doc.split('\n')[0].strip()
-                    if description.startswith('"""'):
-                        description = description[3:]
-                    if description.endswith('"""'):
-                        description = description[:-3]
-                    
-                    tools[tool_name] = {
-                        'name': tool_name,
-                        'description': description,
-                        'function': tool_func
-                    }
-                except Exception as e:
-                    logger.warning(f"Could not get metadata for {tool_name}: {e}")
-                    tools[tool_name] = {
-                        'name': tool_name,
-                        'description': f"MCP tool: {tool_name}",
-                        'function': tool_func
-                    }
+        for tool_name, tool_func in MCP_TOOL_REGISTRY.items():
+            # Get function metadata
+            try:
+                doc = tool_func.__doc__ or f"MCP tool: {tool_name}"
+                # Extract first line as description
+                description = doc.split('\n')[0].strip()
+                if description.startswith('"""'):
+                    description = description[3:]
+                if description.endswith('"""'):
+                    description = description[:-3]
+                
+                tools[tool_name] = {
+                    'name': tool_name,
+                    'description': description,
+                    'function': tool_func
+                }
+            except Exception as e:
+                logger.warning(f"Could not get metadata for {tool_name}: {e}")
+                tools[tool_name] = {
+                    'name': tool_name,
+                    'description': f"MCP tool: {tool_name}",
+                    'function': tool_func
+                }
         
         # Fallback: try to get tools by parsing mcp_tools.py directly
         if not tools:
@@ -373,7 +373,7 @@ Let's work together to make this system as efficient and responsive as possible.
             
             results['context_json'] = True
             print(f"✅ Updated {context_json_path}")
-        except Exception as e:
+    except Exception as e:
             results['context_json'] = False
             print(f"❌ Failed to update context JSON: {e}")
         
@@ -383,7 +383,7 @@ Let's work together to make this system as efficient and responsive as possible.
             print(f"\n🔧 SIMPLE_COMMANDS for helpers/ai_tool_discovery_simple_parser.py:")
             print(simple_commands)
             results['simple_parser'] = True
-        except Exception as e:
+    except Exception as e:
             results['simple_parser'] = False
             print(f"❌ Failed to generate simple parser commands: {e}")
         

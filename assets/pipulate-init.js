@@ -2431,6 +2431,11 @@ async function checkDemoComeback() {
             console.log('🎭 Demo comeback message detected:', data.message);
             console.log('🎭 Demo state for continuation:', data.demo_state);
             
+            // 🔧 IMMEDIATE DEMO TAKEOVER: Prevent normal chat processing AND demo restart
+            window.demoInProgress = true;
+            window.demoContinuationActive = true;
+            console.log('🎭 Demo takeover activated - blocking normal chat processing and demo restart');
+            
             // Show the demo comeback message and continue the demo
             await showDemoComebackMessage(data.message, data.subtitle);
             
@@ -2465,29 +2470,21 @@ async function resumeDemoFromState(demoState) {
         
         // Look for the continuation step (next step after database reset)
         if (currentStepId === '08_dev_reset_confirmed') {
-            console.log('🎭 Demo continuation after environment switch - now clearing DEV database...');
+            console.log('🎭 DEMO CONTINUATION: Database reset step confirmed, continuing to next trick...');
             
-            // Check if we're in DEV mode now, and if so, clear the database
+            // Clear any existing demo bookmark to prevent conflicts
             try {
-                console.log('🎭 Step 2: Clearing DEV database...');
-                const resetResponse = await fetch('/clear-db', {
-                    method: 'POST'
-                });
-                
-                if (resetResponse.ok) {
-                    console.log('🎭 DEV database reset initiated successfully');
-                    // The server will restart again and demo will continue
-                    return;
-                } else {
-                    console.error('🎭 Failed to reset DEV database');
-                    // Fallback to continuing demo without database reset
-                    await addDemoMessage('assistant', '🎭 **Note:** Database reset skipped. Continuing demo...');
-                }
+                await fetch('/demo-bookmark-clear', { method: 'POST' });
+                console.log('🎭 Demo bookmark cleared for clean continuation');
             } catch (error) {
-                console.error('🎭 Error clearing DEV database:', error);
-                // Fallback to continuing demo
-                await addDemoMessage('assistant', '🎭 **Note:** Database reset skipped. Continuing demo...');
+                console.log('🎭 Note: Could not clear demo bookmark:', error);
             }
+            
+            // Show the interactive continuation message
+            await addDemoMessage('assistant', '🎭 **Excellent!** The magic begins...\n\n🗄️ **Database reset complete!**\n\n✨ **Ready for the next trick!**');
+            
+            // Small delay for dramatic effect
+            await new Promise(resolve => setTimeout(resolve, 1500));
             
             // Continue with the next trick after database reset
             const nextSteps = demoScript.steps.filter(step => 
