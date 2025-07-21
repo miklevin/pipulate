@@ -234,6 +234,7 @@ class BaseCrud:
             for item in sorted(items, key=lambda x: int(x['priority'])):
                 item_id = int(item['id'])
                 priority = int(item['priority'])
+                # 🚨 CRITICAL: FastLite parameter order: (data_dict, primary_key)
                 self.table.update({self.sort_field: priority}, item_id)
                 item_name = getattr(self.table[item_id], self.item_name_field, 'Item')
                 updated_items.append(item_name)
@@ -321,7 +322,9 @@ class BaseCrud:
             original_item = self.table[item_id]
             old_values = {field: getattr(original_item, field, None) for field in update_data.keys()}
 
-            # Update the item
+            # 🚨 CRITICAL: FastLite parameter order: (data_dict, primary_key)
+            # DON'T REVERSE! table.update(item_id, update_data) causes SILENT FAILURE
+            # UI appears to work but database never gets updated
             updated_item = self.table.update(update_data, item_id)
 
             # 🎯 TRIGGER BACKUP after successful update
