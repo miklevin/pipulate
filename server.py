@@ -224,6 +224,51 @@ def clear_critical_operation_flag():
         pass
 
 
+# 🎭 DEMO STATE MANAGEMENT - File-based persistence for demo continuation
+DEMO_STATE_FILE = 'data/demo_state.json'
+
+def store_demo_state(demo_state):
+    """Store demo state to file for persistence across server restarts."""
+    try:
+        os.makedirs(os.path.dirname(DEMO_STATE_FILE), exist_ok=True)
+        with open(DEMO_STATE_FILE, 'w') as f:
+            json.dump(demo_state, f, indent=2)
+        logger.info(f"🎭 Demo state stored to file: {demo_state}")
+        return True
+    except Exception as e:
+        logger.error(f"🎭 Failed to store demo state: {e}")
+        return False
+
+def get_demo_state():
+    """Get demo state from file."""
+    try:
+        if os.path.exists(DEMO_STATE_FILE):
+            with open(DEMO_STATE_FILE, 'r') as f:
+                demo_state = json.load(f)
+            logger.info(f"🎭 Demo state retrieved from file: {demo_state}")
+            return demo_state
+        return None
+    except Exception as e:
+        logger.error(f"🎭 Failed to get demo state: {e}")
+        return None
+
+def clear_demo_state():
+    """Clear demo state file."""
+    try:
+        if os.path.exists(DEMO_STATE_FILE):
+            os.remove(DEMO_STATE_FILE)
+            logger.info("🎭 Demo state file cleared")
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"🎭 Failed to clear demo state: {e}")
+        return False
+
+def is_demo_in_progress():
+    """Check if demo is in progress by checking for demo state file."""
+    return os.path.exists(DEMO_STATE_FILE)
+
+
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
     name = force_app_name
@@ -6393,11 +6438,15 @@ async def store_demo_continuation(request):
             # Parse the JSON state
             continuation_state = json.loads(demo_continuation)
             
-            # Store in database
-            db['demo_continuation_state'] = continuation_state
-            logger.info(f"🎭 Demo continuation state stored: {continuation_state}")
+            # Store to file for persistence across server restarts
+            success = store_demo_state(continuation_state)
             
-            return JSONResponse({"success": True, "message": "Demo continuation state stored"})
+            if success:
+                logger.info(f"🎭 Demo continuation state stored to file: {continuation_state}")
+                return JSONResponse({"success": True, "message": "Demo continuation state stored"})
+            else:
+                logger.error("🎭 Failed to store demo continuation state to file")
+                return JSONResponse({"success": False, "message": "Failed to store demo state"}, status_code=500)
         else:
             logger.error("🎭 No demo continuation data provided")
             return JSONResponse({"success": False, "message": "No demo continuation data provided"}, status_code=400)
@@ -6411,18 +6460,15 @@ async def store_demo_continuation(request):
 async def check_demo_resume(request):
     """Check if demo should resume after server restart"""
     try:
-        demo_resume_flag = db.get('demo_resume_after_restart', False)
-        demo_continuation_state = db.get('demo_continuation_state')
+        # Check file-based demo state
+        demo_state = get_demo_state()
         
-        if demo_resume_flag and demo_continuation_state:
-            # Clear the flag and state to prevent infinite loops
-            del db['demo_resume_after_restart']
-            del db['demo_continuation_state']
-            
-            logger.info(f"🎭 Demo resume requested with state: {demo_continuation_state}")
+        if demo_state:
+            logger.info(f"🎭 Demo resume requested with state: {demo_state}")
+            # Don't clear the state here - let the comeback flow handle it
             return JSONResponse({
                 "should_resume": True,
-                "continuation_state": demo_continuation_state
+                "continuation_state": demo_state
             })
         else:
             return JSONResponse({"should_resume": False})
@@ -6436,13 +6482,13 @@ async def check_demo_resume(request):
 async def check_demo_comeback(request):
     """Check if we're coming back from a demo-triggered restart and return demo state for continuation."""
     try:
-        # Check if we have demo comeback state for continuation
+        # First check database for demo comeback state (set during startup)
         demo_comeback_state = db.get('demo_comeback_state')
         
         if demo_comeback_state:
             # Clear the state after reading it (single use)
             del db['demo_comeback_state']
-            logger.info(f"🎭 Demo comeback detected with state: {demo_comeback_state}")
+            logger.info(f"🎭 Demo comeback detected from database with state: {demo_comeback_state}")
             
             return JSONResponse({
                 "show_comeback_message": True,
@@ -6450,12 +6496,26 @@ async def check_demo_comeback(request):
                 "message": "🎭 Demo server restart complete! Ready for the next trick...",
                 "subtitle": "Press Ctrl+Alt+Y to continue or Ctrl+Alt+N to stop"
             })
-        else:
+        
+        # Fallback: Check file directly (in case startup detection didn't run)
+        demo_state = get_demo_state()
+        if demo_state:
+            logger.info(f"🎭 Demo comeback detected from file with state: {demo_state}")
+            # Clear the file since we're processing it
+            clear_demo_state()
+            
             return JSONResponse({
-                "show_comeback_message": False,
-                "message": None,
-                "subtitle": None
+                "show_comeback_message": True,
+                "demo_state": demo_state,
+                "message": "🎭 Demo server restart complete! Ready for the next trick...",
+                "subtitle": "Press Ctrl+Alt+Y to continue or Ctrl+Alt+N to stop"
             })
+        
+        return JSONResponse({
+            "show_comeback_message": False,
+            "message": None,
+            "subtitle": None
+        })
     except Exception as e:
         logger.error(f"🎭 Error checking demo comeback state: {e}")
         return JSONResponse({
