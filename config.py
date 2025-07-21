@@ -1,6 +1,14 @@
 # Pipulate Configuration Module
 # Centralized configuration to eliminate duplication between server.py and pipeline.py
 
+# ⚡ META-PATTERN: THE "EUREKA → COCA COLA" PIPELINE
+# ═══════════════════════════════════════════════════════════════════════════════════
+# EUREKA STATE: Deep understanding of system architecture, problem root causes, solutions
+# COCA COLA STATE: Repeatable, documented, systematic implementation that preserves insights
+# 
+# This config file embodies the "Coca Cola" state - systematic capture of insights that
+# prevents having to "reproduce from scratch with analogous situations"
+
 # Temporary friendly_names to avoid circular imports - TODO: refactor into shared config
 friendly_names = {
     'step_01': 'Step 1',
