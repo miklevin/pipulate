@@ -1,6 +1,5 @@
 # File: plugins/200_workflow_genesis.py
 import asyncio
-from collections import namedtuple
 from datetime import datetime
 from fasthtml.common import * # type: ignore
 from loguru import logger
@@ -11,10 +10,9 @@ import json
 from starlette.responses import HTMLResponse
 import os
 import urllib.parse
+from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
-
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None, None, None, False, None))
 
 def derive_public_endpoint_from_filename(filename_str: str) -> str:
     """Derives the public endpoint name from the filename (e.g., "010_my_flow.py" -> "my_flow")."""

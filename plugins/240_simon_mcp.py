@@ -1,6 +1,5 @@
 # File: plugins/830_simon_mcp.py
 import asyncio
-from collections import namedtuple
 from datetime import datetime
 import json
 from fasthtml.common import * # type: ignore
@@ -9,10 +8,9 @@ from loguru import logger
 import inspect
 from pathlib import Path
 import re
+from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
-
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None, None, None, False, None))
 
 # Import MODEL constant from server
 from server import MODEL
