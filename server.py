@@ -6027,6 +6027,11 @@ async def clear_db(request):
     current_env = get_current_environment()
     logger.info(f'🚨 CLEAR_DB: Using CURRENT database file: {current_db_filename} (current environment: {current_env})')
     
+    # 🛡️ LIGHTWEIGHT SAFETY: Block clearing any database without "_dev" in filename
+    if '_dev' not in current_db_filename:
+        logger.error(f'🚨 SAFETY: Cannot clear database {current_db_filename} - only dev databases allowed!')
+        return HTMLResponse(f'SAFETY: Cannot clear database {current_db_filename} - only databases with "_dev" in filename can be cleared!', status_code=500)
+    
     # 🛡️ ADDITIONAL SAFETY: Verify environment when demo is triggered
     if demo_triggered and current_env != 'Development':
         logger.error(f'🚨 CRITICAL SAFETY ERROR: Demo triggered but still in {current_env} mode! Aborting database clear.')
