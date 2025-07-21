@@ -4160,6 +4160,19 @@ async def startup_event():
     except Exception as e:
         logger.error(f"💬 FINDER_TOKEN: CONVERSATION_RESTORE_ERROR - Failed to restore conversation history: {e}")
 
+    # 🎭 DEMO CONTINUATION CHECK - Resume demo after server restart
+    try:
+        demo_continuation_state = db.get('demo_continuation_state')
+        if demo_continuation_state:
+            logger.info(f"🎭 FINDER_TOKEN: DEMO_CONTINUATION_FOUND - Demo continuation state found: {demo_continuation_state}")
+            # Store a flag for the frontend to check
+            db['demo_resume_after_restart'] = True
+            logger.info("🎭 FINDER_TOKEN: DEMO_CONTINUATION_FLAG_SET - Demo resume flag set for frontend")
+        else:
+            logger.info("🎭 FINDER_TOKEN: DEMO_CONTINUATION_NONE - No demo continuation state found")
+    except Exception as e:
+        logger.error(f"🎭 FINDER_TOKEN: DEMO_CONTINUATION_ERROR - Failed to check demo continuation state: {e}")
+
     # 🛡️ BACKUP SYSTEM INTEGRATION - Protect all critical data on startup
     try:
         from helpers.durable_backup_system import DurableBackupManager
@@ -6245,6 +6258,56 @@ async def select_profile(request):
     redirect_url = db.get('last_visited_url', '/')
     logger.debug(f'Redirecting to: {redirect_url}')
     return Redirect(redirect_url)
+
+
+@rt('/store-demo-continuation', methods=['POST'])
+async def store_demo_continuation(request):
+    """Store demo continuation state before server restart"""
+    try:
+        form_data = await request.form()
+        demo_continuation = form_data.get('demo_continuation')
+        
+        if demo_continuation:
+            # Parse the JSON state
+            continuation_state = json.loads(demo_continuation)
+            
+            # Store in database
+            db['demo_continuation_state'] = continuation_state
+            logger.info(f"🎭 Demo continuation state stored: {continuation_state}")
+            
+            return JSONResponse({"success": True, "message": "Demo continuation state stored"})
+        else:
+            logger.error("🎭 No demo continuation data provided")
+            return JSONResponse({"success": False, "message": "No demo continuation data provided"}, status_code=400)
+            
+    except Exception as e:
+        logger.error(f"🎭 Error storing demo continuation state: {e}")
+        return JSONResponse({"success": False, "message": f"Error: {str(e)}"}, status_code=500)
+
+
+@rt('/check-demo-resume', methods=['GET'])
+async def check_demo_resume(request):
+    """Check if demo should resume after server restart"""
+    try:
+        demo_resume_flag = db.get('demo_resume_after_restart', False)
+        demo_continuation_state = db.get('demo_continuation_state')
+        
+        if demo_resume_flag and demo_continuation_state:
+            # Clear the flag and state to prevent infinite loops
+            del db['demo_resume_after_restart']
+            del db['demo_continuation_state']
+            
+            logger.info(f"🎭 Demo resume requested with state: {demo_continuation_state}")
+            return JSONResponse({
+                "should_resume": True,
+                "continuation_state": demo_continuation_state
+            })
+        else:
+            return JSONResponse({"should_resume": False})
+            
+    except Exception as e:
+        logger.error(f"🎭 Error checking demo resume: {e}")
+        return JSONResponse({"should_resume": False, "error": str(e)}, status_code=500)
 
 
 @rt('/demo_script_config.json', methods=['GET'])

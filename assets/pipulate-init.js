@@ -1594,6 +1594,56 @@ async function executeStepsWithBranching(steps, demoScript) {
             const userInput = await waitForKeyboardInput(step.valid_keys);
             console.log('🎯 User pressed:', userInput);
             
+            // Special handling for the first trick (database reset)
+            if (step.step_id === '07_first_trick' && userInput === 'ctrl+alt+y') {
+                console.log('🎭 FIRST TRICK: User confirmed database reset');
+                
+                // Store demo continuation state before server restart
+                const demoContinuationState = {
+                    action: 'demo_continuation',
+                    step_id: '08_dev_reset_confirmed',
+                    branch: 'branch_dev_reset_yes',
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Store in database via server endpoint
+                try {
+                    const formData = new FormData();
+                    formData.append('demo_continuation', JSON.stringify(demoContinuationState));
+                    
+                    const response = await fetch('/store-demo-continuation', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        console.log('🎭 Demo continuation state stored successfully');
+                    } else {
+                        console.error('🎭 Failed to store demo continuation state');
+                    }
+                } catch (error) {
+                    console.error('🎭 Error storing demo continuation state:', error);
+                }
+                
+                // Call the /clear-db endpoint to trigger server restart
+                console.log('🎭 Calling /clear-db endpoint to reset database...');
+                try {
+                    const resetResponse = await fetch('/clear-db', {
+                        method: 'POST'
+                    });
+                    
+                    if (resetResponse.ok) {
+                        console.log('🎭 Database reset initiated successfully');
+                        // The server will restart and the demo will resume from the stored state
+                        return; // Exit the demo execution - server restart will handle continuation
+                    } else {
+                        console.error('🎭 Failed to reset database');
+                    }
+                } catch (error) {
+                    console.error('🎭 Error calling /clear-db endpoint:', error);
+                }
+            }
+            
             // Navigate to the appropriate branch
             const branchKey = step.branches[userInput];
             console.log('🎯 Branch key for input:', branchKey);
@@ -2245,12 +2295,71 @@ function resetToNormalColor() {
     console.log('🎬 Reset to normal color state');
 }
 
+// Check for demo resume after server restart
+async function checkDemoResumeAfterRestart() {
+    try {
+        console.log('🎭 Checking for demo resume after server restart...');
+        
+        const response = await fetch('/check-demo-resume');
+        const data = await response.json();
+        
+        if (data.should_resume && data.continuation_state) {
+            console.log('🎭 Demo resume detected after server restart');
+            console.log('🎭 Continuation state:', data.continuation_state);
+            
+            // Resume the demo from the continuation state
+            await resumeDemoFromContinuationState(data.continuation_state);
+        } else {
+            console.log('🎭 No demo resume needed after server restart');
+        }
+    } catch (error) {
+        console.error('🎭 Error checking demo resume after restart:', error);
+    }
+}
+
+// Resume demo from continuation state after server restart
+async function resumeDemoFromContinuationState(continuationState) {
+    try {
+        console.log('🎭 Resuming demo from continuation state:', continuationState);
+        
+        // Load the demo script configuration
+        const response = await fetch('/demo_script_config.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const config = await response.json();
+        const demoScript = config.demo_script;
+        
+        // Activate demo mode
+        demoModeActive = true;
+        currentDemoScript = demoScript;
+        
+        console.log('🎭 Demo mode activated for resume');
+        
+        // Execute the continuation branch
+        const branchKey = continuationState.branch;
+        if (branchKey && demoScript.branches[branchKey]) {
+            console.log('🎭 Executing continuation branch:', branchKey);
+            await executeStepsWithBranching(demoScript.branches[branchKey], demoScript);
+        } else {
+            console.error('🎭 Invalid continuation branch:', branchKey);
+        }
+        
+    } catch (error) {
+        console.error('🎭 Error resuming demo from continuation state:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeChatInterface();
     initializeScrollObserver();
     
     // Check for demo bookmark and resume if exists
     checkAndResumeDemoBookmark();
+    
+    // Check for demo resume after server restart
+    checkDemoResumeAfterRestart();
     
     // Send temp message when WebSocket is ready (with initial delay for page load)
     if (tempMessage && !tempMessageSent) {
