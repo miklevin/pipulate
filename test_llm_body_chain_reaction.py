@@ -2,6 +2,12 @@
 """
 🎯 DETERMINISTIC LLM "BODY" CHAIN REACTION TEST
 
+🧪 REVOLUTIONARY TESTING PHILOSOPHY: "Tests Are Just Another Workflow"
+═══════════════════════════════════════════════════════════════════════════════════
+BREAKTHROUGH: Tests use the same MCP tools as the application, not external frameworks
+WHY: No mocking, no isolation, radical transparency, integration testing by default
+PRINCIPLE: This IS the integration test - uses actual browser automation, actual tools
+
 This script validates the complete chain reaction:
 1. LLM discovers tools via [mcp]
 2. LLM chooses browser automation 
