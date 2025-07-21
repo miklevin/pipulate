@@ -100,9 +100,9 @@ def falling_alice(console_output=True):
     
     # Console output for humans (Rich display)
     if console_output:
-        console.print()  # Add spacing
-        console.print(Align.center(falling_alice_art))  # No conflicting style parameter
-        console.print()  # Add spacing
+        safe_console_print()  # Add spacing
+        safe_console_print(Align.center(falling_alice_art))  # No conflicting style parameter
+        safe_console_print()  # Add spacing
         logger.info("🍄 FALLING_ALICE_BANNER: Large Alice art displayed")
     
     # 🎭 AI CREATIVE TRANSPARENCY: Let AI assistants experience the whimsical narrative
@@ -131,7 +131,7 @@ def white_rabbit(console_output=True):
             style=style,
             padding=(1, 2)
         )
-        console.print(panel)
+        safe_console_print(panel)
     
     # 🎭 AI CREATIVE TRANSPARENCY: Share the whimsical White Rabbit moment
     share_ascii_with_ai(alice_art, "White Rabbit ASCII Art - 🐰 Narrative moment: Welcome to Consoleland - down the rabbit hole of radical transparency!", "🐰")
@@ -160,7 +160,7 @@ def system_diagram(console_output=True):
             style=style,
             padding=(1, 2)
         )
-        console.print(panel)
+        safe_console_print(panel)
     
     # 🎭 AI CREATIVE TRANSPARENCY: System architecture for AI understanding
     share_ascii_with_ai(diagram, "System Architecture Diagram - 🏗️ Architecture moment: This shows how Pipulate's UI is organized - Navigation, Main Pipeline Area, and Chat Interface!", "🏗️")
@@ -206,7 +206,7 @@ def fig(text, font='slant', color=None, width=200):
     figlet = Figlet(font=font, width=width)
     fig_text = figlet.renderText(str(text))
     colored_text = Text(fig_text, style=f'{color} on default')
-    console.print(colored_text, style='on default')
+    safe_console_print(colored_text, style='on default')
     
     # Log ASCII art with backticks for easy grepping
     logger.info(f"🎨 BANNER: {text} (figlet: {font}) | ASCII_DATA:\n```\n{fig_text}\n```")
@@ -216,7 +216,7 @@ def chip_says(message, style=None, prefix="💬 Chip O'Theseus"):
     """🎭 CHIP O'THESEUS NARRATOR: Discrete storytelling moments in the logs"""
     if style is None:
         style = BANNER_COLORS['chip_narrator']
-    console.print(f"{prefix}: {message}", style=style)
+    safe_console_print(f"{prefix}: {message}", style=style)
     logger.info(f"🎭 NARRATOR: {prefix}: {message}")
     return f"{prefix}: {message}"
 
@@ -226,19 +226,19 @@ def story_moment(title, details=None, color=None):
         color = BANNER_COLORS['story_moment']
     
     if details:
-        console.print(f"📖 {title}", style=f"bold {color}")
-        console.print(f"   {details}", style=f"dim {color}")
+        safe_console_print(f"📖 {title}", style=f"bold {color}")
+        safe_console_print(f"   {details}", style=f"dim {color}")
         logger.info(f"📖 STORY: {title} - {details}")
         return f"{title}: {details}"
     else:
-        console.print(f"📖 {title}", style=f"bold {color}")
+        safe_console_print(f"📖 {title}", style=f"bold {color}")
         logger.info(f"📖 STORY: {title}")
         return title
 
 def server_whisper(message, emoji="🤫"):
     """🤫 SERVER WHISPERS: Subtle behind-the-scenes commentary"""
     style = BANNER_COLORS['server_whisper']
-    console.print(f"{emoji} {message}", style=style)
+    safe_console_print(f"{emoji} {message}", style=style)
     logger.info(f"🤫 WHISPER: {message}")
     return f"{emoji} {message}"
 
@@ -261,7 +261,7 @@ def ascii_banner(title, subtitle=None, style=None, box_style=None):
         style=style,
         padding=(1, 2)
     )
-    console.print(panel)
+    safe_console_print(panel)
     logger.info(f"🎨 ASCII_BANNER: {title}" + (f" - {subtitle}" if subtitle else ""))
     
     # Log the banner content with backticks for easy grepping
@@ -286,7 +286,7 @@ def section_header(icon, title, description=None, color=None):
         style=color,
         padding=(1, 2)
     )
-    console.print(panel)
+    safe_console_print(panel)
     
     logger.info(f"📋 SECTION: {icon} {title} - {description or 'No description'}")
     return f"{header_text}\n{separator}"
@@ -312,7 +312,7 @@ def radical_transparency_banner(console_output=True):
     # Console output for humans (Rich display)
     if console_output:
         style = BANNER_COLORS['transparency_banner']
-        console.print(transparency_text, style=style)
+        safe_console_print(transparency_text, style=style)
         logger.info("🔍 RADICAL_TRANSPARENCY_BANNER: Philosophy banner displayed")
     
     # 🎭 AI CREATIVE TRANSPARENCY: The philosophy itself - for AI assistants to experience
@@ -347,7 +347,7 @@ def status_banner(mcp_count, plugin_count, env="Development"):
         style=primary_color,
         padding=(1, 2)
     )
-    console.print(panel)
+    safe_console_print(panel)
     logger.info(f"📊 STATUS_BANNER: MCP:{mcp_count}, Plugins:{plugin_count}, Env:{env}")
     
     # Log the status content with backticks for easy grepping
@@ -438,7 +438,7 @@ def ai_breadcrumb_summary(tool_count: int) -> str:
     
     # Capture the rendered output
     with console.capture() as capture:
-        console.print(panel)
+        safe_console_print(panel)
     
     return capture.get()
 
@@ -484,7 +484,7 @@ def startup_environment_warnings() -> str:
     
     # Capture the rendered output
     with console.capture() as capture:
-        console.print(panel)
+        safe_console_print(panel)
     
     return capture.get() 
 
@@ -545,7 +545,7 @@ def startup_summary_table(
     
     # Capture the rendered output
     with console.capture() as capture:
-        console.print(panel)
+        safe_console_print(panel)
     
     return capture.get()
 
@@ -582,7 +582,7 @@ def ai_breadcrumb_summary(tool_count: int) -> str:
     
     # Capture the rendered output
     with console.capture() as capture:
-        console.print(panel)
+        safe_console_print(panel)
     
     return capture.get()
 
@@ -628,6 +628,6 @@ def startup_environment_warnings() -> str:
     
     # Capture the rendered output
     with console.capture() as capture:
-        console.print(panel)
+        safe_console_print(panel)
     
     return capture.get() 
