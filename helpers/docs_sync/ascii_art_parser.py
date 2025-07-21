@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
 """
-ASCII Art Parser for Living README System
+🎨 LIVING README REVOLUTION - Parsable ASCII Art Dictionary System
 
-Extracts ASCII art blocks from README.md according to the parsing strategy:
-- Headline (### title) becomes the key
-- Header = content between headline and first ```
-- Art = content inside ``` fences  
+BREAKTHROUGH: Transforms documentation from static text into dynamic source of truth
+where ASCII art diagrams become parsable, distributable assets that maintain 
+consistency across the entire project ecosystem.
+
+PARSING STRATEGY - Structured format enables automatic extraction:
+- Headline (### title) becomes the key/identifier
+- Header = content between headline and first ``` fence
+- Art = ASCII art content inside ``` fences  
 - Footer = content between closing ``` and next section
+
+DISTRIBUTION MAGIC:
+• Source: README.md (clean, beautiful, GitHub-friendly)
+• Destinations: Any .md/.mdc file with ASCII art markers
+• Result: Single source of truth for all ASCII art across Pipulate
+
+This creates "foolproof failsafe" documentation that writes itself!
 """
 
 import re
