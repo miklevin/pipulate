@@ -1,6 +1,5 @@
 # File: plugins/130_content_gap_analysis.py
 import asyncio
-from collections import namedtuple
 from datetime import datetime
 from fasthtml.common import * # type: ignore
 from loguru import logger
@@ -9,10 +8,9 @@ from pathlib import Path
 import re
 import json
 from starlette.responses import HTMLResponse
+from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Workshop'] # Defines which user roles can see this plugin
-
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None, None, None, False, None))
 
 class ContentGapAnalysis:
     """

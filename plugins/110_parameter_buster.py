@@ -9,7 +9,7 @@ import shutil
 import socket
 import time
 import zipfile
-from collections import Counter, namedtuple
+from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse, quote
@@ -18,10 +18,10 @@ import httpx
 import pandas as pd
 from fasthtml.common import *
 from loguru import logger
+from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Botify Employee']
 TOKEN_FILE = 'botify_token.txt'
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 import asyncio
 import gzip
 import json
@@ -33,7 +33,7 @@ import shutil
 import socket
 import time
 import zipfile
-from collections import Counter, namedtuple
+from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse, quote
