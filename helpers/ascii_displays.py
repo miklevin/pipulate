@@ -15,6 +15,33 @@ logger = logging.getLogger(__name__)
 # Initialize console for display functions
 console = Console()
 
+def safe_console_print(*args, **kwargs):
+    """Safe wrapper for console.print that handles I/O errors gracefully"""
+    try:
+        console.print(*args, **kwargs)
+    except (BlockingIOError, BrokenPipeError, OSError) as e:
+        # Handle terminal I/O errors gracefully - Rich output failed but continue
+        logger.warning(f"🎨 SAFE_CONSOLE: Rich output failed ({type(e).__name__}: {e}), falling back to simple print")
+        # Fallback to simple print - extract text content if possible
+        try:
+            if args:
+                if hasattr(args[0], '__str__'):
+                    print(str(args[0]))
+                else:
+                    print(*args)
+        except Exception:
+            # Even simple print failed, just log it
+            logger.error(f"🎨 SAFE_CONSOLE: Both Rich and simple print failed for: {args}")
+    except Exception as e:
+        # Catch any other unexpected errors
+        logger.error(f"🎨 SAFE_CONSOLE: Unexpected error during console output: {type(e).__name__}: {e}")
+        # Try simple fallback
+        try:
+            if args:
+                print(*args)
+        except Exception:
+            logger.error(f"🎨 SAFE_CONSOLE: Complete print failure for: {args}")
+
 # Color schemes (matching server.py BANNER_COLORS)
 BANNER_COLORS = {
     'white_rabbit': 'bright_white',
@@ -163,7 +190,7 @@ def figlet_banner(text, subtitle=None, font='slant', color=None, box_style=None,
             style=color,
             padding=(1, 2)
         )
-        console.print(panel)
+        safe_console_print(panel)
         logger.info(f"🎨 FIGLET_BANNER: {text} (font: {font})" + (f" - {subtitle}" if subtitle else ""))
     
     # 🎭 AI CREATIVE TRANSPARENCY: Share the figlet art for AI context
