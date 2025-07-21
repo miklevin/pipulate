@@ -10,7 +10,7 @@ from fasthtml.common import (H2, H3, H4, A, Button, Card, Container, Details,
                              HTTPException, Input, Label, Li, Link, Meta,
                              Option, P, Script, Select, Span, Summary,
                              Textarea, Title, Ul, to_xml)
-from server import DB_FILENAME
+from server import get_db_filename
 from common import BaseCrud
 from server import db as server_db
 
@@ -111,7 +111,7 @@ class ProfilesPlugin(ProfilesPluginIdentity):
         """Count unchecked tasks for a specific profile."""
         try:
             # Use direct SQL query to count unchecked tasks (done=0)
-            db = fastlite.database(DB_FILENAME)
+            db = fastlite.database(get_db_filename())  # 🚨 CRITICAL FIX: Use dynamic database resolution
             result = db.execute('SELECT COUNT(*) FROM tasks WHERE profile_id = ? AND done = 0', (profile_id,)).fetchone()
             return result[0] if result else 0
         except Exception as e:
