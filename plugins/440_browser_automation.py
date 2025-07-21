@@ -1,12 +1,12 @@
 import asyncio
 import json
 import os
-from collections import namedtuple
 from datetime import datetime
 from urllib.parse import quote, urlparse
 
 from fasthtml.common import *
 from loguru import logger
+from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
@@ -43,9 +43,6 @@ def ensure_crawl_dir(app_name, domain, date_slug):
     base_dir = os.path.join('downloads', app_name, domain, date_slug)
     os.makedirs(base_dir, exist_ok=True)
     return base_dir
-
-
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
 class BrowserAutomation:

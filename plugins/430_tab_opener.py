@@ -1,11 +1,11 @@
 import asyncio
 import json
 import os
-from collections import namedtuple
 from datetime import datetime
 
 from fasthtml.common import *
 from loguru import logger
+from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -14,7 +14,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 ROLES = ['Workshop']
 '\nPipulate Workflow Template\nA minimal starter template for creating step-based Pipulate workflows.\n'
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
 class BlankWorkflow:
