@@ -544,27 +544,37 @@ def with_workflow_context(func):
     """Decorator that eliminates the workflow variable ritual.
     
     Instead of: pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-    Use: @with_workflow_context and access via ctx.pip, ctx.db, etc.
+    Use: @with_workflow_context and access via ctx object
     
     Usage:
         @with_workflow_context
-        async def step_01(self, request, ctx):
-            state = ctx.pip.read_state(ctx.db.get('pipeline_id', 'unknown'))
-            return ctx.pip.run_all_cells(ctx.app_name, ctx.steps)
+        async def step_01(self, request):
+            # Access via self.ctx.pip, self.ctx.db, etc.
+            state = self.ctx.pip.read_state(self.ctx.db.get('pipeline_id', 'unknown'))
+            return self.ctx.pip.run_all_cells(self.ctx.app_name, self.ctx.steps)
     """
     @functools.wraps(func)
     async def wrapper(self, request):
-        # Create a simple context object with the common variables
+        # Create a simple context object and attach to self temporarily
         from types import SimpleNamespace
-        ctx = SimpleNamespace(
+        original_ctx = getattr(self, 'ctx', None)
+        
+        self.ctx = SimpleNamespace(
             pip=self.pipulate,
             db=self.db,
             steps=self.steps, 
             app_name=self.app_name
         )
         
-        # Call the original function with the context
-        return await func(self, request, ctx)
+        try:
+            # Call the original function
+            return await func(self, request)
+        finally:
+            # Restore original context (or remove if none existed)
+            if original_ctx is not None:
+                self.ctx = original_ctx
+            else:
+                delattr(self, 'ctx')
     
     return wrapper
 
@@ -580,10 +590,11 @@ def with_workflow_context(func):
 
 # # NEW WAY (ritual eliminated):
 # @with_workflow_context  
-# async def some_method(self, request, ctx):
-#     pipeline_id = ctx.db.get('pipeline_id', 'unknown')
-#     state = ctx.pip.read_state(pipeline_id)
-#     return ctx.pip.run_all_cells(ctx.app_name, ctx.steps)
+# async def some_method(self, request):
+#     # Access via self.ctx.pip, self.ctx.db, etc.
+#     pipeline_id = self.ctx.db.get('pipeline_id', 'unknown')
+#     state = self.ctx.pip.read_state(pipeline_id)
+#     return self.ctx.pip.run_all_cells(self.ctx.app_name, self.ctx.steps)
 
 # 🔧 UTILITY FUNCTIONS TO REDUCE FILE SIZES
 # Extracted from common patterns in large workflow files
