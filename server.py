@@ -6015,8 +6015,18 @@ async def clear_db(request):
             conn_temp.close()
         except Exception as e_plugin_log_pre:
             logger.bind(lifecycle=True).error(f'CLEAR_DB PRE-WIPE: Error logging plugin tables via SQL: {e_plugin_log_pre}')
+    # 🚨 CRITICAL FIX: Use current environment's database file, not startup-time DB_FILENAME
+    current_db_filename = get_db_filename()
+    current_env = get_current_environment()
+    logger.info(f'🚨 CLEAR_DB: Using CURRENT database file: {current_db_filename} (current environment: {current_env})')
+    
+    # 🛡️ ADDITIONAL SAFETY: Verify environment when demo is triggered
+    if demo_triggered and current_env != 'Development':
+        logger.error(f'🚨 CRITICAL SAFETY ERROR: Demo triggered but still in {current_env} mode! Aborting database clear.')
+        return HTMLResponse(f'SAFETY ERROR: Cannot clear database - still in {current_env} mode', status_code=500)
+    
     try:
-        with sqlite3.connect(DB_FILENAME) as conn:
+        with sqlite3.connect(current_db_filename) as conn:
             cursor = conn.cursor()
             cursor.execute('DELETE FROM store')
             cursor.execute('DELETE FROM pipeline')
@@ -6034,9 +6044,9 @@ async def clear_db(request):
     except Exception as e:
         logger.error(f'Error clearing core tables: {e}')
         return HTMLResponse(f'Error clearing database: {e}', status_code=500)
-    logger.debug(f'CLEAR_DB: Using database file for plugin table deletion: {DB_FILENAME}')
+    logger.debug(f'CLEAR_DB: Using database file for plugin table deletion: {current_db_filename}')
     try:
-        with sqlite3.connect(DB_FILENAME) as conn_delete:
+        with sqlite3.connect(current_db_filename) as conn_delete:
             cursor_delete = conn_delete.cursor()
             cursor_delete.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
             plugin_table_names_to_delete = [row[0] for row in cursor_delete.fetchall()]
