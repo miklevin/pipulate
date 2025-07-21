@@ -45,56 +45,16 @@ from loguru import logger
 
 class ParameterBuster:
     """
-    Botify Trifecta Workflow - Multi-Export Data Collection
-    A comprehensive workflow that downloads three types of Botify data (crawl analysis, web logs,
-    and Search Console) and generates Jupyter-friendly Python code for API debugging. This workflow
-    demonstrates:
-    - Multi-step form collection with chain reaction progression
-    - Data fetching from external APIs with proper retry and error handling
-    - File caching and management for large datasets
-    - Background processing with progress indicators
-    CRITICAL INSIGHT: Botify API Evolution Complexity
-    ================================================
-    This workflow handles a PAINFUL reality: Botify's API has evolved from BQLv1 to BQLv2, but
-    BOTH versions coexist and are required for different data types:
-    - Web Logs: Uses BQLv1 with special endpoint (app.botify.com/api/v1/logs/...)
-    - Crawl/GSC: Uses BQLv2 with standard endpoint (api.botify.com/v1/projects/.../query)
-    The workflow generates Python code for BOTH patterns to enable Jupyter debugging, which is
-    essential because the /jobs endpoint is for CSV exports while /query is for quick debugging.
-    PAINFUL LESSONS LEARNED:
-    1. Web logs API uses different base URL (app.botify.com vs api.botify.com)
-    2. BQLv1 puts dates at payload level, BQLv2 puts them in periods array
-    3. Same job_type can have different payload structures (legacy vs modern)
-    4. Missing dates = broken URLs = 404 errors
-    5. PrismJS syntax highlighting requires explicit language classes and manual triggers
-    IMPORTANT: This workflow implements the standard chain reaction pattern where steps trigger
-    the next step via explicit `hx_trigger="load"` statements. See Step Flow Pattern below.
-    ## Step Flow Pattern
-    Each step follows this pattern for reliable chain reaction:
-    1. GET handler returns a div containing the step UI plus an empty div for the next step
-    2. SUBMIT handler returns a revert control plus explicit next step trigger:
-       `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`
-    ## Key Implementation Notes
-    - Background tasks use Script tags with htmx.ajax for better UX during long operations
-    - File paths are deterministic based on username/project/analysis to enable caching
-    - All API errors are handled with specific error messages for better troubleshooting
-    - Python code generation optimized for Jupyter Notebook debugging workflow
-    - Dual BQL version support (v1 for web logs, v2 for crawl/GSC) with proper conversion
-    ## Workflow Modularity & Flexibility
-    ===================================
-    While this is called the "Botify Trifecta" and downloads from three main data sources,
-    the workflow is highly modular:
-    **REQUIRED STEP**: Only Step 2 (crawl data) is actually required because it:
-    - Establishes the analysis slug that Steps 3 & 4 depend on
-    - Provides the core site structure data that most analyses need
-    **OPTIONAL STEPS**: Steps 3 (Web Logs) and 4 (Search Console) are completely optional:
-    - Can be commented out or deleted without breaking the workflow
-    - The chain reaction pattern will automatically flow through uninterrupted
-    - Step 5 (finalize) will still work correctly with just crawl data
-    **PRACTICAL USAGE**: Many users only need crawl data, making this essentially a
-    "Crawl Analysis Downloader" that can optionally become a full trifecta when needed.
-    This modularity makes the workflow perfect as a template for various Botify data
-    collection needs - from simple crawl analysis to comprehensive multi-source exports.
+    Botify Parameter Buster - Trifecta Derivative for Compliance Analysis
+    
+    📚 Complete documentation: helpers/docs_sync/botify_workflow_patterns.md
+    
+    Specialized Botify workflow focusing on parameter compliance analysis.
+    Downloads crawl analysis, web logs, and Search Console data with 'Not Compliant' focus.
+    
+    🔧 Template Config: {'analysis': 'Not Compliant'} (compliance focus)
+    🏗️ Base Template: 400_botify_trifecta.py
+    🎯 WET Inheritance: Auto-updated via helpers/rebuild_trifecta_derivatives.sh
     """
     APP_NAME = 'param_buster'
     DISPLAY_NAME = 'Parameter Buster 🔨'
