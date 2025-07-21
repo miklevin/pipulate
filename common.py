@@ -18,6 +18,14 @@ from collections import namedtuple
 # 🎯 STANDARDIZED STEP DEFINITION - Used by all workflow plugins
 # Eliminates 34+ identical namedtuple definitions across plugins
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
+# 👥 STANDARDIZED ROLES - Import from config to avoid role inconsistencies
+try:
+    from config import AVAILABLE_ROLES
+    VALID_ROLES = list(AVAILABLE_ROLES.keys())
+except ImportError:
+    # Fallback for development/testing
+    VALID_ROLES = ['Core', 'Developer', 'Components', 'Botify Employee', 'Tutorial', 'Workshop']
 from datetime import datetime
 
 import aiohttp
