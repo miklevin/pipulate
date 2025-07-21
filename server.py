@@ -6876,9 +6876,13 @@ async def send_startup_environment_message():
         has_temp_message = 'temp_message' in db
         # 🔧 HOMEPAGE FIX: Empty string (homepage) is also valid and should get the Roles message
         is_valid_endpoint = True  # Both homepage ('') and other endpoints are valid
-        logger.info(f"🔧 STARTUP_DEBUG: has_temp_message={has_temp_message}, is_valid_endpoint={is_valid_endpoint}, current_endpoint_repr={repr(current_endpoint)}")
+        
+        # 🎭 DEMO COMEBACK CHECK - Skip regular endpoint message during demo comeback
+        demo_comeback_in_progress = demo_comeback_detected if 'demo_comeback_detected' in locals() else False
+        
+        logger.info(f"🔧 STARTUP_DEBUG: has_temp_message={has_temp_message}, is_valid_endpoint={is_valid_endpoint}, demo_comeback_in_progress={demo_comeback_in_progress}, current_endpoint_repr={repr(current_endpoint)}")
 
-        if not has_temp_message and is_valid_endpoint:
+        if not has_temp_message and is_valid_endpoint and not demo_comeback_in_progress:
             endpoint_message = build_endpoint_messages(current_endpoint)
             logger.info(f"🔧 STARTUP_DEBUG: Endpoint message for '{current_endpoint}': {endpoint_message[:100] if endpoint_message else 'None'}...")
             if endpoint_message:
@@ -6912,6 +6916,8 @@ async def send_startup_environment_message():
                     logger.info(f"🔧 STARTUP_DEBUG: Skipping startup endpoint message - recently sent: {message_id}")
         elif has_temp_message:
             logger.info(f"🔧 STARTUP_DEBUG: Using existing temp_message instead of generating new endpoint message for '{current_endpoint}'")
+        elif demo_comeback_in_progress:
+            logger.info(f"🎭 STARTUP_DEBUG: Skipping regular endpoint message during demo comeback - demo message was already sent")
         else:
             logger.info(f"🔧 STARTUP_DEBUG: Skipping endpoint message - this should not happen with current logic")
 
