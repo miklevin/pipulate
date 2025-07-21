@@ -6988,6 +6988,11 @@ async def send_startup_environment_message():
         # 🎭 DEMO COMEBACK CHECK - Skip regular endpoint message during demo comeback
         demo_comeback_in_progress = demo_comeback_detected if 'demo_comeback_detected' in locals() else False
         
+        # 🎭 DEMO COMEBACK PRIORITY - Clear temp messages during demo comeback to prevent conflicts
+        if demo_comeback_in_progress and has_temp_message:
+            logger.info(f"🎭 STARTUP_DEBUG: Demo comeback in progress - clearing conflicting temp message")
+            has_temp_message = False  # Clear temp message to prioritize demo comeback
+        
         logger.info(f"🔧 STARTUP_DEBUG: has_temp_message={has_temp_message}, is_valid_endpoint={is_valid_endpoint}, demo_comeback_in_progress={demo_comeback_in_progress}, current_endpoint_repr={repr(current_endpoint)}")
 
         if not has_temp_message and is_valid_endpoint and not demo_comeback_in_progress:
