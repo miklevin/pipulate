@@ -9,7 +9,7 @@ import shutil
 import socket
 import time
 import zipfile
-from collections import Counter, namedtuple
+from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse, quote
@@ -23,8 +23,6 @@ from loguru import logger
 
 ROLES = ['Developer']
 TOKEN_FILE = 'botify_token.txt'
-
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
 class Trifecta:

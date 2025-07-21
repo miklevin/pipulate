@@ -1,6 +1,5 @@
 # File: plugins/320_dev_assistant.py
 import asyncio
-from collections import namedtuple
 from datetime import datetime
 from fasthtml.common import * # type: ignore
 from fasthtml.common import to_xml
@@ -11,10 +10,9 @@ import re
 import json
 import os
 from starlette.responses import HTMLResponse
+from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
-
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None, None, None, False, None))
 
 def derive_public_endpoint_from_filename(filename_str: str) -> str:
     """Derives the public endpoint name from the filename (e.g., "010_my_flow.py" -> "my_flow")."""

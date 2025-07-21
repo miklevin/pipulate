@@ -1,10 +1,10 @@
 import asyncio
 import os
-from collections import namedtuple
 from datetime import datetime
 
 from fasthtml.common import *
 from loguru import logger
+from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Botify Employee']
 
@@ -18,7 +18,6 @@ Finalize step saves the token to a file.
 
 """
 
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 account_url = "https://app.botify.com/account"
 
 

@@ -1,16 +1,14 @@
 # File: plugins/001_dom_visualizer.py
 import asyncio
-from collections import namedtuple
 from datetime import datetime
 from fasthtml.common import * # type: ignore
 from loguru import logger
 import inspect
 from pathlib import Path
 import re
+from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Workshop'] # Defines which user roles can see this plugin
-
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None, None, None, False, None))
 
 class DOMVisualizer:
     """
