@@ -2452,13 +2452,47 @@ async function checkDemoComeback() {
     }
 }
 
+// Load demo script config without executing (for continuation)
+async function loadDemoScriptConfig() {
+    try {
+        console.log('🎭 Loading demo script config only...');
+        
+        const response = await fetch('/demo_script_config.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const config = await response.json();
+        return config.demo_script;
+    } catch (error) {
+        console.error('🎭 Error loading demo script config:', error);
+        return null;
+    }
+}
+
 // Resume demo from stored state after server restart
 async function resumeDemoFromState(demoState) {
     try {
         console.log('🎭 DEMO CONTINUATION: Resuming demo from state:', demoState);
         
-        // Load the demo script
-        const demoScript = await loadDemoScript();
+        // First, show the interactive Y/N continuation prompt
+        await addDemoMessage('assistant', '🎭 **Demo server restart complete! Ready for the next trick...**\n\n✨ **Continue the demo?**\n\n**Press Ctrl+Alt+Y to continue** or **Ctrl+Alt+N to stop**');
+        
+        // Wait for user response before proceeding
+        return; // Let the keyboard handler take over
+        
+    } catch (error) {
+        console.error('🎭 Error resuming demo from state:', error);
+    }
+}
+
+// Continue demo after user confirms with Ctrl+Alt+Y
+async function continueDemoFromState(demoState) {
+    try {
+        console.log('🎭 DEMO CONTINUATION: User confirmed, continuing from state:', demoState);
+        
+        // Load ONLY the demo script config (do not execute)
+        const demoScript = await loadDemoScriptConfig();
         if (!demoScript) {
             console.error('🎭 Could not load demo script for continuation');
             return;
@@ -2506,9 +2540,35 @@ async function resumeDemoFromState(demoState) {
         }
         
     } catch (error) {
-        console.error('🎭 Error resuming demo from state:', error);
+        console.error('🎭 Error continuing demo from state:', error);
         // Fallback to generic continuation message
         await addDemoMessage('assistant', '🎭 **Demo continuation failed.** You can start a new demo if needed.');
+    }
+}
+
+// Add demo message to chat
+async function addDemoMessage(role, content) {
+    try {
+        console.log(`🎭 Adding demo message (${role}):`, content.substring(0, 50) + '...');
+        
+        const msgList = document.querySelector('#msg-list');
+        if (!msgList) {
+            console.warn('🎭 Chat container #msg-list not found for demo message');
+            return;
+        }
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role} demo-message`;
+        messageDiv.innerHTML = `<p>${content.replace(/\n/g, '<br>')}</p>`;
+        
+        msgList.appendChild(messageDiv);
+        
+        // Scroll to the new message
+        msgList.scrollTop = msgList.scrollHeight;
+        
+        console.log('🎭 Demo message added successfully');
+    } catch (error) {
+        console.error('🎭 Error adding demo message:', error);
     }
 }
 
@@ -2518,9 +2578,9 @@ async function showDemoComebackMessage(message, subtitle) {
         console.log('🎭 Displaying demo comeback message...');
         
         // Add message to conversation with special styling
-        const msgList = document.querySelector('.messages-list') || document.querySelector('#chat-messages');
+        const msgList = document.querySelector('#msg-list') || document.querySelector('.messages-list') || document.querySelector('#chat-messages');
         if (!msgList) {
-            console.warn('🎭 Messages container not found');
+            console.warn('🎭 Messages container not found - checked #msg-list, .messages-list, #chat-messages');
             return;
         }
         
