@@ -6484,18 +6484,29 @@ async def check_demo_comeback(request):
     try:
         # First check database for demo comeback state (set during startup)
         demo_comeback_state = db.get('demo_comeback_state')
+        logger.info(f"🎭 DEBUG: /check-demo-comeback called, demo_comeback_state in db: {demo_comeback_state}")
         
         if demo_comeback_state:
             # Clear the state after reading it (single use)
             del db['demo_comeback_state']
             logger.info(f"🎭 Demo comeback detected from database with state: {demo_comeback_state}")
             
-            return JSONResponse({
+            # Parse JSON string if needed
+            if isinstance(demo_comeback_state, str):
+                try:
+                    demo_comeback_state = json.loads(demo_comeback_state)
+                    logger.info(f"🎭 DEBUG: Parsed JSON demo state: {demo_comeback_state}")
+                except json.JSONDecodeError:
+                    logger.error(f"🎭 Failed to parse demo comeback state JSON: {demo_comeback_state}")
+            
+            response_data = {
                 "show_comeback_message": True,
                 "demo_state": demo_comeback_state,
                 "message": "🎭 Demo server restart complete! Ready for the next trick...",
                 "subtitle": "Press Ctrl+Alt+Y to continue or Ctrl+Alt+N to stop"
-            })
+            }
+            logger.info(f"🎭 DEBUG: Returning comeback response: {response_data}")
+            return JSONResponse(response_data)
         
         # Fallback: Check file directly (in case startup detection didn't run)
         demo_state = get_demo_state()
@@ -6889,10 +6900,11 @@ async def send_startup_environment_message():
                 demo_comeback_detected = True
                 # Clear the flag immediately (flipflop behavior)
                 del db['demo_comeback_message']
-                logger.info("🎭 FINDER_TOKEN: DEMO_COMEBACK_DISPLAYED - Demo comeback message shown via endpoint message, flag cleared")
+                logger.info("🎭 FINDER_TOKEN: DEMO_COMEBACK_DISPLAYED - Demo comeback message will be handled by JavaScript, flag cleared")
                 
-                # Create special demo comeback message
-                demo_comeback_message = "🎭 **Demo server restart complete!** The magic continues...\n\n🗄️ **Database has been reset** and the demo environment is fresh and ready.\n\n✨ **Ready for the next trick!**"
+                # DO NOT create system message - let JavaScript handle the demo continuation
+                demo_comeback_message = None
+                logger.info("🎭 DEMO_COMEBACK: Skipping system message - JavaScript will handle continuation")
         except Exception as e:
             logger.error(f"🎭 DEMO_COMEBACK_ERROR - Failed to check demo comeback state: {e}")
 

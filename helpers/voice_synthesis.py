@@ -149,17 +149,17 @@ class ChipVoiceSystem:
             
             # If we found the play command, use it directly
             if play_cmd:
-                try:
-                    subprocess.run(
+            try:
+                subprocess.run(
                         [play_cmd, output_path], 
-                        check=True, 
-                        stderr=subprocess.DEVNULL, 
-                        stdout=subprocess.DEVNULL
-                    )
-                    logger.info(f"🎤 Successfully spoke: {text[:50]}...")
-                    return True
-                except subprocess.CalledProcessError as e:
-                    logger.error(f"🎤 Audio playback failed: {e}")
+                    check=True, 
+                    stderr=subprocess.DEVNULL, 
+                    stdout=subprocess.DEVNULL
+                )
+                logger.info(f"🎤 Successfully spoke: {text[:50]}...")
+                return True
+            except subprocess.CalledProcessError as e:
+                logger.error(f"🎤 Audio playback failed: {e}")
                     return False
             else:
                 logger.error("🎤 'play' command not found in any location.")
@@ -167,13 +167,13 @@ class ChipVoiceSystem:
                     
         except Exception as e:
             logger.error(f"🎤 Voice synthesis failed: {e}")
-            return False
-        finally:
-            # Clean up temporary file
-            try:
-                os.unlink(output_path)
-            except:
-                pass
+                return False
+            finally:
+                # Clean up temporary file
+                try:
+                    os.unlink(output_path)
+                except:
+                    pass
     
     def speak_text(self, text: str) -> Dict[str, Any]:
         """
