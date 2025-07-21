@@ -1268,6 +1268,7 @@ This system provides unprecedented debugging power:
 </body>
 </html>"""
 
+        # 🏗️ ARCHITECTURAL: Custom HTML pattern (see line 1274 for full details)
         return HTMLResponse(page_html)
 
     def get_bootstrap_instructions(self):
@@ -2190,6 +2191,7 @@ This system provides unprecedented debugging power:
 </body>
 </html>"""
 
+            # 🏗️ ARCHITECTURAL: Custom HTML pattern (see line 1274 for full details)
             return HTMLResponse(page_html)
 
         except Exception as e:
@@ -2596,6 +2598,7 @@ This system provides unprecedented debugging power:
 </body>
 </html>"""
 
+            # 🏗️ ARCHITECTURAL: Custom HTML pattern (see line 1274 for full details)
             return HTMLResponse(page_html)
 
         except Exception as e:
@@ -2912,6 +2915,7 @@ This system provides unprecedented debugging power:
 </body>
 </html>"""
 
+            # 🏗️ ARCHITECTURAL: Custom HTML pattern (see line 1274 for full details)
             return HTMLResponse(page_html)
 
         except ValueError:
@@ -3150,6 +3154,7 @@ This system provides unprecedented debugging power:
 </body>
 </html>"""
 
+            # 🏗️ ARCHITECTURAL: Custom HTML pattern (see line 1274 for full details)
             return HTMLResponse(page_html)
 
         except Exception as e:
@@ -3736,6 +3741,7 @@ This system provides unprecedented debugging power:
 </body>
 </html>"""
 
+            # 🏗️ ARCHITECTURAL: Custom HTML pattern (see line 1274 for full details)
             return HTMLResponse(page_html)
 
         except Exception as e:
