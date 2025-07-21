@@ -6032,33 +6032,42 @@ async def clear_db(request):
         logger.error(f'🚨 CRITICAL SAFETY ERROR: Demo triggered but still in {current_env} mode! Aborting database clear.')
         return HTMLResponse(f'SAFETY ERROR: Cannot clear database - still in {current_env} mode', status_code=500)
     
-    # 🚨 EMERGENCY SAFETY: Check if database filename still points to production
-    if demo_triggered and 'botifython.db' in current_db_filename and 'dev' not in current_db_filename:
-        logger.error(f'🚨 EMERGENCY ABORT: Demo triggered but database filename still points to production: {current_db_filename}')
-        return HTMLResponse(f'EMERGENCY SAFETY ABORT: Cannot clear production database {current_db_filename}', status_code=500)
+    # 🚨 ABSOLUTE HARDWIRED SAFETY: NEVER allow clearing ANY database without "_dev" in filename
+    if '_dev' not in current_db_filename:
+        logger.error(f'🚨 ABSOLUTE SAFETY ABORT: Database clear attempted on NON-DEV database: {current_db_filename}')
+        logger.error(f'🚨 HARDWIRED PROTECTION: Only databases with "_dev" in filename can be cleared!')
+        return HTMLResponse(f'ABSOLUTE SAFETY ABORT: Cannot clear database {current_db_filename} - only dev databases (_dev in filename) can be cleared!', status_code=500)
     
+    # 🚨 NUCLEAR OPTION: Use hardwired safety wrapper for absolute protection
     try:
-        with sqlite3.connect(current_db_filename) as conn:
-            cursor = conn.cursor()
-            cursor.execute('DELETE FROM store')
-            cursor.execute('DELETE FROM pipeline')
-            cursor.execute('DELETE FROM profile')
+        from database_safety_wrapper import safe_sqlite_connect, SafetyViolationError
+        logger.info(f'🔒 NUCLEAR SAFETY: Using hardwired safety wrapper for database operations')
+        
+        try:
+            with safe_sqlite_connect(current_db_filename) as conn:
+                cursor = conn.cursor()
+                cursor.execute('DELETE FROM store')
+                cursor.execute('DELETE FROM pipeline')
+                cursor.execute('DELETE FROM profile')
 
-            # Only delete from sqlite_sequence if it exists
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'")
-            if cursor.fetchone():
-                cursor.execute('DELETE FROM sqlite_sequence')
-                logger.debug('Cleared sqlite_sequence table')
-            else:
-                logger.debug('sqlite_sequence table does not exist, skipping')
+                # Only delete from sqlite_sequence if it exists
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'")
+                if cursor.fetchone():
+                    cursor.execute('DELETE FROM sqlite_sequence')
+                    logger.debug('Cleared sqlite_sequence table')
+                else:
+                    logger.debug('sqlite_sequence table does not exist, skipping')
 
-            conn.commit()
+                conn.commit()
+        except SafetyViolationError as safety_error:
+            logger.error(f'🚨 NUCLEAR SAFETY ABORT: {safety_error}')
+            return HTMLResponse(f'NUCLEAR SAFETY ABORT: {safety_error}', status_code=500)
     except Exception as e:
         logger.error(f'Error clearing core tables: {e}')
         return HTMLResponse(f'Error clearing database: {e}', status_code=500)
     logger.debug(f'CLEAR_DB: Using database file for plugin table deletion: {current_db_filename}')
     try:
-        with sqlite3.connect(current_db_filename) as conn_delete:
+        with safe_sqlite_connect(current_db_filename) as conn_delete:
             cursor_delete = conn_delete.cursor()
             cursor_delete.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
             plugin_table_names_to_delete = [row[0] for row in cursor_delete.fetchall()]
