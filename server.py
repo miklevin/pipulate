@@ -653,6 +653,10 @@ def load_conversation_from_db():
 
         if result:
             conversation_data = json.loads(result[0])
+            # 🚨 DANGEROUS PATTERN: Complete conversation overwrite! 
+            # CRITICAL: This clear/extend pattern can cause conversation history loss
+            # CONTEXT: Safe here because it's in restoration context (database → memory)
+            # WARNING: Never use this pattern for merging or appending operations
             global_conversation_history.clear()
             global_conversation_history.extend(conversation_data)
             discussion_conn.close()
@@ -6198,6 +6202,9 @@ async def clear_db(request):
         try:
             import json
             restored_messages = json.loads(conversation_backup)
+            # 🚨 DANGEROUS PATTERN: Complete conversation overwrite!
+            # CONTEXT: Safe here - database reset restoration (backup → memory)
+            # WARNING: This clear/extend pattern historically caused conversation loss bugs
             global_conversation_history.clear()
             global_conversation_history.extend(restored_messages)
             logger.info(f"💬 FINDER_TOKEN: CONVERSATION_MEMORY_RESTORED_DB_RESET - Restored {len(restored_messages)} messages to in-memory conversation")
