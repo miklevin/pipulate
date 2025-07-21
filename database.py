@@ -2,6 +2,20 @@
 """
 database.py - Extracted from server.py
 Generated on 2025-07-04 21:26:18
+
+⚡ CRITICAL ARCHITECTURE: DUAL-DATABASE SYSTEM
+═══════════════════════════════════════════════════════════════════════════════════
+PIPULATE USES DUAL DATABASES - SILENT FAILURE PREVENTION REQUIRED:
+
+🗃️ Main App Database: data/pipulate_dev.db (FastLite/primary workflows)
+🗃️ Conversation Database: data/discussion.db (append-only conversation system)
+
+🚨 DANGER: Concurrent SQLite connections between these databases can cause:
+   • Database locking conflicts
+   • Silent failures in profile creation
+   • UI success with no actual data persistence
+
+🛡️ PROTECTION: Use single database connections, avoid concurrent access patterns
 """
 
 import sqlite3
