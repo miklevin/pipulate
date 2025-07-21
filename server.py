@@ -5099,15 +5099,28 @@ async def poke_flyout(request):
         cls='theme-switch-container'
     )
     delete_workflows_button = Button('🗑️ Clear Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
-    reset_db_button = Button('🔄 Reset Entire DEV Database',
-                             hx_post='/clear-db',
-                             hx_target='body',
-                             hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?',
-                             hx_swap='none',  # No immediate swap - let server restart handle the reload
-                             cls='secondary outline',
-                             **{'hx-on:click': '''
-                                triggerFullScreenRestart("Resetting database...", "RESET_DATABASE");
-                            '''}) if is_dev_mode else None
+    # Create reset button with different labels for DEV vs PROD mode
+    if is_dev_mode:
+        reset_db_button = Button('🔄 Reset Entire DEV Database',
+                                 hx_post='/clear-db',
+                                 hx_target='body',
+                                 hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?',
+                                 hx_swap='none',  # No immediate swap - let server restart handle the reload
+                                 cls='secondary outline',
+                                 **{'hx-on:click': '''
+                                    triggerFullScreenRestart("Resetting database...", "RESET_DATABASE");
+                                '''})
+    else:
+        # Production mode - same functionality but different label for demo
+        reset_db_button = Button('🎭 Run DEV Mode Demo',
+                                 hx_post='/clear-db',
+                                 hx_target='body',
+                                 hx_confirm='WARNING: This will reset the ENTIRE DEV DATABASE to its initial state for the demo. All DEV profiles, workflows, and plugin data will be deleted. Your PROD mode data will remain completely untouched. Are you sure?',
+                                 hx_swap='none',  # No immediate swap - let server restart handle the reload
+                                 cls='secondary outline',
+                                 **{'hx-on:click': '''
+                                    triggerFullScreenRestart("Resetting database for demo...", "RESET_DATABASE");
+                                '''})
     reset_python_button = Button('🐍 Reset Python Environment',
                                  hx_post='/reset-python-env',
                                  hx_target='#msg-list',
@@ -5144,8 +5157,9 @@ async def poke_flyout(request):
     ]
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
+    # Add reset button in both DEV and PROD modes (unified demo path)
+    list_items.append(Li(reset_db_button, cls='flyout-list-item'))
     if is_dev_mode:
-        list_items.append(Li(reset_db_button, cls='flyout-list-item'))
         list_items.append(Li(reset_python_button, cls='flyout-list-item'))
     list_items.append(Li(mcp_test_button, cls='flyout-list-item'))
 
