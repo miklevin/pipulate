@@ -18,7 +18,7 @@ class BlankPlaceholder:
     A minimal template for creating new Pipulate workflows.
     It includes one placeholder step and the necessary structure for expansion.
     """
-    APP_NAME = 'placeholder'
+    APP_NAME = 'blank_template'
     DISPLAY_NAME = 'Blank Placeholder ✏️'
     ENDPOINT_MESSAGE = 'Welcome to the Blank Placeholder. This is a starting point for your new workflow.'
     TRAINING_PROMPT = 'This is a minimal workflow template. It has one placeholder step. The user will customize it.'
