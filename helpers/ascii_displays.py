@@ -16,37 +16,50 @@ logger = logging.getLogger(__name__)
 console = Console()
 
 def safe_console_print(*args, **kwargs):
-    """
-    🛡️ BLOCKING I/O ERROR PREVENTION - Safe wrapper for console.print
+    """🎨 SAFE_CONSOLE: Failover from rich.print to regular print for compatibility"""
+    try:
+        # Try rich.print first for beautiful output
+        from rich import print as rich_print
+        rich_print(*args, **kwargs)
+    except Exception as e:
+        # If rich fails (missing dependencies, terminal compatibility), fall back
+        print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
+        try:
+            # Convert Rich objects to their string representation if possible
+            simple_args = []
+            for arg in args:
+                if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__'):
+                    # Rich object - convert to string
+                    simple_args.append(str(arg))
+                else:
+                    simple_args.append(arg)
+            print(*simple_args, **kwargs)
+        except Exception as fallback_error:
+            print(f"🎨 SAFE_CONSOLE: Both Rich and simple print failed for: {args}")
+
+
+def safe_console_capture(console, panel, fallback_text="Rich display content"):
+    """🍎 MAC SAFE: Safely capture Rich console output with Mac blocking I/O error handling
     
-    CRITICAL: Prevents BlockingIOError crashes during demo restarts and high-frequency output
-    CONTEXT: Nix shells, containers, SSH sessions have different I/O constraints  
-    SOLUTION: Graceful fallback from Rich console to simple print on I/O errors
+    Args:
+        console: Rich Console instance
+        panel: Rich Panel or other renderable object to capture
+        fallback_text: Simple text to return if Rich capture fails
+        
+    Returns:
+        str: Captured Rich output or fallback text if capture fails
     """
     try:
-        console.print(*args, **kwargs)
-    except (BlockingIOError, BrokenPipeError, OSError) as e:
-        # Handle terminal I/O errors gracefully - Rich output failed but continue
-        logger.warning(f"🎨 SAFE_CONSOLE: Rich output failed ({type(e).__name__}: {e}), falling back to simple print")
-        # Fallback to simple print - extract text content if possible
-        try:
-            if args:
-                if hasattr(args[0], '__str__'):
-                    print(str(args[0]))
-                else:
-                    print(*args)
-        except Exception:
-            # Even simple print failed, just log it
-            logger.error(f"🎨 SAFE_CONSOLE: Both Rich and simple print failed for: {args}")
-    except Exception as e:
-        # Catch any other unexpected errors
-        logger.error(f"🎨 SAFE_CONSOLE: Unexpected error during console output: {type(e).__name__}: {e}")
-        # Try simple fallback
-        try:
-            if args:
-                print(*args)
-        except Exception:
-            logger.error(f"🎨 SAFE_CONSOLE: Complete print failure for: {args}")
+        with console.capture() as capture:
+            safe_console_print(panel)
+        return capture.get()
+    except (BlockingIOError, OSError, IOError) as e:
+        # 🍎 MAC FALLBACK: Rich console capture failed, return fallback text
+        import platform
+        mac_info = f" (Mac: {platform.platform()})" if platform.system() == "Darwin" else ""
+        
+        print(f"🍎 MAC SAFE: Rich console capture failed{mac_info}, using fallback text")
+        return f"{fallback_text}\n\nRich console blocked (Error: {e}), using fallback display."
 
 # Color schemes (matching server.py BANNER_COLORS)
 BANNER_COLORS = {
@@ -442,11 +455,20 @@ def ai_breadcrumb_summary(tool_count: int) -> str:
         padding=(0, 2)
     )
     
-    # Capture the rendered output
-    with console.capture() as capture:
-        safe_console_print(panel)
+    # 🍎 MAC SAFE: Capture the rendered output with Mac error handling  
+    fallback = f"""🍞 AI DISCOVERY COMPLETE
+
+🧠 AI CAPABILITIES DISCOVERED:
+✅ MCP Tools: {tool_count} programmatic tools ready
+✅ Browser Eyes: Screenshot + DOM analysis
+✅ Browser Hands: Selenium automation control  
+✅ Session Hijack: Complete workflow capture
+✅ Persistent Memory: Keychain across restarts
+✅ Documentation: 14 comprehensive guides
+
+Zero uncertainty • 100% automation success rate"""
     
-    return capture.get()
+    return safe_console_capture(console, panel, fallback)
 
 
 def startup_environment_warnings() -> str:
@@ -488,11 +510,20 @@ def startup_environment_warnings() -> str:
         padding=(0, 2)
     )
     
-    # Capture the rendered output
-    with console.capture() as capture:
-        safe_console_print(panel)
+    # 🍎 MAC SAFE: Capture the rendered output with Mac error handling  
+    fallback = f"""🍞 AI DISCOVERY COMPLETE
+
+🧠 AI CAPABILITIES DISCOVERED:
+✅ MCP Tools: {tool_count} programmatic tools ready
+✅ Browser Eyes: Screenshot + DOM analysis
+✅ Browser Hands: Selenium automation control  
+✅ Session Hijack: Complete workflow capture
+✅ Persistent Memory: Keychain across restarts
+✅ Documentation: 14 comprehensive guides
+
+Zero uncertainty • 100% automation success rate"""
     
-    return capture.get() 
+    return safe_console_capture(console, panel, fallback) 
 
 def startup_summary_table(
     plugins_discovered: int, 
@@ -549,11 +580,37 @@ def startup_summary_table(
         padding=(1, 2)
     )
     
-    # Capture the rendered output
-    with console.capture() as capture:
-        safe_console_print(panel)
-    
-    return capture.get()
+    # 🍎 MAC SAFE: Capture the rendered output with fallback for Mac blocking I/O errors
+    try:
+        with console.capture() as capture:
+            safe_console_print(panel)
+        return capture.get()
+    except (BlockingIOError, OSError, IOError) as e:
+        # 🍎 MAC FALLBACK: Rich console capture failed, return simple text summary
+        import platform
+        mac_info = f" (Mac: {platform.platform()})" if platform.system() == "Darwin" else ""
+        
+        fallback_summary = f"""
+🚀 PIPULATE STARTUP COMPLETE{mac_info}
+
+📊 SYSTEM STATUS:
+✅ App: {app_name} 
+✅ Environment: {environment}
+✅ Plugins: {plugins_registered}/{plugins_discovered} registered
+✅ MCP Tools: {mcp_tools_count} tools available
+✅ AI Memory: Keychain persistence enabled
+✅ Browser Eyes: Session hijacking capability
+
+🎯 QUICK COMMANDS:
+• System State: .venv/bin/python cli.py call pipeline_state_inspector
+• Log Analysis: .venv/bin/python cli.py call local_llm_grep_logs --search_term FINDER_TOKEN
+• Browser Scrape: .venv/bin/python cli.py call browser_scrape_page --url http://localhost:5001
+
+All systems operational • Ready for AI workflows
+Rich console blocked on Mac (Error: {e}), using fallback display.
+"""
+        print("🍎 MAC SAFE: Rich console capture failed, using fallback text summary")
+        return fallback_summary.strip()
 
 
 def ai_breadcrumb_summary(tool_count: int) -> str:
@@ -586,11 +643,20 @@ def ai_breadcrumb_summary(tool_count: int) -> str:
         padding=(0, 2)
     )
     
-    # Capture the rendered output
-    with console.capture() as capture:
-        safe_console_print(panel)
+    # 🍎 MAC SAFE: Capture the rendered output with Mac error handling  
+    fallback = f"""🍞 AI DISCOVERY COMPLETE
+
+🧠 AI CAPABILITIES DISCOVERED:
+✅ MCP Tools: {tool_count} programmatic tools ready
+✅ Browser Eyes: Screenshot + DOM analysis
+✅ Browser Hands: Selenium automation control  
+✅ Session Hijack: Complete workflow capture
+✅ Persistent Memory: Keychain across restarts
+✅ Documentation: 14 comprehensive guides
+
+Zero uncertainty • 100% automation success rate"""
     
-    return capture.get()
+    return safe_console_capture(console, panel, fallback)
 
 
 def startup_environment_warnings() -> str:
@@ -632,8 +698,15 @@ def startup_environment_warnings() -> str:
         padding=(0, 2)
     )
     
-    # Capture the rendered output
-    with console.capture() as capture:
-        safe_console_print(panel)
+    # 🍎 MAC SAFE: Capture the rendered output with Mac error handling  
+    fallback = """🚨 AI ASSISTANT GUIDELINES
+
+⚠️ ESSENTIAL KNOWLEDGE FOR 100% SUCCESS RATE:
+• Python Path Issue: NEVER use 'python' - ALWAYS use '.venv/bin/python'
+• Golden Path: cd pipulate && .venv/bin/python cli.py call <tool_name> works everywhere
+• Working Directory: MCP tools require 'cd pipulate' first - never run from workspace root
+• Browser Evidence: Check browser_automation/looking_at/ FIRST, system internals second
+
+Essential knowledge for 100% success rate"""
     
-    return capture.get() 
+    return safe_console_capture(console, panel, fallback)
