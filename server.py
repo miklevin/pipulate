@@ -175,7 +175,15 @@ BANNER_COLORS = {
 
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
-    figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
+    try:
+        figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
+    except (BlockingIOError, OSError, IOError) as e:
+        # 🍎 MAC FALLBACK: If Rich banner fails during startup, use simple print
+        print("🚀 STARTUP: Pipulate server starting...")
+        print(f"🍎 MAC STARTUP: Rich banner failed (Error: {e}), using simple output")
+    except Exception as e:
+        # Any other error, just continue with startup
+        print(f"🚀 STARTUP: Banner display failed (Error: {e}), continuing startup...")
 
 # Initialize logger BEFORE any functions that need it
 logger = setup_logging()
@@ -7351,8 +7359,17 @@ def restart_server():
 
             # Set environment variable to indicate this is a watchdog restart
             os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
-            # Show restart banner once per watchdog restart
-            figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color=BANNER_COLORS['server_restart'])
+            # 🍎 MAC SAFE: Show restart banner with fallback for Mac I/O constraints
+            try:
+                figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color=BANNER_COLORS['server_restart'])
+            except (BlockingIOError, OSError, IOError) as e:
+                # 🍎 MAC FALLBACK: If Rich banner fails during restart, use simple print
+                print("🔄 RESTART: Pipulate server reloading...")
+                logger.info(f"🍎 MAC RESTART: Rich banner failed during restart (Error: {e}), using simple output")
+            except Exception as e:
+                # Any other error, just log and continue with restart
+                logger.warning(f"🔄 RESTART: Banner display failed (Error: {e}), continuing restart...")
+            
             os.execv(sys.executable, ['python'] + sys.argv)
         except Exception as e:
             log.error(f'Error restarting server (attempt {attempt + 1}/{max_retries})', e)
