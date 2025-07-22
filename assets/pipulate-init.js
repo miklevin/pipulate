@@ -17,6 +17,64 @@ window.testAlert = function(message) {
 const config = window.PCONFIG || {};
 const tempMessage = config.tempMessage;
 
+// 🎭 RUBY SLIPPERS: Platform-aware keyboard shortcuts
+// Platform detection for Mac keyboard shortcuts (Control+Option vs Ctrl+Alt)
+const platform = navigator.platform.toLowerCase();
+const userAgent = navigator.userAgent.toLowerCase();
+const isMac = platform.includes('mac') || userAgent.includes('mac');
+
+// Set platform-appropriate display text for keyboard shortcuts
+window.PLATFORM_KEYS = {
+    display: isMac ? 'Control+Option' : 'Ctrl+Alt',
+    y_key: isMac ? 'Control+Option+Y' : 'Ctrl+Alt+Y', 
+    n_key: isMac ? 'Control+Option+N' : 'Ctrl+Alt+N',
+    d_key: isMac ? 'Control+Option+D' : 'Ctrl+Alt+D',
+    r_key: isMac ? 'Control+Option+R' : 'Ctrl+Alt+R',
+    v_key: isMac ? 'Control+Option+V' : 'Ctrl+Alt+V',
+    w_key: isMac ? 'Control+Option+W' : 'Ctrl+Alt+W',
+    g_key: isMac ? 'Control+Option+G' : 'Ctrl+Alt+G'
+};
+
+console.log('🎭 Platform detection:', isMac ? 'Mac' : 'Windows/Linux', '- Using:', window.PLATFORM_KEYS.display);
+
+// 🎭 RUBY SLIPPERS: Platform-aware message adaptation
+// Dynamically replace keyboard shortcut text based on platform
+window.adaptMessageForPlatform = function(message) {
+    if (!message || typeof message !== 'string') return message;
+    
+    return message
+        // Replace bold keyboard shortcuts
+        .replace(/\*\*Ctrl\+Alt\+y\*\*/gi, `**${window.PLATFORM_KEYS.y_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+n\*\*/gi, `**${window.PLATFORM_KEYS.n_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+d\*\*/gi, `**${window.PLATFORM_KEYS.d_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+r\*\*/gi, `**${window.PLATFORM_KEYS.r_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+v\*\*/gi, `**${window.PLATFORM_KEYS.v_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+w\*\*/gi, `**${window.PLATFORM_KEYS.w_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+g\*\*/gi, `**${window.PLATFORM_KEYS.g_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+Y\*\*/g, `**${window.PLATFORM_KEYS.y_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+N\*\*/g, `**${window.PLATFORM_KEYS.n_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+D\*\*/g, `**${window.PLATFORM_KEYS.d_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+R\*\*/g, `**${window.PLATFORM_KEYS.r_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+V\*\*/g, `**${window.PLATFORM_KEYS.v_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+W\*\*/g, `**${window.PLATFORM_KEYS.w_key}**`)
+        .replace(/\*\*Ctrl\+Alt\+G\*\*/g, `**${window.PLATFORM_KEYS.g_key}**`)
+        // Replace plain text shortcuts
+        .replace(/Ctrl\+Alt\+y/gi, window.PLATFORM_KEYS.y_key)
+        .replace(/Ctrl\+Alt\+n/gi, window.PLATFORM_KEYS.n_key)
+        .replace(/Ctrl\+Alt\+d/gi, window.PLATFORM_KEYS.d_key)
+        .replace(/Ctrl\+Alt\+r/gi, window.PLATFORM_KEYS.r_key)
+        .replace(/Ctrl\+Alt\+v/gi, window.PLATFORM_KEYS.v_key)
+        .replace(/Ctrl\+Alt\+w/gi, window.PLATFORM_KEYS.w_key)
+        .replace(/Ctrl\+Alt\+g/gi, window.PLATFORM_KEYS.g_key)
+        .replace(/Ctrl\+Alt\+Y/g, window.PLATFORM_KEYS.y_key)
+        .replace(/Ctrl\+Alt\+N/g, window.PLATFORM_KEYS.n_key)
+        .replace(/Ctrl\+Alt\+D/g, window.PLATFORM_KEYS.d_key)
+        .replace(/Ctrl\+Alt\+R/g, window.PLATFORM_KEYS.r_key)
+        .replace(/Ctrl\+Alt\+V/g, window.PLATFORM_KEYS.v_key)
+        .replace(/Ctrl\+Alt\+W/g, window.PLATFORM_KEYS.w_key)
+        .replace(/Ctrl\+Alt\+G/g, window.PLATFORM_KEYS.g_key);
+};
+
 // Flag to prevent duplicate temp message sending
 let tempMessageSent = false;
 
@@ -1959,9 +2017,12 @@ async function simulatePhantomLLMTyping(message, speed) {
 function displayPhantomLLMMessage(message) {
     const msgList = document.getElementById('msg-list');
     if (msgList) {
+        // 🎭 RUBY SLIPPERS: Apply platform-aware keyboard shortcut adaptation
+        const adaptedMessage = window.adaptMessageForPlatform(message);
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message assistant';
-        messageDiv.innerHTML = `<div class="message-container"><div class="message-content"><p>${message}</p></div></div>`;
+        messageDiv.innerHTML = `<div class="message-container"><div class="message-content"><p>${adaptedMessage}</p></div></div>`;
         msgList.appendChild(messageDiv);
         msgList.scrollTop = msgList.scrollHeight;
     }
@@ -1971,9 +2032,12 @@ function displayPhantomLLMMessage(message) {
 function displayPhantomUserMessage(message) {
     const msgList = document.getElementById('msg-list');
     if (msgList) {
+        // 🎭 RUBY SLIPPERS: Apply platform-aware keyboard shortcut adaptation
+        const adaptedMessage = window.adaptMessageForPlatform(message);
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message user';
-        messageDiv.innerHTML = `<div class="message-container"><div class="message-content">${message}</div></div>`;
+        messageDiv.innerHTML = `<div class="message-container"><div class="message-content">${adaptedMessage}</div></div>`;
         msgList.appendChild(messageDiv);
         msgList.scrollTop = msgList.scrollHeight;
     }
@@ -1983,8 +2047,11 @@ function displayPhantomUserMessage(message) {
 async function simulateWordByWordReveal(messageElement, fullMessage, baseSpeed = 30) {
     console.log('🎯 Starting word-by-word reveal simulation');
     
+    // 🎭 RUBY SLIPPERS: Apply platform-aware keyboard shortcut adaptation
+    const adaptedMessage = window.adaptMessageForPlatform(fullMessage);
+    
     // Split message into word chunks (same pattern as LLM generation)
-    const words = fullMessage.split(/(\s+)/); // Keep whitespace
+    const words = adaptedMessage.split(/(\s+)/); // Keep whitespace
     
     // Use same timing as real Gemma 3 generation
     let accumulatedText = '';
@@ -2699,9 +2766,12 @@ async function addDemoMessage(role, content) {
             return;
         }
         
+        // 🎭 RUBY SLIPPERS: Apply platform-aware keyboard shortcut adaptation
+        const adaptedContent = window.adaptMessageForPlatform(content);
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role} demo-message`;
-        messageDiv.innerHTML = `<p>${content.replace(/\n/g, '<br>')}</p>`;
+        messageDiv.innerHTML = `<p>${adaptedContent.replace(/\n/g, '<br>')}</p>`;
         
         msgList.appendChild(messageDiv);
         
