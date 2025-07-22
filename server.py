@@ -7350,8 +7350,7 @@ def restart_server(force_restart=False):
         logger.warning(f'Could not broadcast restart notification: {e}')
 
     # Reduced delay for faster restart with typing speed compensation
-    import time as time_module
-    time_module.sleep(0.5)
+    time.sleep(0.5)
 
     max_retries = 3
     for attempt in range(max_retries):
@@ -7380,7 +7379,6 @@ def restart_server(force_restart=False):
             # 🍎 MAC SAFE: Additional protection against console blocking during restart
             try:
                 # Flush and close stdout/stderr to prevent blocking during os.execv
-                import sys
                 sys.stdout.flush()
                 sys.stderr.flush()
                 logger.info('🍎 MAC RESTART: Flushed stdout/stderr before os.execv')
@@ -7395,13 +7393,9 @@ def restart_server(force_restart=False):
                 logger.warning(f'🍎 MAC RESTART: Could not clear critical flag: {e}')
             
             # 🍎 MAC SAFE: Use different restart mechanism on Mac to avoid console I/O blocking
-            import platform
             if platform.system() == 'Darwin':  # macOS
                 try:
                     # Mac-specific restart: Start new process and exit cleanly
-                    import subprocess
-                    import os
-                    
                     # Start new server process in background
                     subprocess.Popen(
                         [sys.executable] + sys.argv,
@@ -7414,7 +7408,6 @@ def restart_server(force_restart=False):
                     logger.info('🍎 MAC RESTART: New server process started, exiting current process')
                     
                     # Exit current process cleanly (new process will take over)
-                    import time
                     time.sleep(0.5)  # Brief delay to ensure new process starts
                     os._exit(0)  # Clean exit without cleanup (new process handles everything)
                     
