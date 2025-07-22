@@ -3602,8 +3602,8 @@ class Chat:
                         self.logger.warning(f"No active chat task found for {websocket} to stop.")
                 elif message == '%%RESTART_SERVER%%':
                     self.logger.info(f"🔄 Received server restart command from {websocket}.")
-                    # Trigger server restart using existing restart_server function
-                    restart_server()
+                    # Trigger server restart using existing restart_server function - force restart for user-initiated commands
+                    restart_server(force_restart=True)
                 elif message.startswith('%%DEMO_MCP_CALL%%:'):
                     # Handle demo script MCP tool calls
                     self.logger.info(f"🎯 Received demo MCP tool call from {websocket}.")
@@ -6921,7 +6921,7 @@ async def delayed_restart(delay_seconds):
         # 🍎 MAC SAFE: Set critical operation flag to prevent watchdog interference during restart
         set_critical_operation_flag()
         logger.info('🍎 MAC RESTART: Critical operation flag set to prevent watchdog interference')
-        restart_server()
+        restart_server(force_restart=True)
     except Exception as e:
         logger.error(f'Error during restart: {e}')
         # 🍎 MAC SAFE: Clear critical operation flag on error
@@ -7273,8 +7273,8 @@ def create_restart_response():
     return f'<span aria-busy="true">{message}</span>'
 
 
-def restart_server():
-    if shared_app_state['critical_operation_in_progress'] or is_critical_operation_in_progress():
+def restart_server(force_restart=False):
+    if not force_restart and (shared_app_state['critical_operation_in_progress'] or is_critical_operation_in_progress()):
         log.warning('Restart requested but critical operation in progress. Deferring restart.')
         return
     if not check_syntax(Path(__file__)):
