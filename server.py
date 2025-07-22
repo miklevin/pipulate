@@ -7394,7 +7394,37 @@ def restart_server(force_restart=False):
             except Exception as e:
                 logger.warning(f'🍎 MAC RESTART: Could not clear critical flag: {e}')
             
-            os.execv(sys.executable, ['python'] + sys.argv)
+            # 🍎 MAC SAFE: Use different restart mechanism on Mac to avoid console I/O blocking
+            import platform
+            if platform.system() == 'Darwin':  # macOS
+                try:
+                    # Mac-specific restart: Start new process and exit cleanly
+                    import subprocess
+                    import os
+                    
+                    # Start new server process in background
+                    subprocess.Popen(
+                        [sys.executable] + sys.argv,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        stdin=subprocess.DEVNULL,
+                        cwd=os.getcwd(),
+                        start_new_session=True  # Detach from current session
+                    )
+                    logger.info('🍎 MAC RESTART: New server process started, exiting current process')
+                    
+                    # Exit current process cleanly (new process will take over)
+                    import time
+                    time.sleep(0.5)  # Brief delay to ensure new process starts
+                    os._exit(0)  # Clean exit without cleanup (new process handles everything)
+                    
+                except Exception as mac_restart_error:
+                    logger.error(f'🍎 MAC RESTART: Mac-specific restart failed: {mac_restart_error}')
+                    # Fall back to os.execv if Mac method fails
+                    os.execv(sys.executable, ['python'] + sys.argv)
+            else:
+                # Non-Mac platforms: Use standard os.execv
+                os.execv(sys.executable, ['python'] + sys.argv)
         except Exception as e:
             log.error(f'Error restarting server (attempt {attempt + 1}/{max_retries})', e)
             if attempt < max_retries - 1:
