@@ -49,7 +49,7 @@
 # /home/mike/repos/Pipulate.com/install.sh
 #
 # When a user runs:
-#   curl -L https://pipulate.com/install.sh | sh -s Botifython
+#   curl -L https://pipulate.com/install.sh | bash -s Botifython
 # The installer downloads this flake as part of the ZIP archive.
 
 # Most modern development is done on Linux, but Macs are Unix. If you think Homebrew and Docker
