@@ -693,16 +693,45 @@ function executeFullRestartSequence(message = "Restarting server...", restartTyp
 
 // Global keyboard shortcuts
 document.addEventListener('keydown', function(event) {
-    // Debug logging for keyboard events (can be removed after testing)
-    // if (event.ctrlKey || event.altKey) {
-    //     console.log('🔧 Keyboard event detected:', {
-    //         key: event.key,
-    //         ctrlKey: event.ctrlKey,
-    //         altKey: event.altKey,
-    //         shiftKey: event.shiftKey,
-    //         code: event.code
-    //     });
-    // }
+    // 🔍 MAC DEBUG: Comprehensive keyboard event logging for Mac debugging
+    if (event.ctrlKey || event.altKey || event.metaKey) {
+        console.log('🔧 KEYBOARD DEBUG - Full event details:', {
+            key: event.key,
+            code: event.code,
+            ctrlKey: event.ctrlKey,
+            altKey: event.altKey,
+            metaKey: event.metaKey,
+            shiftKey: event.shiftKey,
+            platform: navigator.platform,
+            userAgent: navigator.userAgent.substring(0, 50) + '...',
+            isMac: navigator.platform.toLowerCase().includes('mac'),
+            eventType: event.type,
+            target: event.target.tagName
+        });
+    }
+    
+    // 🍎 MAC SPECIFIC: Also log ANY keydown when D is pressed (for debugging)
+    if (event.key === 'D' || event.key === 'd') {
+        console.log('🍎 MAC DEBUG - D key pressed with modifiers:', {
+            key: event.key,
+            ctrlKey: event.ctrlKey,
+            altKey: event.altKey,
+            metaKey: event.metaKey,
+            shiftKey: event.shiftKey,
+            description: 'This should show when Control+Option+D is pressed on Mac'
+        });
+        
+        // 🔍 MAC DEBUG: Test different combinations that might work on Mac
+        if (event.ctrlKey && event.metaKey) {
+            console.log('🍎 MAC DEBUG - Control+Cmd+D detected (might be Mac equivalent)');
+        }
+        if (event.metaKey && event.altKey) {
+            console.log('🍎 MAC DEBUG - Cmd+Option+D detected (might be Mac equivalent)');
+        }
+        if (event.ctrlKey && !event.altKey && !event.metaKey) {
+            console.log('🍎 MAC DEBUG - Control+D only (no Option/Alt detected)');
+        }
+    }
     
     // Ctrl+Alt+R: Restart server
     if (event.ctrlKey && event.altKey && (event.key === 'R' || event.key === 'r')) {
@@ -714,6 +743,7 @@ document.addEventListener('keydown', function(event) {
     if (event.ctrlKey && event.altKey && (event.key === 'D' || event.key === 'd')) {
         event.preventDefault();
         console.log('🎯 Demo sequence triggered via Ctrl+Alt+D');
+        console.log('🍎 MAC DEBUG - Ctrl+Alt+D detection successful!');
         
         // Load and execute the demo script sequence
         // Music will play during the Oz door transition, not here
