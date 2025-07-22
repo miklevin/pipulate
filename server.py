@@ -7395,20 +7395,22 @@ def restart_server(force_restart=False):
             # 🍎 MAC SAFE: Use different restart mechanism on Mac to avoid console I/O blocking
             if platform.system() == 'Darwin':  # macOS
                 try:
-                    # Mac-specific restart: Start new process and exit cleanly
-                    # Start new server process in background
+                    # Mac-specific restart: Start new process with visible output
+                    logger.info('🍎 MAC RESTART: Starting new server process with visible terminal output')
+                    
+                    # Start new server process with preserved terminal output for demo visibility
                     subprocess.Popen(
                         [sys.executable] + sys.argv,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                        stdin=subprocess.DEVNULL,
+                        # Keep terminal output visible for demo - don't redirect to DEVNULL
+                        stdin=subprocess.DEVNULL,  # Only redirect stdin to prevent input conflicts
                         cwd=os.getcwd(),
-                        start_new_session=True  # Detach from current session
+                        # Don't use start_new_session=True to keep terminal connection
                     )
-                    logger.info('🍎 MAC RESTART: New server process started, exiting current process')
+                    logger.info('🍎 MAC RESTART: New server process started with visible output')
+                    logger.info('🍎 MAC RESTART: Server logs will continue in this terminal after brief transition')
                     
-                    # Exit current process cleanly (new process will take over)
-                    time.sleep(0.5)  # Brief delay to ensure new process starts
+                    # Exit current process cleanly (new process will take over terminal)
+                    time.sleep(0.8)  # Slightly longer delay for smoother terminal transition
                     os._exit(0)  # Clean exit without cleanup (new process handles everything)
                     
                 except Exception as mac_restart_error:
