@@ -5296,6 +5296,29 @@ async def poke_flyout(request):
         Span(f'🧊 Pipulate: {nix_version}', cls='version-info-text'),
         Br(),
         Span(f'📝 Git: {git_hash}', cls='version-info-text git-hash'),
+        Br(),
+        Span('🖥️ Platform: ', Span('Detecting...', id='platform-info'), cls='version-info-text'),
+        Script('''
+            // Platform detection for Mac keyboard shortcuts
+            (function() {
+                const platform = navigator.platform.toLowerCase();
+                const userAgent = navigator.userAgent.toLowerCase();
+                let platformName = 'Unknown';
+                
+                if (platform.includes('mac') || userAgent.includes('mac')) {
+                    platformName = 'Mac';
+                } else if (platform.includes('win') || userAgent.includes('windows')) {
+                    platformName = 'Windows';
+                } else if (platform.includes('linux') || userAgent.includes('linux')) {
+                    platformName = 'Linux';
+                }
+                
+                const platformElement = document.getElementById('platform-info');
+                if (platformElement) {
+                    platformElement.textContent = platformName;
+                }
+            })();
+        '''),
         cls='version-info-container'
     )
 
