@@ -7392,47 +7392,29 @@ def restart_server(force_restart=False):
             except Exception as e:
                 logger.warning(f'🍎 MAC RESTART: Could not clear critical flag: {e}')
             
-            # 🍎 MAC SAFE: Platform detection and restart mechanism selection
-            detected_platform = platform.system()
-            logger.info(f'🍎 MAC DEBUG: Detected platform: {detected_platform}')
-            
-            if detected_platform == 'Darwin':  # macOS
-                logger.info('🍎 MAC DEBUG: Entering Mac-specific restart path')
+            # 🍎 MAC SAFE: Use different restart mechanism on Mac to avoid console I/O blocking
+            if platform.system() == 'Darwin':  # macOS
                 try:
-                    # Mac-specific restart: Start new process with visible output
-                    logger.info('🍎 MAC RESTART: Starting new server process with visible terminal output')
-                    
-                    # Prepare command for subprocess
-                    restart_cmd = [sys.executable] + sys.argv
-                    logger.info(f'🍎 MAC DEBUG: Restart command: {restart_cmd}')
-                    logger.info(f'🍎 MAC DEBUG: Working directory: {os.getcwd()}')
-                    
+                    # Mac-specific restart: Start new process with visible terminal output
                     # Start new server process with preserved terminal output for demo visibility
-                    new_process = subprocess.Popen(
-                        restart_cmd,
+                    subprocess.Popen(
+                        [sys.executable] + sys.argv,
                         # Keep terminal output visible for demo - don't redirect to DEVNULL
                         stdin=subprocess.DEVNULL,  # Only redirect stdin to prevent input conflicts
                         cwd=os.getcwd(),
                         # Don't use start_new_session=True to keep terminal connection
                     )
-                    logger.info(f'🍎 MAC RESTART: New server process started with PID: {new_process.pid}')
-                    logger.info('🍎 MAC RESTART: Server logs will continue in this terminal after brief transition')
                     
                     # Exit current process cleanly (new process will take over terminal)
-                    logger.info('🍎 MAC RESTART: Exiting current process in 0.8 seconds...')
                     time.sleep(0.8)  # Slightly longer delay for smoother terminal transition
                     os._exit(0)  # Clean exit without cleanup (new process handles everything)
                     
                 except Exception as mac_restart_error:
                     logger.error(f'🍎 MAC RESTART: Mac-specific restart failed: {mac_restart_error}')
-                    logger.error(f'🍎 MAC RESTART: Exception type: {type(mac_restart_error).__name__}')
-                    logger.error(f'🍎 MAC RESTART: Exception details: {str(mac_restart_error)}')
                     # Fall back to os.execv if Mac method fails
-                    logger.error('🍎 MAC RESTART: Falling back to os.execv (this will likely fail with BlockingIOError)')
                     os.execv(sys.executable, ['python'] + sys.argv)
             else:
                 # Non-Mac platforms: Use standard os.execv
-                logger.info(f'🍎 MAC DEBUG: Non-Mac platform ({detected_platform}), using os.execv')
                 os.execv(sys.executable, ['python'] + sys.argv)
         except Exception as e:
             log.error(f'Error restarting server (attempt {attempt + 1}/{max_retries})', e)
