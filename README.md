@@ -15,7 +15,7 @@
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 
 # 2. Close and reopen your terminal, then:
-curl -L https://pipulate.com/install.sh | sh
+curl -L https://pipulate.com/install.sh | bash
 
 # 3. Launch it
 cd ~/pipulate && nix develop
@@ -480,10 +480,10 @@ Now, run the universal install script. You can give your project a custom name, 
 
 ```bash
 # To install with a custom name like "Botifython"
-curl -L https://pipulate.com/install.sh | sh -s Botifython
+curl -L https://pipulate.com/install.sh | bash -s Botifython
 
 # Or, to install with the default name "pipulate"
-curl -L https://pipulate.com/install.sh | sh
+curl -L https://pipulate.com/install.sh | bash
 ```
 
 **Step 3: Launch Pipulate**
@@ -516,7 +516,7 @@ Things sometimes go wrong. This is how you do a full Pipulate reset. This will a
 
 ```bash
 rm -rf ~/Botifython
-curl -L https://pipulate.com/install.sh | sh -s Botifython
+curl -L https://pipulate.com/install.sh | bash -s Botifython
 cd ~/Botifython
 nix develop
 ```

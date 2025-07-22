@@ -35,7 +35,21 @@
 # The more robust approach is to let nix ensure git is available before attempting any
 # git operations in the controlled nix environment.
 
-# Strict mode
+# Detect shell compatibility - pipefail is bash-specific
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "❌ Error: This script requires bash but is being run with a different shell."
+    echo "   On Windows WSL and some Linux systems, 'sh' points to dash instead of bash."
+    echo ""
+    echo "   Please run the installer with bash explicitly:"
+    echo "   curl -L https://pipulate.com/install.sh | bash -s ${1:-pipulate}"
+    echo ""
+    echo "   Or if you have bash installed:"
+    echo "   curl -L https://pipulate.com/install.sh | bash -s ${1:-pipulate}"
+    echo ""
+    exit 1
+fi
+
+# Strict mode (bash-specific features)
 set -euo pipefail
 
 # At the beginning, add argument handling
