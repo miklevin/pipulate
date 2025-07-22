@@ -6918,9 +6918,15 @@ async def delayed_restart(delay_seconds):
     await asyncio.sleep(delay_seconds)
     try:
         logger.info('Performing server restart now...')
+        # 🍎 MAC SAFE: Set critical operation flag to prevent watchdog interference during restart
+        set_critical_operation_flag()
+        logger.info('🍎 MAC RESTART: Critical operation flag set to prevent watchdog interference')
         restart_server()
     except Exception as e:
         logger.error(f'Error during restart: {e}')
+        # 🍎 MAC SAFE: Clear critical operation flag on error
+        clear_critical_operation_flag()
+        logger.info('🍎 MAC RESTART: Critical operation flag cleared after restart error')
 
 
 async def send_delayed_endpoint_message(message, session_key):
@@ -7359,6 +7365,7 @@ def restart_server():
 
             # Set environment variable to indicate this is a watchdog restart
             os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
+            
             # 🍎 MAC SAFE: Show restart banner with fallback for Mac I/O constraints
             try:
                 figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color=BANNER_COLORS['server_restart'])
@@ -7369,6 +7376,23 @@ def restart_server():
             except Exception as e:
                 # Any other error, just log and continue with restart
                 logger.warning(f"🔄 RESTART: Banner display failed (Error: {e}), continuing restart...")
+            
+            # 🍎 MAC SAFE: Additional protection against console blocking during restart
+            try:
+                # Flush and close stdout/stderr to prevent blocking during os.execv
+                import sys
+                sys.stdout.flush()
+                sys.stderr.flush()
+                logger.info('🍎 MAC RESTART: Flushed stdout/stderr before os.execv')
+            except Exception as e:
+                logger.warning(f'🍎 MAC RESTART: Could not flush stdout/stderr: {e}')
+            
+            # 🍎 MAC SAFE: Clear critical operation flag before execv (file will be removed by new process)
+            try:
+                clear_critical_operation_flag()
+                logger.info('🍎 MAC RESTART: Critical operation flag cleared before restart')
+            except Exception as e:
+                logger.warning(f'🍎 MAC RESTART: Could not clear critical flag: {e}')
             
             os.execv(sys.executable, ['python'] + sys.argv)
         except Exception as e:
@@ -7480,6 +7504,14 @@ if __name__ == '__main__':
     # 🚨 CRITICAL: Check if server is already running via watchdog
     if check_server_already_running():
         sys.exit(0)
+
+    # 🍎 MAC SAFE: Clear any stale critical operation flag from previous failed restart
+    try:
+        if is_critical_operation_in_progress():
+            clear_critical_operation_flag()
+            logger.info('🍎 MAC STARTUP: Cleared stale critical operation flag from previous restart')
+    except Exception as e:
+        logger.warning(f'🍎 MAC STARTUP: Could not clear stale critical flag: {e}')
 
     # 🤖 AI ASSISTANT EDUCATION: Explicit logging about restart behavior and console filtering
     # This is ONLY logged (not shown to console) to educate AI assistants about the sophisticated UX design
