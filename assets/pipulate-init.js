@@ -733,45 +733,46 @@ document.addEventListener('keydown', function(event) {
         }
     }
     
-    // Ctrl+Alt+R: Restart server
-    if (event.ctrlKey && event.altKey && (event.key === 'R' || event.key === 'r')) {
+    // Ctrl+Alt+R: Restart server (Mac: Control+Option+R)
+    if (event.ctrlKey && event.altKey && event.code === 'KeyR') {
         event.preventDefault();
+        console.log('🔄 Restart triggered - Mac Compatible using event.code!');
         executeFullRestartSequence("Restarting server...", "KEYBOARD_SHORTCUT");
     }
     
-    // Ctrl+Alt+D: Start demo/regression prevention sequence
-    if (event.ctrlKey && event.altKey && (event.key === 'D' || event.key === 'd')) {
+    // Ctrl+Alt+D: Start demo/regression prevention sequence (Mac: Control+Option+D)
+    if (event.ctrlKey && event.altKey && event.code === 'KeyD') {
         event.preventDefault();
         console.log('🎯 Demo sequence triggered via Ctrl+Alt+D');
-        console.log('🍎 MAC DEBUG - Ctrl+Alt+D detection successful!');
+        console.log('🍎 MAC FIX - Ctrl+Alt+D detection successful using event.code!');
         
         // Load and execute the demo script sequence
         // Music will play during the Oz door transition, not here
         loadAndExecuteCleanDemoScript();
     }
     
-    // Ctrl+Alt+V: Test voice synthesis
-    if (event.ctrlKey && event.altKey && (event.key === 'V' || event.key === 'v')) {
+    // Ctrl+Alt+V: Test voice synthesis (Mac: Control+Option+V)
+    if (event.ctrlKey && event.altKey && event.code === 'KeyV') {
         event.preventDefault();
-        console.log('🎤 Voice synthesis test triggered via Ctrl+Alt+V');
+        console.log('🎤 Voice synthesis test triggered via Ctrl+Alt+V - Mac Compatible!');
         
         // Call the voice synthesis test endpoint
         testVoiceSynthesis();
     }
     
-    // Ctrl+Alt+W: Test WebSocket connection status
-    if (event.ctrlKey && event.altKey && (event.key === 'W' || event.key === 'w')) {
+    // Ctrl+Alt+W: Test WebSocket connection status (Mac: Control+Option+W)
+    if (event.ctrlKey && event.altKey && event.code === 'KeyW') {
         event.preventDefault();
-        console.log('🔧 WebSocket connection test triggered via Ctrl+Alt+W');
+        console.log('🔧 WebSocket connection test triggered via Ctrl+Alt+W - Mac Compatible!');
         
         // Test WebSocket connection
         testWebSocketConnection();
     }
     
-    // Ctrl+Alt+G: Test golden glow effect
-    if (event.ctrlKey && event.altKey && (event.key === 'G' || event.key === 'g')) {
+    // Ctrl+Alt+G: Test golden glow effect (Mac: Control+Option+G)
+    if (event.ctrlKey && event.altKey && event.code === 'KeyG') {
         event.preventDefault();
-        console.log('✨ Golden glow test triggered via Ctrl+Alt+G');
+        console.log('✨ Golden glow test triggered via Ctrl+Alt+G - Mac Compatible!');
         
         // Test golden glow effect directly
         testGoldenGlow();
@@ -2194,10 +2195,21 @@ async function waitForKeyboardInput(validKeys) {
             const isCtrl = event.ctrlKey;
             const isAlt = event.altKey;
             
+            // 🍎 MAC FIX: Use event.code for ctrl+alt combinations because Mac Option key changes the character
+            // Map from KeyCode to letter for consistent detection across platforms
+            const keyCodeMap = {
+                'KeyA': 'a', 'KeyB': 'b', 'KeyC': 'c', 'KeyD': 'd', 'KeyE': 'e', 'KeyF': 'f', 'KeyG': 'g',
+                'KeyH': 'h', 'KeyI': 'i', 'KeyJ': 'j', 'KeyK': 'k', 'KeyL': 'l', 'KeyM': 'm', 'KeyN': 'n',
+                'KeyO': 'o', 'KeyP': 'p', 'KeyQ': 'q', 'KeyR': 'r', 'KeyS': 's', 'KeyT': 't', 'KeyU': 'u',
+                'KeyV': 'v', 'KeyW': 'w', 'KeyX': 'x', 'KeyY': 'y', 'KeyZ': 'z'
+            };
+            
             // Build key combination string
             let keyCombo = key;
             if (isCtrl && isAlt) {
-                keyCombo = `ctrl+alt+${key}`;
+                // Use event.code mapping for Mac compatibility (Option key changes characters)
+                const codeKey = keyCodeMap[event.code] || key;
+                keyCombo = `ctrl+alt+${codeKey}`;
             } else if (isCtrl) {
                 keyCombo = `ctrl+${key}`;
             }
@@ -2741,13 +2753,13 @@ function setupDemoContinuationKeyboardHandler(demoState) {
     
     // Create new keyboard handler
     window.demoContinuationKeyboardHandler = async function(event) {
-        // Check for Ctrl+Alt+Y (continue demo)
-        if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 'y') {
+        // Check for Ctrl+Alt+Y (continue demo) - Mac: Control+Option+Y
+        if (event.ctrlKey && event.altKey && event.code === 'KeyY') {
             event.preventDefault();
             
-            console.log('🎭 User pressed Ctrl+Alt+Y - continuing demo!');
+            console.log('🎭 User pressed Ctrl+Alt+Y - continuing demo! (Mac Compatible)');
             
-            // Show feedback that input was registered
+            // Show feedback that input was registered (will be adapted for platform)
             await addDemoMessage('user', '**Ctrl+Alt+Y** ✅ *Demo continuation confirmed!*');
             
             // Remove the keyboard handler
@@ -2758,13 +2770,13 @@ function setupDemoContinuationKeyboardHandler(demoState) {
             await continueDemoFromState(demoState);
             
         }
-        // Check for Ctrl+Alt+N (stop demo)
-        else if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 'n') {
+        // Check for Ctrl+Alt+N (stop demo) - Mac: Control+Option+N
+        else if (event.ctrlKey && event.altKey && event.code === 'KeyN') {
             event.preventDefault();
             
-            console.log('🎭 User pressed Ctrl+Alt+N - stopping demo!');
+            console.log('🎭 User pressed Ctrl+Alt+N - stopping demo! (Mac Compatible)');
             
-            // Show feedback that input was registered
+            // Show feedback that input was registered (will be adapted for platform)
             await addDemoMessage('user', '**Ctrl+Alt+N** ❌ *Demo stopped by user.*');
             
             // Remove the keyboard handler
