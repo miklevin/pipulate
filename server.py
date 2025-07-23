@@ -3542,10 +3542,31 @@ class Chat:
         """Handle MCP tool calls from demo script"""
         try:
             import json
+            import platform
             call_data = json.loads(mcp_data)
             tool_name = call_data.get('tool_name')
             tool_args = call_data.get('tool_args', {})
             description = call_data.get('description', '')
+
+            # 🍎 MAC VOICE ADAPTATION: Platform-aware voice text for keyboard shortcuts
+            if tool_name == 'voice_synthesis' and 'text' in tool_args:
+                original_text = tool_args['text']
+                
+                # Detect Mac platform for voice adaptation
+                is_mac = platform.system() == 'Darwin'
+                
+                if is_mac and 'control alt' in original_text.lower():
+                    # Adapt voice text for Mac keyboard shortcuts
+                    adapted_text = original_text.replace('control alt', 'control option')
+                    adapted_text = adapted_text.replace('Control Alt', 'Control Option')
+                    adapted_text = adapted_text.replace('Ctrl+Alt', 'Control+Option')
+                    adapted_text = adapted_text.replace('ctrl+alt', 'control+option')
+                    
+                    tool_args['text'] = adapted_text
+                    
+                    self.logger.info(f"🍎 MAC VOICE: Adapted keyboard shortcut text for Mac")
+                    self.logger.info(f"🍎 MAC VOICE: Original: {original_text}")
+                    self.logger.info(f"🍎 MAC VOICE: Adapted: {adapted_text}")
 
             self.logger.info(f"🎯 Demo MCP call: {tool_name} with args: {tool_args}")
 
