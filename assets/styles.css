@@ -2499,9 +2499,10 @@ button.secondary.inline-button-submit {
 /* 🎬 CONFIGURABLE CINEMATIC VARIABLES - Adjust the Kansas farmhouse look */
 :root {
     /* Over-exposed Kansas farmhouse aesthetic - washed out and faded */
-    --oz-grayscale-brightness: 0.5;    /* Over-exposed brightness (1.0 = normal, 1.5 = washed out) */
-    --oz-grayscale-contrast: 0.5;     /* Reduced contrast for faded look (1.0 = normal, 0.75 = softer) */
-    --oz-grayscale-saturation: 20%;     /* Complete desaturation (0% = grayscale) */
+    --oz-grayscale-brightness: 1.8;    /* Over-exposed brightness (1.0 = normal, 1.8 = sun-bleached) */
+    --oz-grayscale-contrast: 0.6;      /* Reduced contrast for faded look (1.0 = normal, 0.6 = very faded) */
+    --oz-grayscale-saturation: 85%;    /* Pseudo black-and-white: keep enough color for sepia browns */
+    --oz-sepia-intensity: 1.0;         /* Sepia warmth (0 = no sepia, 1.0 = deep brown sepia) */
     
     /* Transition timing */
     --oz-transition-duration: 3s;      /* Time for fade to color */
@@ -2541,12 +2542,12 @@ Example presets:
 /* NO TRANSITION on initial sepia - we want INSTANT dramatic effect */
 .demo-grayscale {
     filter: 
-        sepia(1) 
+        sepia(var(--oz-sepia-intensity)) 
         contrast(var(--oz-grayscale-contrast)) 
         brightness(var(--oz-grayscale-brightness))
         saturate(var(--oz-grayscale-saturation));
     -webkit-filter: 
-        sepia(1) 
+        sepia(var(--oz-sepia-intensity)) 
         contrast(var(--oz-grayscale-contrast)) 
         brightness(var(--oz-grayscale-brightness))
         saturate(var(--oz-grayscale-saturation));
