@@ -2379,9 +2379,9 @@ async function executeOzDoorTransition() {
     // Play "Somewhere Over the Rainbow" as the sepia effect appears
     playSomewhereOverTheRainbow();
     
-    // Step 2: Dramatic pause (2 seconds) - user wonders what's happening
-    console.log('🎬 Dramatic pause - user wonders what\'s happening...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Step 2: Dramatic pause (3 seconds) - user experiences bleak Kansas
+    console.log('🎬 Dramatic pause - user experiences bleak Kansas...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     // Step 3: Begin the transition to color (opening the door to Oz)
     console.log('🎬 Opening the door to the vibrant Land of Oz...');
