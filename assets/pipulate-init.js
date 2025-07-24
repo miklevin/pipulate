@@ -2585,7 +2585,7 @@ async function resumeDemoFromState(demoState) {
         console.log('🎭 DEMO CONTINUATION: Resuming demo from state:', demoState);
         
         // First, show the interactive Y/N continuation prompt
-        await addDemoMessage('assistant', '🎭 **Demo server restart complete! Ready for the next trick...**\n\n✨ **Continue the demo?**\n\n**Press Ctrl+Alt+Y to continue** or **Ctrl+Alt+N to stop**');
+        await addDemoMessage('assistant', '🎭 Demo server restart complete! Ready for the next trick...\n\n✨ Continue the demo?\n\nPress Ctrl+Alt+Y to continue or Ctrl+Alt+N to stop');
         
         // Set up keyboard listener for demo continuation
         setupDemoContinuationKeyboardHandler(demoState);
@@ -2627,7 +2627,7 @@ async function continueDemoFromState(demoState) {
             }
             
             // Show the interactive continuation message
-            await addDemoMessage('assistant', '🎭 **Excellent!** The magic begins...\n\n🗄️ **Database reset complete!**\n\n✨ **Ready for the next trick!**');
+            await addDemoMessage('assistant', '🎭 Excellent! The magic begins...\n\n🗄️ Database reset complete!\n\n✨ Ready for the next trick!');
             
             // Small delay for dramatic effect
             await new Promise(resolve => setTimeout(resolve, 1500));
@@ -2701,7 +2701,7 @@ async function continueDemoFromState(demoState) {
                 
             } else {
                 console.log('🎭 No specific continuation steps found - demo ready for manual testing');
-                await addDemoMessage('assistant', '🎭 **🔋 REGRESSION TEST ENVIRONMENT READY!**\n\n✅ **Controlled conditions achieved:**\n• DEV mode active\n• Fresh database\n• Ready for manual testing\n\n*You can now run manual tests or start a new demo sequence.*');
+                await addDemoMessage('assistant', '🎭 🔋 REGRESSION TEST ENVIRONMENT READY!\n\n✅ Controlled conditions achieved:\n• DEV mode active\n• Fresh database\n• Ready for manual testing\n\nYou can now run manual tests or start a new demo sequence.');
             }
         } else {
             console.log('🎭 Unknown demo state, showing generic continuation');
@@ -2760,7 +2760,7 @@ function setupDemoContinuationKeyboardHandler(demoState) {
             console.log('🎭 User pressed Ctrl+Alt+Y - continuing demo! (Mac Compatible)');
             
             // Show feedback that input was registered (will be adapted for platform)
-            await addDemoMessage('user', '**Ctrl+Alt+Y** ✅ *Demo continuation confirmed!*');
+            await addDemoMessage('user', 'Ctrl+Alt+Y ✅ Demo continuation confirmed!');
             
             // Remove the keyboard handler
             document.removeEventListener('keydown', window.demoContinuationKeyboardHandler);
