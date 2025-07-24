@@ -118,8 +118,30 @@ This system provides unprecedented debugging power:
         """Dynamically discover all documentation files from training, rules, and blog drafts directories"""
         docs = {}
 
-        # Get the absolute path to the pipulate root directory
-        pipulate_root = Path('/home/mike/repos/pipulate')
+        # Get the project root directory dynamically
+        # Start from the current file's directory and go up to find the project root
+        current_file = Path(__file__).resolve()
+        pipulate_root = current_file.parent.parent  # plugins/050_documentation.py -> plugins/ -> pipulate/
+        
+        # Verify we found the right directory by checking for key files
+        if not (pipulate_root / 'server.py').exists():
+            # Fallback: use current working directory if it contains server.py
+            cwd = Path.cwd()
+            if (cwd / 'server.py').exists():
+                pipulate_root = cwd
+            else:
+                # Last resort: search up the directory tree
+                search_path = current_file.parent
+                while search_path != search_path.parent:
+                    if (search_path / 'server.py').exists():
+                        pipulate_root = search_path
+                        break
+                    search_path = search_path.parent
+                else:
+                    logger.warning("Could not find pipulate root directory - using current working directory")
+                    pipulate_root = Path.cwd()
+        
+        logger.info(f"Using pipulate root directory: {pipulate_root}")
 
         # Scan training directory
         training_dir = pipulate_root / 'training'
