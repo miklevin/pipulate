@@ -2585,7 +2585,7 @@ async function resumeDemoFromState(demoState) {
         console.log('🎭 DEMO CONTINUATION: Resuming demo from state:', demoState);
         
         // First, show the interactive Y/N continuation prompt
-        await addDemoMessage('assistant', '🎭 Demo server restart complete! Ready for the next trick...\n\n✨ Continue the demo?\n\nPress Ctrl+Alt+Y to continue or Ctrl+Alt+N to stop');
+        await addDemoMessage('assistant', '🎭 Demo server restart complete! Ready for the next trick...\n✨ Continue the demo?\nPress Ctrl+Alt+Y to continue or Ctrl+Alt+N to stop');
         
         // Set up keyboard listener for demo continuation
         setupDemoContinuationKeyboardHandler(demoState);
