@@ -21,6 +21,32 @@ def safe_console_print(*args, **kwargs):
         # Try rich.print first for beautiful output
         from rich import print as rich_print
         rich_print(*args, **kwargs)
+    except (BlockingIOError, OSError, IOError) as e:
+        # 🍎 MAC SPECIFIC: Handle Mac blocking I/O errors gracefully
+        import platform
+        if platform.system() == 'Darwin' and "write could not complete without blocking" in str(e):
+            # Mac blocking I/O - silently skip output to prevent cascade failures
+            pass
+        else:
+            # Other I/O errors - log and fall back
+            print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
+            try:
+                # Convert Rich objects and filter kwargs for fallback
+                simple_args = []
+                for arg in args:
+                    if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__'):
+                        simple_args.append(str(arg))
+                    else:
+                        simple_args.append(arg)
+                
+                safe_kwargs = {}
+                for key, value in kwargs.items():
+                    if key in ['sep', 'end', 'file', 'flush']:
+                        safe_kwargs[key] = value
+                
+                print(*simple_args, **safe_kwargs)
+            except Exception as fallback_error:
+                pass  # Silent fallback to prevent error cascades
     except Exception as e:
         # If rich fails (missing dependencies, terminal compatibility), fall back
         print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")

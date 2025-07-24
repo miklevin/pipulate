@@ -7437,6 +7437,25 @@ def restart_server(force_restart=False):
             else:
                 # Non-Mac platforms: Use standard os.execv
                 os.execv(sys.executable, ['python'] + sys.argv)
+        except (BlockingIOError, OSError, IOError) as e:
+            # 🍎 MAC SPECIFIC: BlockingIOError [Errno 35] is a Mac-specific I/O issue during restart
+            if platform.system() == 'Darwin' and "write could not complete without blocking" in str(e):
+                logger.info(f'🍎 MAC RESTART: Mac blocking I/O during restart (Error: {e}) - this is normal on Mac')
+                logger.info('🍎 MAC RESTART: Attempting clean process exit for watchdog to handle restart')
+                try:
+                    # Let the watchdog handle the restart instead of retrying
+                    time.sleep(1.0)  # Give time for I/O to clear
+                    os._exit(0)  # Clean exit - watchdog will restart
+                except:
+                    # If even _exit fails, fall back to retry
+                    pass
+            
+            log.error(f'Error restarting server (attempt {attempt + 1}/{max_retries})', e)
+            if attempt < max_retries - 1:
+                log.warning('Restart failed', 'Waiting 5 seconds before retrying')
+                time.sleep(5)
+            else:
+                log.error('Max restart retries reached', 'Please restart the server manually')
         except Exception as e:
             log.error(f'Error restarting server (attempt {attempt + 1}/{max_retries})', e)
             if attempt < max_retries - 1:
