@@ -2838,13 +2838,17 @@ async function showDemoComebackMessage(message, subtitle) {
             return;
         }
         
+        // Strip extra line breaks and whitespace that cause spacing issues
+        const cleanMessage = message.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+        const cleanSubtitle = subtitle ? subtitle.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim() : '';
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message assistant demo-comeback';
         messageDiv.innerHTML = `
             <div class="message-container">
                 <div class="message-content demo-comeback-content">
-                    <div class="demo-comeback-main">${message}</div>
-                    ${subtitle ? `<div class="demo-comeback-subtitle">${subtitle}</div>` : ''}
+                    <div class="demo-comeback-main">${cleanMessage}</div>
+                    ${cleanSubtitle ? `<div class="demo-comeback-subtitle">${cleanSubtitle}</div>` : ''}
                 </div>
             </div>
         `;
@@ -2875,17 +2879,18 @@ async function showDemoComebackMessage(message, subtitle) {
                 .demo-comeback-content {
                     color: white !important;
                     text-align: center;
-                    padding: 16px;
+                    padding: 8px 16px;
                 }
                 .demo-comeback-main {
                     font-size: 1.1em;
                     font-weight: 600;
-                    margin-bottom: 8px;
+                    margin: 0;
                 }
                 .demo-comeback-subtitle {
                     font-size: 0.9em;
                     opacity: 0.9;
                     font-style: italic;
+                    margin: 0;
                 }
             `;
             document.head.appendChild(style);
