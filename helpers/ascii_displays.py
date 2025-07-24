@@ -33,7 +33,15 @@ def safe_console_print(*args, **kwargs):
                     simple_args.append(str(arg))
                 else:
                     simple_args.append(arg)
-            print(*simple_args, **kwargs)
+            
+            # Filter out Rich-specific kwargs that regular print() doesn't support
+            safe_kwargs = {}
+            for key, value in kwargs.items():
+                if key in ['sep', 'end', 'file', 'flush']:  # Only standard print() parameters
+                    safe_kwargs[key] = value
+                # Skip Rich-specific parameters like 'style'
+            
+            print(*simple_args, **safe_kwargs)
         except Exception as fallback_error:
             print(f"🎨 SAFE_CONSOLE: Both Rich and simple print failed for: {args}")
 
