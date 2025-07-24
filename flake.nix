@@ -134,7 +134,7 @@
         ]);
 
         # Define notebook paths for the copy-on-first-run solution
-        originalNotebook = "helpers/botify/botify_api.ipynb";
+        originalNotebook = "helpers/botify/hello.ipynb";
         localNotebook = "notebook_introduction_local.ipynb";
 
         # This script sets up our Python environment and project
