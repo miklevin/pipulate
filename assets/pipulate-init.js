@@ -2705,7 +2705,7 @@ async function continueDemoFromState(demoState) {
             }
         } else {
             console.log('🎭 Unknown demo state, showing generic continuation');
-            await addDemoMessage('assistant', '🎭 **Demo server restart complete!** Ready for the next trick...');
+            await addDemoMessage('assistant', '🎭 Demo server restart complete! Ready for the next trick...');
         }
         
     } catch (error) {
