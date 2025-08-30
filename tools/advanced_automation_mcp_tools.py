@@ -1534,7 +1534,7 @@ async def persist_perception_state(params: dict) -> dict:
     
     # Create timestamped destination in scrapes/
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    dest_dir = Path(f"scrapes/perception_state_{timestamp}")
+    dest_dir = Path(f"browser_scrapes/perception_state_{timestamp}")
     dest_dir.mkdir(parents=True, exist_ok=True)
     
     # Copy all files from source to destination
