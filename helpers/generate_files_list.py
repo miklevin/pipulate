@@ -274,7 +274,6 @@ def generate_files_list():
         FileEntry("config.py", False, "Centralized configuration - single source of truth"),
         FileEntry("server.py", False, "Server entrypoint"),
         FileEntry("common.py", False, "CRUD base class and shared utilities"),
-        FileEntry("database.py", False, "Database utilities and DictLikeDB wrapper"),
         FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
         FileEntry("cli.py", False, "CLI interface for PyPI package and local execution"),
         FileEntry("logging_utils.py", False, "Logging utilities and DebugConsole"),
