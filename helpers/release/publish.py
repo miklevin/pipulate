@@ -322,7 +322,7 @@ def display_ascii_art_stats(stats):
 def sync_install_sh():
     """Copies install.sh to Pipulate.com and commits if changed."""
     print("\n🔄 Step 3: Synchronizing install.sh to Pipulate.com...")
-    source_path = PIPULATE_ROOT / "install.sh"
+    source_path = PIPULATE_ROOT / "helpers" / "install.sh"
     dest_path = PIPULATE_COM_ROOT / "install.sh"
 
     if not PIPULATE_COM_ROOT.exists():
