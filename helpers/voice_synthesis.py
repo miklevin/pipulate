@@ -26,7 +26,7 @@ except ImportError as e:
 
 # Try to import keychain for memory integration
 try:
-    from keychain import keychain_instance
+    from helpers.keychain import keychain_instance
     KEYCHAIN_AVAILABLE = True
 except ImportError:
     KEYCHAIN_AVAILABLE = False

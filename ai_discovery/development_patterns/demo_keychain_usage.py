@@ -18,7 +18,7 @@ import os
 # Add parent directory to path to import keychain
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from keychain import keychain_instance
+from helpers.keychain import keychain_instance
 
 async def demo_first_time_ai_experience():
     """Simulate an AI instance encountering the keychain for the first time."""
