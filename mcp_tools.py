@@ -937,105 +937,66 @@ def register_all_mcp_tools():
 
 
 async def botify_simple_query(params: dict) -> dict:
-    """Execute a simple BQL query against Botify API."""
-    api_token = _read_botify_api_token()
-    if not api_token:
-        return {
-            "status": "error",
-            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
-            "token_location": "helpers/botify/botify_token.txt"
+    """
+    MCP Tool: Execute a simple BQL query against Botify API
+
+    Args:
+        params: {
+            "username": "your_username",
+            "project": "project_name",
+            "query": "SELECT url FROM crawl",
+            "limit": 100
         }
 
-    org_slug = params.get("org_slug")
-    project_slug = params.get("project_slug")
-    analysis_slug = params.get("analysis_slug")
-    query = params.get("query")
-
-    # Validate required parameters
-    missing_params = []
-    if not org_slug:
-        missing_params.append("org_slug")
-    if not project_slug:
-        missing_params.append("project_slug")
-    if not analysis_slug:
-        missing_params.append("analysis_slug")
-    if not query:
-        missing_params.append("query")
-
-    if missing_params:
-        return {
-            "status": "error",
-            "message": f"Missing required parameters: {', '.join(missing_params)}",
-            "required_params": ["org_slug", "project_slug", "analysis_slug", "query"]
-        }
+    Returns:
+        dict: {"success": True/False, "data": [...], "total_results": int}
+    """
+    logger.info(f"🔍 FINDER_TOKEN: BOTIFY_SIMPLE_QUERY_START - {params}")
 
     try:
+        username = params.get('username')
+        project = params.get('project')
+        query = params.get('query')
+        limit = params.get('limit', 100)
+
+        if not all([username, project, query]):
+            return {"success": False, "error": "Username, project, and query are required"}
+
+        api_token = _read_botify_api_token()
+        if not api_token or api_token == "placeholder_token":
+            return {"success": False, "error": "Valid Botify API token not found"}
+
+        url = f"https://api.botify.com/v1/projects/{username}/{project}/query"
+        from config import get_botify_headers
+        headers = get_botify_headers(api_token)
+
+        payload = {
+            "query": query,
+            "size": limit
+        }
+
         async with aiohttp.ClientSession() as session:
-            external_url = f"https://api.botify.com/v1/projects/{org_slug}/{project_slug}/query"
-            from config import get_botify_headers
-            headers = get_botify_headers(api_token)
-
-            # Build the BQL query payload
-            payload = {
-                "query": query,
-                "analysis": analysis_slug,
-                "size": params.get("size", 100)  # Default to 100 results
-            }
-
-            async with session.post(external_url, headers=headers, json=payload) as response:
+            async with session.post(url, headers=headers, json=payload) as response:
                 if response.status == 200:
-                    query_result = await response.json()
-
-                    # Extract result summary for easier consumption
-                    result_summary = {
-                        "total_results": len(query_result.get("results", [])),
-                        "has_pagination": "next" in query_result,
-                        "query_size_requested": payload.get("size", 100)
-                    }
-
+                    data = await response.json()
+                    results = data.get('results', [])
+                    logger.info(f"✅ FINDER_TOKEN: BOTIFY_SIMPLE_QUERY_SUCCESS - {len(results)} results")
                     return {
-                        "status": "success",
-                        "result": query_result,
-                        "result_summary": result_summary,
-                        "external_api_url": external_url,
-                        "external_api_method": "POST",
-                        "external_api_status": response.status,
-                        "external_api_payload": payload,
-                        "query_info": {
-                            "org": org_slug,
-                            "project": project_slug,
-                            "analysis": analysis_slug,
-                            "query_type": "custom_bql"
-                        }
+                        "success": True,
+                        "data": results,
+                        "total_results": len(results),
+                        "query": query
                     }
                 else:
-                    error_text = await response.text()
+                    logger.error(f"❌ FINDER_TOKEN: BOTIFY_SIMPLE_QUERY_FAILED - Status {response.status}")
                     return {
-                        "status": "error",
-                        "message": f"Custom BQL query failed: {response.status}",
-                        "error_details": error_text,
-                        "external_api_url": external_url,
-                        "external_api_method": "POST",
-                        "external_api_status": response.status,
-                        "external_api_payload": payload,
-                        "query_info": {
-                            "org": org_slug,
-                            "project": project_slug,
-                            "analysis": analysis_slug
-                        }
+                        "success": False,
+                        "error": f"HTTP {response.status}"
                     }
+
     except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Network error: {str(e)}",
-            "external_api_url": external_url if 'external_url' in locals() else None,
-            "external_api_method": "POST",
-            "query_info": {
-                "org": org_slug,
-                "project": project_slug,
-                "analysis": analysis_slug
-            }
-        }
+        logger.error(f"❌ FINDER_TOKEN: BOTIFY_SIMPLE_QUERY_ERROR - {str(e)}")
+        return {"success": False, "error": str(e)}
 
 # Local LLM tools for file system operations
 
