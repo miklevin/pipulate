@@ -6634,7 +6634,7 @@ async def check_demo_comeback(request):
 async def serve_demo_script_config(request):
     """Serve the demo script configuration file with dynamic Ollama messages"""
     try:
-        demo_config_path = Path('demo_script_config.json')
+        demo_config_path = Path('assets/json/demo_script_config.json')
         if demo_config_path.exists():
             with open(demo_config_path, 'r') as f:
                 config_data = json.load(f)
