@@ -90,4 +90,4 @@ helpers/botify/*.csv
 tests/tools/__pycache__/
 
 # Voice synthesis models - auto-downloaded as needed
-piper_models/
+assets/piper_models/

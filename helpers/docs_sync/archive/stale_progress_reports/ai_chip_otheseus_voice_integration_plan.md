@@ -31,7 +31,7 @@ Chip O'Theseus can tell Mike in spoken words what it remembers from before a ser
 ```bash
 # Download voice model (Mike's tested approach)
 # From helpers/voice_synthesis.py setup
-mkdir -p piper_models/en/en_US/amy/low/
+mkdir -p assets/piper_models/en/en_US/amy/low/
 # Download from huggingface_hub as in Mike's test
 ```
 
