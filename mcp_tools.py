@@ -787,63 +787,50 @@ async def botify_ping(params: dict) -> dict:
 
 
 async def botify_list_projects(params: dict) -> dict:
-    """List all projects for the authenticated user."""
-    api_token = _read_botify_api_token()
-    if not api_token:
-        return {
-            "status": "error",
-            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
-            "token_location": "helpers/botify/botify_token.txt"
-        }
+    """
+    MCP Tool: List all projects available to the authenticated user
+
+    Args:
+        params: {"username": "your_username"}
+
+    Returns:
+        dict: {"success": True/False, "projects": [...], "total_projects": int}
+    """
+    logger.info(f"🔍 FINDER_TOKEN: BOTIFY_LIST_PROJECTS_START - {params}")
 
     try:
+        username = params.get('username')
+        if not username:
+            return {"success": False, "error": "Username is required"}
+
+        api_token = _read_botify_api_token()
+        if not api_token or api_token == "placeholder_token":
+            return {"success": False, "error": "Valid Botify API token not found"}
+
+        url = f"https://api.botify.com/v1/projects/{username}"
+        headers = {"Authorization": f"Token {api_token}"}
+
         async with aiohttp.ClientSession() as session:
-            external_url = "https://api.botify.com/v1/projects"
-            headers = {"Authorization": f"Token {api_token}"}
-
-            async with session.get(external_url, headers=headers) as response:
+            async with session.get(url, headers=headers) as response:
                 if response.status == 200:
-                    projects_data = await response.json()
-                    projects = projects_data.get("results", [])
-
-                    # Format for easy consumption
-                    formatted_projects = []
-                    for project in projects:
-                        formatted_projects.append({
-                            "slug": project.get("slug"),
-                            "name": project.get("name"),
-                            "url": project.get("url"),
-                            "organization": project.get("organization", {}).get("name"),
-                            "active": project.get("active", False)
-                        })
-
+                    data = await response.json()
+                    projects = data.get('results', [])
+                    logger.info(f"✅ FINDER_TOKEN: BOTIFY_LIST_PROJECTS_SUCCESS - {len(projects)} projects found")
                     return {
-                        "status": "success",
-                        "result": {
-                            "projects": formatted_projects,
-                            "total_count": len(formatted_projects)
-                        },
-                        "external_api_url": external_url,
-                        "external_api_method": "GET",
-                        "external_api_status": response.status
+                        "success": True,
+                        "projects": projects,
+                        "total_projects": len(projects)
                     }
                 else:
-                    error_text = await response.text()
+                    logger.error(f"❌ FINDER_TOKEN: BOTIFY_LIST_PROJECTS_FAILED - Status {response.status}")
                     return {
-                        "status": "error",
-                        "message": f"Failed to fetch projects: {response.status}",
-                        "error_details": error_text,
-                        "external_api_url": external_url,
-                        "external_api_method": "GET",
-                        "external_api_status": response.status
+                        "success": False,
+                        "error": f"HTTP {response.status}"
                     }
+
     except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Network error: {str(e)}",
-            "external_api_url": external_url if 'external_url' in locals() else None,
-            "external_api_method": "GET"
-        }
+        logger.error(f"❌ FINDER_TOKEN: BOTIFY_LIST_PROJECTS_ERROR - {str(e)}")
+        return {"success": False, "error": str(e)}
 
 # Additional Botify tools will be added in subsequent edits...
 
