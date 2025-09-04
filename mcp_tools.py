@@ -44,10 +44,10 @@ from urllib.parse import urlparse
 
 import aiohttp
 
-# Import tools with graceful fallback
+# Import tools with graceful fallback (moved to helpers/tools for Rule of 7)
 try:
-    from tools import (browser_hijack_workflow_complete, execute_automation_recipe,
-                       execute_complete_session_hijacking, execute_mcp_cli_command)
+    from helpers.tools import (browser_hijack_workflow_complete, execute_automation_recipe,
+                               execute_complete_session_hijacking, execute_mcp_cli_command)
 except ImportError:
     # Graceful fallback - tools will be available when server is fully initialized
     browser_hijack_workflow_complete = None
