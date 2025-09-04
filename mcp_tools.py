@@ -290,11 +290,20 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
 
 
 def _read_botify_api_token() -> str:
-    """Read Botify API token from the standard token file location.
+    """Read Botify API token from keychain if available, fallback to file.
 
-    Returns the token string or None if file doesn't exist or can't be read.
-    This follows the same pattern used by all other Botify integrations.
+    Returns the token string or None if not found.
     """
+    try:
+        # Try keychain first
+        from helpers.keychain import keychain_instance
+        token = keychain_instance.get('botify_api_token')
+        if token:
+            return token
+    except ImportError:
+        logger.warning("keychain module not available")
+
+    # Fallback to file-based token
     try:
         token_file = "helpers/botify/botify_token.txt"
         if not os.path.exists(token_file):
@@ -731,52 +740,50 @@ async def pipeline_state_inspector(params: dict) -> dict:
 
 
 async def botify_ping(params: dict) -> dict:
-    """Test Botify API connectivity and authentication."""
-    api_token = _read_botify_api_token()
-    if not api_token:
-        return {
-            "status": "error",
-            "message": "Botify API token not found. Please ensure helpers/botify/botify_token.txt exists.",
-            "token_location": "helpers/botify/botify_token.txt"
-        }
+    """
+    MCP Tool: Test Botify API connectivity and authentication
+
+    Args:
+        params: {"username": "your_username"}
+
+    Returns:
+        dict: {"success": True/False, "response_status": int, "message": str}
+    """
+    logger.info(f"🔍 FINDER_TOKEN: BOTIFY_PING_START - {params}")
 
     try:
-        async with aiohttp.ClientSession() as session:
-            # Use the user endpoint as a simple ping/auth test
-            external_url = "https://api.botify.com/v1/user"
-            headers = {"Authorization": f"Token {api_token}"}
+        username = params.get('username')
+        if not username:
+            return {"success": False, "error": "Username is required"}
 
-            async with session.get(external_url, headers=headers) as response:
+        api_token = _read_botify_api_token()
+        if not api_token or api_token == "placeholder_token":
+            return {"success": False, "error": "Valid Botify API token not found"}
+
+        url = f"https://api.botify.com/v1/projects/{username}"
+        headers = {"Authorization": f"Token {api_token}"}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as response:
                 if response.status == 200:
-                    user_data = await response.json()
+                    logger.info(f"✅ FINDER_TOKEN: BOTIFY_PING_SUCCESS - {response.status}")
                     return {
-                        "status": "success",
-                        "result": {
-                            "message": "Botify API connection successful",
-                            "user": user_data.get("login", "unknown"),
-                            "organizations": len(user_data.get("organizations", []))
-                        },
-                        "external_api_url": external_url,
-                        "external_api_method": "GET",
-                        "external_api_status": response.status
+                        "success": True,
+                        "response_status": response.status,
+                        "message": "Botify API connection successful"
                     }
                 else:
-                    error_text = await response.text()
+                    logger.error(f"❌ FINDER_TOKEN: BOTIFY_PING_FAILED - Status {response.status}")
                     return {
-                        "status": "error",
+                        "success": False,
+                        "response_status": response.status,
                         "message": f"Botify API authentication failed: {response.status}",
-                        "error_details": error_text,
-                        "external_api_url": external_url,
-                        "external_api_method": "GET",
-                        "external_api_status": response.status
+                        "error": f"HTTP {response.status}"
                     }
+
     except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Network error: {str(e)}",
-            "external_api_url": external_url if 'external_url' in locals() else None,
-            "external_api_method": "GET"
-        }
+        logger.error(f"❌ FINDER_TOKEN: BOTIFY_PING_ERROR - {str(e)}")
+        return {"success": False, "error": str(e)}
 
 
 async def botify_list_projects(params: dict) -> dict:
