@@ -778,7 +778,7 @@ def create_pipulate_manifest(file_paths_with_comments):
         
         manifest.add_convention(
             "Dependency Management",
-            "System deps go in flake.nix, Python packages in requirements.txt"
+            "System deps go in flake.nix, Python packages in helpers/setup/requirements.txt"
         )
         
         manifest.add_critical_pattern(

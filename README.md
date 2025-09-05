@@ -772,7 +772,7 @@ Traditional development follows DRY principles, creating abstract, complex syste
 - Debugging or interacting with AI assistants where verbose startup output is undesirable.
 - Manually running `run-server` or `run-jupyter` (scripts placed in `.venv/bin` by the `shellHook`).
 
-**Dependencies:** System-level dependencies (Python version, libraries like `gcc`, `zlib`) are managed by `flake.nix`. Python package dependencies are managed by `pip` using `requirements.txt` within the Nix-provided environment.
+**Dependencies:** System-level dependencies (Python version, libraries like `gcc`, `zlib`) are managed by `flake.nix`. Python package dependencies are managed by `pip` using `helpers/setup/requirements.txt` within the Nix-provided environment.
 
 **Source of Truth:** The `flake.nix` file is the definitive source for the development environment setup.
 
@@ -1087,7 +1087,7 @@ This structure enables AI assistants to programmatically interact with all UI co
     ├── mcp_tools.py               # MCP protocol tools - the AI assistant interface
     ├── notebook_introduction_local.ipynb  # Editable (non-auto-updating) copy of hello.ipynb
     ├── README.md                  # This file
-    ├── requirements.txt           # Python dependencies (managed by Nix)
+    ├── helpers/setup/requirements.txt  # Python dependencies (managed by Nix)
     └── server.py                  # Main application entry point
 ```
 

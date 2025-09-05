@@ -199,7 +199,7 @@
           
           # Always keep pip installation quiet - no scary technical output for users
           if pip install --upgrade pip --quiet && \
-            pip install -r requirements.txt --quiet; then
+            pip install -r helpers/setup/requirements.txt --quiet; then
             true  # Success case handled below
           else
             false  # Error case handled below
