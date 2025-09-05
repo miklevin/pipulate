@@ -149,7 +149,7 @@ Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-
 ```
 <!-- END_ASCII_ART: desktop-app-architecture-comparison -->
 
-### The Magnum Opus: Computing Sovereignty  <!-- key: magnum-opus-computing-sovereignty -->
+### Computing Sovereignty  <!-- key: magnum-opus-computing-sovereignty -->
 
 This isn't just another framework — it's a **deliberate culmination** of decades of tech evolution insights. Pipulate represents the "third act" approach to development (3rd time's the charm): choosing the **most durable and lovable** parts of the modern tech stack while rejecting the exhausting hamster wheel of framework churn.
 
@@ -201,6 +201,49 @@ If you are not an Empire builder and prefer craftsmanship over the rat race and 
 
 1. **Empower End-Users (e.g., SEO Practitioners):** Enable non-programmers to run powerful, AI-guided workflows (often ported from Jupyter Notebooks) without needing to interact with Python code directly.
 2. **Serve Developers:** Provide a simple, reproducible environment for building these workflows, leveraging integrated tooling like Jupyter, local LLMs, and a streamlined web framework.
+
+--------------------------------------------------------------------------------
+
+## Philosophy: A Blueprint for Human-AI Cognitive Partnership
+
+### Introduction: Software as a Cognitive Artifact
+
+Pipulate is more than a framework; it is an exploration into the nature of human-AI collaboration. It is built on the belief that software should not be a rigid tool that imposes its logic upon us, but a fluid medium that mirrors and extends the way we think. This document outlines the core principles that guide its architecture and development.
+
+### 1. The Principle of Cognitive Ergonomics
+
+Human working memory is finite. We believe software should respect these natural cognitive boundaries rather than fight against them.
+
+* **The Rule of 7**: Code and file structures are intentionally kept small and focused. As seen in the `plugins/` directory, workflows are granular, allowing a developer to hold the entire context of a single component in their mind at once.
+* **The Chain Reaction Pattern**: Workflows progress in a linear, predictable sequence (`run_all_cells()`). This mirrors the step-by-step process of human learning, where each insight builds upon the last to create a coherent stream of understanding.
+
+### 2. The Principle of Radical Transparency
+
+For a human and an AI to collaborate effectively, they must share the same reality. The system must be completely observable to all participants.
+
+* **Everything is Logged**: Functions like `log_api_call_details` and `log_dictlike_db_to_lifecycle` create a rich, narrative log that serves as the collective memory of the system.
+* **WET (Write Everything Twice) is a Strength**: With AI as a partner, the traditional drawback of repetitive code disappears. Explicit, non-abstracted code is easier for an AI to understand, analyze, and refactor, turning a perceived weakness into a strength.
+
+### 3. The Principle of the Unified Cognitive Space
+
+The separation of "frontend" and "backend" is an artificial construct that creates cognitive friction. Pipulate rejects this.
+
+* **Python as the Templating Language**: By using **FastHTML**, Python functions directly generate UI components. This eliminates the need for context-switching between different languages and mental models, creating a seamless flow from logic to interface.
+* **HTMX for Fluid Interaction**: State is managed on the server. The browser is treated as a thin client that renders HTML fragments, ensuring a single source of truth and dramatically simplifying the cognitive load.
+
+### 4. The Principle of Cognitive Sovereignty
+
+Your thoughts, your data, and your creative processes belong to you. Our architecture is a moral stance on privacy and ownership.
+
+* **Local-First by Default**: The entire system, including the AI models via Ollama, runs on your machine. Your data never leaves your control unless you explicitly choose to send it to an external API.
+* **Durable and Independent**: By building on timeless technologies like Python, SQLite, and Nix, Pipulate frees you from the exhausting cycle of framework churn and vendor lock-in.
+
+### 5. The Principle of the Living Ecosystem
+
+Pipulate is not a static application; it is a dynamic environment for collaborative evolution.
+
+* **MCP (Model Context Protocol) Tools**: AI assistants are not just invoked; they are active participants. The `mcp_tools.py` framework defines a clear API for AI capabilities, allowing them to inspect state, interact with the system, and contribute to the workflow.
+* **A Taxonomy of Thought**: The `plugins/` architecture creates a living library of reusable problem-solving patterns. Each plugin is a crystallized cognitive strategy, ready to be deployed, adapted, and combined.
 
 --------------------------------------------------------------------------------
 
