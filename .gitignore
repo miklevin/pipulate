@@ -31,7 +31,7 @@ flake.lock
 foo.txt
 foo_files.py
 *kungfu_*.py
-logs/
+logs/*
 service_account.txt
 wip/*
 prompt.md
