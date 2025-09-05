@@ -32,6 +32,7 @@ foo.txt
 foo_files.py
 *kungfu_*.py
 logs/*
+helpers/logs/*
 service_account.txt
 wip/*
 prompt.md
