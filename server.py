@@ -6934,7 +6934,7 @@ async def serve_demo_script_config(request):
                 config_data = json.load(f)
 
             # Check Ollama availability for dynamic messages
-            from common import check_ollama_availability
+            from helpers.common import check_ollama_availability
             ollama_available = await check_ollama_availability()
 
             # Process dynamic messages in the config

@@ -10,7 +10,7 @@ import json
 from starlette.responses import HTMLResponse
 import os
 import urllib.parse
-from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from helpers.common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
 

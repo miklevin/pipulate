@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 import json
 from starlette.responses import HTMLResponse
-from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from helpers.common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Workshop'] # Defines which user roles can see this plugin
 

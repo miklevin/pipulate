@@ -19,7 +19,7 @@ import httpx
 import pandas as pd
 from fasthtml.common import *
 from loguru import logger
-from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from helpers.common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 
 ROLES = ['Developer']

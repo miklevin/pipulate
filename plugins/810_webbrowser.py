@@ -6,7 +6,7 @@ from datetime import datetime
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from helpers.common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Components']
 '\nPipulate Webbrowser URL Opener Widget Workflow\nA workflow for demonstrating opening a URL in the default system browser.\n'
