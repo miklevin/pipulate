@@ -21,7 +21,7 @@ Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], default
 
 # 👥 STANDARDIZED ROLES - Import from config to avoid role inconsistencies
 try:
-    from config import AVAILABLE_ROLES
+    from helpers.config_functions import AVAILABLE_ROLES
     VALID_ROLES = list(AVAILABLE_ROLES.keys())
 except ImportError:
     # Fallback for development/testing

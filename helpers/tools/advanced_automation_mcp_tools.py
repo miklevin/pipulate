@@ -220,7 +220,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
             return {"success": False, "error": "Endpoint URL is empty or whitespace only"}
         
         # Check for invalid URL patterns that cause data: URLs
-        from config import INVALID_URL_PATTERNS
+        from helpers.config_functions import INVALID_URL_PATTERNS
         
         for pattern in INVALID_URL_PATTERNS:
             if endpoint_url.lower().startswith(pattern):
@@ -486,7 +486,7 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
         human_view = timing.HUMAN_OBSERVATION
         total_time = timing.total_browser_time()
         
-        from config import get_browser_script_imports
+        from helpers.config_functions import get_browser_script_imports
         hijack_script = f'''
 {get_browser_script_imports()}
 
@@ -507,7 +507,7 @@ def run_workflow_hijacking():
         
         # Set up Chrome with visible browser (dramatic effect)
         import tempfile
-        from config import get_chrome_options
+        from helpers.config_functions import get_chrome_options
         chrome_options = get_chrome_options()
         
         # Unique session isolation

@@ -158,7 +158,7 @@ async def botify_simple_query(params: dict) -> dict:
             return {"success": False, "error": "Valid Botify API token not found"}
         
         url = f"https://api.botify.com/v1/projects/{username}/{project}/query"
-        from config import get_botify_headers
+        from helpers.config_functions import get_botify_headers
         headers = get_botify_headers(api_token)
         
         payload = {

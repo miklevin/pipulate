@@ -967,7 +967,7 @@ async def botify_simple_query(params: dict) -> dict:
             return {"success": False, "error": "Valid Botify API token not found"}
 
         url = f"https://api.botify.com/v1/projects/{username}/{project}/query"
-        from config import get_botify_headers
+        from helpers.config_functions import get_botify_headers
         headers = get_botify_headers(api_token)
 
         payload = {
@@ -2373,7 +2373,7 @@ async def browser_scrape_page(params: dict) -> dict:
             return {"success": False, "error": "URL is empty or whitespace only"}
 
             # Check for invalid URL patterns that cause data: URLs
-        from config import INVALID_URL_PATTERNS
+        from helpers.config_functions import INVALID_URL_PATTERNS
 
         for pattern in INVALID_URL_PATTERNS:
             if url.lower().startswith(pattern):
@@ -2426,7 +2426,7 @@ async def browser_scrape_page(params: dict) -> dict:
 
         # === SUBPROCESS BROWSER AUTOMATION TO AVOID THREADING ISSUES ===
         # Create a Python script to run the browser automation in a separate process
-        from config import get_browser_script_imports
+        from helpers.config_functions import get_browser_script_imports
         browser_script = f'''
 {get_browser_script_imports()}
 
@@ -2441,7 +2441,7 @@ def run_browser_automation():
         
         # Set up Chrome with simplified configuration
         import tempfile
-        from config import get_chrome_options
+        from helpers.config_functions import get_chrome_options
         chrome_options = get_chrome_options()
         
         # Additional options specific to this use case
@@ -2809,7 +2809,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             return {"success": False, "error": f"Plugin URL must be a string, got: {type(plugin_url)}"}
         if not plugin_url.strip():
             return {"success": False, "error": "Plugin URL is empty or whitespace only"}
-        from config import INVALID_URL_PATTERNS
+        from helpers.config_functions import INVALID_URL_PATTERNS
         for pattern in INVALID_URL_PATTERNS:
             if plugin_url.lower().startswith(pattern):
                 return {"success": False, "error": f"Invalid URL scheme detected: {pattern}. URL: {plugin_url}"}
