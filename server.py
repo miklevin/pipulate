@@ -4647,7 +4647,7 @@ async def startup_event():
 
         # Get dynamic database paths
         main_db_path = get_db_filename()
-        keychain_db_path = 'helpers/data/ai_keychain.db'
+        keychain_db_path = 'data/ai_keychain.db'
         discussion_db_path = 'data/discussion.db'
 
         # Execute comprehensive backup
@@ -6362,7 +6362,7 @@ async def backup_now(request):
 
         # Get dynamic database paths
         main_db_path = get_db_filename()
-        keychain_db_path = 'helpers/data/ai_keychain.db'
+        keychain_db_path = 'data/ai_keychain.db'
         discussion_db_path = 'data/discussion.db'
 
         # Execute comprehensive backup
