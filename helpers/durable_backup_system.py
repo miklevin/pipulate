@@ -331,13 +331,13 @@ class DurableBackupManager:
             backup_file = self.backup_root / f"ai_keychain_{datetime.now().strftime('%Y-%m-%d')}.db"
             
             if backup_file.exists():
-                # Merge keychain data (keychain has its own conflict resolution)
-                logger.info(f"🧠 Merging AI keychain to existing backup")
+                # Merge ai_dictdb data (ai_dictdb has its own conflict resolution)
+                logger.info(f"🧠 Merging AI ai_dictdb to existing backup")
                 shutil.copy2(keychain_db_path, backup_file)
             else:
                 # Initial backup
                 shutil.copy2(keychain_db_path, backup_file)
-                logger.info(f"🧠 Created AI keychain backup: {backup_file}")
+                logger.info(f"🧠 Created AI ai_dictdb backup: {backup_file}")
             
             return True
             
@@ -358,10 +358,10 @@ class DurableBackupManager:
             
             if backup_file.exists():
                 shutil.copy2(backup_file, target_keychain_path)
-                logger.info(f"🧠 Restored AI keychain from: {backup_file}")
+                logger.info(f"🧠 Restored AI ai_dictdb from: {backup_file}")
                 return True
             else:
-                logger.warning("⚠️ No AI keychain backup found")
+                logger.warning("⚠️ No AI ai_dictdb backup found")
                 return False
                 
         except Exception as e:
@@ -383,11 +383,11 @@ class DurableBackupManager:
             logger.warning(f"⚠️ Main database not found: {main_db_path}")
             results['main_database'] = False
         
-        # Backup AI keychain
+        # Backup AI ai_dictdb
         if os.path.exists(keychain_db_path):
             results['ai_keychain'] = self._backup_entire_database(keychain_db_path)
         else:
-            logger.warning(f"⚠️ AI keychain not found: {keychain_db_path}")
+            logger.warning(f"⚠️ AI ai_dictdb not found: {keychain_db_path}")
             results['ai_keychain'] = False
         
         # Backup discussion database
@@ -453,7 +453,7 @@ class DurableBackupManager:
         for table_name in self.backup_tables.keys():
             results[table_name] = self.backup_table(main_db_path, table_name)
         
-        # Backup AI keychain
+        # Backup AI ai_dictdb
         if os.path.exists(keychain_db_path):
             results['ai_keychain'] = self.backup_ai_keychain(keychain_db_path)
         
@@ -475,7 +475,7 @@ class DurableBackupManager:
         for table_name in self.backup_tables.keys():
             results[table_name] = self.restore_table(main_db_path, table_name)
         
-        # Restore AI keychain
+        # Restore AI ai_dictdb
         results['ai_keychain'] = self.restore_ai_keychain(keychain_db_path)
         
         successful = sum(1 for success in results.values() if success)
@@ -546,7 +546,7 @@ class DurableBackupManager:
             else:
                 counts[table_name] = 0
         
-        # Add AI keychain count
+        # Add AI ai_dictdb count
         keychain_backup = self.backup_root / f"ai_keychain_{datetime.now().strftime('%Y-%m-%d')}.db"
         if keychain_backup.exists():
             counts['ai_keychain'] = 1  # Keychain is just one file
@@ -581,7 +581,7 @@ class DurableBackupManager:
             for table_name in self.backup_tables.keys():
                 counts[table_name] = 0
         
-        # AI keychain is separate file
+        # AI ai_dictdb is separate file
         counts['ai_keychain'] = 1 if os.path.exists('data/ai_keychain.db') else 0
         
         return counts

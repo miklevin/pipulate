@@ -24,9 +24,9 @@ except ImportError as e:
     VOICE_SYNTHESIS_AVAILABLE = False
     IMPORT_ERROR = str(e)
 
-# Try to import keychain for memory integration
+# Try to import ai_dictdb for memory integration
 try:
-    from keychain import keychain_instance
+    from ai_dictdb import keychain_instance
     KEYCHAIN_AVAILABLE = True
 except ImportError:
     KEYCHAIN_AVAILABLE = False
@@ -204,7 +204,7 @@ class ChipVoiceSystem:
 
 class MemoryToVoiceConverter:
     """
-    Convert AI keychain memories to natural speech
+    Convert AI ai_dictdb memories to natural speech
     
     This class handles the conversion of stored memories into natural-sounding
     speech patterns for Chip O'Theseus.
@@ -233,9 +233,9 @@ class MemoryToVoiceConverter:
         return [key for key in priority_keys if key in all_keys]
     
     def create_narrative_from_memory(self, key: str) -> str:
-        """Convert keychain memory to natural speech"""
+        """Convert ai_dictdb memory to natural speech"""
         if not KEYCHAIN_AVAILABLE:
-            return f"I would remember about {key}, but keychain is not available"
+            return f"I would remember about {key}, but ai_dictdb is not available"
         
         memory = keychain_instance.get(key)
         if not memory:
@@ -256,7 +256,7 @@ class MemoryToVoiceConverter:
             return f"I remember about {key}: {memory}"
     
     def speak_memory(self, key: str) -> Dict[str, Any]:
-        """Speak a specific memory from keychain"""
+        """Speak a specific memory from ai_dictdb"""
         if not KEYCHAIN_AVAILABLE:
             return {
                 "success": False,
@@ -267,7 +267,7 @@ class MemoryToVoiceConverter:
         if key not in keychain_instance:
             return {
                 "success": False,
-                "error": f"Memory '{key}' not found in keychain",
+                "error": f"Memory '{key}' not found in ai_dictdb",
                 "key": key
             }
         

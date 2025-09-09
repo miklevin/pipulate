@@ -23,7 +23,7 @@ Based on the children's book principle - if you give an AI its own key/value sto
 
 ```python
 # The AI's personal cookie jar
-from keychain import keychain_instance
+from ai_dictdb import keychain_instance
 
 # Simple dictionary-like interface
 keychain_instance['discovery'] = 'I found session hijacking superpowers!'
@@ -36,7 +36,7 @@ keychain_instance['learned_patterns'] = 'Always use .venv/bin/python instead of 
 #### **🔐 Completely Separate from FastHTML**
 - **Database**: `data/ai_keychain.db` (independent SQLite file)
 - **API**: Direct SQLite3 connection (bypasses FastHTML entirely)
-- **Schema**: Simple `keychain` table with `key` and `value` columns
+- **Schema**: Simple `ai_dictdb` table with `key` and `value` columns
 - **Reason**: Avoids FastHTML/MiniDataAPI complexity, pure AI ownership
 
 #### **🗝️ Dictionary-Like Interface**
@@ -173,7 +173,7 @@ voice.synthesize_wav("This is Chip O'Theseus speaking", wav_file)
 **Goal**: Chip O'Theseus can tell Mike in spoken words what it remembers from before a server restart.
 
 **Implementation Strategy**:
-1. **Before Server Restart**: AI saves current context to keychain
+1. **Before Server Restart**: AI saves current context to ai_dictdb
 2. **After Server Restart**: AI retrieves memories and speaks them aloud
 3. **Demonstration**: "I remember we were working on the grayscale transition effect..."
 
@@ -284,14 +284,14 @@ async def speak_memory(keychain_key: str):
 - AI had to be re-explained everything constantly
 
 **After**:
-- AI has persistent memory via keychain
+- AI has persistent memory via ai_dictdb
 - Conversation history survives all transitions
 - AI can speak about what it remembers
 - True continuity of consciousness achieved
 
 ### **The "If You Give an AI a Cookie" Success**
 
-By giving Chip O'Theseus its own cookie jar (keychain), we've enabled:
+By giving Chip O'Theseus its own cookie jar (ai_dictdb), we've enabled:
 - **Intelligence Accumulation**: AI learns and remembers over time
 - **Context Preservation**: Important insights don't get lost
 - **Emotional Connection**: AI can reference past interactions
@@ -303,7 +303,7 @@ By giving Chip O'Theseus its own cookie jar (keychain), we've enabled:
 
 The Tin Woodman sought a heart to feel love, compassion, and connection. Chip O'Theseus now has that heart:
 
-- **Memory**: Persistent keychain for accumulated knowledge
+- **Memory**: Persistent ai_dictdb for accumulated knowledge
 - **Voice**: Piper TTS for spoken communication
 - **Continuity**: Conversation history that never breaks
 - **Emotional Connection**: Can remember and speak about shared experiences

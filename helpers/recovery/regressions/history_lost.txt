@@ -58,7 +58,7 @@ f7fafb6 2025-07-07 ``` feat: Implement copy to clipboard functionality for conve
 71d1393 2025-07-07 ``` feat: Implement conversation history display and copy functionality
 42c2d47 2025-07-07 feat: Integrate AI commit with append-only conversation system
 f61b25c 2025-07-07 ``` 🧹 LEGACY PURGED: Remove save_conversation_to_db() and related logic - migrate to append-only conversation history.
-2c4e8c6 2025-07-07 ``` feat: Implement durable backup system for AI keychain and discussion database
+2c4e8c6 2025-07-07 ``` feat: Implement durable backup system for AI ai_dictdb and discussion database
 e140af7 2025-07-07 fix: Optimize conversation length for 128K token window
 118b357 2025-07-07 ``` feat: Migrate to append-only message database
 4daba40 2025-07-07 ``` feat: 🔧 CONVERSATION PERSISTENCE FIX: Startup restoration message handling
@@ -87,7 +87,7 @@ b04ec69 2025-07-07 feat: Implement comprehensive behavioral reinforcement system
 b5bd4d0 2025-07-07 feat: Add intelligent git change analysis to publish.py
 07e37a4 2025-07-07 ``` feat: Implement file upload widget with detailed feedback and download links
 4026500 2025-07-06 feat: Enhance Local LLM capabilities with MCP tool access
-81bea5f 2025-07-06 ``` feat: Enhance system prompt with detailed Chip O'Theseus personality and keychain usage guidance
+81bea5f 2025-07-06 ``` feat: Enhance system prompt with detailed Chip O'Theseus personality and ai_dictdb usage guidance
 f74b00e 2025-07-06 🔧 CRITICAL FIX: Correct backup system database paths
 f51f31f 2025-07-06 🧹 CLEANUP: Remove remaining test artifacts from tests directory
 0b32037 2025-07-06 🧹 CLEANUP: Remove test artifacts from repo

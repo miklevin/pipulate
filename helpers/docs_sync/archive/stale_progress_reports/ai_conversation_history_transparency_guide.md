@@ -179,7 +179,7 @@ grep "CONVERSATION.*DB_RESET" logs/server.log | tail -10
 
 ### **Management Tools**
 - ✅ **5 MCP tools** - Programmatic conversation management
-- ✅ **Backup/restore** - Manual backup to AI keychain
+- ✅ **Backup/restore** - Manual backup to AI ai_dictdb
 - ✅ **Search and filter** - Find specific conversations
 - ✅ **Statistics** - Comprehensive usage analytics
 
