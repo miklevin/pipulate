@@ -23,7 +23,7 @@ nbstripout
 nltk
 openpyxl
 pandas
-piper-tts
+# piper-tts
 pyfiglet
 pylint
 python-minimizer
