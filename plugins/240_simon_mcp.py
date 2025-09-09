@@ -8,7 +8,7 @@ from loguru import logger
 import inspect
 from pathlib import Path
 import re
-from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
 

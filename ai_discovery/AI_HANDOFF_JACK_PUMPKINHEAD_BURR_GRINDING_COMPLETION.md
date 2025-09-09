@@ -12,10 +12,10 @@
 ### **✅ 7 MAJOR BURRS SUCCESSFULLY ELIMINATED:**
 
 1. **🗂️ Test Organization** → Created `tests/` directory, moved test files
-2. **🎯 Namedtuple Duplication** → Centralized `Step` in `common.py` (34+ eliminations)
+2. **🎯 Namedtuple Duplication** → Centralized `Step` in `crud.py` (34+ eliminations)
 3. **👥 ROLES Inconsistency** → Added `AVAILABLE_ROLES` to `config.py`
 4. **🔑 TOKEN_FILE Repetition** → Centralized `BOTIFY_TOKEN_FILE` constants
-5. **📦 Import Chaos** → Created tiered 5/8/4-line import patterns in `common.py`
+5. **📦 Import Chaos** → Created tiered 5/8/4-line import patterns in `crud.py`
 6. **🎨 Widget Documentation Bloat** → Created `widget_conversion_guide.md`
 7. **📚 MASSIVE Docstring Duplication** → **300+ lines eliminated**, created `botify_workflow_patterns.md`
 
@@ -41,7 +41,7 @@ from collections import namedtuple
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 # With this pattern:
-from common import Step
+from crud import Step
 ```
 
 **Files to update** (use this grep command to find them):
@@ -95,7 +95,7 @@ import asyncio
 from datetime import datetime
 from fasthtml.common import *
 from loguru import logger  
-from common import Step, VALID_ROLES
+from crud import Step, VALID_ROLES
 
 ROLES = ['Components']  # See config.AVAILABLE_ROLES for all valid roles
 
@@ -108,7 +108,7 @@ ROLES = ['Components']  # See config.AVAILABLE_ROLES for all valid roles
 
 ### **Burr: API Workflow Import Consolidation**
 
-**Pattern available**: 8-line API import pattern in `common.py`
+**Pattern available**: 8-line API import pattern in `crud.py`
 **Candidates**: Botify plugins could use standardized imports instead of massive blocks
 
 **Before**:
@@ -132,7 +132,7 @@ from urllib.parse import urlparse, parse_qs
 import httpx, pandas as pd
 from fasthtml.common import *
 from loguru import logger
-from common import Step
+from crud import Step
 ```
 
 ### **Burr: Helper Script Import Cleanup**

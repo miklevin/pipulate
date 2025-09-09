@@ -2,7 +2,7 @@ from datetime import datetime
 
 from fasthtml.common import *
 from loguru import logger
-from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Core']
 
@@ -127,7 +127,7 @@ Note: These patterns could potentially be extended to support more sophisticated
 interaction modalities while maintaining the same underlying state management principles.
 """
 
-# 🎯 STEP DEFINITION: Now imported from common.py (eliminates 34+ duplications)
+# 🎯 STEP DEFINITION: Now imported from crud.py (eliminates 34+ duplications)
 
 
 class HelloFlow:

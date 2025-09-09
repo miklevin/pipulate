@@ -273,7 +273,7 @@ def generate_files_list():
         FileEntry("__init__.py", False, "Package init with version info - single source of truth"),
         FileEntry("config.py", False, "Centralized configuration - single source of truth"),
         FileEntry("server.py", False, "Server entrypoint"),
-        FileEntry("common.py", False, "CRUD base class and shared utilities"),
+        FileEntry("crud.py", False, "CRUD base class and shared utilities"),
         FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
         FileEntry("cli.py", False, "CLI interface for PyPI package and local execution"),
         FileEntry("plugin_system.py", False, "Plugin discovery and loading system"),

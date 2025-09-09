@@ -1063,7 +1063,7 @@ This structure enables AI assistants to programmatically interact with all UI co
     │   ├── looking_at/            # Current browser DOM state for AI visibility
     │   └── *.py                   # Google search automation examples
     ├── cli.py                     # Command line interface for Pipulate operations
-    ├── common.py                  # Base Class for DRY CRUD plugin app inheritance (todo)
+    ├── crud.py                  # Base Class for DRY CRUD plugin app inheritance (todo)
     ├── data/
     │   └── data.db                # AI-accessible SQLite for application state (server cookies)
     ├── downloads/                 # Default location for workflow outputs (e.g., CSVs)
@@ -1383,7 +1383,7 @@ plugins/                    # Your workflows (auto-discovered)
 └── draft (Copy).py        # Ignored (parentheses)
 
 mcp_tools.py               # AI assistant interface  
-common.py                  # Base classes for workflows
+crud.py                  # Base classes for workflows
 browser_automation/        # Selenium automation tools
 logs/server.log            # Debug everything here
 data/data.db              # SQLite application state

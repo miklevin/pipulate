@@ -83,7 +83,7 @@ assert new_item.text == 'Test item'
 
 ## **File Locations That Must NEVER Regress**
 
-### **`pipulate/common.py` - BaseCrud class:**
+### **`pipulate/crud.py` - BaseCrud class:**
 - **Line ~284**: `new_item = self.table.insert(**insert_data)` ← **CRITICAL**
 - **Line ~355**: `new_item = self.table.insert(**kwargs)` ← **CRITICAL**
 
@@ -100,7 +100,7 @@ assert new_item.text == 'Test item'
 
 1. **Check the pattern immediately:**
    ```bash
-   grep -n "table\.insert(" pipulate/common.py
+   grep -n "table\.insert(" pipulate/crud.py
    ```
 
 2. **Look for missing `**`:**
