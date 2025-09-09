@@ -35,12 +35,12 @@ e44ec28 2025-07-06 docs(cursor): Clarify AI assistant usage guidelines
 b09b4b8 2025-07-06 Add breadcrumb trail discovery system for local LLMs
 5b20442 2025-07-06 feat(mcp_tools): Add server reboot tool
 0bcf016 2025-07-06 ``` feat: Implement fastlite-based conversation persistence
-81bea5f 2025-07-06 ``` feat: Enhance system prompt with detailed Chip O'Theseus personality and keychain usage guidance
+81bea5f 2025-07-06 ``` feat: Enhance system prompt with detailed Chip O'Theseus personality and ai_dictdb usage guidance
 b3c5830 2025-07-06 fix(ai_discovery): Implement persistent conversation history
 9152474 2025-07-07 feat: Enhance system prompt with clearer instructions and tool usage guidance
 a88b5cb 2025-07-07 feat: Improve system prompt with parameter clarification
 42c2d47 2025-07-07 feat: Integrate AI commit with append-only conversation system
-2c4e8c6 2025-07-07 ``` feat: Implement durable backup system for AI keychain and discussion database
+2c4e8c6 2025-07-07 ``` feat: Implement durable backup system for AI ai_dictdb and discussion database
 f61b25c 2025-07-07 ``` 🧹 LEGACY PURGED: Remove save_conversation_to_db() and related logic - migrate to append-only conversation history.
 228d122 2025-07-07 fix(server): Implement diagnostic logging during conversation restoration
 e286358 2025-07-07 fix: Update assistant button styling

@@ -281,7 +281,7 @@ def generate_files_list():
 
     # Not core but also important files
     important_files = [
-        FileEntry("keychain.py", True, "AI Keychain - Persistent memory for Chip O'Theseus"),
+        FileEntry("ai_dictdb.py", True, "AI Keychain - Persistent memory for Chip O'Theseus"),
         FileEntry("discover_mcp_tools.py", True, "MCP tool discovery and validation"),
         FileEntry("botify_extraction_demo.py", True, "Demo script showing Botify tools extraction success"),
         FileEntry("vulture_whitelist.py", True, "Dead code detection whitelist for development"),

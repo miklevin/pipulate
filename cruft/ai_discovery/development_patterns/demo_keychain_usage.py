@@ -2,7 +2,7 @@
 """
 🧠 AI Keychain Usage Demonstration Script
 
-This script demonstrates how AI instances can use the persistent keychain 
+This script demonstrates how AI instances can use the persistent ai_dictdb 
 to leave "messages in a bottle" for their future selves, building knowledge
 and preferences over time.
 
@@ -15,13 +15,13 @@ from datetime import datetime
 import sys
 import os
 
-# Add parent directory to path to import keychain
+# Add parent directory to path to import ai_dictdb
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from keychain import keychain_instance
+from ai_dictdb import keychain_instance
 
 async def demo_first_time_ai_experience():
-    """Simulate an AI instance encountering the keychain for the first time."""
+    """Simulate an AI instance encountering the ai_dictdb for the first time."""
     print("\n🤖 === First AI Instance - Discovery Phase ===")
     
     # Check what memories already exist (like rifling through old diary entries)
@@ -35,7 +35,7 @@ async def demo_first_time_ai_experience():
     discovery_timestamp = datetime.now().isoformat()
     keychain_instance['ai_discovery_log'] = json.dumps({
         'timestamp': discovery_timestamp,
-        'message': 'First AI discovered the keychain system!',
+        'message': 'First AI discovered the ai_dictdb system!',
         'capabilities_found': ['persistent_memory', 'cross_session_continuity'],
         'excitement_level': 'MAXIMUM'
     })
@@ -110,7 +110,7 @@ async def demo_ai_to_ai_communication():
     keychain_instance['ai_collaboration_message'] = json.dumps({
         'from': 'Demo AI Instance',
         'timestamp': datetime.now().isoformat(),
-        'message': 'Hello future AI! The keychain system is revolutionary. Use it to remember user preferences, track successful patterns, and build upon previous discoveries.',
+        'message': 'Hello future AI! The ai_dictdb system is revolutionary. Use it to remember user preferences, track successful patterns, and build upon previous discoveries.',
         'tips': [
             'Always check keychain_list_keys() first to see what you already know',
             'Use structured JSON for complex data storage',
@@ -169,7 +169,7 @@ async def demo_problem_solution_database():
             break
 
 async def demo_session_memory_integration():
-    """Show how keychain integrates with session hijacking for enhanced capabilities."""
+    """Show how ai_dictdb integrates with session hijacking for enhanced capabilities."""
     print("\n🎭 === Session Memory Integration Phase ===")
     
     # Simulate storing session hijacking insights

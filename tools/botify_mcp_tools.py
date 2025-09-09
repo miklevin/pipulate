@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 # --- HELPER FUNCTIONS ---
 
 def _read_botify_api_token() -> str:
-    """Read Botify API token from keychain.py if available."""
+    """Read Botify API token from ai_dictdb.py if available."""
     try:
-        import keychain
-        return keychain.get_key('botify_api_token')
+        import ai_dictdb
+        return ai_dictdb.get_key('botify_api_token')
     except ImportError:
-        logger.warning("keychain module not available, using placeholder token")
+        logger.warning("ai_dictdb module not available, using placeholder token")
         return "placeholder_token"
     except Exception as e:
         logger.warning(f"Could not read Botify API token: {e}")

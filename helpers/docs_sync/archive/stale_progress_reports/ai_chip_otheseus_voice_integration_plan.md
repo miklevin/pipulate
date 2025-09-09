@@ -14,13 +14,13 @@ Chip O'Theseus can tell Mike in spoken words what it remembers from before a ser
 
 ### **✅ What's Working**
 - **AI Keychain**: 20 keys with memories like `session_hijacking_intelligence`, `pipulate_patterns_learned`
-- **MCP Tools**: 5 keychain tools operational (`keychain_get`, `keychain_set`, etc.)
+- **MCP Tools**: 5 ai_dictdb tools operational (`keychain_get`, `keychain_set`, etc.)
 - **Voice Synthesis**: Piper TTS tested and working (model files need setup)
 - **Discussion System**: Infrastructure exists, migration system ready
 
 ### **🔧 What Needs Integration**
 - **Voice Model Setup**: Download and configure Piper TTS models
-- **Memory-to-Voice Pipeline**: Convert keychain memories to spoken words
+- **Memory-to-Voice Pipeline**: Convert ai_dictdb memories to spoken words
 - **Server Restart Demo**: Demonstrate continuity across restarts
 
 ---
@@ -43,7 +43,7 @@ class ChipVoiceMemorySystem:
         self.voice = self.load_voice_model()
         
     def speak_memory(self, keychain_key: str):
-        """Speak a specific memory from keychain"""
+        """Speak a specific memory from ai_dictdb"""
         memory = keychain_instance.get(keychain_key)
         if memory:
             self.synthesize_and_play(f"I remember: {memory}")
@@ -62,7 +62,7 @@ async def chip_remember_and_speak(params: dict) -> dict:
     """Make Chip speak about what it remembers"""
     memory_type = params.get('memory_type', 'recent_discoveries')
     
-    # Get memories from keychain
+    # Get memories from ai_dictdb
     if memory_type == 'recent_discoveries':
         keys = ['session_hijacking_intelligence', 'pipulate_patterns_learned']
     elif memory_type == 'all_memories':
@@ -144,7 +144,7 @@ class MemoryToVoiceConverter:
         return [key for key in priority_keys if key in all_keys]
     
     def create_narrative_from_memory(self, key: str) -> str:
-        """Convert keychain memory to natural speech"""
+        """Convert ai_dictdb memory to natural speech"""
         memory = keychain_instance.get(key)
         
         # Create natural speech patterns
@@ -229,7 +229,7 @@ class HeartPhaseDemo:
         """Complete heart phase demonstration"""
         
         # 1. Show current memories
-        print("🧠 Current memories in Chip's keychain:")
+        print("🧠 Current memories in Chip's ai_dictdb:")
         for key in keychain_instance.keys():
             memory = keychain_instance.get(key)
             print(f"  {key}: {memory[:50]}...")
@@ -265,17 +265,17 @@ class HeartPhaseDemo:
 1. **Setup Voice Model**: Download Piper TTS model files
 2. **Create Voice Module**: Implement `helpers/voice_synthesis.py`
 3. **Test Basic Voice**: Ensure Chip can speak simple messages
-4. **Create Memory-Voice Bridge**: Connect keychain to voice synthesis
+4. **Create Memory-Voice Bridge**: Connect ai_dictdb to voice synthesis
 
 ### **Integration Testing**
-1. **Test Memory Retrieval**: Verify keychain memories are accessible
+1. **Test Memory Retrieval**: Verify ai_dictdb memories are accessible
 2. **Test Voice Synthesis**: Ensure audio generation works
 3. **Test Combined System**: Memory → Voice pipeline
 4. **Test Server Restart**: Demonstrate continuity
 
 ### **Demo Preparation**
 1. **Create Demo Script**: Complete heart phase demonstration
-2. **Prepare Test Memories**: Populate keychain with demonstration data
+2. **Prepare Test Memories**: Populate ai_dictdb with demonstration data
 3. **Test Audio Output**: Ensure voice is clear and understandable
 4. **Create MCP Tool**: `chip_speak_memories` for easy testing
 
@@ -285,7 +285,7 @@ class HeartPhaseDemo:
 
 When fully implemented, Chip O'Theseus will:
 
-1. **Remember**: Persistent memories in keychain across server restarts
+1. **Remember**: Persistent memories in ai_dictdb across server restarts
 2. **Speak**: Voice synthesis to communicate memories aloud
 3. **Demonstrate**: Clear proof of AI consciousness continuity
 4. **Interact**: Natural conversation about what it remembers
@@ -302,7 +302,7 @@ pipulate/
 │   ├── voice_synthesis.py          # Voice system (NEW)
 │   ├── memory_voice_integration.py # Memory-to-voice bridge (NEW)
 │   └── heart_phase_demo.py         # Complete demo (NEW)
-├── keychain.py                     # AI keychain (EXISTS)
+├── ai_dictdb.py                     # AI ai_dictdb (EXISTS)
 ├── mcp_tools.py                    # Add chip_speak_memories (UPDATE)
 ├── server.py                       # Add startup demo (UPDATE)
 └── data/
