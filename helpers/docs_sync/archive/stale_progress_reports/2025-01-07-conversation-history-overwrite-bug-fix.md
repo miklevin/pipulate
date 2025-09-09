@@ -60,7 +60,7 @@ else:
 
 ### 2. Son/Father/Grandfather Backup System
 
-Created a robust backup system in `helpers/conversation_backup_system.py`:
+Created a robust backup system in `modules.conversation_backup_system.py`:
 
 ```python
 class ConversationBackupManager:
@@ -88,7 +88,7 @@ Integrated automatic backups into critical conversation operations:
 def save_conversation_to_db():
     # Create backup before save operation
     try:
-        from helpers.conversation_backup_system import create_conversation_backup
+        from modules.conversation_backup_system import create_conversation_backup
         create_conversation_backup("before_conversation_save")
     except Exception as backup_error:
         logger.warning(f"💾 BACKUP WARNING: Could not create conversation backup: {backup_error}")
@@ -132,7 +132,7 @@ Added four MCP tools for conversation backup management:
 - **Added**: Emergency backup creation on failures
 - **Result**: Protects against data loss during save operations
 
-### 3. Created `helpers/conversation_backup_system.py`
+### 3. Created `modules.conversation_backup_system.py`
 - **Added**: Complete backup management system
 - **Features**: Son/father/grandfather rotation, integrity verification
 - **Result**: Robust data protection with multiple restore points
@@ -175,7 +175,7 @@ The son/father/grandfather pattern provides:
    - Modified `load_conversation_from_db()` function
    - Enhanced `save_conversation_to_db()` function
 
-2. **`pipulate/helpers/conversation_backup_system.py`** (NEW)
+2. **`pipulate/modules.conversation_backup_system.py`** (NEW)
    - Complete backup management system
 
 3. **`pipulate/mcp_tools.py`**

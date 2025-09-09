@@ -203,7 +203,7 @@ async def botify_get_full_schema(params: dict) -> dict:
     
     try:
         # Import the schema discoverer
-        from helpers.botify.true_schema_discoverer import \
+        from modules.botify.true_schema_discoverer import \
             discover_complete_schema, \
             generate_schema_cheatsheet_markdown
         

@@ -8,7 +8,7 @@ import pandas as pd
 from fastcore.xml import NotStr
 from fasthtml.common import *
 from loguru import logger
-from crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 from rich.console import Console
 from rich.table import Table
 from selenium import webdriver

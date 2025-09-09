@@ -41,7 +41,7 @@ from collections import namedtuple
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 # With this pattern:
-from crud import Step
+from modules.crud import Step
 ```
 
 **Files to update** (use this grep command to find them):
@@ -95,7 +95,7 @@ import asyncio
 from datetime import datetime
 from fasthtml.common import *
 from loguru import logger  
-from crud import Step, VALID_ROLES
+from modules.crud import Step, VALID_ROLES
 
 ROLES = ['Components']  # See config.AVAILABLE_ROLES for all valid roles
 
@@ -132,7 +132,7 @@ from urllib.parse import urlparse, parse_qs
 import httpx, pandas as pd
 from fasthtml.common import *
 from loguru import logger
-from crud import Step
+from modules.crud import Step
 ```
 
 ### **Burr: Helper Script Import Cleanup**

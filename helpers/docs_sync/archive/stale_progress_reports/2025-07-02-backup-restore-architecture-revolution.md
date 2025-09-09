@@ -267,7 +267,7 @@ We didn't just build a backup system — we built a **professional-grade data pr
 ## 📊 Technical Reference
 
 ### **Key Components**
-- **`helpers/durable_backup_system.py`** - Son/Father/Grandfather backup engine
+- **`modules.durable_backup_system.py`** - Son/Father/Grandfather backup engine
 - **Startup backup trigger** - Automatic protection on every server start
 - **7-day retention cleanup** - Automatic old backup removal
 - **Original filename strategy** - Zero-confusion restoration support
@@ -330,7 +330,7 @@ grep "BACKUP DEBUG" logs/server.log | tail -10
 
 # Test automatic cleanup (creates and removes old backups)
 .venv/bin/python -c "
-from helpers.durable_backup_system import backup_manager
+from modules.durable_backup_system import backup_manager
 backup_manager.cleanup_daily_backups(keep_days=7)
 "
 ```

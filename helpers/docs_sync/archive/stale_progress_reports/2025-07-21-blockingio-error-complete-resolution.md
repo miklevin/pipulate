@@ -35,7 +35,7 @@ BlockingIOError: [Errno 11] write could not complete without blocking
 
 ### **1. Safe Console Print Wrapper**
 ```python
-# helpers/ascii_displays.py
+# modules.ascii_displays.py
 def safe_console_print(*args, **kwargs):
     """Safe wrapper for console.print that handles I/O errors gracefully"""
     try:

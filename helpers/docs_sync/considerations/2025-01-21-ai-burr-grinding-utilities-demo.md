@@ -67,7 +67,7 @@ async def get_deterministic_filepath(self, username, project_name, analysis_slug
 
 **After (centralized utility):**
 ```python
-from crud import utils
+from modules.crud import utils
 
 # In workflow method:
 filepath = utils.generate_deterministic_filepath(
@@ -126,7 +126,7 @@ params = {
 
 **After (utility function):**
 ```python
-from crud import utils
+from modules.crud import utils
 
 form_data = await request.form()
 defaults = {

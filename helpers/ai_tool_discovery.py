@@ -380,7 +380,7 @@ Let's work together to make this system as efficient and responsive as possible.
         # Update simple parser (just print the new SIMPLE_COMMANDS)
         try:
             simple_commands = self.update_simple_parser(tools)
-            print(f"\n🔧 SIMPLE_COMMANDS for helpers/ai_tool_discovery_simple_parser.py:")
+            print(f"\n🔧 SIMPLE_COMMANDS for modules.ai_tool_discovery_simple_parser.py:")
             print(simple_commands)
             results['simple_parser'] = True
     except Exception as e:
