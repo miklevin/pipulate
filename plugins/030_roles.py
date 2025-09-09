@@ -11,7 +11,7 @@ import asyncio
 from fasthtml.common import *
 from loguru import logger
 from server import get_db_filename, title_name
-from crud import BaseCrud
+from modules.crud import BaseCrud
 
 # ROLES constant is now used for discovery, not for defining the roles themselves.
 ROLES = []
@@ -291,7 +291,7 @@ class CrudUI(PluginIdentityManager):
 
     async def check_ollama_availability(self):
         """Check if Ollama is running and has models available - uses centralized check."""
-        from crud import check_ollama_availability
+        from modules.crud import check_ollama_availability
         return await check_ollama_availability()
 
     def ensure_roles_initialized(self):

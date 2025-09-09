@@ -6,11 +6,11 @@ from loguru import logger
 import inspect
 from pathlib import Path
 import re
-from crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
 
-# 🎯 STEP DEFINITION: Now imported from crud.py (eliminates 34+ duplications)
+# 🎯 STEP DEFINITION: Now imported from modules.crud.py (eliminates 34+ duplications)
 
 class BlankPlaceholder:
     """

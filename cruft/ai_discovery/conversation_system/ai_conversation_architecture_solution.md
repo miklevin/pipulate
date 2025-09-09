@@ -316,13 +316,13 @@ def append_message_to_db(role: str, content: str) -> Optional[int]:
 
 ### **Migration Success**
 ```bash
-$ .venv/bin/python helpers/conversation_architecture_migration.py
+$ .venv/bin/python modules.conversation_architecture_migration.py
 Migration result: {'success': True, 'migrated_messages': 4, 'verification_passed': True}
 ```
 
 ### **System Testing**
 ```bash
-$ .venv/bin/python -c "from helpers.append_only_conversation import get_conversation_system; ..."
+$ .venv/bin/python -c "from modules.append_only_conversation import get_conversation_system; ..."
 🧪 Testing append-only conversation system...
 ✅ Added 3 messages with IDs: 5, 6, 7
 🔄 Duplicate test result: None (should be None)  # Duplicate correctly ignored
@@ -343,7 +343,7 @@ $ .venv/bin/python -c "from helpers.append_only_conversation import get_conversa
 from server import append_to_conversation, save_conversation_to_db, load_conversation_from_db
 
 # WITH THIS (bulletproof):
-from helpers.append_only_conversation import (
+from modules.append_only_conversation import (
     append_to_conversation_safe as append_to_conversation,
     save_conversation_to_db_safe as save_conversation_to_db,
     load_conversation_from_db_safe as load_conversation_from_db
@@ -357,7 +357,7 @@ from helpers.append_only_conversation import (
 global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 
 # WITH THIS:
-from helpers.append_only_conversation import get_conversation_system
+from modules.append_only_conversation import get_conversation_system
 conversation_system = get_conversation_system()
 
 # Usage becomes:

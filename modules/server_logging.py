@@ -61,7 +61,7 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, ai
         str: The formatted JSON string for logging
     """
     # Import console from the module that will import this
-    from helpers.server_logging import console
+    from modules.server_logging import console
     
     try:
         # Convert data to JSON string if it's not already

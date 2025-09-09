@@ -198,7 +198,7 @@ if revert_target == step_id:
 
 ### **Clean Import Pattern**
 ```python
-from crud import WidgetImports, VALID_ROLES
+from modules.crud import WidgetImports, VALID_ROLES
 from fasthtml.common import *
 locals().update(WidgetImports.get_imports())
 ```

@@ -33,7 +33,7 @@ The AI commit message generation system has been integrated with the new append-
 - **No Changes Required**: Existing `publish.py` workflow continues to work
 
 ### 3. **Append-Only Conversation System**
-- **Location**: `helpers/append_only_conversation.py`
+- **Location**: `modules.append_only_conversation.py`
 - **Architecture**: Bulletproof message persistence
 - **Database**: Individual message records (no JSON blobs)
 

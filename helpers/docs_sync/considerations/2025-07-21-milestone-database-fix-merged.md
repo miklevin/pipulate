@@ -9,7 +9,7 @@
 **Critical Issue**: Profile creation appeared successful in UI but data was not persisting to database across server restarts.
 
 **Root Cause**: SQLite database locking conflicts caused by concurrent connections:
-- `helpers.append_only_conversation` system created separate SQLite connection to `data/discussion.db`
+- `modules.append_only_conversation` system created separate SQLite connection to `data/discussion.db`
 - Main application uses `data/botifython.db` via FastLite/DictLikeDB
 - Concurrent SQLite connections caused transaction corruption and silent data loss
 

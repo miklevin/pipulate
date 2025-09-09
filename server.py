@@ -7,7 +7,7 @@ silent failures in profile creation and other database operations.
 
 PROBLEM SOLVED:
 - Profile creation appeared to work in UI but data was not persisting to database
-- Root cause: helpers.append_only_conversation system created concurrent SQLite connections
+- Root cause: modules.append_only_conversation system created concurrent SQLite connections
 - Multiple database files (data/botifython.db + data/discussion.db) competing for locks
 - Result: Transaction corruption and silent data loss
 
@@ -71,8 +71,8 @@ from watchdog.observers import Observer
 import mcp_tools
 # Import centralized configuration to eliminate duplication
 from config import PCONFIG as CONFIG_PCONFIG
-from helpers import botify_code_generation
-from helpers.ascii_displays import (ai_breadcrumb_summary, chip_says,
+from modules import botify_code_generation
+from modules.ascii_displays import (ai_breadcrumb_summary, chip_says,
                                     falling_alice, figlet_banner,
                                     log_reading_legend,
                                     radical_transparency_banner,
@@ -81,7 +81,7 @@ from helpers.ascii_displays import (ai_breadcrumb_summary, chip_says,
                                     startup_environment_warnings,
                                     startup_summary_table, story_moment,
                                     system_diagram, white_rabbit)
-from helpers.server_logging import console, rich_json_display, setup_logging
+from modules.server_logging import console, rich_json_display, setup_logging
 from mcp_tools import register_all_mcp_tools
 
 # Import MCP tools module for enhanced AI assistant capabilities
@@ -160,14 +160,14 @@ BANNER_COLORS = {
     'ascii_box': 'ASCII'
 }
 
-# Theme and logging functions are now imported from helpers.server_logging.py
+# Theme and logging functions are now imported from modules.server_logging.py
 # This eliminates 100+ lines of duplicate code while preserving functionality
 
 
-# All ASCII display functions now imported from helpers.ascii_displays.py
+# All ASCII display functions now imported from modules.ascii_displays.py
 # This eliminates ~300 lines of duplicate code while preserving functionality
 
-# Logging functions are now imported from helpers.server_logging.py
+# Logging functions are now imported from modules.server_logging.py
 # This eliminates another 100+ lines of duplicate setup_logging() implementation
 
 
@@ -465,10 +465,10 @@ BANNER_COLORS = {
 custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
 
 
-# DebugConsole and console now imported from helpers.server_logging
+# DebugConsole and console now imported from modules.server_logging
 
 
-# rich_json_display now imported from helpers.server_logging
+# rich_json_display now imported from modules.server_logging
 
 
 ENV_FILE = Path('data/current_environment.txt')
@@ -611,7 +611,7 @@ def save_conversation_to_db():
 
                 # 🌉 BRIDGE: Sync with append-only system for history plugin compatibility
                 try:
-                    from helpers.append_only_conversation import \
+                    from modules.append_only_conversation import \
                         get_conversation_system
                     conv_system = get_conversation_system()
 
@@ -672,7 +672,7 @@ def load_conversation_from_db():
 
             # 🌉 BRIDGE: Sync restored conversation with append-only system
             try:
-                from helpers.append_only_conversation import \
+                from modules.append_only_conversation import \
                     get_conversation_system
                 conv_system = get_conversation_system()
 
@@ -1353,7 +1353,7 @@ def append_to_conversation(message=None, role='user'):
     python -c "from server import global_conversation_history; print(f'Memory: {len(global_conversation_history)} messages')"
     python -c "import sqlite3, json; from server import get_db_filename; conn = sqlite3.connect(get_db_filename()); cursor = conn.cursor(); cursor.execute('SELECT value FROM store WHERE key=\"llm_conversation_history\"'); result = cursor.fetchone(); print(f'Database: {len(json.loads(result[0])) if result else 0} messages'); conn.close()"
     
-    Root Cause: helpers.append_only_conversation.get_conversation_system() creates a
+    Root Cause: modules.append_only_conversation.get_conversation_system() creates a
     separate SQLite connection to data/discussion.db while the main app uses 
     data/botifython.db. SQLite doesn't handle concurrent connections well, causing
     transaction corruption and data loss.
@@ -2980,7 +2980,7 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     # 🎓 PROGRESSIVE REVEAL DESIGN FOR LLMs (simplest first):
     # Level 1: [mcp-discover] - Ultra-simple for small models
     # Level 2: .venv/bin/python cli.py mcp-discover - Terminal proficiency
-    # Level 3: python -c "from helpers.ai_tool_discovery_simple_parser import execute_simple_command..."
+    # Level 3: python -c "from modules.ai_tool_discovery_simple_parser import execute_simple_command..."
     # Level 4: <tool name="ai_self_discovery_assistant"><params>{"discovery_type":"capabilities"}</params></tool>
     # Level 5: <tool name="ai_self_discovery_assistant"><params><discovery_type>capabilities</discovery_type></params></tool>
     #
@@ -3335,7 +3335,7 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
                 response_text += f"\n🎓 **Progressive Reveal**: Start simple, get sophisticated!"
                 response_text += f"\n\n**Next levels:**"
                 response_text += f"\nLevel 2: `.venv/bin/python cli.py mcp-discover`"
-                response_text += f"\nLevel 3: `python -c \"from helpers.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))\"`"
+                response_text += f"\nLevel 3: `python -c \"from modules.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))\"`"
                 response_text += f"\nLevel 4: `<tool name=\"ai_self_discovery_assistant\"><params>{{\"discovery_type\":\"capabilities\"}}</params></tool>`"
                 response_text += f"\nLevel 5: `<tool name=\"ai_self_discovery_assistant\"><params><discovery_type>capabilities</discovery_type></params></tool>`"
 
@@ -4348,7 +4348,7 @@ async def startup_event():
 
     # 🛡️ BACKUP SYSTEM INTEGRATION - Protect all critical data on startup
     try:
-        from helpers.durable_backup_system import DurableBackupManager
+        from modules.durable_backup_system import DurableBackupManager
         backup_manager = DurableBackupManager()
 
         # Get dynamic database paths
@@ -5492,7 +5492,7 @@ async def test_voice_synthesis_endpoint(request):
     """Test voice synthesis endpoint for debugging - callable via Ctrl+Alt+v"""
     try:
         # Import voice synthesis system
-        from helpers.voice_synthesis import (VOICE_SYNTHESIS_AVAILABLE,
+        from modules.voice_synthesis import (VOICE_SYNTHESIS_AVAILABLE,
                                              chip_voice_system)
 
         # Get test text from request or use default
@@ -6063,7 +6063,7 @@ async def clear_pipeline(request):
 async def backup_now(request):
     """Manually trigger backup of all critical databases."""
     try:
-        from helpers.durable_backup_system import DurableBackupManager
+        from modules.durable_backup_system import DurableBackupManager
         backup_manager = DurableBackupManager()
 
         # Get dynamic database paths
@@ -6640,7 +6640,7 @@ async def serve_demo_script_config(request):
                 config_data = json.load(f)
 
             # Check Ollama availability for dynamic messages
-            from crud import check_ollama_availability
+            from modules.crud import check_ollama_availability
             ollama_available = await check_ollama_availability()
 
             # Process dynamic messages in the config

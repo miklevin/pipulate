@@ -19,7 +19,7 @@ import httpx
 import pandas as pd
 from fasthtml.common import *
 from loguru import logger
-from crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 
 ROLES = ['Developer']
@@ -2610,7 +2610,7 @@ class Trifecta:
         Returns:
             dict: {'parameter_value': determined_value, 'metric_at_parameter': metric_value}
         """
-        from helpers.botify.code_generators import execute_qualifier_logic
+        from modules.botify.code_generators import execute_qualifier_logic
         optimal_param_value, final_metric_value = await execute_qualifier_logic(
             self, username, project_name, analysis_slug, api_token, qualifier_config
         )
