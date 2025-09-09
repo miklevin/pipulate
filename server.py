@@ -3449,7 +3449,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
     return (Script(src='/assets/pipulate.js'), Script(python_generated_init_script), Link(rel='stylesheet', href='/assets/styles.css'))
 
 
-# BaseCrud class moved to plugins/common.py to avoid circular imports
+# BaseCrud class moved to plugins/crud.py to avoid circular imports
 
 # Initialize FastApp with database and configuration
 app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
@@ -6640,7 +6640,7 @@ async def serve_demo_script_config(request):
                 config_data = json.load(f)
 
             # Check Ollama availability for dynamic messages
-            from common import check_ollama_availability
+            from crud import check_ollama_availability
             ollama_available = await check_ollama_availability()
 
             # Process dynamic messages in the config

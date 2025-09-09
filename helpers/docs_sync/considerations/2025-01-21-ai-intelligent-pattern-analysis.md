@@ -157,7 +157,7 @@ The user optimized for the **right frequency pattern**:
 ## 🎃 JACK PUMPKINHEAD'S FINAL WISDOM
 
 **Both patterns have their place:**
-- **Decorator pattern**: Preserved in `common.py` for complex context scenarios
+- **Decorator pattern**: Preserved in `crud.py` for complex context scenarios
 - **Ritual pattern**: Used in workflow methods for efficiency
 
 **The intelligent choice**: Match the pattern to the use case, not the academic ideal.
@@ -169,7 +169,7 @@ The user optimized for the **right frequency pattern**:
 ## 🚀 CURRENT STATUS
 
 ✅ **Blank placeholder**: Restored to token-efficient ritual pattern  
-✅ **Decorator utilities**: Preserved in `common.py` for future use  
+✅ **Decorator utilities**: Preserved in `crud.py` for future use  
 ✅ **Workflow compatibility**: All helper scripts still work perfectly  
 ✅ **Server functionality**: Tested and working  
 ✅ **AI processing**: Optimized for maximum efficiency  

@@ -12,7 +12,7 @@ from fastcore.xml import NotStr
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Components']
 '\nMatplotlib Histogram Widget\n\nThis workflow demonstrates a Matplotlib histogram rendering widget.\nUsers can input JSON counter data and see it rendered as a histogram image.\n\nThe widget supports:\n- JSON counter data input (keys and values)\n- Automatic histogram generation\n- Responsive image display\n- Error handling and validation\n'

@@ -6,7 +6,7 @@ from urllib.parse import quote, urlparse
 
 from fasthtml.common import *
 from loguru import logger
-from common import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
