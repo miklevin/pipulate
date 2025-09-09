@@ -95,7 +95,7 @@ const demoScript = {
 };
 
 // NEW (Complete):
-const response = await fetch('/demo_script_config.json');
+const response = await fetch('/demo.json');
 const config = await response.json();
 const demoScript = config.demo_script;  // Includes branches!
 ```
@@ -119,7 +119,7 @@ const demoScript = config.demo_script;  // Includes branches!
 
 ## 🎯 The Comprehensive Demo Script Architecture
 
-**Configuration File:** `demo_script_config.json`
+**Configuration File:** `demo.json`
 ```json
 {
   "demo_script": {
@@ -227,7 +227,7 @@ console.log('🎯 Navigating to branch:', branchKey);
 **Key Files Modified:**
 - `pipulate/assets/pipulate-init.js` - Main demo execution engine
 - `pipulate/server.py` - Demo bookmark endpoints
-- `pipulate/demo_script_config.json` - Script configuration
+- `pipulate/demo.json` - Script configuration
 - `pipulate/assets/theme.js` - Consolidated theme management
 - `pipulate/assets/init.js` - Consolidated initialization
 - `pipulate/assets/utils.js` - Consolidated utilities
