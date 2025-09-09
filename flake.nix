@@ -447,168 +447,10 @@
           python server.py
         '';
 
-        # Base shell hook that just sets up the environment without any output
-        baseEnvSetup = pkgs: ''
-          # Set up nbstripout git filter
-          if [ ! -f .gitattributes ]; then
-            echo "*.ipynb filter=nbstripout" > .gitattributes
-          fi
-          git config --local filter.nbstripout.clean "nbstripout"
-          git config --local filter.nbstripout.required true
-          
-          # Set EFFECTIVE_OS for browser automation scripts
-          if [[ "$(uname -s)" == "Darwin" ]]; then
-            export EFFECTIVE_OS="darwin"
-          else
-            # Assuming Linux for non-Darwin POSIX systems in Nix context
-            export EFFECTIVE_OS="linux"
-          fi
-          echo "INFO: EFFECTIVE_OS set to: $EFFECTIVE_OS (for browser automation context)"
-          
-          # Add isnix alias for environment checking
-          alias isnix='if [ -n "$IN_NIX_SHELL" ] || [[ "$PS1" == *"(nix)"* ]]; then echo "✓ In Nix shell v${version} - you can run python server.py"; else echo "✗ Not in Nix shell - please run nix develop"; fi'
-          
-          # Add a more visible prompt when in Nix shell
-          if [ -n "$IN_NIX_SHELL" ] || [[ "$PS1" == *"(nix)"* ]]; then
-            export PS1="(nix) $PS1"
-            echo "You are now in the Nix development environment. Type 'exit' to leave it."
-          fi
-          
-          # MAGIC COOKIE TRANSFORMATION
-          if [ ! -d .git ]; then
-            echo "🔄 Transforming installation into git repository..."
-            
-            # Create a temporary directory for the clean git clone
-            TEMP_DIR=$(mktemp -d)
-            echo "Creating temporary clone in $TEMP_DIR..."
-            
-            # Clone the repository into the temporary directory
-            if git clone --depth=1 https://github.com/miklevin/pipulate.git "$TEMP_DIR"; then
-              # Save important files that need to be preserved
-              echo "Preserving app identity and credentials..."
-              if [ -f app_name.txt ]; then
-                cp app_name.txt "$TEMP_DIR/"
-              fi
-              if [ -d .ssh ]; then
-                mkdir -p "$TEMP_DIR/.ssh"
-                cp -r .ssh/* "$TEMP_DIR/.ssh/"
-                chmod 600 "$TEMP_DIR/.ssh/rot" 2>/dev/null || true
-              fi
-              
-              # Preserve virtual environment if it exists
-              if [ -d .venv ]; then
-                echo "Preserving virtual environment..."
-                cp -r .venv "$TEMP_DIR/"
-              fi
-              
-              # Get current directory name and parent for later restoration
-              CURRENT_DIR="$(pwd)"
-              PARENT_DIR="$(dirname "$CURRENT_DIR")"
-              DIR_NAME="$(basename "$CURRENT_DIR")"
-              
-              # Move everything to a backup location first
-              BACKUP_DIR=$(mktemp -d)
-              echo "Creating backup of current directory in $BACKUP_DIR..."
-              cp -r . "$BACKUP_DIR/"
-              
-              # Clean current directory (except hidden files to avoid issues)
-              find . -maxdepth 1 -not -path "./.*" -exec rm -rf {} \; 2>/dev/null || true
-              
-              # Move git repository contents into current directory
-              echo "Moving git repository into place..."
-              cp -r "$TEMP_DIR/." .
-              
-              # Clean up temporary directory
-              rm -rf "$TEMP_DIR"
-              
-              echo "✅ Successfully transformed into git repository!"
-              echo "Original files backed up to: $BACKUP_DIR"
-              echo "You can safely remove the backup once everything is working:"
-              echo "rm -rf \"$BACKUP_DIR\""
-              
-            else
-              echo "❌ Error: Failed to clone repository. Your installation will continue,"
-              echo "but without git-based updates. Please try again later or report this issue."
-            fi
-          fi
-          
-          # Auto-update with robust "Stash, Pull, Pop" to preserve user JupyterLab settings
-          if [ -d .git ]; then
-            echo "Checking for updates..."
-            
-            # First, resolve any existing merge conflicts by resetting to a clean state
-            if ! git diff-index --quiet HEAD --; then
-              echo "Resolving any existing conflicts..."
-              git reset --hard HEAD 2>/dev/null || true
-            fi
-            
-            # Stash any local changes to JupyterLab settings to prevent pull conflicts
-            echo "Temporarily stashing local JupyterLab settings..."
-            git stash push --quiet --include-untracked --message "Auto-stash JupyterLab settings" -- .jupyter/lab/user-settings/ 2>/dev/null || true
-
-            # Fetch and check for updates (always target main branch)
-            git fetch origin main
-            LOCAL=$(git rev-parse HEAD)
-            REMOTE=$(git rev-parse origin/main)
-            CURRENT_BRANCH=$(git branch --show-current)
-            
-            if [ "$LOCAL" != "$REMOTE" ]; then
-              # Only auto-update if on main branch
-              if [ "$CURRENT_BRANCH" = "main" ]; then
-                echo "Updates found. Pulling latest changes..."
-                git pull --ff-only origin main
-                echo "Update complete!"
-              else
-                echo "Updates available on main branch."
-                echo "Currently on development branch: $CURRENT_BRANCH"
-                echo "To update: git checkout main && git pull origin main"
-              fi
-            else
-              echo "Already up to date."
-            fi
-
-            # Try to restore user's JupyterLab settings
-            echo "Restoring local JupyterLab settings..."
-            if git stash list | grep -q "Auto-stash JupyterLab settings"; then
-              if ! git stash apply --quiet 2>/dev/null; then
-                echo
-                echo "⚠️  WARNING: Your local JupyterLab settings conflicted with an update."
-                echo "   Forcing new defaults to keep your application up-to-date."
-                git checkout HEAD -- .jupyter/lab/user-settings/ 2>/dev/null || true
-                git stash drop --quiet 2>/dev/null || true
-                echo "   Your customizations have been reset to defaults."
-                echo "   You can re-apply them in JupyterLab if desired."
-                echo
-              else
-                # Successfully applied, drop the stash
-                git stash drop --quiet 2>/dev/null || true
-              fi
-            fi
-          fi
-          
-          # Update remote URL to use SSH if we have a key
-          if [ -d .git ] && [ -f ~/.ssh/id_rsa ]; then
-            # Check if we're using HTTPS remote
-            REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
-            if [[ "$REMOTE_URL" == https://* ]]; then
-              echo "Updating remote URL to use SSH..."
-              git remote set-url origin git@github.com:miklevin/pipulate.git
-            fi
-          fi
-          
+        # --- REFACTORED SHELL LOGIC ---
+        # Logic for setting up Python venv, PATH, etc.
+        pythonSetupLogic = ''
           # Set up the Python virtual environment with explicit Python 3.12 isolation
-          # Add diagnostic check for Python version mismatch in existing .venv
-          if [ -d .venv ]; then
-            VENV_PYTHON_DIRS=$(find .venv/lib -name "python3.*" -type d 2>/dev/null | head -1)
-            if [ -n "$VENV_PYTHON_DIRS" ] && [[ "$VENV_PYTHON_DIRS" != *"python3.12"* ]]; then
-              DETECTED_VERSION=$(basename "$VENV_PYTHON_DIRS")
-              echo "⚠️  WARNING: Detected virtual environment with $DETECTED_VERSION (we need python3.12)."
-              echo "   If JupyterLab fails to start, use the '🐍 Reset Python Environment' button"
-              echo "   in Settings (gear icon), then manually restart with 'exit' + 'nix develop'."
-              echo
-            fi
-          fi
-          
           test -d .venv || ${pkgs.python312}/bin/python -m venv .venv --clear
           export VIRTUAL_ENV="$(pwd)/.venv"
           export PATH="$VIRTUAL_ENV/bin:$PATH"
@@ -616,14 +458,110 @@
           export LD_LIBRARY_PATH=${pkgs.python312}/lib:${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
           export PYTHONPATH=""
 
-
-
           # --- JupyterLab Local Configuration ---
-          # Set env var for project-local JupyterLab configuration
           export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
           export JUPYTER_WORKSPACE_NAME="${jupyterWorkspaceName}"
+        '';
 
-          # Set up CUDA env vars if available (no output) - Linux only
+        # Logic for the "Magic Cookie" git transformation and auto-updates
+        gitUpdateLogic = ''
+          # MAGIC COOKIE TRANSFORMATION
+          if [ ! -d .git ]; then
+            echo "🔄 Transforming installation into git repository..."
+            TEMP_DIR=$(mktemp -d)
+            echo "Creating temporary clone in $TEMP_DIR..."
+            if git clone --depth=1 https://github.com/miklevin/pipulate.git "$TEMP_DIR"; then
+              echo "Preserving app identity and credentials..."
+              if [ -f app_name.txt ]; then cp app_name.txt "$TEMP_DIR/"; fi
+              if [ -d .ssh ]; then
+                mkdir -p "$TEMP_DIR/.ssh"
+                cp -r .ssh/* "$TEMP_DIR/.ssh/"
+                chmod 600 "$TEMP_DIR/.ssh/rot" 2>/dev/null || true
+              fi
+              if [ -d .venv ]; then
+                echo "Preserving virtual environment..."
+                cp -r .venv "$TEMP_DIR/"
+              fi
+              BACKUP_DIR=$(mktemp -d)
+              echo "Creating backup of current directory in $BACKUP_DIR..."
+              cp -r . "$BACKUP_DIR/"
+              find . -maxdepth 1 -not -path "./.*" -exec rm -rf {} \; 2>/dev/null || true
+              echo "Moving git repository into place..."
+              cp -r "$TEMP_DIR/." .
+              rm -rf "$TEMP_DIR"
+              echo "✅ Successfully transformed into git repository!"
+              echo "Original files backed up to: $BACKUP_DIR"
+            else
+              echo "❌ Error: Failed to clone repository."
+            fi
+          fi
+          
+          # Auto-update with robust "Stash, Pull, Pop"
+          if [ -d .git ]; then
+            echo "Checking for updates..."
+            if ! git diff-index --quiet HEAD --; then
+              echo "Resolving any existing conflicts..."
+              git reset --hard HEAD 2>/dev/null || true
+            fi
+            echo "Temporarily stashing local JupyterLab settings..."
+            git stash push --quiet --include-untracked --message "Auto-stash JupyterLab settings" -- .jupyter/lab/user-settings/ 2>/dev/null || true
+            git fetch origin main
+            LOCAL=$(git rev-parse HEAD)
+            REMOTE=$(git rev-parse origin/main)
+            CURRENT_BRANCH=$(git branch --show-current)
+            if [ "$LOCAL" != "$REMOTE" ]; then
+              if [ "$CURRENT_BRANCH" = "main" ]; then
+                echo "Updates found. Pulling latest changes..."
+                git pull --ff-only origin main
+                echo "Update complete!"
+              else
+                echo "Updates available on main branch."
+              fi
+            else
+              echo "Already up to date."
+            fi
+            echo "Restoring local JupyterLab settings..."
+            if git stash list | grep -q "Auto-stash JupyterLab settings"; then
+              if ! git stash apply --quiet 2>/dev/null; then
+                echo "⚠️ WARNING: Your local JupyterLab settings conflicted with an update."
+                git checkout HEAD -- .jupyter/lab/user-settings/ 2>/dev/null || true
+                git stash drop --quiet 2>/dev/null || true
+              else
+                git stash drop --quiet 2>/dev/null || true
+              fi
+            fi
+          fi
+        '';
+
+        # Miscellaneous setup logic for aliases, CUDA, SSH, etc.
+        miscSetupLogic = ''
+          # Set up nbstripout git filter
+          if [ ! -f .gitattributes ]; then
+            echo "*.ipynb filter=nbstripout" > .gitattributes
+          fi
+          git config --local filter.nbstripout.clean "nbstripout"
+          git config --local filter.nbstripout.required true
+
+          # Set EFFECTIVE_OS for browser automation scripts
+          if [[ "$(uname -s)" == "Darwin" ]]; then export EFFECTIVE_OS="darwin"; else export EFFECTIVE_OS="linux"; fi
+          echo "INFO: EFFECTIVE_OS set to: $EFFECTIVE_OS"
+          
+          # Add aliases
+          alias isnix='if [ -n "$IN_NIX_SHELL" ]; then echo "✓ In Nix shell v${version}"; else echo "✗ Not in Nix shell"; fi'
+          export PS1="(nix) $PS1"
+          alias release='.venv/bin/python helpers/release/publish.py'
+          alias mcp='.venv/bin/python cli.py call'
+          
+          # Update remote URL to use SSH if we have a key
+          if [ -d .git ] && [ -f ~/.ssh/id_rsa ]; then
+            REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
+            if [[ "$REMOTE_URL" == https://* ]]; then
+              echo "Updating remote URL to use SSH..."
+              git remote set-url origin git@github.com:miklevin/pipulate.git
+            fi
+          fi
+
+          # Set up CUDA env vars if available (Linux only)
           ${pkgs.lib.optionalString isLinux ''
           if command -v nvidia-smi &> /dev/null; then
             export CUDA_HOME=${pkgs.cudatoolkit}
@@ -634,94 +572,57 @@
 
           # Set up the SSH key if it exists
           if [ -f .ssh/rot ]; then
-            # Create an id_rsa file for the git operations by decoding the ROT13 key
-            mkdir -p ~/.ssh
-            
-            # Decode the ROT13 key to ~/.ssh/id_rsa if it doesn't exist
             if [ ! -f ~/.ssh/id_rsa ]; then
               echo "Setting up SSH key for git operations..."
+              mkdir -p ~/.ssh
               tr 'A-Za-z' 'N-ZA-Mn-za-m' < .ssh/rot > ~/.ssh/id_rsa
               chmod 600 ~/.ssh/id_rsa
-              
-              # Create or append to SSH config to use this key for github
               if ! grep -q "Host github.com" ~/.ssh/config 2>/dev/null; then
-                cat >> ~/.ssh/config << EOF
-Host github.com
-  IdentityFile ~/.ssh/id_rsa
-  User git
-EOF
+                echo "Host github.com\n  IdentityFile ~/.ssh/id_rsa\n  User git" >> ~/.ssh/config
               fi
-              
-              # Add github.com to known_hosts if not already there
               if ! grep -q "github.com" ~/.ssh/known_hosts 2>/dev/null; then
                 ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
               fi
             fi
           fi
-
-          # Add a 'release' alias for quick access to the release pipeline
-          alias release='.venv/bin/python helpers/release/publish.py'
-          
-          # Add MCP tool aliases for clean command-line interface
-          alias mcp='.venv/bin/python cli.py call'
-          alias mcp-discover='.venv/bin/python cli.py mcp-discover'
-          alias mcp-browser='.venv/bin/python cli.py call browser_scrape_page'
         '';
 
-        # Function to create shells for each OS
+        # Function to create shells for each OS using the refactored logic
         mkShells = pkgs: {
-          # Default shell with the full interactive setup
+          # Default shell: For end-users, includes auto-updates
           default = pkgs.mkShell {
-            buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals 
-              (isLinux && builtins.pathExists "/usr/bin/nvidia-smi") 
-              cudaPackages
-            );
+            buildInputs = commonPackages; # Add back cudaPackages logic if needed
             shellHook = ''
-              # Kill any running server instances first
-              pkill -f "python server.py" || true
+              ${gitUpdateLogic}
+              ${pythonSetupLogic}
+              ${miscSetupLogic}
               
-              ${baseEnvSetup pkgs}
-              
-              # Set up CUDA if available (with output)
-              if ${if isLinux then "command -v nvidia-smi &> /dev/null" else "false"}; then
-                echo "CUDA hardware detected."
-              else
-                echo "No CUDA hardware detected."
-              fi
-              
-              # Run the full interactive script
+              # Run the full interactive startup script
+              echo "Entering standard environment with auto-updates..."
               ${runScript}/bin/run-script
-              
-              # MCP Tools Discovery Reminder
-              echo
-              echo "🔧 MCP Tools Discovery: Run '.venv/bin/python discover_mcp_tools.py' to see all available AI superpowers"
-              echo "   Or use: 'python cli.py mcp-discover' for a rich interface"
-              echo
             '';
           };
           
-          # Quiet shell for AI assistants and scripting
-          quiet = pkgs.mkShell {
-            buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals 
-              (isLinux && builtins.pathExists "/usr/bin/nvidia-smi") 
-              cudaPackages
-            );
+          # Dev shell: For development, skips the auto-update
+          dev = pkgs.mkShell {
+            buildInputs = commonPackages; # Add back cudaPackages logic if needed
             shellHook = ''
-              # Set up the Python virtual environment (minimal, no pip install) with Python 3.12 isolation
-              test -d .venv || ${pkgs.python312}/bin/python -m venv .venv --clear
-              export VIRTUAL_ENV="$(pwd)/.venv"
-              export PATH="$VIRTUAL_ENV/bin:$PATH"
-              # Prioritize Python 3.12 libraries first to avoid version conflicts
-              export LD_LIBRARY_PATH=${pkgs.python312}/lib:${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
-              export PYTHONPATH=""
-              
-              # --- JupyterLab Local Configuration for Quiet Shell ---
-              export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
-              # We don't need to run the setup script here, as the env var is enough
-              # to make Jupyter use the config files if they exist.
+              echo "⏩ Entering developer mode, skipping automatic git update."
+              # We explicitly OMIT the gitUpdateLogic block
+              ${pythonSetupLogic}
+              ${miscSetupLogic}
 
-              # Add a 'release' alias for quick access to the release pipeline
-              alias release='.venv/bin/python helpers/release/publish.py'
+              # Still run the interactive script to get the pip install and welcome message
+              ${runScript}/bin/run-script
+            '';
+          };
+
+          # Quiet shell: For AI assistants and scripting, minimal setup
+          quiet = pkgs.mkShell {
+            buildInputs = commonPackages; # Add back cudaPackages logic if needed
+            shellHook = ''
+              # Only sets up the Python venv path, no pip install or other output
+              ${pythonSetupLogic}
             '';
           };
         };
@@ -732,8 +633,6 @@ EOF
       in {
         # Multiple devShells for different use cases
         devShells = shells;
-        
-        # The default devShell (when just running 'nix develop')
-        devShell = shells.default;
+
       });
 }
