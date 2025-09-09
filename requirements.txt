@@ -23,6 +23,7 @@ nbstripout
 nltk
 openpyxl
 pandas
+pipdeptree
 piper-tts
 pyfiglet
 pylint
