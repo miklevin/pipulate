@@ -116,11 +116,11 @@ Four new MCP tools provide programmatic access to conversation history:
 
 #### `conversation_history_clear`
 - Clear conversation history with optional backup
-- Automatic backup to AI keychain before clearing
+- Automatic backup to AI ai_dictdb before clearing
 - Confirmation required to prevent accidental deletion
 
 #### `conversation_history_restore`
-- Restore conversation history from AI keychain backup
+- Restore conversation history from AI ai_dictdb backup
 - Support for `replace` or `append` merge modes
 - Confirmation required for safety
 
@@ -250,7 +250,7 @@ python -c "from server import global_conversation_history; print(f'Messages: {le
 
 ### Backup Strategy
 - Conversation history is included in database backups
-- AI keychain provides additional backup mechanism
+- AI ai_dictdb provides additional backup mechanism
 - Manual backups possible via MCP tools
 
 ## 🎉 Success Indicators

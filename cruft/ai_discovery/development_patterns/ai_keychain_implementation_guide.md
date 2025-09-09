@@ -21,14 +21,14 @@ This enables AI instances to leave **"messages in a bottle"** for their future s
 
 ## 🏗️ **Complete Implementation Architecture**
 
-### **1. Core Database Module** (`keychain.py`)
+### **1. Core Database Module** (`ai_dictdb.py`)
 
-**Location**: `pipulate/keychain.py`
+**Location**: `pipulate/ai_dictdb.py`
 
 The foundational layer providing a Python dict-like interface to SQLite storage:
 
 ```python
-from keychain import keychain_instance
+from ai_dictdb import keychain_instance
 
 # Dictionary-like usage patterns
 keychain_instance['my_key'] = 'my_persistent_message'
@@ -71,13 +71,13 @@ await keychain_list_keys({})
 #### **📋 keychain_get_all** - Complete Context
 ```python
 await keychain_get_all({'limit': 50})  # Optional limit for large stores
-# Returns: {'success': True, 'keychain': {...all key-value pairs...}}
+# Returns: {'success': True, 'ai_dictdb': {...all key-value pairs...}}
 ```
 
 #### **🗑️ keychain_delete** - Clean Up
 ```python
 await keychain_delete({'key': 'outdated_info'})
-# Returns: {'success': True, 'message': 'Key deleted from persistent keychain'}
+# Returns: {'success': True, 'message': 'Key deleted from persistent ai_dictdb'}
 ```
 
 ### **3. Git Integration** (`.gitignore`)
@@ -96,12 +96,12 @@ data/ai_keychain.db
 
 ### **4. Discovery Breadcrumb** (`server.py`)
 
-**AI_BREADCRUMB_06** introduces the keychain during server startup:
+**AI_BREADCRUMB_06** introduces the ai_dictdb during server startup:
 
 ```bash
 🧠 FINDER_TOKEN: AI_BREADCRUMB_06 - AI assistants: NEW CAPABILITY UNLOCKED! 
 You now have **persistent memory** that survives application resets. This is 
-your personal keychain for 'messages in a bottle' - leave notes for your 
+your personal ai_dictdb for 'messages in a bottle' - leave notes for your 
 future selves! Use keychain_list_keys() to discover what you already know...
 ```
 
@@ -170,7 +170,7 @@ solution = await keychain_get({'key': 'python_path_solution'})
 
 ## 🎭 **Integration with Session Hijacking**
 
-The keychain **supercharges** session hijacking capabilities:
+The ai_dictdb **supercharges** session hijacking capabilities:
 
 ```python
 # Before hijacking - check for relevant memories
@@ -193,7 +193,7 @@ await keychain_set({
 ### **Database Storage**
 - **File**: `data/ai_keychain.db` 
 - **Engine**: SQLite via fastlite
-- **Table**: `keychain` with `key` (PRIMARY KEY) and `value` (TEXT) columns
+- **Table**: `ai_dictdb` with `key` (PRIMARY KEY) and `value` (TEXT) columns
 - **Operations**: Upsert for sets, direct lookup for gets
 
 ### **Error Handling**
@@ -241,7 +241,7 @@ else:
 - **Hierarchical keys**: `user.preferences.coding_style`
 - **Timestamped memories**: Automatic creation/modification dates
 - **Memory categories**: Different types of persistent data
-- **Cross-session analytics**: Pattern recognition across keychain history
+- **Cross-session analytics**: Pattern recognition across ai_dictdb history
 
 ### **Phase 3: AI-to-AI Communication**
 - **Shared keychains**: Multiple AI instances coordinating
@@ -288,14 +288,14 @@ await keychain_delete({'key': 'old_data'})
 ```
 
 ### **FINDER_TOKEN Logging**
-All keychain operations log with **FINDER_TOKEN** for transparency:
+All ai_dictdb operations log with **FINDER_TOKEN** for transparency:
 ```bash
-grep "KEYCHAIN" logs/server.log  # See all keychain activity
+grep "KEYCHAIN" logs/server.log  # See all ai_dictdb activity
 grep "AI_BREADCRUMB_06" logs/server.log  # Find discovery breadcrumb
 ```
 
 ### **File Locations**
-- **Core module**: `pipulate/keychain.py`
+- **Core module**: `pipulate/ai_dictdb.py`
 - **MCP tools**: `pipulate/mcp_tools.py` (keychain_* functions)
 - **Database**: `data/ai_keychain.db` (auto-created)
 - **Discovery**: Search logs for `AI_BREADCRUMB_06`

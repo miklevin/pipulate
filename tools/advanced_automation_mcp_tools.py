@@ -2699,8 +2699,8 @@ async def conversation_history_clear(params: dict) -> dict:
             
             try:
                 conversation_backup = json.dumps(list(server_module.global_conversation_history), default=str, indent=2)
-                keychain = get_keychain()
-                keychain.set(backup_key, conversation_backup)
+                ai_dictdb = get_keychain()
+                ai_dictdb.set(backup_key, conversation_backup)
                 backup_info = {
                     'backup_created': True,
                     'backup_key': backup_key,
@@ -2751,8 +2751,8 @@ async def conversation_history_restore(params: dict) -> dict:
             }
         
         try:
-            keychain = get_keychain()
-            backup_data = keychain.get(backup_key)
+            ai_dictdb = get_keychain()
+            backup_data = ai_dictdb.get(backup_key)
             if not backup_data:
                 return {'success': False, 'error': f'No backup found with key: {backup_key}'}
         except Exception as e:

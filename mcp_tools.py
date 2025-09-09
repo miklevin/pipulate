@@ -71,7 +71,7 @@ MCP_TOOL_REGISTRY = None
 
 # Import AI Keychain for persistent memory
 try:
-    from keychain import keychain_instance
+    from ai_dictdb import keychain_instance
     KEYCHAIN_AVAILABLE = True
 except ImportError:
     KEYCHAIN_AVAILABLE = False
@@ -1293,7 +1293,7 @@ async def keychain_set(params: dict) -> dict:
     """Saves a persistent key-value message for future AI instances.
 
     This is THE tool for leaving "messages in a bottle" for your future selves.
-    Unlike temporary application state (db, pipeline), this keychain survives
+    Unlike temporary application state (db, pipeline), this ai_dictdb survives
     application resets and lives outside the normal application lifecycle.
 
     Args:
@@ -1309,8 +1309,8 @@ async def keychain_set(params: dict) -> dict:
     if not KEYCHAIN_AVAILABLE:
         return {
             "success": False,
-            "error": "AI Keychain not available - keychain.py may not be properly initialized",
-            "recovery_suggestion": "Check that keychain.py exists and keychain_instance is properly imported"
+            "error": "AI Keychain not available - ai_dictdb.py may not be properly initialized",
+            "recovery_suggestion": "Check that ai_dictdb.py exists and keychain_instance is properly imported"
         }
 
     try:
@@ -1342,7 +1342,7 @@ async def keychain_set(params: dict) -> dict:
         return {
             "success": True,
             "key": key,
-            "message": f"Message stored in persistent keychain under key '{key}'",
+            "message": f"Message stored in persistent ai_dictdb under key '{key}'",
             "value_length": len(value_str),
             "total_keys": keychain_instance.count(),
             "usage_note": "This message will persist across application resets and be available to future AI instances"
@@ -1353,12 +1353,12 @@ async def keychain_set(params: dict) -> dict:
         return {
             "success": False,
             "error": str(e),
-            "recovery_suggestion": "Check keychain database permissions and disk space"
+            "recovery_suggestion": "Check ai_dictdb database permissions and disk space"
         }
 
 
 async def keychain_get(params: dict) -> dict:
-    """Retrieves a persistent message from the keychain by key.
+    """Retrieves a persistent message from the ai_dictdb by key.
 
     This is THE tool for reading "messages in a bottle" left by previous AI instances.
 
@@ -1374,7 +1374,7 @@ async def keychain_get(params: dict) -> dict:
     if not KEYCHAIN_AVAILABLE:
         return {
             "success": False,
-            "error": "AI Keychain not available - keychain.py may not be properly initialized"
+            "error": "AI Keychain not available - ai_dictdb.py may not be properly initialized"
         }
 
     try:
@@ -1397,14 +1397,14 @@ async def keychain_get(params: dict) -> dict:
                 "key": key,
                 "value": value,
                 "value_length": len(value),
-                "message": f"Retrieved message from persistent keychain for key '{key}'"
+                "message": f"Retrieved message from persistent ai_dictdb for key '{key}'"
             }
         else:
             logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_NOT_FOUND - Key '{key}' not found")
             return {
                 "success": False,
                 "key": key,
-                "error": f"Key '{key}' not found in keychain",
+                "error": f"Key '{key}' not found in ai_dictdb",
                 "suggestion": "Use keychain_list_keys() to see available keys"
             }
 
@@ -1413,12 +1413,12 @@ async def keychain_get(params: dict) -> dict:
         return {
             "success": False,
             "error": str(e),
-            "recovery_suggestion": "Check keychain database accessibility"
+            "recovery_suggestion": "Check ai_dictdb database accessibility"
         }
 
 
 async def keychain_delete(params: dict) -> dict:
-    """Deletes a message from the persistent keychain.
+    """Deletes a message from the persistent ai_dictdb.
 
     Use this to clean up old messages or correct mistakes.
 
@@ -1434,7 +1434,7 @@ async def keychain_delete(params: dict) -> dict:
     if not KEYCHAIN_AVAILABLE:
         return {
             "success": False,
-            "error": "AI Keychain not available - keychain.py may not be properly initialized"
+            "error": "AI Keychain not available - ai_dictdb.py may not be properly initialized"
         }
 
     try:
@@ -1454,7 +1454,7 @@ async def keychain_delete(params: dict) -> dict:
             return {
                 "success": True,
                 "key": key,
-                "message": f"Key '{key}' deleted from persistent keychain",
+                "message": f"Key '{key}' deleted from persistent ai_dictdb",
                 "remaining_keys": keychain_instance.count()
             }
         else:
@@ -1462,7 +1462,7 @@ async def keychain_delete(params: dict) -> dict:
             return {
                 "success": False,
                 "key": key,
-                "error": f"Key '{key}' not found in keychain",
+                "error": f"Key '{key}' not found in ai_dictdb",
                 "suggestion": "Use keychain_list_keys() to see available keys"
             }
 
@@ -1471,12 +1471,12 @@ async def keychain_delete(params: dict) -> dict:
         return {
             "success": False,
             "error": str(e),
-            "recovery_suggestion": "Check keychain database permissions"
+            "recovery_suggestion": "Check ai_dictdb database permissions"
         }
 
 
 async def keychain_list_keys(params: dict) -> dict:
-    """Lists all keys currently in the persistent AI keychain.
+    """Lists all keys currently in the persistent AI ai_dictdb.
 
     This is for 'rifling through' your memories - seeing what messages 
     past instances of yourself (or other AIs) have left for you.
@@ -1492,7 +1492,7 @@ async def keychain_list_keys(params: dict) -> dict:
     if not KEYCHAIN_AVAILABLE:
         return {
             "success": False,
-            "error": "AI Keychain not available - keychain.py may not be properly initialized"
+            "error": "AI Keychain not available - ai_dictdb.py may not be properly initialized"
         }
 
     try:
@@ -1504,7 +1504,7 @@ async def keychain_list_keys(params: dict) -> dict:
             "success": True,
             "keys": keys,
             "count": len(keys),
-            "message": f"Found {len(keys)} keys in persistent keychain",
+            "message": f"Found {len(keys)} keys in persistent ai_dictdb",
             "usage_note": "Use keychain_get() with any of these keys to retrieve stored messages"
         }
 
@@ -1513,12 +1513,12 @@ async def keychain_list_keys(params: dict) -> dict:
         return {
             "success": False,
             "error": str(e),
-            "recovery_suggestion": "Check keychain database accessibility"
+            "recovery_suggestion": "Check ai_dictdb database accessibility"
         }
 
 
 async def keychain_get_all(params: dict) -> dict:
-    """Retrieves all key-value pairs from the keychain.
+    """Retrieves all key-value pairs from the ai_dictdb.
 
     Use cautiously with large stores - this returns everything at once.
     Good for getting complete context or doing bulk analysis.
@@ -1535,7 +1535,7 @@ async def keychain_get_all(params: dict) -> dict:
     if not KEYCHAIN_AVAILABLE:
         return {
             "success": False,
-            "error": "AI Keychain not available - keychain.py may not be properly initialized"
+            "error": "AI Keychain not available - ai_dictdb.py may not be properly initialized"
         }
 
     try:
@@ -1553,11 +1553,11 @@ async def keychain_get_all(params: dict) -> dict:
 
         return {
             "success": True,
-            "keychain": items,
+            "ai_dictdb": items,
             "count": len(items),
             "total_available": keychain_instance.count(),
             "truncated": truncated,
-            "message": f"Retrieved {len(items)} key-value pairs from persistent keychain"
+            "message": f"Retrieved {len(items)} key-value pairs from persistent ai_dictdb"
         }
 
     except Exception as e:
@@ -1565,7 +1565,7 @@ async def keychain_get_all(params: dict) -> dict:
         return {
             "success": False,
             "error": str(e),
-            "recovery_suggestion": "Check keychain database accessibility"
+            "recovery_suggestion": "Check ai_dictdb database accessibility"
         }
 
 

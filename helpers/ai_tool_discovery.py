@@ -132,7 +132,7 @@ class ConfigurationSyncManager:
             'botify_api': [],
             'testing': [],
             'automation': [],
-            'keychain': [],
+            'ai_dictdb': [],
             'core': []
         }
         
@@ -156,8 +156,8 @@ class ConfigurationSyncManager:
                 categories['testing'].append(tool_name)
             elif 'execute' in tool_name or 'automation' in tool_name:
                 categories['automation'].append(tool_name)
-            elif 'keychain' in tool_name:
-                categories['keychain'].append(tool_name)
+            elif 'ai_dictdb' in tool_name:
+                categories['ai_dictdb'].append(tool_name)
             else:
                 categories['core'].append(tool_name)
         

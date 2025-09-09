@@ -156,7 +156,7 @@ class RegressionPreventionDemo:
             self.log_result("MCP Tool: UI Elements", "FAIL", f"UI elements failed: {result['stderr']}")
 
     def test_keychain_functionality(self):
-        """Test keychain persistence (critical for AI memory)"""
+        """Test ai_dictdb persistence (critical for AI memory)"""
         test_key = "regression_test_key"
         test_value = "yellowbrickroad_demo_value"
         

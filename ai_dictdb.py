@@ -1,4 +1,4 @@
-# /home/mike/repos/pipulate/keychain.py
+# /home/mike/repos/pipulate/ai_dictdb.py
 
 import sqlite3
 from pathlib import Path
@@ -16,12 +16,12 @@ class AIKeychain:
     This enables AI instances to leave "messages in a bottle" for future
     instances of themselves or other AIs that inhabit the same Pipulate body.
     
-    Unlike the temporary application stores (db, pipeline), this keychain
+    Unlike the temporary application stores (db, pipeline), this ai_dictdb
     survives Pipulate resets and lives outside the normal application lifecycle.
     """
     
     def __init__(self, db_path='data/ai_keychain.db'):
-        """Initializes the connection to the keychain database."""
+        """Initializes the connection to the ai_dictdb database."""
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -30,7 +30,7 @@ class AIKeychain:
         try:
             _, _, (self.store, _) = fast_app(
                 str(self.db_path),
-                keychain={
+                ai_dictdb={
                     'key': str,
                     'value': str,
                     'pk': 'key'
@@ -41,7 +41,7 @@ class AIKeychain:
             import sqlite3
             self.conn = sqlite3.connect(str(self.db_path))
             self.conn.execute("""
-                CREATE TABLE IF NOT EXISTS keychain (
+                CREATE TABLE IF NOT EXISTS ai_dictdb (
                     key TEXT PRIMARY KEY,
                     value TEXT
                 )
@@ -61,7 +61,7 @@ class AIKeychain:
         else:
             # Use direct SQLite
             self.conn.execute(
-                "INSERT OR REPLACE INTO keychain (key, value) VALUES (?, ?)",
+                "INSERT OR REPLACE INTO ai_dictdb (key, value) VALUES (?, ?)",
                 (key, value)
             )
             self.conn.commit()
@@ -79,7 +79,7 @@ class AIKeychain:
                 raise KeyError(f"Key '{key}' not found in AI Keychain.")
         else:
             # Use direct SQLite
-            cursor = self.conn.execute("SELECT value FROM keychain WHERE key = ?", (key,))
+            cursor = self.conn.execute("SELECT value FROM ai_dictdb WHERE key = ?", (key,))
             result = cursor.fetchone()
             if result is None:
                 raise KeyError(f"Key '{key}' not found in AI Keychain.")
@@ -95,7 +95,7 @@ class AIKeychain:
             self.store.delete(key)
         else:
             # Use direct SQLite
-            self.conn.execute("DELETE FROM keychain WHERE key = ?", (key,))
+            self.conn.execute("DELETE FROM ai_dictdb WHERE key = ?", (key,))
             self.conn.commit()
 
     def __contains__(self, key: str) -> bool:
@@ -109,7 +109,7 @@ class AIKeychain:
                 return False
         else:
             # Use direct SQLite
-            cursor = self.conn.execute("SELECT 1 FROM keychain WHERE key = ?", (key,))
+            cursor = self.conn.execute("SELECT 1 FROM ai_dictdb WHERE key = ?", (key,))
             return cursor.fetchone() is not None
 
     def keys(self) -> list[str]:
@@ -119,7 +119,7 @@ class AIKeychain:
             return [row['key'] for row in self.store()]
         else:
             # Use direct SQLite
-            cursor = self.conn.execute("SELECT key FROM keychain")
+            cursor = self.conn.execute("SELECT key FROM ai_dictdb")
             return [row[0] for row in cursor.fetchall()]
 
     def values(self) -> list[str]:
@@ -129,7 +129,7 @@ class AIKeychain:
             return [row['value'] for row in self.store()]
         else:
             # Use direct SQLite
-            cursor = self.conn.execute("SELECT value FROM keychain")
+            cursor = self.conn.execute("SELECT value FROM ai_dictdb")
             return [row[0] for row in cursor.fetchall()]
 
     def items(self) -> list[tuple[str, str]]:
@@ -139,7 +139,7 @@ class AIKeychain:
             return [(row['key'], row['value']) for row in self.store()]
         else:
             # Use direct SQLite
-            cursor = self.conn.execute("SELECT key, value FROM keychain")
+            cursor = self.conn.execute("SELECT key, value FROM ai_dictdb")
             return cursor.fetchall()
 
     def get(self, key: str, default=None):
@@ -154,24 +154,24 @@ class AIKeychain:
         self[key] = value
     
     def clear(self):
-        """Removes all key-value pairs from the keychain."""
+        """Removes all key-value pairs from the ai_dictdb."""
         # Get all keys and delete them
         all_keys = self.keys()
         for key in all_keys:
             self.store.delete(key)
     
     def count(self) -> int:
-        """Returns the number of key-value pairs in the keychain."""
+        """Returns the number of key-value pairs in the ai_dictdb."""
         if self.store is not None:
             # Use FastHTML table object
             return len(self.keys())
         else:
             # Use direct SQLite
-            cursor = self.conn.execute("SELECT COUNT(*) FROM keychain")
+            cursor = self.conn.execute("SELECT COUNT(*) FROM ai_dictdb")
             return cursor.fetchone()[0]
     
     def update(self, other):
-        """Updates the keychain with key-value pairs from another dict-like object."""
+        """Updates the ai_dictdb with key-value pairs from another dict-like object."""
         if hasattr(other, 'items'):
             for key, value in other.items():
                 self[key] = value
