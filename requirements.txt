@@ -23,7 +23,7 @@ nbstripout
 nltk
 openpyxl
 pandas
-# piper-tts
+piper-tts
 pyfiglet
 pylint
 python-minimizer
@@ -47,3 +47,4 @@ webdriver-manager
 wordninja
 xlsxwriter
 yapf
+fastlite
