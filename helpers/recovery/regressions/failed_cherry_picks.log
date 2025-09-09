@@ -91,7 +91,7 @@ bba9d23 2025-07-08 ``` 🗃️ STARTUP_BACKUP: Automatic backup completed - 1234
 e3da262 2025-07-08 ``` feat: Implement simple file backup for main database
 4602e15 2025-07-08 ``` feat: Implement message deletion functionality for conversation history
 f5b410d 2025-07-08 ``` feat: Preserve endpoint context during server restart
-87812ea 2025-07-08 fix: Correctly handle insert data in common.py
+87812ea 2025-07-08 fix: Correctly handle insert data in crud.py
 6568854 2025-07-08 feat: Add task link to profile display
 20e9860 2025-07-08 Make profile name clickable in headline breadcrumb
 491f1d9 2025-07-08 fix(conversation): Prevent writing noise to conversation history

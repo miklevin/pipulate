@@ -7,7 +7,7 @@ tags: ["utilities", "burr-grinding", "ai-love-worthiness"]
 
 # 🔧 AI Burr Grinding: Utility Functions Demo
 
-This document demonstrates how the new utility functions in `common.py` can dramatically reduce workflow file sizes without breaking atomicity.
+This document demonstrates how the new utility functions in `crud.py` can dramatically reduce workflow file sizes without breaking atomicity.
 
 ## 🎯 THE PROBLEM: MASSIVE FILE SIZES
 
@@ -67,7 +67,7 @@ async def get_deterministic_filepath(self, username, project_name, analysis_slug
 
 **After (centralized utility):**
 ```python
-from common import utils
+from crud import utils
 
 # In workflow method:
 filepath = utils.generate_deterministic_filepath(
@@ -126,7 +126,7 @@ params = {
 
 **After (utility function):**
 ```python
-from common import utils
+from crud import utils
 
 form_data = await request.form()
 defaults = {
@@ -158,7 +158,7 @@ params = utils.extract_form_data_with_defaults(form_data, defaults)
 ## 🎯 IMPLEMENTATION STRATEGY
 
 ### **Phase 1: Zero-Risk Introduction**
-1. ✅ Add utilities to `common.py` (completed)
+1. ✅ Add utilities to `crud.py` (completed)
 2. Document usage patterns with examples
 3. Apply to 1-2 workflow methods as demonstration
 4. Verify server startup and functionality
@@ -180,7 +180,7 @@ These utilities **preserve your core design principles**:
 - ✅ **Atomicity preserved**: Workflows remain self-contained units
 - ✅ **Context-rich**: Utilities are documented with extraction sources
 - ✅ **Non-breaking**: Existing code continues to work unchanged
-- ✅ **Repo-root simplicity**: All utilities in `common.py` for easy imports
+- ✅ **Repo-root simplicity**: All utilities in `crud.py` for easy imports
 
 ## 🚀 NEXT STEPS
 

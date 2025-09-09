@@ -27,7 +27,7 @@ e3da262 2025-07-08 ``` feat: Implement simple file backup for main database
 bba9d23 2025-07-08 ``` 🗃️ STARTUP_BACKUP: Automatic backup completed - 12345 records secured across 5 tables
 06e9796 2025-07-08 Turning off backup temporarily
 a8f54ad 2025-07-08 fix: Restore working CRUD implementation from ae02752
-87812ea 2025-07-08 fix: Correctly handle insert data in common.py
+87812ea 2025-07-08 fix: Correctly handle insert data in crud.py
 e53bbee 2025-07-08 feat: Robust endpoint detection from server logs
 f5b410d 2025-07-08 ``` feat: Preserve endpoint context during server restart
 5bd19ba 2025-07-08 feat: Enhance history viewer with Chip O'Theseus branding and role-specific styling
@@ -619,8 +619,8 @@ dcb6334 2025-06-24 Fix: Ensure data directory exists before writing environment 
 f5490aa 2025-06-23 feat: Implement namedtuple structure with inline comments for generate_files_list.py
 b33f928 2025-06-23 Silly poem
 2110a95 2025-06-23 fix: Correct plugin imports to use absolute imports instead of relative
-8e7a2a9 2025-06-23 fix: Update plugin imports after moving common.py to parent directory
-0be2b8d 2025-06-23 refactor: Move common.py from plugins/ to root directory
+8e7a2a9 2025-06-23 fix: Update plugin imports after moving crud.py to parent directory
+0be2b8d 2025-06-23 refactor: Move crud.py from plugins/ to root directory
 f6bd452 2025-06-23 YAML front matter renders on the GitHub repo homepage if it's not a GitHub Pages repo, so removing it.
 871f1c9 2025-06-23 An extra line to ensure GitHub doesn't render YAML front matter
 a4282c1 2025-06-23 YAML front matter experiment on the README.md
@@ -1195,7 +1195,7 @@ c60ea3b 2025-06-14 Inserted a Localhost Advantage page in the Introduction
 7bfe4e2 2025-06-14 Refining the introduction text
 925fca0 2025-06-14 Fixed missing comment_divider value setting in parameter buster
 8336513 2025-06-14 Getting ready to clean up some imports
-2396d5f 2025-06-14 Complete architectural cleanup and final git stash system - Create plugins/common.py with BaseCrud class to solve circular imports - Move BaseCrud from server.py to plugins/common.py - Update all plugin imports to use new BaseCrud location - Remove circular dependency between server.py and plugin files - Update flake.nix to version 1.0.7 (Self-Healing Git Updates) - Implement robust stash/pull/pop workflow for JupyterLab settings - Add automatic conflict resolution and fallback to defaults - Ensure system never gets stuck in unresolved merge states - This completes the Git Stash Gambit: perfect balance between developer defaults and user freedom
+2396d5f 2025-06-14 Complete architectural cleanup and final git stash system - Create plugins/crud.py with BaseCrud class to solve circular imports - Move BaseCrud from server.py to plugins/crud.py - Update all plugin imports to use new BaseCrud location - Remove circular dependency between server.py and plugin files - Update flake.nix to version 1.0.7 (Self-Healing Git Updates) - Implement robust stash/pull/pop workflow for JupyterLab settings - Add automatic conflict resolution and fallback to defaults - Ensure system never gets stuck in unresolved merge states - This completes the Git Stash Gambit: perfect balance between developer defaults and user freedom
 6e2a91a 2025-06-14 Tiny endpoint message tweak for Parameter Buster
 5e85775 2025-06-14 Implement robust auto-update with conflict resolution - Add automatic conflict resolution before git pull - Use git stash apply instead of pop for better control - Automatically reset to defaults if user settings conflict with updates - Ensures system never gets stuck in unresolved merge state - Provides clear user feedback about what happened to their customizations
 b21a2b4 2025-06-14 Fix stash command precision - Use more precise git stash syntax to avoid stashing unrelated files - Prevents conflicts with files outside JupyterLab settings directory

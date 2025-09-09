@@ -48,7 +48,7 @@ python prompt_foo.py --files
 - **Python Module Output**: Generates `foo_files.py` module for programmatic consumption
 
 **File Categories Generated**:
-- **Core Files**: README.md, server.py, common.py, mcp_tools.py
+- **Core Files**: README.md, server.py, crud.py, mcp_tools.py
 - **PyPI Release System**: Package configuration and versioning files
 - **Helper Scripts**: Recursive enumeration of utilities and automation
 - **Plugins**: Workflow and automation components
