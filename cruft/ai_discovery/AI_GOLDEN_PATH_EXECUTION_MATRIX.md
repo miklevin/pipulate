@@ -253,7 +253,7 @@ python -c commands in message stream  # Not implemented in orchestrator
 
 **Level 3: Python -c direct execution**  
 ```bash
-python -c "from helpers.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))"
+python -c "from modules.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))"
 ```
 
 **Level 4: JSON tool calling (WORKING NOW!)**

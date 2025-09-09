@@ -4,7 +4,7 @@ from datetime import datetime
 
 from fasthtml.common import *
 from loguru import logger
-from crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Botify Employee']
 

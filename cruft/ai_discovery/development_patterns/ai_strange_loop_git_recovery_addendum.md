@@ -368,7 +368,7 @@ This is the essence of the strange loop: **the method of observation changed wha
 
 The patch-based recovery wasn't just about applying git commits—it was about **discovering the system's true nature** through a disciplined, conservative approach that revealed emergent properties invisible to aggressive strategies.
 
-The algorithm evolved from crude heuristics to surgical precision, not through complexity, but through **patient observation and conservative feedback loops**. This is the strange loop in action: by trying to do less, we learned to do more, and by learning to do more, we discovered we needed to do less.
+The algorithm evolved from modules.crude heuristics to surgical precision, not through complexity, but through **patient observation and conservative feedback loops**. This is the strange loop in action: by trying to do less, we learned to do more, and by learning to do more, we discovered we needed to do less.
 
 The final 54.1% success rate with zero breaks represents not just technical achievement, but **methodological breakthrough**: proof that conservative, observational approaches can outperform aggressive, intervention-heavy strategies when working with complex systems.
 

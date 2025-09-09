@@ -23,7 +23,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from helpers.dom_processing.ai_dom_beautifier import AIDOMBeautifier
+from modules.dom_processing.ai_dom_beautifier import AIDOMBeautifier
 
 
 class GoogleSearchAutomator:

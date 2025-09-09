@@ -1,4 +1,4 @@
-# helpers/botify/true_schema_discoverer.py
+# modules.botify.true_schema_discoverer.py
 import os
 import json
 import httpx

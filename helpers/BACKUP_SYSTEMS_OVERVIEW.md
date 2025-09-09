@@ -6,7 +6,7 @@ Pipulate currently has **TWO separate backup systems** that handle different asp
 
 ### 1. 🎯 **Primary System: `durable_backup_system.py`** (RECOMMENDED)
 
-**Location:** `helpers/durable_backup_system.py`  
+**Location:** `modules.durable_backup_system.py`  
 **Strategy:** Son/Father/Grandfather with date-based retention  
 **Scope:** Comprehensive backup of all critical databases
 
@@ -43,7 +43,7 @@ discussion_2025-01-08.db   # Historical conversations
 
 ### 2. 🔄 **Legacy System: `conversation_backup_system.py`** (LEGACY)
 
-**Location:** `helpers/conversation_backup_system.py`  
+**Location:** `modules.conversation_backup_system.py`  
 **Strategy:** Traditional son/father/grandfather with named files  
 **Scope:** Discussion database only
 
@@ -125,17 +125,17 @@ Both systems backup `discussion.db`, creating duplicate backups:
 
 ### **File Locations:**
 - **Primary Documentation**: `helpers/docs_sync/considerations/2025-07-02-backup-restore-architecture-revolution.md`
-- **Primary Implementation**: `helpers/durable_backup_system.py`
-- **Legacy Implementation**: `helpers/conversation_backup_system.py`
+- **Primary Implementation**: `modules.durable_backup_system.py`
+- **Legacy Implementation**: `modules.conversation_backup_system.py`
 
 ### **Integration Points:**
 ```python
 # Primary system usage
-from helpers.durable_backup_system import backup_manager
+from modules.durable_backup_system import backup_manager
 backup_manager.auto_backup_all(main_db_path, keychain_db_path, discussion_db_path)
 
 # Legacy system usage  
-from helpers.conversation_backup_system import create_conversation_backup
+from modules.conversation_backup_system import create_conversation_backup
 create_conversation_backup("before_operation")
 ```
 

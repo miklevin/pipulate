@@ -5,7 +5,7 @@ from datetime import datetime
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-from crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Components']
 '\nPipulate PrismJS Code Highlighter Widget Workflow\nA workflow for demonstrating the Prism.js code syntax highlighting widget.\n'

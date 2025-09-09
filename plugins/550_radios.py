@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime
 from fasthtml.common import *
 from loguru import logger  
-from crud import Step, VALID_ROLES
+from modules.crud import Step, VALID_ROLES
 
 ROLES = ['Components']  # See config.AVAILABLE_ROLES for all valid roles
 

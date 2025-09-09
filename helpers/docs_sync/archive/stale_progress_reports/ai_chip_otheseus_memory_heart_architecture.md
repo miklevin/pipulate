@@ -187,7 +187,7 @@ Mike's documentation shows an evolved approach to `discussion.db`:
 
 #### **🛡️ Bulletproof Append-Only Architecture**
 ```sql
--- New schema (from helpers/append_only_conversation.py)
+-- New schema (from modules.append_only_conversation.py)
 CREATE TABLE conversation_messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT NOT NULL,
@@ -207,7 +207,7 @@ CREATE TABLE conversation_messages (
 
 #### **📊 Implementation Status**
 ```python
-# From helpers/append_only_conversation.py
+# From modules.append_only_conversation.py
 class AppendOnlyConversationSystem:
     def append_message(self, role: str, content: str) -> Optional[int]:
         """ARCHITECTURALLY IMPOSSIBLE to overwrite existing messages"""

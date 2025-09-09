@@ -30,14 +30,14 @@ Chip O'Theseus can tell Mike in spoken words what it remembers from before a ser
 ### **Phase 1: Voice Model Setup**
 ```bash
 # Download voice model (Mike's tested approach)
-# From helpers/voice_synthesis.py setup
+# From modules.voice_synthesis.py setup
 mkdir -p piper_models/en/en_US/amy/low/
 # Download from huggingface_hub as in Mike's test
 ```
 
 ### **Phase 2: Memory-to-Voice Pipeline**
 ```python
-# helpers/voice_synthesis.py
+# modules.voice_synthesis.py
 class ChipVoiceMemorySystem:
     def __init__(self):
         self.voice = self.load_voice_model()
@@ -82,7 +82,7 @@ async def chip_remember_and_speak(params: dict) -> dict:
 
 ### **1. Voice Model Setup**
 ```python
-# helpers/voice_synthesis.py
+# modules.voice_synthesis.py
 import os
 import wave
 import subprocess
@@ -123,7 +123,7 @@ class ChipVoiceSystem:
 
 ### **2. Memory Selection Logic**
 ```python
-# helpers/memory_voice_integration.py
+# modules.memory_voice_integration.py
 class MemoryToVoiceConverter:
     def __init__(self):
         self.voice_system = ChipVoiceSystem()
@@ -164,7 +164,7 @@ class MemoryToVoiceConverter:
 async def chip_speak_memories(params: dict) -> dict:
     """Make Chip O'Theseus speak about its memories"""
     try:
-        from helpers.memory_voice_integration import MemoryToVoiceConverter
+        from modules.memory_voice_integration import MemoryToVoiceConverter
         
         converter = MemoryToVoiceConverter()
         memory_type = params.get('memory_type', 'important')
@@ -263,7 +263,7 @@ class HeartPhaseDemo:
 
 ### **Immediate Actions**
 1. **Setup Voice Model**: Download Piper TTS model files
-2. **Create Voice Module**: Implement `helpers/voice_synthesis.py`
+2. **Create Voice Module**: Implement `modules.voice_synthesis.py`
 3. **Test Basic Voice**: Ensure Chip can speak simple messages
 4. **Create Memory-Voice Bridge**: Connect ai_dictdb to voice synthesis
 

@@ -35,7 +35,7 @@ User creates profile → Appears successful in UI → Data never persists → Si
 ```
 
 **ROOT CAUSE**: Concurrent SQLite connections cause transaction corruption in WAL mode
-- `helpers.append_only_conversation` creates separate connection to `data/discussion.db`
+- `modules.append_only_conversation` creates separate connection to `data/discussion.db`
 - Main app uses `data/botifython.db` 
 - SQLite doesn't handle this gracefully → "disk I/O error" warnings → silent write failures
 

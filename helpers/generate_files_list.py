@@ -276,7 +276,7 @@ def generate_files_list():
         FileEntry("crud.py", False, "CRUD base class and shared utilities"),
         FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
         FileEntry("cli.py", False, "CLI interface for PyPI package and local execution"),
-        FileEntry("helpers/ascii_displays.py", True, "Externalized ASCII art functions"),
+        FileEntry("modules.ascii_displays.py", True, "Externalized ASCII art functions"),
     ]
 
     # Not core but also important files
