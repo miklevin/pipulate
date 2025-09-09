@@ -276,7 +276,6 @@ def generate_files_list():
         FileEntry("common.py", False, "CRUD base class and shared utilities"),
         FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
         FileEntry("cli.py", False, "CLI interface for PyPI package and local execution"),
-        FileEntry("logging_utils.py", False, "Logging utilities and DebugConsole"),
         FileEntry("plugin_system.py", False, "Plugin discovery and loading system"),
         FileEntry("helpers/ascii_displays.py", True, "Externalized ASCII art functions"),
     ]
