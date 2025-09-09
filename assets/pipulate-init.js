@@ -996,7 +996,7 @@ async function loadDemoScript() {
         console.log('🎯 Loading demo script configuration...');
         
         // Load the demo script configuration
-        const response = await fetch('/demo_script_config.json');
+        const response = await fetch('/demo.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1566,7 +1566,7 @@ async function loadAndExecuteCleanDemoScript() {
         console.log('🎯 Loading interactive demo script configuration...');
         
         // Load the demo script configuration
-        const response = await fetch('/demo_script_config.json');
+        const response = await fetch('/demo.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -2319,7 +2319,7 @@ async function resumeDemoFromBookmark(bookmark) {
         
         // Reload the full demo script config to get branches
         console.log('📖 Reloading full demo script config to get branches...');
-        const response = await fetch('/demo_script_config.json');
+        const response = await fetch('/demo.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -2471,7 +2471,7 @@ async function resumeDemoFromContinuationState(continuationState) {
         console.log('🎭 Resuming demo from continuation state:', continuationState);
         
         // Load the demo script configuration
-        const response = await fetch('/demo_script_config.json');
+        const response = await fetch('/demo.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -2566,7 +2566,7 @@ async function loadDemoScriptConfig() {
     try {
         console.log('🎭 Loading demo script config only...');
         
-        const response = await fetch('/demo_script_config.json');
+        const response = await fetch('/demo.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
