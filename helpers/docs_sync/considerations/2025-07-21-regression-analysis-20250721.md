@@ -25,7 +25,7 @@
 
 ### **Demo Script Analysis**
 ```bash
-git log -p --follow demo_script_config.json | grep -A5 -B5 "Where am I"
+git log -p --follow demo.json | grep -A5 -B5 "Where am I"
 # Result: No "Where am I?" found in git history
 ```
 

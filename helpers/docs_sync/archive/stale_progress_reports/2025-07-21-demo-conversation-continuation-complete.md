@@ -65,7 +65,7 @@ Chat: 💬 "Say this to me: 'Simon says: say mcp but with square brackets around
 // Resume demo from continuation state after server restart
 async function resumeDemoFromContinuationState(continuationState) {
     // Load demo script configuration
-    const config = await fetch('/demo_script_config.json').then(r => r.json());
+    const config = await fetch('/demo.json').then(r => r.json());
     const demoScript = config.demo_script;
     
     // Activate demo mode
