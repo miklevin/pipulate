@@ -58,7 +58,7 @@ class ChipVoiceSystem:
             model_path_in_repo = "en/en_US/amy/low/en_US-amy-low.onnx"
             config_path_in_repo = "en/en_US/amy/low/en_US-amy-low.onnx.json"
             
-            local_model_dir = "./piper_models"
+            local_model_dir = "./assets/piper_models"
             os.makedirs(local_model_dir, exist_ok=True)
             
             self.model_path = os.path.join(local_model_dir, model_path_in_repo)
