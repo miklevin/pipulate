@@ -31,7 +31,7 @@ Chip O'Theseus can tell Mike in spoken words what it remembers from before a ser
 ```bash
 # Download voice model (Mike's tested approach)
 # From modules.voice_synthesis.py setup
-mkdir -p piper_models/en/en_US/amy/low/
+mkdir -p assets/piper_models/en/en_US/amy/low/
 # Download from huggingface_hub as in Mike's test
 ```
 
@@ -101,7 +101,7 @@ class ChipVoiceSystem:
         model_path_in_repo = "en/en_US/amy/low/en_US-amy-low.onnx"
         config_path_in_repo = "en/en_US/amy/low/en_US-amy-low.onnx.json"
         
-        local_model_dir = "./piper_models"
+        local_model_dir = "./assets/piper_models"
         # Download files if they don't exist
         # (Mike's tested code)
         
