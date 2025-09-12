@@ -135,7 +135,7 @@
 
         # Define notebook paths for the copy-on-first-run solution
         originalNotebook = "helpers/botify/hello.ipynb";
-        localNotebook = "notebook_introduction_local.ipynb";
+        localNotebook = "hello_world.ipynb";
 
         # This script sets up our Python environment and project
         runScript = pkgs.writeShellScriptBin "run-script" ''

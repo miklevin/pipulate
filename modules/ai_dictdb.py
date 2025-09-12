@@ -4,6 +4,10 @@ import sqlite3
 from pathlib import Path
 from fasthtml.common import fast_app
 
+# Get the directory of the current file (e.g., /path/to/pipulate/modules)
+# and go one level up to find the project's root directory.
+PROJECT_ROOT = Path(__file__).parent.parent
+
 class AIKeychain:
     """
     A persistent, dictionary-like key-value store for the AI.
@@ -20,8 +24,11 @@ class AIKeychain:
     survives Pipulate resets and lives outside the normal application lifecycle.
     """
     
-    def __init__(self, db_path='data/ai_keychain.db'):
+    def __init__(self, db_path=None):
         """Initializes the connection to the ai_dictdb database."""
+        if db_path is None:
+            # Construct an absolute path from the project root
+            db_path = PROJECT_ROOT / 'data' / 'ai_keychain.db'
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         
