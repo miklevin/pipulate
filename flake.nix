@@ -113,7 +113,7 @@
         # Common packages that we want available in our environment
         # regardless of the operating system
         commonPackages = with pkgs; [
-          python312Full                # Python 3.12 interpreter (consistent version)
+          python312                    # Python 3.12 interpreter (consistent version)
           figlet                       # For creating ASCII art welcome messages
           tmux                         # Terminal multiplexer for managing sessions
           zlib                         # Compression library for data compression
