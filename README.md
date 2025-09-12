@@ -1085,7 +1085,7 @@ This structure enables AI assistants to programmatically interact with all UI co
     ├── LICENSE                    # It's MIT
     ├── install.sh                 # "Magic cookie" installation script (curl | sh)
     ├── mcp_tools.py               # MCP protocol tools - the AI assistant interface
-    ├── notebook_introduction_local.ipynb  # Editable (non-auto-updating) copy of hello.ipynb
+    ├── hello_world.ipynb  # Editable (non-auto-updating) copy of hello.ipynb
     ├── README.md                  # This file
     ├── requirements.txt           # Python dependencies (managed by Nix)
     └── server.py                  # Main application entry point
