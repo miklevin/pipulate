@@ -57,7 +57,7 @@ from rich.table import Table
 
 console = Console()
 
-def discover_mcp_tools(show_all=False, tool_name=None):
+def discover_tools(show_all=False, tool_name=None):
     """Run the MCP tools discovery script with progressive reveal."""
     console.print(Panel("🔧 [bold cyan]MCP Tools Discovery[/bold cyan]", border_style="cyan"))
     
@@ -106,7 +106,7 @@ def discover_mcp_tools(show_all=False, tool_name=None):
         
         elif show_all:
             # Full view - run complete discovery and show everything
-            from discover_mcp_tools import discover_mcp_tools as run_discovery
+            from discover_tools import discover_tools as run_discovery
             results = run_discovery()
             
             console.print(f"📊 [bold green]Complete Tool Discovery Results[/bold green]")
@@ -144,7 +144,7 @@ def discover_mcp_tools(show_all=False, tool_name=None):
             ))
         
     except ImportError:
-        console.print("❌ [bold red]Error:[/bold red] discover_mcp_tools.py not found in current directory")
+        console.print("❌ [bold red]Error:[/bold red] discover_tools.py not found in current directory")
         console.print("Make sure you're running this from the pipulate directory.")
         sys.exit(1)
     except Exception as e:
@@ -404,7 +404,7 @@ def main():
         uninstall_pipulate(args.app_name)
     
     elif args.command == 'mcp-discover':
-        discover_mcp_tools(show_all=args.all, tool_name=args.tool)
+        discover_tools(show_all=args.all, tool_name=args.tool)
     
     elif args.command == 'call':
         # Golden Path argument parsing

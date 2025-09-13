@@ -25,10 +25,10 @@ def check_environment():
         return True
     else:
         print("  ⚠️ Not using virtual environment - may have dependency issues")
-        print("  💡 Try: .venv/bin/python discover_mcp_tools.py")
+        print("  💡 Try: .venv/bin/python discover_tools.py")
         return False
 
-def discover_mcp_tools():
+def discover_tools():
     """Discover all MCP tools available in mcp_tools.py"""
     
     # Import the mcp_tools module
@@ -37,7 +37,7 @@ def discover_mcp_tools():
     except ImportError as e:
         print(f"❌ Error importing mcp_tools: {e}")
         print(f"💡 CRITICAL: You MUST use the virtual environment Python:")
-        print(f"   .venv/bin/python discover_mcp_tools.py")
+        print(f"   .venv/bin/python discover_tools.py")
         print(f"   The 'python' command points to nix store, not .venv!")
         return {
             'total_tools': 0,
@@ -150,7 +150,7 @@ def create_working_discovery_commands():
     
     print("""
 # Command 1: List all MCP tool functions
-.venv/bin/python discover_mcp_tools.py
+.venv/bin/python discover_tools.py
 
 # Command 2: Test specific tool (use exact function name)
 .venv/bin/python -c "import asyncio; from mcp_tools import test_environment_access; result = asyncio.run(test_environment_access()); print('Environment Test Result:', result)"
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     env_ok = check_environment()
     
     # Discover tools
-    results = discover_mcp_tools()
+    results = discover_tools()
     
     # Test registration
     registration_works = test_tool_registration()
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     print(f"\n✅ DISCOVERY COMPLETE!")
     if 'error' in results:
         print(f"❌ Error: {results['error']}")
-        print(f"💡 Fix: Use .venv/bin/python discover_mcp_tools.py")
+        print(f"💡 Fix: Use .venv/bin/python discover_tools.py")
     else:
         print(f"📊 Summary: {results['total_tools']} tools found, {results['accessible_functions']} accessible")
         print(f"🔧 Registration: {'Working' if registration_works else 'Limited (expected)'}") 
