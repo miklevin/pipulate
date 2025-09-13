@@ -136,7 +136,7 @@ def run_version_sync():
 def run_ascii_art_sync():
     """Runs the ASCII art documentation synchronization and captures statistics."""
     print("\n📚 Step 2: Synchronizing ASCII art documentation...")
-    ascii_sync_script = PIPULATE_ROOT / "helpers" / "docs_sync" / "sync_ascii_art.py"
+    ascii_sync_script = PIPULATE_ROOT / "helpers" / "release" / "sync_ascii_art.py"
     if not ascii_sync_script.exists():
         print("❌ sync_ascii_art.py not found, skipping documentation sync")
         return False, None
