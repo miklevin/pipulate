@@ -30,7 +30,122 @@ import os
 import re
 import sys
 from pathlib import Path
-from ascii_art_parser import extract_ascii_art_blocks
+
+
+def extract_key_from_headline(headline):
+    """Extract key from headline, preferring comment-key if present"""
+    # Check for comment-key first: <!-- key: some-key-name -->
+    comment_key_match = re.search(r'<!--\s*key:\s*([^>]+)\s*-->', headline)
+    if comment_key_match:
+        return comment_key_match.group(1).strip()
+    
+    # Fallback to slugify if no comment-key found
+    return slugify(headline)
+
+def slugify(text):
+    """Convert title to URL-friendly slug"""
+    # Remove ### prefix and clean up
+    text = re.sub(r'^#+\s*', '', text)
+    # Convert to lowercase and replace spaces/special chars with hyphens
+    text = re.sub(r'[^a-zA-Z0-9\s-]', '', text).strip().lower()
+    return re.sub(r'[\s-]+', '-', text)
+
+def clean_footer_delimiters(footer):
+    """Remove common section delimiters from footer content"""
+    if not footer:
+        return footer
+    
+    # Common delimiters that mark section boundaries
+    delimiters = [
+        r'^-{50,}$',           # 50+ hyphens (like --------------------------------------------------------------------------------)
+        r'^={50,}$',           # 50+ equals signs
+        r'^#{1,6}\s+.+$',      # Next markdown headline (### Title)
+        r'^\*{50,}$',          # 50+ asterisks
+        r'^---+$',             # 3+ hyphens (markdown horizontal rule)
+        r'^===+$',             # 3+ equals (another horizontal rule style)
+    ]
+    
+    lines = footer.split('\n')
+    cleaned_lines = []
+    
+    for line in lines:
+        line_stripped = line.strip()
+        
+        # Check if this line matches any delimiter pattern
+        is_delimiter = False
+        for delimiter_pattern in delimiters:
+            if re.match(delimiter_pattern, line_stripped, re.MULTILINE):
+                is_delimiter = True
+                break
+        
+        # If we hit a delimiter, stop processing (exclude this line and everything after)
+        if is_delimiter:
+            break
+            
+        cleaned_lines.append(line)
+    
+    # Join back and strip any trailing whitespace
+    cleaned_footer = '\n'.join(cleaned_lines).rstrip()
+    return cleaned_footer
+
+def extract_ascii_art_blocks(readme_content):
+    """
+    Extract ASCII art blocks from README.md content
+    
+    Returns dict with structure:
+    {
+        "title-slug": {
+            "title": "Original Title",
+            "header": "Content before ```",
+            "art": "ASCII art content", 
+            "footer": "Content after ```"
+        }
+    }
+    """
+    blocks = {}
+    
+    # Split content into sections by headlines
+    sections = re.split(r'^(#{1,6}\s+.+)$', readme_content, flags=re.MULTILINE)
+    
+    for i in range(1, len(sections), 2):  # Process headline + content pairs
+        if i + 1 >= len(sections):
+            break
+            
+        headline = sections[i].strip()
+        content = sections[i + 1].strip() if i + 1 < len(sections) else ""
+        
+        # Look for ``` code blocks in this section
+        code_blocks = re.findall(r'```\n(.*?)\n```', content, re.DOTALL)
+        
+        if code_blocks:
+            # Found ASCII art! Extract the components
+            title = headline  # Preserve original markdown headline with ### level
+            slug = extract_key_from_headline(headline)  # Use comment-key if present, otherwise slugify
+            
+            # Split content around the first code block
+            pattern = r'```\n.*?\n```'
+            match = re.search(pattern, content, re.DOTALL)
+            if match:
+                header = content[:match.start()].strip()
+                footer = content[match.end():].strip()
+            else:
+                header = content
+                footer = ""
+            
+            # Clean up header (remove trailing colons, etc.)
+            header = re.sub(r':$', '', header).strip()
+            
+            # Clean up footer - remove common delimiters that mark section boundaries
+            footer = clean_footer_delimiters(footer)
+            
+            blocks[slug] = {
+                "title": title,
+                "header": header,
+                "art": code_blocks[0],  # DON'T strip() - preserves leading/trailing whitespace
+                "footer": footer
+            }
+    
+    return blocks
 
 def find_line_number(content, text):
     """Find the line number where text appears"""
