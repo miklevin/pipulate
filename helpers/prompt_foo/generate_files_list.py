@@ -274,7 +274,6 @@ def generate_files_list():
         FileEntry("config.py", False, "Centralized configuration - single source of truth"),
         FileEntry("server.py", False, "Server entrypoint"),
         FileEntry("crud.py", False, "CRUD base class and shared utilities"),
-        FileEntry("mcp_tools.py", False, "MCP tools - AI assistant interface"),
         FileEntry("cli.py", False, "CLI interface for PyPI package and local execution"),
         FileEntry("modules.ascii_displays.py", True, "Externalized ASCII art functions"),
     ]
@@ -282,7 +281,6 @@ def generate_files_list():
     # Not core but also important files
     important_files = [
         FileEntry("ai_dictdb.py", True, "AI Keychain - Persistent memory for Chip O'Theseus"),
-        FileEntry("discover_mcp_tools.py", True, "MCP tool discovery and validation"),
         FileEntry("botify_extraction_demo.py", True, "Demo script showing Botify tools extraction success"),
         FileEntry("vulture_whitelist.py", True, "Dead code detection whitelist for development"),
         FileEntry("tools/__init__.py", False, "Modular tools package interface"),
