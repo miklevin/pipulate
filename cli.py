@@ -106,8 +106,8 @@ def discover_mcp_tools(show_all=False, tool_name=None):
         
         elif show_all:
             # Full view - run complete discovery and show everything
-        from discover_mcp_tools import discover_mcp_tools as run_discovery
-        results = run_discovery()
+            from discover_mcp_tools import discover_mcp_tools as run_discovery
+            results = run_discovery()
             
             console.print(f"📊 [bold green]Complete Tool Discovery Results[/bold green]")
             console.print(f"Found {results['total_tools']} tools, {results['accessible_functions']} accessible")
@@ -332,6 +332,17 @@ def uninstall_pipulate(app_name):
 
 def main():
     """Main CLI entry point with improved golden path argument parsing."""
+    
+    # --- START NEW LOGIC ---
+    # The magic happens here! If the first argument isn't a known command,
+    # assume it's a tool name and implicitly prepend 'call'.
+    known_commands = {'install', 'run', 'uninstall', 'mcp-discover', 'call', '--help', '-h'}
+    args_list = sys.argv[1:] # Get arguments, excluding the script name
+
+    if args_list and args_list[0] not in known_commands:
+        sys.argv.insert(1, 'call')
+    # --- END NEW LOGIC ---
+    
     parser = argparse.ArgumentParser(
         description="Pipulate CLI - The Local-First AI SEO & Automation Workshop.\n\n"
                    "🎯 THE GOLDEN PATH FOR AI ASSISTANTS:\n"
