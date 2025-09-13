@@ -68,7 +68,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-import mcp_tools
+import tools.mcp_tools as mcp_tools
 # Import centralized configuration to eliminate duplication
 from config import PCONFIG as CONFIG_PCONFIG
 from modules import botify_code_generation
@@ -82,7 +82,7 @@ from modules.ascii_displays import (ai_breadcrumb_summary, chip_says,
                                     startup_summary_table, story_moment,
                                     system_diagram, white_rabbit)
 from modules.server_logging import console, rich_json_display, setup_logging
-from mcp_tools import register_all_mcp_tools
+from tools.mcp_tools import register_all_mcp_tools
 
 # Import MCP tools module for enhanced AI assistant capabilities
 # Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues

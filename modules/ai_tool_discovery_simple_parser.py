@@ -35,7 +35,7 @@ from typing import Dict, Any, List, Optional, Tuple
 # Add the parent directory to the path so we can import MCP tools
 sys.path.insert(0, str(Path(__file__).parent))
 
-from mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
+from tools.mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
 
 # 🎓 PROGRESSIVE REVEAL LEVEL 1: Ultra-simple commands for small models
 # These are the simplest possible syntax - just [command] in square brackets

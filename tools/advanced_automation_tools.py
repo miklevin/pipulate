@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 # Import necessary functions from the core module
 try:
-    from mcp_tools import (
+    from tools.mcp_tools import (
         get_user_session_state, 
         rotate_looking_at_directory,
         WorkflowHijackTiming,
@@ -384,7 +384,7 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
     PROGRAMMATIC METHOD for AI understanding:
     python -c "
     import asyncio
-    from mcp_tools import browser_hijack_workflow_complete
+    from tools.mcp_tools import browser_hijack_workflow_complete
     result = asyncio.run(browser_hijack_workflow_complete({
         'url': 'http://localhost:5001/hello_workflow',
         'pipeline_id': 'Default_Profile-hello-16'

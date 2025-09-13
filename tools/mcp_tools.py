@@ -1630,7 +1630,6 @@ async def execute_ai_session_hijacking_demonstration(params: dict) -> dict:
 
 🧠 **SIMPLE PATTERN DEMONSTRATED:**
 ```python
-from mcp_tools import execute_complete_session_hijacking
 result = asyncio.run(execute_complete_session_hijacking({{}}))
 print(f'🎭 Hijack: {{result.get("success")}}')
 ```
@@ -3924,7 +3923,6 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
     global MCP_TOOL_REGISTRY
     try:
         if not MCP_TOOL_REGISTRY or len(MCP_TOOL_REGISTRY) < 10:
-            from mcp_tools import register_all_mcp_tools
             register_all_mcp_tools()
     except Exception as e:
         logger.warning(f'Could not auto-register MCP tools: {e}')
@@ -3943,7 +3941,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
             # Get all functions that are MCP tool handlers (test functions and main tools)
             import inspect
             import sys
-            mcp_module = sys.modules.get('mcp_tools')
+            mcp_module = sys.modules.get('tools.mcp_tools')
             if mcp_module:
                 for name, obj in inspect.getmembers(mcp_module):
                     if (callable(obj) and
@@ -4358,7 +4356,6 @@ async def test_mcp_tools_availability() -> dict:
     try:
         # Test if we can import and access MCP tools directly
         try:
-            from mcp_tools import builtin_get_cat_fact
 
             # Test a simple tool call
             result = await builtin_get_cat_fact({})
@@ -4386,7 +4383,7 @@ async def test_mcp_tools_availability() -> dict:
             }
 
         # Final fallback: Check if we're in the right environment
-        if os.path.exists("mcp_tools.py") and os.path.exists("server.py"):
+        if os.path.exists("tools/mcp_tools.py") and os.path.exists("server.py"):
             return {
                 "success": True,
                 "mcp_tools_accessible": True,
@@ -4643,7 +4640,7 @@ async def test_file_system_access() -> dict:
         from pathlib import Path
 
         # Test reading a simple file
-        test_file = "mcp_tools.py"
+        test_file = "tools/mcp_tools.py"
         if os.path.exists(test_file):
             with open(test_file, 'r') as f:
                 content = f.read(100)  # Just first 100 chars
