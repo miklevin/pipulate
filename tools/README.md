@@ -13,7 +13,7 @@ Instead of breaking down the entire monolithic `mcp_tools.py` into many small fi
 ```
 tools/
 ├── __init__.py                 # Package initialization with convenience imports
-├── botify_mcp_tools.py        # Botify-specific MCP tools (8 tools)
+├── botify_tools.py        # Botify-specific MCP tools (8 tools)
 └── README.md                  # This file
 ```
 
@@ -22,13 +22,13 @@ tools/
 | Module | Size | Tokens | Reduction |
 |--------|------|--------|-----------|
 | Original `mcp_tools.py` | 357,124 chars | ~89,281 tokens | - |
-| `tools/botify_mcp_tools.py` | 17,610 chars | ~4,402 tokens | **95.1%** |
+| `tools/botify_tools.py` | 17,610 chars | ~4,402 tokens | **95.1%** |
 
 ## 💡 Usage Examples
 
 ### Option 1: Direct Import
 ```python
-from tools.botify_mcp_tools import botify_ping, botify_get_full_schema
+from tools.botify_tools import botify_ping, botify_get_full_schema
 ```
 
 ### Option 2: Convenience Import
@@ -38,14 +38,14 @@ from tools import botify_ping, get_botify_tools
 
 ### Option 3: Full Module Import
 ```python
-from tools.botify_mcp_tools import *
+from tools.botify_tools import *
 ```
 
 ## 🎭 Use Cases
 
 ### AI Assistant Botify Analysis
 - **OLD**: Include full `mcp_tools.py` (89,281 tokens)
-- **NEW**: Include only `tools/botify_mcp_tools.py` (4,402 tokens)
+- **NEW**: Include only `tools/botify_tools.py` (4,402 tokens)
 - **Benefit**: 95.1% more room for actual analysis content
 
 ### Selective Feature Development

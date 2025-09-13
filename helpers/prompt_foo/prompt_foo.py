@@ -7,10 +7,6 @@ from typing import Dict, List, Optional, Union
 
 # Hi there, Gemini! I case you're wondering, this is the script that I use to
 # make this great big XML file you're looking at.
-#
-# NOTE: This script now includes the modular tools/ directory containing
-# extracted MCP tools (botify_mcp_tools.py, advanced_automation_mcp_tools.py)
-# for token optimization purposes.
 
 # ============================================================================
 # USER CONFIGURATION: Files to include in context
