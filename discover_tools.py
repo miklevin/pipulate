@@ -33,7 +33,7 @@ def discover_tools():
     
     # Import the mcp_tools module
     try:
-        import mcp_tools
+        import tools.mcp_tools as mcp_tools
     except ImportError as e:
         print(f"❌ Error importing mcp_tools: {e}")
         print(f"💡 CRITICAL: You MUST use the virtual environment Python:")
@@ -48,7 +48,7 @@ def discover_tools():
     
     # Get all functions that are MCP tool handlers (test functions and main tools)
     mcp_tools = []
-    for name, obj in inspect.getmembers(sys.modules['mcp_tools']):
+    for name, obj in inspect.getmembers(sys.modules['tools.mcp_tools']):
         if (callable(obj) and 
             not name.startswith('__') and
             ('test_' in name or 'ai_' in name or 'botify_' in name or 'browser_' in name or 
@@ -104,7 +104,7 @@ def discover_tools():
     accessible_count = 0
     for tool in mcp_tools:
         try:
-            func = getattr(sys.modules['mcp_tools'], tool)
+            func = getattr(sys.modules['tools.mcp_tools'], tool)
             if callable(func):
                 accessible_count += 1
                 print(f"  ✅ {tool}: Accessible")
@@ -126,7 +126,7 @@ def test_tool_registration():
     print(f"\n🔧 TOOL REGISTRATION TEST:")
     
     try:
-        from mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
+        from tools.mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
         
         # Try to register tools
         register_all_mcp_tools()
@@ -153,16 +153,16 @@ def create_working_discovery_commands():
 .venv/bin/python discover_tools.py
 
 # Command 2: Test specific tool (use exact function name)
-.venv/bin/python -c "import asyncio; from mcp_tools import test_environment_access; result = asyncio.run(test_environment_access()); print('Environment Test Result:', result)"
+.venv/bin/python -c "import asyncio; from tools.mcp_tools import test_environment_access; result = asyncio.run(test_environment_access()); print('Environment Test Result:', result)"
 
 # Command 3: Test capability suite (shell-safe)
-.venv/bin/python -c "import asyncio; from mcp_tools import ai_capability_test_suite; result = asyncio.run(ai_capability_test_suite({'test_type': 'quick'})); print('Success Rate:', result.get('success_rate', 'N/A'), '%')"
+.venv/bin/python -c "import asyncio; from tools.mcp_tools import ai_capability_test_suite; result = asyncio.run(ai_capability_test_suite({'test_type': 'quick'})); print('Success Rate:', result.get('success_rate', 'N/A'), '%')"
 
 # Command 4: Test self-discovery (shell-safe)
-.venv/bin/python -c "import asyncio; from mcp_tools import ai_self_discovery_assistant; result = asyncio.run(ai_self_discovery_assistant({'discovery_type': 'capabilities'})); print('Tools found:', result.get('total_tools_available', 'N/A'))"
+.venv/bin/python -c "import asyncio; from tools.mcp_tools import ai_self_discovery_assistant; result = asyncio.run(ai_self_discovery_assistant({'discovery_type': 'capabilities'})); print('Tools found:', result.get('total_tools_available', 'N/A'))"
 
 # Command 5: Test environment access (no parameters needed)
-.venv/bin/python -c "import asyncio; from mcp_tools import test_environment_access; result = asyncio.run(test_environment_access()); print('Environment Test Result:', result)"
+.venv/bin/python -c "import asyncio; from tools.mcp_tools import test_environment_access; result = asyncio.run(test_environment_access()); print('Environment Test Result:', result)"
 """)
 
 if __name__ == "__main__":

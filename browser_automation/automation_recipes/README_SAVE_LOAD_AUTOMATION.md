@@ -199,14 +199,14 @@ if result["success"]:
 # 🧪 Test Save functionality
 .venv/bin/python -c "
 import asyncio
-from mcp_tools import browser_save_all_data_single_session
+from tools.mcp_tools import browser_save_all_data_single_session
 result = asyncio.run(browser_save_all_data_single_session())
 print(f'📤 Save: {result.get(\"success\")}')"
 
 # 🧪 Test Load functionality (only if backup data exists)
 .venv/bin/python -c "
 import asyncio
-from mcp_tools import browser_load_all_data_single_session
+from tools.mcp_tools import browser_load_all_data_single_session
 result = asyncio.run(browser_load_all_data_single_session())
 print(f'📥 Load: {result.get(\"success\")}')"
 ```
