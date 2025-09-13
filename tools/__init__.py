@@ -6,7 +6,7 @@ This package contains extracted MCP tools organized by domain for token optimiza
 
 # Re-export commonly used functions for convenience
 try:
-    from .botify_mcp_tools import (
+    from .botify_tools import (
         botify_ping,
         botify_list_projects,
         botify_simple_query,
@@ -16,11 +16,11 @@ try:
         get_botify_tools
     )
 except ImportError:
-    # If botify_mcp_tools isn't available, that's okay
+    # If botify_tools isn't available, that's okay
     pass
 
 try:
-    from .advanced_automation_mcp_tools import (
+    from .advanced_automation_tools import (
         execute_complete_session_hijacking,
         browser_hijack_workflow_complete,
         execute_automation_recipe,
@@ -30,14 +30,14 @@ try:
         get_advanced_automation_tools
     )
 except ImportError:
-    # If advanced_automation_mcp_tools isn't available, that's okay
+    # If advanced_automation_tools isn't available, that's okay
     pass
 
 __version__ = "1.0.0"
 
 # Import shared constants to eliminate duplication
 try:
-    from .botify_mcp_tools import CORE_BOTIFY_TOOLS
+    from .botify_tools import CORE_BOTIFY_TOOLS
     botify_exports = CORE_BOTIFY_TOOLS + ['get_botify_tools']
 except ImportError:
     # Fallback if import fails
