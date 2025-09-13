@@ -4,6 +4,8 @@ Tools package for Pipulate - Focused MCP tool modules
 This package contains extracted MCP tools organized by domain for token optimization.
 """
 
+from . import mcp_tools
+
 # Re-export commonly used functions for convenience
 try:
     from .botify_tools import (

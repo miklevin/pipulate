@@ -79,7 +79,7 @@ def discover_tools(show_all=False, tool_name=None):
             
             try:
                 # Only get tool registry info, no noisy discovery
-                from mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
+                from tools.mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
                 register_all_mcp_tools()
                 
                 if tool_name in MCP_TOOL_REGISTRY:
@@ -157,11 +157,11 @@ async def call_mcp_tool(tool_name: str, tool_args: dict):
     
     try:
         # Import MCP tools module
-        from mcp_tools import register_all_mcp_tools
+        from tools.mcp_tools import register_all_mcp_tools
         register_all_mcp_tools()
         
         # Import the server's registry - with inline architecture, we need to get it from mcp_tools
-        from mcp_tools import MCP_TOOL_REGISTRY
+        from tools.mcp_tools import MCP_TOOL_REGISTRY
         registry = MCP_TOOL_REGISTRY
         
         if tool_name not in registry:

@@ -599,8 +599,8 @@ def startup_summary_table(
     commands_table.add_row("🔍 System State", ".venv/bin/python cli.py call pipeline_state_inspector")
     commands_table.add_row("📖 Log Analysis", ".venv/bin/python cli.py call local_llm_grep_logs --search_term FINDER_TOKEN")
     commands_table.add_row("👁️  Browser Scrape", ".venv/bin/python cli.py call browser_scrape_page --url http://localhost:5001")
-    commands_table.add_row("🎭 Session Hijack", ".venv/bin/python -c \"import asyncio; from mcp_tools import execute_complete_session_hijacking; asyncio.run(execute_complete_session_hijacking({}))\"")
-    commands_table.add_row("🧠 AI Discovery", ".venv/bin/python -c \"from mcp_tools import ai_self_discovery_assistant; import asyncio; asyncio.run(ai_self_discovery_assistant({'discovery_type': 'capabilities'}))\"")
+    commands_table.add_row("🎭 Session Hijack", ".venv/bin/python -c \"import asyncio; from tools.mcp_tools import execute_complete_session_hijacking; asyncio.run(execute_complete_session_hijacking({}))\"")
+    commands_table.add_row("🧠 AI Discovery", ".venv/bin/python -c \"from tools.mcp_tools import ai_self_discovery_assistant; import asyncio; asyncio.run(ai_self_discovery_assistant({'discovery_type': 'capabilities'}))\"")
     
     # Render both tables side by side
     columns = Columns([status_table, commands_table], equal=True, expand=True)
