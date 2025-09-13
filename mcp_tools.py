@@ -3938,7 +3938,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
         # Get current MCP tool registry - try multiple sources
         available_tools = []
 
-        # Try to discover tools using the same method as discover_mcp_tools.py
+        # Try to discover tools using the same method as discover_tools.py
         try:
             # Get all functions that are MCP tool handlers (test functions and main tools)
             import inspect
