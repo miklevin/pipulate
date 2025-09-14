@@ -26,7 +26,7 @@ Notebooks/*
 __pycache__/
 whitelabel.txt
 botify_token.txt
-client/
+client_work/
 config.json
 data/
 downloads/*
