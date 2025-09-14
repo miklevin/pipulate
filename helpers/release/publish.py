@@ -436,7 +436,7 @@ alwaysApply: true
 
 def detect_trifecta_changes():
     """Check if the Botify Trifecta template has been modified in git."""
-    trifecta_file = "plugins/400_botify_trifecta.py"
+    trifecta_file = "apps/400_botify_trifecta.py"
     
     try:
         # Check if file is in staged changes

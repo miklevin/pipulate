@@ -1908,7 +1908,7 @@ async function executeCleanMcpToolCallStep(step) {
 - server.py (Main application)
 - mcp_tools.py (MCP tool definitions)
 - cli.py (Command line interface)
-- plugins/ (41 plugin files)
+- apps/ (41 plugin files)
 - /assets/ (Web assets)
 - browser_automation/ (Automation scripts)
 

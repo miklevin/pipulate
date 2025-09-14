@@ -1,4 +1,4 @@
-# File: plugins/830_simon_mcp.py
+# File: apps/830_simon_mcp.py
 import asyncio
 from datetime import datetime
 import json

@@ -52,7 +52,7 @@ PLUGINS_DIR = PROJECT_ROOT / "plugins"
 # Works from any location - script automatically finds Pipulate project root:
 python create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
 python create_workflow.py 035_kungfu_workflow KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"  # .py extension optional
-python create_workflow.py plugins/035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"  # plugins/ prefix optional
+python create_workflow.py apps/035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"  # apps/ prefix optional
 
 # Can be run from project root:
 python helpers/workflow/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
@@ -168,7 +168,7 @@ def main():
 Examples:
   python create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
   python create_workflow.py 035_kungfu_workflow KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
-  python create_workflow.py plugins/035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
+  python create_workflow.py apps/035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
   
   # Using different templates:
   python create_workflow.py 036_botify_custom.py MyBotify my_botify "My Botify Flow" "Welcome" "Training" --template trifecta
@@ -211,10 +211,10 @@ Examples:
     
     # Handle various input formats:
     # 1. Just filename: "035_kungfu_workflow.py"
-    # 2. With plugins/ prefix: "plugins/035_kungfu_workflow.py"  
-    # 3. Full path: "/some/path/plugins/035_kungfu_workflow.py"
-    if target_filename.startswith('plugins/'):
-        target_filename = target_filename[8:]  # Remove 'plugins/' prefix
+    # 2. With apps/ prefix: "apps/035_kungfu_workflow.py"  
+    # 3. Full path: "/some/path/apps/035_kungfu_workflow.py"
+    if target_filename.startswith('apps/'):
+        target_filename = target_filename[8:]  # Remove 'apps/' prefix
     elif '/' in target_filename:
         # Extract just the filename from any path
         target_filename = Path(target_filename).name
@@ -299,8 +299,8 @@ Examples:
                  print(f"WARNING: Docstring for '{ORIGINAL_CLASS_NAME_IDENTIFIER} Workflow' not found or not replaced.")
             
             # Replace file header comment
-            header_pattern = r'^# File: plugins/[^.]+\.py'
-            new_header = f'# File: plugins/{target_filename}'
+            header_pattern = r'^# File: apps/[^.]+\.py'
+            new_header = f'# File: apps/{target_filename}'
             content, header_count = re.subn(header_pattern, new_header, content, count=1, flags=re.MULTILINE)
             if header_count == 0:
                 print(f"WARNING: File header comment not found or not replaced.")

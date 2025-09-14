@@ -1,4 +1,4 @@
-# File: plugins/130_content_gap_analysis.py
+# File: apps/130_content_gap_analysis.py
 import asyncio
 from datetime import datetime
 from fasthtml.common import * # type: ignore
