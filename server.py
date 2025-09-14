@@ -4662,7 +4662,7 @@ def create_nav_menu():
             placeholder='Search plugins (Ctrl+K)',
             cls='nav-search nav-search-input',
             id='nav-plugin-search',
-            hx_post='/search-plugins',
+            hx_post='/search-apps',
             hx_target='#search-results-dropdown',
             hx_trigger='input changed delay:300ms, keyup[key==\'Enter\'], focus',
             hx_swap='innerHTML',
@@ -5751,7 +5751,7 @@ async def sync_theme(request):
     return HTMLResponse('OK')
 
 
-@rt('/search-plugins', methods=['POST'])
+@rt('/search-apps', methods=['POST'])
 async def search_plugins(request):
     """Search plugins based on user input - Carson Gross style active search."""
     try:
