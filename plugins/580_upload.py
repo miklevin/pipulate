@@ -8,7 +8,7 @@ import urllib.parse
 
 from fasthtml.common import *
 from loguru import logger
-from modules.crud import Step, VALID_ROLES
+from imports.crud import Step, VALID_ROLES
 from starlette.responses import HTMLResponse
 
 PLUGIN_PROJECT_ROOT = Path(__file__).resolve().parents[1]

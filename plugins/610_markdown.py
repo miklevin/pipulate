@@ -5,7 +5,7 @@ from datetime import datetime
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from imports.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Components']
 '\nPipulate Markdown MarkedJS Widget Workflow\nA workflow for demonstrating the Markdown MarkedJS rendering widget.\n'

@@ -30,7 +30,7 @@ import time
 # Add current directory to path for imports
 sys.path.append('.')
 from server import browser_scrape_page, browser_interact_with_current_page
-from modules.dom_processing.enhanced_dom_processor import EnhancedDOMProcessor
+from imports.dom_processing.enhanced_dom_processor import EnhancedDOMProcessor
 
 
 class GoogleSearchAutomationDemo:

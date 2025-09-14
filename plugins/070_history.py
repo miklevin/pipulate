@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 # Import the append-only conversation system
 try:
-    from modules.append_only_conversation import (
+    from imports.append_only_conversation import (
         get_conversation_history, 
         get_conversation_stats,
         archive_message_by_id

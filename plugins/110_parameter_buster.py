@@ -18,7 +18,7 @@ import httpx
 import pandas as pd
 from fasthtml.common import *
 from loguru import logger
-from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from imports.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Botify Employee']
 TOKEN_FILE = 'botify_token.txt'

@@ -6,7 +6,7 @@ import pandas as pd
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from imports.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Components']
 '\nPipulate Pandas Table Widget Workflow\nA workflow for demonstrating the Pandas DataFrame to HTML table rendering widget.\n'
