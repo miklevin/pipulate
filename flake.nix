@@ -134,7 +134,7 @@
         ]);
 
         # Define notebook paths for the copy-on-first-run solution
-        originalNotebook = "helpers/botify/hello.ipynb";
+        originalNotebook = "helpers/botify/hello_world_git_managed.ipynb";
         localNotebook = "hello_world.ipynb";
 
         # This script sets up our Python environment and project
