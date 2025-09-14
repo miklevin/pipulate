@@ -4624,14 +4624,14 @@ async def test_environment_access() -> dict:
         import os
         current_dir = os.getcwd()
         server_exists = os.path.exists("server.py")
-        plugins_exists = os.path.exists("apps/")
+        apps_exists = os.path.exists("apps/")
 
         return {
             "success": True,
             "current_directory": current_dir,
             "server_py_exists": server_exists,
-            "plugins_directory_exists": plugins_exists,
-            "environment_ready": server_exists and plugins_exists
+            "apps_directory_exists": apps_exists,
+            "environment_ready": server_exists and apps_exists
         }
     except Exception as e:
         return {"success": False, "error": str(e)}

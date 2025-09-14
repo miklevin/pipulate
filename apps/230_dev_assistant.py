@@ -106,7 +106,7 @@ class DevAssistant:
             (f'/{internal_route_prefix}/init', self.init, ['POST']),
             (f'/{internal_route_prefix}/revert', self.handle_revert, ['POST']),
             (f'/{internal_route_prefix}/unfinalize', self.unfinalize, ['POST']),
-            (f'/{internal_route_prefix}/search_plugins_step01', self.search_plugins_step01, ['POST'])
+            (f'/{internal_route_prefix}/search_apps_step01', self.search_apps_step01, ['POST'])
         ]
 
         for step_obj in self.steps:
@@ -1505,17 +1505,17 @@ class DevAssistant:
 
         return analysis
 
-    async def search_plugins_step01(self, request):
+    async def search_apps_step01(self, request):
         """Search plugins for step 1 based on user input - Carson Gross style active search."""
         try:
             form = await request.form()
             search_term = form.get('plugin_search', '').strip().lower()
             
             # Get list of plugin files
-            plugins_dir = Path("apps")
+            apps_dir = Path("apps")
             plugin_files = []
-            if plugins_dir.exists():
-                plugin_files = [f.name for f in plugins_dir.glob("*.py") if not f.name.startswith("__")]
+            if apps_dir.exists():
+                plugin_files = [f.name for f in apps_dir.glob("*.py") if not f.name.startswith("__")]
             
             # Filter plugins based on search term
             if search_term:
@@ -1583,7 +1583,7 @@ class DevAssistant:
             return HTMLResponse(result_html)
             
         except Exception as e:
-            logger.error(f"Error in search_plugins_step01: {e}")
+            logger.error(f"Error in search_apps_step01: {e}")
             return HTMLResponse(f"""
             <div style="padding: 1rem; color: var(--pico-form-element-invalid-active-border-color);">
                 Search error: {str(e)}
@@ -1798,10 +1798,10 @@ class DevAssistant:
         step_id = 'step_01'
         
         # Get list of plugin files
-        plugins_dir = Path("apps")
+        apps_dir = Path("apps")
         plugin_files = []
-        if plugins_dir.exists():
-            plugin_files = [f.name for f in plugins_dir.glob("*.py") if not f.name.startswith("__")]
+        if apps_dir.exists():
+            plugin_files = [f.name for f in apps_dir.glob("*.py") if not f.name.startswith("__")]
 
         # Create search results dropdown 
         search_results_dropdown = Div(id=f'plugin-search-results-{step_id}', 
@@ -1820,7 +1820,7 @@ class DevAssistant:
                             placeholder='Search plugins by name...',
                             id=f'plugin-search-input-{step_id}',
                             style='width: 100%; border-radius: 8px; margin-bottom: 1rem;',
-                            hx_post=f'/{app_name}/search_plugins_step01',
+                            hx_post=f'/{app_name}/search_apps_step01',
                             hx_target=f'#plugin-search-results-{step_id}',
                             hx_trigger='input changed delay:300ms, focus',
                             hx_swap='innerHTML'

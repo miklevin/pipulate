@@ -25,7 +25,7 @@ class ASTWorkflowReconstructor:
     
     def __init__(self, base_dir: str = "/home/mike/repos/pipulate"):
         self.base_dir = Path(base_dir)
-        self.plugins_dir = self.base_dir / "apps"
+        self.apps_dir = self.base_dir / "apps"
         
         # Define template methods that should NOT be extracted as Chunk 2
         self.template_methods = {
@@ -463,9 +463,9 @@ class ASTWorkflowReconstructor:
         """Main reconstruction method using AST."""
         try:
             # Build file paths
-            template_path = self.plugins_dir / f"{template_name}.py"
-            source_path = self.plugins_dir / f"{source_name}.py" 
-            target_path = self.plugins_dir / f"{target_name}.py"
+            template_path = self.apps_dir / f"{template_name}.py"
+            source_path = self.apps_dir / f"{source_name}.py" 
+            target_path = self.apps_dir / f"{target_name}.py"
             
             print(f"🔧 AST Workflow Reconstruction")
             print(f"  📁 Template: {template_path}")
@@ -575,7 +575,7 @@ class ASTWorkflowReconstructor:
                                    suffix: str) -> bool:
         """Create a variant workflow with suffix applied to names."""
         # Extract base names from existing file
-        existing_path = self.plugins_dir / f"{existing_name}.py"
+        existing_path = self.apps_dir / f"{existing_name}.py"
         source_tree = self.parse_file(existing_path)
         source_attrs = self.extract_class_attributes(source_tree)
         
@@ -946,7 +946,7 @@ Components are transplanted atomically from "Old Workflows" (sources) into "Upda
         # Extract class name from source if not provided
         new_class_name = args.new_class_name
         if not new_class_name:
-            source_tree = reconstructor.parse_file(reconstructor.plugins_dir / f"{args.source}.py")
+            source_tree = reconstructor.parse_file(reconstructor.apps_dir / f"{args.source}.py")
             source_class_node = reconstructor.find_class_node(source_tree)
             if source_class_node:
                 new_class_name = source_class_node.name
