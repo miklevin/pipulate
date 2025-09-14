@@ -4084,7 +4084,7 @@ def discover_plugin_files():
             original_name = base_name
             logger.debug(f'Module name: {clean_name} (from {original_name})')
             try:
-                module = importlib.import_module(f'plugins.{original_name}')
+                module = importlib.import_module(f'apps.{original_name}')
                 plugin_modules[clean_name] = module
                 module._original_filename = original_name
                 logger.debug(f'Successfully imported module: {clean_name} from {original_name}')
@@ -4102,7 +4102,7 @@ def find_plugin_classes(plugin_modules, discovered_modules):
             if isinstance(module_or_name, str):
                 module_name = module_or_name
                 original_name = getattr(discovered_modules[module_name], '_original_filename', module_name)
-                module = importlib.import_module(f'plugins.{original_name}')
+                module = importlib.import_module(f'apps.{original_name}')
             else:
                 module = module_or_name
                 module_name = module.__name__.split('.')[-1]
@@ -4185,7 +4185,7 @@ for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in plugin_instances:
         try:
             original_name = getattr(discovered_modules[module_name], '_original_filename', module_name)
-            module = importlib.import_module(f'plugins.{original_name}')
+            module = importlib.import_module(f'apps.{original_name}')
             workflow_class = getattr(module, class_name)
             if not hasattr(workflow_class, 'landing'):
                 logger.warning(f"FINDER_TOKEN: PLUGIN_REGISTRATION_FAILURE - Plugin class {module_name}.{class_name} missing required 'landing' method - skipping")
