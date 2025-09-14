@@ -816,7 +816,7 @@ class WorkflowGenesis:
                 display_filename = target_filename
 
             # Create filesystem button to open plugins directory
-            plugins_dir = os.path.join(os.getcwd(), 'plugins')
+            plugins_dir = os.path.join(os.getcwd(), 'apps')
 
             open_plugins_folder_ui = A(
                 "📂 View Plugins Folder",
@@ -1009,7 +1009,7 @@ class WorkflowGenesis:
             clear_critical_operation_flag()
 
         # Create filesystem button to open plugins directory
-        plugins_dir = os.path.join(os.getcwd(), 'plugins')
+        plugins_dir = os.path.join(os.getcwd(), 'apps')
 
         open_plugins_folder_ui = A(
             "📂 View Plugins Folder",

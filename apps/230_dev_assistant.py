@@ -1512,7 +1512,7 @@ class DevAssistant:
             search_term = form.get('plugin_search', '').strip().lower()
             
             # Get list of plugin files
-            plugins_dir = Path("plugins")
+            plugins_dir = Path("apps")
             plugin_files = []
             if plugins_dir.exists():
                 plugin_files = [f.name for f in plugins_dir.glob("*.py") if not f.name.startswith("__")]
@@ -1593,7 +1593,7 @@ class DevAssistant:
     def generate_create_workflow_commands(self, analysis_results):
         """Generate create_workflow.py commands for creating a new version of the analyzed plugin."""
         filename = analysis_results.get('filename', 'unknown.py')
-        file_path = Path("plugins") / filename
+        file_path = Path("apps") / filename
         
         if not file_path.exists():
             return [P('Plugin file not found for command generation.', style=f'color: {self.UI_CONSTANTS["COLORS"]["ERROR_RED"]};')]
@@ -1798,7 +1798,7 @@ class DevAssistant:
         step_id = 'step_01'
         
         # Get list of plugin files
-        plugins_dir = Path("plugins")
+        plugins_dir = Path("apps")
         plugin_files = []
         if plugins_dir.exists():
             plugin_files = [f.name for f in plugins_dir.glob("*.py") if not f.name.startswith("__")]
@@ -1887,7 +1887,7 @@ class DevAssistant:
             return P('Please select a plugin file to analyze.', style='color: red;')
 
         # Analyze the selected plugin
-        file_path = Path("plugins") / selected_file
+        file_path = Path("apps") / selected_file
         analysis = self.analyze_plugin_file(file_path)
 
         # Store analysis in a simple session variable for step_02 to access

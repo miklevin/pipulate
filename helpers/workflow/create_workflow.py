@@ -15,7 +15,7 @@ def find_pipulate_root():
     # Look for Pipulate project markers
     while current_dir != current_dir.parent:  # Stop at filesystem root
         # Check for key Pipulate files/directories
-        if (current_dir / "plugins").is_dir() and (current_dir / "server.py").is_file():
+        if (current_dir / "apps").is_dir() and (current_dir / "server.py").is_file():
             return current_dir
         current_dir = current_dir.parent
     
@@ -27,7 +27,7 @@ def find_pipulate_root():
     ]
     
     for root in possible_roots:
-        if root.exists() and (root / "plugins").is_dir() and (root / "server.py").is_file():
+        if root.exists() and (root / "apps").is_dir() and (root / "server.py").is_file():
             return root
     
     raise FileNotFoundError(
@@ -39,13 +39,13 @@ def find_pipulate_root():
 PROJECT_ROOT = find_pipulate_root()
 # Template mapping - allows selection of different starting templates
 TEMPLATE_MAP = {
-    "blank": PROJECT_ROOT / "plugins" / "300_blank_placeholder.py",
-    "hello": PROJECT_ROOT / "plugins" / "500_hello_workflow.py",
-    "trifecta": PROJECT_ROOT / "plugins" / "400_botify_trifecta.py",
+    "blank": PROJECT_ROOT / "apps" / "300_blank_placeholder.py",
+    "hello": PROJECT_ROOT / "apps" / "500_hello_workflow.py",
+    "trifecta": PROJECT_ROOT / "apps" / "400_botify_trifecta.py",
     # Future templates can be added here
-    # "my_custom_template": PROJECT_ROOT / "plugins" / "0XX_my_custom_template.py",
+    # "my_custom_template": PROJECT_ROOT / "apps" / "0XX_my_custom_template.py",
 }
-PLUGINS_DIR = PROJECT_ROOT / "plugins"
+PLUGINS_DIR = PROJECT_ROOT / "apps"
 
 # EXAMPLE USAGE (DO NOT DELETE!!!) USER CAN COPY AND PASTE THIS INTO TERMINAL
 """
