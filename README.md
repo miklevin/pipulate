@@ -15,7 +15,7 @@
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 
 # 2. Close and reopen your terminal, then:
-curl -L https://pipulate.com/install.sh | bash
+curl -L https://pipulate.com/assets/installer/install.sh | bash
 
 # 3. Launch it
 cd ~/pipulate && nix develop
@@ -113,7 +113,7 @@ Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-
     │      ELECTRON APP       │        │     PIPULATE SETUP      │
     ├─────────────────────────┤        ├─────────────────────────┤
     │ ┌─────┐ ┌─────┐ ┌─────┐ │        │ ┌─────────────────────┐ │
-    │ │.exe │ │.dmg │ │.deb │ │        │ │     install.sh      │ │
+    │ │.exe │ │.dmg │ │.deb │ │        │ │     assets/installer/install.sh      │ │
     │ └─────┘ └─────┘ └─────┘ │        │ │ (Works on ALL OSes) │ │
     │   Per-OS Installers     │        │ └─────────────────────┘ │
     └───────────┬─────────────┘        └───────────┬─────────────┘
@@ -307,7 +307,7 @@ We keep lenses minimal, their material either thoroughly pre-trained into the mo
 
 ```yaml
 HARDWARE:
-  install.sh: Published on Pipulate.com to initiate magic cookie install 
+  assets/installer/install.sh: Published on Pipulate.com to initiate magic cookie install 
   flake.nix: Nix IaC creating a normalized Linux subsystem on any host OS
 PROTOCOL:
   http: Uvicorn fast Asynchronous Server Gateway Interface (ASGI) web server
@@ -480,10 +480,10 @@ Now, run the universal install script. You can give your project a custom name, 
 
 ```bash
 # To install with a custom name like "Botifython"
-curl -L https://pipulate.com/install.sh | bash -s Botifython
+curl -L https://pipulate.com/assets/installer/install.sh | bash -s Botifython
 
 # Or, to install with the default name "pipulate"
-curl -L https://pipulate.com/install.sh | bash
+curl -L https://pipulate.com/assets/installer/install.sh | bash
 ```
 
 **Step 3: Launch Pipulate**
@@ -516,7 +516,7 @@ Things sometimes go wrong. This is how you do a full Pipulate reset. This will a
 
 ```bash
 rm -rf ~/Botifython
-curl -L https://pipulate.com/install.sh | bash -s Botifython
+curl -L https://pipulate.com/assets/installer/install.sh | bash -s Botifython
 cd ~/Botifython
 nix develop
 ```
@@ -588,9 +588,9 @@ These few commands:
 Here's what happens behind the scenes during the "magic cookie" installation:
 
 ```
-User runs install.sh (via curl)           Nix Flake Activation & Transformation
+User runs assets/installer/install.sh (via curl)           Nix Flake Activation & Transformation
 ┌──────────────────────────────┐         ┌────────────────────────────────────────────┐
-│ 1. Download install.sh       │         │ 5. User runs 'nix develop'                 │
+│ 1. Download assets/installer/install.sh       │         │ 5. User runs 'nix develop'                 │
 │ 2. Download ZIP from GitHub  │         │ 6. Flake detects non-git directory         │
 │ 3. Extract ZIP to ~/AppName  │         │ 7. Flake clones repo to temp dir           │
 │ 4. Download ROT13 SSH key    │         │ 8. Preserves whitelabel.txt, .ssh, .venv     │
@@ -1083,7 +1083,7 @@ This structure enables AI assistants to programmatically interact with all UI co
     ├── vulture_whitelist.py       # Code analysis whitelist for unused code detection
     ├── flake.nix                  # Infrastructure as Code & all system-versions for AI
     ├── LICENSE                    # It's MIT
-    ├── install.sh                 # "Magic cookie" installation script (curl | sh)
+    ├── assets/installer/install.sh                 # "Magic cookie" installation script (curl | sh)
     ├── mcp_tools.py               # MCP protocol tools - the AI assistant interface
     ├── hello_world.ipynb  # Editable (non-auto-updating) copy of hello.ipynb
     ├── README.md                  # This file

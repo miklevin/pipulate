@@ -84,7 +84,7 @@ pipulate/__init__.py (__version__)
          │
          ├─→ pyproject.toml
          ├─→ flake.nix  
-         ├─→ ../Pipulate.com/install.sh
+         ├─→ ../Pipulate.com/assets/installer/install.sh
          └─→ Runtime displays
 ```
 
@@ -92,7 +92,7 @@ pipulate/__init__.py (__version__)
 
 1. **pyproject.toml**: Python package version
 2. **flake.nix**: Nix environment version (preserves subtitle)
-3. **install.sh**: Installer script version
+3. **assets/installer/install.sh**: Installer script version
 4. **Runtime displays**: Server startup banners and UI
 
 ### Manual Version Sync
