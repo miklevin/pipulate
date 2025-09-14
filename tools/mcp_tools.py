@@ -516,6 +516,7 @@ async def builtin_get_cat_fact(params: dict) -> dict:
         }
 
 
+@auto_tool
 async def pipeline_state_inspector(params: dict) -> dict:
     """
     MCP Tool: PIPELINE STATE INSPECTOR - The debugging game changer.
@@ -870,7 +871,6 @@ def register_all_mcp_tools():
 
     # Core tools
     register_mcp_tool("get_cat_fact", builtin_get_cat_fact)
-    register_mcp_tool("pipeline_state_inspector", pipeline_state_inspector)
     register_mcp_tool("get_user_session_state", get_user_session_state)
 
     # Botify API tools
