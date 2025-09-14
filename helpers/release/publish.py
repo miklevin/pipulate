@@ -488,7 +488,7 @@ def rebuild_trifecta_derivatives():
 def parse_trifecta_rebuild_stats(output):
     """Parse Trifecta rebuild statistics from output."""
     stats = {
-        'plugins_rebuilt': 0,
+        'apps_rebuilt': 0,
         'parameter_buster_methods': 0,
         'link_graph_methods': 0,
         'success_rate': 0,
@@ -500,11 +500,11 @@ def parse_trifecta_rebuild_stats(output):
         
         # Extract statistics
         if "Successfully processed: 2/2 plugins" in output:
-            stats['plugins_rebuilt'] = 2
+            stats['apps_rebuilt'] = 2
             stats['success_rate'] = 100
             stats['validation_passed'] = True
         elif "Successfully processed: 1/2 plugins" in output:
-            stats['plugins_rebuilt'] = 1
+            stats['apps_rebuilt'] = 1
             stats['success_rate'] = 50
         
         # Extract method counts
@@ -531,7 +531,7 @@ def display_trifecta_rebuild_stats(stats):
         # Fallback to simple text display
         if stats:
             print("\n🏗️ TRIFECTA REBUILD STATISTICS:")
-            print(f"   🔨 Plugins rebuilt: {stats['plugins_rebuilt']}/2")
+            print(f"   🔨 Plugins rebuilt: {stats['apps_rebuilt']}/2")
             print(f"   📦 Parameter Buster methods: {stats['parameter_buster_methods']}")
             print(f"   🌐 Link Graph methods: {stats['link_graph_methods']}")
             print(f"   ✅ Success rate: {stats['success_rate']}%")
@@ -561,7 +561,7 @@ def display_trifecta_rebuild_stats(stats):
     
     table.add_row(
         "🔨 Plugins Rebuilt",
-        f"{stats['plugins_rebuilt']}/2",
+        f"{stats['apps_rebuilt']}/2",
         Text(f"{stats['success_rate']}%", style=f"bold {success_color}")
     )
     
@@ -818,7 +818,7 @@ def display_beautiful_summary(commit_message, ai_generated=False, version=None, 
         if published:
             print(f"🚀 Published to PyPI: ✅")
         if trifecta_rebuilt and trifecta_stats:
-            print(f"🏗️ Trifecta Derivatives Rebuilt: {trifecta_stats.get('plugins_rebuilt', 0)}/2 plugins")
+            print(f"🏗️ Trifecta Derivatives Rebuilt: {trifecta_stats.get('apps_rebuilt', 0)}/2 plugins")
         print("="*60)
         return
     
@@ -877,7 +877,7 @@ def display_beautiful_summary(commit_message, ai_generated=False, version=None, 
         rebuild_status = "✅ Perfect" if trifecta_stats.get('success_rate', 0) == 100 else "⚠️ Partial"
         table.add_row(
             "🏗️ Trifecta Derivatives",
-            f"{trifecta_stats.get('plugins_rebuilt', 0)}/2 plugins",
+            f"{trifecta_stats.get('apps_rebuilt', 0)}/2 plugins",
             rebuild_status
         )
     
