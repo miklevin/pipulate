@@ -3683,8 +3683,8 @@ logger.info('🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized')
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], allow_credentials=True)
 logger.info('🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app')
 
-if not os.path.exists('plugins'):
-    os.makedirs('plugins')
+if not os.path.exists('apps'):
+    os.makedirs('apps')
     logger.info('📁 FINDER_TOKEN: PLUGINS_DIR - Created plugins directory')
 else:
     logger.info('📁 FINDER_TOKEN: PLUGINS_DIR - Plugins directory exists')
@@ -4048,7 +4048,7 @@ async def synchronize_roles_to_db():
 def discover_plugin_files():
     """Discover and import all Python files in the plugins directory.
 
-    This function scans the 'plugins' directory and imports each .py file
+    This function scans the 'apps' directory and imports each .py file
     as a module. It skips files:
     - Starting with '__' (like __init__.py)
     - Starting with 'xx_' or 'XX_' (indicating experimental/in-progress plugins)
@@ -4058,7 +4058,7 @@ def discover_plugin_files():
         dict: Mapping of module names to imported module objects
     """
     plugin_modules = {}
-    plugins_dir = os.path.join(os.path.dirname(__file__), 'plugins')
+    plugins_dir = os.path.join(os.path.dirname(__file__), 'apps')
     logger.debug(f'Looking for plugins in: {plugins_dir}')
     if not os.path.isdir(plugins_dir):
         logger.warning(f'Plugins directory not found: {plugins_dir}')
@@ -4134,7 +4134,7 @@ def find_plugin_classes(plugin_modules, discovered_modules):
 
 # 🎨 PLUGINS BANNER - Right before plugin discovery begins (only when running as main script)
 if __name__ == '__main__':
-    figlet_banner("plugins", "Pipulate Workflows and CRUD Apps", font='standard', color='orange3')
+    figlet_banner("apps", "Pipulate Workflows and CRUD Apps", font='standard', color='orange3')
 
 plugin_instances = {}
 discovered_modules = discover_plugin_files()
@@ -7166,7 +7166,7 @@ async def prepare_local_llm_context():
             },
             "key_directories": {
                 "training": "AI training materials and guides",
-                "plugins": "Workflow applications and business logic",
+                "apps": "Workflow applications and business logic",
                 "helpers": "Utility scripts and API integrations",
                 "logs": "Server logs with FINDER_TOKEN patterns"
             },

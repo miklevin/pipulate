@@ -25,7 +25,7 @@ class ASTWorkflowReconstructor:
     
     def __init__(self, base_dir: str = "/home/mike/repos/pipulate"):
         self.base_dir = Path(base_dir)
-        self.plugins_dir = self.base_dir / "plugins"
+        self.plugins_dir = self.base_dir / "apps"
         
         # Define template methods that should NOT be extracted as Chunk 2
         self.template_methods = {
