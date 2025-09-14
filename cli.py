@@ -106,7 +106,7 @@ def discover_tools(show_all=False, tool_name=None):
         
         elif show_all:
             # Full view - run complete discovery and show everything
-            from discover_tools import discover_tools as run_discovery
+            from AI_RUNME import discover_tools as run_discovery
             results = run_discovery()
             
             console.print(f"📊 [bold green]Complete Tool Discovery Results[/bold green]")
@@ -144,7 +144,7 @@ def discover_tools(show_all=False, tool_name=None):
             ))
         
     except ImportError:
-        console.print("❌ [bold red]Error:[/bold red] discover_tools.py not found in current directory")
+        console.print("❌ [bold red]Error:[/bold red] AI_RUNME.py not found in current directory")
         console.print("Make sure you're running this from the pipulate directory.")
         sys.exit(1)
     except Exception as e:
