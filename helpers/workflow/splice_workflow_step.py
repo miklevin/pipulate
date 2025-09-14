@@ -40,7 +40,7 @@ def find_pipulate_root():
     # Look for Pipulate project markers
     while current_dir != current_dir.parent:  # Stop at filesystem root
         # Check for key Pipulate files/directories
-        if (current_dir / "plugins").is_dir() and (current_dir / "server.py").is_file():
+        if (current_dir / "apps").is_dir() and (current_dir / "server.py").is_file():
             return current_dir
         current_dir = current_dir.parent
     
@@ -52,7 +52,7 @@ def find_pipulate_root():
     ]
     
     for root in possible_roots:
-        if root.exists() and (root / "plugins").is_dir() and (root / "server.py").is_file():
+        if root.exists() and (root / "apps").is_dir() and (root / "server.py").is_file():
             return root
     
     raise FileNotFoundError(
@@ -62,8 +62,8 @@ def find_pipulate_root():
 
 # Define paths - now dynamically found
 PROJECT_ROOT = find_pipulate_root()
-TEMPLATE_FILE_PATH = PROJECT_ROOT / "plugins" / "300_blank_placeholder.py"
-PLUGINS_DIR = PROJECT_ROOT / "plugins"
+TEMPLATE_FILE_PATH = PROJECT_ROOT / "apps" / "300_blank_placeholder.py"
+PLUGINS_DIR = PROJECT_ROOT / "apps"
 
 # Markers to find insertion points
 STEPS_LIST_MARKER = "# --- STEPS_LIST_INSERTION_POINT ---"

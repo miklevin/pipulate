@@ -494,7 +494,7 @@ class BrowserAutomation:
             chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
             chrome_options.add_experimental_option('useAutomationExtension', False)
             driver = webdriver.Chrome(options=chrome_options)
-            driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {'source': "\n                    Object.defineProperty(navigator, 'webdriver', {\n                        get: () => undefined\n                    });\n                    Object.defineProperty(navigator, 'plugins', {\n                        get: () => [1, 2, 3, 4, 5]\n                    });\n                    Object.defineProperty(navigator, 'languages', {\n                        get: () => ['en-US', 'en']\n                    });\n                "})
+            driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {'source': "\n                    Object.defineProperty(navigator, 'webdriver', {\n                        get: () => undefined\n                    });\n                    Object.defineProperty(navigator, 'apps', {\n                        get: () => [1, 2, 3, 4, 5]\n                    });\n                    Object.defineProperty(navigator, 'languages', {\n                        get: () => ['en-US', 'en']\n                    });\n                "})
             try:
                 driver.get('https://www.google.com')
                 WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, 'q')))
@@ -576,7 +576,7 @@ class BrowserAutomation:
             chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
             chrome_options.add_experimental_option('useAutomationExtension', False)
             driver = webdriver.Chrome(options=chrome_options)
-            driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {'source': "\n                    Object.defineProperty(navigator, 'webdriver', {\n                        get: () => undefined\n                    });\n                    Object.defineProperty(navigator, 'plugins', {\n                        get: () => [1, 2, 3, 4, 5]\n                    });\n                    Object.defineProperty(navigator, 'languages', {\n                        get: () => ['en-US', 'en']\n                    });\n                "})
+            driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {'source': "\n                    Object.defineProperty(navigator, 'webdriver', {\n                        get: () => undefined\n                    });\n                    Object.defineProperty(navigator, 'apps', {\n                        get: () => [1, 2, 3, 4, 5]\n                    });\n                    Object.defineProperty(navigator, 'languages', {\n                        get: () => ['en-US', 'en']\n                    });\n                "})
             try:
                 driver.get('https://www.google.com')
                 WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, 'q')))
