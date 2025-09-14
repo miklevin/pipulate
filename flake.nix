@@ -11,7 +11,7 @@
 # ==============================================================================
 # 
 # This flake is the second half of the "magic cookie" installation system.
-# It works together with the install.sh script (hosted at pipulate.com) to:
+# It works together with the assets/installer/install.sh script (hosted at pipulate.com) to:
 #
 # 1. Transform a non-git directory into a proper git repository
 # 2. Enable forever-forward git-pull auto-updates
@@ -24,9 +24,9 @@
 # - We want a simple one-line curl|sh installation that works everywhere
 #
 # The solution:
-# 1. install.sh downloads a ZIP archive (no git required)
-# 2. install.sh extracts the ZIP and adds a ROT13-encoded SSH key
-# 3. install.sh runs `nix develop` to activate this flake
+# 1. assets/installer/install.sh downloads a ZIP archive (no git required)
+# 2. assets/installer/install.sh extracts the ZIP and adds a ROT13-encoded SSH key
+# 3. assets/installer/install.sh runs `nix develop` to activate this flake
 # 4. THIS FLAKE detects non-git directories and transforms them into git repos
 # 5. Auto-updates are enabled through git pulls in future nix develop sessions
 #
@@ -46,10 +46,10 @@
 # /home/mike/repos/pipulate/flake.nix
 #
 # This is different from the installer script which lives at:
-# /home/mike/repos/Pipulate.com/install.sh
+# /home/mike/repos/Pipulate.com/assets/installer/install.sh
 #
 # When a user runs:
-#   curl -L https://pipulate.com/install.sh | bash -s Botifython
+#   curl -L https://pipulate.com/assets/installer/install.sh | bash -s Botifython
 # The installer downloads this flake as part of the ZIP archive.
 
 # Most modern development is done on Linux, but Macs are Unix. If you think Homebrew and Docker

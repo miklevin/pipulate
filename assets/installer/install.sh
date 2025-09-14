@@ -19,7 +19,7 @@
 # Nix flakes require a git repository to function properly. However, requiring users to have 
 # git pre-installed creates a dependency we want to avoid. So instead:
 #
-# 1. This install.sh script is distributed via curl (highly reliable across systems)
+# 1. This assets/installer/install.sh script is distributed via curl (highly reliable across systems)
 # 2. We download a zip of the repo (more reliable than git clone on diverse systems)
 # 3. We extract the zip and place a ROT13-encoded SSH key in the .ssh folder
 # 4. We run `nix develop` which activates the flake
@@ -41,10 +41,10 @@ if [ -z "${BASH_VERSION:-}" ]; then
     echo "   On Windows WSL and some Linux systems, 'sh' points to dash instead of bash."
     echo ""
     echo "   Please run the installer with bash explicitly:"
-    echo "   curl -L https://pipulate.com/install.sh | bash -s ${1:-pipulate}"
+    echo "   curl -L https://pipulate.com/assets/installer/install.sh | bash -s ${1:-pipulate}"
     echo ""
     echo "   Or if you have bash installed:"
-    echo "   curl -L https://pipulate.com/install.sh | bash -s ${1:-pipulate}"
+    echo "   curl -L https://pipulate.com/assets/installer/install.sh | bash -s ${1:-pipulate}"
     echo ""
     exit 1
 fi
@@ -119,7 +119,7 @@ if [ -d "${TARGET_DIR}" ]; then
   echo "   This prevents accidental overwrites of existing data."
   echo
   echo "   To resolve this, you can:"
-  echo "   1. Choose a different name: curl -sSL https://pipulate.com/install.sh | bash -s your-custom-name"
+  echo "   1. Choose a different name: curl -sSL https://pipulate.com/assets/installer/install.sh | bash -s your-custom-name"
   echo "   2. Remove the existing directory: rm -rf ${TARGET_DIR}"
   echo "   3. Rename the existing directory: mv ${TARGET_DIR} ${TARGET_DIR}.backup"
   echo
