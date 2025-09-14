@@ -1270,7 +1270,7 @@ def read_training(prompt_or_filename):
     if isinstance(prompt_or_filename, str) and prompt_or_filename.endswith('.md'):
         try:
             logger.debug(f'Loading prompt from training/{prompt_or_filename}')
-            with open(f'training/{prompt_or_filename}', 'r') as f:
+            with open(f'assets/prompts/{prompt_or_filename}', 'r') as f:
                 content = f.read()
                 logger.debug(f'Successfully loaded prompt: {content[:100]}...')
                 return content
