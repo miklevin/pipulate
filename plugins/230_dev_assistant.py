@@ -10,7 +10,7 @@ import re
 import json
 import os
 from starlette.responses import HTMLResponse
-from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from imports.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
 

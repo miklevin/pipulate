@@ -138,7 +138,7 @@ class AppendOnlyConversationSystem:
     def _create_backup(self, operation: str = "before_append"):
         """Create backup before any operation"""
         try:
-            from modules.conversation_backup_system import create_conversation_backup
+            from imports.conversation_backup_system import create_conversation_backup
             create_conversation_backup(operation)
         except Exception as e:
             logger.warning(f"💾 BACKUP WARNING: Could not create backup: {e}")
@@ -318,7 +318,7 @@ class AppendOnlyConversationSystem:
     def restore_from_backup(self, backup_date: str = None) -> int:
         """Restore conversation from backup"""
         try:
-            from modules.conversation_backup_system import restore_conversation_backup
+            from imports.conversation_backup_system import restore_conversation_backup
             
             # Clear current conversation
             self.clear_conversation(create_backup=True)
@@ -482,7 +482,7 @@ def get_conversation_stats_safe() -> Dict:
 # Migration function to switch to new system
 def migrate_to_append_only_system():
     """Migrate from JSON blob to append-only system"""
-    from modules.conversation_architecture_migration import ConversationArchitectureMigration
+    from imports.conversation_architecture_migration import ConversationArchitectureMigration
     
     migration = ConversationArchitectureMigration()
     result = migration.run_full_migration()

@@ -34,7 +34,7 @@ from loguru import logger
 
 # 🎯 Import the durable backup system
 try:
-    from modules.durable_backup_system import backup_manager
+    from imports.durable_backup_system import backup_manager
 except ImportError:
     backup_manager = None
     logger.warning("⚠️ Durable backup system not available")
@@ -526,7 +526,7 @@ async def check_ollama_availability():
 # from datetime import datetime
 # from fasthtml.common import *
 # from loguru import logger
-# from modules.crud import Step
+# from imports.crud import Step
 
 # 🛠️ USAGE PATTERN:
 # Instead of copying massive import blocks from complex plugins,
@@ -597,7 +597,7 @@ def with_workflow_context(func):
 #     return self.ctx.pip.run_all_cells(self.ctx.app_name, self.ctx.steps)
 
 # 🔧 UTILITY FUNCTIONS TO REDUCE FILE SIZES
-# Extracted from modules.crud patterns in large workflow files
+# Extracted from imports.crud patterns in large workflow files
 
 import os
 import time
@@ -605,7 +605,7 @@ from pathlib import Path
 from urllib.parse import quote, urlparse
 
 class WorkflowUtilities:
-    """Utility functions extracted from modules.crud workflow patterns.
+    """Utility functions extracted from imports.crud workflow patterns.
     
     Reduces large workflow file sizes by centralizing repetitive logic
     without breaking the atomic workflow concept.

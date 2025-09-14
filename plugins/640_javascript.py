@@ -7,7 +7,7 @@ from pathlib import Path
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from imports.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Components']
 '\nExecutable JavaScript Widget\n\nThis workflow demonstrates a widget that executes user-provided JavaScript code\nwithin a designated area. The widget allows users to input JavaScript code that\nwill be executed in the browser, with the ability to manipulate a target element\nand re-run the code as needed.\n\nKey Features:\n- Interactive JavaScript execution\n- Re-run capability\n- Safe code execution environment\n- Visual feedback\n'

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from fasthtml.common import *
 from loguru import logger
-from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from imports.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
