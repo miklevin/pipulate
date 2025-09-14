@@ -304,10 +304,10 @@ def is_demo_in_progress():
 
 
 def get_app_name(force_app_name=None):
-    """Get the name of the app from the app_name.txt file, or the parent directory name."""
+    """Get the name of the app from the whitelabel.txt file, or the parent directory name."""
     name = force_app_name
     if not name:
-        app_name_file = 'app_name.txt'
+        app_name_file = 'whitelabel.txt'
         if Path(app_name_file).exists():
             try:
                 name = Path(app_name_file).read_text().strip()

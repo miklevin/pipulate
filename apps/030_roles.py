@@ -281,9 +281,9 @@ class CrudUI(PluginIdentityManager):
         self.ensure_roles_initialized()
 
     def get_app_name(self):
-        """Get the app name from app_name.txt file."""
+        """Get the app name from whitelabel.txt file."""
         try:
-            app_name_path = os.path.join(os.path.dirname(__file__), "..", "app_name.txt")
+            app_name_path = os.path.join(os.path.dirname(__file__), "..", "whitelabel.txt")
             with open(app_name_path, 'r', encoding='utf-8') as f:
                 return f.read().strip()
         except Exception:

@@ -214,8 +214,8 @@ echo
 
 # Before the exec command, add:
 echo "Setting up app identity as '$CUSTOM_NAME'..."
-echo "$CUSTOM_NAME" > "${TARGET_DIR}/app_name.txt"
-chmod 644 "${TARGET_DIR}/app_name.txt"
+echo "$CUSTOM_NAME" > "${TARGET_DIR}/whitelabel.txt"
+chmod 644 "${TARGET_DIR}/whitelabel.txt"
 echo "✅ Application identity set."
 echo
 
