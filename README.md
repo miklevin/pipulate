@@ -593,7 +593,7 @@ User runs install.sh (via curl)           Nix Flake Activation & Transformation
 │ 1. Download install.sh       │         │ 5. User runs 'nix develop'                 │
 │ 2. Download ZIP from GitHub  │         │ 6. Flake detects non-git directory         │
 │ 3. Extract ZIP to ~/AppName  │         │ 7. Flake clones repo to temp dir           │
-│ 4. Download ROT13 SSH key    │         │ 8. Preserves app_name.txt, .ssh, .venv     │
+│ 4. Download ROT13 SSH key    │         │ 8. Preserves whitelabel.txt, .ssh, .venv     │
 │    to .ssh/rot               │         │ 9. Moves git repo into place               │
 └─────────────┬────────────────┘         │10. Sets up SSH key for git                 │
               │                          │11. Transforms into git repo                │

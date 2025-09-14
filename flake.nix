@@ -34,7 +34,7 @@
 # The flake now fully implements the "magic cookie" functionality:
 # - Detects non-git directories and transforms them into git repositories
 # - Preserves critical files during transformation:
-#   * app_name.txt (maintains app identity)
+#   * whitelabel.txt (maintains app identity)
 #   * .ssh directory (preserves credentials)
 #   * .venv directory (preserves virtual environment)
 # - Creates backups before transformation
@@ -155,18 +155,18 @@
           }
 
           # Create a fancy welcome message
-          if [ ! -f app_name.txt ]; then
+          if [ ! -f whitelabel.txt ]; then
             APP_NAME=$(basename "$PWD")
             if [[ "$APP_NAME" == *"botify"* ]]; then
               APP_NAME="$APP_NAME"
             else
               APP_NAME="Pipulate"
             fi
-            echo "$APP_NAME" > app_name.txt
+            echo "$APP_NAME" > whitelabel.txt
           fi
-          # MAGIC COOKIE COMPONENT: This section reads the app_name.txt that should be 
+          # MAGIC COOKIE COMPONENT: This section reads the whitelabel.txt that should be 
           # preserved if/when the directory is transformed into a git repo
-          APP_NAME=$(cat app_name.txt)
+          APP_NAME=$(cat whitelabel.txt)
           PROPER_APP_NAME=$(echo "$APP_NAME" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
           figlet "$PROPER_APP_NAME"
           echo "Version: ${version}"
@@ -472,7 +472,7 @@
             echo "Creating temporary clone in $TEMP_DIR..."
             if git clone --depth=1 https://github.com/miklevin/pipulate.git "$TEMP_DIR"; then
               echo "Preserving app identity and credentials..."
-              if [ -f app_name.txt ]; then cp app_name.txt "$TEMP_DIR/"; fi
+              if [ -f whitelabel.txt ]; then cp whitelabel.txt "$TEMP_DIR/"; fi
               if [ -d .ssh ]; then
                 mkdir -p "$TEMP_DIR/.ssh"
                 cp -r .ssh/* "$TEMP_DIR/.ssh/"
