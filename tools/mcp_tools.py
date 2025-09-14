@@ -2822,7 +2822,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
 
         # === AGGRESSIVE URL VALIDATION BEFORE BROWSER OPENING ===
         # Map plugin filename to app name and construct URL
-        plugin_name = plugin_filename.replace('plugins/', '').replace('.py', '')
+        plugin_name = plugin_filename.replace('apps/', '').replace('.py', '')
         plugin_to_app_mapping = {
             '010_introduction': 'introduction',
             '580_upload': 'file_upload_widget',
@@ -3047,7 +3047,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         try:
             # Step 1: Navigate to the specific plugin requested
             # Extract plugin name from filename and construct URL
-            plugin_name = plugin_filename.replace('plugins/', '').replace('.py', '')
+            plugin_name = plugin_filename.replace('apps/', '').replace('.py', '')
 
             # Map plugin filename to app name (this is the key fix!)
             plugin_to_app_mapping = {
@@ -4624,7 +4624,7 @@ async def test_environment_access() -> dict:
         import os
         current_dir = os.getcwd()
         server_exists = os.path.exists("server.py")
-        plugins_exists = os.path.exists("plugins/")
+        plugins_exists = os.path.exists("apps/")
 
         return {
             "success": True,

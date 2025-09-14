@@ -93,7 +93,7 @@ python helpers/workflow/splice_workflow_step.py 035_my_workflow.py --position to
 
 # Works with flexible filename handling
 python helpers/workflow/splice_workflow_step.py 035_my_workflow    # .py optional
-python helpers/workflow/splice_workflow_step.py plugins/035_my_workflow.py  # path optional
+python helpers/workflow/splice_workflow_step.py apps/035_my_workflow.py  # path optional
 ```
 
 **What It Does:**
@@ -127,8 +127,8 @@ async def step_XX_submit(self, request):
 ```bash
 # Replace step_01 in target with step_01 from source
 python helpers/workflow/swap_workflow_step.py \
-    plugins/035_my_workflow.py step_01 \
-    plugins/500_source_workflow.py step_01
+    apps/035_my_workflow.py step_01 \
+    apps/500_source_workflow.py step_01
 
 # Force replacement without confirmation
 python helpers/workflow/swap_workflow_step.py \
@@ -231,8 +231,8 @@ ENDPOINT_MESSAGE = 'Workflow-specific welcome message'    # ✅ Carried over fro
 ```bash
 # Merge UI_CONSTANTS from source to target
 python helpers/workflow/manage_class_attributes.py \
-    plugins/035_target_workflow.py \
-    plugins/500_source_workflow.py \
+    apps/035_target_workflow.py \
+    apps/500_source_workflow.py \
     --attributes-to-merge UI_CONSTANTS
 
 # Merge multiple attributes
@@ -328,7 +328,7 @@ curl http://localhost:5001/evolved_flowtest  # Test the workflow
 python helpers/workflow/workflow_reconstructor.py --template 045_evolved_flow --source 110_parameter_buster --target 045_evolved_flow
 
 # 5. Clean up test files
-rm plugins/045_evolved_flowtest.py
+rm apps/045_evolved_flowtest.py
 ```
 
 ### **Pattern 3: Component Library Development**
@@ -346,8 +346,8 @@ python helpers/workflow/create_workflow.py 200_parameter_engine.py ParameterEngi
 python helpers/workflow/workflow_reconstructor.py --template 400_botify_trifecta --source 200_parameter_engine --target 300_advanced_params
 
 # 4. Create component library pattern
-mkdir -p plugins/components/
-mv plugins/200_parameter_engine.py plugins/components/  # Archive proven components
+mkdir -p apps/components/
+mv apps/200_parameter_engine.py apps/components/  # Archive proven components
 ```
 
 ---
@@ -386,7 +386,7 @@ app.route(f'/{app_name}/custom_handler', methods=['GET'])            # ❌ No ma
 
 #### **4. File Organization**
 ```
-plugins/
+apps/
 ├── 000-099: Core system workflows
 ├── 100-199: Parameter/optimization workflows  
 ├── 200-299: Creation and management tools
@@ -455,8 +455,8 @@ python helpers/workflow/create_workflow.py 800_parameter_component.py ParameterC
 
 # 2. Perfect the component (extensive testing)
 # 3. Archive as atomic source
-mkdir -p plugins/components/
-mv plugins/800_parameter_component.py plugins/components/
+mkdir -p apps/components/
+mv apps/800_parameter_component.py apps/components/
 
 # 4. Use across multiple workflows
 python helpers/workflow/workflow_reconstructor.py --template 400_botify_trifecta --source components/800_parameter_component --target 100_new_param_flow
@@ -469,7 +469,7 @@ Evolve templates with new capabilities:
 
 ```bash
 # 1. Start with proven template
-cp plugins/400_botify_trifecta.py plugins/410_enhanced_trifecta.py
+cp apps/400_botify_trifecta.py apps/410_enhanced_trifecta.py
 
 # 2. Add capabilities via reconstruction
 python helpers/workflow/workflow_reconstructor.py --template 410_enhanced_trifecta --source 200_advanced_ui --target 410_enhanced_trifecta
@@ -495,7 +495,7 @@ curl http://localhost:5001/protoA
 curl http://localhost:5001/protoB
 
 # 4. Clean up
-rm plugins/999_*
+rm apps/999_*
 ```
 
 ---

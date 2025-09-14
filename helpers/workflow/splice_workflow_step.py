@@ -17,7 +17,7 @@ python splice_workflow_step.py 035_kungfu_workflow.py --position top
 
 # Flexible filename handling:
 python splice_workflow_step.py 035_kungfu_workflow    # .py extension optional
-python splice_workflow_step.py plugins/035_kungfu_workflow.py  # plugins/ prefix optional
+python splice_workflow_step.py apps/035_kungfu_workflow.py  # apps/ prefix optional
 
 # Can be run from project root:
 python helpers/workflow/splice_workflow_step.py 035_kungfu_workflow.py --position top
@@ -309,8 +309,8 @@ Examples:
   python splice_workflow_step.py 035_kungfu_workflow.py --position top
   
   # Works with various path formats:
-  python splice_workflow_step.py plugins/035_kungfu_workflow.py --position top
-  python splice_workflow_step.py /full/path/to/plugins/035_kungfu_workflow.py --position bottom
+  python splice_workflow_step.py apps/035_kungfu_workflow.py --position top
+  python splice_workflow_step.py /full/path/to/apps/035_kungfu_workflow.py --position bottom
         """
     )
     parser.add_argument("target_filename", help="The filename of the workflow to modify (e.g., 035_kungfu_workflow.py)")
@@ -328,10 +328,10 @@ Examples:
     
     # Handle various input formats:
     # 1. Just filename: "035_kungfu_workflow.py"
-    # 2. With plugins/ prefix: "plugins/035_kungfu_workflow.py"  
-    # 3. Full path: "/some/path/plugins/035_kungfu_workflow.py"
-    if target_filename.startswith('plugins/'):
-        target_filename = target_filename[8:]  # Remove 'plugins/' prefix
+    # 2. With apps/ prefix: "apps/035_kungfu_workflow.py"  
+    # 3. Full path: "/some/path/apps/035_kungfu_workflow.py"
+    if target_filename.startswith('apps/'):
+        target_filename = target_filename[8:]  # Remove 'apps/' prefix
     elif '/' in target_filename:
         # Extract just the filename from any path
         target_filename = Path(target_filename).name

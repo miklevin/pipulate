@@ -616,7 +616,7 @@ class WorkflowUtilities:
                                       analysis_slug: str, data_type: str = None) -> str:
         """Generate deterministic file paths for data caching.
         
-        Extracted from: plugins/110_parameter_buster.py, 120_link_graph.py, 400_botify_trifecta.py
+        Extracted from: apps/110_parameter_buster.py, 120_link_graph.py, 400_botify_trifecta.py
         Pattern: FILE MANAGEMENT - Create consistent paths for file caching
         
         Args:
@@ -653,7 +653,7 @@ class WorkflowUtilities:
     async def check_file_exists(filepath: str) -> tuple[bool, dict]:
         """Check if file exists and return metadata.
         
-        Extracted from: plugins/110_parameter_buster.py (and similar patterns)
+        Extracted from: apps/110_parameter_buster.py (and similar patterns)
         Pattern: FILE VALIDATION - Consistent file existence checking
         
         Args:
@@ -680,7 +680,7 @@ class WorkflowUtilities:
     def url_to_safe_path(url: str) -> tuple[str, str]:
         """Convert URL to filesystem-safe path components.
         
-        Extracted from: plugins/440_browser_automation.py  
+        Extracted from: apps/440_browser_automation.py  
         Pattern: URL PROCESSING - Safe filesystem path generation
         
         Args:

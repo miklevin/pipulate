@@ -1,4 +1,4 @@
-# File: plugins/001_dom_visualizer.py
+# File: apps/300_blank_placeholder.py
 import asyncio
 from datetime import datetime
 from fasthtml.common import * # type: ignore
@@ -8,18 +8,20 @@ from pathlib import Path
 import re
 from imports.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
-ROLES = ['Workshop'] # Defines which user roles can see this plugin
+ROLES = ['Developer'] # Defines which user roles can see this plugin
 
-class DOMVisualizer:
+# 🎯 STEP DEFINITION: Now imported from imports.crud.py (eliminates 34+ duplications)
+
+class BlankPlaceholder:
     """
     Blank Placeholder Workflow
     A minimal template for creating new Pipulate workflows.
     It includes one placeholder step and the necessary structure for expansion.
     """
-    APP_NAME = 'domvisualizer'
-    DISPLAY_NAME = 'DOM Visualizer 🔍'
-    ENDPOINT_MESSAGE = """Welcome to the DOM Visualizer workflow. This shows you a webpage as an LLM sees it and gives you insiights necessary for automation."""
-    TRAINING_PROMPT = """Please replace this training prompt with one that describes this workflow in the way the LLM needs to understand and help the human."""
+    APP_NAME = 'blank_template'
+    DISPLAY_NAME = 'Blank Placeholder ✏️'
+    ENDPOINT_MESSAGE = 'Welcome to the Blank Placeholder. This is a starting point for your new workflow.'
+    TRAINING_PROMPT = 'This is a minimal workflow template. It has one placeholder step. The user will customize it.'
 
     # --- START_CLASS_ATTRIBUTES_BUNDLE ---
     # Additional class-level constants can be merged here by manage_class_attributes.py
@@ -58,7 +60,7 @@ class DOMVisualizer:
                 }
             else:
                 self.step_messages[step_obj.id] = {
-                    'input': f'{step_obj.show}: Please provide the required input.',
+                    'input': f'{step_obj.show}: Click Done to proceed.',
                     'complete': f'{step_obj.show} is complete. Proceed to the next action.'
                 }
 
@@ -262,38 +264,19 @@ class DOMVisualizer:
             return Div(
                 Card(
                     H3(f"{step.show}", id=f"{step_id}-heading", aria_level="3"),
-                    P("This is a placeholder step. Customize its input form as needed. Click Proceed to continue.", 
+                    P("This is a placeholder step. Click Done to proceed.", 
                       id=f"{step_id}-description",
                       role="note"),
                     Form(
-                        # Example: Text input with label and placeholder for maximum automation coverage
-                        Label(
-                            "Placeholder Data:",
-                            _for=f"{step_id}-{step.done}",
-                            id=f"{step_id}-label",
-                            data_testid=f"placeholder-label-{step_id}"
-                        ),
-                        Input(
-                            type="text", 
-                            name=step.done, 
-                            value="Placeholder Value for Step 1 Placeholder",
-                            placeholder="Enter your placeholder data here...",
-                            id=f"{step_id}-{step.done}",
-                            data_testid=f"placeholder-input-{step_id}",
-                            title="Input field for placeholder step data",
-                            aria_label=f"Input for {step.show}",
-                            aria_labelledby=f"{step_id}-label",
-                            aria_describedby=f"{step_id}-description",
-                            required=True
-                        ),
+                        # Minimal placeholder: just a Done button - customize as needed
                         Button(
-                            self.ui['BUTTON_LABELS']['NEXT_STEP'], 
+                            "Done", 
                             type="submit",
-                            name=f"{step_id}_submit_action", 
+                            name=step.done,
+                            value="completed",
                             cls=self.ui['BUTTON_STYLES']['PRIMARY'],
-                            id=f"{step_id}-submit-button",
-                            aria_label=f"Submit {step.show} and proceed to next step",
-                            data_testid=f"submit-button-{step_id}"
+                            id=f"{step_id}-done-button",
+                            data_testid=f"done-button-{step_id}"
                         ),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}",
@@ -322,11 +305,10 @@ class DOMVisualizer:
         pipeline_id = db.get('pipeline_id', 'unknown')
 
         form_data = await request.form()
-        # For a placeholder, get value from the hidden input or use a default
-        value_to_save = form_data.get(step.done, f"Default value for {step.show}")
+        # Minimal placeholder: just mark as completed
+        value_to_save = "completed"
         await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
 
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\\n{value_to_save}")
         pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
 
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)

@@ -121,7 +121,7 @@ This system provides unprecedented debugging power:
         # Get the project root directory dynamically
         # Start from the current file's directory and go up to find the project root
         current_file = Path(__file__).resolve()
-        pipulate_root = current_file.parent.parent  # plugins/050_documentation.py -> plugins/ -> pipulate/
+        pipulate_root = current_file.parent.parent  # apps/050_documentation.py -> apps/ -> pipulate/
         
         # Verify we found the right directory by checking for key files
         if not (pipulate_root / 'server.py').exists():
