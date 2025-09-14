@@ -13,36 +13,28 @@ def auto_tool(func):
     return func
 # --- END NEW ---
 
-from . import mcp_tools
+import os
+import importlib
 
-# Re-export commonly used functions for convenience
-try:
-    from .botify_tools import (
-        botify_ping,
-        botify_list_projects,
-        botify_simple_query,
-        botify_get_full_schema,
-        botify_list_available_analyses,
-        botify_execute_custom_bql_query,
-        get_botify_tools
-    )
-except ImportError:
-    # If botify_tools isn't available, that's okay
-    pass
+# --- NEW: Automatic tool discovery and registration ---
+def get_all_tools():
+    """
+    Dynamically imports all tool modules in this package and returns the
+    dictionary of functions decorated with @auto_tool.
+    """
+    package_name = __name__
+    package_path = os.path.dirname(__file__)
 
-try:
-    from .advanced_automation_tools import (
-        execute_complete_session_hijacking,
-        browser_hijack_workflow_complete,
-        execute_automation_recipe,
-        execute_mcp_cli_command,
-        conversation_history_view,
-        conversation_history_clear,
-        get_advanced_automation_tools
-    )
-except ImportError:
-    # If advanced_automation_tools isn't available, that's okay
-    pass
+    for module_info in os.scandir(package_path):
+        if module_info.is_file() and module_info.name.endswith('.py') and not module_info.name.startswith('__'):
+            module_name = module_info.name[:-3]
+            try:
+                importlib.import_module(f".{module_name}", package=package_name)
+            except ImportError as e:
+                print(f"Could not import tool module: {module_name} - {e}")
+
+    return AUTO_REGISTERED_TOOLS
+# --- END NEW ---
 
 __version__ = "1.0.0"
 
