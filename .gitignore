@@ -11,6 +11,7 @@ cruft
 .sesskey
 .ssh/key
 .venv/
+.cursor/
 
 # Write your screenshots here
 temp/*
@@ -23,7 +24,7 @@ Notebooks/*
 .jupyter/migrated
 .jupyter/serverconfig/
 __pycache__/
-app_name.txt
+whitelabel.txt
 botify_token.txt
 client/
 config.json
