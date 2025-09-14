@@ -4058,10 +4058,10 @@ def discover_plugin_files():
         dict: Mapping of module names to imported module objects
     """
     plugin_modules = {}
-    plugins_dir = os.path.join(os.path.dirname(__file__), 'apps')
-    logger.debug(f'Looking for plugins in: {plugins_dir}')
-    if not os.path.isdir(plugins_dir):
-        logger.warning(f'Plugins directory not found: {plugins_dir}')
+    apps_dir = os.path.join(os.path.dirname(__file__), 'apps')
+    logger.debug(f'Looking for plugins in: {apps_dir}')
+    if not os.path.isdir(apps_dir):
+        logger.warning(f'Plugins directory not found: {apps_dir}')
         return plugin_modules
 
     def numeric_prefix_sort(filename):
@@ -4069,7 +4069,7 @@ def discover_plugin_files():
         if match:
             return int(match.group(1))
         return float('inf')
-    sorted_files = sorted(os.listdir(plugins_dir), key=numeric_prefix_sort)
+    sorted_files = sorted(os.listdir(apps_dir), key=numeric_prefix_sort)
     for filename in sorted_files:
         logger.debug(f'Checking file: {filename}')
         if '(' in filename or ')' in filename:
@@ -4433,8 +4433,8 @@ if __name__ == '__main__':
     logger.info("🔧 STARTUP_MARKER_2: Inside __name__ == '__main__' block - showing Rich tables")
     # Show beautiful startup summary for humans
     startup_summary = startup_summary_table(
-        plugins_discovered=discovered_count,
-        plugins_registered=registered_count,
+        apps_discovered=discovered_count,
+        apps_registered=registered_count,
         mcp_tools_count=tool_count,
         app_name=current_app,
         environment=current_env
@@ -4753,10 +4753,10 @@ def create_app_menu(menux):
     active_role_names = get_active_roles()
     menu_items = create_home_menu_item(menux)
     role_priorities = get_role_priorities()
-    plugins_by_role = group_plugins_by_role(active_role_names)
+    apps_by_role = group_apps_by_role(active_role_names)
     for role_name, role_priority in sorted(role_priorities.items(), key=lambda x: x[1]):
         if role_name in active_role_names:
-            role_plugins = plugins_by_role.get(role_name, [])
+            role_plugins = apps_by_role.get(role_name, [])
             role_plugins.sort(key=lambda x: get_plugin_numeric_prefix(x))
             for plugin_key in role_plugins:
                 menu_item = create_plugin_menu_item(plugin_key=plugin_key, menux=menux, active_role_names=active_role_names)
@@ -4797,9 +4797,9 @@ def get_role_priorities():
     return role_priorities
 
 
-def group_plugins_by_role(active_role_names):
+def group_apps_by_role(active_role_names):
     """Group plugins by their primary role for hierarchical menu organization."""
-    plugins_by_role = {}
+    apps_by_role = {}
     for plugin_key in ordered_plugins:
         plugin_instance = plugin_instances.get(plugin_key)
         if not plugin_instance:
@@ -4811,11 +4811,11 @@ def group_plugins_by_role(active_role_names):
         primary_role = get_plugin_primary_role(plugin_instance)
         if primary_role:
             role_name = primary_role.replace('-', ' ').title()
-            if role_name not in plugins_by_role:
-                plugins_by_role[role_name] = []
-            plugins_by_role[role_name].append(plugin_key)
-    logger.debug(f'Plugins grouped by role: {plugins_by_role}')
-    return plugins_by_role
+            if role_name not in apps_by_role:
+                apps_by_role[role_name] = []
+            apps_by_role[role_name].append(plugin_key)
+    logger.debug(f'Plugins grouped by role: {apps_by_role}')
+    return apps_by_role
 
 
 def get_plugin_numeric_prefix(plugin_key):

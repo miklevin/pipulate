@@ -560,8 +560,8 @@ Zero uncertainty • 100% automation success rate"""
     return safe_console_capture(console, panel, fallback) 
 
 def startup_summary_table(
-    plugins_discovered: int, 
-    plugins_registered: int, 
+    apps_discovered: int, 
+    apps_registered: int, 
     mcp_tools_count: int, 
     app_name: str = "Pipulate",
     environment: str = "Development"
@@ -586,7 +586,7 @@ def startup_summary_table(
     
     status_table.add_row("🏷️  App Name", "✅ Active", app_name)
     status_table.add_row("🌍 Environment", "✅ Active", environment)
-    status_table.add_row("📦 Plugins", "✅ Loaded", f"{plugins_registered}/{plugins_discovered} registered")
+    status_table.add_row("📦 Plugins", "✅ Loaded", f"{apps_registered}/{apps_discovered} registered")
     status_table.add_row("🔧 MCP Tools", "✅ Ready", f"{mcp_tools_count} tools available")
     status_table.add_row("🧠 AI Memory", "✅ Active", "Keychain persistence enabled")
     status_table.add_row("🌐 Browser Eyes", "✅ Ready", "Session hijacking capability")
@@ -630,7 +630,7 @@ def startup_summary_table(
 📊 SYSTEM STATUS:
 ✅ App: {app_name} 
 ✅ Environment: {environment}
-✅ Plugins: {plugins_registered}/{plugins_discovered} registered
+✅ Plugins: {apps_registered}/{apps_discovered} registered
 ✅ MCP Tools: {mcp_tools_count} tools available
 ✅ AI Memory: Keychain persistence enabled
 ✅ Browser Eyes: Session hijacking capability
