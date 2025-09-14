@@ -684,7 +684,7 @@ Just as a chef talks about knife techniques while a diner just wants amazing pas
 
 **👨‍💻 If you're a developer:**
 - Open JupyterLab tab and run the introduction notebook
-- Check out `plugins/010_introduction.py` to see workflow code structure
+- Check out `apps/010_introduction.py` to see workflow code structure
 - Try creating a simple workflow: `python helpers/workflow/create_workflow.py`
 
 **🤖 If you're an AI assistant:**
@@ -1077,7 +1077,7 @@ This structure enables AI assistants to programmatically interact with all UI co
     │   ├── server-1.log           # N-rotations of server log per run per config
     │   └── server.log             # The server log of most recent run, contains app state
     ├── /assets/                    # JS, CSS, images, icons
-    ├── plugins/                   # Workflow plugins (010_introduction.py, 400_trifecta.py, etc.)
+    ├── apps/                   # Workflow plugins (010_introduction.py, 400_trifecta.py, etc.)
     ├── pyproject.toml             # Python packaging configuration and metadata
     ├── training/                  # Markdown files for AI context/prompts
     ├── vulture_whitelist.py       # Code analysis whitelist for unused code detection
@@ -1200,7 +1200,7 @@ The `run_all_cells()` method encapsulates the workflow initialization pattern an
 <!-- START_ASCII_ART: plugin-discovery-system -->
 ```
 📁 PLUGIN DISCOVERY SYSTEM
-plugins/
+apps/
 ├── 010_introduction.py       ✅ Registered as "introduction" (menu order: 1)
 ├── 020_profiles.py           ✅ Registered as "profiles" (menu order: 2)
 ├── hello_flow (Copy).py      ❌ SKIPPED - Contains "()"
@@ -1216,7 +1216,7 @@ plugins/
 ```
 <!-- END_ASCII_ART: plugin-discovery-system -->
 
-* Files in `plugins/` directory are auto-discovered
+* Files in `apps/` directory are auto-discovered
 * Numeric prefixes control menu ordering
 * Classes must have `landing` method and name attributes
 * Automatic dependency injection based on `__init__` signature
@@ -1377,7 +1377,7 @@ pip.set_step_data(step_id, updated_data)
 
 ### File Structure Quick Reference
 ```
-plugins/                    # Your workflows (auto-discovered)
+apps/                    # Your workflows (auto-discovered)
 ├── 010_introduction.py     # Menu order 1
 ├── xx_draft.py            # Disabled (xx_ prefix)
 └── draft (Copy).py        # Ignored (parentheses)

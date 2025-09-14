@@ -1,4 +1,4 @@
-# File: plugins/200_workflow_genesis.py
+# File: apps/200_workflow_genesis.py
 import asyncio
 from datetime import datetime
 from fasthtml.common import * # type: ignore
@@ -259,8 +259,8 @@ class WorkflowGenesis:
         endpoint_message = workflow_params.get('endpoint_message', 'Welcome to workflow creation')
         training_prompt = workflow_params.get('training_prompt', 'Help users create workflows step by step')
 
-        # Ensure consistent plugins/ prefix for all commands
-        plugins_filename = f"plugins/{filename}" if not filename.startswith('plugins/') else filename
+        # Ensure consistent apps/ prefix for all commands
+        plugins_filename = f"apps/{filename}" if not filename.startswith('apps/') else filename
 
         # Single create command - uses blank template specifically
         create_cmd = f"python helpers/workflow/create_workflow.py {plugins_filename} {class_name} {internal_name} \\\n" + \
@@ -333,8 +333,8 @@ class WorkflowGenesis:
         hello_endpoint_message = "🥋 This workflow will become a Hello World equivalent using helper scripts."
         hello_training_prompt = "You are assisting with the Kung Fu Hello World workflow recreation. This demonstrates the complete helper tool sequence for building workflows from scratch. The secret word is 'MORPHEUS'."
 
-        # Ensure consistent plugins/ prefix for all commands (matching working example)
-        plugins_filename = f"plugins/{filename}" if not filename.startswith('plugins/') else filename
+        # Ensure consistent apps/ prefix for all commands (matching working example)
+        plugins_filename = f"apps/{filename}" if not filename.startswith('apps/') else filename
 
         # The corrected 5-command sequence - starts with blank template, becomes Hello World
         cmd1 = f"python helpers/workflow/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
@@ -342,13 +342,13 @@ class WorkflowGenesis:
                f"{self.format_bash_command(hello_endpoint_message)} " + \
                f"{self.format_bash_command(hello_training_prompt)} --template blank --role Core --force"
 
-        cmd2 = f"python helpers/workflow/manage_class_attributes.py {plugins_filename} plugins/040_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force"
+        cmd2 = f"python helpers/workflow/manage_class_attributes.py {plugins_filename} apps/040_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force"
 
-        cmd3 = f"python helpers/workflow/swap_workflow_step.py {plugins_filename} step_01 plugins/040_hello_workflow.py step_01 --force"
+        cmd3 = f"python helpers/workflow/swap_workflow_step.py {plugins_filename} step_01 apps/040_hello_workflow.py step_01 --force"
 
         cmd4 = f"python helpers/workflow/splice_workflow_step.py {plugins_filename} --position bottom"
 
-        cmd5 = f"python helpers/workflow/swap_workflow_step.py {plugins_filename} step_02 plugins/040_hello_workflow.py step_02 --force"
+        cmd5 = f"python helpers/workflow/swap_workflow_step.py {plugins_filename} step_02 apps/040_hello_workflow.py step_02 --force"
 
         # Combined command with proper && chaining for complete automation
         combined_cmd = f"python helpers/workflow/create_workflow.py {plugins_filename} {class_name} {internal_name} \\\n" + \
@@ -357,13 +357,13 @@ class WorkflowGenesis:
                       f"  {self.format_bash_command(hello_training_prompt)} \\\n" + \
                       f"  --template blank --role Core --force && \\\n" + \
                       f"python helpers/workflow/manage_class_attributes.py {plugins_filename} \\\n" + \
-                      f"  plugins/040_hello_workflow.py \\\n" + \
+                      f"  apps/040_hello_workflow.py \\\n" + \
                       f"  --attributes-to-merge UI_CONSTANTS --force && \\\n" + \
                       f"python helpers/workflow/swap_workflow_step.py {plugins_filename} step_01 \\\n" + \
-                      f"  plugins/040_hello_workflow.py step_01 --force && \\\n" + \
+                      f"  apps/040_hello_workflow.py step_01 --force && \\\n" + \
                       f"python helpers/workflow/splice_workflow_step.py {plugins_filename} --position bottom && \\\n" + \
                       f"python helpers/workflow/swap_workflow_step.py {plugins_filename} step_02 \\\n" + \
-                      f"  plugins/040_hello_workflow.py step_02 --force"
+                      f"  apps/040_hello_workflow.py step_02 --force"
 
         return Div(
             H4("Hello World Recreation Experience", cls="section-title"),
@@ -438,8 +438,8 @@ class WorkflowGenesis:
         endpoint_message = workflow_params.get('endpoint_message', 'Advanced data collection workflow')
         training_prompt = workflow_params.get('training_prompt', 'Help users create complex data workflows')
 
-        # Ensure consistent plugins/ prefix for all commands
-        plugins_filename = f"plugins/{filename}" if not filename.startswith('plugins/') else filename
+        # Ensure consistent apps/ prefix for all commands
+        plugins_filename = f"apps/{filename}" if not filename.startswith('apps/') else filename
 
         # Trifecta workflow commands - uses trifecta template
         cmd1 = f"python helpers/workflow/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
@@ -809,9 +809,9 @@ class WorkflowGenesis:
             target_filename = workflow_params.get('target_filename', '001_kungfu_workflow.py')
             display_name = workflow_params.get('display_name', 'Kung Fu Download')
 
-            # Ensure plugins/ prefix for path display
-            if not target_filename.startswith('plugins/'):
-                display_filename = f"plugins/{target_filename}"
+            # Ensure apps/ prefix for path display
+            if not target_filename.startswith('apps/'):
+                display_filename = f"apps/{target_filename}"
             else:
                 display_filename = target_filename
 
@@ -880,14 +880,14 @@ class WorkflowGenesis:
         display_name = workflow_params.get('display_name', 'Kung Fu Download')
         selected_template = template_choice.get('template', 'blank')
 
-        # Ensure plugins/ prefix for path display
-        if not target_filename.startswith('plugins/'):
-            display_filename = f"plugins/{target_filename}"
+        # Ensure apps/ prefix for path display
+        if not target_filename.startswith('apps/'):
+            display_filename = f"apps/{target_filename}"
         else:
             display_filename = target_filename
 
         # Get the combined command based on template choice
-        plugins_filename = f"plugins/{target_filename}" if not target_filename.startswith('plugins/') else target_filename
+        plugins_filename = f"apps/{target_filename}" if not target_filename.startswith('apps/') else target_filename
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
         endpoint_message = workflow_params.get('endpoint_message', 'Welcome message')
@@ -905,13 +905,13 @@ class WorkflowGenesis:
                           f"{self.format_bash_command(hello_endpoint_message)} " + \
                           f"{self.format_bash_command(hello_training_prompt)} --template blank --role Core --force && " + \
                           f"python helpers/workflow/manage_class_attributes.py {plugins_filename} " + \
-                          f"plugins/040_hello_workflow.py " + \
+                          f"apps/040_hello_workflow.py " + \
                           f"--attributes-to-merge UI_CONSTANTS --force && " + \
                           f"python helpers/workflow/swap_workflow_step.py {plugins_filename} step_01 " + \
-                          f"plugins/040_hello_workflow.py step_01 --force && " + \
+                          f"apps/040_hello_workflow.py step_01 --force && " + \
                           f"python helpers/workflow/splice_workflow_step.py {plugins_filename} --position bottom && " + \
                           f"python helpers/workflow/swap_workflow_step.py {plugins_filename} step_02 " + \
-                          f"plugins/040_hello_workflow.py step_02 --force"
+                          f"apps/040_hello_workflow.py step_02 --force"
         elif selected_template == 'trifecta':
             # Trifecta workflow commands - use template-specific display name
             trifecta_display_name = "Kung Fu Trifecta 🏇"
