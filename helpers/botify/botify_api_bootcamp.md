@@ -1,122 +1,15 @@
-# DON'T PANIC!
+# Botify Documentation
 
-## Welcome to 2 Tabs
+> This Notebook generates [Botify API Bootcamp](http://localhost:5001/docs/botify_api/page/1) documentation in the Pipulate app. If you're viewing it from there, this was generated from the `make_botify_docs.ipynb` Notebook in the `pipulate/helpers/botify` folder.
 
-If you don't see the 2nd tab appear in the next few seconds, shut out of that Terminal, open another and `nix develop` again.
-
-Welcome to both **JupyterLab** and **Pipulate** (aka Botifython). Here are the most critical things you need to know.
-
-1. If you see this, ***great job!*** The install worked. You're almost there.
-2. ***Two tabs will open***: this one plus one more for Pipulate (aka Botifython).
-3. This tab, where *full notebooks run* (you can see the code) is extra.
-
-Pipulate is to run SEO Workflows as Web Apps that would otherwise require Notebooks but without the Notebooks — mostly so you don't have to look at the Python code.
-
-### If Pipulate is for Web Apps instead of Notebooks, why JupyterLab?
-
-1. **Debugging**: Pipulate shows Python code to help workflow development. This gives a built-in place to copy/paste and test-run it.
-2. **Education**: Just because Pipulate *fishes for you* doesn't mean you shouldn't learn how to fish. Learn Python to better speak with AI.
-3. **Integration**: While it's not implemented yet, a certain type of widget we plan on using (AnyWidget) works best with JupyterLab here.
-
-## How to Get Started?
-
-1. Don't. Go over and use Pipulate instead.
-2. Oh, okay. If you're here for Python, keep reading.
-
-Let's start with the ***Hello World*** program. In a Notebook, The Hello World program can be this simple (run the cell below):
-
-
-```
-"Hello World"
-```
-
-How's that for simple? This works because the *Notebook environment* automatically prints the last line of a cell. You can also explicitly use the `print()` function:
-
-### Hello World Program
-
-Run the cell below.
-
-
-```
-print("Hello World")
-```
-
-Easy, right? Welcome to the hook that's makes Python ***so enduringly popular*** even in the face of JavaScript taking over the world. 
-
-There are small differences between using `print()` and relying on the automatic output of being the last line of a cell. Specifically, `print()` leaves off the quotes for more user-friendly output while the other way includes the quotes to help you identify the value as a '`String`' datatype. 
-
-## Data Piping
-
-Oh there's so much more we should say before jumping into the concept of ***data pipelines*** — but they are so fundamental to everything to follow that we find it impossible to not jump right in and show you that if you set:
-
-
-```
-a = "Hello"
-a  # Prints a because it's on a line by itself at the end of the cell
-```
-
-...then `a` is still hanging around in memory. The value of a *persists!* And that means you can start piping the ouput of `a` into the input of `b`:
-
-
-```
-b = a + " World!"  # Appends a to the beginning of a String
-b
-```
-
-The entire world of technology hinges on this [data pipelines](https://en.wikipedia.org/wiki/Pipeline_(Unix)) concept. Details will vary from tech system to system, particularly how persistence is achieved. People rarely frame it this way but Notebooks are popular in part because of how well they *pipe* the output of one cell so intuitively and naturally into the input of the next cell — chaining them up into a data pipeline driven workflow uniquely suited for the fields of [science](https://en.wikipedia.org/wiki/Replication_crisis) and [finance](https://www.youtube.com/watch?v=3ygPF-Qshkc). This piping of data concept is so important that we have made the Hello World of data piping into a [core feature of Pipulate](http://localhost:5001/hello_workflow).
-
-## Terminology 
-
-Now there is a lot of terminology here and presumed prerequisite knowledge. We will get as much of it out of the way immediately as possible. There's tons more. It is a lifetime of learning, but this Notebook is only trying to do so much. we'll give ***further reading*** links where possible.
-
-1. **This is a Notebook**: Notebooks, aka *Jupyter Notebook*, deliberately mix documentation (like this) and code. That's a large part of the point. The concept is called [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming), coined by Donald Knuth but brought to you in modern times by [Fernando Pérez](https://en.wikipedia.org/wiki/Fernando_P%C3%A9rez_(software_developer))
-2. **Cell-by-cell run**: The way code executes in a Notebook is unique. Each cell can be run individually instead of the more typical **all at once** way (with more traditional `.py` files). The concept is [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop), coined by L. Peter Deutsch and Edmund Berkeley.
-3. **Platform**: Many things run Notebooks, like Google Colab, but they do not run them the exact same way. There is still an underlying platform / environment / context:
-   - Cloud vs. Local
-   - If local, host system vs. virtual environment/subsystem
-4. **Nix**: The way Notebooks are running here is local with a Linux [Nix](https://nixos.org/) subsystem.
-5. **Leading edge**: You are on the edge here. Most people are going to do this kind of work out on the cloud to make it easy-as-possible — but that's full of limits, privacy concerns and hidden costs. Pipulate makes the increased price of free & local (complexity) as gentle as possible.
-
-## Free Software
-
-If you're not paying for the product, then you are the product — **this is not true.** *Genuine altruism exists in this world starting with GNU and the FSF* (Free Software Foundation) behind Linux and many of the other components of the Pipulate system. That expression has had the unfortunate effect over the years of steering people away from the underlying technology stack that everyone providing the paid-for or advertising-subsidized service builds on in the first place. The price of true freedom (as in liberty) is complexity, but it is becoming easier thanks to tools like Nix.
-
-## Copy/Paste
-
-Blah, blah, blah. But you're here to run code! Okay, go ahead and paste some Python code in the empty code-cell provided below. Everyting past that is Botify Boot Camp for Botify employees and customers learning the API. Sorry folks, but I know what pays the bills so Botify always comes first. If you want a new Notebook:
-
-1. Go to File / New Launcher (`Ctrl`+`Shift`+`L` or the big blue button all the way to the left)
-2. Click the Notebook icon (Python 3 ipykernel)
-
-## More Tutorials
-
-Tutorials for Jupyter Notebooks are all over the Web, but one of the more interesting ones is this experimental one from Project Jupyter themselves:
-
-- [Introduction to the JupyterLab and Jupyter Notebooks](https://jupyter.org/try-jupyter/notebooks/?path=notebooks/Intro.ipynb)
-
-
-```
-# You should really start a new Notebook if you want to paste and run some Python code
-# but understanding a lot of folks will struggle with this, we provide this cell for that.
-# Alternatively, press Ctrl+Shift+L or click the big blue plus in the upper-left.
-
-print("Replace me")
-```
-
-Everything below this point is for Botify employees and perhaps the brave and the bold customers!
-
---------------------------------------------------------------------------------
-
-# Botify API Bootcamp
-
-> This Notebook is for Botify Employees who have a Botify API Key and for the LLMs being trained to help humans with the API. Botify Customers may also find it valuable. This Notebook runs from the JupyterLab on your local machine that gets installed side-by-side with Botifython. Running the last cell generates [Botify API Bootcamp](http://localhost:5001/docs/botify_api/page/1) documentation in the Pipulate app.
+This is used primarily to make that documentation but if you find yourself here, it is also an excellent Botify API bootcamp that you can just follow along by running each cell below.
 
 ## Run Two Scripts
 
-The first 2 scripts in this series (immediately below) set you up. They may look large and scary, but they each do 1 very simple thing: 
+The first 2 scripts in this series (immediately below) set you up.
 
-- Script #1 (Cell 2) makes sure you have your `botify_token.txt` for API-access.
-- Script #2 (Cell 3) makes sure you have an example `config.json` to use in the examples.
+- Script 1 makes sure you have your `botify_token.txt` for API-access.
+- Script 2 makes sure you have an example `config.json` to use in the examples.
 
 > When you run the scripts in cells 2 & 3, they will appear to *"lock up"*. It's not. Input fields are waiting for you. Type/paste into the field and *Hit Enter*.  
 > If you get confused, hit `Esc` + `0` + `0` + `Enter` and that will *restart the kernel.*  
@@ -127,7 +20,7 @@ Good luck!
 ## Script #1: Get Your Token
 
 
-```
+```python
 #!/usr/bin/env python3
 """
 Botify Token Setup
@@ -419,7 +312,7 @@ if __name__ == "__main__":
 ## Script #2: Setup config file
 
 
-```
+```python
 #!/usr/bin/env python3
 """
 Botify Configuration Generator
@@ -935,7 +828,7 @@ print(response.json())
 Remember when I told you there are lots of specialized endpoints? Well, this is the first and easiest to have an immediate API success. If you did the above API step correctly, you should be able to get your username with this bare minimum Botify API script.
 
 
-```
+```python
 import httpx
 
 # Read only the first line (the token) from botify_token.txt
@@ -960,7 +853,7 @@ print(username)
 # List Orgs: How To Get the List of Projects And Their Orgs Given Username
 
 
-```
+```python
 import httpx
 
 # Load API key
@@ -1035,7 +928,7 @@ Your config.json should look like:
 ```
 
 
-```
+```python
 import json
 import httpx
 
@@ -1091,7 +984,7 @@ Fabled Catalog of Curiosities  fabled-catalog-of-curiosities       foo-org
 
 
 
-```
+```python
 import json
 import httpx
 
@@ -1155,7 +1048,7 @@ Your `config.json` should include:
 The analysis slug is typically a date in YYYYMMDD format (like "20240301") as shown in the sample output below. Without this value in your config file, you'll encounter a KeyError.
 
 
-```
+```python
 import json
 import httpx
 import pandas as pd
@@ -1230,7 +1123,7 @@ You're welcome.
 # List SEO Fields: How To Get a List of the First 500 URLs, Titles, Meta Descriptions and H1s
 
 
-```
+```python
 import json
 import httpx
 import pandas as pd
@@ -1299,7 +1192,7 @@ df.head()
 **Rationale**: To show you the main endpoint for listing 500 lines at a time, paging and quick aggregate queries. To show you how `org` and `project` are in the url (so you notice them disappearing later when we export csv downloads). To introduce the infinitely popular and useful `pandas` data library for manipulating ***row & column*** data.
 
 
-```
+```python
 import json
 import httpx
 import pandas as pd
@@ -1435,7 +1328,7 @@ Example config.json:
 
 
 
-```
+```python
 import httpx
 import json
 
@@ -1518,7 +1411,7 @@ print(json.dumps(results, indent=4, separators=(',', ': ')))
 # List Collections: How To Get the List of Collections Given a Project
 
 
-```
+```python
 # Get List of Collections Given a Project
 
 import json
@@ -1568,7 +1461,7 @@ ID: search_engines_orphans.20240715, Name: Search Engines Orphans
 # List Fields: How To Get The List of Fields Given a Collection
 
 
-```
+```python
 # Get List of Fields Given a Collection
 
 import json
@@ -1622,7 +1515,7 @@ ID: afield_a_complaint, Name: Red Swingline
 # Get Pagetypes: How To Get the Unfiltered URL Counts by Pagetype for a Specific Analysis
 
 
-```
+```python
 import json
 import httpx
 import pandas as pd
@@ -1707,7 +1600,7 @@ Data saved to pagetype_url_counts.csv
 # Get Short Titles: How To Get the First 500 URLs With Short Titles Given Pagetype
 
 
-```
+```python
 # Get the First 500 URLs With Short Titles Given Pagetype
 
 import json
@@ -1814,7 +1707,7 @@ df.head(10)
 # Count Short Titles: How To Count Number of URLs Having Short Titles
 
 
-```
+```python
 import json
 import httpx
 
@@ -1885,7 +1778,7 @@ else:
 # Download CSV: How To Download Up to 10K URLs Having Short Titles As a CSV
 
 
-```
+```python
 import json
 import httpx
 import time
@@ -2025,7 +1918,7 @@ else:
 # Get Total Count: How To Get Aggregate Count of All URLs Crawled During Analysis
 
 
-```
+```python
 import json
 import httpx
 
@@ -2134,7 +2027,7 @@ Result: Grand Total URLs in Crawl = 3,000,000
 # Get Depth Count: How To Get Aggregate Count of URLs at Particular Click Depth
 
 
-```
+```python
 import json
 import httpx
 
@@ -2239,7 +2132,7 @@ Total URLs at depth 5 or less: 1,500,000
 # Get Aggregates: How To Get Map of Click-Depths Aggregates Given Analysis Slug
 
 
-```
+```python
 import json
 import httpx
 import pprint # Keep pprint for the final output as in the original
@@ -2412,7 +2305,7 @@ Processing complete.
 # Get Aggregates: How To Get Map of CUMULATIVE Click-Depths Aggregates Given Analysis Slug
 
 
-```
+```python
 import json
 import httpx
 import pprint # Keep pprint for the final output
@@ -2590,7 +2483,7 @@ Calculating cumulative URL counts by depth...
 # Download Link Graph: How to Download a Link Graph for a Specified Organization, Project, and Analysis For Website Visualization.
 
 
-```
+```python
 import os
 import time
 import json
@@ -2750,7 +2643,7 @@ Link graph saved to: downloads/org_project_analysis_linkgraph_depth-3.csv
 # Check Link-Graph Enhancements: How To Check What Data is Available to Enhance Link-Graph Visualization.
 
 
-```
+```python
 import os
 import json
 import httpx
@@ -3165,7 +3058,7 @@ if __name__ == "__main__":
 # Color-Code Link-Graphs: How To Download Data to Enhance Website Link-Graph Visualization.
 
 
-```
+```python
 import os
 import json
 import httpx
@@ -3594,7 +3487,7 @@ Next-generation SEO requires adapting to these AI-driven changes. Now, let's exa
 # Web Logs: How To Check If A Project Has a Web Logs Collection
 
 
-```
+```python
 import httpx
 import json
 import os
@@ -4000,7 +3893,7 @@ def convert_url_query(query_v1, current_analysis, previous_analysis=None):
 # Size Up Botify Open API Swagger
 
 
-```
+```python
 # Python Script to Download Botify OpenAPI Spec, Save Locally, and Calculate Token Count
 # ------------------------------------------------------------------------------------
 # Purpose:
@@ -4107,7 +4000,7 @@ if __name__ == "__main__":
 Botify OpenAPI Swagger File: [https://api.botify.com/v1/swagger.json](https://api.botify.com/v1/swagger.json)
 
 
-```
+```python
 # Python Script to Generate Paginated LLM Training Data for Botify API
 # ------------------------------------------------------------------------------------
 # Purpose:
@@ -4131,10 +4024,10 @@ TIKTOKEN_ENCODING_NAME = "cl100k_base"
 # Set this to a specific directory path (e.g., "../../training", "/path/to/output").
 # If set to None or an empty string, it will save to a default 'training' folder
 # in the current working directory.
-OPTIONAL_HARWIRED_OUTPUT_PATH = "../../training"
+OPTIONAL_HARWIRED_OUTPUT_PATH = "../../helpers/botify"
 
 # Filename for the output, specifically named for the documentation plugin.
-OUTPUT_FILENAME = "botify_open_api.md"
+OUTPUT_FILENAME = "botify_api_examples.md"
 
 # The separator used to paginate the document in the web application.
 PAGINATION_SEPARATOR = "-" * 80
@@ -4153,7 +4046,7 @@ def generate_python_code_example(method: str, path: str, endpoint_details: Dict[
         "# Assumes your Botify API token is in a file named 'botify_token.txt'",
         "try:",
         "    with open('botify_token.txt') as f:",
-        "        token = f.read().strip()",
+        r"        token = f.read().split('\n')[0].strip()",
         "except FileNotFoundError:",
         "    print(\"Error: 'botify_token.txt' not found. Please create it.\")",
         "    token = 'YOUR_API_TOKEN'  # Fallback",
@@ -4246,7 +4139,7 @@ def generate_api_documentation_markdown(spec: Dict[str, Any]) -> str:
             parameters = details.get('parameters', [])
 
             endpoint_block.extend([
-                f"# `{method.upper()} {path}`", "",
+                f"#### `{method.upper()} {path}`", "",
                 f"**Category:** `{tag}`", "",
                 f"**Summary:** {summary}", "",
                 "**Description:**", f"{description}", ""
@@ -4348,6 +4241,7 @@ if __name__ == "__main__":
         print(f"\nSUCCESS: Global variable 'llm_training_markdown' is now populated and file has been created.")
     else:
         print("\nERROR: Process did not complete successfully. Check warnings above.")
+
 ```
 
 --------------------------------------------------------------------------------
@@ -4355,7 +4249,7 @@ if __name__ == "__main__":
 # Create Documentation For Pipulate From This Notebook
 
 
-```
+```python
 # Jupyter Notebook Self-Export and Custom Markdown Processing Script
 # -------------------------------------------------------------------
 # Purpose:
@@ -4392,15 +4286,16 @@ if __name__ == "__main__":
 # logical breaks, offering a more content-aware separation than generic
 # between-cell markers.
 
-# --- Configuration: Optional Hardwired Output Path ---
-# Set this to a specific directory path (e.g., "/path/to/your/output_folder" or "C:\\path\\to\\output")
-# if you want the final Markdown file to always be saved there.
-# If None or an empty string, the Markdown file will be saved in the same
-# directory as the Jupyter Notebook (original behavior).
-# IMPORTANT: If providing a path, ensure the script has write permissions to it.
-#            The script will attempt to create the directory if it doesn't exist.
-OPTIONAL_HARWIRED_OUTPUT_PATH = "../../training" # Example: "/mnt/c/Users/YourUser/Documents/NotebookExports"
-# OPTIONAL_HARWIRED_OUTPUT_PATH = "output_markdown" # Example: a relative path
+# --- Configuration ---
+# Set the output directory path.
+OPTIONAL_HARWIRED_OUTPUT_PATH = "../../helpers/botify" # Example: "/mnt/c/Users/YourUser/Documents/NotebookExports"
+
+# --- MODIFICATION START: Hardcoded Output Filename ---
+# Set this to the desired output filename. If None or empty, it will default
+# to using the notebook's name.
+OUTPUT_FILENAME_MD = "botify_api_bootcamp.md"
+# --- MODIFICATION END ---
+
 
 # --- Part 1: Necessary Imports ---
 # Purpose: Import required Python standard libraries for file operations,
@@ -4551,10 +4446,11 @@ def export_notebook_and_apply_custom_processing():
         print("CRITICAL ERROR: Could not determine the current notebook's .ipynb filename.")
         return
 
-    markdown_basename = Path(current_notebook_filename_ipynb).stem + ".md"
+    # This is the default filename nbconvert will use, based on the notebook's name.
+    markdown_basename_from_notebook = Path(current_notebook_filename_ipynb).stem + ".md"
     
     # This is where nbconvert will initially place its output
-    nbconvert_output_path_in_notebook_dir = Path(current_notebook_dir) / markdown_basename
+    nbconvert_output_path_in_notebook_dir = Path(current_notebook_dir) / markdown_basename_from_notebook
 
     # Determine the final path for the processed Markdown file
     final_save_directory_path = Path(current_notebook_dir) # Default
@@ -4566,12 +4462,20 @@ def export_notebook_and_apply_custom_processing():
             print(f"INFO: Using hardwired output directory: '{final_save_directory_path.resolve()}'")
         except Exception as e:
             print(f"ERROR: Could not create or access hardwired output directory '{prospective_hardwired_path}': {e}.")
-            print(f"        Defaulting to notebook's directory for final output: '{Path(current_notebook_dir).resolve()}'")
+            print(f"         Defaulting to notebook's directory for final output: '{Path(current_notebook_dir).resolve()}'")
             # final_save_directory_path remains current_notebook_dir
     else:
         print(f"INFO: Output directory not hardwired. Using notebook's directory for final output: '{final_save_directory_path.resolve()}'")
 
-    final_processed_markdown_path = final_save_directory_path / markdown_basename
+    # --- MODIFICATION START: Determine the final filename ---
+    # Use the hardcoded OUTPUT_FILENAME_MD if it's set, otherwise fall back to the notebook-derived name.
+    final_markdown_filename = OUTPUT_FILENAME_MD if (OUTPUT_FILENAME_MD and OUTPUT_FILENAME_MD.strip()) else markdown_basename_from_notebook
+    print(f"INFO: Final output filename has been set to: '{final_markdown_filename}'")
+    
+    # Construct the full path for the final processed Markdown file.
+    final_processed_markdown_path = final_save_directory_path / final_markdown_filename
+    # --- MODIFICATION END ---
+
 
     # --- Step B: Convert the current notebook to standard Markdown ---
     # nbconvert will output <notebook_name>.md into current_notebook_dir (its CWD)
@@ -4585,9 +4489,6 @@ def export_notebook_and_apply_custom_processing():
     ]
     
     print(f"\nINFO: Exporting '{current_notebook_filename_ipynb}' to '{nbconvert_output_path_in_notebook_dir}' using 'jupyter nbconvert'...")
-    # print(f"        Constructed nbconvert_command list: {nbconvert_command}")
-    # print(f"        Running command string (for display): {' '.join(nbconvert_command)}")
-    # print(f"        Working directory: '{current_notebook_dir}'")
     
     try:
         result = subprocess.run(
@@ -4624,35 +4525,20 @@ def export_notebook_and_apply_custom_processing():
         )
         
         if processing_successful:
-            # If a hardwired output path was used, and it resulted in a *different* location
-            # than the notebook's directory, then the initial nbconvert output in the
-            # notebook's directory should be removed.
-            hardwired_path_used_and_different = (
-                OPTIONAL_HARWIRED_OUTPUT_PATH and
-                OPTIONAL_HARWIRED_OUTPUT_PATH.strip() and
-                final_save_directory_path.resolve() != Path(current_notebook_dir).resolve()
-            )
-            
-            if hardwired_path_used_and_different:
-                if nbconvert_output_path_in_notebook_dir.exists(): # Check it exists before trying to delete
+            # If the final output path is different from the initial nbconvert output path,
+            # remove the initial intermediate file. This happens when either the directory
+            # or the filename (or both) are different.
+            if nbconvert_output_path_in_notebook_dir.resolve() != final_processed_markdown_path.resolve():
+                if nbconvert_output_path_in_notebook_dir.exists():
                     try:
                         nbconvert_output_path_in_notebook_dir.unlink()
-                        print(f"INFO: Removed intermediate Markdown file from notebook directory: '{nbconvert_output_path_in_notebook_dir}' as output was redirected to '{final_processed_markdown_path}'.")
+                        print(f"INFO: Removed intermediate Markdown file: '{nbconvert_output_path_in_notebook_dir}' as output was saved to '{final_processed_markdown_path}'.")
                     except OSError as e:
                         print(f"WARNING: Could not remove intermediate Markdown file '{nbconvert_output_path_in_notebook_dir}': {e}")
-            # If hardwired_path_used_and_different is False, it means either:
-            # 1. No hardwired path was used (output is in notebook_dir, overwrite happened via process_markdown, no delete needed).
-            # 2. Hardwired path was used but it resolved to the same as notebook_dir (overwrite happened, no delete needed).
         else: # processing_successful is False
             print(f"WARNING: Custom post-processing encountered an issue. The intended output '{final_processed_markdown_path}' may require review or might not be complete.")
             # In case of processing failure, we leave the intermediate nbconvert output in place for debugging.
 
-        # Note: If OPTIONAL_HARWIRED_OUTPUT_PATH directs output to a different location
-        # and processing is successful, the initial nbconvert output in the notebook's
-        # directory is removed. This ensures the final file exists only in the specified
-        # hardwired location. If no hardwired path is used, or if it points to the
-        # same directory as the notebook, the initial file is overwritten by the
-        # processed version in the notebook's directory.
     else: # nbconvert_output_path_in_notebook_dir does not exist
         print(f"\nERROR: The 'nbconvert' output file '{nbconvert_output_path_in_notebook_dir}' was not found. Skipping custom post-processing.")
 
@@ -4662,6 +4548,6 @@ print("Done")
 ```
 
 
-```
+```python
 
 ```
