@@ -67,7 +67,7 @@ exclude = [
 
 [tool.setuptools.package-data]
 "*" = [
-    "install.sh", 
+    "assets/installer/install.sh", 
     "flake.nix",
     "README.md",
     "LICENSE",
