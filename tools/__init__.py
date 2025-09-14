@@ -4,6 +4,15 @@ Tools package for Pipulate - Focused MCP tool modules
 This package contains extracted MCP tools organized by domain for token optimization.
 """
 
+# --- NEW: Proof-of-concept for automatic tool registration ---
+AUTO_REGISTERED_TOOLS = {}
+
+def auto_tool(func):
+    """Decorator to prove that automatic registration is possible."""
+    AUTO_REGISTERED_TOOLS[func.__name__] = func
+    return func
+# --- END NEW ---
+
 from . import mcp_tools
 
 # Re-export commonly used functions for convenience

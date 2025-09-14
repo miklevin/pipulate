@@ -285,7 +285,7 @@ import sys
 from datetime import datetime
 from urllib.parse import urlparse
 
-# Add current directory to path to import modules
+# Add current absolute directory to path
 sys.path.insert(0, '{os.getcwd()}')'''
 
 # =============================================================================
