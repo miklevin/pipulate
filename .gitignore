@@ -1,6 +1,6 @@
 # ripgrep filters
 assets/js/
-cruft
+# cruft
 
 # main
 *.csv
