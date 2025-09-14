@@ -27,7 +27,7 @@ import tempfile
 
 # Add current directory to path for imports
 sys.path.append('.')
-from modules.dom_processing.enhanced_dom_processor import EnhancedDOMProcessor
+from imports.dom_processing.enhanced_dom_processor import EnhancedDOMProcessor
 
 
 class InteractiveGoogleSearch:

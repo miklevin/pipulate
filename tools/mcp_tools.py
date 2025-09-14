@@ -14,7 +14,7 @@ If you're an AI assistant just discovering Pipulate, start with the simplest syn
 
 Level 1 (Ultra-simple): [mcp-discover]
 Level 2 (Terminal): .venv/bin/python cli.py mcp-discover  
-Level 3 (Python): python -c "from modules.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))"
+Level 3 (Python): python -c "from imports.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))"
 Level 4 (JSON): <tool name="ai_self_discovery_assistant"><params>{"discovery_type":"capabilities"}</params></tool>
 Level 5 (XML): <tool name="ai_self_discovery_assistant"><params><discovery_type>capabilities</discovery_type></params></tool>
 
@@ -57,7 +57,7 @@ except ImportError:
 
 # Import voice synthesis system
 try:
-    from modules.voice_synthesis import (VOICE_SYNTHESIS_AVAILABLE,
+    from imports.voice_synthesis import (VOICE_SYNTHESIS_AVAILABLE,
                                          chip_voice_system)
 except ImportError:
     chip_voice_system = None
@@ -1974,7 +1974,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
         automation_assistant_result = None
         if include_automation_assistant and analysis_type in ["all", "enhanced"]:
             try:
-                from modules.dom_processing.enhanced_dom_processor import \
+                from imports.dom_processing.enhanced_dom_processor import \
                     process_current_looking_at
                 logger.info("🎯 FINDER_TOKEN: ENHANCED_DOM_PROCESSING_START - Generating automation assistant files")
                 automation_assistant_result = process_current_looking_at()
@@ -3424,7 +3424,7 @@ async def botify_get_full_schema(params: dict) -> dict:
                 pass
 
         # Perform live schema discovery
-        from modules.botify.true_schema_discoverer import \
+        from imports.botify.true_schema_discoverer import \
             BotifySchemaDiscoverer
 
         # Create discoverer instance

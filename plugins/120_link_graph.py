@@ -21,7 +21,7 @@ import numpy as np
 from fasthtml.common import *
 from starlette.responses import HTMLResponse
 from loguru import logger
-from modules.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
+from imports.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
 ROLES = ['Botify Employee']
 TOKEN_FILE = 'botify_token.txt'
