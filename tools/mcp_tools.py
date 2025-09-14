@@ -472,6 +472,10 @@ async def get_user_session_state(params: dict) -> dict:
         }
 
 
+from tools import auto_tool
+
+
+@auto_tool
 async def builtin_get_cat_fact(params: dict) -> dict:
     """Built-in cat fact tool - demonstrates the MCP tool pattern."""
     try:

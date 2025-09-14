@@ -1,4 +1,8 @@
+# ripgrep filters
+assets/js/
 cruft
+
+# main
 *.csv
 *.gz
 *.pkl
