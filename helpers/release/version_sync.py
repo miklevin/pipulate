@@ -129,7 +129,7 @@ def update_install_sh(version):
     possible_paths = [
         Path("../Pipulate.com/install.sh"),  # If running from pipulate/ dir
         Path("Pipulate.com/install.sh"),     # If running from workspace root
-        Path("install.sh")                   # If running from Pipulate.com dir
+        Path("assets/installer/install.sh")                   # If running from Pipulate.com dir
     ]
     
     install_file = None
