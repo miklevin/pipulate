@@ -144,7 +144,7 @@ This system provides unprecedented debugging power:
         logger.info(f"Using pipulate root directory: {pipulate_root}")
 
         # Scan training directory
-        training_dir = pipulate_root / 'training'
+        training_dir = pipulate_root / 'helpers/botify'
         if training_dir.exists():
             for file_path in training_dir.glob('*.md'):
                 key, info = self.process_training_file(file_path)
@@ -197,7 +197,7 @@ This system provides unprecedented debugging power:
         elif 'QUICK_REFERENCE' in filename:
             category = 'featured'
             priority = 4
-        elif filename == 'botify_api':
+        elif 'botify' in filename and 'api' in filename:
             category = 'featured'
             priority = 5  # After Quick Reference
 
@@ -209,7 +209,7 @@ This system provides unprecedented debugging power:
             content = file_path.read_text(encoding='utf-8')
             extracted_title, description = self.extract_metadata_from_content(content, title)
             # Only use extracted title if we don't have a specific mapping for this filename
-            if extracted_title and filename not in ['ULTIMATE_PIPULATE_GUIDE', 'ULTIMATE_PIPULATE_GUIDE_PART2', 'ULTIMATE_PIPULATE_GUIDE_PART3', 'QUICK_REFERENCE', 'botify_api', 'botify_open_api', 'change_log']:
+            if extracted_title and filename not in ['ULTIMATE_PIPULATE_GUIDE', 'ULTIMATE_PIPULATE_GUIDE_PART2', 'ULTIMATE_PIPULATE_GUIDE_PART3', 'QUICK_REFERENCE', 'botify_api_bootcamp', 'botify_api_examples', 'change_log']:
                 title = extracted_title
         except Exception as e:
             logger.warning(f"Could not read {file_path}: {e}")
@@ -228,7 +228,7 @@ This system provides unprecedented debugging power:
         }
         
         # Add pagination metadata for long documents
-        if filename in ['botify_api', 'botify_open_api', 'change_log']:
+        if ('botify' in filename and 'api' in filename) or filename == 'change_log':
             info['paginated'] = True
             info['separator'] = '-' * 80
             # Update title to indicate pagination

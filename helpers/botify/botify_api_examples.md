@@ -1,6 +1,6 @@
 # Botify Open API Swagger Examples
 
-**Total Estimated Token Count**: `21,544` (using `cl100k_base`)
+**Total Estimated Token Count**: `21,052` (using `cl100k_base`)
 
 This document provides detailed information and Python code examples for every endpoint in the Botify API...
 #### `GET /analyses/{username}/{project_slug}`
@@ -39,7 +39,7 @@ username = "YOUR_USERNAME"
 project_slug = "YOUR_PROJECT_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -98,7 +98,7 @@ username = "YOUR_USERNAME"
 project_slug = "YOUR_PROJECT_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/create/launch"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/create/launch"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -157,7 +157,7 @@ username = "YOUR_USERNAME"
 project_slug = "YOUR_PROJECT_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/light"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/light"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -221,7 +221,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -278,7 +278,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -337,7 +337,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/time"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/time"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -396,7 +396,7 @@ analysis_slug = "YOUR_ANALYSIS_SLUG"
 list_type = "YOUR_LIST_TYPE"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/urls/{list_type}"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/urls/{list_type}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -457,7 +457,7 @@ medium = "YOUR_MEDIUM"
 source = "YOUR_SOURCE"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/features/ganalytics/orphan_urls/{medium}/{source}"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/ganalytics/orphan_urls/{medium}/{source}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -515,7 +515,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/features/links/percentiles"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/links/percentiles"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -568,7 +568,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/features/pagerank/lost"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/pagerank/lost"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -621,7 +621,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/features/scoring/summary"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/scoring/summary"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -674,7 +674,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/features/search_console/stats"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/search_console/stats"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -727,7 +727,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/report"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/report"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -786,7 +786,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/out_of_config"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/out_of_config"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -850,7 +850,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/sitemap_only"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/sitemap_only"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -914,7 +914,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/domains"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/domains"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -978,7 +978,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/subdomains"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/subdomains"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1044,7 +1044,7 @@ medium = "YOUR_MEDIUM"
 source = "YOUR_SOURCE"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/features/visits/orphan_urls/{medium}/{source}"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/visits/orphan_urls/{medium}/{source}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1102,7 +1102,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/pause"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/pause"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1155,7 +1155,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/resume"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/resume"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1214,7 +1214,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/segments"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/segments"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1278,7 +1278,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1343,7 +1343,7 @@ analysis_slug = "YOUR_ANALYSIS_SLUG"
 robots_txt = "YOUR_ROBOTS_TXT"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes/{robots_txt}"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes/{robots_txt}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1410,7 +1410,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/urls"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1481,7 +1481,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/urls/aggs"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/aggs"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1544,7 +1544,7 @@ analysis_slug = "YOUR_ANALYSIS_SLUG"
 url = "YOUR_URL"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/urls/ai/{url}"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/ai/{url}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1603,7 +1603,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/urls/datamodel"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/datamodel"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1669,7 +1669,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/urls/datasets"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/datasets"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1735,7 +1735,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/urls/export"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/export"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1803,7 +1803,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 analysis_slug = "YOUR_ANALYSIS_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/urls/export"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/export"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1869,7 +1869,7 @@ analysis_slug = "YOUR_ANALYSIS_SLUG"
 url_export_id = "YOUR_URL_EXPORT_ID"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/urls/export/{url_export_id}"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/export/{url_export_id}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1923,7 +1923,7 @@ analysis_slug = "YOUR_ANALYSIS_SLUG"
 url = "YOUR_URL"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/urls/html/{url}"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/html/{url}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -1982,7 +1982,7 @@ analysis_slug = "YOUR_ANALYSIS_SLUG"
 url = "YOUR_URL"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/analyses/{username}/{project_slug}/{analysis_slug}/urls/{url}"
+url = f"https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/{url}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2043,7 +2043,7 @@ except FileNotFoundError:
     token = 'YOUR_API_TOKEN'  # Fallback
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/jobs"
+url = f"https://api.botify.com/v1/jobs"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2104,7 +2104,7 @@ except FileNotFoundError:
     token = 'YOUR_API_TOKEN'  # Fallback
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/jobs"
+url = f"https://api.botify.com/v1/jobs"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2159,7 +2159,7 @@ except FileNotFoundError:
 job_id = "YOUR_JOB_ID"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/jobs/{job_id}"
+url = f"https://api.botify.com/v1/jobs/{job_id}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2217,7 +2217,7 @@ except FileNotFoundError:
 username = "YOUR_USERNAME"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/projects/{username}"
+url = f"https://api.botify.com/v1/projects/{username}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2283,7 +2283,7 @@ username = "YOUR_USERNAME"
 project_slug = "YOUR_PROJECT_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/projects/{username}/{project_slug}/account_filters"
+url = f"https://api.botify.com/v1/projects/{username}/{project_slug}/account_filters"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2342,7 +2342,7 @@ username = "YOUR_USERNAME"
 project_slug = "YOUR_PROJECT_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/projects/{username}/{project_slug}/collections"
+url = f"https://api.botify.com/v1/projects/{username}/{project_slug}/collections"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2400,7 +2400,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 collection = "YOUR_COLLECTION"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/projects/{username}/{project_slug}/collections/{collection}"
+url = f"https://api.botify.com/v1/projects/{username}/{project_slug}/collections/{collection}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2463,7 +2463,7 @@ username = "YOUR_USERNAME"
 project_slug = "YOUR_PROJECT_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/projects/{username}/{project_slug}/filters"
+url = f"https://api.botify.com/v1/projects/{username}/{project_slug}/filters"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2522,7 +2522,7 @@ project_slug = "YOUR_PROJECT_SLUG"
 identifier = "YOUR_IDENTIFIER"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/projects/{username}/{project_slug}/filters/{identifier}"
+url = f"https://api.botify.com/v1/projects/{username}/{project_slug}/filters/{identifier}"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2581,7 +2581,7 @@ username = "YOUR_USERNAME"
 project_slug = "YOUR_PROJECT_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/projects/{username}/{project_slug}/query"
+url = f"https://api.botify.com/v1/projects/{username}/{project_slug}/query"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2642,7 +2642,7 @@ username = "YOUR_USERNAME"
 project_slug = "YOUR_PROJECT_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/projects/{username}/{project_slug}/saved_explorers"
+url = f"https://api.botify.com/v1/projects/{username}/{project_slug}/saved_explorers"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2702,7 +2702,7 @@ username = "YOUR_USERNAME"
 project_slug = "YOUR_PROJECT_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/projects/{username}/{project_slug}/urls/aggs"
+url = f"https://api.botify.com/v1/projects/{username}/{project_slug}/urls/aggs"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2769,7 +2769,7 @@ username = "YOUR_USERNAME"
 project_slug = "YOUR_PROJECT_SLUG"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/projects/{username}/{project_slug}/values_list/clone"
+url = f"https://api.botify.com/v1/projects/{username}/{project_slug}/values_list/clone"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2824,7 +2824,7 @@ except FileNotFoundError:
 username = "YOUR_USERNAME"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/users/{username}/datasources_summary_by_projects"
+url = f"https://api.botify.com/v1/users/{username}/datasources_summary_by_projects"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
@@ -2875,7 +2875,7 @@ except FileNotFoundError:
 username = "YOUR_USERNAME"
 
 # --- Construct the Request ---
-url = f"[https://api.botify.com/v1](https://api.botify.com/v1)/users/{username}/projects"
+url = f"https://api.botify.com/v1/users/{username}/projects"
 headers = {
     'Authorization': f'Token {token}',
     'Content-Type': 'application/json'
