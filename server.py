@@ -3055,13 +3055,20 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
 
                             full_content_buffer += content
 
-                            # STAGE 2: Passive MCP listening - detect formal MCP requests
+                            # STAGE 3: Active MCP execution - detect and execute formal MCP requests
                             formal_mcp_result = parse_mcp_request(full_content_buffer)
                             if formal_mcp_result:
                                 tool_name, inner_content = formal_mcp_result
-                                logger.info(f"🎯 MCP DETECTED (Passive Mode): Found formal MCP tool call for '{tool_name}'")
+                                mcp_detected = True  # Stop streaming the LLM response
+                                
+                                logger.info(f"🎯 MCP ACTIVATED: Found formal MCP tool call for '{tool_name}'")
                                 logger.debug(f"🎯 MCP CONTENT: {inner_content}")
-                                # Continue streaming for now - this is passive mode
+                                
+                                # Execute the formal MCP tool call
+                                asyncio.create_task(
+                                    execute_formal_mcp_tool_call(messages, tool_name, inner_content)
+                                )
+                                continue  # Skip the rest of the stream processing
 
                             # Use regex to find a complete MCP block
                             match = mcp_pattern.search(full_content_buffer)
@@ -3121,6 +3128,46 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
         error_msg = f'Error: {str(e)}'
         logger.error(f"🔍 DEBUG: Unexpected error in process_llm_interaction: {e}")
         yield error_msg
+
+
+async def execute_formal_mcp_tool_call(conversation_history: list, tool_name: str, inner_content: str):
+    """
+    Execute a formal MCP tool call using the imports.mcp_orchestrator.
+    
+    This function handles the formal MCP protocol by:
+    1. Executing the tool using the formal orchestrator
+    2. Appending both the tool call and result to conversation history
+    3. Sending the updated history back to the LLM for the next turn
+    """
+    from imports.mcp_orchestrator import execute_mcp_tool
+    
+    try:
+        logger.info(f"🎯 FORMAL MCP: Executing tool '{tool_name}'")
+        
+        # Execute the tool using the formal orchestrator
+        tool_output_xml = await execute_mcp_tool(tool_name, inner_content)
+        logger.debug(f"🎯 FORMAL MCP: Tool output: {tool_output_xml}")
+        
+        # Construct the original tool call XML for conversation history
+        original_call = f'<tool name="{tool_name}">{inner_content}</tool>'
+        
+        # Append both the tool call and the result to conversation history
+        updated_messages = conversation_history.copy()
+        updated_messages.append({"role": "assistant", "content": original_call})
+        updated_messages.append({"role": "user", "content": tool_output_xml})
+        
+        logger.info(f"🎯 FORMAL MCP: Sending updated conversation back to LLM")
+        
+        # Send the updated conversation back to the LLM for the next turn
+        async for chunk in process_llm_interaction(MODEL, updated_messages):
+            await chat.broadcast(chunk)
+            
+        logger.info(f"🎯 FORMAL MCP: Completed formal MCP execution cycle")
+        
+    except Exception as e:
+        logger.error(f"🎯 FORMAL MCP: Error in formal MCP execution: {e}", exc_info=True)
+        error_message = f"Error executing formal MCP tool '{tool_name}': {str(e)}"
+        await chat.broadcast(error_message)
 
 
 async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block: str):
