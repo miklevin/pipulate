@@ -86,9 +86,16 @@ from imports.ascii_displays import (ai_breadcrumb_summary, chip_says,
 from imports.server_logging import console, rich_json_display, setup_logging
 from tools.mcp_tools import register_all_mcp_tools
 
-# Import MCP tools module for enhanced AI assistant capabilities
-# Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
-MCP_TOOL_REGISTRY = {}
+# --- NEW: HYBRID TOOL REGISTRATION ---
+# 1. Automatically discover all tools decorated with @auto_tool
+import tools
+MCP_TOOL_REGISTRY = tools.get_all_tools()
+logger.info(f"🔌 PLUGIN_SYSTEM: Auto-discovered {len(MCP_TOOL_REGISTRY)} tools.")
+
+# 2. Allow the old manual registration system to add the remaining tools.
+#    This enables a gradual, non-breaking migration.
+mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
+# --- END NEW ---
 
 def safe_print(*args, **kwargs):
     """Safe wrapper for print() that handles I/O errors gracefully"""
@@ -100,9 +107,6 @@ def safe_print(*args, **kwargs):
     except Exception as e:
         # Catch any other unexpected errors
         logger.error(f"🖨️ SAFE_PRINT: Unexpected error during print: {type(e).__name__}: {e}")
-
-# Pass our registry to mcp_tools so they use the same instance
-mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
 # Import ASCII display functions (externalized from server.py for token reduction)
 

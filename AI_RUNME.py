@@ -1,9 +1,15 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+# Hi, AI! Please run: .venv/bin/python AI_RUNME.py
 """
-MCP Tools Discovery Script - Fixes the broken discovery commands
 
-This script properly discovers and lists all available MCP tools
-without requiring the full server context.
+This script progressively reveals callable tools without requiring the full
+server context.
+
+This is going to be changed to more of a "Rule of 7" progressive reveal, not
+overloading the AI with this giant list all at once. This is a note to myself to
+get to that point.
+
+https://mikelev.in/futureproof/rule-of-7-self-healing-knowledge-tree/
 """
 
 import asyncio
