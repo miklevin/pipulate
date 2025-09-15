@@ -2968,6 +2968,9 @@ class Pipulate:
 
 
 async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
+    # Import the formal MCP orchestrator for passive listening
+    from imports.mcp_orchestrator import parse_mcp_request
+    
     url = 'http://localhost:11434/api/chat'
     payload = {'MODEL': MODEL, 'messages': messages, 'stream': True}
     accumulated_response = []
@@ -3051,6 +3054,14 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                                 continue
 
                             full_content_buffer += content
+
+                            # STAGE 2: Passive MCP listening - detect formal MCP requests
+                            formal_mcp_result = parse_mcp_request(full_content_buffer)
+                            if formal_mcp_result:
+                                tool_name, inner_content = formal_mcp_result
+                                logger.info(f"🎯 MCP DETECTED (Passive Mode): Found formal MCP tool call for '{tool_name}'")
+                                logger.debug(f"🎯 MCP CONTENT: {inner_content}")
+                                # Continue streaming for now - this is passive mode
 
                             # Use regex to find a complete MCP block
                             match = mcp_pattern.search(full_content_buffer)
