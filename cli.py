@@ -80,8 +80,8 @@ def discover_tools(show_all=False, tool_name=None):
             
             try:
                 # Only get tool registry info, no noisy discovery
-                from tools.mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
-                register_all_mcp_tools()
+                from tools import get_all_tools
+                MCP_TOOL_REGISTRY = get_all_tools()
                 
                 if tool_name in MCP_TOOL_REGISTRY:
                     tool_func = MCP_TOOL_REGISTRY[tool_name]
@@ -106,16 +106,17 @@ def discover_tools(show_all=False, tool_name=None):
                 console.print("Make sure you're running this from the pipulate directory with the virtual environment activated.")
         
         elif show_all:
-            # Full view - run complete discovery and show everything
-            from AI_RUNME import discover_tools as run_discovery
-            results = run_discovery()
-            
+            # Full view - use the new, authoritative tool registry
+            from tools import get_all_tools
+            registry = get_all_tools()
+            all_tools = sorted(registry.keys())
+
             console.print(f"📊 [bold green]Complete Tool Discovery Results[/bold green]")
-            console.print(f"Found {results['total_tools']} tools, {results['accessible_functions']} accessible")
+            console.print(f"Found {len(all_tools)} tools.")
             
-            # Show all tools (existing discovery logic)
+            # Show all tools
             console.print("\n[bold]All Available Tools:[/bold]")
-            for tool in sorted(results.get('all_tools', [])):
+            for tool in all_tools:
                 console.print(f"  • {tool}")
         
         else:
@@ -162,8 +163,8 @@ async def call_mcp_tool(tool_name: str, tool_args: dict):
         register_all_mcp_tools()
         
         # Import the server's registry - with inline architecture, we need to get it from mcp_tools
-        from tools.mcp_tools import MCP_TOOL_REGISTRY
-        registry = MCP_TOOL_REGISTRY
+        from tools import get_all_tools
+        registry = get_all_tools()
         
         if tool_name not in registry:
             console.print(f"❌ [bold red]Error:[/bold red] Tool '{tool_name}' not found")
