@@ -2992,6 +2992,7 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     # Level 3: python -c "from imports.ai_tool_discovery_simple_parser import execute_simple_command..."
     # Level 4: <tool name="ai_self_discovery_assistant"><params>{"discovery_type":"capabilities"}</params></tool>
     # Level 5: <tool name="ai_self_discovery_assistant"><params><discovery_type>capabilities</discovery_type></params></tool>
+    # Level 6: Formal MCP Protocol - Full conversation loop with automatic tool execution
     #
     # This orchestrator monitors LLM response streams for MCP tool calls.
     # When found, tools are executed asynchronously and results injected back.

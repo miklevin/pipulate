@@ -169,6 +169,11 @@ def create_working_discovery_commands():
 
 # Command 5: Test environment access (no parameters needed)
 .venv/bin/python -c "import asyncio; from tools.mcp_tools import test_environment_access; result = asyncio.run(test_environment_access()); print('Environment Test Result:', result)"
+
+# 🎯 FORMAL MCP PROTOCOL (Level 6): 
+# Use in chat interface for automatic tool execution with conversation loop:
+# <tool name="system_list_directory"><params>{"path": "."}</params></tool>
+# <tool name="ai_self_discovery_assistant"><params>{"discovery_type": "capabilities"}</params></tool>
 """)
 
 if __name__ == "__main__":

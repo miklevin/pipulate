@@ -11,6 +11,7 @@ Pipulate CLI - Beautiful installation and execution interface
     Level 3: python -c "from imports.ai_tool_discovery_simple_parser import execute_simple_command..."
     Level 4: <tool name="..."><params>{"key":"value"}</params></tool>
     Level 5: <tool name="..."><params><key>value</key></params></tool>
+    Level 6: Formal MCP Protocol (auto-execution in chat)      # Full spec-compliant MCP orchestration
     
     CLI Golden Path (Level 2):
     1. .venv/bin/python cli.py mcp-discover                     # Discover your core abilities
@@ -31,6 +32,7 @@ GOLDEN PATH EXECUTION MATRIX - TERMINAL STATUS:
     Level 3: python -c "from imports.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))"
     Level 4: <tool name="ai_self_discovery_assistant"><params>{"discovery_type":"capabilities"}</params></tool>
     Level 5: <tool name="ai_self_discovery_assistant"><params><discovery_type>capabilities</discovery_type></params></tool>
+    Level 6: Formal MCP Protocol - Full conversation loop with automatic tool execution
 
 Usage:
     .venv/bin/python cli.py install [app_name]         # Install with optional custom name
