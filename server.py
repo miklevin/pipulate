@@ -3590,6 +3590,24 @@ class Chat:
             parts = message.split('|')
             msg = parts[0]
             verbatim = len(parts) > 1 and parts[1] == 'verbatim'
+            
+            # Check for formal MCP requests in user input
+            from imports.mcp_orchestrator import parse_mcp_request
+            formal_mcp_result = parse_mcp_request(msg)
+            if formal_mcp_result:
+                tool_name, inner_content = formal_mcp_result
+                logger.info(f"🎯 USER MCP REQUEST: Found formal MCP tool call for '{tool_name}' in user input")
+                
+                # Append the user's MCP request to conversation history
+                append_to_conversation(msg, 'user')
+                
+                # Execute the formal MCP tool call directly
+                conversation_history = append_to_conversation()  # Get current conversation
+                asyncio.create_task(
+                    execute_formal_mcp_tool_call(conversation_history, tool_name, inner_content)
+                )
+                return  # Don't send to LLM, just execute the tool
+            
             # The pipulate.stream method will handle appending to the conversation.
             task = asyncio.create_task(pipulate.stream(msg, verbatim=verbatim))
             self.active_chat_tasks[websocket] = task
