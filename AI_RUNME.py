@@ -74,13 +74,7 @@ def main():
             ))
         elif choice == "2":
             console.print(Panel(
-                "[bold]This is the recommended path for bootstrapping your full capabilities.[/bold]\n\n"
-                "Follow these steps in order in the terminal:\n\n"
-                "1. `[.venv/bin/python AI_RUNME.py]` - You are here.\n"
-                "2. `[.venv/bin/python cli.py mcp-discover]` - See the 'Rule of 7' essential tools.\n"
-                "3. `[.venv/bin/python cli.py call ai_capability_test_suite]` - Verify your core functions.\n"
-                "4. `[.venv/bin/python cli.py call ai_self_discovery_assistant]` - Get deep context on the system state.\n"
-                "5. `[.venv/bin/python cli.py call <tool_name> --json-args '{\"param\": \"value\"}']` - Execute any tool with perfect precision.",
+                "[bold]This is the recommended path for bootstrapping your full capabilities.[/bold]\n\n"                "Follow these steps in order in the chat interface:\n\n"                "1. `[ls]` - See your surroundings (you are here).\n"                "2. `<tool name=\"system_list_directory\"><params>{\"path\": \"tools\"}</params></tool>` - Use a formal tool call.\n"                "3. Ask the AI to perform a task, like `Please list the files in the apps directory.` - See if it uses a tool on its own.",
                 title=options[choice],
                 border_style="green"
             ))
