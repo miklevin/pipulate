@@ -2331,42 +2331,6 @@ class Pipulate:
                 await self.chat.broadcast(chunk)
                 response_text += chunk
             logger.info(f"ORCHESTRATOR: Exited LLM stream loop. Full response_text: '{response_text}'")
-    
-            # --- FINAL ORCHESTRATION ---
-            # simple_command_match = re.match(r'^\s*\[(\w+)\]\s*$', response_text)
-            import re
-            simple_command_match = re.search(r'\[(\w+)\]', response_text)
-            logger.info(f"ORCHESTRATOR: Checking for simple command. Match: {simple_command_match}")
-    
-            if simple_command_match:
-                command = simple_command_match.group(1)
-                logger.info(f"SIMPLE CMD DETECTED: Intercepted command '[{command}]'")
-    
-                from tools import ALIAS_REGISTRY
-                tool_name = ALIAS_REGISTRY.get(command)
-                logger.info(f"SIMPLE CMD: Looked up '{command}', found tool: '{tool_name}'")
-    
-                if tool_name:
-                    append_to_conversation(response_text, 'assistant')
-                    tool_output = await mcp_orchestrator.execute_mcp_tool(tool_name, '<params>{}</params>')
-                    await self.stream(tool_output, role='tool')
-                    return
-    
-            tool_call = mcp_orchestrator.parse_mcp_request(response_text)
-            logger.info(f"ORCHESTRATOR: Checking for formal MCP. Match: {tool_call}")
-    
-            if not tool_call:
-                append_to_conversation(response_text, 'assistant')
-                logger.debug(f'LLM message streamed: {response_text[:100]}...')
-            else:
-                logger.info(f"MCP EXECUTING: Intercepted tool call for '{tool_call[0]}'")
-                append_to_conversation(response_text, 'assistant')
-                tool_name, inner_content = tool_call
-                tool_output = await mcp_orchestrator.execute_mcp_tool(tool_name, inner_content)
-                await self.stream(tool_output, role='tool')
-                return
-            # --- END FINAL ORCHESTRATION ---
-    
         except asyncio.CancelledError:
             logger.info("LLM stream was cancelled by user.")
         except Exception as e:
