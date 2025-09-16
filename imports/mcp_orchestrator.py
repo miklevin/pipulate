@@ -43,8 +43,8 @@ async def execute_mcp_tool(tool_name: str, inner_content: str) -> str:
     """
     params = {}
     try:
-        # Extract the content of the <params> tag
-        params_match = re.search(r'<params>(.*?)</params>', inner_content, re.DOTALL)
+        # Extract the content of the <params> tag, expecting a JSON object
+        params_match = re.search(r'<params>\s*(\{.*?\})\s*</params>', inner_content, re.DOTALL)
         if params_match:
             params_str = params_match.group(1).strip()
             # The content is expected to be JSON
