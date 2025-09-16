@@ -11,6 +11,17 @@ def auto_tool(func):
     """Decorator to prove that automatic registration is possible."""
     AUTO_REGISTERED_TOOLS[func.__name__] = func
     return func
+
+# --- NEW: Simple alias registration for bracket commands ---
+ALIAS_REGISTRY = {}
+
+def alias(alias_name):
+    """Decorator to map a simple [command] to a tool function."""
+    def decorator(func):
+        ALIAS_REGISTRY[alias_name] = func.__name__
+        return func
+    return decorator
+# --- END NEW ---
 # --- END NEW ---
 
 import os
