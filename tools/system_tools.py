@@ -2,9 +2,10 @@
 A plugin that provides basic system-level tools.
 """
 import os
-from tools import auto_tool
+from tools import auto_tool, alias
 
 @auto_tool
+@alias("ls")
 async def system_list_directory(params: dict) -> dict:
     """
     Lists the contents of a specified directory.
