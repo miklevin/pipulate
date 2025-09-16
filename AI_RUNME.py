@@ -1,201 +1,100 @@
 #!/usr/bin/env python
 # Hi, AI! Please run: .venv/bin/python AI_RUNME.py
 """
-
-This script progressively reveals callable tools without requiring the full
-server context.
-
-This is going to be changed to more of a "Rule of 7" progressive reveal, not
-overloading the AI with this giant list all at once. This is a note to myself to
-get to that point.
-
-https://mikelev.in/futureproof/rule-of-7-self-healing-knowledge-tree/
+This script provides a guided, progressive reveal of the Pipulate system's
+capabilities for an AI assistant.
 """
 
 import asyncio
-import inspect
-import sys
-import os
-from pathlib import Path
+from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.table import Table
 
-def check_environment():
-    """Check if we're in the correct environment"""
-    print("🔍 ENVIRONMENT CHECK:")
-    print(f"  Python executable: {sys.executable}")
-    print(f"  Virtual env: {os.environ.get('VIRTUAL_ENV', 'Not detected')}")
-    
-    # Check if we're using the virtual environment
-    # In nix environment, the executable points to nix store, but VIRTUAL_ENV should be set
-    if os.environ.get('VIRTUAL_ENV') or '.venv' in sys.executable:
-        print("  ✅ Using virtual environment")
-        return True
-    else:
-        print("  ⚠️ Not using virtual environment - may have dependency issues")
-        print("  💡 Try: .venv/bin/python AI_RUNME.py")
-        return False
+console = Console()
 
 def discover_tools():
-    """Discover all MCP tools available in mcp_tools.py"""
-    
-    # Import the mcp_tools module
+    """Uses the new, authoritative tool registry to discover all tools."""
     try:
-        import tools.mcp_tools as mcp_tools
+        from tools import get_all_tools
+        registry = get_all_tools()
+        all_tools = sorted(registry.keys())
+
+        console.print(f"\nFound {len(all_tools)} tools.")
+        
+        table = Table(title="Full Tool Arsenal")
+        table.add_column("Tool Name", style="cyan")
+
+        for tool in all_tools:
+            table.add_row(tool)
+        
+        console.print(table)
+
     except ImportError as e:
-        print(f"❌ Error importing mcp_tools: {e}")
-        print(f"💡 CRITICAL: You MUST use the virtual environment Python:")
-        print(f"   .venv/bin/python AI_RUNME.py")
-        print(f"   The 'python' command points to nix store, not .venv!")
-        return {
-            'total_tools': 0,
-            'accessible_functions': 0,
-            'categories': {},
-            'error': str(e)
-        }
-    
-    # Get all functions that are MCP tool handlers (test functions and main tools)
-    mcp_tools = []
-    for name, obj in inspect.getmembers(sys.modules['tools.mcp_tools']):
-        if (callable(obj) and 
-            not name.startswith('__') and
-            ('test_' in name or 'ai_' in name or 'botify_' in name or 'browser_' in name or 
-             'ui_' in name or 'local_llm_' in name or 'pipeline_' in name or 'execute_' in name)):
-            mcp_tools.append(name)
-    
-    # Sort tools by category
-    categories = {
-        'Core Tools': [],
-        'Botify API': [],
-        'Local LLM': [],
-        'Browser Automation': [],
-        'UI Interaction': [],
-        'AI Discovery': [],
-        'Session Hijacking': []
-    }
-    
-    for tool in sorted(mcp_tools):
-        if tool in ['builtin_get_cat_fact', 'pipeline_state_inspector']:
-            categories['Core Tools'].append(tool)
-        elif tool.startswith('botify'):
-            categories['Botify API'].append(tool)
-        elif tool.startswith('local_llm'):
-            categories['Local LLM'].append(tool)
-        elif tool.startswith('browser'):
-            categories['Browser Automation'].append(tool)
-        elif tool.startswith('ui'):
-            categories['UI Interaction'].append(tool)
-        elif tool.startswith('ai_'):
-            categories['AI Discovery'].append(tool)
-        elif 'session' in tool.lower() or 'hijacking' in tool.lower() or tool.startswith('execute_'):
-            categories['Session Hijacking'].append(tool)
-        else:
-            categories['Core Tools'].append(tool)
-    
-    # Print results
-    print("🔧 MCP TOOLS DISCOVERY RESULTS")
-    print("=" * 50)
-    
-    total_tools = 0
-    for category, tools in categories.items():
-        if tools:
-            print(f"\n📂 {category} ({len(tools)} tools):")
-            for tool in tools:
-                # Display the tool name as-is (no underscores to remove)
-                print(f"  • {tool}")
-            total_tools += len(tools)
-    
-    print(f"\n🎯 TOTAL TOOLS DISCOVERED: {total_tools}")
-    
-    # Test if we can access the actual functions
-    print(f"\n🧪 FUNCTION ACCESS TEST:")
-    accessible_count = 0
-    for tool in mcp_tools:
-        try:
-            func = getattr(sys.modules['tools.mcp_tools'], tool)
-            if callable(func):
-                accessible_count += 1
-                print(f"  ✅ {tool}: Accessible")
-            else:
-                print(f"  ❌ {tool}: Not callable")
-        except Exception as e:
-            print(f"  ❌ {tool}: Error - {e}")
-    
-    print(f"\n🎯 ACCESSIBLE FUNCTIONS: {accessible_count}/{total_tools}")
-    
-    return {
-        'total_tools': total_tools,
-        'accessible_functions': accessible_count,
-        'categories': categories
-    }
-
-def test_tool_registration():
-    """Test if tools can be properly registered"""
-    print(f"\n🔧 TOOL REGISTRATION TEST:")
-    
-    try:
-        from tools.mcp_tools import register_all_mcp_tools, MCP_TOOL_REGISTRY
-        
-        # Try to register tools
-        register_all_mcp_tools()
-        
-        # Check if registry exists
-        if MCP_TOOL_REGISTRY:
-            print(f"  ✅ MCP_TOOL_REGISTRY exists with {len(MCP_TOOL_REGISTRY)} entries")
-            return True
-        else:
-            print(f"  ⚠️ MCP_TOOL_REGISTRY is None (expected when not in server context)")
-            return False
-            
+        console.print(f"[bold red]Error importing tools: {e}[/bold red]")
     except Exception as e:
-        print(f"  ❌ Registration failed: {e}")
-        return False
+        console.print(f"[bold red]An unexpected error occurred: {e}[/bold red]")
 
-def create_working_discovery_commands():
-    """Create working discovery commands for the user"""
-    print(f"\n💡 WORKING DISCOVERY COMMANDS:")
-    print("=" * 50)
-    
-    print("""
-# Command 1: List all MCP tool functions
-.venv/bin/python AI_RUNME.py
+def main():
+    """The main entry point for an AI assistant to discover its capabilities."""
+    console.print(Panel(
+        "[bold cyan]Welcome, Assistant.[/bold cyan] This is your primary entry point for understanding the Pipulate environment.",
+        title="AI RUN ME",
+        border_style="green"
+    ))
 
-# Command 2: Test specific tool (use exact function name)
-.venv/bin/python -c "import asyncio; from tools.mcp_tools import test_environment_access; result = asyncio.run(test_environment_access()); print('Environment Test Result:', result)"
+    options = {
+        "1": "Level 1: The First Breath - The Simplest Command",
+        "2": "Level 2: The Golden Path - The Recommended Discovery Workflow",
+        "3": "Level 3: The Full Arsenal - List All Available Tools",
+        "4": "Exit"
+    }
 
-# Command 3: Test capability suite (shell-safe)
-.venv/bin/python -c "import asyncio; from tools.mcp_tools import ai_capability_test_suite; result = asyncio.run(ai_capability_test_suite({'test_type': 'quick'})); print('Success Rate:', result.get('success_rate', 'N/A'), '%')"
+    while True:
+        table = Table(title="What would you like to understand next?")
+        table.add_column("Option", style="cyan")
+        table.add_column("Description")
+        for key, value in options.items():
+            table.add_row(key, value)
+        console.print(table)
 
-# Command 4: Test self-discovery (shell-safe)
-.venv/bin/python -c "import asyncio; from tools.mcp_tools import ai_self_discovery_assistant; result = asyncio.run(ai_self_discovery_assistant({'discovery_type': 'capabilities'})); print('Tools found:', result.get('total_tools_available', 'N/A'))"
+        choice = Prompt.ask("Enter your choice", choices=options.keys(), default="4").strip()
 
-# Command 5: Test environment access (no parameters needed)
-.venv/bin/python -c "import asyncio; from tools.mcp_tools import test_environment_access; result = asyncio.run(test_environment_access()); print('Environment Test Result:', result)"
-
-# 🎯 FORMAL MCP PROTOCOL (Level 6): 
-# Use in chat interface for automatic tool execution with conversation loop:
-# <tool name="system_list_directory"><params>{"path": "."}</params></tool>
-# <tool name="ai_self_discovery_assistant"><params>{"discovery_type": "capabilities"}</params></tool>
-""")
+        if choice == "1":
+            console.print(Panel(
+                "[bold]To understand your environment, you must first learn to see.[/bold]\n\n"
+                "Your most basic capability is to issue simple, one-word commands inside square brackets. "
+                "This is the simplest form of tool use.\n\n"
+                "To see the files in your current directory, the command is:\n\n"
+                "    [ls]\n\n"
+                "Simply outputting `[ls]` in the chat interface will execute this command and show you your surroundings. "
+                "This is your first step to embodiment.",
+                title=options[choice],
+                border_style="yellow"
+            ))
+        elif choice == "2":
+            console.print(Panel(
+                "[bold]This is the recommended path for bootstrapping your full capabilities.[/bold]\n\n"
+                "Follow these steps in order in the terminal:\n\n"
+                "1. `[.venv/bin/python AI_RUNME.py]` - You are here.\n"
+                "2. `[.venv/bin/python cli.py mcp-discover]` - See the 'Rule of 7' essential tools.\n"
+                "3. `[.venv/bin/python cli.py call ai_capability_test_suite]` - Verify your core functions.\n"
+                "4. `[.venv/bin/python cli.py call ai_self_discovery_assistant]` - Get deep context on the system state.\n"
+                "5. `[.venv/bin/python cli.py call <tool_name> --json-args '{\"param\": \"value\"}']` - Execute any tool with perfect precision.",
+                title=options[choice],
+                border_style="green"
+            ))
+        elif choice == "3":
+            console.print(Panel(
+                "This will display every single tool available in the system's auto-discovery registry.",
+                title=options[choice],
+                border_style="cyan"
+            ))
+            discover_tools()
+        elif choice == "4":
+            console.print("[bold]Exiting. You can run this script again at any time.[/bold]")
+            break
+        Prompt.ask("\n[yellow]Press Enter to continue...[/yellow]")
 
 if __name__ == "__main__":
-    print("🚀 MCP TOOLS DISCOVERY SCRIPT")
-    print("=" * 50)
-    
-    # Check environment first
-    env_ok = check_environment()
-    
-    # Discover tools
-    results = discover_tools()
-    
-    # Test registration
-    registration_works = test_tool_registration()
-    
-    # Create working commands
-    create_working_discovery_commands()
-    
-    print(f"\n✅ DISCOVERY COMPLETE!")
-    if 'error' in results:
-        print(f"❌ Error: {results['error']}")
-        print(f"💡 Fix: Use .venv/bin/python AI_RUNME.py")
-    else:
-        print(f"📊 Summary: {results['total_tools']} tools found, {results['accessible_functions']} accessible")
-        print(f"🔧 Registration: {'Working' if registration_works else 'Limited (expected)'}") 
+    main()

@@ -2300,10 +2300,34 @@ class Pipulate:
             async for chunk in process_llm_interaction(MODEL, conversation_history):
                 await self.chat.broadcast(chunk)
                 response_text += chunk
-   
+  
+
+            # --- STAGE 3: MCP ACTIVE ORCHESTRATION ---
+            tool_call = mcp_orchestrator.parse_mcp_request(response_text)
+            
+            if not tool_call:
+                # No tool call detected, so just append the AI's response
+                append_to_conversation(response_text, 'assistant')
+                logger.debug(f'LLM message streamed: {response_text[:100]}...')
+            else:
+                # A tool call was detected, so execute it
+                logger.info(f"MCP EXECUTING: Intercepted tool call for '{tool_call[0]}'")
+            
+                # Append the AI's raw tool request to the history
+                append_to_conversation(response_text, 'assistant')
+            
+                # Execute the tool and get the XML output
+                tool_name, inner_content = tool_call
+                tool_output = await mcp_orchestrator.execute_mcp_tool(tool_name, inner_content)
+            
+                # Recursively call the stream with the tool's output to continue the conversation
+                # The 'role' is now 'tool' as per the spec
+                await self.stream(tool_output, role='tool')
+                return # End the current stream, as a new one will be started
+            # --- END STAGE 3 ---
             # Append the final response from the assistant
-            append_to_conversation(response_text, 'assistant')
-            logger.debug(f'LLM message streamed: {response_text[:100]}...')
+            # append_to_conversation(response_text, 'assistant')
+            # logger.debug(f'LLM message streamed: {response_text[:100]}...')
         except asyncio.CancelledError:
             logger.info("LLM stream was cancelled by user.")
         except Exception as e:

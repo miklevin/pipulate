@@ -5,43 +5,17 @@ Pipulate CLI - Beautiful installation and execution interface
 
 🎯 THE GOLDEN PATH FOR AI ASSISTANTS:
     🎓 PROGRESSIVE REVEAL: Start simple, get sophisticated!
-    
-    Level 1: [mcp-discover] in chat interface                   # Ultra-simple start (try this first!)
+
+    Level 1: [ls] in chat interface                         # The First Breath (simplest possible action)
     Level 2: .venv/bin/python cli.py mcp-discover               # Terminal proficiency (YOU ARE HERE)
-    Level 3: python -c "from imports.ai_tool_discovery_simple_parser import execute_simple_command..."
-    Level 4: <tool name="..."><params>{"key":"value"}</params></tool>
-    Level 5: <tool name="..."><params><key>value</key></params></tool>
-    Level 6: Formal MCP Protocol (auto-execution in chat)      # Full spec-compliant MCP orchestration
-    
-    CLI Golden Path (Level 2):
-    1. .venv/bin/python cli.py mcp-discover                     # Discover your core abilities
-    2. .venv/bin/python cli.py call ai_capability_test_suite    # Verify your capabilities  
-    3. .venv/bin/python cli.py call ai_self_discovery_assistant # Understand current context
-    4. .venv/bin/python cli.py call [tool_name] --json-args '{"param": "value"}'  # Execute tasks
+    Level 3: .venv/bin/python cli.py call <tool_name> --json-args '{...}' # Precision execution
+    Level 4: <tool name=...><params>{...}</params></tool> in chat # Formal MCP (for advanced models)
 
-GOLDEN PATH EXECUTION MATRIX - TERMINAL STATUS:
-    ✅ WORKING: python cli.py call tool_name --json-args '...'
-    🟡 PARTIAL: python -c "..." (basic only, needs error handling wrapper)
-    🔴 NOT YET: XML command parsing in CLI
-    🔴 NOT YET: JSON command parsing in CLI  
-    🔴 NOT YET: [cmd arg] bracket notation in CLI (works in chat interface!)
-
-🎓 PROGRESSIVE REVEAL FOR ALL LLMs (simplest first):
-    Level 1: [mcp-discover] - Ultra-simple bracket notation (via chat)
-    Level 2: .venv/bin/python cli.py mcp-discover - Terminal proficiency
-    Level 3: python -c "from imports.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))"
-    Level 4: <tool name="ai_self_discovery_assistant"><params>{"discovery_type":"capabilities"}</params></tool>
-    Level 5: <tool name="ai_self_discovery_assistant"><params><discovery_type>capabilities</discovery_type></params></tool>
-    Level 6: Formal MCP Protocol - Full conversation loop with automatic tool execution
-
-Usage:
-    .venv/bin/python cli.py install [app_name]         # Install with optional custom name
-    .venv/bin/python cli.py run [app_name]             # Run existing installation  
-    .venv/bin/python cli.py uninstall [app_name]       # Clean uninstall for testing
-    .venv/bin/python cli.py mcp-discover [--all] [--tool name]  # Discover MCP tools (progressive reveal)
-    .venv/bin/python cli.py call [tool_name] [args]    # Execute MCP tool with arguments
-    .venv/bin/python cli.py call [tool_name] --json-args '{"param": "value"}'  # Golden path for complex args
-    .venv/bin/python cli.py --help                     # Show this help
+CLI Golden Path (Level 2 & 3):
+1. .venv/bin/python cli.py mcp-discover                     # Discover your core abilities
+2. .venv/bin/python cli.py call ai_capability_test_suite    # Verify your capabilities
+3. .venv/bin/python cli.py call ai_self_discovery_assistant # Understand current context
+4. .venv/bin/python cli.py call <tool_name> --json-args '...' # Execute any task
 """
 
 import os
