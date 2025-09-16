@@ -2233,6 +2233,34 @@ class Pipulate:
         """
         logger.debug(f"🔍 DEBUG: === STARTING pipulate.stream (role: {role}) ===")
 
+        # --- NEW: PRE-LLM ORCHESTRATION ---
+        if role == 'user': # Only check user messages for commands
+            import re
+            simple_command_match = re.search(r'\[(\w+)\]', message)
+            if simple_command_match:
+                command = simple_command_match.group(1)
+                logger.info(f"SIMPLE CMD DETECTED: Intercepted command '[{command}]' from user.")
+                
+                from tools import ALIAS_REGISTRY
+                tool_name = ALIAS_REGISTRY.get(command)
+
+                if tool_name:
+                    append_to_conversation(message, 'user') # Log what the user tried to do
+                    tool_output = await mcp_orchestrator.execute_mcp_tool(tool_name, '<params>{}</params>')
+                    await self.stream(tool_output, role='tool')
+                    return # IMPORTANT: End the execution here
+
+            # Check for formal MCP in user message as well
+            tool_call = mcp_orchestrator.parse_mcp_request(message)
+            if tool_call:
+                logger.info(f"MCP EXECUTING: Intercepted tool call for '{tool_call[0]}' from user.")
+                append_to_conversation(message, 'user')
+                tool_name, inner_content = tool_call
+                tool_output = await mcp_orchestrator.execute_mcp_tool(tool_name, inner_content)
+                await self.stream(tool_output, role='tool')
+                return
+        # --- END NEW ---
+
         # CENTRALIZED: All messages entering the stream are now appended here
         append_to_conversation(message, role)
 
@@ -2295,39 +2323,50 @@ class Pipulate:
         """Handles the logic for an interruptible LLM stream."""
         try:
             await self.chat.broadcast('%%STREAM_START%%')
-            conversation_history = append_to_conversation()  # Get current conversation history
+            conversation_history = append_to_conversation()
             response_text = ''
+    
+            logger.info("ORCHESTRATOR: Entering LLM stream loop.")
             async for chunk in process_llm_interaction(MODEL, conversation_history):
                 await self.chat.broadcast(chunk)
                 response_text += chunk
-  
-
-            # --- STAGE 3: MCP ACTIVE ORCHESTRATION ---
+            logger.info(f"ORCHESTRATOR: Exited LLM stream loop. Full response_text: '{response_text}'")
+    
+            # --- FINAL ORCHESTRATION ---
+            # simple_command_match = re.match(r'^\s*\[(\w+)\]\s*$', response_text)
+            import re
+            simple_command_match = re.search(r'\[(\w+)\]', response_text)
+            logger.info(f"ORCHESTRATOR: Checking for simple command. Match: {simple_command_match}")
+    
+            if simple_command_match:
+                command = simple_command_match.group(1)
+                logger.info(f"SIMPLE CMD DETECTED: Intercepted command '[{command}]'")
+    
+                from tools import ALIAS_REGISTRY
+                tool_name = ALIAS_REGISTRY.get(command)
+                logger.info(f"SIMPLE CMD: Looked up '{command}', found tool: '{tool_name}'")
+    
+                if tool_name:
+                    append_to_conversation(response_text, 'assistant')
+                    tool_output = await mcp_orchestrator.execute_mcp_tool(tool_name, '<params>{}</params>')
+                    await self.stream(tool_output, role='tool')
+                    return
+    
             tool_call = mcp_orchestrator.parse_mcp_request(response_text)
-            
+            logger.info(f"ORCHESTRATOR: Checking for formal MCP. Match: {tool_call}")
+    
             if not tool_call:
-                # No tool call detected, so just append the AI's response
                 append_to_conversation(response_text, 'assistant')
                 logger.debug(f'LLM message streamed: {response_text[:100]}...')
             else:
-                # A tool call was detected, so execute it
                 logger.info(f"MCP EXECUTING: Intercepted tool call for '{tool_call[0]}'")
-            
-                # Append the AI's raw tool request to the history
                 append_to_conversation(response_text, 'assistant')
-            
-                # Execute the tool and get the XML output
                 tool_name, inner_content = tool_call
                 tool_output = await mcp_orchestrator.execute_mcp_tool(tool_name, inner_content)
-            
-                # Recursively call the stream with the tool's output to continue the conversation
-                # The 'role' is now 'tool' as per the spec
                 await self.stream(tool_output, role='tool')
-                return # End the current stream, as a new one will be started
-            # --- END STAGE 3 ---
-            # Append the final response from the assistant
-            # append_to_conversation(response_text, 'assistant')
-            # logger.debug(f'LLM message streamed: {response_text[:100]}...')
+                return
+            # --- END FINAL ORCHESTRATION ---
+    
         except asyncio.CancelledError:
             logger.info("LLM stream was cancelled by user.")
         except Exception as e:
