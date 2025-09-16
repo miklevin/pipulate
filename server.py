@@ -2236,17 +2236,24 @@ class Pipulate:
         # --- NEW: PRE-LLM ORCHESTRATION ---
         if role == 'user': # Only check user messages for commands
             import re
-            simple_command_match = re.search(r'\[(\w+)\]', message)
+            simple_command_match = re.search(r'\[(.*?)\]', message)
+
+
             if simple_command_match:
-                command = simple_command_match.group(1)
-                logger.info(f"SIMPLE CMD DETECTED: Intercepted command '[{command}]' from user.")
-                
+                full_command_string = simple_command_match.group(1).strip()
+                command_parts = full_command_string.split(maxsplit=1) # Split into tool name and rest of args
+                command_alias = command_parts[0]
+                command_args = command_parts[1] if len(command_parts) > 1 else ""
+            
+                logger.info(f"SIMPLE CMD DETECTED: Intercepted command '[{full_command_string}]'")
+            
                 from tools import ALIAS_REGISTRY
-                tool_name = ALIAS_REGISTRY.get(command)
+                tool_name = ALIAS_REGISTRY.get(command_alias)
 
                 if tool_name:
                     append_to_conversation(message, 'user') # Log what the user tried to do
-                    tool_output = await mcp_orchestrator.execute_mcp_tool(tool_name, '<params>{}</params>')
+                    # Pass the command_args to the tool
+                    tool_output = await mcp_orchestrator.execute_mcp_tool(tool_name, f'<params>{{"command": "{command_args}"}}</params>')
                     await self.stream(tool_output, role='tool')
                     return # IMPORTANT: End the execution here
 
