@@ -73,7 +73,7 @@ from watchdog.observers import Observer
 import tools.mcp_tools as mcp_tools
 # Import centralized configuration to eliminate duplication
 from config import PCONFIG as CONFIG_PCONFIG
-from imports import botify_code_generation
+from imports import botify_code_generation, mcp_orchestrator
 from imports.ascii_displays import (ai_breadcrumb_summary, chip_says,
                                     falling_alice, figlet_banner,
                                     log_reading_legend,
@@ -2287,19 +2287,23 @@ class Pipulate:
                 raise
 
         # Logic for interruptible LLM streams
+        await self._handle_llm_stream()
+        logger.debug(f"🔍 DEBUG: === ENDING pipulate.stream (LLM) ===")
+        return message
+
+    async def _handle_llm_stream(self):
+        """Handles the logic for an interruptible LLM stream."""
         try:
             await self.chat.broadcast('%%STREAM_START%%')
-            # Use the append-only conversation system instead of global deque
             conversation_history = append_to_conversation()  # Get current conversation history
             response_text = ''
             async for chunk in process_llm_interaction(MODEL, conversation_history):
                 await self.chat.broadcast(chunk)
                 response_text += chunk
-
+   
             # Append the final response from the assistant
             append_to_conversation(response_text, 'assistant')
             logger.debug(f'LLM message streamed: {response_text[:100]}...')
-            return message
         except asyncio.CancelledError:
             logger.info("LLM stream was cancelled by user.")
         except Exception as e:
@@ -2308,7 +2312,6 @@ class Pipulate:
         finally:
             await self.chat.broadcast('%%STREAM_END%%')
             logger.debug("LLM stream finished or cancelled, sent %%STREAM_END%%")
-            logger.debug(f"🔍 DEBUG: === ENDING pipulate.stream ({'verbatim' if verbatim else 'LLM'}) ===")
 
     def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str = None, target_id: str = None, revert_label: str = None, remove_padding: bool = False, show_when_finalized: bool = False):
         """Create a UI control for reverting to a previous workflow step.
