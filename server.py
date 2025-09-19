@@ -4489,7 +4489,7 @@ async def startup_event():
 
         # Execute comprehensive backup
         story_moment("Backup System", "Protecting critical data assets", BANNER_COLORS['workshop_ready'])
-        backup_results = backup_manager.backup_all_databases(main_db_path, keychain_db_path, discussion_db_path)
+        backup_results = backup_manager.backup_all_databases()
 
         # Log results
         successful_backups = sum(1 for success in backup_results.values() if success)
@@ -6205,7 +6205,7 @@ async def backup_now(request):
 
         # Execute comprehensive backup
         logger.info("🛡️ MANUAL BACKUP INITIATED")
-        backup_results = backup_manager.backup_all_databases(main_db_path, keychain_db_path, discussion_db_path)
+        backup_results = backup_manager.backup_all_databases()
 
         # Prepare response
         successful_backups = sum(1 for success in backup_results.values() if success)
