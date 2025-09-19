@@ -14,7 +14,7 @@ from server import get_db_filename, title_name
 from imports.crud import BaseCrud
 
 # ROLES constant is now used for discovery, not for defining the roles themselves.
-ROLES = []
+ROLES = ["Core"]
 
 # Define the standard order of roles
 ROLE_ORDER = {

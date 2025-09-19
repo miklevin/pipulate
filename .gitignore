@@ -22,7 +22,7 @@ flake.lock
 foo.txt
 foo_files.py
 logs/
-prompt.md
+helpers/prompt_foo/prompt.md
 service_account.txt
 whitelabel.txt
 
