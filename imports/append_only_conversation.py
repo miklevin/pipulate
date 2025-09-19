@@ -169,7 +169,7 @@ class AppendOnlyConversationSystem:
             return None
         
         # Create backup before append
-        self._create_backup("before_message_append")
+                # self._create_backup("before_message_append") # Redundant: Durable backup runs on startup
         
         # Append to database (ONLY INSERT - NEVER REPLACE)
         conn = sqlite3.connect(self.db_path)
