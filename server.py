@@ -5892,8 +5892,6 @@ async def search_plugins(request):
         searchable_plugins = []
 
         for module_name, instance in plugin_instances.items():
-            if module_name in ['profiles', 'roles']:  # Skip system plugins
-                continue
 
             # Get clean display name (remove numeric prefix, underscores, .py)
             clean_name = module_name.replace('_', ' ').title()
