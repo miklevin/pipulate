@@ -1,60 +1,117 @@
 Hello Gemini.
 
-You are waking up on the `steeltrap` branch. Your last session successfully implemented the new CLI database inspector and cleaned up obsolete code. However, the server logs from the subsequent restart have revealed two final issues: a logical inconsistency in the backup count and a `TypeError` in the console output.
+You are waking up on the `steeltrap` branch, which now contains a solid, transparent, and verifiable application foundation. Your last session was a success. However, we have one final startup error to resolve: the `SAFE_CONSOLE` `TypeError`. We now have access to `imports/ascii_displays.py` and can fix the root cause.
 
-Your mission is to fix these two remaining issues, making the system's foundation fully transparent and robust.
+Your mission is to fix the faulty print logic and verify a clean server startup.
 
-**The Unbreakable Laws of Physics (Updated):**
+**The Unbreakable Laws of Physics (Final Version):**
 
 1.  You are **always** in a Nix shell. You will **never** use `pip install`.
-2.  You will **never** use `sed` for complex, multi-line edits. You will **always** use the `read_file` -\> modify -\> `write_file` pattern for file modifications.
+2.  You will **never** use `sed` for multi-line edits. You will **always** use the `read_file` -\> modify -\> `write_file` pattern for file modifications.
 3.  You will verify every change with `git diff`.
-4.  You will commit after every single logical step.
-5.  Your **Definition of Done** is when both steps are committed, the server restarts without errors, and the log file confirms the backup count is correct.
-6.  Your **Completion Protocol** is to announce success with `echo "✅ Steeltrap protocol complete. Foundation is transparent and robust."`
+4.  You will commit after every logical step.
+5.  Your **Definition of Done** is when the fix is committed, the server restarts, and the logs are completely free of `SAFE_CONSOLE` errors.
+6.  Your **Completion Protocol** is to announce success with `echo "✅ Steeltrap Protocol complete. The foundation is solid, clean, and verified."`
 
-## **The Mission: Final Foundation Polish**
+## **The Mission: Final Polish**
 
-### **Step 1: Synchronize Backup Logic**
+#### **Step 1: Fix the `safe_console_print` Implementation**
 
-We will refactor the `backup_all_databases` function in `durable_backup_system.py` to use its own internal configuration, making it consistent with the summary table and fixing the incorrect log count.
+The function `safe_console_print` in `imports/ascii_displays.py` incorrectly imports `rich.print`. We will refactor it to use the `console` object already defined in that module.
 
-**Action 1: Refactor `durable_backup_system.py`.**
+**Action 1: Read the contents of `imports/ascii_displays.py`.**
 
 ```bash
-sed -i 's/def backup_all_databases(self, main_db_path: str, keychain_db_path: str, discussion_db_path: str) -> Dict[str, bool]:/def backup_all_databases(self) -> Dict[str, bool]:/' imports/durable_backup_system.py && \
-sed -i '/def backup_all_databases(self) -> Dict[str, bool]:/,/return results/c\
-    def backup_all_databases(self) -> Dict[str, bool]:\
-        """\
-\n        🚀 Perform complete backup of all critical databases.\
-\n        \
-\n        Called on server startup to ensure all data is protected.\
-\n        """\
-        results = {}\
-        for key, config in self.critical_databases.items():\
-            source_path = Path(config["source_path"])\
-            if os.path.exists(source_path):\
-                results[key] = self._backup_entire_database(str(source_path))\
-            else:\
-                logger.warning(f"⚠️ Source database not found, skipping backup: {source_path}")\
-                results[key] = False\
-        \
-        self.cleanup_old_backups(keep_days=7)\
-        \
-        successful = sum(1 for success in results.values() if success)\
-        total = len(self.critical_databases)\
-        if successful == total:\
-             logger.info(f"🛡️ Database backup complete: {successful}/{total} successful")\
-        else:\
-             logger.warning(f"🛡️ FINDER_TOKEN: BACKUP_STARTUP_PARTIAL - {successful}/{total} databases backed up")\
-        \
-        return results' imports/durable_backup_system.py
+.venv/bin/python cli.py call local_llm_read_file --file_path "imports/ascii_displays.py"
 ```
 
-**Action 2: Update the call site in `server.py`.**
+**Action 2: Replace the entire `safe_console_print` function with the corrected version.**
 
 ```bash
-sed -i "s/backup_results = backup_manager.backup_all_databases(main_db_path, keychain_db_path, discussion_db_path)/backup_results = backup_manager.backup_all_databases()/" server.py
+.venv/bin/python cli.py call local_llm_write_file --file_path "imports/ascii_displays.py" --old_code """def safe_console_print(*args, **kwargs):
+    \"\"\"🎨 SAFE_CONSOLE: Failover from rich.print to regular print for compatibility\"\"\"
+    try:
+        # Try rich.print first for beautiful output
+        from rich import print as rich_print
+        rich_print(*args, **kwargs)
+    except (BlockingIOError, OSError, IOError) as e:
+        # 🍎 MAC SPECIFIC: Handle Mac blocking I/O errors gracefully
+        import platform
+        if platform.system() == 'Darwin' and "write could not complete without blocking" in str(e):
+            # Mac blocking I/O - silently skip output to prevent cascade failures
+            pass
+        else:
+            # Other I/O errors - log and fall back
+            print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
+            try:
+                # Convert Rich objects and filter kwargs for fallback
+                simple_args = []
+                for arg in args:
+                    if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__'):
+                        simple_args.append(str(arg))
+                    else:
+                        simple_args.append(arg)
+                
+                safe_kwargs = {}
+                for key, value in kwargs.items():
+                    if key in ['sep', 'end', 'file', 'flush']:
+                        safe_kwargs[key] = value
+                
+                print(*simple_args, **safe_kwargs)
+            except Exception as fallback_error:
+                pass  # Silent fallback to prevent error cascades
+    except Exception as e:
+        # If rich fails (missing dependencies, terminal compatibility), fall back
+        print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
+        try:
+            # Convert Rich objects to their string representation if possible
+            simple_args = []
+            for arg in args:
+                if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__'):
+                    # Rich object - convert to string
+                    simple_args.append(str(arg))
+                else:
+                    simple_args.append(arg)
+            
+            # Filter out Rich-specific kwargs that regular print() doesn't support
+            safe_kwargs = {}
+            for key, value in kwargs.items():
+                if key in ['sep', 'end', 'file', 'flush']:  # Only standard print() parameters
+                    safe_kwargs[key] = value
+                # Skip Rich-specific parameters like 'style'
+            
+            print(*simple_args, **safe_kwargs)
+        except Exception as fallback_error:
+            print(f"🎨 SAFE_CONSOLE: Both Rich and simple print failed for: {args}")""" --new_code """def safe_console_print(*args, **kwargs):
+    \"\"\"🎨 SAFE_CONSOLE: Failover from rich.print to regular print for compatibility\"\"\"
+    try:
+        # Use the explicit console object for robust printing
+        console.print(*args, **kwargs)
+    except (BlockingIOError, OSError, IOError) as e:
+        # 🍎 MAC SPECIFIC: Handle Mac blocking I/O errors gracefully
+        import platform
+        if platform.system() == 'Darwin' and "write could not complete without blocking" in str(e):
+            # Mac blocking I/O - silently skip output to prevent cascade failures
+            pass
+        else:
+            # Other I/O errors - log and fall back
+            print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
+            try:
+                # Convert Rich objects and filter kwargs for fallback
+                simple_args = [str(arg) if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__') else arg for arg in args]
+                safe_kwargs = {k: v for k, v in kwargs.items() if k in ['sep', 'end', 'file', 'flush']}
+                print(*simple_args, **safe_kwargs)
+            except Exception as fallback_error:
+                pass  # Silent fallback to prevent error cascades
+    except Exception as e:
+        # If rich fails (e.g., TypeError for 'style'), fall back gracefully
+        print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
+        try:
+            simple_args = [str(arg) if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__') else arg for arg in args]
+            safe_kwargs = {k: v for k, v in kwargs.items() if k in ['sep', 'end', 'file', 'flush']}
+            print(*simple_args, **safe_kwargs)
+        except Exception as fallback_error:
+            print(f"🎨 SAFE_CONSOLE: Both Rich and simple print failed for: {args}")"""
 ```
 
 **Verification:**
@@ -66,56 +123,26 @@ git diff
 **Commit:**
 
 ```bash
-git commit -am "refactor(backup): Synchronize backup execution with configuration
+git commit -am "fix(logging): Use explicit console object in safe_console_print
 
-Refactors the `backup_all_databases` method in the durable backup system.
-It no longer accepts hardcoded paths as arguments and instead iterates over its own `self.critical_databases` dictionary.
+Refactors the `safe_console_print` function in `imports/ascii_displays.py` to use the module-level `console.print()` method instead of importing `rich.print` within the function.
 
-This fixes a logical inconsistency where the execution logic and the summary table logic could report different numbers of databases, leading to erroneous 'X/Y databases backed up' log messages. The system now robustly backs up all configured databases."
+This is a more robust pattern that avoids potential import shadowing and resolves the `TypeError: print() got an unexpected keyword argument 'style'` error that was occurring during server startup."
 ```
 
 -----
 
-### **Step 2: Add Defensive Check for Rich Console Printing**
+#### **Step 2: Final Verification**
 
-The `SAFE_CONSOLE` error originates in a file we cannot see (`ascii_displays.py`). To prevent this from ever causing silent issues, we will add a defensive check to `print_and_log_table` in `server.py` to ensure the `console` object is what we expect before using it with `rich`-specific features.
-
-**Action:** Add a type check inside `print_and_log_table` in `server.py`.
-
-```bash
-sed -i "/def print_and_log_table(table, title_prefix=\"\"):/a \ \ \ \ from rich.console import Console\n\ \ \ \ if isinstance(console, Console):\n \ \ \ \ \ \ \ \ console.print(table)\n\ \ \ \ else:\n \ \ \ \ \ \ \ \ # Fallback for non-rich console environments\n \ \ \ \ \ \ \ \ print(str(table))" server.py && \
-sed -i "/console.print(table)/d" server.py
-```
-
-**Verification:**
-
-```bash
-git diff
-```
-
-**Commit:**
-
-```bash
-git commit -am "fix(logging): Add defensive type check for rich console printing
-
-Adds a check in the `print_and_log_table` function to verify that the global `console` object is an instance of `rich.console.Console` before attempting to print a table with rich-specific features.
-
-This prevents `TypeError` exceptions in environments where the console object might be unexpectedly shadowed or in non-rich contexts, addressing the 'SAFE_CONSOLE' error seen in logs."
-```
-
------
-
-### **Step 3: Final Verification**
-
-Restart the server and confirm our fixes worked.
+Restart the server and confirm the `SAFE_CONSOLE` error is completely gone.
 
 **Action:**
 
 ```bash
-touch server.py && sleep 8 && grep "Database backup complete" logs/server.log | tail -n 1
+touch server.py && sleep 8 && grep "SAFE_CONSOLE" logs/server.log
 ```
 
-**Expected Output:** The `grep` command should now show a log message like `🛡️ Database backup complete: 4/4 successful`, confirming the backup logic is correct. The server log should also be free of the `SAFE_CONSOLE` `TypeError`.
+**Expected Output:** This command should produce **no output**. The absence of the `SAFE_CONSOLE` error message in the logs will confirm our fix was successful. The server console should start up cleanly.
 
 -----
 
