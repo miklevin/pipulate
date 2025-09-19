@@ -18,9 +18,8 @@ console = Console()
 def safe_console_print(*args, **kwargs):
     """🎨 SAFE_CONSOLE: Failover from rich.print to regular print for compatibility"""
     try:
-        # Try rich.print first for beautiful output
-        from rich import print as rich_print
-        rich_print(*args, **kwargs)
+        # Use the explicit console object for robust printing
+        console.print(*args, **kwargs)
     except (BlockingIOError, OSError, IOError) as e:
         # 🍎 MAC SPECIFIC: Handle Mac blocking I/O errors gracefully
         import platform
@@ -32,41 +31,17 @@ def safe_console_print(*args, **kwargs):
             print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
             try:
                 # Convert Rich objects and filter kwargs for fallback
-                simple_args = []
-                for arg in args:
-                    if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__'):
-                        simple_args.append(str(arg))
-                    else:
-                        simple_args.append(arg)
-                
-                safe_kwargs = {}
-                for key, value in kwargs.items():
-                    if key in ['sep', 'end', 'file', 'flush']:
-                        safe_kwargs[key] = value
-                
+                simple_args = [str(arg) if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__') else arg for arg in args]
+                safe_kwargs = {k: v for k, v in kwargs.items() if k in ['sep', 'end', 'file', 'flush']}
                 print(*simple_args, **safe_kwargs)
             except Exception as fallback_error:
                 pass  # Silent fallback to prevent error cascades
     except Exception as e:
-        # If rich fails (missing dependencies, terminal compatibility), fall back
+        # If rich fails (e.g., TypeError for 'style'), fall back gracefully
         print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
         try:
-            # Convert Rich objects to their string representation if possible
-            simple_args = []
-            for arg in args:
-                if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__'):
-                    # Rich object - convert to string
-                    simple_args.append(str(arg))
-                else:
-                    simple_args.append(arg)
-            
-            # Filter out Rich-specific kwargs that regular print() doesn't support
-            safe_kwargs = {}
-            for key, value in kwargs.items():
-                if key in ['sep', 'end', 'file', 'flush']:  # Only standard print() parameters
-                    safe_kwargs[key] = value
-                # Skip Rich-specific parameters like 'style'
-            
+            simple_args = [str(arg) if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__') else arg for arg in args]
+            safe_kwargs = {k: v for k, v in kwargs.items() if k in ['sep', 'end', 'file', 'flush']}
             print(*simple_args, **safe_kwargs)
         except Exception as fallback_error:
             print(f"🎨 SAFE_CONSOLE: Both Rich and simple print failed for: {args}")
