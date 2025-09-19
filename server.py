@@ -4935,8 +4935,6 @@ def group_apps_by_role(active_role_names):
         plugin_instance = plugin_instances.get(plugin_key)
         if not plugin_instance:
             continue
-        if plugin_key in ['profiles', 'roles']:
-            continue
         if not should_include_plugin(plugin_instance, active_role_names):
             continue
         primary_role = get_plugin_primary_role(plugin_instance)
@@ -4997,8 +4995,6 @@ def create_plugin_menu_item(plugin_key, menux, active_role_names):
     plugin_instance = plugin_instances.get(plugin_key)
     if not plugin_instance:
         logger.warning(f"Instance for plugin_key '{plugin_key}' not found. Skipping.")
-        return None
-    if plugin_key in ['profiles', 'roles']:
         return None
 
     if not should_include_plugin(plugin_instance, active_role_names):
