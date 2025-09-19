@@ -311,7 +311,7 @@ def run_install_script(app_name):
 
     if process.returncode != 0:
         console.print(f"❌ Installation failed.", style="bold red")
-        console.print(Panel(stderr, title="Error Details", border_style="red")
+        console.print(Panel(stderr, title="Error Details", border_style="red"))
         sys.exit(1)
 
     console.print(f"✅ Installation complete!")
