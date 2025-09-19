@@ -35,7 +35,7 @@ DEFAULT_ACTIVE_ROLES = {'Core', 'Botify Employee'}
 # Complete centralized configuration - single source of truth
 PCONFIG = {
     # UI & Navigation
-    'HOME_APP': 'roles',
+    'HOME_APP': 'introduction',
     'DEFAULT_ACTIVE_ROLES': DEFAULT_ACTIVE_ROLES,
     
     # Role System Configuration
