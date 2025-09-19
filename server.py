@@ -1394,6 +1394,12 @@ def append_to_conversation(message=None, role='user'):
     return list(global_conversation_history)
 
 
+def get_home_menu_item() -> str:
+    """Returns the appropriate home menu item text based on the HOME_APP setting."""
+    home_app_name = PCONFIG.get('HOME_APP', '030_roles')  # Default to '030_roles'
+    return friendly_names.get(home_app_name, title_name(home_app_name))
+
+
 def title_name(word: str) -> str:
     """Format a string into a title case form."""
     if not word:
@@ -1413,7 +1419,7 @@ def title_name(word: str) -> str:
 
 def endpoint_name(endpoint: str) -> str:
     if not endpoint:
-        return HOME_MENU_ITEM
+        return get_home_menu_item()
     if endpoint in friendly_names:
         return friendly_names[endpoint]
     return title_name(endpoint)
@@ -4962,7 +4968,7 @@ def create_home_menu_item(menux):
     home_css_classes = 'dropdown-item'
     if is_home_selected:
         home_css_classes += ' app-menu-item-selected'
-    home_label = Label(home_radio, HOME_MENU_ITEM, cls=home_css_classes)
+    home_label = Label(home_radio, get_home_menu_item(), cls=home_css_classes)
     menu_items.append(Li(home_label))
     return menu_items
 
