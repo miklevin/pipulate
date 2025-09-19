@@ -4488,7 +4488,7 @@ async def startup_event():
         discussion_db_path = 'data/discussion.db'
 
         # Execute comprehensive backup
-        story_moment("Backup System", "Protecting critical data assets", BANNER_COLORS['data_protection'])
+        story_moment("Backup System", "Protecting critical data assets", BANNER_COLORS['workshop_ready'])
         backup_results = backup_manager.backup_all_databases(main_db_path, keychain_db_path, discussion_db_path)
 
         # Log results
