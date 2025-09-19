@@ -36,6 +36,7 @@ HOME_MENU_ITEM = '👥 Roles (Home)'
 # Complete centralized configuration - single source of truth
 PCONFIG = {
     # UI & Navigation
+    'HOME_APP': 'roles',
     'HOME_MENU_ITEM': HOME_MENU_ITEM,
     'DEFAULT_ACTIVE_ROLES': DEFAULT_ACTIVE_ROLES,
     
