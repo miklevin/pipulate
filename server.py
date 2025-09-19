@@ -3832,20 +3832,23 @@ def build_endpoint_messages(endpoint):
 
     logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Built {len(endpoint_messages)} endpoint messages")
 
-    # Special handling for empty endpoint (homepage) - check if roles plugin exists
+    # Special handling for empty endpoint (homepage)
     if not endpoint:
-        logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Empty endpoint - using roles homepage logic")
-        roles_instance = plugin_instances.get('roles')
-        if roles_instance:
-            if hasattr(roles_instance, 'get_endpoint_message') and callable(getattr(roles_instance, 'get_endpoint_message')):
-                endpoint_messages[''] = roles_instance.get_endpoint_message()
-            elif hasattr(roles_instance, 'ENDPOINT_MESSAGE'):
-                endpoint_messages[''] = roles_instance.ENDPOINT_MESSAGE
+        # --- START CHANGE ---
+        home_app_name = PCONFIG.get('HOME_APP', 'roles')
+        logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Empty endpoint - using '{home_app_name}' as homepage logic")
+        home_app_instance = plugin_instances.get(home_app_name)
+        if home_app_instance:
+            if hasattr(home_app_instance, 'get_endpoint_message') and callable(getattr(home_app_instance, 'get_endpoint_message')):
+                endpoint_messages[''] = home_app_instance.get_endpoint_message()
+            elif hasattr(home_app_instance, 'ENDPOINT_MESSAGE'):
+                endpoint_messages[''] = home_app_instance.ENDPOINT_MESSAGE
             else:
-                class_name = roles_instance.__class__.__name__
-                endpoint_messages[''] = f'{class_name} app is where you manage your roles.'
+                class_name = home_app_instance.__class__.__name__
+                endpoint_messages[''] = f'{class_name} app is where you manage your {home_app_name}.'
         else:
-            endpoint_messages[''] = f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. Select an app from the menu to get started.'
+            endpoint_messages[''] = f'Welcome to {APP_NAME}. Select an app from the menu to get started.'
+        # --- END CHANGE ---
 
     if endpoint in plugin_instances:
         plugin_instance = plugin_instances[endpoint]
@@ -3872,18 +3875,21 @@ def build_endpoint_training(endpoint):
                 class_name = workflow_instance.__class__.__name__
                 endpoint_training[workflow_name] = f'{class_name} app is where you manage your workflows.'
 
-    # Special handling for empty endpoint (homepage) - check if roles plugin exists
+    # Special handling for empty endpoint (homepage)
     if not endpoint:
-        roles_instance = plugin_instances.get('roles')
-        if roles_instance:
-            if hasattr(roles_instance, 'TRAINING_PROMPT'):
-                prompt = roles_instance.TRAINING_PROMPT
+        # --- START CHANGE ---
+        home_app_name = PCONFIG.get('HOME_APP', 'roles')
+        home_app_instance = plugin_instances.get(home_app_name)
+        if home_app_instance:
+            if hasattr(home_app_instance, 'TRAINING_PROMPT'):
+                prompt = home_app_instance.TRAINING_PROMPT
                 endpoint_training[''] = read_training(prompt)
             else:
-                class_name = roles_instance.__class__.__name__
-                endpoint_training[''] = f'{class_name} app is where you manage your workflows.'
+                class_name = home_app_instance.__class__.__name__
+                endpoint_training[''] = f'You are on the homepage, which is the {class_name} app.'
         else:
             endpoint_training[''] = 'You were just switched to the home page.'
+        # --- END CHANGE ---
 
     append_to_conversation(endpoint_training.get(endpoint, ''), 'system')
     return
@@ -5224,12 +5230,15 @@ async def create_grid_left(menux, request):
 
     # Handle homepage (no menu selection)
     else:
-        roles_instance = plugin_instances.get('roles')
-        if roles_instance:
-            content_to_render = await roles_instance.landing(request)
+        # --- START CHANGE ---
+        home_app_name = PCONFIG.get('HOME_APP', 'roles')
+        home_app_instance = plugin_instances.get(home_app_name)
+        if home_app_instance:
+            content_to_render = await home_app_instance.landing(request)
         else:
-            logger.error("Roles plugin not found for homepage. Showing welcome message.")
-            content_to_render = Card(H3('Welcome'), P('Roles plugin not found. Please check your plugin configuration.'))
+            logger.error(f"Configured home app '{home_app_name}' not found. Please check config.py.")
+            content_to_render = Card(H3('Welcome'), P(f"Homepage app '{home_app_name}' not found."))
+        # --- END CHANGE ---
 
     # Fallback content if nothing was rendered
     if content_to_render is None:
