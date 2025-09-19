@@ -191,5 +191,23 @@ class AIKeychain:
         if self.store is None and hasattr(self, 'conn'):
             self.conn.close()
 
+    def get_keychain_summary_table(self) -> "Table":
+        """Generate a Rich Table summarizing the AI Keychain contents."""
+        from rich.table import Table
+        table = Table(title="🔑 AI Keychain Memory", border_style="yellow", show_header=True, header_style="bold yellow")
+        table.add_column("Key", style="cyan", max_width=50)
+        table.add_column("Value", style="magenta")
+        try:
+            items = list(self.items())
+            if not items:
+                table.add_row("[No keys found]", "")
+                return table
+            for key, value in items:
+                display_value = (value[:75] + '...') if len(value) > 75 else value
+                table.add_row(key, display_value)
+        except Exception as e:
+            table.add_row("Error", f"Could not read keychain: {e}")
+        return table
+
 # Create a single, reusable instance for the application
-keychain_instance = AIKeychain() 
+keychain_instance = AIKeychain()

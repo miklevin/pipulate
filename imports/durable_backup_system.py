@@ -586,6 +586,27 @@ class DurableBackupManager:
         
         return counts
 
+    def get_backup_summary_table(self) -> "Table":
+        """Generate a Rich Table summarizing the backup status."""
+        from rich.table import Table
+        table = Table(title="🛡️ Durable Backup Status", border_style="green", show_header=True, header_style="bold green")
+        table.add_column("Database", style="cyan")
+        table.add_column("Status", style="magenta")
+        table.add_column("Backup Path", style="dim")
+        for key in ['app_prod', 'app_dev', 'discussion', 'ai_keychain']:
+            config = self.critical_databases.get(key)
+            if not config: continue
+            source_path = Path(config['source_path'])
+            backup_path = self.backup_root / source_path.name
+            if source_path.exists():
+                if backup_path.exists():
+                    status = f"✅ Backed Up ({backup_path.stat().st_size / 1024:.1f} KB)"
+                else:
+                    status = "❌ Not Found"
+            else:
+                status = "ℹ️ Source Missing"
+            table.add_row(config['description'], status, str(backup_path))
+        return table
 
 # 🎯 GLOBAL INSTANCE for easy import
-backup_manager = DurableBackupManager() 
+backup_manager = DurableBackupManager()
