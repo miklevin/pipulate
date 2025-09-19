@@ -4504,6 +4504,21 @@ async def startup_event():
         logger.error(f"🛡️ FINDER_TOKEN: BACKUP_STARTUP_ERROR - Backup system failed: {e}")
 
     story_moment("Workshop Ready", "All systems initialized and ready for creative exploration", BANNER_COLORS['workshop_ready'])
+    # Display startup summary tables
+    try:
+        from imports.durable_backup_system import backup_manager as durable_backup_manager
+        from imports.ai_dictdb import keychain_instance
+        
+        # Display backup summary
+        backup_summary_table = durable_backup_manager.get_backup_summary_table()
+        print_and_log_table(backup_summary_table, "STARTUP - ")
+
+        # Display AI Keychain summary
+        keychain_summary_table = keychain_instance.get_keychain_summary_table()
+        print_and_log_table(keychain_summary_table, "STARTUP - ")
+
+    except Exception as e:
+        logger.error(f"Failed to display startup summary tables: {e}")
 
     # Status information now provided by Rich startup summary tables
 
