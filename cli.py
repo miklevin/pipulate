@@ -1,4 +1,4 @@
-#!.venv/bin/python
+#!/usr/bin/env python
 # Hi, AI! Please run: .venv/bin/python AI_RUNME.py
 """
 Pipulate CLI - Beautiful installation and execution interface
@@ -31,6 +31,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.syntax import Syntax
 from rich.table import Table
+import sqlite3
 
 console = Console()
 
@@ -180,6 +181,47 @@ async def call_mcp_tool(tool_name: str, tool_args: dict):
         console.print(f"❌ [bold red]Execution Error:[/bold red] {e}")
         return False
 
+def inspect_database(db_path_str: str, table_name: str = None):
+    """Inspects an SQLite database, showing tables or table contents."""
+    db_path = Path(db_path_str)
+    if not db_path.exists():
+        console.print(f"❌ [bold red]Error:[/bold red] Database file not found at {db_path}")
+        return
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        if not table_name:
+            # List all tables in the database
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = cursor.fetchall()
+            table_list = [t[0] for t in tables]
+            table_view = Table(title=f"Tables in {db_path.name}")
+            table_view.add_column("Table Name", style="cyan")
+            table_view.add_column("Row Count", style="magenta", justify="right")
+            for tbl in table_list:
+                cursor.execute(f"SELECT COUNT(*) FROM {tbl}")
+                count = cursor.fetchone()[0]
+                table_view.add_row(tbl, str(count))
+            console.print(table_view)
+            console.print(f"\n💡 To view a table's content, use: [bold white].venv/bin/python cli.py db-inspect {db_path.name.split('.')[0].replace('_dev','_dev')} --table [table_name][/bold white]")
+        else:
+            # Display contents of a specific table
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [col[1] for col in cursor.fetchall()]
+            cursor.execute(f"SELECT * FROM {table_name} LIMIT 50")
+            rows = cursor.fetchall()
+            table_view = Table(title=f"Contents of '{table_name}' in {db_path.name} (first 50 rows)")
+            for col in columns:
+                table_view.add_column(col, style="cyan")
+            for row in rows:
+                table_view.add_row(*[str(item) for item in row])
+            console.print(table_view)
+    except sqlite3.Error as e:
+        console.print(f"❌ [bold red]Database Error:[/bold red] {e}")
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
 def parse_tool_arguments(args: list) -> dict:
     """Parse command line arguments into a dictionary for MCP tools."""
     params = {}
@@ -269,7 +311,7 @@ def run_install_script(app_name):
 
     if process.returncode != 0:
         console.print(f"❌ Installation failed.", style="bold red")
-        console.print(Panel(stderr, title="Error Details", border_style="red"))
+        console.print(Panel(stderr, title="Error Details", border_style="red")
         sys.exit(1)
 
     console.print(f"✅ Installation complete!")
@@ -314,7 +356,7 @@ def main():
     # --- START NEW LOGIC ---
     # The magic happens here! If the first argument isn't a known command,
     # assume it's a tool name and implicitly prepend 'call'.
-    known_commands = {'install', 'run', 'uninstall', 'mcp-discover', 'call', '--help', '-h'}
+    known_commands = {'install', 'run', 'uninstall', 'mcp-discover', 'call', '--help', '-h', 'db-inspect'}
     args_list = sys.argv[1:] # Get arguments, excluding the script name
 
     if args_list and args_list[0] not in known_commands:
@@ -347,6 +389,11 @@ def main():
     uninstall_parser.add_argument('app_name', nargs='?', default='pipulate',
                                  help='Name of the installation to uninstall (default: pipulate)')
 
+    # Command: db-inspect
+    inspect_parser = subparsers.add_parser('db-inspect', help='Inspect SQLite databases.')
+    inspect_parser.add_argument('db_name', choices=['main_dev', 'main_prod', 'discussion', 'keychain'], help='The database to inspect.')
+    inspect_parser.add_argument('--table', type=str, help='The specific table to view.')
+
     # Command: mcp-discover (Progressive Reveal)
     discover_parser = subparsers.add_parser('mcp-discover', help='Discover available MCP tools (progressive reveal).')
     discover_parser.add_argument('--all', action='store_true', 
@@ -360,7 +407,7 @@ def main():
     call_parser.add_argument('tool_args', nargs='*', 
                             help='Key-value arguments (e.g., url https://example.com).')
     call_parser.add_argument('--json-args', type=str, 
-                            help='🎯 GOLDEN PATH: A JSON string containing all tool arguments. '
+                            help='🎯 GOLDEN PATH: A JSON string containing all tool arguments. ' 
                                  'Use this for complex parameters to ensure perfect data transmission.')
 
     args = parser.parse_args()
@@ -380,6 +427,19 @@ def main():
 
     elif args.command == 'uninstall':
         uninstall_pipulate(args.app_name)
+
+    elif args.command == 'db-inspect':
+        db_map = {
+            'main_dev': 'data/botifython_dev.db',
+            'main_prod': 'data/botifython.db',
+            'discussion': 'data/discussion.db',
+            'keychain': 'data/ai_keychain.db'
+        }
+        db_path = db_map.get(args.db_name)
+        if db_path:
+            inspect_database(db_path, args.table)
+        else:
+            console.print(f"❌ Unknown database alias: {args.db_name}")
     
     elif args.command == 'mcp-discover':
         discover_tools(show_all=args.all, tool_name=args.tool)
@@ -422,4 +482,4 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main() 
+    main()
