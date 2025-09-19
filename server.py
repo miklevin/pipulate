@@ -781,7 +781,12 @@ def print_and_log_table(table, title_prefix=""):
         title_prefix: Optional prefix for the log entry
     """
     # First, display the rich table in console with full formatting
-    console.print(table)
+    from rich.console import Console
+    if isinstance(console, Console):
+        console.print(table)
+    else:
+        # Fallback for non-rich console environments
+        print(str(table))
 
     # Then, extract and log the table data for server.log transparency
     try:
