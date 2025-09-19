@@ -368,41 +368,29 @@ class DurableBackupManager:
             logger.error(f"❌ AI Keychain restore failed: {e}")
             return False
     
-    def backup_all_databases(self, main_db_path: str, keychain_db_path: str, discussion_db_path: str) -> Dict[str, bool]:
+    def backup_all_databases(self) -> Dict[str, bool]:
         """
         🚀 Perform complete backup of all critical databases.
         
         Called on server startup to ensure all data is protected.
         """
         results = {}
+        for key, config in self.critical_databases.items():
+            source_path = Path(config["source_path"])
+            if os.path.exists(source_path):
+                results[key] = self._backup_entire_database(str(source_path))
+            else:
+                logger.warning(f"⚠️ Source database not found, skipping backup: {source_path}")
+                results[key] = False
         
-        # Backup main database (entire file)
-        if os.path.exists(main_db_path):
-            results['main_database'] = self._backup_entire_database(main_db_path)
-        else:
-            logger.warning(f"⚠️ Main database not found: {main_db_path}")
-            results['main_database'] = False
-        
-        # Backup AI ai_dictdb
-        if os.path.exists(keychain_db_path):
-            results['ai_keychain'] = self._backup_entire_database(keychain_db_path)
-        else:
-            logger.warning(f"⚠️ AI ai_dictdb not found: {keychain_db_path}")
-            results['ai_keychain'] = False
-        
-        # Backup discussion database
-        if os.path.exists(discussion_db_path):
-            results['discussion'] = self._backup_entire_database(discussion_db_path)
-        else:
-            logger.warning(f"⚠️ Discussion database not found: {discussion_db_path}")
-            results['discussion'] = False
-        
-        # Cleanup old backups (7-day retention as requested)
         self.cleanup_old_backups(keep_days=7)
         
         successful = sum(1 for success in results.values() if success)
-        total = len(results)
-        logger.info(f"🛡️ Database backup complete: {successful}/{total} successful")
+        total = len(self.critical_databases)
+        if successful == total:
+             logger.info(f"🛡️ Database backup complete: {successful}/{total} successful")
+        else:
+             logger.warning(f"🛡️ FINDER_TOKEN: BACKUP_STARTUP_PARTIAL - {successful}/{total} databases backed up")
         
         return results
     
