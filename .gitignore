@@ -1,50 +1,61 @@
-# ripgrep filters
+# ripgrep filters for good search & replaces with `rg | xargs sed` pattern
 assets/js/
-# cruft
+cruft
 
-# main
+# File-types that should never get into repo
 *.csv
 *.gz
 *.pkl
-.DS_Store
-.ipynb_checkpoints/
-.sesskey
-.ssh/key
-.venv/
-.cursor/
 
-# Write your screenshots here
-temp/*
-
-# User will play with non-repo notebooks here
-Notebooks/*
-
-# JupyterLab: Ignore user-specific session data but keep shared settings
-.jupyter/lab/workspaces/
-.jupyter/migrated
-.jupyter/serverconfig/
-__pycache__/
-whitelabel.txt
-botify_token.txt
+# Different repos in subfolders of this repo
+Notebooks/
 client_work/
+
+# Pipulate framework stuff
+*kungfu_*.py
+.ssh/key
+botify_token.txt
 config.json
 data/
-downloads/*
-
-# AI Keychain persistent memory - survives application resets
-data/ai_keychain.db
+downloads/
 flake.lock
 foo.txt
 foo_files.py
-*kungfu_*.py
 logs/
-service_account.txt
-wip/*
 prompt.md
+service_account.txt
+whitelabel.txt
 
-# Ignore local notebook copies to prevent git conflicts
-training/botify_api_local.md
+# Mac & vendor crap
+.DS_Store
+.cursor/
+
+# Python, Jupyter Notebook & FastHTML stuff
+.ipynb_checkpoints/
+.jupyter/lab/workspaces/
+.jupyter/migrated
+.jupyter/serverconfig/
+.sesskey
+.venv/
+__pycache__/
 hello_world.ipynb
+training/botify_api_local.md
+
+# Python packaging and build artifacts
+dist/
+build/
+*.egg-info/
+*.egg-info
+*.whl
+*.tar.gz
+
+# PyPI publishing artifacts  
+.tox/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# AI Keychain persistent memory - survives application resets
 
 # Browser automation outputs - keep these local only
 browser_automation/looking_at/
@@ -74,20 +85,6 @@ browser_automation/temp_scripts/
 
 # Directory rotation test files - development use only
 browser_automation/test_rotation_data/
-
-# Python packaging and build artifacts
-dist/
-build/
-*.egg-info/
-*.egg-info
-*.whl
-*.tar.gz
-
-# PyPI publishing artifacts  
-.tox/
-.coverage
-htmlcov/
-.pytest_cache/
 
 # Botify helper outputs - keep schema discovery and data files local only
 helpers/botify/*.json
