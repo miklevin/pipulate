@@ -169,7 +169,7 @@ class AppendOnlyConversationSystem:
             return None
         
         # Create backup before append
-                # self._create_backup("before_message_append") # Redundant: Durable backup runs on startup
+        # self._create_backup("before_message_append") # Redundant: Durable backup runs on startup
         
         # Append to database (ONLY INSERT - NEVER REPLACE)
         conn = sqlite3.connect(self.db_path)
@@ -588,4 +588,4 @@ async def get_conversation_stats() -> Dict:
         'total_characters': total_chars,
         'archived_messages': archived_count,
         'database_path': str(conv_system.db_path)
-    } 
+    }
