@@ -61,9 +61,11 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
     if verbatim:
         append_to_conversation(message, role)
         try:
+            # ALWAYS convert newlines to <br> for verbatim HTML output
+            if '\n' in message:
+                message = message.replace('\n', '<br>')
             if simulate_typing:
-                if '\n' in message:
-                    message = message.replace('\n', '<br>')
+                # This logic correctly handles typing out messages with trailing line breaks
                 br_match = re.search(r'(<br>+)$', message)
                 if br_match:
                     base_message = message[:br_match.start()]
@@ -79,6 +81,7 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                         await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
                         await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
             else:
+                # If not simulating, just send the pre-formatted HTML message
                 await chat_instance.broadcast(message)
             return message
         except Exception as e:
