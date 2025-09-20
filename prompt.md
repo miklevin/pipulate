@@ -1,209 +1,218 @@
 Hello Gemini.
 
-You are waking up on the `magicuser` branch. Your mission is to refactor the simple tool-calling mechanism to be a general-purpose system and, most critically, to **close the feedback loop** by streaming the tool's output back to the user in the chat interface. A previous attempt on this branch failed, so we are starting fresh from a clean state.
+You are waking up. Your mission is to **fix a regression in the chat UI's streaming text display where line breaks are not being rendered correctly**.
 
-**The Unbreakable Laws of Physics:**
+You are an AI Coding Assistant operating inside a **Nix development shell**. Your work must be precise, incremental, and non-breaking.
 
-1.  **Nix Environment:** You are **always** in a `nix develop` shell. You will **never** use `pip install`.
-2.  **Robust Edits:** You will **never** use `sed` for multi-line insertions or complex edits. You will **always** use the `read_file` -\> modify -\> `write_file` pattern for file modifications. Simple, single-line `sed` insertions are permitted. You will **never** use the `replace` tool.
-3.  **Verify, Then Commit:** After every file modification, run `git diff` to verify the change was exactly what you intended. After verification, `git commit` with the provided message.
-4.  **One Small Step:** Execute only one step at a time.
-5.  **Server Health Check:** After every commit, run `touch server.py && sleep 8`. If the server log shows an error, you **MUST** immediately stop and report the failure.
-6.  **Definition of Done:** The mission is complete when all steps are committed, `git status` is clean, and the server restarts successfully.
-7.  **Completion Protocol:** Announce success with `echo "✅ Magic User protocol complete. The feedback loop is closed."`
+### Prime Directives: Your Rules of Engagement
+
+You **MUST** follow this workflow:
+
+1.  **Orient Yourself:** Before making *any* changes, run `git log -n 5`, `git status`, and `git diff`.
+2.  **Use Robust Tools:** The `replace` tool is **forbidden**. You will use the `local_llm_read_file` -\> modify -\> `local_llm_write_file` pattern.
+3.  **One Small Step:** Execute only one step at a time.
+4.  **Verify or Revert:**
+      * **Before Committing:** Run `git diff` to verify your change.
+      * **Server Health Check:** Wait 15 seconds, then check `http://localhost:5001/`.
+      * **If server is down:** Run `git reset --hard HEAD`, capture the error with `.venv/bin/python server.py`, and append it here before stopping.
+5.  **Nix Environment:** You are always inside a `nix develop` shell.
+
+### Current State and Critical Failure Analysis
+
+  * **Branch:** You are on the git branch: `magicuser`.
+  * **Last Known State:** The `stream_orchestrator` was successfully externalized, but a bug was introduced in the process.
+  * **Critical Failure Analysis:** The `verbatim` and `simulate_typing` logic in `imports/stream_orchestrator.py` was simplified during the refactor. The original, more complex logic that correctly handled trailing `<br>` tags was lost, causing all streaming responses to appear on a single line.
 
 ### The Implementation Plan
 
-#### **Step 1: Make Core Tools Aliasable**
+  * **Step 1: Restore Correct Line-Wrapping Logic**
+      * **Action:** Replace the entire `stream_orchestrator` function in `imports/stream_orchestrator.py` with the corrected version that re-implements the original, working typing simulation logic.
 
-We need to add the `@alias` decorator so the new system can discover our simple bracket commands.
+      * **Tool Call:**
+        To perform this action, you will execute a `write_file` command. The command requires two large code blocks for the `--old_code` and `--new_code` arguments. They are provided below in separate, copy-friendly blocks.
 
-  * **Action 1: Read `tools/system_tools.py`**
-    ```bash
-    .venv/bin/python cli.py call local_llm_read_file --file_path "tools/system_tools.py"
-    ```
-  * **Action 2: Apply the `@alias` decorators.**
-    ```bash
-    .venv/bin/python cli.py call local_llm_write_file --file_path "tools/system_tools.py" --old_code """@auto_tool
-    ```
+        **1. First, copy the `old_code` block below.**
 
-async def system\_list\_directory(params: dict) -\> dict:""" --new\_code """@auto\_tool
-@alias("ls")
-async def system\_list\_directory(params: dict) -\> dict:"""
-.venv/bin/python cli.py call local\_llm\_write\_file --file\_path "tools/system\_tools.py" --old\_code """@auto\_tool
-async def execute\_shell\_command(params: dict) -\> dict:""" --new\_code """@auto\_tool
-@alias("shell")
-async def execute\_shell\_command(params: dict) -\> dict:"""
-\`\`\`
-
-  * **Verification:**
-    ```bash
-    git diff
-    ```
-  * **Commit:**
-    ```bash
-    git commit -am "feat(tools): Add aliases for core system commands ls and shell"
-    ```
-
-#### **Step 2: Add Necessary Imports to `server.py`**
-
-The new logic requires the tool registries.
-
-  * **Action:**
-    ```bash
-    sed -i "/from watchdog.observers import Observer/a from tools import ALIAS_REGISTRY, MCP_TOOL_REGISTRY" server.py
-    ```
-  * **Verification:**
-    ```bash
-    git diff
-    ```
-  * **Commit:**
-    ```bash
-    git commit -am "feat(mcp): Add imports for generalized bracket command handling"
-    ```
-
-#### **Step 3: Refactor `pipulate.stream` to Generalize Tool Calls**
-
-This is the core of the mission. We will replace the entire `pipulate.stream` method with a new, more intelligent version.
-
-  * **Action 1: Read the current `server.py` file.**
-    ```bash
-    .venv/bin/python cli.py call local_llm_read_file --file_path "server.py"
-    ```
-  * **Action 2: Replace the entire `stream` function with the new, generalized logic.**
-    *You must find the exact boundaries of the `async def stream(...)` function from the file content you just read to use as the `old_code` value.*
-    ````bash
-    .venv/bin/python cli.py call local_llm_write_file --file_path "server.py" --old_code """
-    async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=None, simulate_typing=True):
-    # ... PASTE THE ENTIRE CURRENT FUNCTION BODY HERE, FROM THE FILE YOU JUST READ ...
-        await self._handle_llm_stream()
-        logger.debug(f"🔍 DEBUG: === ENDING pipulate.stream (LLM) ===")
-        return message
-    """ --new_code """
-    async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=None, simulate_typing=True):
-        \"\"\"Stream a message to the chat interface.
-        This is now the single source of truth for conversation history management.
-        All messages entering the chat system must go through this method.
-        \"\"\"
-        logger.debug(f"🔍 DEBUG: === STARTING pipulate.stream (role: {role}) ===")
-        # --- NEW: GENERALIZED BRACKET COMMAND ORCHESTRATION ---
-        if role == 'user': # Only check user messages for simple commands
-            simple_command_match = re.match(r'^\s*\[([^\]]+)\]\s*$', message) # Match if the *entire* message is a command
-            if simple_command_match:
-                full_command_string = simple_command_match.group(1).strip()
-                command_parts = full_command_string.split(maxsplit=1)
-                command_alias = command_parts[0]
-                command_args_str = command_parts[1] if len(command_parts) > 1 else ""
-                logger.info(f"SIMPLE CMD DETECTED: Intercepted command '[{full_command_string}]' from user.")
-                append_to_conversation(message, 'user') # Log what the user typed
-                tool_name = ALIAS_REGISTRY.get(command_alias)
-                if tool_name and tool_name in MCP_TOOL_REGISTRY:
-                    params = {}
-                    if command_args_str:
-                        # Simple convention: first arg maps to primary parameter
-                        if tool_name == 'system_list_directory':
-                            params['path'] = command_args_str
-                        elif tool_name == 'execute_shell_command':
-                            params['command'] = command_args_str
-                        else: # A generic fallback
-                            params['args'] = command_args_str
-                    
-                    # Execute the tool
-                    tool_handler = MCP_TOOL_REGISTRY[tool_name]
-                    tool_output = await tool_handler(params)
-                    
-                    # Format the output nicely for the chat
-                    formatted_output = f"```\n"
-                    if tool_output.get('success'):
-                        if 'stdout' in tool_output: # Shell command output
-                            formatted_output += tool_output.get('stdout') or "[No output]"
-                        elif 'directories' in tool_output: # ls output
-                            dirs = '\n'.join([f"📁 {d}" for d in tool_output.get('directories', [])])
-                            files = '\n'.join([f"📄 {f}" for f in tool_output.get('files', [])])
-                            formatted_output += f"Directory listing for: {tool_output.get('path', '.')}\n\n{dirs}\n{files}"
+        ````python
+        async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwargs):
+            """
+            The core logic for handling user messages, detecting tool calls, and deciding whether to invoke the LLM.
+            Externalized from server.py to make the system more modular and safer for AI edits.
+            """
+            # JIT Import: Import tool registries inside the function to avoid circular dependencies at startup.
+            from tools import get_all_tools, ALIAS_REGISTRY
+            MCP_TOOL_REGISTRY = get_all_tools()
+            # Get necessary functions/variables from the pipulate instance
+            append_to_conversation = pipulate_instance.append_to_conversation_from_instance
+            PCONFIG = pipulate_instance.get_config()
+            role = kwargs.get('role', 'user')
+            logger.debug(f"ORCHESTRATOR: Intercepted message (role: {role})")
+            if role == 'user':
+                append_to_conversation(message, 'user')
+                simple_command_match = re.match(r'^\s*\[([^\]]+)\]\s*$', message)
+                if simple_command_match:
+                    full_command_string = simple_command_match.group(1).strip()
+                    command_parts = full_command_string.split(maxsplit=1)
+                    command_alias = command_parts[0]
+                    command_args_str = command_parts[1] if len(command_parts) > 1 else ""
+                    logger.info(f"ORCHESTRATOR: Simple command detected: [{full_command_string}]")
+                    tool_name = ALIAS_REGISTRY.get(command_alias)
+                    if tool_name and tool_name in MCP_TOOL_REGISTRY:
+                        params = {}
+                        if command_args_str:
+                            if tool_name == 'system_list_directory':
+                                params['path'] = command_args_str
+                            elif tool_name == 'execute_shell_command':
+                                params['command'] = command_args_str
+                            else:
+                                params['args'] = command_args_str
+                        
+                        tool_handler = MCP_TOOL_REGISTRY[tool_name]
+                        tool_output = await tool_handler(params)
+                        
+                        formatted_output = "```\n"
+                        if tool_output.get('success'):
+                            if 'stdout' in tool_output:
+                                formatted_output += tool_output.get('stdout') or "[No output]"
+                            elif 'directories' in tool_output:
+                                dirs = '\n'.join([f"📁 {d}" for d in tool_output.get('directories', [])])
+                                files = '\n'.join([f"📄 {f}" for f in tool_output.get('files', [])])
+                                formatted_output += f"Directory: {tool_output.get('path', '.')}\n\n{dirs}\n{files}"
+                            else:
+                                formatted_output += json.dumps(tool_output, indent=2)
                         else:
-                            formatted_output += json.dumps(tool_output, indent=2)
-                    else:
-                        formatted_output += f"Error executing [{command_alias}]:\n{tool_output.get('error', 'Unknown error')}"
-                    formatted_output += "\n```"
-                    
-                    # CRITICAL: Stream the tool's output back to the user
-                    await self.stream(formatted_output, role='tool', verbatim=True)
-                    return # IMPORTANT: End the execution here to prevent sending to LLM
-        # --- END MODIFICATION ---
-        # The rest of the function remains the same...
-        append_to_conversation(message, role)
-        if verbatim:
-            try:
-                if self.chat is None:
-                    logger.warning("Chat instance not available yet, queuing message for later")
+                            formatted_output += f"Error: {tool_output.get('error', 'Unknown error')}"
+                        formatted_output += "\n```"
+                        
+                        await pipulate_instance.stream(formatted_output, role='tool', verbatim=True)
+                        return
+            if kwargs.get('verbatim'):
+                append_to_conversation(message, role)
+                try:
+                    words = message.replace('\n', '<br>').split()
+                    for i, word in enumerate(words):
+                        await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                        await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
                     return message
-                if spaces_before:
-                    message = '<br>' * spaces_before + message
-                if spaces_after is None:
-                    spaces_after = 2
-                if spaces_after and spaces_after > 0:
-                    message = message + '<br>' * spaces_after
-                if simulate_typing:
-                    logger.debug("🔍 DEBUG: Simulating typing for verbatim message")
-                    if '\n' in message:
-                        message = message.replace('\n', '<br>')
-                    import re
-                    br_match = re.search(r'(<br>+)$', message)
-                    if br_match:
-                        base_message = message[:br_match.start()]
-                        br_tags = br_match.group(1)
-                        words = base_message.split()
-                        for i, word in enumerate(words):
-                            await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
-                        await self.chat.broadcast(br_tags)
+                except Exception as e:
+                    logger.error(f'ORCHESTRATOR: Error in verbatim stream: {e}', exc_info=True)
+                    raise
+                    
+            # If it was a regular user message (not a handled command), proceed to the LLM
+            await pipulate_instance._handle_llm_stream()
+            return message
+        ````
+
+        **2. Next, copy the `new_code` block below.**
+
+        ````python
+        async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwargs):
+            """
+            The core logic for handling user messages, detecting tool calls, and deciding whether to invoke the LLM.
+            Externalized from server.py to make the system more modular and safer for AI edits.
+            """
+            # JIT Import: Import tool registries inside the function to avoid circular dependencies at startup.
+            from tools import get_all_tools, ALIAS_REGISTRY
+            MCP_TOOL_REGISTRY = get_all_tools()
+            # Get necessary functions/variables from the pipulate instance
+            append_to_conversation = pipulate_instance.append_to_conversation_from_instance
+            PCONFIG = pipulate_instance.get_config()
+            role = kwargs.get('role', 'user')
+            verbatim = kwargs.get('verbatim', False)
+            simulate_typing = kwargs.get('simulate_typing', True)
+            logger.debug(f"ORCHESTRATOR: Intercepted message (role: {role})")
+            if role == 'user':
+                append_to_conversation(message, 'user')
+                simple_command_match = re.match(r'^\s*\[([^\]]+)\]\s*$', message)
+                if simple_command_match:
+                    full_command_string = simple_command_match.group(1).strip()
+                    command_parts = full_command_string.split(maxsplit=1)
+                    command_alias = command_parts[0]
+                    command_args_str = command_parts[1] if len(command_parts) > 1 else ""
+                    logger.info(f"ORCHESTRATOR: Simple command detected: [{full_command_string}]")
+                    tool_name = ALIAS_REGISTRY.get(command_alias)
+                    if tool_name and tool_name in MCP_TOOL_REGISTRY:
+                        params = {}
+                        if command_args_str:
+                            if tool_name == 'system_list_directory':
+                                params['path'] = command_args_str
+                            elif tool_name == 'execute_shell_command':
+                                params['command'] = command_args_str
+                            else:
+                                params['args'] = command_args_str
+                        
+                        tool_handler = MCP_TOOL_REGISTRY[tool_name]
+                        tool_output = await tool_handler(params)
+                        
+                        formatted_output = "```\n"
+                        if tool_output.get('success'):
+                            if 'stdout' in tool_output:
+                                formatted_output += tool_output.get('stdout') or "[No output]"
+                            elif 'directories' in tool_output:
+                                dirs = '\n'.join([f"📁 {d}" for d in tool_output.get('directories', [])])
+                                files = '\n'.join([f"📄 {f}" for f in tool_output.get('files', [])])
+                                formatted_output += f"Directory: {tool_output.get('path', '.')}\n\n{dirs}\n{files}"
+                            else:
+                                formatted_output += json.dumps(tool_output, indent=2)
+                        else:
+                            formatted_output += f"Error: {tool_output.get('error', 'Unknown error')}"
+                        formatted_output += "\n```"
+                        
+                        await pipulate_instance.stream(formatted_output, role='tool', verbatim=True, simulate_typing=True)
+                        return
+            if verbatim:
+                append_to_conversation(message, role)
+                try:
+                    if simulate_typing:
+                        if '\n' in message:
+                            message = message.replace('\n', '<br>')
+                        br_match = re.search(r'(<br>+)$', message)
+                        if br_match:
+                            base_message = message[:br_match.start()]
+                            br_tags = br_match.group(1)
+                            words = base_message.split()
+                            for i, word in enumerate(words):
+                                await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                                await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                            await chat_instance.broadcast(br_tags)
+                        else:
+                            words = message.split()
+                            for i, word in enumerate(words):
+                                await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                                await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
                     else:
-                        words = message.split()
-                        for i, word in enumerate(words):
-                            await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
-                else:
-                    await self.chat.broadcast(message)
-                logger.debug(f'Verbatim message sent: {message}')
-                return message
-            except Exception as e:
-                logger.error(f'Error in verbatim stream: {e}', exc_info=True)
-                raise
-        await self._handle_llm_stream()
-        logger.debug(f"🔍 DEBUG: === ENDING pipulate.stream (LLM) ===")
-        return message
-    """
-    ````
-  * **Verification:**
-    ```bash
-    git diff
-    ```
-  * **Commit:**
-    ```bash
-    git commit -am "feat(mcp): Generalize bracket commands and close feedback loop
-    ```
+                        await chat_instance.broadcast(message)
+                    return message
+                except Exception as e:
+                    logger.error(f'ORCHESTRATOR: Error in verbatim stream: {e}', exc_info=True)
+                    raise
+                    
+            # If it was a regular user message (not a handled command), proceed to the LLM
+            await pipulate_instance._handle_llm_stream()
+            return message
+        ````
 
-Refactors the `pipulate.stream` method to handle simple, bracketed tool calls in a generic and robust way.
+        **3. Finally, construct and run the full command in your terminal.**
 
-  - Replaces the hardcoded `[ls]` check with a dynamic lookup in the `ALIAS_REGISTRY`.
-  - Implements a simple argument parser for commands like `[ls tools]`.
-  - Executes the aliased tool via the `MCP_TOOL_REGISTRY`.
-  - Formats the tool's output into a markdown code block.
-  - **Crucially, streams the formatted result back to the chat UI, providing immediate feedback to the user and closing the loop.**
-  - Short-circuits the LLM, preventing the command from being processed as conversational text."
-    ```
-    
-    ```
+        ```bash
+        .venv/bin/python cli.py call local_llm_write_file \
+          --file_path "imports/stream_orchestrator.py" \
+          --old_code 'PASTE_OLD_CODE_HERE' \
+          --new_code 'PASTE_NEW_CODE_HERE'
+        ```
 
-#### **Step 4: Final Verification**
+      * **Commit Message:** `fix(ui): Restore correct line-wrapping logic for streaming text`
 
-Restart the server and confirm the changes were successful and non-breaking.
+### Completion Protocol (Definition of Done)
 
-  * **Action:**
-    ```bash
-    touch server.py && sleep 8
-    ```
-  * **Expected Output:** The server should restart cleanly with no errors in the console.
+You are **DONE** when the step is committed and `git status` is clean.
 
-Now, execute the `Completion Protocol`.
+When complete, perform the sign-off procedure:
+
+1.  Announce the fix is complete.
+2.  Run `git log -n 1` as proof.
+3.  Terminate the session.
+
+-----
+
+Your first action is to **orient yourself**. Begin now.
