@@ -38,10 +38,8 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                         params['command'] = command_args_str
                     else:
                         params['args'] = command_args_str
-                
                 tool_handler = MCP_TOOL_REGISTRY[tool_name]
                 tool_output = await tool_handler(params)
-                
                 formatted_output = "```\n"
                 if tool_output.get('success'):
                     if 'stdout' in tool_output:
@@ -55,15 +53,25 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                 else:
                     formatted_output += f"Error: {tool_output.get('error', 'Unknown error')}"
                 formatted_output += "\n```"
-                
                 await pipulate_instance.stream(formatted_output, role='tool', verbatim=True, simulate_typing=True)
                 return
     if verbatim:
         append_to_conversation(message, role)
         try:
-            # ALWAYS convert newlines to <br> for verbatim HTML output
+            # RESTORED: Spacing logic from original server.py
+            spaces_before = kwargs.get('spaces_before')
+            spaces_after = kwargs.get('spaces_after')
+            if spaces_before:
+                message = '<br>' * spaces_before + message
+            if spaces_after is None:
+                spaces_after = 2
+            if spaces_after and spaces_after > 0:
+                message = message + '<br>' * spaces_after
+
+            # ALWAYS convert newlines for HTML
             if '\n' in message:
                 message = message.replace('\n', '<br>')
+                
             if simulate_typing:
                 # This logic correctly handles typing out messages with trailing line breaks
                 br_match = re.search(r'(<br>+)$', message)
@@ -87,7 +95,7 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
         except Exception as e:
             logger.error(f'ORCHESTRATOR: Error in verbatim stream: {e}', exc_info=True)
             raise
-            
+    
     # If it was a regular user message (not a handled command), proceed to the LLM
     await pipulate_instance._handle_llm_stream()
     return message
