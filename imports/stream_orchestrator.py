@@ -12,14 +12,13 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
     # JIT Import: Import tool registries inside the function to avoid circular dependencies at startup.
     from tools import get_all_tools, ALIAS_REGISTRY
     MCP_TOOL_REGISTRY = get_all_tools()
-
     # Get necessary functions/variables from the pipulate instance
     append_to_conversation = pipulate_instance.append_to_conversation_from_instance
     PCONFIG = pipulate_instance.get_config()
     role = kwargs.get('role', 'user')
-
+    verbatim = kwargs.get('verbatim', False)
+    simulate_typing = kwargs.get('simulate_typing', True)
     logger.debug(f"ORCHESTRATOR: Intercepted message (role: {role})")
-
     if role == 'user':
         append_to_conversation(message, 'user')
         simple_command_match = re.match(r'^\s*\[([^\]]+)\]\s*$', message)
@@ -29,7 +28,6 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
             command_alias = command_parts[0]
             command_args_str = command_parts[1] if len(command_parts) > 1 else ""
             logger.info(f"ORCHESTRATOR: Simple command detected: [{full_command_string}]")
-
             tool_name = ALIAS_REGISTRY.get(command_alias)
             if tool_name and tool_name in MCP_TOOL_REGISTRY:
                 params = {}
@@ -58,16 +56,30 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                     formatted_output += f"Error: {tool_output.get('error', 'Unknown error')}"
                 formatted_output += "\n```"
                 
-                await pipulate_instance.stream(formatted_output, role='tool', verbatim=True)
+                await pipulate_instance.stream(formatted_output, role='tool', verbatim=True, simulate_typing=True)
                 return
-
-    if kwargs.get('verbatim'):
+    if verbatim:
         append_to_conversation(message, role)
         try:
-            words = message.replace('\n', '<br>').split()
-            for i, word in enumerate(words):
-                await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+            if simulate_typing:
+                if '\n' in message:
+                    message = message.replace('\n', '<br>')
+                br_match = re.search(r'(<br>+)$', message)
+                if br_match:
+                    base_message = message[:br_match.start()]
+                    br_tags = br_match.group(1)
+                    words = base_message.split()
+                    for i, word in enumerate(words):
+                        await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                        await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                    await chat_instance.broadcast(br_tags)
+                else:
+                    words = message.split()
+                    for i, word in enumerate(words):
+                        await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                        await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+            else:
+                await chat_instance.broadcast(message)
             return message
         except Exception as e:
             logger.error(f'ORCHESTRATOR: Error in verbatim stream: {e}', exc_info=True)
