@@ -1484,6 +1484,10 @@ class Pipulate:
         self.chat = chat_instance
         self.message_queue = self.OrderedMessageQueue()
 
+    def append_to_conversation_from_instance(self, message: str, role: str = 'user'):
+        """Instance method wrapper for the global append_to_conversation function."""
+        return append_to_conversation(message, role=role)
+
     def append_to_history(self, message: str, role: str = 'system') -> None:
         """Add a message to the LLM conversation history without triggering a response.
 
@@ -2235,10 +2239,10 @@ class Pipulate:
             return f'<a href="{url}" target="_blank">{url}</a>'
         return re.sub(url_pattern, replace_url, text)
 
-    # The first of potentially many shim-style externalizations from into imports/
     async def stream(self, message, **kwargs):
         """Wrapper that delegates to the external stream orchestrator."""
         from imports.stream_orchestrator import stream_orchestrator # Import just-in-time
+        # Correctly pass self (pipulate_instance), self.chat (chat_instance), and message
         return await stream_orchestrator(self, self.chat, message, **kwargs)
 
     async def _handle_llm_stream(self):
