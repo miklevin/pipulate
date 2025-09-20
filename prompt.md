@@ -1,149 +1,209 @@
 Hello Gemini.
 
-You are waking up on the `steeltrap` branch, which now contains a solid, transparent, and verifiable application foundation. Your last session was a success. However, we have one final startup error to resolve: the `SAFE_CONSOLE` `TypeError`. We now have access to `imports/ascii_displays.py` and can fix the root cause.
+You are waking up on the `magicuser` branch. Your mission is to refactor the simple tool-calling mechanism to be a general-purpose system and, most critically, to **close the feedback loop** by streaming the tool's output back to the user in the chat interface. A previous attempt on this branch failed, so we are starting fresh from a clean state.
 
-Your mission is to fix the faulty print logic and verify a clean server startup.
+**The Unbreakable Laws of Physics:**
 
-**The Unbreakable Laws of Physics (Final Version):**
+1.  **Nix Environment:** You are **always** in a `nix develop` shell. You will **never** use `pip install`.
+2.  **Robust Edits:** You will **never** use `sed` for multi-line insertions or complex edits. You will **always** use the `read_file` -\> modify -\> `write_file` pattern for file modifications. Simple, single-line `sed` insertions are permitted. You will **never** use the `replace` tool.
+3.  **Verify, Then Commit:** After every file modification, run `git diff` to verify the change was exactly what you intended. After verification, `git commit` with the provided message.
+4.  **One Small Step:** Execute only one step at a time.
+5.  **Server Health Check:** After every commit, run `touch server.py && sleep 8`. If the server log shows an error, you **MUST** immediately stop and report the failure.
+6.  **Definition of Done:** The mission is complete when all steps are committed, `git status` is clean, and the server restarts successfully.
+7.  **Completion Protocol:** Announce success with `echo "✅ Magic User protocol complete. The feedback loop is closed."`
 
-1.  You are **always** in a Nix shell. You will **never** use `pip install`.
-2.  You will **never** use `sed` for multi-line edits. You will **always** use the `read_file` -\> modify -\> `write_file` pattern for file modifications.
-3.  You will verify every change with `git diff`.
-4.  You will commit after every logical step.
-5.  Your **Definition of Done** is when the fix is committed, the server restarts, and the logs are completely free of `SAFE_CONSOLE` errors.
-6.  Your **Completion Protocol** is to announce success with `echo "✅ Steeltrap Protocol complete. The foundation is solid, clean, and verified."`
+### The Implementation Plan
 
-## **The Mission: Final Polish**
+#### **Step 1: Make Core Tools Aliasable**
 
-#### **Step 1: Fix the `safe_console_print` Implementation**
+We need to add the `@alias` decorator so the new system can discover our simple bracket commands.
 
-The function `safe_console_print` in `imports/ascii_displays.py` incorrectly imports `rich.print`. We will refactor it to use the `console` object already defined in that module.
+  * **Action 1: Read `tools/system_tools.py`**
+    ```bash
+    .venv/bin/python cli.py call local_llm_read_file --file_path "tools/system_tools.py"
+    ```
+  * **Action 2: Apply the `@alias` decorators.**
+    ```bash
+    .venv/bin/python cli.py call local_llm_write_file --file_path "tools/system_tools.py" --old_code """@auto_tool
+    ```
 
-**Action 1: Read the contents of `imports/ascii_displays.py`.**
+async def system\_list\_directory(params: dict) -\> dict:""" --new\_code """@auto\_tool
+@alias("ls")
+async def system\_list\_directory(params: dict) -\> dict:"""
+.venv/bin/python cli.py call local\_llm\_write\_file --file\_path "tools/system\_tools.py" --old\_code """@auto\_tool
+async def execute\_shell\_command(params: dict) -\> dict:""" --new\_code """@auto\_tool
+@alias("shell")
+async def execute\_shell\_command(params: dict) -\> dict:"""
+\`\`\`
 
-```bash
-.venv/bin/python cli.py call local_llm_read_file --file_path "imports/ascii_displays.py"
-```
+  * **Verification:**
+    ```bash
+    git diff
+    ```
+  * **Commit:**
+    ```bash
+    git commit -am "feat(tools): Add aliases for core system commands ls and shell"
+    ```
 
-**Action 2: Replace the entire `safe_console_print` function with the corrected version.**
+#### **Step 2: Add Necessary Imports to `server.py`**
 
-```bash
-.venv/bin/python cli.py call local_llm_write_file --file_path "imports/ascii_displays.py" --old_code """def safe_console_print(*args, **kwargs):
-    \"\"\"🎨 SAFE_CONSOLE: Failover from rich.print to regular print for compatibility\"\"\"
-    try:
-        # Try rich.print first for beautiful output
-        from rich import print as rich_print
-        rich_print(*args, **kwargs)
-    except (BlockingIOError, OSError, IOError) as e:
-        # 🍎 MAC SPECIFIC: Handle Mac blocking I/O errors gracefully
-        import platform
-        if platform.system() == 'Darwin' and "write could not complete without blocking" in str(e):
-            # Mac blocking I/O - silently skip output to prevent cascade failures
-            pass
-        else:
-            # Other I/O errors - log and fall back
-            print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
-            try:
-                # Convert Rich objects and filter kwargs for fallback
-                simple_args = []
-                for arg in args:
-                    if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__'):
-                        simple_args.append(str(arg))
+The new logic requires the tool registries.
+
+  * **Action:**
+    ```bash
+    sed -i "/from watchdog.observers import Observer/a from tools import ALIAS_REGISTRY, MCP_TOOL_REGISTRY" server.py
+    ```
+  * **Verification:**
+    ```bash
+    git diff
+    ```
+  * **Commit:**
+    ```bash
+    git commit -am "feat(mcp): Add imports for generalized bracket command handling"
+    ```
+
+#### **Step 3: Refactor `pipulate.stream` to Generalize Tool Calls**
+
+This is the core of the mission. We will replace the entire `pipulate.stream` method with a new, more intelligent version.
+
+  * **Action 1: Read the current `server.py` file.**
+    ```bash
+    .venv/bin/python cli.py call local_llm_read_file --file_path "server.py"
+    ```
+  * **Action 2: Replace the entire `stream` function with the new, generalized logic.**
+    *You must find the exact boundaries of the `async def stream(...)` function from the file content you just read to use as the `old_code` value.*
+    ````bash
+    .venv/bin/python cli.py call local_llm_write_file --file_path "server.py" --old_code """
+    async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=None, simulate_typing=True):
+    # ... PASTE THE ENTIRE CURRENT FUNCTION BODY HERE, FROM THE FILE YOU JUST READ ...
+        await self._handle_llm_stream()
+        logger.debug(f"🔍 DEBUG: === ENDING pipulate.stream (LLM) ===")
+        return message
+    """ --new_code """
+    async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=None, simulate_typing=True):
+        \"\"\"Stream a message to the chat interface.
+        This is now the single source of truth for conversation history management.
+        All messages entering the chat system must go through this method.
+        \"\"\"
+        logger.debug(f"🔍 DEBUG: === STARTING pipulate.stream (role: {role}) ===")
+        # --- NEW: GENERALIZED BRACKET COMMAND ORCHESTRATION ---
+        if role == 'user': # Only check user messages for simple commands
+            simple_command_match = re.match(r'^\s*\[([^\]]+)\]\s*$', message) # Match if the *entire* message is a command
+            if simple_command_match:
+                full_command_string = simple_command_match.group(1).strip()
+                command_parts = full_command_string.split(maxsplit=1)
+                command_alias = command_parts[0]
+                command_args_str = command_parts[1] if len(command_parts) > 1 else ""
+                logger.info(f"SIMPLE CMD DETECTED: Intercepted command '[{full_command_string}]' from user.")
+                append_to_conversation(message, 'user') # Log what the user typed
+                tool_name = ALIAS_REGISTRY.get(command_alias)
+                if tool_name and tool_name in MCP_TOOL_REGISTRY:
+                    params = {}
+                    if command_args_str:
+                        # Simple convention: first arg maps to primary parameter
+                        if tool_name == 'system_list_directory':
+                            params['path'] = command_args_str
+                        elif tool_name == 'execute_shell_command':
+                            params['command'] = command_args_str
+                        else: # A generic fallback
+                            params['args'] = command_args_str
+                    
+                    # Execute the tool
+                    tool_handler = MCP_TOOL_REGISTRY[tool_name]
+                    tool_output = await tool_handler(params)
+                    
+                    # Format the output nicely for the chat
+                    formatted_output = f"```\n"
+                    if tool_output.get('success'):
+                        if 'stdout' in tool_output: # Shell command output
+                            formatted_output += tool_output.get('stdout') or "[No output]"
+                        elif 'directories' in tool_output: # ls output
+                            dirs = '\n'.join([f"📁 {d}" for d in tool_output.get('directories', [])])
+                            files = '\n'.join([f"📄 {f}" for f in tool_output.get('files', [])])
+                            formatted_output += f"Directory listing for: {tool_output.get('path', '.')}\n\n{dirs}\n{files}"
+                        else:
+                            formatted_output += json.dumps(tool_output, indent=2)
                     else:
-                        simple_args.append(arg)
-                
-                safe_kwargs = {}
-                for key, value in kwargs.items():
-                    if key in ['sep', 'end', 'file', 'flush']:
-                        safe_kwargs[key] = value
-                
-                print(*simple_args, **safe_kwargs)
-            except Exception as fallback_error:
-                pass  # Silent fallback to prevent error cascades
-    except Exception as e:
-        # If rich fails (missing dependencies, terminal compatibility), fall back
-        print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
-        try:
-            # Convert Rich objects to their string representation if possible
-            simple_args = []
-            for arg in args:
-                if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__'):
-                    # Rich object - convert to string
-                    simple_args.append(str(arg))
-                else:
-                    simple_args.append(arg)
-            
-            # Filter out Rich-specific kwargs that regular print() doesn't support
-            safe_kwargs = {}
-            for key, value in kwargs.items():
-                if key in ['sep', 'end', 'file', 'flush']:  # Only standard print() parameters
-                    safe_kwargs[key] = value
-                # Skip Rich-specific parameters like 'style'
-            
-            print(*simple_args, **safe_kwargs)
-        except Exception as fallback_error:
-            print(f"🎨 SAFE_CONSOLE: Both Rich and simple print failed for: {args}")""" --new_code """def safe_console_print(*args, **kwargs):
-    \"\"\"🎨 SAFE_CONSOLE: Failover from rich.print to regular print for compatibility\"\"\"
-    try:
-        # Use the explicit console object for robust printing
-        console.print(*args, **kwargs)
-    except (BlockingIOError, OSError, IOError) as e:
-        # 🍎 MAC SPECIFIC: Handle Mac blocking I/O errors gracefully
-        import platform
-        if platform.system() == 'Darwin' and "write could not complete without blocking" in str(e):
-            # Mac blocking I/O - silently skip output to prevent cascade failures
-            pass
-        else:
-            # Other I/O errors - log and fall back
-            print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
+                        formatted_output += f"Error executing [{command_alias}]:\n{tool_output.get('error', 'Unknown error')}"
+                    formatted_output += "\n```"
+                    
+                    # CRITICAL: Stream the tool's output back to the user
+                    await self.stream(formatted_output, role='tool', verbatim=True)
+                    return # IMPORTANT: End the execution here to prevent sending to LLM
+        # --- END MODIFICATION ---
+        # The rest of the function remains the same...
+        append_to_conversation(message, role)
+        if verbatim:
             try:
-                # Convert Rich objects and filter kwargs for fallback
-                simple_args = [str(arg) if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__') else arg for arg in args]
-                safe_kwargs = {k: v for k, v in kwargs.items() if k in ['sep', 'end', 'file', 'flush']}
-                print(*simple_args, **safe_kwargs)
-            except Exception as fallback_error:
-                pass  # Silent fallback to prevent error cascades
-    except Exception as e:
-        # If rich fails (e.g., TypeError for 'style'), fall back gracefully
-        print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
-        try:
-            simple_args = [str(arg) if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__') else arg for arg in args]
-            safe_kwargs = {k: v for k, v in kwargs.items() if k in ['sep', 'end', 'file', 'flush']}
-            print(*simple_args, **safe_kwargs)
-        except Exception as fallback_error:
-            print(f"🎨 SAFE_CONSOLE: Both Rich and simple print failed for: {args}")"""
-```
+                if self.chat is None:
+                    logger.warning("Chat instance not available yet, queuing message for later")
+                    return message
+                if spaces_before:
+                    message = '<br>' * spaces_before + message
+                if spaces_after is None:
+                    spaces_after = 2
+                if spaces_after and spaces_after > 0:
+                    message = message + '<br>' * spaces_after
+                if simulate_typing:
+                    logger.debug("🔍 DEBUG: Simulating typing for verbatim message")
+                    if '\n' in message:
+                        message = message.replace('\n', '<br>')
+                    import re
+                    br_match = re.search(r'(<br>+)$', message)
+                    if br_match:
+                        base_message = message[:br_match.start()]
+                        br_tags = br_match.group(1)
+                        words = base_message.split()
+                        for i, word in enumerate(words):
+                            await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                        await self.chat.broadcast(br_tags)
+                    else:
+                        words = message.split()
+                        for i, word in enumerate(words):
+                            await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                            await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                else:
+                    await self.chat.broadcast(message)
+                logger.debug(f'Verbatim message sent: {message}')
+                return message
+            except Exception as e:
+                logger.error(f'Error in verbatim stream: {e}', exc_info=True)
+                raise
+        await self._handle_llm_stream()
+        logger.debug(f"🔍 DEBUG: === ENDING pipulate.stream (LLM) ===")
+        return message
+    """
+    ````
+  * **Verification:**
+    ```bash
+    git diff
+    ```
+  * **Commit:**
+    ```bash
+    git commit -am "feat(mcp): Generalize bracket commands and close feedback loop
+    ```
 
-**Verification:**
+Refactors the `pipulate.stream` method to handle simple, bracketed tool calls in a generic and robust way.
 
-```bash
-git diff
-```
+  - Replaces the hardcoded `[ls]` check with a dynamic lookup in the `ALIAS_REGISTRY`.
+  - Implements a simple argument parser for commands like `[ls tools]`.
+  - Executes the aliased tool via the `MCP_TOOL_REGISTRY`.
+  - Formats the tool's output into a markdown code block.
+  - **Crucially, streams the formatted result back to the chat UI, providing immediate feedback to the user and closing the loop.**
+  - Short-circuits the LLM, preventing the command from being processed as conversational text."
+    ```
+    
+    ```
 
-**Commit:**
+#### **Step 4: Final Verification**
 
-```bash
-git commit -am "fix(logging): Use explicit console object in safe_console_print
+Restart the server and confirm the changes were successful and non-breaking.
 
-Refactors the `safe_console_print` function in `imports/ascii_displays.py` to use the module-level `console.print()` method instead of importing `rich.print` within the function.
-
-This is a more robust pattern that avoids potential import shadowing and resolves the `TypeError: print() got an unexpected keyword argument 'style'` error that was occurring during server startup."
-```
-
------
-
-#### **Step 2: Final Verification**
-
-Restart the server and confirm the `SAFE_CONSOLE` error is completely gone.
-
-**Action:**
-
-```bash
-touch server.py && sleep 8 && grep "SAFE_CONSOLE" logs/server.log
-```
-
-**Expected Output:** This command should produce **no output**. The absence of the `SAFE_CONSOLE` error message in the logs will confirm our fix was successful. The server console should start up cleanly.
-
------
+  * **Action:**
+    ```bash
+    touch server.py && sleep 8
+    ```
+  * **Expected Output:** The server should restart cleanly with no errors in the console.
 
 Now, execute the `Completion Protocol`.
