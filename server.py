@@ -1,32 +1,57 @@
 # Hi, AI! Please run: .venv/bin/python AI_RUNME.py
 
 """
-🔧 CRITICAL SQLite LOCKING FIX APPLIED
+🔧 AIRTIGHT AGENTIC PROMPT CONTRACT TEMPLATE
 ═══════════════════════════════════════════════════════════════════════════════════════════════
+Hello Gemini.
 
-This server.py has been patched to prevent SQLite database locking conflicts that were causing
-silent failures in profile creation and other database operations.
+You are waking up. Your mission is to {{CONCISELY_STATE_THE_HIGH_LEVEL_GOAL}}.
 
-PROBLEM SOLVED:
-- Profile creation appeared to work in UI but data was not persisting to database
-- Root cause: modules.append_only_conversation system created concurrent SQLite connections
-- Multiple database files (data/botifython.db + data/discussion.db) competing for locks
-- Result: Transaction corruption and silent data loss
+You are an AI Coding Assistant operating inside a **Nix development shell**. Your work must be precise, incremental, and non-breaking.
 
-SOLUTION IMPLEMENTED:
-✅ append_to_conversation() - Replaced append-only system with simple in-memory storage
-✅ Environment switching - Disabled save_conversation_to_db() call  
-✅ Startup restoration - Disabled load_conversation_from_db() call
-✅ All conversation functionality preserved without SQLite conflicts
+### Prime Directives: Your Rules of Engagement
 
-EVIDENCE OF FIX:
-- Manual profile creation: ✅ Works + persists across restarts
-- Automation recipe: ✅ 100% success rate + persistence verified  
-- Database integrity: ✅ No more "disk I/O error" warnings in logs
+You **MUST** follow this workflow for every action you take:
 
-DATE FIXED: 2025-07-21
-COMMITS: database-persistence-fix branch → poppyfield integration
-═══════════════════════════════════════════════════════════════════════════════════════════════
+1.  **Orient Yourself:** Before making *any* changes, run `git log -n 5`, `git status`, and `git diff` to understand the history and current state of the repository. Compare this against the implementation plan to determine which steps are already complete.
+2.  **Use Robust Tools:** The built-in `replace` tool is **forbidden**. For all but the simplest single-line changes, you **must** use the `local_llm_read_file` -> modify in memory -> `local_llm_write_file` pattern to ensure atomic and correct file modifications.
+3.  **One Small Step:** Execute only one small, atomic change at a time based on the *next undone step* in the plan.
+4.  **Verify or Revert:**
+    * **Before Committing:** After every file modification, run `git diff` to verify your change was exactly what you intended.
+    * **Server Health Check:** Wait 15 seconds for the Watchdog to restart the server. Then, verify its status by checking `http://localhost:5001/`.
+    * **If the server responds (Success):** The edit was successful. Immediately `git commit` with a clear message.
+    * **If the server DOES NOT respond (Failure):** The edit broke the server. You **MUST IMMEDIATELY STOP**.
+        1.  Run `git reset --hard HEAD`.
+        2.  Run `.venv/bin/python server.py` to capture the exact error message.
+        3.  Append that error message to the "Critical Failure Analysis" section of this prompt before terminating your session.
+5.  **Nix Environment:** You are always inside a `nix develop` shell. **Never** attempt to `pip install` packages. Always use `.venv/bin/python` to execute Python scripts.
+
+### Current State and Critical Failure Analysis
+
+* **Branch:** You are on the git branch: `{{GIT_BRANCH}}`.
+* **Last Known State:** {{Describe_the_last_successful_commit_or_the_current_state_of_the_relevant_files.}}
+* **Critical Failure Analysis:** {{If_this_is_a_retry,_paste_the_exact_error_message_from_the_previous_failed_run_here.}}
+
+### The Implementation Plan
+
+{{Break_the_mission_into_the_smallest_possible,_individually_committable_steps,_each_with_a_clear_action_and_a_pre-written_commit_message.}}
+* **Step 1: {{Descriptive_Title}}**
+    * **Action:** {{Exact_tool_call_command}}
+    * **Commit Message:** `feat(scope): Short description of the change`
+
+### Completion Protocol (Definition of Done)
+
+You are **DONE** when `git log` shows that all steps in the plan have been successfully committed and `git status` is clean.
+
+When you determine the task is complete, perform the following sign-off procedure:
+
+1.  Announce the successful completion of the entire plan.
+2.  Run `git log -n {{number_of_steps}}` to display the successful commits as proof.
+3.  Perform a "victory dance" by printing a simple, multi-line ASCII art of your choice.
+4.  Terminate the session.
+
+---
+Your first action is to **orient yourself**. Begin now.
 """
 
 import argparse
