@@ -98,6 +98,7 @@ import imports.ascii_displays as aa
 import tools.mcp_tools as mcp_tools
 from imports import botify_code_generation, mcp_orchestrator
 from imports.server_logging import console, rich_json_display, setup_logging, safe_print
+# import imports.server_logging as slog
 from tools.mcp_tools import register_all_mcp_tools
 
 # Various debug settings
