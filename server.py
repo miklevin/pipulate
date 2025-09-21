@@ -97,8 +97,8 @@ import config as CFG
 import imports.ascii_displays as aa
 import tools.mcp_tools as mcp_tools
 from imports import botify_code_generation, mcp_orchestrator
-from imports.server_logging import console, rich_json_display, setup_logging, safe_print
-# import imports.server_logging as slog
+# from imports.server_logging import console, rich_json_display, setup_logging, safe_print
+import imports.server_logging as slog
 from tools.mcp_tools import register_all_mcp_tools
 
 # Various debug settings
@@ -126,7 +126,7 @@ STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
 
 # Initialize logger BEFORE any functions that need it
-logger = setup_logging()
+logger = slog.setup_logging()
 logger.info('🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence')
 
 
@@ -566,8 +566,8 @@ def print_and_log_table(table, title_prefix=""):
     """
     # First, display the rich table in console with full formatting
     from rich.console import Console
-    if isinstance(console, Console):
-        console.print(table)
+    if isinstance(slog.console, Console):
+        slog.console.print(table)
     else:
         # Fallback for non-rich console environments
         print(str(table))
@@ -703,7 +703,7 @@ def _format_records_for_lifecycle_log(records_iterable):
 
     try:
         # Use Rich JSON display for formatted records
-        return rich_json_display(processed_records, title="Formatted Records", console_output=False, log_output=True)
+        return slog.rich_json_display(processed_records, title="Formatted Records", console_output=False, log_output=True)
     except Exception as e:
         return f'[Error formatting records for JSON: {e}] Processed: {str(processed_records)}'
 
@@ -736,7 +736,7 @@ def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix:
 
         # Use Rich JSON display for table data - show in console with beautiful formatting
         # Enable AI logging so AI assistants can see the JSON data
-        rich_json_display(records_data, title=f"Table State: {table_name}", console_output=True, log_output=False, ai_log_output=True)
+        slog.rich_json_display(records_data, title=f"Table State: {table_name}", console_output=True, log_output=False, ai_log_output=True)
 
         # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
         logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_{table_name.upper()} - {title_prefix} Snapshot: [Rich JSON displayed to console]")
@@ -753,7 +753,7 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str = 
         items = dict(db_instance.items())
         # Use Rich JSON display for database items - show in console with beautiful formatting
         # Enable AI logging so AI assistants can see the JSON data
-        rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=False, ai_log_output=True)
+        slog.rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=False, ai_log_output=True)
 
         # Add semantic context for AI assistants
         semantic_info = []
@@ -819,11 +819,11 @@ def log_pipeline_summary(title_prefix: str = ''):
 
         # 🐰 WHITE RABBIT WELCOME - Show during startup or when no records exist (clean startup)
         if 'STARTUP' in title_prefix.upper() or not records:
-            safe_print()
+            slog.safe_print()
             logger.info("🔧 LEGEND_MARKER_1: Displaying white_rabbit for startup")
             aa.white_rabbit()
             logger.info("🔧 LEGEND_MARKER_2: white_rabbit displayed")
-            safe_print()
+            slog.safe_print()
 
             # 📚 LOG LEGEND: Use the comprehensive version from ascii_displays.py
             logger.info("🔧 LEGEND_MARKER_3: About to call aa.log_reading_legend")
@@ -838,14 +838,14 @@ def log_pipeline_summary(title_prefix: str = ''):
                 padding=(1, 2)
             )
             logger.info("🔧 LEGEND_MARKER_5: About to print legend_panel with Rich")
-            console.print(legend_panel)
+            slog.console.print(legend_panel)
             logger.info("🔧 LEGEND_MARKER_6: legend_panel printed to console")
 
             # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
             logger.info("🔧 LEGEND_MARKER_7: About to call aa.share_ascii_with_ai")
             aa.share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
             logger.info("🔧 LEGEND_MARKER_8: aa.share_ascii_with_ai completed")
-            safe_print()
+            slog.safe_print()
 
         if not records:
             logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} No active workflows")
@@ -982,7 +982,7 @@ class LogManager:
         if data is not None:
             if isinstance(data, dict) and len(data) > 5:
                 # Use Rich JSON display for debug data
-                formatted_data = rich_json_display(data, console_output=False, log_output=True)
+                formatted_data = slog.rich_json_display(data, console_output=False, log_output=True)
                 self.logger.debug(f'{msg} | {formatted_data}')
             else:
                 self.logger.debug(f'{msg} | {data}')
@@ -1227,7 +1227,7 @@ def pipeline_operation(func):
                 if step_changes:
                     log.pipeline(f"Operation '{operation}' updated state", details=f"Steps: {', '.join(step_changes)}", pipeline_id=url)
                 # Use Rich JSON display for pipeline changes
-                formatted_changes = rich_json_display(changes, console_output=False, log_output=True)
+                formatted_changes = slog.rich_json_display(changes, console_output=False, log_output=True)
                 log.debug('pipeline', f"Pipeline '{url}' detailed changes", formatted_changes)
         return result
     return wrapper
@@ -1471,12 +1471,12 @@ class Pipulate:
             if len(headers_preview) != len(headers):
                 headers_preview['<REDACTED_AUTH_HEADERS>'] = f'{len(headers) - len(headers_preview)} hidden'
             # Use Rich JSON display for headers
-            pretty_headers = rich_json_display(headers_preview, title="API Headers", console_output=True, log_output=True)
+            pretty_headers = slog.rich_json_display(headers_preview, title="API Headers", console_output=True, log_output=True)
             log_entry_parts.append(f'  Headers: {pretty_headers}')
         if payload:
             try:
                 # Use Rich JSON display for payload
-                pretty_payload = rich_json_display(payload, title="API Payload", console_output=True, log_output=True)
+                pretty_payload = slog.rich_json_display(payload, title="API Payload", console_output=True, log_output=True)
                 log_entry_parts.append(f'  Payload:\n{pretty_payload}')
             except Exception:
                 log_entry_parts.append(f'  Payload: {payload}')
@@ -1510,7 +1510,7 @@ class Pipulate:
             try:
                 parsed = json.loads(response_preview)
                 # Use Rich JSON display for response preview
-                pretty_preview = rich_json_display(parsed, title="API Response Preview", console_output=True, log_output=True)
+                pretty_preview = slog.rich_json_display(parsed, title="API Response Preview", console_output=True, log_output=True)
                 log_entry_parts.append(f'  Response Preview:\n{pretty_preview}')
             except Exception:
                 log_entry_parts.append(f'  Response Preview:\n{response_preview}')
@@ -1520,15 +1520,15 @@ class Pipulate:
         if response_data and is_discovery_endpoint:
             try:
                 # Use Rich JSON display for discovery response
-                pretty_response = rich_json_display(response_data, title=f"🔍 Discovery Response: {call_description}", console_output=True, log_output=True)
+                pretty_response = slog.rich_json_display(response_data, title=f"🔍 Discovery Response: {call_description}", console_output=True, log_output=True)
                 log_entry_parts.append(f'  🔍 FULL RESPONSE DATA (Discovery Endpoint):\n{pretty_response}')
 
             except Exception as e:
                 log_entry_parts.append(f'  🔍 FULL RESPONSE DATA (Discovery Endpoint): [Error formatting JSON: {e}]\n{response_data}')
 
                 # Still display in console even if JSON formatting fails
-                console.print(f"❌ Discovery Response Error: {e}", style="red")
-                console.print(f"Raw data: {str(response_data)}", style="dim")
+                slog.console.print(f"❌ Discovery Response Error: {e}", style="red")
+                slog.console.print(f"Raw data: {str(response_data)}", style="dim")
 
         if file_path:
             log_entry_parts.append(f'  Associated File Path: {file_path}')
@@ -1605,7 +1605,7 @@ class Pipulate:
             log_entry_parts.append(f'    Method: POST')
             try:
                 # Use Rich JSON display for MCP request payload
-                pretty_payload = rich_json_display(request_payload, title="MCP Tool Executor Request", console_output=True, log_output=True)
+                pretty_payload = slog.rich_json_display(request_payload, title="MCP Tool Executor Request", console_output=True, log_output=True)
                 # Indent the JSON for consistency
                 indented_payload = '\n'.join(f'    {line}' for line in pretty_payload.split('\n'))
                 log_entry_parts.append(f'    Payload:\n{indented_payload}')
@@ -1621,7 +1621,7 @@ class Pipulate:
             if response_data:
                 try:
                     # Use Rich JSON display for MCP response data
-                    pretty_response = rich_json_display(response_data, title="MCP Tool Executor Response", console_output=True, log_output=True)
+                    pretty_response = slog.rich_json_display(response_data, title="MCP Tool Executor Response", console_output=True, log_output=True)
                     # Indent the JSON for consistency
                     indented_response = '\n'.join(f'    {line}' for line in pretty_response.split('\n'))
                     log_entry_parts.append(f'    Response:\n{indented_response}')
@@ -1641,13 +1641,13 @@ class Pipulate:
                 if len(headers_preview) != len(external_api_headers):
                     headers_preview['<REDACTED_AUTH_HEADERS>'] = f'{len(external_api_headers) - len(headers_preview)} hidden'
                 # Use Rich JSON display for external API headers
-                pretty_headers = rich_json_display(headers_preview, title="External API Headers", console_output=True, log_output=True)
+                pretty_headers = slog.rich_json_display(headers_preview, title="External API Headers", console_output=True, log_output=True)
                 log_entry_parts.append(f'    Headers: {pretty_headers}')
 
             if external_api_payload:
                 try:
                     # Use Rich JSON display for external API payload
-                    pretty_payload = rich_json_display(external_api_payload, title="External API Payload", console_output=True, log_output=True)
+                    pretty_payload = slog.rich_json_display(external_api_payload, title="External API Payload", console_output=True, log_output=True)
                     indented_payload = '\n'.join(f'    {line}' for line in pretty_payload.split('\n'))
                     log_entry_parts.append(f'    Payload:\n{indented_payload}')
                 except Exception:
@@ -1659,7 +1659,7 @@ class Pipulate:
             if external_api_response:
                 try:
                     # Use Rich JSON display for external API response
-                    pretty_response = rich_json_display(external_api_response, title="External API Response", console_output=True, log_output=True)
+                    pretty_response = slog.rich_json_display(external_api_response, title="External API Response", console_output=True, log_output=True)
                     indented_response = '\n'.join(f'    {line}' for line in pretty_response.split('\n'))
                     log_entry_parts.append(f'    Response:\n{indented_response}')
                 except Exception:
@@ -1986,7 +1986,7 @@ class Pipulate:
             if records and hasattr(records[0], 'data'):
                 state = json.loads(records[0].data)
                 # Use Rich JSON display for found state
-                formatted_state = rich_json_display(state, console_output=False, log_output=True)
+                formatted_state = slog.rich_json_display(state, console_output=False, log_output=True)
                 logger.debug(f'Found state: {formatted_state}')
                 return state
             logger.debug('No valid state found')
@@ -1999,12 +1999,12 @@ class Pipulate:
         state['updated'] = datetime.now().isoformat()
         payload = {'pkey': pkey, 'data': json.dumps(state), 'updated': state['updated']}
         # Use Rich JSON display for debug payload
-        formatted_payload = rich_json_display(payload, console_output=False, log_output=True)
+        formatted_payload = slog.rich_json_display(payload, console_output=False, log_output=True)
         logger.debug(f'Update payload:\n{formatted_payload}')
         self.pipeline_table.update(payload)
         verification = self.read_state(pkey)
         # Use Rich JSON display for verification
-        formatted_verification = rich_json_display(verification, console_output=False, log_output=True)
+        formatted_verification = slog.rich_json_display(verification, console_output=False, log_output=True)
         logger.debug(f'Verification read:\n{formatted_verification}')
 
     def format_links_in_text(self, text):
@@ -2351,7 +2351,7 @@ class Pipulate:
         state = self.read_state(pkey)
         logger.debug(f'\nDEBUG [{pkey}] State Check:')
         # Use Rich JSON display for state debug
-        formatted_state = rich_json_display(state, console_output=False, log_output=True)
+        formatted_state = slog.rich_json_display(state, console_output=False, log_output=True)
         logger.debug(formatted_state)
         for step in reversed(steps):
             if step.id not in state:
@@ -2737,7 +2737,7 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
         content = current_message.get('content', '')
         if isinstance(content, dict):
             # Use Rich JSON display for LLM content formatting
-            content = rich_json_display(content, console_output=False, log_output=True)
+            content = slog.rich_json_display(content, console_output=False, log_output=True)
         table.add_row(role, content)
         logger.debug(f"🔍 DEBUG: Current user input - role: {role}, content: '{content[:100]}...'")
     print_and_log_table(table, "LLM DEBUG - ")
@@ -3841,9 +3841,9 @@ async def synchronize_roles_to_db():
             logger.info(f'SYNC_ROLES: Final roles in DB globally ({len(final_roles)} total): {[r.text for r in final_roles]}')
         for role_item in final_roles:
             roles_rich_table.add_row(str(role_item.id), role_item.text, '✅' if role_item.done else '❌', str(role_item.priority))
-        console.print('\n')
+        slog.console.print('\n')
         print_and_log_table(roles_rich_table, "ROLES SYNC - ")
-        console.print('\n')
+        slog.console.print('\n')
         logger.info('SYNC_ROLES: Roles synchronization display complete globally.')
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('SYNC_ROLES: Finished global role synchronization.')
@@ -4259,17 +4259,17 @@ if __name__ == '__main__':
         app_name=current_app,
         environment=current_env
     )
-    safe_print(startup_summary)
+    slog.safe_print(startup_summary)
     logger.info("🔧 STARTUP_MARKER_3: aa.startup_summary_table displayed")
 
     # Show AI capabilities summary
     ai_summary = aa.ai_breadcrumb_summary(tool_count)
-    safe_print(ai_summary)
+    slog.safe_print(ai_summary)
     logger.info("🔧 STARTUP_MARKER_4: ai_breadcrumb_summary displayed")
 
     # Show critical environment warnings
     warnings_summary = aa.startup_environment_warnings()
-    safe_print(warnings_summary)
+    slog.safe_print(warnings_summary)
     logger.info("🔧 STARTUP_MARKER_5: aa.startup_environment_warnings displayed")
 else:
     logger.info("🔧 STARTUP_MARKER_X: NOT in __name__ == '__main__' block - Rich tables skipped")
@@ -7058,35 +7058,35 @@ def check_server_already_running():
         sock.close()
 
         if result == 0:  # Port is in use
-            safe_print()
-            console.print("🚨 [bold red]SERVER ALREADY RUNNING[/bold red]")
-            safe_print()
-            console.print("✅ [bold green]AI ASSISTANT SUMMARY:[/bold green]")
-            console.print("   The Pipulate server is ALREADY RUNNING with watchdog auto-restart enabled.")
-            console.print("   There is NO NEED to manually start the server.")
-            safe_print()
-            console.print("🎯 [bold yellow]KEY INSIGHTS:[/bold yellow]")
-            console.print("   • Server running at: [bold cyan]http://localhost:5001[/bold cyan]")
-            console.print("   • Watchdog auto-restarts on ANY .py file changes")
-            console.print("   • Force restart if needed: [bold white]touch server.py[/bold white]")
-            console.print("   • Check logs: [bold white]cat logs/server.log[/bold white]")
-            safe_print()
-            console.print("🤖 [bold magenta]EXPECTED AI RESPONSE:[/bold magenta]")
-            console.print('   "I attempted to start the server with `python server.py` but it informed me')
-            console.print('    another instance is already running with watchdog auto-restart enabled.')
-            console.print('    No manual restart needed. Server available at http://localhost:5001.')
-            console.print('    Use `touch server.py` to trigger restart if testing changes."')
-            safe_print()
-            console.print("🎣 [bold cyan]TEACH YOURSELF TO FISH - RADICAL TRANSPARENCY SYSTEM:[/bold cyan]")
-            console.print("   You just discovered Pipulate's Radical Transparency & Agentic AI system!")
-            console.print("   🔥 [bold yellow]Master Guide:[/bold yellow] .cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc")
-            console.print("   🎯 [bold yellow]Key capabilities you now have:[/bold yellow]")
-            console.print("      • MCP Tools for system inspection and automation")
-            console.print("      • FINDER_TOKENs for surgical log analysis")
-            console.print("      • Pipeline state inspection for workflow debugging")
-            console.print("      • Browser automation with complete DOM transparency")
-            console.print("   💡 [bold green]Next level:[/bold green] Read the guide to unlock your full agentic potential!")
-            safe_print()
+            slog.safe_print()
+            slog.console.print("🚨 [bold red]SERVER ALREADY RUNNING[/bold red]")
+            slog.safe_print()
+            slog.console.print("✅ [bold green]AI ASSISTANT SUMMARY:[/bold green]")
+            slog.console.print("   The Pipulate server is ALREADY RUNNING with watchdog auto-restart enabled.")
+            slog.console.print("   There is NO NEED to manually start the server.")
+            slog.safe_print()
+            slog.console.print("🎯 [bold yellow]KEY INSIGHTS:[/bold yellow]")
+            slog.console.print("   • Server running at: [bold cyan]http://localhost:5001[/bold cyan]")
+            slog.console.print("   • Watchdog auto-restarts on ANY .py file changes")
+            slog.console.print("   • Force restart if needed: [bold white]touch server.py[/bold white]")
+            slog.console.print("   • Check logs: [bold white]cat logs/server.log[/bold white]")
+            slog.safe_print()
+            slog.console.print("🤖 [bold magenta]EXPECTED AI RESPONSE:[/bold magenta]")
+            slog.console.print('   "I attempted to start the server with `python server.py` but it informed me')
+            slog.console.print('    another instance is already running with watchdog auto-restart enabled.')
+            slog.console.print('    No manual restart needed. Server available at http://localhost:5001.')
+            slog.console.print('    Use `touch server.py` to trigger restart if testing changes."')
+            slog.safe_print()
+            slog.console.print("🎣 [bold cyan]TEACH YOURSELF TO FISH - RADICAL TRANSPARENCY SYSTEM:[/bold cyan]")
+            slog.console.print("   You just discovered Pipulate's Radical Transparency & Agentic AI system!")
+            slog.console.print("   🔥 [bold yellow]Master Guide:[/bold yellow] .cursor/rules/00_PIPULATE_MASTER_GUIDE.mdc")
+            slog.console.print("   🎯 [bold yellow]Key capabilities you now have:[/bold yellow]")
+            slog.console.print("      • MCP Tools for system inspection and automation")
+            slog.console.print("      • FINDER_TOKENs for surgical log analysis")
+            slog.console.print("      • Pipeline state inspection for workflow debugging")
+            slog.console.print("      • Browser automation with complete DOM transparency")
+            slog.console.print("   💡 [bold green]Next level:[/bold green] Read the guide to unlock your full agentic potential!")
+            slog.safe_print()
 
             return True
     except Exception:
@@ -7327,7 +7327,7 @@ def run_server_with_watchdog():
         subtitle = "Nix Flake Version"
 
     aa.figlet_banner(figlet_text, subtitle, font='standard', color='white on default')
-    safe_print()
+    slog.safe_print()
     aa.system_diagram()
     aa.chip_says("Hello! The server is restarting. I'll be right back online.", BANNER_COLORS['workshop_ready'])
     env = get_current_environment()
