@@ -16,7 +16,6 @@ from rich.console import Console
 from rich.json import JSON
 from rich.style import Style as RichStyle
 from rich.theme import Theme
-from rich.panel import Panel
 import imports.ascii_displays as aa
 
 
@@ -582,36 +581,6 @@ def log_pipeline_summary(pipeline, title_prefix: str = ''):
     """
     try:
         records = list(pipeline())
-
-        # 🐰 WHITE RABBIT WELCOME - Show during startup or when no records exist (clean startup)
-        if 'STARTUP' in title_prefix.upper() or not records:
-            safe_print()
-            logger.info("🔧 LEGEND_MARKER_1: Displaying white_rabbit for startup")
-            aa.white_rabbit()
-            logger.info("🔧 LEGEND_MARKER_2: white_rabbit displayed")
-            safe_print()
-
-            # 📚 LOG LEGEND: Use the comprehensive version from ascii_displays.py
-            logger.info("🔧 LEGEND_MARKER_3: About to call aa.log_reading_legend")
-            legend_content = aa.log_reading_legend()
-            logger.info("🔧 LEGEND_MARKER_4: aa.log_reading_legend returned content")
-
-            legend_panel = Panel(
-                legend_content,
-                title="📖 [bold bright_blue]Log Reading Guide[/bold bright_blue]",
-                subtitle="[dim]Understanding what you're seeing in the logs[/dim]",
-                style="bright_blue",
-                padding=(1, 2)
-            )
-            logger.info("🔧 LEGEND_MARKER_5: About to print legend_panel with Rich")
-            console.print(legend_panel)
-            logger.info("🔧 LEGEND_MARKER_6: legend_panel printed to console")
-
-            # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
-            logger.info("🔧 LEGEND_MARKER_7: About to call aa.share_ascii_with_ai")
-            aa.share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
-            logger.info("🔧 LEGEND_MARKER_8: aa.share_ascii_with_ai completed")
-            safe_print()
 
         if not records:
             logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} No active workflows")
