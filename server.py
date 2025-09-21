@@ -107,21 +107,21 @@ STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
 
 # Get global values from config
-config_keys = [
-    'TONE',
-    'MODEL',
-    'MAX_LLM_RESPONSE_WORDS',
-    'MAX_CONVERSATION_LENGTH',
-    'HOME_MENU_ITEM',
-    'DEFAULT_ACTIVE_ROLES',
-    'INFO_SVG',
-    'EXTERNAL_LINK_SVG',
-    'SETTINGS_SVG',
-    'DEMO_STATE_FILE',
-    'DEFAULT_ACTIVE_ROLES',
-    'BANNER_COLORS',
-    'DISCUSSION_DB_PATH'
-]
+config_keys = """
+TONE
+MODEL
+MAX_LLM_RESPONSE_WORDS
+MAX_CONVERSATION_LENGTH
+HOME_MENU_ITEM
+DEFAULT_ACTIVE_ROLES
+INFO_SVG
+EXTERNAL_LINK_SVG
+SETTINGS_SVG
+DEMO_STATE_FILE
+DEFAULT_ACTIVE_ROLES
+BANNER_COLORS
+DISCUSSION_DB_PATH
+""".split('\n')[1:-1]
 for key in config_keys:
     globals()[key] = getattr(CFG, key)
 
