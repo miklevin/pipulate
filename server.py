@@ -315,9 +315,7 @@ MCP_TOOL_REGISTRY = {}
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
-
 BANNER_COLORS = CFG.BANNER_COLORS
-
 DB_FILENAME = get_db_filename()
 logger.info(f'🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: {DB_FILENAME}')
 
@@ -326,21 +324,30 @@ if get_current_environment() == 'Production':
     logger.warning(f'🚨 PRODUCTION_DATABASE_WARNING: Server starting in Production mode with database: {DB_FILENAME}')
     logger.warning(f'🚨 PRODUCTION_DATABASE_WARNING: If demo is triggered, plugins using static DB_FILENAME may cause issues!')
 
+# Get configuration variables from config.py
 (
     TONE,
     MODEL,
     MAX_LLM_RESPONSE_WORDS,
     MAX_CONVERSATION_LENGTH,
     HOME_MENU_ITEM,
-    DEFAULT_ACTIVE_ROLES
+    DEFAULT_ACTIVE_ROLES,
+    INFO_SVG,
+    EXTERNAL_LINK_SVG,
+    SETTINGS_SVG
 ) = attrgetter(
     'TONE',
     'MODEL',
     'MAX_LLM_RESPONSE_WORDS',
     'MAX_CONVERSATION_LENGTH',
     'HOME_MENU_ITEM',
-    'DEFAULT_ACTIVE_ROLES'
+    'DEFAULT_ACTIVE_ROLES',
+    'INFO_SVG',
+    'EXTERNAL_LINK_SVG',
+    'SETTINGS_SVG'
 )(CFG)
+
+
 
 logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}, Context window: 128k tokens')
 
@@ -546,13 +553,6 @@ def load_conversation_from_db():
         return False
 
 
-# Centralized SVG definitions for reuse across the application
-INFO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'''
-
-EXTERNAL_LINK_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-external-link"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>'''
-
-SETTINGS_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'''
-
 # ================================================================
 # MCP TOOL REGISTRY - Generic Tool Dispatch System
 # ================================================================
@@ -564,45 +564,6 @@ SETTINGS_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
 # 🔧 FINDER_TOKEN: register_mcp_tool moved to mcp_tools.py (superior error handling)
 # Use register_mcp_tool from mcp_tools.py - it has better error handling for uninitialized registry
 
-# MCP tools are now consolidated in mcp_tools.py - see register_all_mcp_tools()
-
-# 🎨 MCP TOOLS BANNER - Now displayed in startup_event() after tools are registered
-
-# Tools now registered via register_all_mcp_tools() from mcp_tools.py
-
-# ================================================================
-# 🔧 FINDER_TOKEN: MCP_TOOLS_CONSOLIDATED
-# All MCP tools (including _botify_ping, _botify_list_projects, _botify_simple_query,
-# _pipeline_state_inspector, etc.) have been moved to mcp_tools.py for better organization.
-# See register_all_mcp_tools() in mcp_tools.py for complete tool registration.
-
-# 🔧 FINDER_TOKEN: _read_botify_api_token moved to mcp_tools.py to eliminate duplication
-
-# 🔧 FINDER_TOKEN: BOTIFY_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY
-# All Botify MCP tools moved to mcp_tools.py for better maintainability:
-# - _botify_get_full_schema (125 lines) - The 4,449 field discovery revolution
-# - _botify_list_available_analyses (65 lines) - Local analyses.json reading
-# - _botify_execute_custom_bql_query (120 lines) - Core query wizard tool
-# This removes 310 lines of duplicate code from server.py
-
-# 🔧 FINDER_TOKEN: ALL_BOTIFY_TOOLS_MOVED_TO_MCP_TOOLS_PY
-# ALL Botify tools are now registered via register_all_mcp_tools() in mcp_tools.py:
-# - botify_ping, botify_list_projects, botify_simple_query
-# - botify_get_full_schema, botify_list_available_analyses, botify_execute_custom_bql_query
-
-# Register Local LLM Helper Tools (Limited file access for local LLMs)
-# 🔧 FINDER_TOKEN: LOCAL_LLM_TOOLS_COMPLETELY_MOVED_TO_MCP_TOOLS_PY
-# ALL local_llm tools (read_file, grep_logs, list_files, get_context)
-# are now registered via register_all_mcp_tools() in mcp_tools.py
-# The sophisticated implementations with better security, performance, and features
-# are in mcp_tools.py. The simple duplicate versions have been removed from server.py.
-
-# 🔧 FINDER_TOKEN: UI_TOOLS_MOVED_TO_MCP_TOOLS_PY
-# UI interaction tools (ui_flash_element, ui_list_elements)
-# are now registered via register_all_mcp_tools() in mcp_tools.py
-
-# 🌐 FINDER_TOKEN: BROWSER_MCP_TOOLS_CORE - AI EYES AND HANDS
-# 🎯 FINDER_TOKEN: AI_CURRENT_PAGE_INTERACTION
 
 
 def print_and_log_table(table, title_prefix=""):
