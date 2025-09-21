@@ -95,19 +95,10 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-import tools.mcp_tools as mcp_tools
-# Import centralized configuration to eliminate duplication
 from config import CFG
+import imports.ascii_displays as aa
+import tools.mcp_tools as mcp_tools
 from imports import botify_code_generation, mcp_orchestrator
-from imports.ascii_displays import (ai_breadcrumb_summary, chip_says,
-                                    falling_alice, figlet_banner,
-                                    log_reading_legend,
-                                    radical_transparency_banner,
-                                    section_header, server_whisper,
-                                    share_ascii_with_ai,
-                                    startup_environment_warnings,
-                                    startup_summary_table, story_moment,
-                                    system_diagram, white_rabbit)
 from imports.server_logging import console, rich_json_display, setup_logging
 from tools.mcp_tools import register_all_mcp_tools
 
@@ -154,7 +145,7 @@ BANNER_COLORS = {
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
     try:
-        figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
+        aa.figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
     except (BlockingIOError, OSError, IOError) as e:
         # 🍎 MAC FALLBACK: If Rich banner fails during startup, use simple print
         print("🚀 STARTUP: Pipulate server starting...")
@@ -1039,14 +1030,14 @@ def log_pipeline_summary(title_prefix: str = ''):
         if 'STARTUP' in title_prefix.upper() or not records:
             safe_print()
             logger.info("🔧 LEGEND_MARKER_1: Displaying white_rabbit for startup")
-            white_rabbit()
+            aa.white_rabbit()
             logger.info("🔧 LEGEND_MARKER_2: white_rabbit displayed")
             safe_print()
 
             # 📚 LOG LEGEND: Use the comprehensive version from ascii_displays.py
-            logger.info("🔧 LEGEND_MARKER_3: About to call log_reading_legend")
-            legend_content = log_reading_legend()
-            logger.info("🔧 LEGEND_MARKER_4: log_reading_legend returned content")
+            logger.info("🔧 LEGEND_MARKER_3: About to call aa.log_reading_legend")
+            legend_content = aa.log_reading_legend()
+            logger.info("🔧 LEGEND_MARKER_4: aa.log_reading_legend returned content")
 
             legend_panel = Panel(
                 legend_content,
@@ -1060,9 +1051,9 @@ def log_pipeline_summary(title_prefix: str = ''):
             logger.info("🔧 LEGEND_MARKER_6: legend_panel printed to console")
 
             # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
-            logger.info("🔧 LEGEND_MARKER_7: About to call share_ascii_with_ai")
-            share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
-            logger.info("🔧 LEGEND_MARKER_8: share_ascii_with_ai completed")
+            logger.info("🔧 LEGEND_MARKER_7: About to call aa.share_ascii_with_ai")
+            aa.share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
+            logger.info("🔧 LEGEND_MARKER_8: aa.share_ascii_with_ai completed")
             safe_print()
 
         if not records:
@@ -4157,7 +4148,7 @@ def find_plugin_classes(plugin_modules, discovered_modules):
 
 # 🎨 PLUGINS BANNER - Right before plugin discovery begins (only when running as main script)
 if __name__ == '__main__':
-    figlet_banner("apps", "Pipulate Workflows and CRUD Apps", font='standard', color='orange3')
+    aa.figlet_banner("apps", "Pipulate Workflows and CRUD Apps", font='standard', color='orange3')
 
 plugin_instances = {}
 discovered_modules = discover_plugin_files()
@@ -4323,7 +4314,7 @@ async def startup_event():
         logger.info(f"🔧 FINDER_TOKEN: STARTUP_EVENT_MCP_READY - {tool_count} MCP tools available for async startup")
 
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.')
-    server_whisper("Synchronizing roles and permissions", "🔐")
+    aa.server_whisper("Synchronizing roles and permissions", "🔐")
     await synchronize_roles_to_db()
 
     logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:')
@@ -4380,7 +4371,7 @@ async def startup_event():
         discussion_db_path = 'data/discussion.db'
 
         # Execute comprehensive backup
-        story_moment("Backup System", "Protecting critical data assets", BANNER_COLORS['workshop_ready'])
+        aa.story_moment("Backup System", "Protecting critical data assets", BANNER_COLORS['workshop_ready'])
         backup_results = backup_manager.backup_all_databases()
 
         # Log results
@@ -4395,7 +4386,7 @@ async def startup_event():
     except Exception as e:
         logger.error(f"🛡️ FINDER_TOKEN: BACKUP_STARTUP_ERROR - Backup system failed: {e}")
 
-    story_moment("Workshop Ready", "All systems initialized and ready for creative exploration", BANNER_COLORS['workshop_ready'])
+    aa.story_moment("Workshop Ready", "All systems initialized and ready for creative exploration", BANNER_COLORS['workshop_ready'])
     # Display startup summary tables
     try:
         from imports.durable_backup_system import backup_manager as durable_backup_manager
@@ -4455,8 +4446,8 @@ logger.info("🔧 ASCII_MARKER_1: About to check MCP figlet banner conditions")
 logger.info(f"🔧 ASCII_MARKER_1: __name__ = {__name__}, tool_count = {tool_count}")
 if __name__ == '__main__' and tool_count > 0:
     logger.info("🔧 ASCII_MARKER_2: Displaying MCP figlet banner and section header")
-    figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
-    section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
+    aa.figlet_banner("MCP", "Model Context Protocol Tools", font='standard', color='magenta')
+    aa.section_header("🔧", "MCP Arsenal", f"Equipped with {tool_count} AI-powered tools for transparency", "bright_blue")
     logger.info("🔧 ASCII_MARKER_3: MCP figlet banner and section header displayed")
     # Half-second delay so humans can notice this major feature before it scrolls away
     import time
@@ -4470,7 +4461,7 @@ logger.info(f"🔧 STARTUP_MARKER_1: __name__ value is: {__name__}")
 if __name__ == '__main__':
     logger.info("🔧 STARTUP_MARKER_2: Inside __name__ == '__main__' block - showing Rich tables")
     # Show beautiful startup summary for humans
-    startup_summary = startup_summary_table(
+    startup_summary = aa.startup_summary_table(
         apps_discovered=discovered_count,
         apps_registered=registered_count,
         mcp_tools_count=tool_count,
@@ -4478,17 +4469,17 @@ if __name__ == '__main__':
         environment=current_env
     )
     safe_print(startup_summary)
-    logger.info("🔧 STARTUP_MARKER_3: startup_summary_table displayed")
+    logger.info("🔧 STARTUP_MARKER_3: aa.startup_summary_table displayed")
 
     # Show AI capabilities summary
-    ai_summary = ai_breadcrumb_summary(tool_count)
+    ai_summary = aa.ai_breadcrumb_summary(tool_count)
     safe_print(ai_summary)
     logger.info("🔧 STARTUP_MARKER_4: ai_breadcrumb_summary displayed")
 
     # Show critical environment warnings
-    warnings_summary = startup_environment_warnings()
+    warnings_summary = aa.startup_environment_warnings()
     safe_print(warnings_summary)
-    logger.info("🔧 STARTUP_MARKER_5: startup_environment_warnings displayed")
+    logger.info("🔧 STARTUP_MARKER_5: aa.startup_environment_warnings displayed")
 else:
     logger.info("🔧 STARTUP_MARKER_X: NOT in __name__ == '__main__' block - Rich tables skipped")
 
@@ -4498,17 +4489,17 @@ if failed_count > 0:
     for module_name, class_name, workflow_class in discovered_classes:
         if module_name not in plugin_instances:
             failed_plugins.append(f'{module_name}.{class_name}')
-    server_whisper(f"Some plugins need attention: {', '.join(failed_plugins)}", "⚠️")
+    aa.server_whisper(f"Some plugins need attention: {', '.join(failed_plugins)}", "⚠️")
     logger.warning(f'FINDER_TOKEN: PLUGIN_REGISTRATION_SUMMARY - Failed plugins: {", ".join(failed_plugins)}')
 else:
-    chip_says("All plugins loaded successfully! The workshop is fully equipped.", BANNER_COLORS['plugin_registry_success'])
+    aa.chip_says("All plugins loaded successfully! The workshop is fully equipped.", BANNER_COLORS['plugin_registry_success'])
 # 🔍 RADICAL TRANSPARENCY BANNER - Right after MCP registry completes, before FINDER_TOKEN loop
 logger.info("🔧 TRANSPARENCY_MARKER_1: About to check radical transparency banner conditions")
 logger.info(f"🔧 TRANSPARENCY_MARKER_1: __name__ = {__name__}")
 if __name__ == '__main__':
     logger.info("🔧 TRANSPARENCY_MARKER_2: Displaying radical transparency banner")
-    radical_transparency_banner()
-    logger.info("🔧 TRANSPARENCY_MARKER_3: radical_transparency_banner displayed")
+    aa.radical_transparency_banner()
+    logger.info("🔧 TRANSPARENCY_MARKER_3: aa.radical_transparency_banner displayed")
 else:
     logger.info("🔧 TRANSPARENCY_MARKER_X: radical transparency banner conditions not met - skipped")
 
@@ -7215,7 +7206,7 @@ async def prepare_local_llm_context():
             json.dump(context_summary, f, indent=2)
 
         logger.info(f"LOCAL LLM CONTEXT: Pre-seeded context package ready at {context_file}")
-        server_whisper("Local LLM context prepared - the AI assistant is ready for collaboration", "🤖")
+        aa.server_whisper("Local LLM context prepared - the AI assistant is ready for collaboration", "🤖")
 
         # Add context message silently to conversation history for local LLM
         try:
@@ -7405,13 +7396,13 @@ def restart_server(force_restart=False):
             if __name__ == '__main__':
                 logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point')
                 logger.info("🔧 ALICE_MARKER: __name__ = {__name__} Displaying falling_alice banner")
-                falling_alice()
+                aa.falling_alice()
             else:
                 logger.info("🔧 ALICE_MARKER_X: Alice banner conditions not met - skipped")
 
             # 🍎 MAC SAFE: Show restart banner with fallback for Mac I/O constraints
             try:
-                figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color=BANNER_COLORS['server_restart'])
+                aa.figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color=BANNER_COLORS['server_restart'])
             except (BlockingIOError, OSError, IOError) as e:
                 # 🍎 MAC FALLBACK: If Rich banner fails during restart, use simple print
                 print("🔄 RESTART: Pipulate server reloading...")
@@ -7424,7 +7415,7 @@ def restart_server(force_restart=False):
             # 🤖 AI ASSISTANT EDUCATION: Explain rapid restart behavior
             # Console users see clean UX with banners shown once per session")
             # AI assistants see ALL restart events in logs for complete transparency")
-            # Each restart below will trigger figlet_banner() with ASCII art logging")
+            # Each restart below will trigger aa.figlet_banner() with ASCII art logging")
             logger.warning("🤖 AI_RAPID_RESTART: This is a watchdog-triggered restart - one of potentially multiple rapid restarts")
 
             # Set environment variable to indicate this is a watchdog restart
@@ -7528,10 +7519,10 @@ def run_server_with_watchdog():
     logger.warning("🤖 AI_STARTUP_BANNER: About to display main startup banner with ASCII art")
     logger.warning("🤖 AI_STARTUP_BANNER: This banner appears on every server start (manual or watchdog restart)")
     logger.warning("🤖 AI_STARTUP_BANNER: Console shows it once per session, logs capture every occurrence")
-    logger.warning("🤖 AI_STARTUP_BANNER: figlet_banner() below will log ASCII art with triple backticks for AI visibility")
+    logger.warning("🤖 AI_STARTUP_BANNER: aa.figlet_banner() below will log ASCII art with triple backticks for AI visibility")
 
     # 🎨 BEAUTIFUL RESTART BANNER
-    figlet_banner(APP_NAME, "Local First AI SEO Software", font='standard', color=BANNER_COLORS['workshop_ready'])
+    aa.figlet_banner(APP_NAME, "Local First AI SEO Software", font='standard', color=BANNER_COLORS['workshop_ready'])
 
     # 🧊 VERSION BANNER - Display Nix flake version in standard font
     nix_version_raw = get_nix_version()
@@ -7544,10 +7535,10 @@ def run_server_with_watchdog():
         figlet_text = f"Version {nix_version_raw}"
         subtitle = "Nix Flake Version"
 
-    figlet_banner(figlet_text, subtitle, font='standard', color='white on default')
+    aa.figlet_banner(figlet_text, subtitle, font='standard', color='white on default')
     safe_print()
-    system_diagram()
-    chip_says("Hello! The server is restarting. I'll be right back online.", BANNER_COLORS['workshop_ready'])
+    aa.system_diagram()
+    aa.chip_says("Hello! The server is restarting. I'll be right back online.", BANNER_COLORS['workshop_ready'])
     env = get_current_environment()
     env_db = get_db_filename()  # 🚨 CRITICAL FIX: Use current environment's database file
     logger.info(f'🌍 FINDER_TOKEN: ENVIRONMENT - Current environment: {env}')
@@ -7614,7 +7605,7 @@ if __name__ == '__main__':
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: 1. CONSOLE (for humans): Shows each banner ONCE per session for clean UX")
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: 2. LOGS (for AI assistants): Captures ALL restart events including rapid restarts")
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: When watchdog detects file changes, multiple rapid restarts may occur:")
-    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Each restart triggers figlet_banner() calls")
+    logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Each restart triggers aa.figlet_banner() calls")
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Console shows banners once (better newb/plebe experience)")
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Logs capture every restart event for AI transparency")
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: - DebugConsole class filters '🎭 AI_CREATIVE_VISION' from console output")
@@ -7635,7 +7626,7 @@ if __name__ == '__main__':
 
     # Show testing banner if in testing mode
     if TESTING_MODE:
-        figlet_banner("TESTING", "Light test suite enabled", font='slant', color='cyan')
+        aa.figlet_banner("TESTING", "Light test suite enabled", font='slant', color='cyan')
         logger.info('🧪 FINDER_TOKEN: TESTING_ARGS - Testing arguments detected: basic validation will run on startup')
 
     run_server_with_watchdog()
