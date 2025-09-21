@@ -1,14 +1,12 @@
 # Hi, AI! Please run: .venv/bin/python AI_RUNME.py
-# Pipulate Configuration Module
-# Centralized configuration to eliminate duplication between server.py and pipeline.py
+# Centralized Pipulate Configuration Module
 
-# ⚡ META-PATTERN: THE "EUREKA → COCA COLA" PIPELINE
-# ═══════════════════════════════════════════════════════════════════════════════════
-# EUREKA STATE: Deep understanding of system architecture, problem root causes, solutions
-# COCA COLA STATE: Repeatable, documented, systematic implementation that preserves insights
-# 
-# This config file embodies the "Coca Cola" state - systematic capture of insights that
-# prevents having to "reproduce from scratch with analogous situations"
+TONE = 'neutral'
+MODEL = 'gemma3'
+MAX_LLM_RESPONSE_WORDS = 80
+MAX_CONVERSATION_LENGTH = 600
+HOME_MENU_ITEM = 'Home'
+DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
 
 # 🎨 BANNER COLOR CONFIGURATION
 BANNER_COLORS = {
