@@ -14,7 +14,7 @@ You are an AI Coding Assistant operating inside a **Nix development shell**. You
 You **MUST** follow this workflow for every action you take:
 
 1.  **Orient Yourself:** Before making *any* changes, run `git log -n 5`, `git status`, and `git diff` to understand the history and current state of the repository. Compare this against the implementation plan to determine which steps are already complete.
-2.  **Use Robust Tools:** The built-in `replace` tool is **forbidden**. For all but the simplest single-line changes, you **must** use the `local_llm_read_file` -> modify in memory -> `local_llm_write_file` pattern to ensure atomic and correct file modifications.
+2.  **Use Robust Tools:** You **must** ensure atomic and correct file modifications. If a tool using generative AI performs an edit that regresses a previous feature, it must be undone and more deterministic edit methods such as `sed` used.
 3.  **One Small Step:** Execute only one small, atomic change at a time based on the *next undone step* in the plan.
 4.  **Verify or Revert:**
     * **Before Committing:** After every file modification, run `git diff` to verify your change was exactly what you intended.
@@ -163,17 +163,6 @@ if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
         # Any other error, just continue with startup
         print(f"🚀 STARTUP: Banner display failed (Error: {e}), continuing startup...")
 
-# --- NEW: HYBRID TOOL REGISTRATION ---
-# 1. Automatically discover all tools decorated with @auto_tool
-import tools
-MCP_TOOL_REGISTRY = tools.get_all_tools()
-logger.info(f"🔌 PLUGIN_SYSTEM: Auto-discovered {len(MCP_TOOL_REGISTRY)} tools.")
-
-# 2. Allow the old manual registration system to add the remaining tools.
-#    This enables a gradual, non-breaking migration.
-mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
-# --- END NEW ---
-
 def safe_print(*args, **kwargs):
     """Safe wrapper for print() that handles I/O errors gracefully"""
     try:
@@ -215,9 +204,20 @@ BROWSER_TESTING = False   # Browser automation testing
 # Initialize logger BEFORE any functions that need it
 logger = setup_logging()
 
-
 # Log early startup phase
 logger.info('🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence')
+
+# --- NEW: HYBRID TOOL REGISTRATION ---
+# 1. Automatically discover all tools decorated with @auto_tool
+import tools
+MCP_TOOL_REGISTRY = tools.get_all_tools()
+logger.info(f"🔌 PLUGIN_SYSTEM: Auto-discovered {len(MCP_TOOL_REGISTRY)} tools.")
+
+# 2. Allow the old manual registration system to add the remaining tools.
+#    This enables a gradual, non-breaking migration.
+mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
+# --- END NEW ---
+
 
 if __name__ == '__main__':
     if DEBUG_MODE:
@@ -408,6 +408,9 @@ def get_git_hash():
     except Exception:
         return "unknown"
 
+# ================================================================
+# Configuration now centralized in config.py - import as alias for backward compatibility
+PCONFIG = CONFIG_PCONFIG
 
 ENV_FILE = Path('data/current_environment.txt')
 
@@ -416,10 +419,6 @@ logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
 
 # Suppress deprecation warnings from third-party packages
 
-
-# Import centralized configuration to eliminate duplication
-
-PCONFIG = CONFIG_PCONFIG
 MAX_CONVERSATION_LENGTH = PCONFIG['CHAT_CONFIG']['MAX_CONVERSATION_LENGTH']
 DEFAULT_ACTIVE_ROLES = PCONFIG['DEFAULT_ACTIVE_ROLES']
 
@@ -489,19 +488,6 @@ BANNER_COLORS = {
 }
 
 custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
-
-
-# DebugConsole and console now imported from imports.server_logging
-
-
-# rich_json_display now imported from imports.server_logging
-
-
-ENV_FILE = Path('data/current_environment.txt')
-
-APP_NAME = get_app_name()
-logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
-
 DB_FILENAME = get_db_filename()
 logger.info(f'🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: {DB_FILENAME}')
 
@@ -509,7 +495,6 @@ logger.info(f'🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: {DB_FILENAME}
 if get_current_environment() == 'Production':
     logger.warning(f'🚨 PRODUCTION_DATABASE_WARNING: Server starting in Production mode with database: {DB_FILENAME}')
     logger.warning(f'🚨 PRODUCTION_DATABASE_WARNING: If demo is triggered, plugins using static DB_FILENAME may cause issues!')
-
 
 TONE = 'neutral'
 MODEL = 'gemma3'
@@ -525,10 +510,6 @@ HOME_MENU_ITEM = 'Home'
 DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
 
 logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}, Context window: 128k tokens')
-
-# ================================================================
-# Configuration now centralized in config.py - import as alias for backward compatibility
-PCONFIG = CONFIG_PCONFIG
 
 # 🎯 IMPROVED ARCHITECTURE: Independent Discussion Database
 # Conversation history is now stored in data/discussion.db (environment-independent)
