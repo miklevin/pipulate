@@ -1348,6 +1348,7 @@ print(f'🎭 Hijack: {{result.get("success")}}')
         }
 
 
+@auto_tool
 async def ui_flash_element(params: dict) -> dict:
     """Flash a UI element to draw user attention with customizable effects.
 
@@ -1487,6 +1488,7 @@ async def ui_flash_element(params: dict) -> dict:
         }
 
 
+@auto_tool
 async def voice_synthesis(params: dict) -> dict:
     """Synthesize speech using Chip O'Theseus voice system.
 
@@ -1541,6 +1543,7 @@ async def voice_synthesis(params: dict) -> dict:
         }
 
 
+@auto_tool
 async def ui_list_elements(params: dict) -> dict:
     """List common UI element IDs that can be flashed for user guidance.
 
@@ -3025,11 +3028,6 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         return {"success": False, "error": str(e)}
 
 
-# Register UI tools NOW that functions are defined
-register_mcp_tool("ui_flash_element", ui_flash_element)
-register_mcp_tool("ui_list_elements", ui_list_elements)
-
-
 async def botify_get_full_schema(params: dict) -> dict:
     """Discover complete Botify API schema using the true_schema_discoverer.py module.
 
@@ -4476,8 +4474,8 @@ async def test_specific_tool(tool_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 # Register the new AI self-discovery tools
-register_mcp_tool("ai_self_discovery_assistant", ai_self_discovery_assistant)
-register_mcp_tool("ai_capability_test_suite", ai_capability_test_suite)
+# register_mcp_tool("ai_self_discovery_assistant", ai_self_discovery_assistant)
+# register_mcp_tool("ai_capability_test_suite", ai_capability_test_suite)
 
 
 async def browser_automate_instructions(params: dict) -> dict:
@@ -4668,7 +4666,7 @@ async def browser_automate_instructions(params: dict) -> dict:
 
 
 # Register the new browser automation tool
-register_mcp_tool("browser_automate_instructions", browser_automate_instructions)
+# register_mcp_tool("browser_automate_instructions", browser_automate_instructions)
 
 
 def get_available_tools():
