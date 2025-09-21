@@ -323,7 +323,6 @@ MCP_TOOL_REGISTRY = {}
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
-BANNER_COLORS = CFG.BANNER_COLORS
 DB_FILENAME = get_db_filename()
 logger.info(f'🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: {DB_FILENAME}')
 
