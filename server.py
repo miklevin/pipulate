@@ -102,45 +102,6 @@ from imports import botify_code_generation, mcp_orchestrator
 from imports.server_logging import console, rich_json_display, setup_logging
 from tools.mcp_tools import register_all_mcp_tools
 
-# 🎨 BANNER COLOR CONFIGURATION
-# Centralized color control for all storytelling banners and messages
-BANNER_COLORS = {
-    # Main banner colors
-    'figlet_primary': 'bright_cyan',
-    'figlet_subtitle': 'dim white',
-
-    # ASCII banner colors
-    'ascii_title': 'bright_cyan',
-    'ascii_subtitle': 'dim cyan',
-
-    # Section headers
-    'section_header': 'bright_yellow',
-
-    # Story moments and messages
-    'chip_narrator': 'bold cyan',
-    'story_moment': 'bright_magenta',
-    'server_whisper': 'dim italic',
-
-    # Startup sequence colors
-    'server_awakening': 'bright_cyan',
-    'mcp_arsenal': 'bright_blue',
-    'plugin_registry_success': 'bright_green',
-    'plugin_registry_warning': 'bright_yellow',
-    'workshop_ready': 'bright_blue',
-    'server_restart': 'yellow',
-
-    # Special banners
-    'white_rabbit': 'white on default',
-    'transparency_banner': 'bright_cyan',
-    'system_diagram': 'bright_blue',
-    'status_banner': 'bright_green',
-
-    # Box styles (Rich box drawing)
-    'heavy_box': 'HEAVY',
-    'rounded_box': 'ROUNDED',
-    'double_box': 'DOUBLE',
-    'ascii_box': 'ASCII'
-}
 
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
@@ -165,10 +126,6 @@ def safe_print(*args, **kwargs):
         # Catch any other unexpected errors
         logger.error(f"🖨️ SAFE_PRINT: Unexpected error during print: {type(e).__name__}: {e}")
 
-# Import ASCII display functions (externalized from server.py for token reduction)
-
-# Import Botify code generation utilities (externalized from server.py for token reduction)
-
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
 # Various debug settings
@@ -176,10 +133,6 @@ DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
 
-# 🧪 TESTING MODE: Revolutionary testing philosophy
-TESTING_MODE = False      # Light testing on every server startup
-DEEP_TESTING = False      # Comprehensive testing mode
-BROWSER_TESTING = False   # Browser automation testing
 # 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
 # These control different aspects of logging and debugging
 
@@ -428,9 +381,6 @@ STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
 
 # 🧪 TESTING MODE: Revolutionary testing philosophy
-TESTING_MODE = False      # Light testing on every server startup
-DEEP_TESTING = False      # Comprehensive testing mode
-BROWSER_TESTING = False   # Browser automation testing
 # 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
 # These control different aspects of logging and debugging
 
@@ -7618,15 +7568,5 @@ if __name__ == '__main__':
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Clean console experience for beginners")
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Complete transparency for AI debugging")
     logger.warning("🤖 AI_RESTART_ARCHITECTURE: - Continuous narrative flow despite rapid restarts")
-
-    # Set global testing mode flags
-    if args.test or args.test_deep or args.test_browser:
-        TESTING_MODE = True
-        logger.info('🧪 FINDER_TOKEN: TESTING_MODE_ENABLED - Light testing enabled for this server run')
-
-    # Show testing banner if in testing mode
-    if TESTING_MODE:
-        aa.figlet_banner("TESTING", "Light test suite enabled", font='slant', color='cyan')
-        logger.info('🧪 FINDER_TOKEN: TESTING_ARGS - Testing arguments detected: basic validation will run on startup')
 
     run_server_with_watchdog()
