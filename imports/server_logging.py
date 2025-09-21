@@ -16,6 +16,8 @@ from rich.console import Console
 from rich.json import JSON
 from rich.style import Style as RichStyle
 from rich.theme import Theme
+from rich.panel import Panel
+import imports.ascii_displays as aa
 
 
 # Custom theme for Rich console - needs to match server.py exactly
