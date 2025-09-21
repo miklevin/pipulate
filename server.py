@@ -84,9 +84,7 @@ from fasthtml.common import *
 from loguru import logger
 from rich.json import JSON
 from rich.panel import Panel
-from rich.style import Style as RichStyle
 from rich.table import Table, Text
-from rich.theme import Theme
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse, JSONResponse
@@ -308,15 +306,9 @@ MAX_CONVERSATION_LENGTH = CFG.CHAT_CONFIG['MAX_CONVERSATION_LENGTH']
 DEFAULT_ACTIVE_ROLES = CFG.DEFAULT_ACTIVE_ROLES
 
 # Import MCP tools module for enhanced AI assistant capabilities
-# Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
 MCP_TOOL_REGISTRY = {}
-
 # Pass our registry to mcp_tools so they use the same instance
 mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
-
-# Import ASCII display functions (externalized from server.py for token reduction)
-
-# Import Botify code generation utilities (externalized from server.py for token reduction)
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
@@ -326,7 +318,6 @@ STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
 BANNER_COLORS = CFG.BANNER_COLORS
 
-custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
 DB_FILENAME = get_db_filename()
 logger.info(f'🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: {DB_FILENAME}')
 
