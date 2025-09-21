@@ -83,6 +83,7 @@ import uvicorn
 from fasthtml.common import *
 from loguru import logger
 from rich.json import JSON
+from rich.panel import Panel
 from rich.table import Table, Text
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
@@ -128,6 +129,7 @@ for key in config_keys:
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
     try:
         aa.figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
+        aa.white_rabbit()
         aa.system_diagram()
     except (BlockingIOError, OSError, IOError) as e:
         # 🍎 MAC FALLBACK: If Rich banner fails during startup, use simple print
@@ -6437,6 +6439,10 @@ async def send_startup_environment_message():
                         await pipulate.message_queue.add(pipulate, startup_marked_message, verbatim=True, role='system', spaces_after=2)
                         logger.info(f"🔧 STARTUP_DEBUG: Successfully sent startup endpoint message: {message_id}")
 
+                        aa.reading_legend()
+                        aa.system_diagram()
+                        aa.white_rabbit()
+
                         # Mark as sent in coordination system
                         message_coordination['last_endpoint_message_time'][message_id] = current_time
                         message_coordination['endpoint_messages_sent'].add(message_id)
@@ -6844,7 +6850,6 @@ def run_server_with_watchdog():
 
     aa.figlet_banner(figlet_text, subtitle, font='standard', color='white on default')
     slog.safe_print()
-    aa.system_diagram()
     aa.chip_says("Hello! The server is restarting. I'll be right back online.", BANNER_COLORS['workshop_ready'])
     env = get_current_environment()
     env_db = get_db_filename()  # 🚨 CRITICAL FIX: Use current environment's database file
