@@ -156,9 +156,9 @@ message_coordination = {
 }
 
 
-class GracefulRestartException(SystemExit):
-    """Custom exception to signal a restart requested by Watchdog."""
-    pass
+def set_current_environment(environment):
+    ENV_FILE.write_text(environment)
+    logger.info(f'Environment set to: {environment}')
 
 
 def is_critical_operation_in_progress():
@@ -564,8 +564,6 @@ def load_conversation_from_db():
 # 🔧 FINDER_TOKEN: register_mcp_tool moved to mcp_tools.py (superior error handling)
 # Use register_mcp_tool from mcp_tools.py - it has better error handling for uninitialized registry
 
-
-
 def print_and_log_table(table, title_prefix=""):
     """Print rich table to console AND log structured data to server.log for radical transparency.
 
@@ -621,10 +619,6 @@ def print_and_log_table(table, title_prefix=""):
         logger.error(f"Error logging rich table: {e}")
         logger.info(f"📊 {title_prefix}RICH TABLE: [Unable to extract table data]")
 
-
-def set_current_environment(environment):
-    ENV_FILE.write_text(environment)
-    logger.info(f'Environment set to: {environment}')
 
 
 def _recursively_parse_json_strings(obj):
