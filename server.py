@@ -105,6 +105,25 @@ DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
 
+# Get global values from config
+config_keys = [
+    'TONE',
+    'MODEL',
+    'MAX_LLM_RESPONSE_WORDS',
+    'MAX_CONVERSATION_LENGTH',
+    'HOME_MENU_ITEM',
+    'DEFAULT_ACTIVE_ROLES',
+    'INFO_SVG',
+    'EXTERNAL_LINK_SVG',
+    'SETTINGS_SVG',
+    'DEMO_STATE_FILE',
+    'DEFAULT_ACTIVE_ROLES',
+    'BANNER_COLORS',
+    'DISCUSSION_DB_PATH'
+]
+for key in config_keys:
+    globals()[key] = getattr(CFG, key)
+
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
     try:
@@ -290,24 +309,6 @@ def get_git_hash():
             return "unknown"
     except Exception:
         return "unknown"
-
-# Get global values from config
-config_keys = [
-    'TONE',
-    'MODEL',
-    'MAX_LLM_RESPONSE_WORDS',
-    'MAX_CONVERSATION_LENGTH',
-    'HOME_MENU_ITEM',
-    'DEFAULT_ACTIVE_ROLES',
-    'INFO_SVG',
-    'EXTERNAL_LINK_SVG',
-    'SETTINGS_SVG',
-    'DEMO_STATE_FILE',
-    'DEFAULT_ACTIVE_ROLES',
-    'DISCUSSION_DB_PATH'
-]
-for key in config_keys:
-    globals()[key] = getattr(CFG, key)
 
 ENV_FILE = Path(CFG.ENV_FILE)
 APP_NAME = get_app_name()
