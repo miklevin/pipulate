@@ -100,6 +100,10 @@ from imports import botify_code_generation, mcp_orchestrator
 from imports.server_logging import console, rich_json_display, setup_logging
 from tools.mcp_tools import register_all_mcp_tools
 
+# Various debug settings
+DEBUG_MODE = False
+STATE_TABLES = False
+TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
 
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
@@ -312,10 +316,6 @@ mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
-# Various debug settings
-DEBUG_MODE = False
-STATE_TABLES = False
-TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
 BANNER_COLORS = CFG.BANNER_COLORS
 
 DB_FILENAME = get_db_filename()
