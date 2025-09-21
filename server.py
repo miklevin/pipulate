@@ -324,50 +324,7 @@ warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources
 DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
-
-# 🧪 TESTING MODE: Revolutionary testing philosophy
-# 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
-# These control different aspects of logging and debugging
-
-# 🎨 BANNER COLOR CONFIGURATION
-# Centralized color control for all storytelling banners and messages
-BANNER_COLORS = {
-    # Main banner colors
-    'figlet_primary': 'bright_cyan',
-    'figlet_subtitle': 'dim white',
-
-    # ASCII banner colors
-    'ascii_title': 'bright_cyan',
-    'ascii_subtitle': 'dim cyan',
-
-    # Section headers
-    'section_header': 'bright_yellow',
-
-    # Story moments and messages
-    'chip_narrator': 'bold cyan',
-    'story_moment': 'bright_magenta',
-    'server_whisper': 'dim italic',
-
-    # Startup sequence colors
-    'server_awakening': 'bright_cyan',
-    'mcp_arsenal': 'bright_blue',
-    'plugin_registry_success': 'bright_green',
-    'plugin_registry_warning': 'bright_yellow',
-    'workshop_ready': 'bright_blue',
-    'server_restart': 'yellow',
-
-    # Special banners
-    'white_rabbit': 'white on default',
-    'transparency_banner': 'bright_cyan',
-    'system_diagram': 'bright_blue',
-    'status_banner': 'bright_green',
-
-    # Box styles (Rich box drawing)
-    'heavy_box': 'HEAVY',
-    'rounded_box': 'ROUNDED',
-    'double_box': 'DOUBLE',
-    'ascii_box': 'ASCII'
-}
+BANNER_COLORS = CFG.BANNER_COLORS
 
 custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
 DB_FILENAME = get_db_filename()
