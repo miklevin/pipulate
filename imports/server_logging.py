@@ -398,5 +398,107 @@ def _format_records_for_lifecycle_log(records_iterable):
     except Exception as e:
         return f'[Error formatting records for JSON: {e}] Processed: {str(processed_records)}'
 
+
+def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str = ''):
+    """
+    🔧 CLAUDE'S UNIFIED LOGGING: Logs table state to unified server.log
+    Simplified from the old lifecycle logging system.
+    """
+    try:
+        records = list(data_source_callable())
+        # Convert records to list of dicts for Rich JSON display
+        records_data = []
+        for record in records:
+            if hasattr(record, '_asdict'):
+                # Named tuple
+                records_data.append(record._asdict())
+            elif hasattr(record, '__dict__'):
+                # Object with attributes
+                records_data.append(record.__dict__)
+            elif isinstance(record, dict):
+                # Already a dict
+                records_data.append(record)
+            else:
+                # SQLite Row or other - try to convert to dict
+                try:
+                    records_data.append(dict(record))
+                except:
+                    records_data.append(str(record))
+
+        # Use Rich JSON display for table data - show in console with beautiful formatting
+        # Enable AI logging so AI assistants can see the JSON data
+        slog.rich_json_display(records_data, title=f"Table State: {table_name}", console_output=True, log_output=False, ai_log_output=True)
+
+        # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
+        logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_{table_name.upper()} - {title_prefix} Snapshot: [Rich JSON displayed to console]")
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: TABLE_STATE_ERROR - Failed to log '{table_name}' ({title_prefix}): {e}")
+
+
+def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str = ''):
+    """
+    🔧 CLAUDE'S UNIFIED LOGGING: Logs DictLikeDB state to unified server.log
+    Enhanced with semantic meaning for AI assistant understanding.
+    """
+    try:
+        items = dict(db_instance.items())
+        # Use Rich JSON display for database items - show in console with beautiful formatting
+        # Enable AI logging so AI assistants can see the JSON data
+        slog.rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=False, ai_log_output=True)
+
+        # Add semantic context for AI assistants
+        semantic_info = []
+        for key, value in items.items():
+            if key == "last_profile_id":
+                semantic_info.append(f"🧑 Active user profile: {value}")
+            elif key == "last_app_choice":
+                semantic_info.append(f"📱 Current app/workflow: {value or 'None (Home page)'}")
+            elif key == "current_environment":
+                semantic_info.append(f"🌍 Environment mode: {value}")
+            elif key == "profile_locked":
+                lock_status = "🔒 LOCKED" if value == "1" else "🔓 Unlocked"
+                semantic_info.append(f"👤 Profile editing: {lock_status}")
+            elif key == "theme_preference":
+                semantic_info.append(f"🎨 UI theme: {value}")
+            elif key == "split-sizes":
+                semantic_info.append(f"📐 UI layout split: {value}")
+            elif key == "last_visited_url":
+                semantic_info.append(f"🔗 Last page visited: {value}")
+            elif key.startswith("endpoint_message_sent"):
+                env = key.replace("endpoint_message_sent__", "")
+                semantic_info.append(f"📨 Startup message sent for {env}: {value}")
+            elif key == "temp_message":
+                semantic_info.append(f"💬 Temporary UI message: {value}")
+
+        # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
+        logger.info(f"🔍 FINDER_TOKEN: DB_STATE_{db_name.upper()} - {title_prefix} Key-Value Store: [Rich JSON displayed to console]")
+
+        if semantic_info:
+            semantic_summary = "\n".join(f"    {info}" for info in semantic_info)
+            logger.info(f"🔍 SEMANTIC_DB_{db_name.upper()}: {title_prefix} Human-readable state:\n{semantic_summary}")
+
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: DB_STATE_ERROR - Failed to log DictLikeDB '{db_name}' ({title_prefix}): {e}")
+
+
+def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str = ''):
+    """
+    🔧 CLAUDE'S UNIFIED LOGGING: Logs raw SQL table state to unified server.log
+    Simplified from the old lifecycle logging system.
+    """
+    original_row_factory = db_conn.row_factory
+    db_conn.row_factory = sqlite3.Row
+    try:
+        cursor = db_conn.cursor()
+        cursor.execute(f'SELECT * FROM {table_name}')
+        rows = cursor.fetchall()
+        content = slog._format_records_for_lifecycle_log(rows)
+        logger.info(f"🔍 FINDER_TOKEN: SQL_TABLE_{table_name.upper()} - {title_prefix} Raw SQL:\n{content}")
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: SQL_TABLE_ERROR - Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}")
+    finally:
+        db_conn.row_factory = original_row_factory
+
+
 # Create console instance for this module
 console = DebugConsole(theme=custom_theme) 
