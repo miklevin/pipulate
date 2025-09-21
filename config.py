@@ -1,6 +1,9 @@
 # Hi, AI! Please run: .venv/bin/python AI_RUNME.py
 # Centralized Pipulate Configuration Module
 
+from rich.theme import Theme
+from rich.style import Style as RichStyle
+
 TONE = 'neutral'
 MODEL = 'gemma3'
 MAX_LLM_RESPONSE_WORDS = 80
