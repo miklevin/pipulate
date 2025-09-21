@@ -95,7 +95,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from config import CFG
+import config as CFG
 import imports.ascii_displays as aa
 import tools.mcp_tools as mcp_tools
 from imports import botify_code_generation, mcp_orchestrator
