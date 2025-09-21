@@ -246,5 +246,61 @@ def setup_logging(DEBUG_MODE=False, STATE_TABLES=False):
     return logger
 
 
+def print_and_log_table(table, title_prefix=""):
+    """Print rich table to console AND log structured data to server.log for radical transparency.
+
+    This single function ensures both console display and log transparency happen together,
+    preventing the mistake of using one without the other.
+
+    Args:
+        table: Rich Table object to display and log
+        title_prefix: Optional prefix for the log entry
+    """
+    # First, display the rich table in console with full formatting
+    from rich.console import Console
+    if isinstance(slog.console, Console):
+        slog.console.print(table)
+    else:
+        # Fallback for non-rich console environments
+        print(str(table))
+
+    # Then, extract and log the table data for server.log transparency
+    try:
+        # Extract table data for logging
+        table_title = getattr(table, 'title', 'Table')
+        if table_title:
+            table_title = str(table_title)
+
+        # Start with title and add extra line for visibility
+        log_lines = [f"\n📊 {title_prefix}RICH TABLE: {table_title}"]
+
+        # Add column headers if available
+        if hasattr(table, 'columns') and table.columns:
+            headers = []
+            for col in table.columns:
+                if hasattr(col, 'header'):
+                    headers.append(str(col.header))
+                elif hasattr(col, '_header'):
+                    headers.append(str(col._header))
+            if headers:
+                log_lines.append(f"Headers: {' | '.join(headers)}")
+
+        # Add rows if available
+        if hasattr(table, '_rows') and table._rows:
+            for i, row in enumerate(table._rows):
+                if hasattr(row, '_cells'):
+                    cells = [str(cell) if cell else '' for cell in row._cells]
+                    log_lines.append(f"Row {i + 1}: {' | '.join(cells)}")
+                else:
+                    log_lines.append(f"Row {i + 1}: {str(row)}")
+
+        # Log the complete table representation with extra spacing
+        logger.info('\n'.join(log_lines) + '\n')
+
+    except Exception as e:
+        logger.error(f"Error logging rich table: {e}")
+        logger.info(f"📊 {title_prefix}RICH TABLE: [Unable to extract table data]")
+
+
 # Create console instance for this module
 console = DebugConsole(theme=custom_theme) 
