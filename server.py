@@ -18,7 +18,7 @@ You **MUST** follow this workflow for every action you take:
 3.  **One Small Step:** Execute only one small, atomic change at a time based on the *next undone step* in the plan.
 4.  **Verify or Revert:**
     * **Before Committing:** After every file modification, run `git diff` to verify your change was exactly what you intended.
-    * **Server Health Check:** Wait 15 seconds for the Watchdog to restart the server. Then, verify its status by checking `http://localhost:5001/`.
+    * **Server Health Check:** `touch server.py` then wait 15 seconds for the Watchdog to restart the server. Then, verify its status by checking `http://localhost:5001/`.
     * **If the server responds (Success):** The edit was successful. Immediately `git commit` with a clear message.
     * **If the server DOES NOT respond (Failure):** The edit broke the server. You **MUST IMMEDIATELY STOP**.
         1.  Run `git reset --hard HEAD`.
