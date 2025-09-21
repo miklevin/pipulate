@@ -357,7 +357,6 @@ class CrudCustomizer(BaseCrud):
             return HTMLResponse('Error toggling role', status_code=500)
 
 class CrudUI(PluginIdentityManager):
-    EMOJI = ''
     DEFAULT_BUTTON_TEXT = "Restore Default Selections"
     DEFAULT_BUTTON_TOOLTIP = "Restore default role selections and order"
 
