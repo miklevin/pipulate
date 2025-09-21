@@ -29,6 +29,79 @@ custom_theme = Theme({
 })
 
 
+class LogManager:
+    """Central logging coordinator for artistic control of console and file output.
+
+    This class provides methods that encourage a consistent, carefully curated
+    logging experience across both console and log file. It encourages using 
+    the same messages in both places with appropriate formatting.
+    """
+
+    def __init__(self, logger):
+        self.logger = logger
+        self.categories = {'server': '🖥️ SERVER', 'startup': '🚀 STARTUP', 'workflow': '⚙️ WORKFLOW', 'pipeline': '🔄 PIPELINE', 'network': '🌐 NETWORK', 'database': '💾 DATABASE', 'profile': '👤 PROFILE', 'plugin': '🔌 PLUGIN', 'chat': '💬 CHAT', 'error': '❌ ERROR', 'warning': '⚠️ WARNING'}
+
+    def format_message(self, category, message, details=None):
+        emoji = self.categories.get(category, f'⚡ {category.upper()}')
+        formatted = f'[{emoji}] {message}'
+        if details:
+            formatted += f' | {details}'
+        return formatted
+
+    def startup(self, message, details=None):
+        """Log a startup-related message."""
+        self.logger.info(self.format_message('startup', message, details))
+
+    def workflow(self, message, details=None):
+        """Log a workflow-related message."""
+        self.logger.info(self.format_message('workflow', message, details))
+
+    def pipeline(self, message, details=None, pipeline_id=None):
+        """Log a pipeline-related message."""
+        if pipeline_id:
+            details = f'Pipeline: {pipeline_id}' + (f' | {details}' if details else '')
+        self.logger.info(self.format_message('pipeline', message, details))
+
+    def profile(self, message, details=None):
+        """Log a profile-related message."""
+        self.logger.info(self.format_message('profile', message, details))
+
+    def data(self, message, data=None):
+        """Log structured data - at DEBUG level since it's typically verbose."""
+        msg = self.format_message('database', message)
+        if data is not None:
+            if isinstance(data, dict) and len(data) > 5:
+                # Use Rich JSON display for debug data
+                formatted_data = slog.rich_json_display(data, console_output=False, log_output=True)
+                self.logger.debug(f'{msg} | {formatted_data}')
+            else:
+                self.logger.debug(f'{msg} | {data}')
+        else:
+            self.logger.info(msg)
+
+    def event(self, event_type, message, details=None):
+        """Log a user-facing event in the application."""
+        self.logger.info(self.format_message(event_type, message, details))
+
+    def warning(self, message, details=None):
+        """Log a warning message at WARNING level."""
+        self.logger.warning(self.format_message('warning', message, details))
+
+    def error(self, message, error=None):
+        """Log an error with traceback at ERROR level."""
+        formatted = self.format_message('error', message)
+        if error:
+            error_details = f'{error.__class__.__name__}: {str(error)}'
+            self.logger.error(f'{formatted} | {error_details}')
+            self.logger.debug(traceback.format_exc())
+        else:
+            self.logger.error(formatted)
+
+    def debug(self, category, message, details=None):
+        """Log debug information that only appears in DEBUG mode."""
+        self.logger.debug(self.format_message(category, message, details))
+
+
 def safe_print(*args, **kwargs):
     """Safe wrapper for print() that handles I/O errors gracefully"""
     try:
