@@ -34,6 +34,13 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                 if command_args_str:
                     if tool_name == 'system_list_directory':
                         params['path'] = command_args_str
+                    elif tool_name == 'keychain_set':
+                        # Special handling for key-value pair
+                        parts = command_args_str.split(maxsplit=1)
+                        if len(parts) == 2:
+                            params['key'], params['value'] = parts
+                        else:
+                            params['key'] = parts[0]
                     elif tool_name == 'execute_shell_command':
                         params['command'] = command_args_str
                     else:
