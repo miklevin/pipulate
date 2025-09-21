@@ -128,6 +128,7 @@ for key in config_keys:
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
     try:
         aa.figlet_banner("STARTUP", "Pipulate server starting...", font='slant', color=BANNER_COLORS['server_restart'])
+        aa.system_diagram()
     except (BlockingIOError, OSError, IOError) as e:
         # 🍎 MAC FALLBACK: If Rich banner fails during startup, use simple print
         print("🚀 STARTUP: Pipulate server starting...")
