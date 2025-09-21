@@ -554,62 +554,6 @@ def load_conversation_from_db():
 # 🔧 FINDER_TOKEN: register_mcp_tool moved to mcp_tools.py (superior error handling)
 # Use register_mcp_tool from mcp_tools.py - it has better error handling for uninitialized registry
 
-def print_and_log_table(table, title_prefix=""):
-    """Print rich table to console AND log structured data to server.log for radical transparency.
-
-    This single function ensures both console display and log transparency happen together,
-    preventing the mistake of using one without the other.
-
-    Args:
-        table: Rich Table object to display and log
-        title_prefix: Optional prefix for the log entry
-    """
-    # First, display the rich table in console with full formatting
-    from rich.console import Console
-    if isinstance(slog.console, Console):
-        slog.console.print(table)
-    else:
-        # Fallback for non-rich console environments
-        print(str(table))
-
-    # Then, extract and log the table data for server.log transparency
-    try:
-        # Extract table data for logging
-        table_title = getattr(table, 'title', 'Table')
-        if table_title:
-            table_title = str(table_title)
-
-        # Start with title and add extra line for visibility
-        log_lines = [f"\n📊 {title_prefix}RICH TABLE: {table_title}"]
-
-        # Add column headers if available
-        if hasattr(table, 'columns') and table.columns:
-            headers = []
-            for col in table.columns:
-                if hasattr(col, 'header'):
-                    headers.append(str(col.header))
-                elif hasattr(col, '_header'):
-                    headers.append(str(col._header))
-            if headers:
-                log_lines.append(f"Headers: {' | '.join(headers)}")
-
-        # Add rows if available
-        if hasattr(table, '_rows') and table._rows:
-            for i, row in enumerate(table._rows):
-                if hasattr(row, '_cells'):
-                    cells = [str(cell) if cell else '' for cell in row._cells]
-                    log_lines.append(f"Row {i + 1}: {' | '.join(cells)}")
-                else:
-                    log_lines.append(f"Row {i + 1}: {str(row)}")
-
-        # Log the complete table representation with extra spacing
-        logger.info('\n'.join(log_lines) + '\n')
-
-    except Exception as e:
-        logger.error(f"Error logging rich table: {e}")
-        logger.info(f"📊 {title_prefix}RICH TABLE: [Unable to extract table data]")
-
-
 
 def _recursively_parse_json_strings(obj):
     """
@@ -2740,7 +2684,7 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
             content = slog.rich_json_display(content, console_output=False, log_output=True)
         table.add_row(role, content)
         logger.debug(f"🔍 DEBUG: Current user input - role: {role}, content: '{content[:100]}...'")
-    print_and_log_table(table, "LLM DEBUG - ")
+    slog.print_and_log_table(table, "LLM DEBUG - ")
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -2835,7 +2779,7 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                     table = Table(title='Chat Response')
                     table.add_column('Accumulated Response')
                     table.add_row(final_response, style='green')
-                    print_and_log_table(table, "LLM RESPONSE - ")
+                    slog.print_and_log_table(table, "LLM RESPONSE - ")
 
     except aiohttp.ClientConnectorError as e:
         error_msg = 'Unable to connect to Ollama server. Please ensure Ollama is running.'
@@ -3842,7 +3786,7 @@ async def synchronize_roles_to_db():
         for role_item in final_roles:
             roles_rich_table.add_row(str(role_item.id), role_item.text, '✅' if role_item.done else '❌', str(role_item.priority))
         slog.console.print('\n')
-        print_and_log_table(roles_rich_table, "ROLES SYNC - ")
+        slog.print_and_log_table(roles_rich_table, "ROLES SYNC - ")
         slog.console.print('\n')
         logger.info('SYNC_ROLES: Roles synchronization display complete globally.')
     if TABLE_LIFECYCLE_LOGGING:
@@ -4185,11 +4129,11 @@ async def startup_event():
         
         # Display backup summary
         backup_summary_table = durable_backup_manager.get_backup_summary_table()
-        print_and_log_table(backup_summary_table, "STARTUP - ")
+        slog.print_and_log_table(backup_summary_table, "STARTUP - ")
 
         # Display AI Keychain summary
         keychain_summary_table = keychain_instance.get_keychain_summary_table()
-        print_and_log_table(keychain_summary_table, "STARTUP - ")
+        slog.print_and_log_table(keychain_summary_table, "STARTUP - ")
 
     except Exception as e:
         logger.error(f"Failed to display startup summary tables: {e}")
@@ -6626,7 +6570,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
             for key, value in db.items():
                 json_value = JSON.from_data(value, indent=2)
                 cookie_table.add_row(key, json_value)
-            print_and_log_table(cookie_table, "STATE TABLES - ")
+            slog.print_and_log_table(cookie_table, "STATE TABLES - ")
             pipeline_table = Table(title='➡️ Pipeline States')
             pipeline_table.add_column('Key', style='yellow')
             pipeline_table.add_column('Created', style='magenta')
@@ -6640,7 +6584,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                 except (json.JSONDecodeError, AttributeError) as e:
                     log.error(f'Error parsing pipeline state for {record.pkey}', e)
                     pipeline_table.add_row(record.pkey, 'ERROR', 'Invalid State')
-            print_and_log_table(pipeline_table, "STATE TABLES - ")
+            slog.print_and_log_table(pipeline_table, "STATE TABLES - ")
         return response
 
 
@@ -6682,7 +6626,7 @@ def print_routes():
     route_entries.sort(key=lambda x: x[2])
     for entry in route_entries:
         table.add_row(entry[0], entry[1], Text(entry[2], style=f'{entry[3]} on black'), entry[4])
-    print_and_log_table(table, "ROUTES - ")
+    slog.print_and_log_table(table, "ROUTES - ")
 
 
 @rt('/refresh-profile-menu')
