@@ -10,6 +10,45 @@
 # This config file embodies the "Coca Cola" state - systematic capture of insights that
 # prevents having to "reproduce from scratch with analogous situations"
 
+# 🎨 BANNER COLOR CONFIGURATION
+BANNER_COLORS = {
+    # Main banner colors
+    'figlet_primary': 'bright_cyan',
+    'figlet_subtitle': 'dim white',
+
+    # ASCII banner colors
+    'ascii_title': 'bright_cyan',
+    'ascii_subtitle': 'dim cyan',
+
+    # Section headers
+    'section_header': 'bright_yellow',
+
+    # Story moments and messages
+    'chip_narrator': 'bold cyan',
+    'story_moment': 'bright_magenta',
+    'server_whisper': 'dim italic',
+
+    # Startup sequence colors
+    'server_awakening': 'bright_cyan',
+    'mcp_arsenal': 'bright_blue',
+    'plugin_registry_success': 'bright_green',
+    'plugin_registry_warning': 'bright_yellow',
+    'workshop_ready': 'bright_blue',
+    'server_restart': 'yellow',
+
+    # Special banners
+    'white_rabbit': 'white on default',
+    'transparency_banner': 'bright_cyan',
+    'system_diagram': 'bright_blue',
+    'status_banner': 'bright_green',
+
+    # Box styles (Rich box drawing)
+    'heavy_box': 'HEAVY',
+    'rounded_box': 'ROUNDED',
+    'double_box': 'DOUBLE',
+    'ascii_box': 'ASCII'
+}
+
 # Temporary friendly_names to avoid circular imports - TODO: refactor into shared config
 friendly_names = {
     'step_01': 'Step 1',
