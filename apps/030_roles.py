@@ -30,7 +30,7 @@ ROLE_ORDER = {
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 class PluginIdentityManager:
-    EMOJI = ''
+    EMOJI = '👥'
 
     def __init__(self, filename=None):
         if not filename:
