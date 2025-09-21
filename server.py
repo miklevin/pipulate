@@ -203,32 +203,6 @@ def clear_critical_operation_flag():
         pass
 
 
-"""
-🎭 DEMO CONTINUATION SYSTEM - Revolutionary Server Restart Survival
-===================================================================
-
-BREAKTHROUGH ACHIEVEMENT: We solved the "impossible" problem of maintaining
-interactive demo state across server restarts triggered by the demo itself.
-
-🔥 THE CHALLENGE WE CONQUERED:
-- Demo triggers database clear → Server restart
-- Demo state was stored IN the database that got cleared
-- Result: Demo couldn't continue after restart (chicken-and-egg problem)
-
-⚡ THE LIGHTNING IN A BOTTLE SOLUTION:
-1. File-based state persistence (survives database clear)
-2. Server startup detection of demo comeback
-3. Temp message system override during comeback
-4. JavaScript takeover with keyboard event handling
-5. Controlled regression test environment creation
-
-This enables deterministic testing starting from controlled conditions:
-DEV mode + fresh database + interactive demo continuation.
-
-The magic lives in the coordination between file persistence, server detection,
-and JavaScript execution. Comments throughout this file mark the key components.
-"""
-
 # 🎭 DEMO STATE MANAGEMENT - File-based persistence for demo continuation
 DEMO_STATE_FILE = 'data/demo_state.json'
 
@@ -353,12 +327,8 @@ def get_git_hash():
         return "unknown"
 
 ENV_FILE = Path('data/current_environment.txt')
-
 APP_NAME = get_app_name()
 logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
-
-# Suppress deprecation warnings from third-party packages
-
 MAX_CONVERSATION_LENGTH = CFG.CHAT_CONFIG['MAX_CONVERSATION_LENGTH']
 DEFAULT_ACTIVE_ROLES = CFG.DEFAULT_ACTIVE_ROLES
 
