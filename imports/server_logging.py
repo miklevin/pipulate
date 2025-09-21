@@ -15,6 +15,8 @@ from loguru import logger
 from rich.console import Console
 from rich.json import JSON
 from rich.style import Style as RichStyle
+from rich.text import Text
+from rich.panel import Panel
 from rich.theme import Theme
 import imports.ascii_displays as aa
 
@@ -28,6 +30,33 @@ custom_theme = Theme({
     'orange3': RichStyle(color='orange3', bgcolor='black'), 
     'white': RichStyle(color='white', bgcolor='black')
 })
+
+
+def log_tool_call(alias: str, tool_name: str, params: dict, success: bool, result: dict):
+    """Logs a formatted panel for each tool call to the console."""
+    title = f"🔧 Tool Call: [{alias}] -> {tool_name}"
+    
+    if success:
+        border_style = "green"
+        status = "[bold green]SUCCESS[/bold green]"
+    else:
+        border_style = "red"
+        status = "[bold red]FAILURE[/bold red]"
+    
+    content = Text.from_markup(f"Status: {status}\n")
+    content.append(f"Parameters: {json.dumps(params)}\n\n")
+    
+    # Display a snippet of the result, especially the error for failed calls
+    if not success and 'error' in result:
+        content.append(f"Result: [red]{result.get('error')}[/red]")
+    elif 'stdout' in result:
+        stdout_preview = (result['stdout'][:200] + '...') if len(result['stdout']) > 200 else result['stdout']
+        content.append(f"Result (stdout):\n---\n{stdout_preview}\n---")
+    else:
+        result_preview = (str(result)[:200] + '...') if len(str(result)) > 200 else str(result)
+        content.append(f"Result Preview: {result_preview}")
+
+    console.print(Panel(content, title=title, border_style=border_style, expand=False))
 
 
 class LogManager:
