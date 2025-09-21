@@ -7424,6 +7424,17 @@ def restart_server(force_restart=False):
     for attempt in range(max_retries):
         try:
 
+            # 🐰 ALICE WELCOME BANNER - Perfect transition point: FINDER_TOKENs end, ROLES begin
+            logger.info("🔧 ALICE_MARKER_1: About to check Alice banner conditions")
+            logger.info(f"🔧 ALICE_MARKER_1: __name__ = {__name__}")
+            if __name__ == '__main__':
+                logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point')
+                logger.info("🔧 ALICE_MARKER_2: Displaying falling_alice banner")
+                falling_alice()
+                logger.info("🔧 ALICE_MARKER_3: falling_alice banner displayed")
+            else:
+                logger.info("🔧 ALICE_MARKER_X: Alice banner conditions not met - skipped")
+
             # 🍎 MAC SAFE: Show restart banner with fallback for Mac I/O constraints
             try:
                 figlet_banner("RESTART", "Pipulate server reloading...", font='slant', color=BANNER_COLORS['server_restart'])
@@ -7437,21 +7448,10 @@ def restart_server(force_restart=False):
             
             log.startup(f'Restarting server (attempt {attempt + 1}/{max_retries})')
             # 🤖 AI ASSISTANT EDUCATION: Explain rapid restart behavior
+            # Console users see clean UX with banners shown once per session")
+            # AI assistants see ALL restart events in logs for complete transparency")
+            # Each restart below will trigger figlet_banner() with ASCII art logging")
             logger.warning("🤖 AI_RAPID_RESTART: This is a watchdog-triggered restart - one of potentially multiple rapid restarts")
-            logger.warning("🤖 AI_RAPID_RESTART: Console users see clean UX with banners shown once per session")
-            logger.warning("🤖 AI_RAPID_RESTART: AI assistants see ALL restart events in logs for complete transparency")
-            logger.warning("🤖 AI_RAPID_RESTART: Each restart below will trigger figlet_banner() with ASCII art logging")
-
-            # 🐰 ALICE WELCOME BANNER - Perfect transition point: FINDER_TOKENs end, ROLES begin
-            logger.info("🔧 ALICE_MARKER_1: About to check Alice banner conditions")
-            logger.info(f"🔧 ALICE_MARKER_1: __name__ = {__name__}")
-            if __name__ == '__main__':
-                logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point')
-                logger.info("🔧 ALICE_MARKER_2: Displaying falling_alice banner")
-                falling_alice()
-                logger.info("🔧 ALICE_MARKER_3: falling_alice banner displayed")
-            else:
-                logger.info("🔧 ALICE_MARKER_X: Alice banner conditions not met - skipped")
 
             # Set environment variable to indicate this is a watchdog restart
             os.environ['PIPULATE_WATCHDOG_RESTART'] = '1'
