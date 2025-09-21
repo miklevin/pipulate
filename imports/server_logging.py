@@ -29,6 +29,18 @@ custom_theme = Theme({
 })
 
 
+def safe_print(*args, **kwargs):
+    """Safe wrapper for print() that handles I/O errors gracefully"""
+    try:
+        print(*args, **kwargs)
+    except (BlockingIOError, BrokenPipeError, OSError) as e:
+        # Handle terminal I/O errors gracefully - print failed but continue
+        logger.warning(f"🖨️ SAFE_PRINT: Print output failed ({type(e).__name__}: {e}), continuing silently")
+    except Exception as e:
+        # Catch any other unexpected errors
+        logger.error(f"🖨️ SAFE_PRINT: Unexpected error during print: {type(e).__name__}: {e}")
+
+
 class DebugConsole(Console):
 
     def print(self, *args, **kwargs):

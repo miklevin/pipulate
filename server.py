@@ -97,7 +97,7 @@ import config as CFG
 import imports.ascii_displays as aa
 import tools.mcp_tools as mcp_tools
 from imports import botify_code_generation, mcp_orchestrator
-from imports.server_logging import console, rich_json_display, setup_logging
+from imports.server_logging import console, rich_json_display, setup_logging, safe_print
 from tools.mcp_tools import register_all_mcp_tools
 
 # Various debug settings
@@ -116,17 +116,6 @@ if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
     except Exception as e:
         # Any other error, just continue with startup
         print(f"🚀 STARTUP: Banner display failed (Error: {e}), continuing startup...")
-
-def safe_print(*args, **kwargs):
-    """Safe wrapper for print() that handles I/O errors gracefully"""
-    try:
-        print(*args, **kwargs)
-    except (BlockingIOError, BrokenPipeError, OSError) as e:
-        # Handle terminal I/O errors gracefully - print failed but continue
-        logger.warning(f"🖨️ SAFE_PRINT: Print output failed ({type(e).__name__}: {e}), continuing silently")
-    except Exception as e:
-        # Catch any other unexpected errors
-        logger.error(f"🖨️ SAFE_PRINT: Unexpected error during print: {type(e).__name__}: {e}")
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 
