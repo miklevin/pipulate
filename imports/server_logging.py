@@ -15,7 +15,10 @@ from loguru import logger
 from rich.console import Console
 from rich.json import JSON
 from rich.style import Style as RichStyle
+from rich.console import Console, Group
 from rich.text import Text
+from rich.panel import Panel
+from rich.syntax import Syntax
 from rich.panel import Panel
 from rich.theme import Theme
 import imports.ascii_displays as aa
@@ -42,21 +45,26 @@ def log_tool_call(alias: str, tool_name: str, params: dict, success: bool, resul
     else:
         border_style = "red"
         status = "[bold red]FAILURE[/bold red]"
-    
-    content = Text.from_markup(f"Status: {status}\n")
-    content.append(f"Parameters: {json.dumps(params)}\n\n")
-    
-    # Display a snippet of the result, especially the error for failed calls
-    if not success and 'error' in result:
-        content.append(f"Result: [red]{result.get('error')}[/red]")
-    elif 'stdout' in result:
-        stdout_preview = (result['stdout'][:200] + '...') if len(result['stdout']) > 200 else result['stdout']
-        content.append(f"Result (stdout):\n---\n{stdout_preview}\n---")
-    else:
-        result_preview = (str(result)[:200] + '...') if len(str(result)) > 200 else str(result)
-        content.append(f"Result Preview: {result_preview}")
 
-    console.print(Panel(content, title=title, border_style=border_style, expand=False))
+    status_text = Text.from_markup(f"Status: {status}")
+    params_text = Text(f"Parameters: {json.dumps(params)}")
+
+    # Create a renderable for the result
+    result_renderable = None
+    if isinstance(result, (dict, list)) and result:
+        try:
+            result_json = json.dumps(result, indent=2)
+            result_renderable = Syntax(result_json, "json", theme="monokai", line_numbers=True, word_wrap=True)
+        except TypeError:
+            # Fallback for non-serializable objects
+            result_renderable = Text(str(result))
+    elif 'stdout' in result:
+        result_renderable = Text(result.get('stdout') or "[No output]", style="white")
+    else:
+        result_renderable = Text(str(result))
+    # Group all parts together to be rendered inside the panel
+    content_group = Group(status_text, params_text, "\n--- Result ---", result_renderable)
+    console.print(Panel(content_group, title=title, border_style=border_style, expand=False))
 
 
 class LogManager:
