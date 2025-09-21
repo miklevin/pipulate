@@ -6,11 +6,7 @@ survives application restarts.
 """
 import logging
 from tools import auto_tool, alias
-try:
-    from imports.ai_dictdb import keychain_instance, KEYCHAIN_AVAILABLE
-except ImportError:
-    KEYCHAIN_AVAILABLE = False
-    keychain_instance = None
+from imports.ai_dictdb import keychain_instance
 logger = logging.getLogger(__name__)
 
 @auto_tool
@@ -28,12 +24,6 @@ async def keychain_set(params: dict) -> dict:
         Dict with success status and confirmation details
     """
     logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_SET_START - {params.get('key', 'NO_KEY')}")
-    if not KEYCHAIN_AVAILABLE:
-        return {
-            "success": False,
-            "error": "AI Keychain not available - ai_dictdb.py may not be properly initialized",
-            "recovery_suggestion": "Check that ai_dictdb.py exists and keychain_instance is properly imported"
-        }
     try:
         key = params.get('key')
         value = params.get('value')
@@ -72,11 +62,6 @@ async def keychain_set(params: dict) -> dict:
 async def keychain_get(params: dict) -> dict:
     """Retrieves a persistent message from the ai_dictdb by key."""
     logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_GET_START - {params.get('key', 'NO_KEY')}")
-    if not KEYCHAIN_AVAILABLE:
-        return {
-            "success": False,
-            "error": "AI Keychain not available - ai_dictdb.py may not be properly initialized"
-        }
     try:
         key = params.get('key')
         if not key:
@@ -96,11 +81,6 @@ async def keychain_get(params: dict) -> dict:
 async def keychain_delete(params: dict) -> dict:
     """Deletes a message from the persistent ai_dictdb."""
     logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_DELETE_START - {params.get('key', 'NO_KEY')}")
-    if not KEYCHAIN_AVAILABLE:
-        return {
-            "success": False,
-            "error": "AI Keychain not available - ai_dictdb.py may not be properly initialized"
-        }
     try:
         key = params.get('key')
         if not key:
@@ -121,11 +101,6 @@ async def keychain_delete(params: dict) -> dict:
 async def keychain_list_keys(params: dict) -> dict:
     """Lists all keys currently in the persistent AI ai_dictdb."""
     logger.info("🧠 FINDER_TOKEN: KEYCHAIN_LIST_KEYS_START")
-    if not KEYCHAIN_AVAILABLE:
-        return {
-            "success": False,
-            "error": "AI Keychain not available - ai_dictdb.py may not be properly initialized"
-        }
     try:
         keys = keychain_instance.keys()
         logger.info(f"🧠 FINDER_TOKEN: KEYCHAIN_LIST_KEYS_SUCCESS - Found {len(keys)} keys")
@@ -138,11 +113,6 @@ async def keychain_list_keys(params: dict) -> dict:
 async def keychain_get_all(params: dict) -> dict:
     """Retrieves all key-value pairs from the ai_dictdb."""
     logger.info("🧠 FINDER_TOKEN: KEYCHAIN_GET_ALL_START")
-    if not KEYCHAIN_AVAILABLE:
-        return {
-            "success": False,
-            "error": "AI Keychain not available - ai_dictdb.py may not be properly initialized"
-        }
     try:
         items = dict(keychain_instance.items())
         limit = params.get('limit')
