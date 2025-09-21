@@ -1,5 +1,5 @@
 /**
- * GLOBAL CONFIG PATTERN: Reads window.PCONFIG set by Python
+ * GLOBAL CONFIG PATTERN: Reads window.CFG set by Python
  * 
  * This file automatically reads configuration from global variables.
  * No initialization call needed - Python sets config before loading.
@@ -14,7 +14,7 @@ window.testAlert = function(message) {
 };
 
 // Get configuration from the global variable
-const config = window.PCONFIG || {};
+const config = window.CFG || {};
 const tempMessage = config.tempMessage;
 
 // 🎭 RUBY SLIPPERS: Platform-aware keyboard shortcuts
@@ -424,7 +424,7 @@ function addClipboardToAssistantMessage(messageElement) {
     
     const clipboardButton = document.createElement('button');
     clipboardButton.className = 'clipboard-button';
-    clipboardButton.innerHTML = window.PCONFIG.clipboardSVG;
+    clipboardButton.innerHTML = window.CFG.clipboardSVG;
     clipboardButton.title = 'Copy message to clipboard';
     clipboardButton.onclick = function(e) {
         e.preventDefault();
@@ -467,7 +467,7 @@ window.sendSidebarMessage = function(event) {
         
         const clipboardButton = document.createElement('button');
         clipboardButton.className = 'clipboard-button';
-        clipboardButton.innerHTML = window.PCONFIG.clipboardSVG;
+        clipboardButton.innerHTML = window.CFG.clipboardSVG;
         clipboardButton.title = 'Copy message to clipboard';
         clipboardButton.onclick = function(e) {
             e.preventDefault();

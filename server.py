@@ -97,7 +97,7 @@ from watchdog.observers import Observer
 
 import tools.mcp_tools as mcp_tools
 # Import centralized configuration to eliminate duplication
-from config import PCONFIG as CONFIG_PCONFIG
+from config import CFG
 from imports import botify_code_generation, mcp_orchestrator
 from imports.ascii_displays import (ai_breadcrumb_summary, chip_says,
                                     falling_alice, figlet_banner,
@@ -408,10 +408,6 @@ def get_git_hash():
     except Exception:
         return "unknown"
 
-# ================================================================
-# Configuration now centralized in config.py - import as alias for backward compatibility
-PCONFIG = CONFIG_PCONFIG
-
 ENV_FILE = Path('data/current_environment.txt')
 
 APP_NAME = get_app_name()
@@ -419,8 +415,8 @@ logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
 
 # Suppress deprecation warnings from third-party packages
 
-MAX_CONVERSATION_LENGTH = PCONFIG['CHAT_CONFIG']['MAX_CONVERSATION_LENGTH']
-DEFAULT_ACTIVE_ROLES = PCONFIG['DEFAULT_ACTIVE_ROLES']
+MAX_CONVERSATION_LENGTH = CFG['CHAT_CONFIG']['MAX_CONVERSATION_LENGTH']
+DEFAULT_ACTIVE_ROLES = CFG['DEFAULT_ACTIVE_ROLES']
 
 # Import MCP tools module for enhanced AI assistant capabilities
 # Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
@@ -1402,7 +1398,7 @@ def append_to_conversation(message=None, role='user'):
 
 def get_home_menu_item() -> str:
     """Returns the appropriate home menu item text based on the HOME_APP setting."""
-    home_app_name = PCONFIG.get('HOME_APP', '030_roles')  # Default to '030_roles'
+    home_app_name = CFG.get('HOME_APP', '030_roles')  # Default to '030_roles'
     return friendly_names.get(home_app_name, title_name(home_app_name))
 
 
@@ -1625,15 +1621,15 @@ class Pipulate:
 
     def get_ui_constants(self):
         """Access centralized UI constants through dependency injection."""
-        return PCONFIG['UI_CONSTANTS']
+        return CFG['UI_CONSTANTS']
 
     def get_config(self):
         """Access centralized configuration through dependency injection."""
-        return PCONFIG
+        return CFG
 
     def get_button_border_radius(self):
         """Get the global button border radius setting."""
-        return PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
+        return CFG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
 
     def register_workflow_routes(self, plugin_instance):
         """
@@ -1706,14 +1702,14 @@ class Pipulate:
             log_entry_parts.append(f'  cURL Command:\n{curl_command}')
         if python_command:
             # Use centralized emoji configuration for console messages
-            python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
-            snippet_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
-            comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
-            snippet_intro = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
+            python_emoji = CFG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
+            snippet_emoji = CFG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
+            comment_divider = CFG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+            snippet_intro = CFG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
                 python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
-            snippet_end = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
+            snippet_end = CFG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
                 python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
@@ -1899,14 +1895,14 @@ class Pipulate:
             )
 
             # Use centralized emoji configuration for console messages
-            python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
-            snippet_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
-            comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
-            snippet_intro = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
+            python_emoji = CFG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
+            snippet_emoji = CFG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
+            comment_divider = CFG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+            snippet_intro = CFG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
                 python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
-            snippet_end = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
+            snippet_end = CFG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
                 python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
@@ -2006,7 +2002,7 @@ class Pipulate:
         lines.append('                print(text)')
         lines.append('                return text')
         lines.append('')
-        divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+        divider = CFG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
         lines.append(divider)
         lines.append('# EXECUTION: Choose your environment')
         lines.append(divider)
@@ -2477,7 +2473,7 @@ class Pipulate:
 
         # Add new key button if requested
         if show_new_key_button and app_name:
-            ui_constants = PCONFIG['UI_CONSTANTS']
+            ui_constants = CFG['UI_CONSTANTS']
             # 🆕 New Key button styled via CSS class for maintainability
             new_key_button = Button(
                 ui_constants['BUTTON_LABELS']['NEW_KEY'],
@@ -2529,8 +2525,8 @@ class Pipulate:
         matching_records = [record.pkey for record in self.pipeline_table() if record.pkey.startswith(prefix)]
 
         # Standard form with centralized constants
-        ui_constants = PCONFIG['UI_CONSTANTS']
-        landing_constants = PCONFIG['UI_CONSTANTS']['LANDING_PAGE']
+        ui_constants = CFG['UI_CONSTANTS']
+        landing_constants = CFG['UI_CONSTANTS']['LANDING_PAGE']
 
         return Container(
             Card(
@@ -3736,7 +3732,7 @@ def build_endpoint_messages(endpoint):
     # Special handling for empty endpoint (homepage)
     if not endpoint:
         # --- START CHANGE ---
-        home_app_name = PCONFIG.get('HOME_APP', 'roles')
+        home_app_name = CFG.get('HOME_APP', 'roles')
         logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Empty endpoint - using '{home_app_name}' as homepage logic")
         home_app_instance = plugin_instances.get(home_app_name)
         if home_app_instance:
@@ -3779,7 +3775,7 @@ def build_endpoint_training(endpoint):
     # Special handling for empty endpoint (homepage)
     if not endpoint:
         # --- START CHANGE ---
-        home_app_name = PCONFIG.get('HOME_APP', 'roles')
+        home_app_name = CFG.get('HOME_APP', 'roles')
         home_app_instance = plugin_instances.get(home_app_name)
         if home_app_instance:
             if hasattr(home_app_instance, 'TRAINING_PROMPT'):
@@ -3983,7 +3979,7 @@ async def synchronize_roles_to_db():
     discovered_roles_set = set()
 
     # FIRST: Get roles from ROLES_CONFIG (this is the primary source of truth)
-    roles_config = PCONFIG.get('ROLES_CONFIG', {})
+    roles_config = CFG.get('ROLES_CONFIG', {})
     if roles_config:
         logger.debug(f"SYNC_ROLES: Found {len(roles_config)} roles in ROLES_CONFIG: {list(roles_config.keys())}")
         discovered_roles_set.update(roles_config.keys())
@@ -4237,7 +4233,7 @@ for module_name, class_name, workflow_class in discovered_classes:
                             args_to_pass[param_name] = profiles
                         elif param_name == 'config':
                             # Inject centralized configuration for plugins that need it
-                            args_to_pass[param_name] = PCONFIG
+                            args_to_pass[param_name] = CFG
                     logger.debug(f"Instantiating REGULAR plugin '{module_name}' with args: {args_to_pass.keys()}")
                     try:
                         instance = workflow_class(**args_to_pass)
@@ -4774,7 +4770,7 @@ def normalize_menu_path(path):
 
 def generate_menu_style():
     """Generate consistent menu styling for dropdown menus."""
-    border_radius = PCONFIG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
+    border_radius = CFG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
     return f'white-space: nowrap; display: inline-block; min-width: max-content; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: {border_radius}; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s;'
 
 
@@ -4929,9 +4925,9 @@ def create_menu_container(menu_items):
 
 
 def get_dynamic_role_css():
-    """Generate dynamic role CSS from centralized PCONFIG - single source of truth."""
+    """Generate dynamic role CSS from centralized CFG - single source of truth."""
     try:
-        role_colors = PCONFIG.get('ROLE_COLORS', {})
+        role_colors = CFG.get('ROLE_COLORS', {})
         if not role_colors:
             return ""
 
@@ -5132,7 +5128,7 @@ async def create_grid_left(menux, request):
     # Handle homepage (no menu selection)
     else:
         # --- START CHANGE ---
-        home_app_name = PCONFIG.get('HOME_APP', 'roles')
+        home_app_name = CFG.get('HOME_APP', 'roles')
         home_app_instance = plugin_instances.get(home_app_name)
         if home_app_instance:
             content_to_render = await home_app_instance.landing(request)
@@ -5187,7 +5183,7 @@ def create_chat_interface(autofocus=False):
     if 'temp_message' in db:
         temp_message = db['temp_message']
         del db['temp_message']
-    init_script = f'\n    // Set global variables for the external script\n    window.PCONFIG = {{\n        tempMessage: {json.dumps(temp_message)},\n        clipboardSVG: {json.dumps(PCONFIG["SVG_ICONS"]["CLIPBOARD"])}\n    }};\n    window.APP_NAME = {json.dumps(APP_NAME)};\n    '
+    init_script = f'\n    // Set global variables for the external script\n    window.CFG = {{\n        tempMessage: {json.dumps(temp_message)},\n        clipboardSVG: {json.dumps(CFG["SVG_ICONS"]["CLIPBOARD"])}\n    }};\n    window.APP_NAME = {json.dumps(APP_NAME)};\n    '
     # Enter/Shift+Enter handling is now externalized in pipulate.js
     return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height, role='log', aria_label='Chat conversation', aria_live='polite'), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)', role='form', aria_label='Chat input form'), Script(init_script), Script(src='/assets/pipulate-init.js'), Script('initializeChatInterface();')), id='chat-interface', role='complementary', aria_label='AI Assistant Chat')
 

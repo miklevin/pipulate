@@ -14,7 +14,7 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
     MCP_TOOL_REGISTRY = get_all_tools()
     # Get necessary functions/variables from the pipulate instance
     append_to_conversation = pipulate_instance.append_to_conversation_from_instance
-    PCONFIG = pipulate_instance.get_config()
+    CFG = pipulate_instance.get_config()
     role = kwargs.get('role', 'user')
     verbatim = kwargs.get('verbatim', False)
     simulate_typing = kwargs.get('simulate_typing', True)
@@ -81,13 +81,13 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                     words = base_message.split()
                     for i, word in enumerate(words):
                         await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                        await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                        await asyncio.sleep(CFG['CHAT_CONFIG']['TYPING_DELAY'])
                     await chat_instance.broadcast(br_tags)
                 else:
                     words = message.split()
                     for i, word in enumerate(words):
                         await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                        await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
+                        await asyncio.sleep(CFG['CHAT_CONFIG']['TYPING_DELAY'])
             else:
                 # If not simulating, just send the pre-formatted HTML message
                 await chat_instance.broadcast(message)
