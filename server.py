@@ -555,107 +555,6 @@ def load_conversation_from_db():
 # Use register_mcp_tool from mcp_tools.py - it has better error handling for uninitialized registry
 
 
-def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str = ''):
-    """
-    🔧 CLAUDE'S UNIFIED LOGGING: Logs table state to unified server.log
-    Simplified from the old lifecycle logging system.
-    """
-    try:
-        records = list(data_source_callable())
-        # Convert records to list of dicts for Rich JSON display
-        records_data = []
-        for record in records:
-            if hasattr(record, '_asdict'):
-                # Named tuple
-                records_data.append(record._asdict())
-            elif hasattr(record, '__dict__'):
-                # Object with attributes
-                records_data.append(record.__dict__)
-            elif isinstance(record, dict):
-                # Already a dict
-                records_data.append(record)
-            else:
-                # SQLite Row or other - try to convert to dict
-                try:
-                    records_data.append(dict(record))
-                except:
-                    records_data.append(str(record))
-
-        # Use Rich JSON display for table data - show in console with beautiful formatting
-        # Enable AI logging so AI assistants can see the JSON data
-        slog.rich_json_display(records_data, title=f"Table State: {table_name}", console_output=True, log_output=False, ai_log_output=True)
-
-        # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
-        logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_{table_name.upper()} - {title_prefix} Snapshot: [Rich JSON displayed to console]")
-    except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: TABLE_STATE_ERROR - Failed to log '{table_name}' ({title_prefix}): {e}")
-
-
-def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str = ''):
-    """
-    🔧 CLAUDE'S UNIFIED LOGGING: Logs DictLikeDB state to unified server.log
-    Enhanced with semantic meaning for AI assistant understanding.
-    """
-    try:
-        items = dict(db_instance.items())
-        # Use Rich JSON display for database items - show in console with beautiful formatting
-        # Enable AI logging so AI assistants can see the JSON data
-        slog.rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=False, ai_log_output=True)
-
-        # Add semantic context for AI assistants
-        semantic_info = []
-        for key, value in items.items():
-            if key == "last_profile_id":
-                semantic_info.append(f"🧑 Active user profile: {value}")
-            elif key == "last_app_choice":
-                semantic_info.append(f"📱 Current app/workflow: {value or 'None (Home page)'}")
-            elif key == "current_environment":
-                semantic_info.append(f"🌍 Environment mode: {value}")
-            elif key == "profile_locked":
-                lock_status = "🔒 LOCKED" if value == "1" else "🔓 Unlocked"
-                semantic_info.append(f"👤 Profile editing: {lock_status}")
-            elif key == "theme_preference":
-                semantic_info.append(f"🎨 UI theme: {value}")
-            elif key == "split-sizes":
-                semantic_info.append(f"📐 UI layout split: {value}")
-            elif key == "last_visited_url":
-                semantic_info.append(f"🔗 Last page visited: {value}")
-            elif key.startswith("endpoint_message_sent"):
-                env = key.replace("endpoint_message_sent__", "")
-                semantic_info.append(f"📨 Startup message sent for {env}: {value}")
-            elif key == "temp_message":
-                semantic_info.append(f"💬 Temporary UI message: {value}")
-
-        # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
-        logger.info(f"🔍 FINDER_TOKEN: DB_STATE_{db_name.upper()} - {title_prefix} Key-Value Store: [Rich JSON displayed to console]")
-
-        if semantic_info:
-            semantic_summary = "\n".join(f"    {info}" for info in semantic_info)
-            logger.info(f"🔍 SEMANTIC_DB_{db_name.upper()}: {title_prefix} Human-readable state:\n{semantic_summary}")
-
-    except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: DB_STATE_ERROR - Failed to log DictLikeDB '{db_name}' ({title_prefix}): {e}")
-
-
-def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str = ''):
-    """
-    🔧 CLAUDE'S UNIFIED LOGGING: Logs raw SQL table state to unified server.log
-    Simplified from the old lifecycle logging system.
-    """
-    original_row_factory = db_conn.row_factory
-    db_conn.row_factory = sqlite3.Row
-    try:
-        cursor = db_conn.cursor()
-        cursor.execute(f'SELECT * FROM {table_name}')
-        rows = cursor.fetchall()
-        content = slog._format_records_for_lifecycle_log(rows)
-        logger.info(f"🔍 FINDER_TOKEN: SQL_TABLE_{table_name.upper()} - {title_prefix} Raw SQL:\n{content}")
-    except Exception as e:
-        logger.error(f"❌ FINDER_TOKEN: SQL_TABLE_ERROR - Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}")
-    finally:
-        db_conn.row_factory = original_row_factory
-
-
 def log_pipeline_summary(title_prefix: str = ''):
     """
     🔧 PIPELINE SUMMARY: User-friendly summary of pipeline state for startup logging.
@@ -3532,8 +3431,8 @@ def populate_initial_data():
     """Populate initial data in the database."""
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('POPULATE_INITIAL_DATA: Starting.')
-        log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles BEFORE')
-        log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db BEFORE')
+        slog.log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles BEFORE')
+        slog.log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db BEFORE')
     if not profiles():
         default_profile_name_for_db_entry = 'Default Profile'
         existing_default_list = list(profiles('name=?', (default_profile_name_for_db_entry,)))
@@ -3577,8 +3476,8 @@ def populate_initial_data():
         db['intro_current_page'] = '1'  # Default to page 1 of introduction
         logger.debug("Initialized intro_current_page to '1'")
     if TABLE_LIFECYCLE_LOGGING:
-        log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles AFTER')
-        log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db AFTER')
+        slog.log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles AFTER')
+        slog.log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db AFTER')
         logger.bind(lifecycle=True).info('POPULATE_INITIAL_DATA: Finished.')
 
 
@@ -3603,7 +3502,7 @@ async def synchronize_roles_to_db():
 
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('SYNC_ROLES: Starting global role synchronization.')
-        log_dynamic_table_state('roles', lambda: roles_table_handler(), title_prefix='SYNC_ROLES: Global BEFORE')
+        slog.log_dynamic_table_state('roles', lambda: roles_table_handler(), title_prefix='SYNC_ROLES: Global BEFORE')
     logger.debug('SYNC_ROLES: Synchronizing roles globally')
     discovered_roles_set = set()
 
@@ -3694,7 +3593,7 @@ async def synchronize_roles_to_db():
         logger.info('SYNC_ROLES: Roles synchronization display complete globally.')
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('SYNC_ROLES: Finished global role synchronization.')
-        log_dynamic_table_state('roles', lambda: roles_table_handler(), title_prefix='SYNC_ROLES: Global AFTER')
+        slog.log_dynamic_table_state('roles', lambda: roles_table_handler(), title_prefix='SYNC_ROLES: Global AFTER')
 
 
 def discover_plugin_files():
@@ -4043,8 +3942,8 @@ async def startup_event():
 
     # Status information now provided by Rich startup summary tables
 
-    log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
-    log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
+    slog.log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
+    slog.log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
     log_pipeline_summary(title_prefix='STARTUP FINAL')
 
     # Clear any stale coordination data on startup
@@ -5754,9 +5653,9 @@ async def clear_db(request):
     """Reset the entire database to its initial state."""
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('CLEAR_DB: Starting database reset...')
-        log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB INITIAL')
+        slog.log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB INITIAL')
         log_pipeline_summary(title_prefix='CLEAR_DB INITIAL')
-        log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB INITIAL')
+        slog.log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB INITIAL')
 
     # Safely preserve certain values before clearing
     last_app_choice = db.get('last_app_choice')
@@ -5801,7 +5700,7 @@ async def clear_db(request):
             cursor_temp.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
             plugin_table_names_tuples = cursor_temp.fetchall()
             for table_name_tuple in plugin_table_names_tuples:
-                log_raw_sql_table_to_lifecycle(conn_temp, table_name_tuple[0], title_prefix='CLEAR_DB PRE-WIPE')
+                slog.log_raw_sql_table_to_lifecycle(conn_temp, table_name_tuple[0], title_prefix='CLEAR_DB PRE-WIPE')
             conn_temp.close()
         except Exception as e_plugin_log_pre:
             logger.bind(lifecycle=True).error(f'CLEAR_DB PRE-WIPE: Error logging plugin tables via SQL: {e_plugin_log_pre}')
@@ -5889,7 +5788,7 @@ async def clear_db(request):
     populate_initial_data()
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('CLEAR_DB: After populate_initial_data.')
-        log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB POST-POPULATE')
+        slog.log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB POST-POPULATE')
     await synchronize_roles_to_db()
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('CLEAR_DB: After synchronize_roles_to_db.')
@@ -5926,7 +5825,7 @@ async def clear_db(request):
     else:
         logger.info("💬 FINDER_TOKEN: CONVERSATION_RESTORED_DB_RESET - No conversation history to restore")
     if TABLE_LIFECYCLE_LOGGING:
-        log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB FINAL (post key restoration)')
+        slog.log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB FINAL (post key restoration)')
         logger.bind(lifecycle=True).info('CLEAR_DB: Operation fully complete.')
 
     # 🎭 DEMO RESTART LOGGING - Demo detection already completed before database clear
