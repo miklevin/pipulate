@@ -33,7 +33,7 @@ friendly_names = {
 DEFAULT_ACTIVE_ROLES = {'Core', 'Botify Employee'}
 
 # Complete centralized configuration - single source of truth
-PCONFIG = {
+CFG = {
     # UI & Navigation
     'HOME_APP': 'introduction',
     'DEFAULT_ACTIVE_ROLES': DEFAULT_ACTIVE_ROLES,
