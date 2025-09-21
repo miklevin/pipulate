@@ -7425,13 +7425,10 @@ def restart_server(force_restart=False):
         try:
 
             # 🐰 ALICE WELCOME BANNER - Perfect transition point: FINDER_TOKENs end, ROLES begin
-            logger.info("🔧 ALICE_MARKER_1: About to check Alice banner conditions")
-            logger.info(f"🔧 ALICE_MARKER_1: __name__ = {__name__}")
             if __name__ == '__main__':
                 logger.info('🐰 FINDER_TOKEN: ALICE_MODE - Displaying Alice banner at perfect transition point')
-                logger.info("🔧 ALICE_MARKER_2: Displaying falling_alice banner")
+                logger.info("🔧 ALICE_MARKER: __name__ = {__name__} Displaying falling_alice banner")
                 falling_alice()
-                logger.info("🔧 ALICE_MARKER_3: falling_alice banner displayed")
             else:
                 logger.info("🔧 ALICE_MARKER_X: Alice banner conditions not met - skipped")
 
