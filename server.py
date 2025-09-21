@@ -555,103 +555,6 @@ def load_conversation_from_db():
 # Use register_mcp_tool from mcp_tools.py - it has better error handling for uninitialized registry
 
 
-def _recursively_parse_json_strings(obj):
-    """
-    🔧 RECURSIVE JSON PARSER: Recursively parse JSON strings in nested data structures.
-    This makes deeply nested workflow data much more readable in logs.
-
-    Handles:
-    - Dict values that are JSON strings
-    - List items that are JSON strings  
-    - Nested dicts and lists
-    - Graceful fallback if parsing fails
-    """
-    if isinstance(obj, dict):
-        result = {}
-        for key, value in obj.items():
-            if isinstance(value, str):
-                # Try to parse JSON strings
-                try:
-                    # Quick heuristic: if it starts with { or [ and ends with } or ], try parsing
-                    if (value.startswith('{') and value.endswith('}')) or \
-                       (value.startswith('[') and value.endswith(']')):
-                        parsed_value = json.loads(value)
-                        # Recursively process the parsed result
-                        result[key] = _recursively_parse_json_strings(parsed_value)
-                    else:
-                        result[key] = value
-                except (json.JSONDecodeError, TypeError):
-                    # If parsing fails, keep the original string
-                    result[key] = value
-            elif isinstance(value, (dict, list)):
-                # Recursively process nested structures
-                result[key] = _recursively_parse_json_strings(value)
-            else:
-                result[key] = value
-        return result
-    elif isinstance(obj, list):
-        result = []
-        for list_item in obj:
-            if isinstance(list_item, str):
-                # Try to parse JSON strings in lists
-                try:
-                    if (list_item.startswith('{') and list_item.endswith('}')) or \
-                       (list_item.startswith('[') and list_item.endswith(']')):
-                        parsed_item = json.loads(list_item)
-                        result.append(_recursively_parse_json_strings(parsed_item))
-                    else:
-                        result.append(list_item)
-                except (json.JSONDecodeError, TypeError):
-                    result.append(list_item)
-            elif isinstance(list_item, (dict, list)):
-                # Recursively process nested structures
-                result.append(_recursively_parse_json_strings(list_item))
-            else:
-                result.append(list_item)
-        return result
-    else:
-        # For non-dict/list objects, return as-is
-        return obj
-
-
-def _format_records_for_lifecycle_log(records_iterable):
-    """Format records (list of dicts or objects) into a readable JSON string for logging.
-    Handles empty records, dataclass-like objects, dictionaries, and attempts to convert SQLite rows to dicts.
-    Excludes private attributes for cleaner logs. 
-    SMART FEATURE: Automatically parses JSON strings in 'data' fields to prevent ugly escaping."""
-    if not records_iterable:
-        return '[] # Empty'
-    processed_records = []
-    for r in records_iterable:
-        record_dict = None
-        if hasattr(r, '_asdict'):
-            record_dict = r._asdict()
-        elif hasattr(r, '__dict__') and (not isinstance(r, type)):
-            record_dict = {k: v for k, v in r.__dict__.items() if not k.startswith('_sa_')}
-        elif isinstance(r, dict):
-            record_dict = r
-        elif hasattr(r, 'keys'):
-            try:
-                record_dict = dict(r)
-            except:
-                record_dict = dict(zip(r.keys(), r))
-        else:
-            processed_records.append(str(r))
-            continue
-
-        # 🔧 SMART JSON PARSING: Recursively parse JSON strings for maximum readability
-        if record_dict and isinstance(record_dict, dict):
-            record_dict = _recursively_parse_json_strings(record_dict)
-
-        processed_records.append(record_dict)
-
-    try:
-        # Use Rich JSON display for formatted records
-        return slog.rich_json_display(processed_records, title="Formatted Records", console_output=False, log_output=True)
-    except Exception as e:
-        return f'[Error formatting records for JSON: {e}] Processed: {str(processed_records)}'
-
-
 def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str = ''):
     """
     🔧 CLAUDE'S UNIFIED LOGGING: Logs table state to unified server.log
@@ -745,7 +648,7 @@ def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str =
         cursor = db_conn.cursor()
         cursor.execute(f'SELECT * FROM {table_name}')
         rows = cursor.fetchall()
-        content = _format_records_for_lifecycle_log(rows)
+        content = slog._format_records_for_lifecycle_log(rows)
         logger.info(f"🔍 FINDER_TOKEN: SQL_TABLE_{table_name.upper()} - {title_prefix} Raw SQL:\n{content}")
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: SQL_TABLE_ERROR - Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}")
@@ -877,7 +780,7 @@ def log_pipeline_summary(title_prefix: str = ''):
         # Fallback to original detailed logging if summary fails
         try:
             records = list(pipeline())
-            content = _format_records_for_lifecycle_log(records)
+            content = slog._format_records_for_lifecycle_log(records)
             logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_PIPELINE - {title_prefix} Fallback Snapshot:\n{content}")
         except Exception as fallback_error:
             logger.error(f"❌ FINDER_TOKEN: PIPELINE_FALLBACK_ERROR - Both summary and fallback failed: {fallback_error}")
