@@ -397,7 +397,7 @@ class CrudUI(PluginIdentityManager):
                 'BORDER_RADIUS': '0.25rem',
                 'BORDER_WIDTH': '3px',
             },
-            'ROLE_COLORS': self.config.get('ROLE_COLORS', {}),
+            'ROLE_COLORS': getattr(self.config, 'ROLE_COLORS', {}),
             'FALLBACK_COLORS': {
                 'border': 'var(--pico-color-azure-500)',
                 'background': 'var(--pico-card-background-color)'
@@ -470,8 +470,8 @@ class CrudUI(PluginIdentityManager):
         """Ensure all roles from config are initialized in the database."""
         try:
             existing_roles = {role.text: role for role in self.table()}
-            roles_config = self.config.get('ROLES_CONFIG', {})
-            default_active = self.config.get('DEFAULT_ACTIVE_ROLES', set())
+            roles_config = getattr(self.config, 'ROLES_CONFIG', {})
+            default_active = getattr(self.config, 'DEFAULT_ACTIVE_ROLES', set())
 
             logger.debug(f"ROLES: Found {len(existing_roles)} existing roles in database.")
             logger.debug(f"ROLES: Found {len(roles_config)} roles in configuration.")
@@ -511,7 +511,7 @@ class CrudUI(PluginIdentityManager):
     async def landing(self, request=None):
         """Render the main roles management interface."""
         items_query = self.table()
-        roles_config = self.config.get('ROLES_CONFIG', {})
+        roles_config = getattr(self.config, 'ROLES_CONFIG', {})
         
         items = sorted(items_query, key=lambda item: item.priority if item.priority is not None else 99)
 
@@ -581,8 +581,8 @@ class CrudUI(PluginIdentityManager):
         """Reset roles to DEFAULT_ACTIVE_ROLES configuration and original sort order."""
         try:
             # Get the default active roles from config
-            default_active = self.config.get('DEFAULT_ACTIVE_ROLES', set())
-            roles_config = self.config.get('ROLES_CONFIG', {})
+            default_active = getattr(self.config, 'DEFAULT_ACTIVE_ROLES', set())
+            roles_config = getattr(self.config, 'ROLES_CONFIG', {})
             logger.info(f"DEFAULT: Starting reset process")
             logger.info(f"DEFAULT: Target active roles: {default_active}")
             logger.info(f"DEFAULT: Available ROLES_CONFIG: {list(roles_config.keys())}")
@@ -647,7 +647,7 @@ class CrudUI(PluginIdentityManager):
     async def render_roles_list(self):
         """Render just the roles list for HTMX updates."""
         items_query = self.table()
-        roles_config = self.config.get('ROLES_CONFIG', {})
+        roles_config = getattr(self.config, 'ROLES_CONFIG', {})
         items = sorted(items_query, key=lambda item: item.priority if item.priority is not None else 99)
         
         return Ol(
@@ -668,8 +668,8 @@ class CrudUI(PluginIdentityManager):
     def is_in_default_state(self):
         """Check if current roles state matches the default configuration."""
         try:
-            default_active = self.config.get('DEFAULT_ACTIVE_ROLES', set())
-            roles_config = self.config.get('ROLES_CONFIG', {})
+            default_active = getattr(self.config, 'DEFAULT_ACTIVE_ROLES', set())
+            roles_config = getattr(self.config, 'ROLES_CONFIG', {})
             
             all_roles = self.table()
             
