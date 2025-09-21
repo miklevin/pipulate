@@ -258,8 +258,8 @@ def print_and_log_table(table, title_prefix=""):
     """
     # First, display the rich table in console with full formatting
     from rich.console import Console
-    if isinstance(slog.console, Console):
-        slog.console.print(table)
+    if isinstance(console, Console):
+        console.print(table)
     else:
         # Fallback for non-rich console environments
         print(str(table))
@@ -394,7 +394,7 @@ def _format_records_for_lifecycle_log(records_iterable):
 
     try:
         # Use Rich JSON display for formatted records
-        return slog.rich_json_display(processed_records, title="Formatted Records", console_output=False, log_output=True)
+        return rich_json_display(processed_records, title="Formatted Records", console_output=False, log_output=True)
     except Exception as e:
         return f'[Error formatting records for JSON: {e}] Processed: {str(processed_records)}'
 
@@ -427,7 +427,7 @@ def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix:
 
         # Use Rich JSON display for table data - show in console with beautiful formatting
         # Enable AI logging so AI assistants can see the JSON data
-        slog.rich_json_display(records_data, title=f"Table State: {table_name}", console_output=True, log_output=False, ai_log_output=True)
+        rich_json_display(records_data, title=f"Table State: {table_name}", console_output=True, log_output=False, ai_log_output=True)
 
         # Log just the FINDER_TOKEN without the JSON content (Rich already showed it beautifully)
         logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_{table_name.upper()} - {title_prefix} Snapshot: [Rich JSON displayed to console]")
@@ -444,7 +444,7 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str = 
         items = dict(db_instance.items())
         # Use Rich JSON display for database items - show in console with beautiful formatting
         # Enable AI logging so AI assistants can see the JSON data
-        slog.rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=False, ai_log_output=True)
+        rich_json_display(items, title=f"Database State: {db_name}", console_output=True, log_output=False, ai_log_output=True)
 
         # Add semantic context for AI assistants
         semantic_info = []
@@ -492,7 +492,7 @@ def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str =
         cursor = db_conn.cursor()
         cursor.execute(f'SELECT * FROM {table_name}')
         rows = cursor.fetchall()
-        content = slog._format_records_for_lifecycle_log(rows)
+        content = _format_records_for_lifecycle_log(rows)
         logger.info(f"🔍 FINDER_TOKEN: SQL_TABLE_{table_name.upper()} - {title_prefix} Raw SQL:\n{content}")
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: SQL_TABLE_ERROR - Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}")
@@ -510,11 +510,11 @@ def log_pipeline_summary(pipeline, title_prefix: str = ''):
 
         # 🐰 WHITE RABBIT WELCOME - Show during startup or when no records exist (clean startup)
         if 'STARTUP' in title_prefix.upper() or not records:
-            slog.safe_print()
+            safe_print()
             logger.info("🔧 LEGEND_MARKER_1: Displaying white_rabbit for startup")
             aa.white_rabbit()
             logger.info("🔧 LEGEND_MARKER_2: white_rabbit displayed")
-            slog.safe_print()
+            safe_print()
 
             # 📚 LOG LEGEND: Use the comprehensive version from ascii_displays.py
             logger.info("🔧 LEGEND_MARKER_3: About to call aa.log_reading_legend")
@@ -529,14 +529,14 @@ def log_pipeline_summary(pipeline, title_prefix: str = ''):
                 padding=(1, 2)
             )
             logger.info("🔧 LEGEND_MARKER_5: About to print legend_panel with Rich")
-            slog.console.print(legend_panel)
+            console.print(legend_panel)
             logger.info("🔧 LEGEND_MARKER_6: legend_panel printed to console")
 
             # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
             logger.info("🔧 LEGEND_MARKER_7: About to call aa.share_ascii_with_ai")
             aa.share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
             logger.info("🔧 LEGEND_MARKER_8: aa.share_ascii_with_ai completed")
-            slog.safe_print()
+            safe_print()
 
         if not records:
             logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} No active workflows")
@@ -624,7 +624,7 @@ def log_pipeline_summary(pipeline, title_prefix: str = ''):
         # Fallback to original detailed logging if summary fails
         try:
             records = list(pipeline())
-            content = slog._format_records_for_lifecycle_log(records)
+            content = _format_records_for_lifecycle_log(records)
             logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_PIPELINE - {title_prefix} Fallback Snapshot:\n{content}")
         except Exception as fallback_error:
             logger.error(f"❌ FINDER_TOKEN: PIPELINE_FALLBACK_ERROR - Both summary and fallback failed: {fallback_error}")
