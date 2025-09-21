@@ -3,6 +3,7 @@ import json
 import re
 from loguru import logger
 from imports.server_logging import log_tool_call
+
 # NOTE: No top-level imports from 'tools' or 'server' to prevent circular dependencies.
 
 async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwargs):
@@ -13,13 +14,16 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
     # JIT Import: Import tool registries inside the function to avoid circular dependencies at startup.
     from tools import get_all_tools, ALIAS_REGISTRY
     MCP_TOOL_REGISTRY = get_all_tools()
+
     # Get necessary functions/variables from the pipulate instance
     append_to_conversation = pipulate_instance.append_to_conversation_from_instance
     CFG = pipulate_instance.get_config()
     role = kwargs.get('role', 'user')
     verbatim = kwargs.get('verbatim', False)
     simulate_typing = kwargs.get('simulate_typing', True)
+
     logger.debug(f"ORCHESTRATOR: Intercepted message (role: {role})")
+
     if role == 'user':
         append_to_conversation(message, 'user')
         simple_command_match = re.match(r'^\s*\[([^\]]+)\]\s*$', message)
@@ -29,6 +33,7 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
             command_alias = command_parts[0]
             command_args_str = command_parts[1] if len(command_parts) > 1 else ""
             logger.info(f"ORCHESTRATOR: Simple command detected: [{full_command_string}]")
+
             tool_name = ALIAS_REGISTRY.get(command_alias)
             if tool_name and tool_name in MCP_TOOL_REGISTRY:
                 params = {}
@@ -36,7 +41,6 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                     if tool_name == 'system_list_directory':
                         params['path'] = command_args_str
                     elif tool_name == 'keychain_set':
-                        # Special handling for key-value pair
                         parts = command_args_str.split(maxsplit=1)
                         if len(parts) == 2:
                             params['key'], params['value'] = parts
@@ -46,35 +50,41 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                         params['command'] = command_args_str
                     else:
                         params['args'] = command_args_str
-                    # Log the attempt *before* execution
-                    log_tool_call(command_alias, tool_name, params, "PENDING", {})
+
                 tool_handler = MCP_TOOL_REGISTRY[tool_name]
                 is_success = False
-                tool_output = await tool_handler(params)
-                formatted_output = "```\n"
-                if tool_output.get('success'):
-                    if 'stdout' in tool_output:
-                        formatted_output += tool_output.get('stdout') or "[No output]"
-                    elif 'directories' in tool_output:
-                        dirs = '\n'.join([f"📁 {d}" for d in tool_output.get('directories', [])])
-                        files = '\n'.join([f"📄 {f}" for f in tool_output.get('files', [])])
-                        formatted_output += f"Directory: {tool_output.get('path', '.')}\n\n{dirs}\n{files}"
-                    else:
-                        formatted_output += json.dumps(tool_output, indent=2)
-                else:
-                    formatted_output += f"Error: {tool_output.get('error', 'Unknown error')}"
-                formatted_output += "\n```"
-                await pipulate_instance.stream(formatted_output, role='tool', verbatim=True, simulate_typing=True)
+                tool_output = {}
+
+                # Log the attempt *before* execution
+                log_tool_call(command_alias, tool_name, params, "PENDING", {})
+
+                try:
+                    tool_output = await tool_handler(params)
                     is_success = tool_output.get('success', False)
+                    formatted_output = "```\n"
+                    if tool_output.get('success'):
+                        if 'stdout' in tool_output:
+                            formatted_output += tool_output.get('stdout') or "[No output]"
+                        elif 'directories' in tool_output:
+                            dirs = '\n'.join([f"📁 {d}" for d in tool_output.get('directories', [])])
+                            files = '\n'.join([f"📄 {f}" for f in tool_output.get('files', [])])
+                            formatted_output += f"Directory: {tool_output.get('path', '.')}\n\n{dirs}\n{files}"
+                        else:
+                            formatted_output += json.dumps(tool_output, indent=2)
+                    else:
+                        formatted_output += f"Error: {tool_output.get('error', 'Unknown error')}"
+                    formatted_output += "\n```"
+                    await pipulate_instance.stream(formatted_output, role='tool', verbatim=True, simulate_typing=True)
                 except Exception as e:
                     tool_output = {"success": False, "error": str(e)}
+                    is_success = False
                 finally:
                     log_tool_call(command_alias, tool_name, params, is_success, tool_output)
                 return
+
     if verbatim:
         append_to_conversation(message, role)
         try:
-            # RESTORED: Spacing logic from original server.py
             spaces_before = kwargs.get('spaces_before')
             spaces_after = kwargs.get('spaces_after')
             if spaces_before:
@@ -84,12 +94,10 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
             if spaces_after and spaces_after > 0:
                 message = message + '<br>' * spaces_after
 
-            # ALWAYS convert newlines for HTML
             if '\n' in message:
                 message = message.replace('\n', '<br>')
-                
+
             if simulate_typing:
-                # This logic correctly handles typing out messages with trailing line breaks
                 br_match = re.search(r'(<br>+)$', message)
                 if br_match:
                     base_message = message[:br_match.start()]
@@ -105,13 +113,12 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                         await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
                         await asyncio.sleep(CFG.CHAT_CONFIG['TYPING_DELAY'])
             else:
-                # If not simulating, just send the pre-formatted HTML message
                 await chat_instance.broadcast(message)
             return message
         except Exception as e:
             logger.error(f'ORCHESTRATOR: Error in verbatim stream: {e}', exc_info=True)
             raise
-    
+
     # If it was a regular user message (not a handled command), proceed to the LLM
     await pipulate_instance._handle_llm_stream()
     return message
