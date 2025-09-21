@@ -69,14 +69,6 @@ logger = logging.getLogger(__name__)
 # MCP_TOOL_REGISTRY will be set by server.py when it imports this module
 MCP_TOOL_REGISTRY = None
 
-# Import AI Keychain for persistent memory
-try:
-    from imports.ai_dictdb import keychain_instance
-    KEYCHAIN_AVAILABLE = True
-except ImportError:
-    KEYCHAIN_AVAILABLE = False
-    logger.warning("⚠️ FINDER_TOKEN: KEYCHAIN_IMPORT_FAILED - AI Keychain not available")
-
 # Import functions from extracted modules
 
 # ================================================================
@@ -849,102 +841,8 @@ async def botify_list_projects(params: dict) -> dict:
 # MCP TOOL REGISTRY AND REGISTRATION
 # ================================================================
 
-# MCP Tool Registry - Will be populated by register_mcp_tool calls
-MCP_TOOL_REGISTRY = {}
-
-
-def register_mcp_tool(tool_name: str, handler_func):
-    """Register an MCP tool with the global registry."""
-    logger.info(f"🔧 MCP REGISTRY: Registering tool '{tool_name}'")
-
-    # Use the registry that was passed from server.py
-    if MCP_TOOL_REGISTRY is not None:
-        MCP_TOOL_REGISTRY[tool_name] = handler_func
-    else:
-        logger.error(f"🔧 MCP REGISTRY: ERROR - Registry not initialized for '{tool_name}'")
-
-
-def register_all_mcp_tools():
-    """Register all MCP tools with the server."""
-    logger.info("🔧 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_START")
-    # Debug logging removed - registry working correctly
-
-    # Core tools
-    register_mcp_tool("get_cat_fact", builtin_get_cat_fact)
-    register_mcp_tool("get_user_session_state", get_user_session_state)
-
-    # Botify API tools
-    register_mcp_tool("botify_ping", botify_ping)
-    register_mcp_tool("botify_list_projects", botify_list_projects)
-    register_mcp_tool("botify_simple_query", botify_simple_query)
-
-    # Local LLM tools
-    register_mcp_tool("local_llm_read_file", local_llm_read_file)
-    register_mcp_tool("local_llm_grep_logs", local_llm_grep_logs)
-    register_mcp_tool("local_llm_list_files", local_llm_list_files)
-    register_mcp_tool("local_llm_get_context", local_llm_get_context)
-
-    # 🎭 MAGIC WORDS DEMONSTRATION TOOL
-    register_mcp_tool("execute_ai_session_hijacking_demonstration", execute_ai_session_hijacking_demonstration)
-
-    # UI interaction tools
-    register_mcp_tool("ui_flash_element", ui_flash_element)
-    register_mcp_tool("ui_list_elements", ui_list_elements)
-
-    # Voice synthesis tools
-    register_mcp_tool("voice_synthesis", voice_synthesis)
-
-    # 👁️🤲🧠 AI BROWSER EMBODIMENT BREAKTHROUGH - The Revolutionary Trinity
-    # EYES: browser_scrape_page - AI can SEE current page state via /looking_at/
-    # HANDS: browser_automate_workflow_walkthrough - AI can EXECUTE multi-step workflows  
-    # BRAIN: browser_analyze_scraped_page - AI can UNDERSTAND DOM structure for automation
-    # BREAKTHROUGH: Ends blind automation guesswork with surgical precision
-    register_mcp_tool("browser_analyze_scraped_page", browser_analyze_scraped_page)    # AI BRAIN
-    register_mcp_tool("browser_scrape_page", browser_scrape_page)                      # AI EYES  
-    register_mcp_tool("browser_automate_workflow_walkthrough", browser_automate_workflow_walkthrough)  # AI HANDS
-    register_mcp_tool("browser_interact_with_current_page", browser_interact_with_current_page)
-    register_mcp_tool("browser_hijack_workflow_complete", browser_hijack_workflow_complete)
-
-    # 🎯 CENTRALIZED AUTOMATION RECIPE SYSTEM - ONE TOOL TO RULE THEM ALL
-    register_mcp_tool("execute_automation_recipe", execute_automation_recipe)
-
-    # 🔧 UNIFIED CLI INTERFACE FOR LOCAL LLM
-    register_mcp_tool("execute_mcp_cli_command", execute_mcp_cli_command)
-
-    # Additional Botify tools
-    register_mcp_tool("botify_get_full_schema", botify_get_full_schema)
-    register_mcp_tool("botify_list_available_analyses", botify_list_available_analyses)
-    register_mcp_tool("botify_execute_custom_bql_query", botify_execute_custom_bql_query)
-
-    # 🧠 AI KEYCHAIN (PERSISTENT MEMORY) TOOLS - MESSAGE IN A BOTTLE SYSTEM
-    if KEYCHAIN_AVAILABLE:
-        register_mcp_tool("keychain_set", keychain_set)
-        register_mcp_tool("keychain_get", keychain_get)
-        register_mcp_tool("keychain_delete", keychain_delete)
-        register_mcp_tool("keychain_list_keys", keychain_list_keys)
-        register_mcp_tool("keychain_get_all", keychain_get_all)
-        logger.info("🧠 FINDER_TOKEN: KEYCHAIN_TOOLS_REGISTERED - 5 persistent memory tools available")
-    else:
-        logger.warning("⚠️ FINDER_TOKEN: KEYCHAIN_TOOLS_SKIPPED - AI Keychain not available")
-
-    # 🧠 AI SELF-DISCOVERY TOOLS - ELIMINATE UNCERTAINTY
-    register_mcp_tool("ai_self_discovery_assistant", ai_self_discovery_assistant)
-    register_mcp_tool("ai_capability_test_suite", ai_capability_test_suite)
-    register_mcp_tool("browser_automate_instructions", browser_automate_instructions)
-    register_mcp_tool("execute_complete_session_hijacking", execute_complete_session_hijacking)
-
-    # Get final count from server's registry
-    import sys
-    server_module = sys.modules.get('server')
-    if server_module and hasattr(server_module, 'MCP_TOOL_REGISTRY'):
-        tool_count = len(server_module.MCP_TOOL_REGISTRY)
-    else:
-        tool_count = len(MCP_TOOL_REGISTRY)
-
-    logger.info(f"🎯 FINDER_TOKEN: MCP_TOOLS_REGISTRATION_COMPLETE - {tool_count} tools registered")
 
 # Additional Botify tools from server.py
-
 
 async def botify_simple_query(params: dict) -> dict:
     """Execute a simple BQL query against Botify API."""

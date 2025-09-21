@@ -5,7 +5,7 @@ Tools for interacting with the AI's long-term, persistent memory, which
 survives application restarts.
 """
 import logging
-from tools import auto_tool
+from tools import auto_tool, alias
 try:
     from imports.ai_dictdb import keychain_instance, KEYCHAIN_AVAILABLE
 except ImportError:
@@ -14,6 +14,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 @auto_tool
+@alias("note")
 async def keychain_set(params: dict) -> dict:
     """Saves a persistent key-value message for future AI instances.
     This is THE tool for leaving "messages in a bottle" for your future selves.
@@ -116,6 +117,7 @@ async def keychain_delete(params: dict) -> dict:
         return { "success": False, "error": str(e) }
 
 @auto_tool
+@alias("notes")
 async def keychain_list_keys(params: dict) -> dict:
     """Lists all keys currently in the persistent AI ai_dictdb."""
     logger.info("🧠 FINDER_TOKEN: KEYCHAIN_LIST_KEYS_START")

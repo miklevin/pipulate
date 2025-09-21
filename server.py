@@ -96,10 +96,9 @@ from watchdog.observers import Observer
 import config as CFG
 import imports.ascii_displays as aa
 import tools.mcp_tools as mcp_tools
+from tools import get_all_tools
 from imports import botify_code_generation, mcp_orchestrator
-# from imports.server_logging import console, rich_json_display, setup_logging, safe_print
 import imports.server_logging as slog
-from tools.mcp_tools import register_all_mcp_tools
 
 # Various debug settings
 DEBUG_MODE = False
@@ -3733,13 +3732,10 @@ for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in ordered_plugins and module_name in plugin_instances:
         ordered_plugins.append(module_name)
 
-# 🔧 REGISTER ALL MCP TOOLS - Critical for AI assistant capabilities
-logger.info("🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - About to register all MCP tools")
-
-# Ensure mcp_tools has the correct registry reference
-mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
-register_all_mcp_tools()
-logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools now available")
+# 🔧 REGISTER ALL MCP TOOLS DYNAMICALLY - Critical for AI assistant capabilities
+logger.info("🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION - Dynamically discovering all MCP tools")
+MCP_TOOL_REGISTRY = get_all_tools()
+logger.info(f"🔧 FINDER_TOKEN: STARTUP_MCP_REGISTRATION_COMPLETE - {len(MCP_TOOL_REGISTRY)} tools are now available")
 
 # Calculate startup metrics for plugin failure handling and display
 discovered_count = len(discovered_classes)
