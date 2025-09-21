@@ -3815,7 +3815,7 @@ async def startup_event():
 
     slog.log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     slog.log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
-    slog.log_pipeline_summary(title_prefix='STARTUP FINAL')
+    slog.log_pipeline_summary(pipeline, title_prefix='STARTUP FINAL')
 
     # Clear any stale coordination data on startup
     message_coordination['endpoint_messages_sent'].clear()
@@ -5525,7 +5525,7 @@ async def clear_db(request):
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('CLEAR_DB: Starting database reset...')
         slog.log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB INITIAL')
-        slog.log_pipeline_summary(title_prefix='CLEAR_DB INITIAL')
+        slog.log_pipeline_summary(pipeline, title_prefix='CLEAR_DB INITIAL')
         slog.log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB INITIAL')
 
     # Safely preserve certain values before clearing
