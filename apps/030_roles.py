@@ -252,7 +252,7 @@ class CrudCustomizer(BaseCrud):
         if not text:
             return None
 
-        roles_config = self.plugin.config.get('ROLES_CONFIG', {})
+        roles_config = getattr(self.plugin.config, 'ROLES_CONFIG', {})
         if text in roles_config:
             priority = roles_config[text].get('priority', 99)
         else:
@@ -260,7 +260,7 @@ class CrudCustomizer(BaseCrud):
             max_priority = max((i.priority or 0 for i in all_items), default=len(roles_config)) + 1
             priority = int(form.get(f"{self.plugin.name}_priority", max_priority))
 
-        default_active = self.plugin.config.get('DEFAULT_ACTIVE_ROLES', set())
+        default_active = getattr(self.plugin.config, 'DEFAULT_ACTIVE_ROLES', set())
         insert_data = { "text": text, "done": text in default_active, "priority": priority }
         return insert_data
 
@@ -716,7 +716,7 @@ def render_item(item, app_instance):
     toggle_url = f"{app_instance.plugin.ENDPOINT_PREFIX}/toggle/{item.id}"
 
     # Get role configuration from the injected config
-    roles_config = app_instance.plugin.config.get('ROLES_CONFIG', {})
+    roles_config = getattr(app_instance.plugin.config, 'ROLES_CONFIG', {})
     role_info = roles_config.get(item.text, {})
     description = role_info.get('description', 'No description available.')
 
