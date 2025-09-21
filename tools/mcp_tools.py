@@ -71,7 +71,7 @@ MCP_TOOL_REGISTRY = None
 
 # Import AI Keychain for persistent memory
 try:
-    from ai_dictdb import keychain_instance
+    from imports.ai_dictdb import keychain_instance
     KEYCHAIN_AVAILABLE = True
 except ImportError:
     KEYCHAIN_AVAILABLE = False
