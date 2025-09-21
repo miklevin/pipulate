@@ -2,6 +2,7 @@ import asyncio
 import json
 import re
 from loguru import logger
+from imports.server_logging import log_tool_call
 # NOTE: No top-level imports from 'tools' or 'server' to prevent circular dependencies.
 
 async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwargs):
@@ -45,7 +46,10 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                         params['command'] = command_args_str
                     else:
                         params['args'] = command_args_str
+                    # Log the attempt *before* execution
+                    log_tool_call(command_alias, tool_name, params, "PENDING", {})
                 tool_handler = MCP_TOOL_REGISTRY[tool_name]
+                is_success = False
                 tool_output = await tool_handler(params)
                 formatted_output = "```\n"
                 if tool_output.get('success'):
@@ -61,6 +65,11 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                     formatted_output += f"Error: {tool_output.get('error', 'Unknown error')}"
                 formatted_output += "\n```"
                 await pipulate_instance.stream(formatted_output, role='tool', verbatim=True, simulate_typing=True)
+                    is_success = tool_output.get('success', False)
+                except Exception as e:
+                    tool_output = {"success": False, "error": str(e)}
+                finally:
+                    log_tool_call(command_alias, tool_name, params, is_success, tool_output)
                 return
     if verbatim:
         append_to_conversation(message, role)
