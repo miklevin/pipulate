@@ -55,9 +55,6 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                 is_success = False
                 tool_output = {}
 
-                # Log the attempt *before* execution
-                log_tool_call(command_alias, tool_name, params, "PENDING", {})
-
                 try:
                     tool_output = await tool_handler(params)
                     is_success = tool_output.get('success', False)
