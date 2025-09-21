@@ -383,7 +383,7 @@ def status_banner(mcp_count, plugin_count, env="Development"):
     logger.info(f"📊 STATUS_BANNER_ASCII: Status banner displayed | ASCII_DATA:\n```\n{clean_content}\n```")
     return status_content
 
-def log_reading_legend():
+def reading_legend():
     """📖 LOG READING LEGEND: Educational guide for understanding Pipulate logs
     
     Returns the complete log legend content with Rich formatting.
@@ -431,6 +431,21 @@ def log_reading_legend():
 • [dim white]AI breadcrumbs:[/dim white] [bright_white]grep "AI_BREADCRUMB" logs/server.log[/bright_white]
 • [dim white]MCP tool calls:[/dim white] [bright_white]grep "MCP_.*_START" logs/server.log[/bright_white]"""
     
+    legend_panel = Panel(
+        legend_content,
+        title="📖 [bold bright_blue]Log Reading Guide[/bold bright_blue]",
+        subtitle="[dim]Understanding what you're seeing in the logs[/dim]",
+        style="bright_blue",
+        padding=(1, 2)
+    )
+    logger.info("🔧 LEGEND_MARKER_5: About to print legend_panel with Rich")
+    console.print(legend_panel)
+    logger.info("🔧 LEGEND_MARKER_6: legend_panel printed to console")
+
+    # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
+    logger.info("🔧 LEGEND_MARKER_7: About to call aa.share_ascii_with_ai")
+    share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
+    logger.info("🔧 LEGEND_MARKER_8: aa.share_ascii_with_ai completed")
     return legend_content 
 
 
