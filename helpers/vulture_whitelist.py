@@ -15,8 +15,6 @@
 # =============================================================================
 
 # Configuration variables used conditionally
-DEEP_TESTING = True
-BROWSER_TESTING = True
 custom_theme = {}
 
 # SVG constants used in templates
@@ -136,8 +134,6 @@ conversation = []
 # =============================================================================
 
 # Use all the items defined above to prevent vulture from flagging them
-_ = DEEP_TESTING
-_ = BROWSER_TESTING
 _ = custom_theme
 _ = INFO_SVG
 _ = EXTERNAL_LINK_SVG
