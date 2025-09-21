@@ -69,10 +69,10 @@ import sqlite3
 import subprocess
 import sys
 import time
+import warnings
 import traceback
 import urllib.parse
-# Suppress deprecation warnings from third-party packages
-import warnings
+from operator import attrgetter
 from collections import deque
 from datetime import datetime
 from pathlib import Path
@@ -335,18 +335,21 @@ if get_current_environment() == 'Production':
     logger.warning(f'🚨 PRODUCTION_DATABASE_WARNING: Server starting in Production mode with database: {DB_FILENAME}')
     logger.warning(f'🚨 PRODUCTION_DATABASE_WARNING: If demo is triggered, plugins using static DB_FILENAME may cause issues!')
 
-TONE = 'neutral'
-MODEL = 'gemma3'
-MAX_LLM_RESPONSE_WORDS = 80
-
-# Context window optimization for Gemma 3:4B (128k tokens)
-# Conservative estimate: ~70% of context for history = ~90k tokens
-# Average message size: ~150 tokens (including JSON overhead)
-# Optimal conversation length: 90k ÷ 150 = ~600 messages
-MAX_CONVERSATION_LENGTH = 600
-
-HOME_MENU_ITEM = 'Home'
-DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
+(
+    TONE,
+    MODEL,
+    MAX_LLM_RESPONSE_WORDS,
+    MAX_CONVERSATION_LENGTH,
+    HOME_MENU_ITEM,
+    DEFAULT_ACTIVE_ROLES
+) = attrgetter(
+    'TONE',
+    'MODEL',
+    'MAX_LLM_RESPONSE_WORDS',
+    'MAX_CONVERSATION_LENGTH',
+    'HOME_MENU_ITEM',
+    'DEFAULT_ACTIVE_ROLES'
+)(CFG)
 
 logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}, Context window: 128k tokens')
 
