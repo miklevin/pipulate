@@ -11,6 +11,8 @@ MAX_CONVERSATION_LENGTH = 600
 HOME_MENU_ITEM = 'Home'
 DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
 DEMO_STATE_FILE = 'data/demo_state.json'
+ENV_FILE = 'data/current_environment.txt'
+DISCUSSION_DB_PATH = 'data/discussion.db'
 
 # 🎨 BANNER COLOR CONFIGURATION
 BANNER_COLORS = {
@@ -159,7 +161,6 @@ BOTIFY_API = {
 CHAT_CONFIG = {
     'TYPING_DELAY': 0.02,  # Delay between words in typing simulation (seconds) - Reduced for restart notification compatibility
     'RENDER_THROTTLE_DELAY': 15,  # Milliseconds between markdown renders during streaming (prevents exponential slowdown while maintaining real-time feel)
-    'MAX_CONVERSATION_LENGTH': 100,  # Maximum number of conversation messages to keep
 }
 
 # UI Constants for Workflows - Centralized button labels, emojis, and styles
