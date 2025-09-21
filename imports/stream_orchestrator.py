@@ -81,13 +81,13 @@ async def stream_orchestrator(pipulate_instance, chat_instance, message, **kwarg
                     words = base_message.split()
                     for i, word in enumerate(words):
                         await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                        await asyncio.sleep(CFG['CHAT_CONFIG']['TYPING_DELAY'])
+                        await asyncio.sleep(CFG.CHAT_CONFIG['TYPING_DELAY'])
                     await chat_instance.broadcast(br_tags)
                 else:
                     words = message.split()
                     for i, word in enumerate(words):
                         await chat_instance.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                        await asyncio.sleep(CFG['CHAT_CONFIG']['TYPING_DELAY'])
+                        await asyncio.sleep(CFG.CHAT_CONFIG['TYPING_DELAY'])
             else:
                 # If not simulating, just send the pre-formatted HTML message
                 await chat_instance.broadcast(message)

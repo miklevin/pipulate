@@ -406,8 +406,8 @@ logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
 
 # Suppress deprecation warnings from third-party packages
 
-MAX_CONVERSATION_LENGTH = CFG['CHAT_CONFIG']['MAX_CONVERSATION_LENGTH']
-DEFAULT_ACTIVE_ROLES = CFG['DEFAULT_ACTIVE_ROLES']
+MAX_CONVERSATION_LENGTH = CFG.CHAT_CONFIG['MAX_CONVERSATION_LENGTH']
+DEFAULT_ACTIVE_ROLES = CFG.DEFAULT_ACTIVE_ROLES
 
 # Import MCP tools module for enhanced AI assistant capabilities
 # Initialize MCP_TOOL_REGISTRY before importing mcp_tools to avoid circular dependency issues
@@ -1612,7 +1612,7 @@ class Pipulate:
 
     def get_ui_constants(self):
         """Access centralized UI constants through dependency injection."""
-        return CFG['UI_CONSTANTS']
+        return CFG.UI_CONSTANTS
 
     def get_config(self):
         """Access centralized configuration through dependency injection."""
@@ -1620,7 +1620,7 @@ class Pipulate:
 
     def get_button_border_radius(self):
         """Get the global button border radius setting."""
-        return CFG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
+        return CFG.UI_CONSTANTS['BUTTON_STYLES']['BORDER_RADIUS']
 
     def register_workflow_routes(self, plugin_instance):
         """
@@ -1693,14 +1693,14 @@ class Pipulate:
             log_entry_parts.append(f'  cURL Command:\n{curl_command}')
         if python_command:
             # Use centralized emoji configuration for console messages
-            python_emoji = CFG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
-            snippet_emoji = CFG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
-            comment_divider = CFG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
-            snippet_intro = CFG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
+            python_emoji = CFG.UI_CONSTANTS['EMOJIS']['PYTHON_CODE']
+            snippet_emoji = CFG.UI_CONSTANTS['EMOJIS']['CODE_SNIPPET']
+            comment_divider = CFG.UI_CONSTANTS['CODE_FORMATTING']['COMMENT_DIVIDER']
+            snippet_intro = CFG.UI_CONSTANTS['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
                 python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
-            snippet_end = CFG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
+            snippet_end = CFG.UI_CONSTANTS['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
                 python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
@@ -1886,14 +1886,14 @@ class Pipulate:
             )
 
             # Use centralized emoji configuration for console messages
-            python_emoji = CFG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
-            snippet_emoji = CFG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
-            comment_divider = CFG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
-            snippet_intro = CFG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
+            python_emoji = CFG.UI_CONSTANTS['EMOJIS']['PYTHON_CODE']
+            snippet_emoji = CFG.UI_CONSTANTS['EMOJIS']['CODE_SNIPPET']
+            comment_divider = CFG.UI_CONSTANTS['CODE_FORMATTING']['COMMENT_DIVIDER']
+            snippet_intro = CFG.UI_CONSTANTS['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
                 python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
-            snippet_end = CFG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
+            snippet_end = CFG.UI_CONSTANTS['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
                 python_emoji=python_emoji,
                 snippet_emoji=snippet_emoji
             )
@@ -1993,7 +1993,7 @@ class Pipulate:
         lines.append('                print(text)')
         lines.append('                return text')
         lines.append('')
-        divider = CFG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+        divider = CFG.UI_CONSTANTS['CODE_FORMATTING']['COMMENT_DIVIDER']
         lines.append(divider)
         lines.append('# EXECUTION: Choose your environment')
         lines.append(divider)
@@ -2464,7 +2464,7 @@ class Pipulate:
 
         # Add new key button if requested
         if show_new_key_button and app_name:
-            ui_constants = CFG['UI_CONSTANTS']
+            ui_constants = CFG.UI_CONSTANTS
             # 🆕 New Key button styled via CSS class for maintainability
             new_key_button = Button(
                 ui_constants['BUTTON_LABELS']['NEW_KEY'],
@@ -2516,8 +2516,8 @@ class Pipulate:
         matching_records = [record.pkey for record in self.pipeline_table() if record.pkey.startswith(prefix)]
 
         # Standard form with centralized constants
-        ui_constants = CFG['UI_CONSTANTS']
-        landing_constants = CFG['UI_CONSTANTS']['LANDING_PAGE']
+        ui_constants = CFG.UI_CONSTANTS
+        landing_constants = CFG.UI_CONSTANTS['LANDING_PAGE']
 
         return Container(
             Card(
@@ -4761,7 +4761,7 @@ def normalize_menu_path(path):
 
 def generate_menu_style():
     """Generate consistent menu styling for dropdown menus."""
-    border_radius = CFG['UI_CONSTANTS']['BUTTON_STYLES']['BORDER_RADIUS']
+    border_radius = CFG.UI_CONSTANTS['BUTTON_STYLES']['BORDER_RADIUS']
     return f'white-space: nowrap; display: inline-block; min-width: max-content; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: {border_radius}; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s;'
 
 
@@ -5174,7 +5174,7 @@ def create_chat_interface(autofocus=False):
     if 'temp_message' in db:
         temp_message = db['temp_message']
         del db['temp_message']
-    init_script = f'\n    // Set global variables for the external script\n    window.CFG = {{\n        tempMessage: {json.dumps(temp_message)},\n        clipboardSVG: {json.dumps(CFG["SVG_ICONS"]["CLIPBOARD"])}\n    }};\n    window.APP_NAME = {json.dumps(APP_NAME)};\n    '
+    init_script = f'\n    // Set global variables for the external script\n    window.CFG = {{\n        tempMessage: {json.dumps(temp_message)},\n        clipboardSVG: {json.dumps(CFG.SVG_ICONS["CLIPBOARD"])}\n    }};\n    window.APP_NAME = {json.dumps(APP_NAME)};\n    '
     # Enter/Shift+Enter handling is now externalized in pipulate.js
     return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height, role='log', aria_label='Chat conversation', aria_live='polite'), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)', role='form', aria_label='Chat input form'), Script(init_script), Script(src='/assets/pipulate-init.js'), Script('initializeChatInterface();')), id='chat-interface', role='complementary', aria_label='AI Assistant Chat')
 
