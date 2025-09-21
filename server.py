@@ -83,7 +83,6 @@ import uvicorn
 from fasthtml.common import *
 from loguru import logger
 from rich.json import JSON
-from rich.panel import Panel
 from rich.table import Table, Text
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
