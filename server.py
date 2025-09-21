@@ -1389,7 +1389,7 @@ def append_to_conversation(message=None, role='user'):
 
 def get_home_menu_item() -> str:
     """Returns the appropriate home menu item text based on the HOME_APP setting."""
-    home_app_name = CFG.get('HOME_APP', '030_roles')  # Default to '030_roles'
+    home_app_name = getattr(CFG, 'HOME_APP', '030_roles')  # Default to '030_roles'
     return friendly_names.get(home_app_name, title_name(home_app_name))
 
 
@@ -3723,7 +3723,7 @@ def build_endpoint_messages(endpoint):
     # Special handling for empty endpoint (homepage)
     if not endpoint:
         # --- START CHANGE ---
-        home_app_name = CFG.get('HOME_APP', 'roles')
+        home_app_name = getattr(CFG, 'HOME_APP', 'roles')
         logger.debug(f"🔧 BUILD_ENDPOINT_DEBUG: Empty endpoint - using '{home_app_name}' as homepage logic")
         home_app_instance = plugin_instances.get(home_app_name)
         if home_app_instance:
@@ -3766,7 +3766,7 @@ def build_endpoint_training(endpoint):
     # Special handling for empty endpoint (homepage)
     if not endpoint:
         # --- START CHANGE ---
-        home_app_name = CFG.get('HOME_APP', 'roles')
+        home_app_name = getattr(CFG, 'HOME_APP', 'roles')
         home_app_instance = plugin_instances.get(home_app_name)
         if home_app_instance:
             if hasattr(home_app_instance, 'TRAINING_PROMPT'):
@@ -3970,7 +3970,7 @@ async def synchronize_roles_to_db():
     discovered_roles_set = set()
 
     # FIRST: Get roles from ROLES_CONFIG (this is the primary source of truth)
-    roles_config = CFG.get('ROLES_CONFIG', {})
+    roles_config = getattr(CFG, 'ROLES_CONFIG', {})
     if roles_config:
         logger.debug(f"SYNC_ROLES: Found {len(roles_config)} roles in ROLES_CONFIG: {list(roles_config.keys())}")
         discovered_roles_set.update(roles_config.keys())
@@ -4918,7 +4918,7 @@ def create_menu_container(menu_items):
 def get_dynamic_role_css():
     """Generate dynamic role CSS from centralized CFG - single source of truth."""
     try:
-        role_colors = CFG.get('ROLE_COLORS', {})
+        role_colors = getattr(CFG, 'ROLE_COLORS', {})
         if not role_colors:
             return ""
 
@@ -5119,7 +5119,7 @@ async def create_grid_left(menux, request):
     # Handle homepage (no menu selection)
     else:
         # --- START CHANGE ---
-        home_app_name = CFG.get('HOME_APP', 'roles')
+        home_app_name = getattr(CFG, 'HOME_APP', 'roles')
         home_app_instance = plugin_instances.get(home_app_name)
         if home_app_instance:
             content_to_render = await home_app_instance.landing(request)
