@@ -292,21 +292,8 @@ def get_git_hash():
     except Exception:
         return "unknown"
 
-# Get configuration variables from config.py
-(
-    TONE,
-    MODEL,
-    MAX_LLM_RESPONSE_WORDS,
-    MAX_CONVERSATION_LENGTH,
-    HOME_MENU_ITEM,
-    DEFAULT_ACTIVE_ROLES,
-    INFO_SVG,
-    EXTERNAL_LINK_SVG,
-    SETTINGS_SVG,
-    DEMO_STATE_FILE,
-    DEFAULT_ACTIVE_ROLES,
-    DISCUSSION_DB_PATH
-) = attrgetter(
+# Get global values from config
+config_keys = [
     'TONE',
     'MODEL',
     'MAX_LLM_RESPONSE_WORDS',
@@ -319,7 +306,9 @@ def get_git_hash():
     'DEMO_STATE_FILE',
     'DEFAULT_ACTIVE_ROLES',
     'DISCUSSION_DB_PATH'
-)(CFG)
+]
+for key in config_keys:
+    globals()[key] = getattr(CFG, key)
 
 ENV_FILE = Path(CFG.ENV_FILE)
 APP_NAME = get_app_name()
