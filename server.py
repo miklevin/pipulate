@@ -111,46 +111,6 @@ from imports.ascii_displays import (ai_breadcrumb_summary, chip_says,
 from imports.server_logging import console, rich_json_display, setup_logging
 from tools.mcp_tools import register_all_mcp_tools
 
-# --- NEW: HYBRID TOOL REGISTRATION ---
-# 1. Automatically discover all tools decorated with @auto_tool
-import tools
-MCP_TOOL_REGISTRY = tools.get_all_tools()
-logger.info(f"🔌 PLUGIN_SYSTEM: Auto-discovered {len(MCP_TOOL_REGISTRY)} tools.")
-
-# 2. Allow the old manual registration system to add the remaining tools.
-#    This enables a gradual, non-breaking migration.
-mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
-# --- END NEW ---
-
-def safe_print(*args, **kwargs):
-    """Safe wrapper for print() that handles I/O errors gracefully"""
-    try:
-        print(*args, **kwargs)
-    except (BlockingIOError, BrokenPipeError, OSError) as e:
-        # Handle terminal I/O errors gracefully - print failed but continue
-        logger.warning(f"🖨️ SAFE_PRINT: Print output failed ({type(e).__name__}: {e}), continuing silently")
-    except Exception as e:
-        # Catch any other unexpected errors
-        logger.error(f"🖨️ SAFE_PRINT: Unexpected error during print: {type(e).__name__}: {e}")
-
-# Import ASCII display functions (externalized from server.py for token reduction)
-
-# Import Botify code generation utilities (externalized from server.py for token reduction)
-
-warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
-
-# Various debug settings
-DEBUG_MODE = False
-STATE_TABLES = False
-TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
-
-# 🧪 TESTING MODE: Revolutionary testing philosophy
-TESTING_MODE = False      # Light testing on every server startup
-DEEP_TESTING = False      # Comprehensive testing mode
-BROWSER_TESTING = False   # Browser automation testing
-# 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
-# These control different aspects of logging and debugging
-
 # 🎨 BANNER COLOR CONFIGURATION
 # Centralized color control for all storytelling banners and messages
 BANNER_COLORS = {
@@ -191,19 +151,6 @@ BANNER_COLORS = {
     'ascii_box': 'ASCII'
 }
 
-# Theme and logging functions are now imported from imports.server_logging.py
-# This eliminates 100+ lines of duplicate code while preserving functionality
-
-
-# All ASCII display functions now imported from imports.ascii_displays.py
-# This eliminates ~300 lines of duplicate code while preserving functionality
-
-# Logging functions are now imported from imports.server_logging.py
-# This eliminates another 100+ lines of duplicate setup_logging() implementation
-
-
-# 🔧 FINDER_TOKEN: rotate_looking_at_directory moved to mcp_tools.py to eliminate circular imports
-
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
     try:
@@ -215,6 +162,55 @@ if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
     except Exception as e:
         # Any other error, just continue with startup
         print(f"🚀 STARTUP: Banner display failed (Error: {e}), continuing startup...")
+
+# --- NEW: HYBRID TOOL REGISTRATION ---
+# 1. Automatically discover all tools decorated with @auto_tool
+import tools
+MCP_TOOL_REGISTRY = tools.get_all_tools()
+logger.info(f"🔌 PLUGIN_SYSTEM: Auto-discovered {len(MCP_TOOL_REGISTRY)} tools.")
+
+# 2. Allow the old manual registration system to add the remaining tools.
+#    This enables a gradual, non-breaking migration.
+mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
+# --- END NEW ---
+
+def safe_print(*args, **kwargs):
+    """Safe wrapper for print() that handles I/O errors gracefully"""
+    try:
+        print(*args, **kwargs)
+    except (BlockingIOError, BrokenPipeError, OSError) as e:
+        # Handle terminal I/O errors gracefully - print failed but continue
+        logger.warning(f"🖨️ SAFE_PRINT: Print output failed ({type(e).__name__}: {e}), continuing silently")
+    except Exception as e:
+        # Catch any other unexpected errors
+        logger.error(f"🖨️ SAFE_PRINT: Unexpected error during print: {type(e).__name__}: {e}")
+
+# Import ASCII display functions (externalized from server.py for token reduction)
+
+# Import Botify code generation utilities (externalized from server.py for token reduction)
+
+warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
+
+# Various debug settings
+DEBUG_MODE = False
+STATE_TABLES = False
+TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
+
+# 🧪 TESTING MODE: Revolutionary testing philosophy
+TESTING_MODE = False      # Light testing on every server startup
+DEEP_TESTING = False      # Comprehensive testing mode
+BROWSER_TESTING = False   # Browser automation testing
+# 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
+# These control different aspects of logging and debugging
+
+# Theme and logging functions are now imported from imports.server_logging.py
+# This eliminates 100+ lines of duplicate code while preserving functionality
+
+# All ASCII display functions now imported from imports.ascii_displays.py
+# This eliminates ~300 lines of duplicate code while preserving functionality
+
+# Logging functions are now imported from imports.server_logging.py
+# This eliminates another 100+ lines of duplicate setup_logging() implementation
 
 # Initialize logger BEFORE any functions that need it
 logger = setup_logging()
