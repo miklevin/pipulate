@@ -133,34 +133,9 @@ DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycle logging
 
-# 🔧 CLAUDE'S NOTE: Re-added TABLE_LIFECYCLE_LOGGING to fix NameError
-# These control different aspects of logging and debugging
-
-# Theme and logging functions are now imported from imports.server_logging.py
-# This eliminates 100+ lines of duplicate code while preserving functionality
-
-# All ASCII display functions now imported from imports.ascii_displays.py
-# This eliminates ~300 lines of duplicate code while preserving functionality
-
-# Logging functions are now imported from imports.server_logging.py
-# This eliminates another 100+ lines of duplicate setup_logging() implementation
-
 # Initialize logger BEFORE any functions that need it
 logger = setup_logging()
-
-# Log early startup phase
 logger.info('🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence')
-
-# --- NEW: HYBRID TOOL REGISTRATION ---
-# 1. Automatically discover all tools decorated with @auto_tool
-import tools
-MCP_TOOL_REGISTRY = tools.get_all_tools()
-logger.info(f"🔌 PLUGIN_SYSTEM: Auto-discovered {len(MCP_TOOL_REGISTRY)} tools.")
-
-# 2. Allow the old manual registration system to add the remaining tools.
-#    This enables a gradual, non-breaking migration.
-mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
-# --- END NEW ---
 
 
 if __name__ == '__main__':
