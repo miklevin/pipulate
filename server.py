@@ -129,7 +129,6 @@ TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycl
 logger = slog.setup_logging()
 logger.info('🚀 FINDER_TOKEN: EARLY_STARTUP - Logger initialized, beginning server startup sequence')
 
-
 if __name__ == '__main__':
     if DEBUG_MODE:
         logger.info('🔍 Running in DEBUG mode (verbose logging enabled)')
@@ -182,6 +181,7 @@ def store_demo_state(demo_state):
         logger.error(f"🎭 Failed to store demo state: {e}")
         return False
 
+
 def get_demo_state():
     """Get demo state from file."""
     try:
@@ -195,6 +195,7 @@ def get_demo_state():
         logger.error(f"🎭 Failed to get demo state: {e}")
         return None
 
+
 def clear_demo_state():
     """Clear demo state file."""
     try:
@@ -206,6 +207,7 @@ def clear_demo_state():
     except Exception as e:
         logger.error(f"🎭 Failed to clear demo state: {e}")
         return False
+
 
 def is_demo_in_progress():
     """Check if demo is in progress by checking for demo state file."""
@@ -290,11 +292,38 @@ def get_git_hash():
     except Exception:
         return "unknown"
 
-ENV_FILE = Path('data/current_environment.txt')
+# Get configuration variables from config.py
+(
+    TONE,
+    MODEL,
+    MAX_LLM_RESPONSE_WORDS,
+    MAX_CONVERSATION_LENGTH,
+    HOME_MENU_ITEM,
+    DEFAULT_ACTIVE_ROLES,
+    INFO_SVG,
+    EXTERNAL_LINK_SVG,
+    SETTINGS_SVG,
+    DEMO_STATE_FILE,
+    DEFAULT_ACTIVE_ROLES,
+    DISCUSSION_DB_PATH
+) = attrgetter(
+    'TONE',
+    'MODEL',
+    'MAX_LLM_RESPONSE_WORDS',
+    'MAX_CONVERSATION_LENGTH',
+    'HOME_MENU_ITEM',
+    'DEFAULT_ACTIVE_ROLES',
+    'INFO_SVG',
+    'EXTERNAL_LINK_SVG',
+    'SETTINGS_SVG',
+    'DEMO_STATE_FILE',
+    'DEFAULT_ACTIVE_ROLES',
+    'DISCUSSION_DB_PATH'
+)(CFG)
+
+ENV_FILE = Path(CFG.ENV_FILE)
 APP_NAME = get_app_name()
 logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
-MAX_CONVERSATION_LENGTH = CFG.CHAT_CONFIG['MAX_CONVERSATION_LENGTH']
-DEFAULT_ACTIVE_ROLES = CFG.DEFAULT_ACTIVE_ROLES
 
 # Import MCP tools module for enhanced AI assistant capabilities
 MCP_TOOL_REGISTRY = {}
@@ -311,38 +340,7 @@ if get_current_environment() == 'Production':
     logger.warning(f'🚨 PRODUCTION_DATABASE_WARNING: Server starting in Production mode with database: {DB_FILENAME}')
     logger.warning(f'🚨 PRODUCTION_DATABASE_WARNING: If demo is triggered, plugins using static DB_FILENAME may cause issues!')
 
-# Get configuration variables from config.py
-(
-    TONE,
-    MODEL,
-    MAX_LLM_RESPONSE_WORDS,
-    MAX_CONVERSATION_LENGTH,
-    HOME_MENU_ITEM,
-    DEFAULT_ACTIVE_ROLES,
-    INFO_SVG,
-    EXTERNAL_LINK_SVG,
-    SETTINGS_SVG,
-    DEMO_STATE_FILE
-) = attrgetter(
-    'TONE',
-    'MODEL',
-    'MAX_LLM_RESPONSE_WORDS',
-    'MAX_CONVERSATION_LENGTH',
-    'HOME_MENU_ITEM',
-    'DEFAULT_ACTIVE_ROLES',
-    'INFO_SVG',
-    'EXTERNAL_LINK_SVG',
-    'SETTINGS_SVG',
-    'DEMO_STATE_FILE'
-)(CFG)
-
 logger.info(f'🤖 FINDER_TOKEN: LLM_CONFIG - Model: {MODEL}, Max words: {MAX_LLM_RESPONSE_WORDS}, Conversation length: {MAX_CONVERSATION_LENGTH}, Context window: 128k tokens')
-
-# 🎯 IMPROVED ARCHITECTURE: Independent Discussion Database
-# Conversation history is now stored in data/discussion.db (environment-independent)
-# This solves the problem of split conversation history across DEV/PROD environments
-
-DISCUSSION_DB_PATH = 'data/discussion.db'
 
 
 def get_discussion_db():
