@@ -500,5 +500,135 @@ def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str =
         db_conn.row_factory = original_row_factory
 
 
+def log_pipeline_summary(pipeline, title_prefix: str = ''):
+    """
+    🔧 PIPELINE SUMMARY: User-friendly summary of pipeline state for startup logging.
+    Provides just enough information to be super useful without terrifying newbs.
+    """
+    try:
+        records = list(pipeline())
+
+        # 🐰 WHITE RABBIT WELCOME - Show during startup or when no records exist (clean startup)
+        if 'STARTUP' in title_prefix.upper() or not records:
+            slog.safe_print()
+            logger.info("🔧 LEGEND_MARKER_1: Displaying white_rabbit for startup")
+            aa.white_rabbit()
+            logger.info("🔧 LEGEND_MARKER_2: white_rabbit displayed")
+            slog.safe_print()
+
+            # 📚 LOG LEGEND: Use the comprehensive version from ascii_displays.py
+            logger.info("🔧 LEGEND_MARKER_3: About to call aa.log_reading_legend")
+            legend_content = aa.log_reading_legend()
+            logger.info("🔧 LEGEND_MARKER_4: aa.log_reading_legend returned content")
+
+            legend_panel = Panel(
+                legend_content,
+                title="📖 [bold bright_blue]Log Reading Guide[/bold bright_blue]",
+                subtitle="[dim]Understanding what you're seeing in the logs[/dim]",
+                style="bright_blue",
+                padding=(1, 2)
+            )
+            logger.info("🔧 LEGEND_MARKER_5: About to print legend_panel with Rich")
+            slog.console.print(legend_panel)
+            logger.info("🔧 LEGEND_MARKER_6: legend_panel printed to console")
+
+            # 🎭 AI CREATIVE TRANSPARENCY: Share the log legend with AI assistants
+            logger.info("🔧 LEGEND_MARKER_7: About to call aa.share_ascii_with_ai")
+            aa.share_ascii_with_ai(legend_content, "Log Reading Guide - 📖 Educational moment: This legend explains Pipulate's log format and emoji system for new users!", "📖")
+            logger.info("🔧 LEGEND_MARKER_8: aa.share_ascii_with_ai completed")
+            slog.safe_print()
+
+        if not records:
+            logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} No active workflows")
+            return
+
+        total_workflows = len(records)
+
+        # Group by app_name for summary
+        app_counts = {}
+        finalized_count = 0
+        recent_activity = []
+
+        for record in records:
+            # SQLite Row objects support direct attribute access
+            try:
+                app_name = getattr(record, 'app_name', 'unknown')
+                app_counts[app_name] = app_counts.get(app_name, 0) + 1
+
+                # Check if finalized
+                data_str = getattr(record, 'data', '{}')
+                if isinstance(data_str, str):
+                    # Handle case where data is JSON string
+                    try:
+                        import json
+                        data = json.loads(data_str)
+                    except:
+                        data = {}
+                else:
+                    data = data_str
+
+                if data.get('finalize', {}).get('finalized'):
+                    finalized_count += 1
+
+                # Track recent activity (last 24 hours)
+                updated = getattr(record, 'updated', '')
+                if updated:
+                    try:
+                        from datetime import datetime, timedelta
+                        updated_time = datetime.fromisoformat(updated.replace('Z', '+00:00'))
+                        if datetime.now().replace(tzinfo=updated_time.tzinfo) - updated_time < timedelta(hours=24):
+                            recent_activity.append({
+                                'pkey': getattr(record, 'pkey', ''),
+                                'app': app_name,
+                                'updated': updated
+                            })
+                    except:
+                        pass
+            except Exception as e:
+                logger.debug(f"Error processing pipeline record: {e}")
+                continue
+
+        # Create friendly summary
+        summary_lines = [
+            f"📊 Total workflows: {total_workflows}",
+            f"🔒 Finalized: {finalized_count}",
+            f"⚡ Active: {total_workflows - finalized_count}"
+        ]
+
+        # Add app breakdown
+        if app_counts:
+            app_summary = ", ".join([f"{app}({count})" for app, count in sorted(app_counts.items())])
+            summary_lines.append(f"📱 Apps: {app_summary}")
+
+        # Add recent activity
+        if recent_activity:
+            recent_count = len(recent_activity)
+            summary_lines.append(f"🕒 Recent activity (24h): {recent_count} workflows")
+
+        summary = "\n    ".join(summary_lines)
+        logger.info(f"🔍 FINDER_TOKEN: PIPELINE_SUMMARY - {title_prefix} Workflow Overview:\n    {summary}")
+
+        # For AI assistants: log a few recent workflow keys for context
+        if records:
+            recent_keys = []
+            for record in records[-3:]:
+                try:
+                    pkey = getattr(record, 'pkey', 'unknown')
+                    recent_keys.append(pkey)
+                except:
+                    recent_keys.append('unknown')
+            logger.info(f"🔍 SEMANTIC_PIPELINE_CONTEXT: {title_prefix} Recent workflow keys: {', '.join(recent_keys)}")
+
+    except Exception as e:
+        logger.error(f"❌ FINDER_TOKEN: PIPELINE_SUMMARY_ERROR - Failed to create pipeline summary ({title_prefix}): {e}")
+        # Fallback to original detailed logging if summary fails
+        try:
+            records = list(pipeline())
+            content = slog._format_records_for_lifecycle_log(records)
+            logger.info(f"🔍 FINDER_TOKEN: TABLE_STATE_PIPELINE - {title_prefix} Fallback Snapshot:\n{content}")
+        except Exception as fallback_error:
+            logger.error(f"❌ FINDER_TOKEN: PIPELINE_FALLBACK_ERROR - Both summary and fallback failed: {fallback_error}")
+
+
 # Create console instance for this module
 console = DebugConsole(theme=custom_theme) 
