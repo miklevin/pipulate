@@ -1,95 +1,71 @@
 # ripgrep filters for good search & replaces with `rg | xargs sed` pattern
 assets/js/
-cruft
+cruft/
 
 # File-types that should never get into repo
 *.csv
 *.gz
+*.json
 *.pkl
 
 # Different repos in subfolders of this repo
 subrepos/
 
 # Pipulate framework stuff
-*kungfu_*.py
-.ssh/key
-botify_token.txt
-config.json
 data/
 downloads/
-flake.lock
-foo.txt
-foo_files.py
 logs/
-helpers/prompt_foo/prompt.md
+.ssh/key
+*kungfu_*.py
+botify_token.txt
+flake.lock
+foo_files.py
+hello_world.ipynb
 service_account.txt
 whitelabel.txt
 
 # Mac & vendor crap
-.DS_Store
 .cursor/
+.DS_Store
 
 # Python, Jupyter Notebook & FastHTML stuff
 .ipynb_checkpoints/
-.jupyter/lab/workspaces/
-.jupyter/migrated
-.jupyter/serverconfig/
-.sesskey
+.jupyter/
 .venv/
 __pycache__/
-hello_world.ipynb
+.sesskey
 training/botify_api_local.md
 
 # Python packaging and build artifacts
-dist/
 build/
+dist/
 *.egg-info/
-*.egg-info
 *.whl
-*.tar.gz
 
-# PyPI publishing artifacts  
-.tox/
-.coverage
-htmlcov/
+# PyPI publishing artifacts
 .pytest_cache/
+.tox/
+htmlcov/
+.coverage
 
 # AI Keychain persistent memory - survives application resets
 
 # Browser automation outputs - keep these local only
 browser_automation/looking_at/
-browser_automation/looking_at/*.html
-browser_automation/looking_at/*.json
-browser_automation/looking_at/*.png
-browser_automation/looking_at/*.txt
-browser_automation/looking_at/*.py
 
 # Browser automation rotating directories - AI perception history (local only)
 browser_automation/looking_at-*/
-browser_automation/looking_at-*/*.html
-browser_automation/looking_at-*/*.json
-browser_automation/looking_at-*/*.png
-browser_automation/looking_at-*/*.txt
-browser_automation/looking_at-*/*.py
 
 # Browser automation temp scripts - disposable one-offs
 browser_automation/temp_scripts/
-*_beautiful_dom.html
-*_automation_registry.json
-*_automation_targets.py
 *_automation_summary.txt
-*_results.json
+*_automation_targets.py
+*_beautiful_dom.html
 *_screenshot.png
 *_source.html
 
 # Directory rotation test files - development use only
 browser_automation/test_rotation_data/
-
-# Botify helper outputs - keep schema discovery and data files local only
-helpers/botify/*.json
-helpers/botify/*.csv
-# 🛡️ Survivable test harness - independent git repo
-tests/tools/__pycache__/
 
 # Voice synthesis models - auto-downloaded as needed
 piper_models/
