@@ -133,6 +133,7 @@
           stdenv.cc.cc.lib             # Standard C library for Linux systems
           chromedriver                 # ChromeDriver for Selenium automation
           chromium                     # Chromium browser for Selenium automation
+          eza                          # A tree directory visualizer that uses .gitignore
         ]);
 
         # Define notebook paths for the copy-on-first-run solution
