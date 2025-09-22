@@ -8,8 +8,7 @@ cruft
 *.pkl
 
 # Different repos in subfolders of this repo
-Notebooks/
-client_work/
+subrepos/
 
 # Pipulate framework stuff
 *kungfu_*.py
