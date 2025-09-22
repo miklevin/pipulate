@@ -640,10 +640,11 @@ class AIAssistantManifest:
         """Load the XSD schema file for embedding in the manifest."""
         try:
             # Look for the XSD file in the helpers directory
-            xsd_path = os.path.join(os.path.dirname(__file__), 'pipulate-context.xsd')
-            if not os.path.exists(xsd_path):
-                # Fallback: look relative to repo root
-                xsd_path = os.path.join(repo_root, 'helpers', 'pipulate-context.xsd')
+            # xsd_path = os.path.join(os.path.dirname(__file__), 'pipulate-context.xsd')
+            # if not os.path.exists(xsd_path):
+            #     # Fallback: look relative to repo root
+            #     xsd_path = os.path.join(repo_root, 'helpers', 'pipulate-context.xsd')
+            xsd_path = '/home/mike/repos/pipulate/assets/prompts/pipulate-context.xsd'
             
             if os.path.exists(xsd_path):
                 with open(xsd_path, 'r', encoding='utf-8') as f:
