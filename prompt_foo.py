@@ -937,55 +937,7 @@ output_xml = (f'<?xml version="1.0" encoding="UTF-8"?>\n'
               f'{create_xml_element("token_summary", token_summary_content)}\n'
               f'</context>')
 
-# Print concise output
-file_paths_only = [file_path for file_path, comment in processed_files]
-print("\n--- Files Included ---")
-# Parse the manifest to get token counts for each file
-token_counts_dict = {}
-try:
-    if '<token_usage>' in manifest:
-        token_usage_start = manifest.find('<token_usage>') + 12
-        token_usage_end = manifest.find('</token_usage>')
-        token_usage = manifest[token_usage_start:token_usage_end]
-        
-        if '<files>' in token_usage:
-            files_start = token_usage.find('<files>') + 7
-            files_end = token_usage.find('</files>', files_start)
-            files_section = token_usage[files_start:files_end]
-            
-            if '<content>' in files_section:
-                content_start = files_section.find('<content>') + 9
-                content_end = files_section.find('</content>')
-                content_section = files_section[content_start:content_end]
-                
-                # Extract file paths and token counts
-                file_pattern = r'<file>.*?<path>(.*?)</path>.*?<tokens>(.*?)</tokens>.*?</file>'
-                for match in re.finditer(file_pattern, content_section, re.DOTALL):
-                    path, tokens = match.groups()
-                    token_counts_dict[path.strip()] = int(tokens.strip())
-except Exception as e:
-    pass  # If parsing fails, just show files without token counts
-
-for file_path in file_paths_only:
-    tokens_str = f" ({token_counts_dict.get(file_path, 0):,} tokens)" if file_path in token_counts_dict else ""
-    print(f"• {file_path}{tokens_str}")
-
-print("\n--- Token Summary ---")
-print(f"Total tokens: {format_token_count(token_counts['total'])}")
-if word_counts['total'] is not None:
-    print(f"Total words: {format_word_count(word_counts['total'])}")
-    
-    # Add size comparisons
-    size_info = format_size_with_comparison(word_counts['total'], token_counts['total'])
-    print(f"\nSize Perspective:")
-    print(f"📝 Content size: {size_info['word_comparison']}")
-    print(f"🤖 Token size: {size_info['token_comparison']}")
-    
-    # Calculate and show token-to-word ratio
-    ratio = token_counts['total'] / word_counts['total'] if word_counts['total'] > 0 else 0
-    print(f"📊 Token-to-word ratio: {ratio:.2f} (higher = more technical/structured content)")
-
-print()
+print_structured_output(manifest, pre_prompt, [fp for fp, _ in processed_files], post_prompt, token_counts['total'], MAX_TOKENS, word_counts['total'])
 
 # Write the complete XML output to the file
 if args.output:
