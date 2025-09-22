@@ -14,8 +14,8 @@ from typing import Dict, List, Optional, Union
 # ============================================================================
 # Files are configured in foo_files.py module.
 # To update the file list:
-#   1. Edit foo_files.py to to include the files you want in context.
-#   2. Run prompt_foo.py
+#    1. Edit foo_files.py to to include the files you want in context.
+#    2. Run prompt_foo.py
 
 # --- Configuration for context building ---
 # Edit these values as needed
@@ -194,7 +194,7 @@ def create_xml_list(items: List[str], tag_name: str = "item") -> str:
     """Create an XML list from a list of items."""
     return "\n".join(f"<{tag_name}>{item}</{tag_name}>" for item in items)
 
-# === Prompt Templates ===
+# === Prompt Template ===
 # Define multiple prompt templates and select them by index
 active_template = {
         "name": "Material Analysis Mode",
@@ -317,7 +317,7 @@ class AIAssistantManifest:
             "manifest_structure": 0,
             "total_content": 0  # Running total of file contents
         }
-                    # Add XSD schema for XML structure understanding (front-load for LLM understanding)
+                        # Add XSD schema for XML structure understanding (front-load for LLM understanding)
         xsd_schema = self._load_xsd_schema()
         if xsd_schema:
             self.set_environment("XML Schema Definition", f"Below is the XSD schema that defines the structure of this XML context document:\n\n{xsd_schema}", description="schema")
@@ -656,7 +656,7 @@ if prompt_path:
         try:
             with open(prompt_path, 'r', encoding='utf-8') as f:
                 prompt_content = f.read()
-            print(f"Using prompt file: {prompt_path}")
+            # print(f"Using prompt file: {prompt_path}") # MODIFICATION: Commented out
         except Exception as e:
             print(f"Error reading prompt file {prompt_path}: {e}")
             sys.exit(1)
@@ -664,7 +664,7 @@ if prompt_path:
         # It's a direct string prompt
         direct_prompt = prompt_path  # Store the direct string
         prompt_content = prompt_path
-        print("Using direct string prompt")
+        # print("Using direct string prompt") # MODIFICATION: Commented out
 else:
     # If no prompt specified, look for prompt.md in current directory
     prompt_path = os.path.join(os.getcwd(), "prompt.md")
@@ -672,13 +672,13 @@ else:
         try:
             with open(prompt_path, 'r', encoding='utf-8') as f:
                 prompt_content = f.read()
-            print(f"Using default prompt file: {prompt_path}")
+            # print(f"Using default prompt file: {prompt_path}") # MODIFICATION: Commented out
         except Exception as e:
             print(f"Error reading default prompt file: {e}")
             sys.exit(1)
-    else:
-        print("No prompt file specified and prompt.md not found in current directory.")
-        print("Running without a prompt file.")
+    # else: # MODIFICATION: Commented out
+        # print("No prompt file specified and prompt.md not found in current directory.")
+        # print("Running without a prompt file.")
 
 if prompt_content:
     # Add prompt file to files list if not already present
@@ -699,7 +699,7 @@ post_prompt = active_template["post_prompt"]
 if direct_prompt:
     post_prompt = direct_prompt
 
-print(f"Using template: {active_template['name']}")
+# print(f"Using template: {active_template['name']}") # MODIFICATION: Commented out
 
 # Create the manifest and incorporate user's pre_prompt
 manifest_xml, processed_files, manifest_tokens = create_pipulate_manifest(final_file_list)
@@ -808,14 +808,27 @@ output_xml = (f'<?xml version="1.0" encoding="UTF-8"?>\n'
               f'{create_xml_element("token_summary", token_summary_content)}\n'
               f'</context>')
 
-# Print concise output
+# ============================================================================
+# MODIFIED OUTPUT SECTION
+# ============================================================================
+
+# --- Files Included Section ---
+print("--- Files Included ---")
+for file_path, comment in processed_files:
+    full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
+    token_count = files_tokens_dict.get(file_path, 0)
+    print(f"• {full_path} ({format_token_count(token_count)})")
+print()
+
+# --- Token Summary Section ---
+print("--- Token Summary ---")
 print(f"Total tokens: {format_token_count(token_counts['total'])}")
 if word_counts['total'] is not None:
     print(f"Total words: {format_word_count(word_counts['total'])}")
 
-    # Add size comparisons
+    # --- Size Perspective Section ---
     size_info = format_size_with_comparison(word_counts['total'], token_counts['total'])
-    print(f"\nSize Perspective:")
+    print(f"\n--- Size Perspective ---")
     print(f"📝 Content size: {size_info['word_comparison']}")
     print(f"🤖 Token size: {size_info['token_comparison']}")
 
@@ -839,10 +852,8 @@ if not args.no_clipboard:
     if copy_to_clipboard(output_xml):
         print("Output copied to clipboard")
 
-print("\nScript finished.")
+# print("\nScript finished.") # MODIFICATION: Commented out
 
 # When creating the final output, use direct_prompt if available
 if direct_prompt:
     post_prompt = direct_prompt  # Use the direct string instead of template XML
-
-
