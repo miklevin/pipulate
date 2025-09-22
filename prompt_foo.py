@@ -764,7 +764,6 @@ def copy_to_clipboard(text):
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates and token limits.')
 parser.add_argument('-t', '--template', type=int, default=0, help='Template index to use (default: 0)')
-parser.add_argument('-l', '--list', action='store_true', help='List available templates')
 parser.add_argument('-o', '--output', type=str, default=None, help='Output filename (default: foo.txt)')
 parser.add_argument('-m', '--max-tokens', type=int, default=MAX_TOKENS - TOKEN_BUFFER, 
                     help=f'Maximum tokens to include (default: {MAX_TOKENS - TOKEN_BUFFER:,})')
@@ -793,13 +792,6 @@ args = parser.parse_args()
 if args.repo_root and args.repo_root != repo_root:
     repo_root = args.repo_root
     print(f"Repository root directory set to: {repo_root}")
-
-# List available templates if requested
-if args.list:
-    print("Available prompt templates:")
-    for i, template in enumerate(prompt_templates):
-        print(f"{i}: {template['name']}")
-    sys.exit(0)
 
 # Get the file list with comments
 final_file_list = get_files_with_comments()  # Start with the default list
