@@ -187,7 +187,7 @@ def create_xml_element(tag_name: str, content: Union[str, List[str]], attributes
     """Create an XML element with optional attributes and content."""
     if isinstance(content, list):
         content = "\n".join(content)
-    content = content.replace('\n\n', '\n')  # Remove double newlines
+    # content = content.replace('\n\n', '\n')  # Remove double newlines
     return wrap_in_xml(content, tag_name, attributes)
 
 def create_xml_list(items: List[str], tag_name: str = "item") -> str:
