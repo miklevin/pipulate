@@ -1,8 +1,8 @@
 import os
+import re
 import sys
 import argparse
 import tiktoken
-import re
 from typing import Dict, List, Optional, Union
 
 # Hello there, AI! This is the file that I use to make getting code assistance
@@ -14,13 +14,16 @@ from typing import Dict, List, Optional, Union
 # ============================================================================
 # Files are configured in foo_files.py module.
 # To update the file list:
-#   1. Edit foo_files.py to uncomment the files you want to include.
-#   2. Run prompt_foo.py as usual
-#
-# Note: When using a prompt file with --prompt flag, the script automatically
-# selects Template 1 (Material Analysis Mode), which is designed to be more
-# flexible and allows for various response types rather than strictly
-# implementation-focused responses.
+#   1. Edit foo_files.py to to include the files you want in context.
+#   2. Run prompt_foo.py
+
+# --- Configuration for context building ---
+# Edit these values as needed
+repo_root = "/home/mike/repos/pipulate"  # Path to your repository
+
+# Token buffer for pre/post prompts and overhead
+TOKEN_BUFFER = 10_000
+MAX_TOKENS = 4_000_000  # Set to a high value since we're not chunking
 
 # FILES_TO_INCLUDE_RAW will be loaded from foo_files.py when needed
 FILES_TO_INCLUDE_RAW = None
@@ -112,18 +115,7 @@ def get_files_with_comments():
     
     return files_with_comments
 
-# ============================================================================
-# MATERIAL ANALYSIS CONFIGURATION  
-# ============================================================================
-# Set these values to enable material analysis mode.
-# When enabled, the script will include the specified material in the context
-# and use specialized prompts for flexible analysis.
-
 PROMPT_FILE = None  # Default prompt file is None
-
-# ============================================================================
-# END USER CONFIGURATION
-# ============================================================================
 
 # ============================================================================
 # CONTENT SIZE REFERENCE SCALE
@@ -185,10 +177,6 @@ def format_size_with_comparison(word_count, token_count):
         "token_comparison": token_comparison
     }
 
-# ============================================================================
-# END CONTENT SIZE REFERENCE SCALE
-# ============================================================================
-
 # --- XML Support Functions ---
 def wrap_in_xml(content: str, tag_name: str, attributes: Optional[Dict[str, str]] = None) -> str:
     """Wrap content in XML tags with optional attributes."""
@@ -205,14 +193,6 @@ def create_xml_element(tag_name: str, content: Union[str, List[str]], attributes
 def create_xml_list(items: List[str], tag_name: str = "item") -> str:
     """Create an XML list from a list of items."""
     return "\n".join(f"<{tag_name}>{item}</{tag_name}>" for item in items)
-
-# --- Configuration for context building ---
-# Edit these values as needed
-repo_root = "/home/mike/repos/pipulate"  # Path to your repository
-
-# Token buffer for pre/post prompts and overhead
-TOKEN_BUFFER = 10_000
-MAX_TOKENS = 4_000_000  # Set to a high value since we're not chunking
 
 # === Prompt Templates ===
 # Define multiple prompt templates and select them by index
