@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import pydot
 import argparse
 import tiktoken
 from typing import Dict, List, Optional, Union
@@ -88,38 +89,55 @@ def generate_uml_and_dot(target_file="server.py", project_name="pipulate"):
 
         # --- Step 2: Convert DOT to PlantUML ---
         try:
-            with open(dot_file_path, 'r') as f:
-                dot_content = f.read()
+            graphs = pydot.graph_from_dot_file(dot_file_path)
+            graph = graphs[0]
+            dot_content = graph.to_string()
 
             puml_lines = ["@startuml", "skinparam linetype ortho", ""]
-            classes = set()
-            class_pattern = r'"(?:[\w\.]+\.)?(\w+)" \[label="\{(\w+)\|'
-            for match in re.finditer(class_pattern, dot_content):
-                if match.group(1) == match.group(2):
-                    classes.add(match.group(1))
 
-            full_class_pattern = r'"(?:[\w\.]+\.)?(\w+)" \[label="\{(\w+)\|([^}]+)\}"'
-            for match in re.finditer(full_class_pattern, dot_content):
-                class_name, _, attributes_str = match.groups()
-                if class_name in classes:
-                    puml_lines.append(f"class {class_name} {{")
-                    for part in attributes_str.split('\\l'):
-                        part = part.strip()
-                        if part and part != '...':
-                             puml_lines.append(f"  + {part.split(':')[0].strip()}")
-                    puml_lines.append("}\n")
+            def sanitize_line(line):
+                clean = re.sub(r'<br[^>]*>', '', line)
+                clean = re.sub(r'<[^>]+>', '', clean)
+                return clean.strip()
 
-            edge_pattern = r'"(?:[\w\.]+\.)?(\w+)" -> "(?:[\w\.]+\.)?(\w+)"'
-            for from_class, to_class in re.findall(edge_pattern, dot_content):
-                if from_class in classes and to_class in classes:
-                    puml_lines.append(f"{from_class} ..> {to_class}")
-            
+            for node in graph.get_nodes():
+                label = node.get_label()
+                if not label: continue
+
+                parts = label.strip('<>{} ').split('|')
+                class_name = sanitize_line(parts[0])
+                puml_lines.append(f"class {class_name} {{")
+
+                if len(parts) > 1:
+                    for attr in re.split(r'<br[^>]*>', parts[1]):
+                        clean_attr = sanitize_line(attr).split(':')[0].strip()
+                        if clean_attr:
+                            puml_lines.append(f"  - {clean_attr}")
+
+                if len(parts) > 2:
+                    method_block = parts[2].strip()
+                    for method_line in re.split(r'<br[^>]*>', method_block):
+                        clean_method = sanitize_line(method_line)
+                        if clean_method:
+                            puml_lines.append(f"  + {clean_method}")
+
+                puml_lines.append("}\n")
+
+            for edge in graph.get_edges():
+                source_name = edge.get_source().strip('"').split('.')[-1]
+                dest_name = edge.get_destination().strip('"').split('.')[-1]
+                puml_lines.append(f"{source_name} ..> {dest_name}")
+
             puml_lines.append("@enduml")
             with open(puml_file_path, 'w') as f:
                 f.write('\n'.join(puml_lines))
-        except Exception as e:
-             return {"ascii_uml": f"Error: DOT to PUML conversion failed. {str(e)}", "dot_graph": dot_content}
 
+        except Exception as e:
+            with open(dot_file_path, 'r') as f:
+                dot_content_on_error = f.read()
+            return {"ascii_uml": f"Error: DOT to PUML conversion failed. {str(e)}", "dot_graph": dot_content_on_error}
+ 
+ 
 
         # --- Step 3: Run PlantUML ---
         try:
