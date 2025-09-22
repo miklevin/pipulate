@@ -325,9 +325,7 @@ MAX_TOKENS = 4_000_000  # Set to a high value since we're not chunking
 
 # === Prompt Templates ===
 # Define multiple prompt templates and select them by index
-prompt_templates = [
-    # Template 1: Material Analysis Mode
-    {
+active_template = {
         "name": "Material Analysis Mode",
         "pre_prompt": create_xml_element("context", [
             create_xml_element("system_info", """
@@ -379,7 +377,6 @@ observations based on what was requested.
             ])
         ])
     }
-]
 
 # file_list will be initialized when needed via get_files_to_include()
 
@@ -763,7 +760,6 @@ def copy_to_clipboard(text):
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates and token limits.')
-parser.add_argument('-t', '--template', type=int, default=0, help='Template index to use (default: 0)')
 parser.add_argument('-o', '--output', type=str, default=None, help='Output filename (default: foo.txt)')
 parser.add_argument('-m', '--max-tokens', type=int, default=MAX_TOKENS - TOKEN_BUFFER, 
                     help=f'Maximum tokens to include (default: {MAX_TOKENS - TOKEN_BUFFER:,})')
@@ -842,9 +838,6 @@ if prompt_content:
         existing_paths = [file_path for file_path, comment in final_file_list]
         if prompt_path not in existing_paths:
             final_file_list.append((prompt_path, "User prompt file"))
-    
-    # Use article analysis template by default for prompt files
-    args.template = 1  # Use the material analysis template
 
 # If --cat is used, set concat mode and blog posts directory
 if args.cat:
@@ -854,19 +847,18 @@ if args.cat:
         args.output = "foo.txt"  # Set default output for blog posts to .txt
     args.single = True  # Force single file output when using --cat
 
-# Set the template index and output filename
-template_index = args.template if 0 <= args.template < len(prompt_templates) else 0
+# Set the output filename
 output_filename = args.output
 
-# Set the pre and post prompts from the selected template
-pre_prompt = prompt_templates[template_index]["pre_prompt"]
-post_prompt = prompt_templates[template_index]["post_prompt"]
+# Set the pre and post prompts from the active template
+pre_prompt = active_template["pre_prompt"]
+post_prompt = active_template["post_prompt"]
 
 # Override post_prompt with direct string if provided
 if direct_prompt:
     post_prompt = direct_prompt
 
-print(f"Using template {template_index}: {prompt_templates[template_index]['name']}")
+print(f"Using template: {active_template['name']}")
 
 # Remove verbose file checking messages
 if args.concat_mode:
