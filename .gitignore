@@ -19,8 +19,8 @@ logs/
 *kungfu_*.py
 botify_token.txt
 flake.lock
+foo.txt
 foo_files.py
-hello_world.ipynb
 service_account.txt
 whitelabel.txt
 
@@ -34,6 +34,7 @@ whitelabel.txt
 .venv/
 __pycache__/
 .sesskey
+hello_world.ipynb
 training/botify_api_local.md
 
 # Python packaging and build artifacts
