@@ -271,11 +271,11 @@ def format_word_count(num: int) -> str:
     return f"{num:,} words"
 
 def run_tree_command():
-    """Run the tree command and return its output."""
+    """Run the eza command to generate a tree view that respects .gitignore."""
     try:
         import subprocess
         result = subprocess.run(
-            ['tree', '-I', '__pycache__|client|data|downloads|looking_at|*.csv|*.zip|*.pkl|*.png|*.svg|*.html'],
+            ['eza', '--tree', '--git-ignore'],
             capture_output=True,
             text=True,
             cwd=repo_root
@@ -283,9 +283,9 @@ def run_tree_command():
         if result.returncode == 0:
             return result.stdout
         else:
-            return f"Error running tree command: {result.stderr}"
+            return f"Error running eza command: {result.stderr}"
     except Exception as e:
-        return f"Error running tree command: {str(e)}"
+        return f"Error running eza command: {str(e)}"
 
 # --- AI Assistant Manifest System ---
 class AIAssistantManifest:
