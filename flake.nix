@@ -127,6 +127,8 @@
           nbstripout                   # Git filter for stripping notebook outputs
           espeak-ng                    # Text-to-speech synthesis for phonemization
           sox                          # Sound processing with 'play' command for audio playback
+          pylint
+          plantuml
         ] ++ (with pkgs; pkgs.lib.optionals isLinux [
           virtualenv
           gcc                          # GNU Compiler Collection for compiling C/C++ code

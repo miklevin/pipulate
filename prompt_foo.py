@@ -607,7 +607,16 @@ class AIAssistantManifest:
 def create_pipulate_manifest(file_paths_with_comments):
     """Create a manifest specific to the Pipulate project."""
     manifest = AIAssistantManifest()
-    
+
+    # Generate and add UML/DOT context to the manifest
+    print("Generating UML and DOT file context for server.py...")
+    uml_context = generate_uml_and_dot()
+    if uml_context.get("ascii_uml"):
+        manifest.set_environment("UML Class Diagram", f"Below is a UML class diagram for server.py:\n\n{uml_context['ascii_uml']}", description="uml")
+    if uml_context.get("dot_graph"):
+        manifest.set_environment("Dependency Graph (DOT)", f"Below is the DOT file content for server.py:\n\n{uml_context['dot_graph']}", description="dot")
+
+    print("...done.")
     # Track total tokens and processed files to respect limit and avoid duplicates
     total_tokens = 0
     max_tokens = MAX_TOKENS - TOKEN_BUFFER
