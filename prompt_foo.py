@@ -814,7 +814,7 @@ def copy_to_clipboard(text):
 parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates and token limits.')
 parser.add_argument('-t', '--template', type=int, default=0, help='Template index to use (default: 0)')
 parser.add_argument('-l', '--list', action='store_true', help='List available templates')
-parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output filename (default: foo.txt)')
+parser.add_argument('-o', '--output', type=str, default=None, help='Output filename (default: foo.txt)')
 parser.add_argument('-m', '--max-tokens', type=int, default=MAX_TOKENS - TOKEN_BUFFER, 
                     help=f'Maximum tokens to include (default: {MAX_TOKENS - TOKEN_BUFFER:,})')
 parser.add_argument('-p', '--prompt', type=str, help='Path to a prompt file to use (default: prompt.md in current directory)')
