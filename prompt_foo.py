@@ -758,30 +758,13 @@ def copy_to_clipboard(text):
         print("Make sure xclip is installed (sudo apt-get install xclip)")
         return False
 
-# Parse command line arguments
-parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates and token limits.')
-parser.add_argument('-o', '--output', type=str, default=None, help='Output filename (default: foo.txt)')
-parser.add_argument('-m', '--max-tokens', type=int, default=MAX_TOKENS - TOKEN_BUFFER, 
-                    help=f'Maximum tokens to include (default: {MAX_TOKENS - TOKEN_BUFFER:,})')
-parser.add_argument('-p', '--prompt', type=str, help='Path to a prompt file to use (default: prompt.md in current directory)')
-parser.add_argument('--cat', action='store_true',
-                    help='Shortcut for concat mode with blog posts, outputs a single file')
-parser.add_argument('--concat-mode', action='store_true', 
-                    help='Use concatenation mode similar to cat_foo.py')
-parser.add_argument('-d', '--directory', type=str, default=".",
-                    help='Target directory for concat mode (default: current directory)')
-parser.add_argument('--chunk', type=int,
-                    help='Process specific chunk number (default: process all chunks)')
-parser.add_argument('--compress', action='store_true',
-                    help='Compress output files using gzip')
-parser.add_argument('--single', action='store_true',
-                    help=f'Force single file output with {MAX_TOKENS - TOKEN_BUFFER:,} token limit')
-parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'], default='claude',
-                    help='Set target model (default: claude)')
-parser.add_argument('--repo-root', type=str, default=repo_root,
-                    help=f'Repository root directory (default: {repo_root})')
-parser.add_argument('--no-clipboard', action='store_true', help='Disable copying output to clipboard')
-
+parser = argparse.ArgumentParser(description='Generate an XML context file for AI code assistance.')
+parser.add_argument('prompt', nargs='?', default=None,
+                    help='An optional prompt string. If omitted, reads from prompt.md.')
+parser.add_argument('-o', '--output', type=str, default=None,
+                    help='Optional: Output filename.')
+parser.add_argument('--no-clipboard', action='store_true',
+                    help='Disable copying output to clipboard.')
 args = parser.parse_args()
 
 # Get the file list with comments
