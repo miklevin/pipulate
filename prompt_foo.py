@@ -326,54 +326,6 @@ MAX_TOKENS = 4_000_000  # Set to a high value since we're not chunking
 # === Prompt Templates ===
 # Define multiple prompt templates and select them by index
 prompt_templates = [
-    # Template 0: General Codebase Analysis
-    {
-        "name": "General Codebase Analysis",
-        "pre_prompt": create_xml_element("context", [
-            create_xml_element("system_info", """
-This codebase uses a hybrid approach with Nix for system dependencies and virtualenv for Python packages.
-"""),
-        ]),
-        "post_prompt": create_xml_element("analysis_request", [
-            create_xml_element("introduction", """
-Now that you've reviewed the codebase context, I'd love your insights and analysis!
-
-Dear AI Assistant:
-I've provided you with the core architecture of a Python web application that takes an interesting approach to modern web development. I'd appreciate your thoughtful analysis on any of these aspects:
-"""),
-            create_xml_element("analysis_areas", [
-                create_xml_element("area", [
-                    "<title>Technical Architecture Analysis</title>",
-                    "<questions>",
-                    "<question>How does this hybrid Nix+virtualenv approach compare to other deployment patterns?</question>",
-                    "<question>What are the tradeoffs of using HTMX with server-side state vs traditional SPAs?</question>",
-                    "<question>How does the plugin system architecture enable extensibility?</question>",
-                    "</questions>"
-                ]),
-                create_xml_element("area", [
-                    "<title>Pattern Recognition & Insights</title>",
-                    "<questions>",
-                    "<question>What patterns emerge from the codebase that surprise you?</question>",
-                    "<question>How does this approach to web development differ from current trends?</question>",
-                    "<question>What potential scaling challenges or opportunities do you see?</question>",
-                    "</questions>"
-                ]),
-                create_xml_element("area", [
-                    "<title>Forward-Looking Perspective</title>",
-                    "<questions>",
-                    "<question>How does this architecture align with or diverge from emerging web development patterns?</question>",
-                    "<question>What suggestions would you make for future evolution of the system?</question>",
-                    "<question>How might this approach need to adapt as web technologies advance?</question>",
-                    "</questions>"
-                ])
-            ]),
-            create_xml_element("focus_areas", [
-                "<area>The interplay between modern and traditional web development approaches</area>",
-                "<area>Architectural decisions that stand out as novel or counterintuitive</area>",
-                "<area>Potential implications for developer experience and system maintenance</area>"
-            ])
-        ])
-    },
     # Template 1: Material Analysis Mode
     {
         "name": "Material Analysis Mode",
@@ -834,8 +786,6 @@ parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'
 parser.add_argument('--repo-root', type=str, default=repo_root,
                     help=f'Repository root directory (default: {repo_root})')
 parser.add_argument('--no-clipboard', action='store_true', help='Disable copying output to clipboard')
-parser.add_argument('--files', action='store_true', 
-                    help='Generate FILES_TO_INCLUDE_RAW content by enumerating directories')
 
 args = parser.parse_args()
 
@@ -843,12 +793,6 @@ args = parser.parse_args()
 if args.repo_root and args.repo_root != repo_root:
     repo_root = args.repo_root
     print(f"Repository root directory set to: {repo_root}")
-
-# Generate files list if requested
-if args.files:
-    from generate_files_list import main as generate_main
-    generate_main()
-    sys.exit(0)
 
 # List available templates if requested
 if args.list:
@@ -858,7 +802,7 @@ if args.list:
     sys.exit(0)
 
 # Get the file list with comments
-final_file_list = get_files_with_comments() if '--files' not in sys.argv else []  # Start with the default list
+final_file_list = get_files_with_comments()  # Start with the default list
 
 # Handle prompt file - now with default prompt.md behavior
 prompt_path = args.prompt
