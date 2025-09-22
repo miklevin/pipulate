@@ -5,17 +5,17 @@ import tiktoken
 import re
 from typing import Dict, List, Optional, Union
 
-# Hi there, Gemini! I case you're wondering, this is the script that I use to
-# make this great big XML file you're looking at.
+# Hello there, AI! This is the file that I use to make getting code assistance
+# on the command-line with full 1-shot prompts that bundles up the parts of the
+# codebase that should be in context into a single XML payload.
 
 # ============================================================================
 # USER CONFIGURATION: Files to include in context
 # ============================================================================
-# Files are now configured in foo_files.py module.
+# Files are configured in foo_files.py module.
 # To update the file list:
-#   1. Run: python generate_files_list.py (or python prompt_foo.py --files)
-#   2. Edit foo_files.py to uncomment the files you want to include
-#   3. Run prompt_foo.py as usual
+#   1. Edit foo_files.py to uncomment the files you want to include.
+#   2. Run prompt_foo.py as usual
 #
 # Note: When using a prompt file with --prompt flag, the script automatically
 # selects Template 1 (Material Analysis Mode), which is designed to be more
@@ -33,13 +33,12 @@ def load_files_to_include():
             import foo_files
             FILES_TO_INCLUDE_RAW = foo_files.FILES_TO_INCLUDE_RAW
         except ImportError:
-            print("ERROR: foo_files.py not found!")
-            print("Run 'python generate_files_list.py' or 'python prompt_foo.py --files' to generate it.")
-            sys.exit(1)
+                print("ERROR: foo_files.py not found! Please ensure it exists.")
+                sys.exit(1)
         except AttributeError:
-            print("ERROR: foo_files.py exists but doesn't contain FILES_TO_INCLUDE_RAW!")
-            print("Run 'python generate_files_list.py' or 'python prompt_foo.py --files' to regenerate it.")
-            sys.exit(1)
+                print("ERROR: foo_files.py exists but doesn't contain FILES_TO_INCLUDE_RAW!")
+                print("Please ensure the variable is defined in foo_files.py.")
+                sys.exit(1)
     return FILES_TO_INCLUDE_RAW
 
 # Now process the raw string into the list we'll use  
