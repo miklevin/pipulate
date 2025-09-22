@@ -784,11 +784,6 @@ parser.add_argument('--no-clipboard', action='store_true', help='Disable copying
 
 args = parser.parse_args()
 
-# Update repo_root if specified via command line
-if args.repo_root and args.repo_root != repo_root:
-    repo_root = args.repo_root
-    print(f"Repository root directory set to: {repo_root}")
-
 # Get the file list with comments
 final_file_list = get_files_with_comments()  # Start with the default list
 
@@ -839,14 +834,6 @@ if prompt_content:
         if prompt_path not in existing_paths:
             final_file_list.append((prompt_path, "User prompt file"))
 
-# If --cat is used, set concat mode and blog posts directory
-if args.cat:
-    args.concat_mode = True
-    args.directory = "/home/mike/repos/MikeLev.in/_posts"  # Set blog posts directory
-    if not args.output:  # Only set default if no output specified
-        args.output = "foo.txt"  # Set default output for blog posts to .txt
-    args.single = True  # Force single file output when using --cat
-
 # Set the output filename
 output_filename = args.output
 
@@ -859,11 +846,6 @@ if direct_prompt:
     post_prompt = direct_prompt
 
 print(f"Using template: {active_template['name']}")
-
-# Remove verbose file checking messages
-if args.concat_mode:
-    print(f"Directory being searched for markdown files: {args.directory}")
-    print("NOTE: Only .md files in this directory will be processed.")
 
 # Create the manifest and incorporate user's pre_prompt
 manifest_xml, processed_files, manifest_tokens = create_pipulate_manifest(final_file_list)
@@ -902,7 +884,7 @@ for file_path, comment in processed_files:
 # Add a separator and the post-prompt
 lines.append("=" * 20 + " END CONTEXT " + "=" * 20)
 post_prompt_tokens = count_tokens(post_prompt, "gpt-4")
-if total_tokens + post_prompt_tokens <= args.max_tokens:
+if total_tokens + post_prompt_tokens <= MAX_TOKENS - TOKEN_BUFFER:
     total_tokens += post_prompt_tokens
     lines.append(post_prompt)
 else:
