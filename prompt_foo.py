@@ -4,6 +4,8 @@ import sys
 import argparse
 import tiktoken
 from typing import Dict, List, Optional, Union
+import subprocess
+import tempfile
 
 # Hello there, AI! This is the file that I use to make getting code assistance
 # on the command-line with full 1-shot prompts that bundles up the parts of the
@@ -28,6 +30,111 @@ MAX_TOKENS = 4_000_000  # Set to a high value since we're not chunking
 # FILES_TO_INCLUDE_RAW will be loaded from foo_files.py when needed
 FILES_TO_INCLUDE_RAW = None
 
+# ============================================================================
+# UML AND DOT CONTEXT GENERATION
+# ============================================================================
+
+def generate_uml_and_dot(target_file="server.py", project_name="pipulate"):
+    """
+    Generates a UML ASCII diagram and a DOT dependency graph for a target Python file.
+
+    This function orchestrates the process:
+    1. Runs pyreverse to create a DOT file.
+    2. Converts the DOT file content to PlantUML syntax.
+    3. Runs PlantUML to create an ASCII art diagram.
+    4. Cleans up all intermediate files.
+
+    Args:
+        target_file (str): The Python file to analyze (e.g., "server.py").
+        project_name (str): The project name to pass to pyreverse.
+
+    Returns:
+        dict: A dictionary containing 'ascii_uml' and 'dot_graph' content,
+              or error messages if a step fails.
+    """
+    pyreverse_exec = os.path.join(repo_root, ".venv/bin/pyreverse")
+    target_path = os.path.join(repo_root, target_file)
+    
+    # Use a temporary directory to keep the root clean
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dot_file_path = os.path.join(temp_dir, "classes.dot")
+        puml_file_path = os.path.join(temp_dir, "diagram.puml")
+        
+        # --- Step 1: Run pyreverse ---
+        try:
+            # Note: pyreverse annoyingly prepends 'classes_' to the output file.
+            # We'll run it in the temp dir and move the result.
+            pyreverse_cmd = [
+                pyreverse_exec,
+                "-f", "dot",
+                "-o", "dot", # This format is just a prefix
+                "-p", project_name,
+                target_path
+            ]
+            subprocess.run(
+                pyreverse_cmd,
+                check=True,
+                capture_output=True,
+                text=True,
+                cwd=temp_dir
+            )
+            # The actual output file will be named like 'classes_pipulate.dot'
+            generated_dot_name = f"classes_{project_name}.dot"
+            os.rename(os.path.join(temp_dir, generated_dot_name), dot_file_path)
+
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            error_msg = e.stderr if hasattr(e, 'stderr') else str(e)
+            return {"ascii_uml": f"Error: pyreverse failed. {error_msg}", "dot_graph": None}
+
+        # --- Step 2: Convert DOT to PlantUML ---
+        try:
+            with open(dot_file_path, 'r') as f:
+                dot_content = f.read()
+
+            puml_lines = ["@startuml", "skinparam linetype ortho", ""]
+            classes = set()
+            class_pattern = r'"(?:[\w\.]+\.)?(\w+)" \[label="\{(\w+)\|'
+            for match in re.finditer(class_pattern, dot_content):
+                if match.group(1) == match.group(2):
+                    classes.add(match.group(1))
+
+            full_class_pattern = r'"(?:[\w\.]+\.)?(\w+)" \[label="\{(\w+)\|([^}]+)\}"'
+            for match in re.finditer(full_class_pattern, dot_content):
+                class_name, _, attributes_str = match.groups()
+                if class_name in classes:
+                    puml_lines.append(f"class {class_name} {{")
+                    for part in attributes_str.split('\\l'):
+                        part = part.strip()
+                        if part and part != '...':
+                             puml_lines.append(f"  + {part.split(':')[0].strip()}")
+                    puml_lines.append("}\n")
+
+            edge_pattern = r'"(?:[\w\.]+\.)?(\w+)" -> "(?:[\w\.]+\.)?(\w+)"'
+            for from_class, to_class in re.findall(edge_pattern, dot_content):
+                if from_class in classes and to_class in classes:
+                    puml_lines.append(f"{from_class} ..> {to_class}")
+            
+            puml_lines.append("@enduml")
+            with open(puml_file_path, 'w') as f:
+                f.write('\n'.join(puml_lines))
+        except Exception as e:
+             return {"ascii_uml": f"Error: DOT to PUML conversion failed. {str(e)}", "dot_graph": dot_content}
+
+
+        # --- Step 3: Run PlantUML ---
+        try:
+            plantuml_cmd = ["plantuml", "-tutxt", puml_file_path]
+            subprocess.run(plantuml_cmd, check=True, capture_output=True, text=True, cwd=temp_dir)
+            
+            # PlantUML creates a .utxt file
+            utxt_file_path = puml_file_path.replace(".puml", ".utxt")
+            with open(utxt_file_path, 'r') as f:
+                ascii_uml = f.read()
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            error_msg = e.stderr if hasattr(e, 'stderr') else str(e)
+            return {"ascii_uml": f"Error: plantuml failed. {error_msg}", "dot_graph": dot_content}
+
+    return {"ascii_uml": ascii_uml, "dot_graph": dot_content}
 def load_files_to_include():
     """Load FILES_TO_INCLUDE_RAW from foo_files.py module."""
     global FILES_TO_INCLUDE_RAW
