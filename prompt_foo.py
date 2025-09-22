@@ -1096,12 +1096,13 @@ if word_counts['total'] is not None:
 print()
 
 # Write the complete XML output to the file
-try:
-    with open(args.output, 'w', encoding='utf-8') as outfile:
-        outfile.write(output_xml)
-    print(f"Output written to '{args.output}'")
-except Exception as e:
-    print(f"Error writing to '{args.output}': {e}")
+if args.output:
+    try:
+        with open(args.output, 'w', encoding='utf-8') as outfile:
+            outfile.write(output_xml)
+        print(f"Output written to '{args.output}'")
+    except Exception as e:
+        print(f"Error writing to '{args.output}': {e}")
 
 # By default, copy the output to clipboard unless --no-clipboard is specified
 if not args.no_clipboard:
