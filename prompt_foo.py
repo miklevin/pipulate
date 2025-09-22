@@ -189,115 +189,6 @@ def format_size_with_comparison(word_count, token_count):
 # END CONTENT SIZE REFERENCE SCALE
 # ============================================================================
 
-def print_structured_output(manifest, pre_prompt, files, post_prompt, total_tokens, max_tokens, total_words=None):
-    """Print a structured view of the prompt components in markdown format."""
-    print("\n=== Prompt Structure ===\n")
-    
-    print("--- Pre-Prompt ---")
-    # Handle pre-prompt content
-    try:
-        if '<context>' in pre_prompt:
-            context_start = pre_prompt.find('<context>') + 8
-            context_end = pre_prompt.find('</context>')
-            if context_start > 7 and context_end > context_start:
-                context_content = pre_prompt[context_start:context_end]
-                
-                # Extract system info
-                if '<system_info>' in context_content:
-                    sys_start = context_content.find('<system_info>') + 12
-                    sys_end = context_content.find('</system_info>')
-                    if sys_start > 11 and sys_end > sys_start:
-                        print("System Information:")
-                        sys_content = context_content[sys_start:sys_end].strip()
-                        # Remove any remaining XML tags and clean up formatting
-                        sys_content = re.sub(r'<[^>]+>', '', sys_content)
-                        sys_content = sys_content.replace('>', '')  # Remove any remaining > characters
-                        print(f"  {sys_content}")
-                
-                # Extract key points
-                if '<key_points>' in context_content:
-                    points_start = context_content.find('<key_points>') + 11
-                    points_end = context_content.find('</key_points>')
-                    if points_start > 10 and points_end > points_start:
-                        points_content = context_content[points_start:points_end]
-                        print("\nKey Points:")
-                        for point in points_content.split('<point>'):
-                            if point.strip():
-                                point_end = point.find('</point>')
-                                if point_end > -1:
-                                    point_content = point[:point_end].strip()
-                                    # Remove any remaining XML tags
-                                    point_content = re.sub(r'<[^>]+>', '', point_content)
-                                    print(f"  • {point_content}")
-    except Exception as e:
-        print("  [Error parsing pre-prompt content]")
-    
-    print("\n--- Files Included ---")
-    # Parse the manifest to get token counts for each file
-    token_counts = {}
-    try:
-        if '<token_usage>' in manifest:
-            token_usage_start = manifest.find('<token_usage>') + 12
-            token_usage_end = manifest.find('</token_usage>')
-            token_usage = manifest[token_usage_start:token_usage_end]
-            
-            if '<files>' in token_usage:
-                files_start = token_usage.find('<files>') + 7
-                files_end = token_usage.find('</files>', files_start)
-                files_section = token_usage[files_start:files_end]
-                
-                if '<content>' in files_section:
-                    content_start = files_section.find('<content>') + 9
-                    content_end = files_section.find('</content>')
-                    content_section = files_section[content_start:content_end]
-                    
-                    # Extract file paths and token counts
-                    file_pattern = r'<file>.*?<path>(.*?)</path>.*?<tokens>(.*?)</tokens>.*?</file>'
-                    for match in re.finditer(file_pattern, content_section, re.DOTALL):
-                        path, tokens = match.groups()
-                        token_counts[path.strip()] = int(tokens.strip())
-    except Exception as e:
-        print(f"  [Error parsing token counts: {e}]")
-    
-    for file in files:
-        tokens_str = f" ({token_counts.get(file, 0):,} tokens)" if file in token_counts else ""
-        print(f"• {file}{tokens_str}")
-    
-    print("\n--- Post-Prompt ---")
-    # Show the actual prompt content if it's a direct string
-    if post_prompt and not os.path.exists(post_prompt):
-        print("\nDirect String Prompt:")
-        print(f"  {post_prompt}")
-    elif post_prompt:
-        print(f"\nPrompt File: {post_prompt}")
-    
-    print("\n--- Token Summary ---")
-    print(f"Total tokens: {format_token_count(total_tokens)}")
-    if total_words is not None:
-        print(f"Total words: {format_word_count(total_words)}")
-        
-        # Add size comparisons
-        size_info = format_size_with_comparison(total_words, total_tokens)
-        print(f"\nSize Perspective:")
-        print(f"📝 Content size: {size_info['word_comparison']}")
-        print(f"🤖 Token size: {size_info['token_comparison']}")
-        
-        # Calculate and show token-to-word ratio
-        ratio = total_tokens / total_words if total_words > 0 else 0
-        print(f"📊 Token-to-word ratio: {ratio:.2f} (higher = more technical/structured content)")
-    
-    print("\n=== End Prompt Structure ===\n")
-
-# -------------------------------------------------------------------------
-# NOTE TO USERS:
-# This script is obviously customized to my (Mike Levin's) specific purposes,
-# but if you find this interesting, just go in and adjust the paths and the 
-# prompts to taste. It's an effective way to put a lot of separate files into 
-# one text-file or your OS's copy/paste buffer and do one-shot prompting with 
-# spread out files as if they were a single file (reduce copy/paste tedium 
-# and improve prompt injection consistency).
-# -------------------------------------------------------------------------
-
 # --- XML Support Functions ---
 def wrap_in_xml(content: str, tag_name: str, attributes: Optional[Dict[str, str]] = None) -> str:
     """Wrap content in XML tags with optional attributes."""
@@ -937,7 +828,22 @@ output_xml = (f'<?xml version="1.0" encoding="UTF-8"?>\n'
               f'{create_xml_element("token_summary", token_summary_content)}\n'
               f'</context>')
 
-print_structured_output(manifest, pre_prompt, [fp for fp, _ in processed_files], post_prompt, token_counts['total'], MAX_TOKENS, word_counts['total'])
+# Print concise output
+print(f"Total tokens: {format_token_count(token_counts['total'])}")
+if word_counts['total'] is not None:
+    print(f"Total words: {format_word_count(word_counts['total'])}")
+
+    # Add size comparisons
+    size_info = format_size_with_comparison(word_counts['total'], token_counts['total'])
+    print(f"\nSize Perspective:")
+    print(f"📝 Content size: {size_info['word_comparison']}")
+    print(f"🤖 Token size: {size_info['token_comparison']}")
+
+    # Calculate and show token-to-word ratio
+    ratio = token_counts['total'] / word_counts['total'] if word_counts['total'] > 0 else 0
+    print(f"📊 Token-to-word ratio: {ratio:.2f} (higher = more technical/structured content)")
+
+print()
 
 # Write the complete XML output to the file
 if args.output:
