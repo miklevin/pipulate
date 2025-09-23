@@ -1968,43 +1968,6 @@ span[data-tooltip] {
     text-decoration: none !important;
 }
 
-/* ============================================================================
-   CENTRALIZED EMBEDDED SVG ICONS - Optimal Tooltip Solution
-   ============================================================================
-   
-   🤖 NOTE FOR FUTURE AI ASSISTANTS:
-   
-   This is the OPTIMAL SOLUTION for tooltip-enabled SVG icons.
-   
-   ❓ THE PROBLEM: External SVG files with <img> tags don't work well with PicoCSS tooltips
-   ❓ THE CHALLENGE: Need working tooltips + theme-aware icons + clean code
-   
-   ✅ THE SOLUTION: Centralized embedded SVGs with NotStr() and span wrappers
-   
-   🎯 USAGE PATTERN:
-   Python: Span(NotStr(INFO_SVG), data_tooltip='Your tooltip text', data_placement='left')
-   Result: Perfect tooltips + theme adaptation + clean code
-   
-   🔄 WHY THIS BEATS EXTERNAL SVGs:
-   - PicoCSS tooltips work perfectly on span elements
-   - SVG currentColor automatically adapts to theme
-   - Centralized constants prevent code duplication
-   - No external file dependencies
-   - Tooltip attributes work reliably
-   
-   🎨 THEME COVERAGE:
-   - SVG uses stroke="currentColor" for automatic theme adaptation
-   - No CSS filter rules needed - SVG inherits text color naturally
-   - Works with all theme modes: explicit and system preferences
-   
-   📝 TO ADD MORE ICONS:
-   1. Add SVG constant at top of server.py: ICON_NAME_SVG = '''<svg>...</svg>'''
-   2. Use in Python: Span(NotStr(ICON_NAME_SVG), data_tooltip='...', data_placement='...')
-   3. Add margin-left in the span style if needed
-   
-   This pattern gives you the best of all worlds: working tooltips + perfect theming + clean code!
-   ============================================================================ */
-
 /* Info icon styling - reusable for all info tooltips */
 .info-icon {
     width: 20px;
