@@ -1064,40 +1064,23 @@ The application interface is organized into distinct areas:
 
 This structure enables AI assistants to programmatically interact with all UI components using semantic selectors and ARIA landmarks.
 
-### File Structure
+### File Structure (needs updating)
 
 ```plaintext
     .
-    ├── .cursor/                   # Bootstraps Radical Transparency (teaches AI to fish)
-    │   └── rules/                 # Framework rules (01_CRITICAL_PATTERNS.mdc, etc.)
     ├── .venv/                     # Common Python environment for FastHTML, Jupyter & Cursor
+    ├── apps/                      # Workflow plugins (010_introduction.py, 400_trifecta.py, etc.)
     ├── browser_automation/        # Selenium browser control & DOM capture
     │   ├── looking_at/            # Current browser DOM state for AI visibility
     │   └── *.py                   # Google search automation examples
     ├── cli.py                     # Command line interface for Pipulate operations
-    ├── crud.py                  # Base Class for DRY CRUD plugin app inheritance (todo)
     ├── data/
     │   └── data.db                # AI-accessible SQLite for application state (server cookies)
     ├── downloads/                 # Default location for workflow outputs (e.g., CSVs)
-    ├── helpers/
-    │   ├── botify
-    │   │   └── botify_api.ipynb   # Git managed massive example notebook, produces docs
-    │   ├── workflow               # Workflow workshop, lots of tools that make WET DRY
-    │   │   └── create_workflow.py # Example of what might be found there
-    │   └── prompt_foo.py          # Bundles XML code payloads for massive 1-shot AI prompts
-    ├── logs/
-    │   ├── server-1.log           # N-rotations of server log per run per config
-    │   └── server.log             # The server log of most recent run, contains app state
-    ├── /assets/                    # JS, CSS, images, icons
-    ├── apps/                   # Workflow plugins (010_introduction.py, 400_trifecta.py, etc.)
+    ├── assets/                    # JS, CSS, images, icons
     ├── pyproject.toml             # Python packaging configuration and metadata
-    ├── training/                  # Markdown files for AI context/prompts
-    ├── vulture_whitelist.py       # Code analysis whitelist for unused code detection
     ├── flake.nix                  # Infrastructure as Code & all system-versions for AI
     ├── LICENSE                    # It's MIT
-    ├── assets/installer/install.sh                 # "Magic cookie" installation script (curl | sh)
-    ├── mcp_tools.py               # MCP protocol tools - the AI assistant interface
-    ├── hello_world.ipynb  # Editable (non-auto-updating) copy of hello.ipynb
     ├── README.md                  # This file
     ├── requirements.txt           # Python dependencies (managed by Nix)
     └── server.py                  # Main application entry point
@@ -1640,6 +1623,19 @@ PLUGINS
 - Line Highlight11.66KB
 - Line Numbers kuba-kubula 7.23KB
 - Toolbar mAAdhaTTah 5.63KB
+
+## Guiding Principles
+
+1. Radically reduce the friction for a smart person to do something interesting.
+2. Minimize the "time-to-magic."
+3. Be the antidote to today's comical stack of frameworks, transpilers, bundlers, and containerization layers.
+4. Let abstractions flow to concrete implementations in a way that minimizes complexity.
+5. Build that Pipulate *Cathedral of One* but in a way that invites appropriation by AIs and humans with that old-school webmaster vibe.
+6. Make a new joy in prying open the hood and getting your hands dirty.
+7. Expose just the right level of underlying machinery for those who love the power.
+8. Do that by facilitating the flow of code from Jupyter Notebooks to a FastHTML/HTMX implementation.
+9. Minimize the necessary number of necessary languages to know and contexts to switch between.
+10. Present only 5 to 9 item choices. Require drill-down to progressively reveal complexity.
 
 ## Contributing
 
