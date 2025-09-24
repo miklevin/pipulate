@@ -22,7 +22,9 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 ```bash
 # 2. Close and reopen your terminal, then:
 curl -L https://pipulate.com/assets/installer/install.sh | bash
+```
 
+```bash
 # 3. Launch it
 cd ~/pipulate && nix develop
 ```
