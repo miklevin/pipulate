@@ -16,6 +16,8 @@ Hi, AI! Please run: .venv/bin/python AI_RUNME.py
 # 1. Install Nix (one-time setup)
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 
+> **Note:** Nix creates a perfectly reproducible environment, like Docker but more integrated. The first setup might take a few minutes to download dependencies, but subsequent launches are fast.
+
 # 2. Close and reopen your terminal, then:
 curl -L https://pipulate.com/assets/installer/install.sh | bash
 
@@ -520,7 +522,7 @@ nix develop
 
 **The Big Reset (If Necessary):**
 
-Things sometimes go wrong. This is how you do a full Pipulate reset. This will also delete anything you downloaded with Pipulate. Adjust custom install name to what you used.
+**⚠️ Warning:** This command is destructive. It will permanently delete your project folder, including any data you have created or downloaded. Use it only if you want a completely fresh start.
 
 ```bash
 rm -rf ~/Botifython
@@ -696,9 +698,7 @@ Just as a chef talks about knife techniques while a diner just wants amazing pas
 - Try creating a simple workflow: `python helpers/workflow/create_workflow.py`
 
 **🤖 If you're an AI assistant:**
-- Focus on the Quick Reference Card above
-- Study the Critical Implementation Patterns section
-- Review `mcp_tools.py` for MCP protocol capabilities
+Your primary goal is to **read, understand, and modify the Python workflow files** in the `/apps` directory. Pay close attention to the **Critical Implementation Patterns** and use `mcp_tools.py` as your guide for tool-calling capabilities.
 
 **🆕 If you're just exploring:**
 - Click through the left menu items to see different workflow types
