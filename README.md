@@ -226,7 +226,7 @@ Pipulate's WET philosophy extends to its technology choices, favoring simple, du
     Solving the "Not on my machine" problem well.           \___)=(___/  |_____|_____|
 ```
 
-**Nix serves as the "Noah's Ark"** — preserving this perfect focus in a reproducible environment that works identically across all platforms. Once you've locked in the focus, it lasts for years or decades, all bottled up in infrastructure-as-code.
+**Nix serves as the "Noah's Ark"** creating rapidly rehydrated environments that works identically across all platforms and forever into the future. The long promised Holy Grail of *write-once run anywhere* is today achieved with *infrastructure-as-code* (IaC) leveraging a fully featured generic *normalized Linux* called Nix.
 
 ## Other Key Technologies Used
 
