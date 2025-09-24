@@ -281,7 +281,13 @@ Pipulate brings back that **"one person, full stack"** philosophy with modern to
 - **M**iniDataAPI: Universal SQL simplifier close to Python's core data structures
 - **P**ython + FastHTML + HTMX: The new web development paradigm
 
-This isn't just simpler — it's more powerful, giving you complete environment reproducibility, local AI integration, server-side state management, and future-proofed skills.
+This stack isn't just simpler—it's optimized for AI-assisted development. Here's why:
+
+* **Minimal Surface Area**: The AI doesn't waste time guessing about complex, out-of-context dependencies. More of the relevant code is directly readable and fits into a single prompt.
+* **Bedrock Dependencies**: The core components (Python, HTML, HTMX) change at a glacial pace, so they are already well-understood by base AI models, requiring no extra context.
+* **Transparent State**: The application's state is kept in simple, server-side formats. An AI can literally read (`grep`) the logs to understand what's happening, offering unparalleled transparency.
+
+This focus on reproducibility, transparency, and AI-friendly ergonomics allows you to hone your craft and build future-proof skills.
 
 ### The Lens Stack: Focused Architecture  <!-- key: the-lens-stack -->
 
