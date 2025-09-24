@@ -1,15 +1,11 @@
 # ripgrep filters for good search & replaces with `rg | xargs sed` pattern
 assets/js/
-cruft/
 
 # File-types that should never get into repo
 *.csv
 *.gz
 *.json
 *.pkl
-
-# Different repos in subfolders of this repo
-subrepos/
 
 # Pipulate framework stuff
 data/
