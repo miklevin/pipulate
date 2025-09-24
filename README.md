@@ -15,9 +15,11 @@ Hi, AI! Please run: .venv/bin/python AI_RUNME.py
 ```bash
 # 1. Install Nix (one-time setup)
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+```
 
 > **Note:** Nix creates a perfectly reproducible environment, like Docker but more integrated. The first setup might take a few minutes to download dependencies, but subsequent launches are fast.
 
+```bash
 # 2. Close and reopen your terminal, then:
 curl -L https://pipulate.com/assets/installer/install.sh | bash
 
