@@ -178,22 +178,21 @@ If you are not an Empire builder and prefer craftsmanship over the rat race and 
          ↑                    ↓                🗽 Your Code
     Docker → K8s → Cloud → Serverless          🗽 Your Schedule
 
-    😵‍💫 Endless Learning                        🗽 Your Hardware
-    💸 Migration Fatigue                       🗽 Your Data  
-    🔒 Platform Lock-in                        🗽 Your AI Choice
-    📈 Growing Complexity                      🗽 Your Code
-                                               🗽 Your Schedule
-              WITH
-                                               ✨ Durable Tools:
-    🏃‍♂️ JUMP OFF THE WHEEL                        • Python (30+ years)
-               ↓                                • SQLite (built-in)
-        ┌─────────────┐                         • HTML/HTTP (timeless)
-        │  PIPULATE   │                         • Nix (reproducible)
-        │ Local-First │                         • Cloud APIs (by choice)
-        │+ Any Cloud  │                         
-        └─────────────┘                         🎯 Third Act Philosophy:
-                                                "Choose tools that will
-                                                outlast any framework"
+    😵‍💫 Endless Learning                        ✨ Durable Tools:
+    💸 Migration Fatigue                         • Python (30+ years)
+    🔒 Platform Lock-in                         • SQLite (built-in)
+    📈 Growing Complexity                       • HTML/HTTP (timeless)
+                                                • Nix (reproducible)
+              WITH                              • Cloud APIs (by choice)
+                                                
+    🏃‍♂️ JUMP OFF THE WHEEL                       🎯 Third Act Philosophy:
+               ↓                                "Choose tools that will
+        ┌─────────────┐                         outlast any framework"  
+        │  PIPULATE   │
+        │ Local-First │
+        │+ Any Cloud  │
+        └─────────────┘
+                                               
 ```
 <!-- END_ASCII_ART: breaking-free-framework-churn -->
 
