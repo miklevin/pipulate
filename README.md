@@ -115,7 +115,7 @@ Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-
     │      ELECTRON APP       │        │     PIPULATE SETUP      │
     ├─────────────────────────┤        ├─────────────────────────┤
     │ ┌─────┐ ┌─────┐ ┌─────┐ │        │ ┌─────────────────────┐ │
-    │ │.exe │ │.dmg │ │.deb │ │        │ │     assets/installer/install.sh      │ │
+    │ │.exe │ │.dmg │ │.deb │ │        │ │     install.sh      │ │
     │ └─────┘ └─────┘ └─────┘ │        │ │ (Works on ALL OSes) │ │
     │   Per-OS Installers     │        │ └─────────────────────┘ │
     └───────────┬─────────────┘        └───────────┬─────────────┘
