@@ -452,6 +452,22 @@
           python server.py
         '';
 
+        # Logic for installing all Python packages
+        pythonInstallLogic = ''
+          # Activate the virtual environment to ensure commands run in the correct context
+          source .venv/bin/activate
+          
+          # Always upgrade pip first
+          pip install --upgrade pip --quiet
+
+          # Install all dependencies from requirements.txt
+          pip install -r requirements.txt --quiet
+          
+          # Install the local project in editable mode so it's importable
+          # This is the key step for making `from imports import ...` work
+          pip install -e . --no-deps --quiet
+        '';
+
         # --- REFACTORED SHELL LOGIC ---
         # Logic for setting up Python venv, PATH, etc.
         pythonSetupLogic = ''
