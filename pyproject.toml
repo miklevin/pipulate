@@ -23,7 +23,7 @@ classifiers = [
 ]
 keywords = ["seo", "ai", "llm", "automation", "local-first", "nix", "fasthtml", "htmx", "agentic"]
 dependencies = [
-    "fasthtml>=0.6.9",
+    "python-fasthtml>=0.6.9",
     "python-multipart>=0.0.6",
     "selenium>=4.11.2",
     "aiohttp>=3.8.0",
