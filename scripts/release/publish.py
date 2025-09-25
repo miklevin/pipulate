@@ -10,10 +10,10 @@ A comprehensive release pipeline that handles:
 5. Git operations and PyPI publishing
 
 Usage:
-  python helpers/release/publish.py --release -m "Custom message"
-  python helpers/release/publish.py --release --force -m "Force republish"
-  python helpers/release/publish.py --release --ai-commit  # Use AI for commit message
-  python helpers/release/publish.py --release --skip-trifecta-rebuild  # Skip plugin rebuilding
+  python scripts/release/publish.py --release -m "Custom message"
+  python scripts/release/publish.py --release --force -m "Force republish"
+  python scripts/release/publish.py --release --ai-commit  # Use AI for commit message
+  python scripts/release/publish.py --release --skip-trifecta-rebuild  # Skip plugin rebuilding
 """
 import argparse
 import subprocess
@@ -120,7 +120,7 @@ def get_current_version():
 def run_version_sync():
     """Runs the version synchronization script."""
     print("\n🔄 Step 1: Synchronizing versions across all files...")
-    version_sync_script = PIPULATE_ROOT / "helpers" / "release" / "version_sync.py"
+    version_sync_script = PIPULATE_ROOT / "scripts" / "release" / "version_sync.py"
     if not version_sync_script.exists():
         print("❌ version_sync.py not found, skipping version sync")
         return False
@@ -136,7 +136,7 @@ def run_version_sync():
 def run_ascii_art_sync():
     """Runs the ASCII art documentation synchronization and captures statistics."""
     print("\n📚 Step 2: Synchronizing ASCII art documentation...")
-    ascii_sync_script = PIPULATE_ROOT / "helpers" / "release" / "sync_ascii_art.py"
+    ascii_sync_script = PIPULATE_ROOT / "scripts" / "release" / "sync_ascii_art.py"
     if not ascii_sync_script.exists():
         print("❌ sync_ascii_art.py not found, skipping documentation sync")
         return False, None
@@ -605,7 +605,7 @@ def display_trifecta_rebuild_stats(stats):
 
 def get_ai_model_name():
     """Extract the model name from ai_commit.py."""
-    ai_commit_script = PIPULATE_ROOT / "helpers" / "release" / "ai_commit.py"
+    ai_commit_script = PIPULATE_ROOT / "scripts" / "release" / "ai_commit.py"
     if not ai_commit_script.exists():
         return "AI Model"
     
@@ -758,7 +758,7 @@ def get_ai_commit_message():
     model_name = get_ai_model_name()
     
     # Try to get AI commit message with enhanced context
-    ai_commit_script = PIPULATE_ROOT / "helpers" / "release" / "ai_commit.py"
+    ai_commit_script = PIPULATE_ROOT / "scripts" / "release" / "ai_commit.py"
     if not ai_commit_script.exists():
         print("❌ ai_commit.py not found, skipping AI commit generation")
         return None, None

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pipulate"
 # VERSION NOTE: Synced from pipulate/__init__.py.__version__ via python version_sync.py
-version = "1.1.1"
+version = "1.1.2"
 authors = [
   { name="Mike Levin", email="pipulate@gmail.com" },
 ]
@@ -47,20 +47,13 @@ py-modules = ["cli", "server", "common", "config", "ai_dictdb", "__init__"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["apps*", "static*"]
+include = ["apps*", "imports*", "tools*", "static*"]
 exclude = [
-    "client*", 
     "logs*", 
     "data*", 
     "downloads*", 
-    "training*", 
-    "helpers*", 
-    "tests*",
-    "scrapes*",
-    "test_results*",
-    "temp*",
+    "scripts*", 
     "browser_automation*",
-    "ai_discovery*",
     "Notebooks*",
     ".venv*"
 ]
@@ -74,22 +67,3 @@ exclude = [
     "CHANGELOG.md"
 ]
 
-[tool.vulture]
-ignore_decorators = ["@rt", "@app.post"]
-ignore_names = [
-    "Pipeline", 
-    "Profile", 
-    "Task", 
-    "finalize", 
-    "finalize_submit",
-    "home_route",
-    "on_modified",
-    "dispatch",
-    "initialize_if_missing",
-    "format_step_name",
-    "fmt",
-    "revert_control",
-    "wrap_with_inline_button",
-    "get_state_message",
-    "clear_steps_from",
-    ]

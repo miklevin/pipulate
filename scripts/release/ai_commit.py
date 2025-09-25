@@ -11,7 +11,7 @@ commit message based on the currently staged git changes.
 - No vulnerable JSON blob overwrites
 
 Usage:
-    python helpers/release/ai_commit.py
+    python scripts/release/ai_commit.py
 """
 import subprocess
 import requests
@@ -20,9 +20,9 @@ import sys
 import os
 from pathlib import Path
 
-# Add the helpers directory to sys.path for imports
-helpers_dir = Path(__file__).parent.parent
-sys.path.insert(0, str(helpers_dir))
+# Add the scripts directory to sys.path for imports
+scripts_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(scripts_dir))
 
 try:
     from append_only_conversation import AppendOnlyConversationSystem
