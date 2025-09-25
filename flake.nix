@@ -453,7 +453,7 @@
         '';
 
         # Logic for installing all Python packages
-        pythonInstallLogic = ''
+        pythonInstallLogic = ''
           # Activate the virtual environment to ensure commands run in the correct context
           source .venv/bin/activate
           
