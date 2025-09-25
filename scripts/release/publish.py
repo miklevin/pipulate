@@ -323,7 +323,7 @@ def sync_install_sh():
     """Copies install.sh to Pipulate.com and commits if changed."""
     print("\n🔄 Step 3: Synchronizing install.sh to Pipulate.com...")
     source_path = PIPULATE_ROOT / "assets/installer/install.sh"
-    dest_path = PIPULATE_COM_ROOT / "assets/installer/install.sh"
+    dest_path = PIPULATE_COM_ROOT / "install.sh"
 
     if not PIPULATE_COM_ROOT.exists():
         print(f"⚠️  Warning: Pipulate.com repo not found at {PIPULATE_COM_ROOT}. Skipping install.sh sync.")
