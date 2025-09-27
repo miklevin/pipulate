@@ -757,6 +757,52 @@ post_prompt = active_template["post_prompt"]
 if direct_prompt:
     post_prompt = direct_prompt
 
+# Create the manifest object and get the list of files to process
+manifest, processed_files, manifest_tokens = create_pipulate_manifest(final_file_list)
+
+# --- 1. Create a Markdown Manifest Header ---
+manifest_lines = ["# Codebase Context & Manifest", ""]
+for file_path, comment in processed_files:
+    purpose = f" ({comment})" if comment else ""
+    manifest_lines.append(f"- **{file_path}**{purpose}")
+manifest_header = "\n".join(manifest_lines)
+
+# --- 2. Process each file into a Markdown code block ---
+content_lines = []
+for file_path, comment in processed_files:
+    full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
+    try:
+        with open(full_path, 'r', encoding='utf-8') as infile:
+            file_content = infile.read()
+
+        # Get the language type from the manifest object
+        lang_type = manifest._get_file_type(file_path) or ""
+
+        # Create the new format
+        content_lines.append(f"```{lang_type}:{file_path}")
+        content_lines.append(file_content)
+        content_lines.append("```")
+        content_lines.append("") # Add a newline for spacing
+
+    except Exception as e:
+        print(f"ERROR: Could not read file {full_path}: {e}")
+        sys.exit(1)
+
+# --- 3. Assemble the final output ---
+# Use the direct_prompt for the post_prompt if it exists, otherwise use the prompt content
+final_post_prompt = direct_prompt or prompt_content or "No prompt provided."
+
+final_output = "\n".join([
+    manifest_header,
+    "\n---\n",
+    "# File Contents",
+    "\n".join(content_lines),
+    "---\n",
+    "# User Prompt",
+    "",
+    final_post_prompt
+])
+
 # Calculate the final token count
 def calculate_total_tokens(files_tokens, prompt_tokens):
     """Calculate total tokens and component breakdowns"""
@@ -792,17 +838,10 @@ for file_path, comment in processed_files:
         print(f"ERROR: Could not count tokens/words for {file_path}: {e}")
         sys.exit(1)  # Exit with error code
 
-# Calculate prompt tokens and words
-pre_prompt_tokens = count_tokens(pre_prompt, "gpt-4")
-post_prompt_tokens = count_tokens(post_prompt, "gpt-4") 
-prompt_tokens = pre_prompt_tokens + post_prompt_tokens
-
-pre_prompt_words = count_words(pre_prompt)
-post_prompt_words = count_words(post_prompt)
-prompt_words = pre_prompt_words + post_prompt_words
-
 # Calculate totals
+prompt_tokens = count_tokens(final_post_prompt, "gpt-4")
 token_counts = calculate_total_tokens(files_tokens_dict, prompt_tokens)
+prompt_words = count_words(final_post_prompt)
 word_counts = calculate_total_words(files_words_dict, prompt_words)
 
 # ============================================================================
