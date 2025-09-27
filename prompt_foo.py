@@ -302,77 +302,6 @@ def format_size_with_comparison(word_count, token_count):
         "token_comparison": token_comparison
     }
 
-# --- XML Support Functions ---
-def wrap_in_xml(content: str, tag_name: str, attributes: Optional[Dict[str, str]] = None) -> str:
-    """Wrap content in XML tags with optional attributes."""
-    attrs = " ".join(f'{k}="{v}"' for k, v in (attributes or {}).items())
-    return f"<{tag_name}{' ' + attrs if attrs else ''}>{content}</{tag_name}>"
-
-def create_xml_element(tag_name: str, content: Union[str, List[str]], attributes: Optional[Dict[str, str]] = None) -> str:
-    """Create an XML element with optional attributes and content."""
-    if isinstance(content, list):
-        content = "\n".join(content)
-    # content = content.replace('\n\n', '\n')  # Remove double newlines
-    return wrap_in_xml(content, tag_name, attributes)
-
-def create_xml_list(items: List[str], tag_name: str = "item") -> str:
-    """Create an XML list from a list of items."""
-    return "\n".join(f"<{tag_name}>{item}</{tag_name}>" for item in items)
-
-# === Prompt Template ===
-# Define multiple prompt templates and select them by index
-active_template = {
-        "name": "Material Analysis Mode",
-        "pre_prompt": create_xml_element("context", [
-            create_xml_element("system_info", """
-You are about to review a codebase and related documentation. Please study and understand
-the provided materials thoroughly before responding.
-"""),
-            create_xml_element("key_points", [
-                "<point>Focus on understanding the architecture and patterns in the codebase</point>",
-                "<point>Note how existing patterns could be leveraged in your response</point>",
-                "<point>Consider both technical and conceptual aspects in your analysis</point>"
-            ])
-        ]),
-        "post_prompt": create_xml_element("response_request", [
-            create_xml_element("introduction", """
-Now that you've reviewed the provided materials, please respond thoughtfully to the prompt.
-Your response can include analysis, insights, implementation suggestions, or other relevant
-observations based on what was requested.
-"""),
-            create_xml_element("response_areas", [
-                create_xml_element("area", [
-                    "<title>Material Analysis</title>",
-                    "<questions>",
-                    "<question>What are the key concepts, patterns, or architecture details in the provided materials?</question>",
-                    "<question>What interesting aspects of the system stand out to you?</question>",
-                    "<question>How would you characterize the approach taken in this codebase?</question>",
-                    "</questions>"
-                ]),
-                create_xml_element("area", [
-                    "<title>Strategic Considerations</title>",
-                    "<questions>",
-                    "<question>How might the content of the materials inform future development?</question>",
-                    "<question>What patterns or conventions should be considered in any response?</question>",
-                    "<question>What alignment exists between the provided materials and the prompt?</question>",
-                    "</questions>"
-                ]),
-                create_xml_element("area", [
-                    "<title>Concrete Response</title>",
-                    "<questions>",
-                    "<question>What specific actionable insights can be provided based on the prompt?</question>",
-                    "<question>If implementation is requested, how might it be approached?</question>",
-                    "<question>What recommendations or observations are most relevant to the prompt?</question>",
-                    "</questions>"
-                ])
-            ]),
-            create_xml_element("focus_areas", [
-                "<area>Responding directly to the core request in the prompt</area>",
-                "<area>Drawing connections between the materials and the prompt</area>",
-                "<area>Providing value in the form requested (analysis, implementation, etc.)</area>"
-            ])
-        ])
-    }
 
 # file_list will be initialized when needed via get_files_to_include()
 
@@ -742,13 +671,7 @@ def create_pipulate_manifest(file_paths_with_comments):
             "Proper pattern for returning FastHTML content with HTMX triggers"
         )
     
-    # Return the manifest content WITHOUT the outer <manifest> tags
-    manifest_xml = manifest.generate()
-    # Remove opening and closing manifest tags to prevent double wrapping
-    if manifest_xml.startswith('<manifest>') and manifest_xml.endswith('</manifest>'):
-        manifest_xml = manifest_xml[len('<manifest>'):-len('</manifest>')]
-    
-    return manifest_xml, result_files, total_tokens
+    return manifest, result_files, total_tokens
 
 # Add a function to copy text to clipboard
 def copy_to_clipboard(text):
