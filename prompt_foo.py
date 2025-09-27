@@ -757,51 +757,6 @@ post_prompt = active_template["post_prompt"]
 if direct_prompt:
     post_prompt = direct_prompt
 
-# print(f"Using template: {active_template['name']}") # MODIFICATION: Commented out
-
-# Create the manifest and incorporate user's pre_prompt
-manifest_xml, processed_files, manifest_tokens = create_pipulate_manifest(final_file_list)
-manifest = manifest_xml
-
-# Add the pre-prompt and separator (without duplicating manifest)
-lines = [pre_prompt]
-lines.append("=" * 20 + " START CONTEXT " + "=" * 20)
-total_tokens = count_tokens(pre_prompt, "gpt-4")
-
-# Process each file in the manifest file list
-for file_path, comment in processed_files:
-    full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
-    
-    # Original detailed mode with markers, now including comments
-    comment_suffix = f" -- {comment}" if comment else ""
-    start_marker = f"# <<< START FILE: {full_path}{comment_suffix} >>>"
-    end_marker = f"# <<< END FILE: {full_path}{comment_suffix} >>>"
-    
-    lines.append(start_marker)
-    try:
-        with open(full_path, 'r', encoding='utf-8') as infile:
-            file_content = infile.read()
-            file_tokens = count_tokens(file_content, "gpt-4")
-            token_info = f"\n# File token count: {format_token_count(file_tokens)}"
-            if comment:
-                token_info += f"\n# File purpose: {comment}"
-            lines.append(file_content + token_info)
-    except Exception as e:
-        error_message = f"# --- ERROR: Could not read file {full_path}: {e} ---"
-        print(f"ERROR: Could not read file {full_path}: {e}")
-        sys.exit(1)  # Exit with error code
-    
-    lines.append(end_marker)
-
-# Add a separator and the post-prompt
-lines.append("=" * 20 + " END CONTEXT " + "=" * 20)
-post_prompt_tokens = count_tokens(post_prompt, "gpt-4")
-if total_tokens + post_prompt_tokens <= MAX_TOKENS - TOKEN_BUFFER:
-    total_tokens += post_prompt_tokens
-    lines.append(post_prompt)
-else:
-    print("Warning: Post-prompt skipped as it would exceed token limit")
-
 # Calculate the final token count
 def calculate_total_tokens(files_tokens, prompt_tokens):
     """Calculate total tokens and component breakdowns"""
@@ -849,22 +804,6 @@ prompt_words = pre_prompt_words + post_prompt_words
 # Calculate totals
 token_counts = calculate_total_tokens(files_tokens_dict, prompt_tokens)
 word_counts = calculate_total_words(files_words_dict, prompt_words)
-
-# Update the token summary in the output
-token_summary_content = [
-    f"<total_context_size>{format_token_count(token_counts['total'])}</total_context_size>",
-    f"<files_tokens>{format_token_count(token_counts['files'])}</files_tokens>",
-    f"<prompt_tokens>{format_token_count(prompt_tokens)}</prompt_tokens>"
-]
-
-output_xml = (f'<?xml version="1.0" encoding="UTF-8"?>\n'
-              f'<context schema="pipulate-context" version="1.0">\n'
-              f'{create_xml_element("manifest", manifest)}\n'
-              f'{create_xml_element("pre_prompt", pre_prompt)}\n'
-              f'{create_xml_element("content", chr(10).join(lines))}\n'
-              f'{create_xml_element("post_prompt", post_prompt)}\n'
-              f'{create_xml_element("token_summary", token_summary_content)}\n'
-              f'</context>')
 
 # ============================================================================
 # MODIFIED OUTPUT SECTION
