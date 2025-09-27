@@ -1632,7 +1632,7 @@ PLUGINS
 5. Build that Pipulate *Cathedral of One* but in a way that invites appropriation by AIs and humans with that old-school webmaster vibe.
 6. Make a new joy in prying open the hood and getting your hands dirty.
 7. Expose just the right level of underlying machinery for those who love the power.
-8. Do that by facilitating the flow of code from Jupyter Notebooks to a FastHTML/HTMX implementation.
+8. Do that by facilitating the flow of code from a Jupyter Notebook to a FastHTML/HTMX implementation.
 9. Minimize the necessary number of necessary languages to know and contexts to switch between.
 10. Present only 5 to 9 item choices. Require drill-down to progressively reveal complexity.
 
