@@ -856,7 +856,7 @@ class Pipulate:
         """Wrapper that delegates to the external stream orchestrator."""
         from imports.stream_orchestrator import stream_orchestrator # Import just-in-time
         # Correctly pass self (pipulate_instance), self.chat (chat_instance), and message
-        return await stream_orchestrator(self, self.chat, message, **kwargs)
+                return await stream_orchestrator(self, self.chat, message, **kwargs)
 
     async def _handle_llm_stream(self):
         """Handles the logic for an interruptible LLM stream."""
@@ -7065,7 +7065,7 @@ class Pipulate:
         """Wrapper that delegates to the external stream orchestrator."""
         from imports.stream_orchestrator import stream_orchestrator # Import just-in-time
         # Correctly pass self (pipulate_instance), self.chat (chat_instance), and message
-        return await stream_orchestrator(self, self.chat, message, **kwargs)
+                return await stream_orchestrator(self, self.chat, message, **kwargs)
 
     async def _handle_llm_stream(self):
         """Handles the logic for an interruptible LLM stream."""
