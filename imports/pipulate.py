@@ -30,8 +30,8 @@ def title_name(word: str) -> str:
 def endpoint_name(endpoint: str) -> str:
     if not endpoint:
         return get_home_menu_item()
-    if endpoint in self.friendly_names:
-        return self.friendly_names[endpoint]
+    if endpoint in self.self.friendly_names:
+        return self.self.friendly_names[endpoint]
     return title_name(endpoint)
 
 
@@ -79,26 +79,26 @@ class Pipulate:
     PRESERVE_REFILL = True
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
 
-    def __init__(self, pipeline_table, db, friendly_names, append_func, chat_instance=None):
+    def __init__(self, pipeline_table, db, self.friendly_names, append_func, chat_instance=None):
         """Initialize Pipulate with required dependencies.
 
         Args:
             pipeline_table: The database table for storing pipeline state
             db: The DictLikeDB instance for key-value storage
-            friendly_names: The dictionary for mapping app names
+            self.friendly_names: The dictionary for mapping app names
             append_func: The function for appending to conversation history
             chat_instance: Optional chat coordinator instance
         """
         self.pipeline_table = pipeline_table
         self.chat = chat_instance
         self.db = db
-        self.friendly_names = friendly_names
-        self.append_to_conversation = append_func
+        self.self.friendly_names = self.friendly_names
+        self.self.append_to_conversation = append_func
         self.message_queue = self.OrderedMessageQueue()
 
-    def append_to_conversation_from_instance(self, message: str, role: str = 'user'):
-        """Instance method wrapper for the global append_to_conversation function."""
-        return self.append_to_conversation(message, role=role)
+    def self.append_to_conversation_from_instance(self, message: str, role: str = 'user'):
+        """Instance method wrapper for the global self.append_to_conversation function."""
+        return self.self.append_to_conversation(message, role=role)
 
     def append_to_history(self, message: str, role: str = 'system') -> None:
         """Add a message to the LLM conversation history without triggering a response.
@@ -114,7 +114,7 @@ class Pipulate:
             message: The message to add to history
             role: The role of the message sender ("system", "user", "assistant")
         """
-        self.append_to_conversation(message, role=role)
+        self.self.append_to_conversation(message, role=role)
 
     class OrderedMessageQueue:
         """A lightweight queue to ensure messages are delivered in order.
@@ -212,8 +212,8 @@ class Pipulate:
         """Set the chat instance after initialization."""
                 self.chat = chat_instance
         self.db = db
-        self.self.friendly_names = self.friendly_names
-        self.append_to_conversation = append_func
+        self.self.self.friendly_names = self.self.friendly_names
+        self.self.append_to_conversation = append_func
 
     def get_message_queue(self):
         """Return the message queue instance for ordered message delivery."""
@@ -745,8 +745,8 @@ class Pipulate:
 
     def fmt(self, endpoint: str) -> str:
         """Format an endpoint string into a human-readable form."""
-        if endpoint in self.friendly_names:
-            return self.friendly_names[endpoint]
+        if endpoint in self.self.friendly_names:
+            return self.self.friendly_names[endpoint]
         return title_name(endpoint)
 
     def _get_clean_state(self, pkey):
@@ -784,8 +784,8 @@ class Pipulate:
             elif hasattr(plugin_instance, '__class__'):
                 plugin_name = plugin_instance.__class__.__name__
             if plugin_name and (not display_name):
-                if plugin_name in self.friendly_names:
-                    display_name = self.friendly_names[plugin_name]
+                if plugin_name in self.self.friendly_names:
+                    display_name = self.self.friendly_names[plugin_name]
                 else:
                     display_name = title_name(plugin_name)
         return {'plugin_name': display_name or plugin_name, 'internal_name': plugin_name, 'profile_id': profile_id, 'profile_name': profile_name}
@@ -864,7 +864,7 @@ class Pipulate:
         """Handles the logic for an interruptible LLM stream."""
         try:
             await self.chat.broadcast('%%STREAM_START%%')
-            conversation_history = append_to_conversation()
+            conversation_history = self.append_to_conversation()
             response_text = ''
     
             logger.info("ORCHESTRATOR: Entering LLM stream loop.")
@@ -899,7 +899,7 @@ class Pipulate:
         Returns:
             Card: A FastHTML Card component with revert functionality, or None if finalized and show_when_finalized=False
         """
-        pipeline_id = self.db.get('pipeline_id', '')
+        pipeline_id = self.self.db.get('pipeline_id', '')
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
         if pipeline_id and finalize_step and not show_when_finalized:
             final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
@@ -955,7 +955,7 @@ class Pipulate:
             Div: FastHTML container with revert control and widget content, or locked Card when finalized
         """
         # Check if workflow is finalized
-        pipeline_id = self.db.get('pipeline_id', '')
+        pipeline_id = self.self.db.get('pipeline_id', '')
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
         is_finalized = False
         if pipeline_id and finalize_step:
@@ -1207,7 +1207,7 @@ class Pipulate:
         safe_state = state_desc.replace('<', '\\<').replace('>', '\\>')
         safe_message = message.replace('<', '\\<').replace('>', '\\>')
         logger.debug(f'State: {safe_state}, Message: {safe_message}')
-        append_to_conversation(message, role='system')
+        self.append_to_conversation(message, role='system')
         return message
 
     @pipeline_operation
@@ -2015,7 +2015,7 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
 
 def get_current_profile_id():
     """Get the current profile ID, defaulting to the first profile if none is selected."""
-    profile_id = self.db.get('last_profile_id')
+    profile_id = self.self.db.get('last_profile_id')
     if profile_id is None:
         logger.debug('No last_profile_id found. Finding first available profile.')
         first_profiles = profiles(order_by='id', limit=1)
@@ -2137,7 +2137,7 @@ class Chat:
     async def handle_chat_message(self, websocket: WebSocket, message: str):
         task = None
         try:
-            # REMOVED: append_to_conversation(message, 'user') -> This was causing the duplicates.
+            # REMOVED: self.append_to_conversation(message, 'user') -> This was causing the duplicates.
             parts = message.split('|')
             msg = parts[0]
             verbatim = len(parts) > 1 and parts[1] == 'verbatim'
@@ -2150,10 +2150,10 @@ class Chat:
                 logger.info(f"🎯 USER MCP REQUEST: Found formal MCP tool call for '{tool_name}' in user input")
                 
                 # Append the user's MCP request to conversation history
-                append_to_conversation(msg, 'user')
+                self.append_to_conversation(msg, 'user')
                 
                 # Execute the formal MCP tool call directly
-                conversation_history = append_to_conversation()  # Get current conversation
+                conversation_history = self.append_to_conversation()  # Get current conversation
                 asyncio.create_task(
                     execute_formal_mcp_tool_call(conversation_history, tool_name, inner_content)
                 )
@@ -2405,7 +2405,7 @@ def build_endpoint_training(endpoint):
             endpoint_training[''] = 'You were just switched to the home page.'
         # --- END CHANGE ---
 
-    append_to_conversation(endpoint_training.get(endpoint, ''), 'system')
+    self.append_to_conversation(endpoint_training.get(endpoint, ''), 'system')
     return
 
 
@@ -2779,7 +2779,7 @@ if __name__ == '__main__':
 plugin_instances = {}
 discovered_modules = discover_plugin_files()
 discovered_classes = find_plugin_classes(discovered_modules, discovered_modules)
-self.friendly_names = {'': HOME_MENU_ITEM}
+self.self.friendly_names = {'': HOME_MENU_ITEM}
 endpoint_training = {}
 
 
@@ -2907,10 +2907,10 @@ for module_name, class_name, workflow_class in discovered_classes:
     if hasattr(instance, 'register_routes'):
         instance.register_routes(rt)
 for workflow_name, workflow_instance in plugin_instances.items():
-    if workflow_name not in self.friendly_names:
+    if workflow_name not in self.self.friendly_names:
         display_name = get_display_name(workflow_name)
         logger.debug(f'Setting friendly name for {workflow_name}: {display_name}')
-        self.friendly_names[workflow_name] = display_name
+        self.self.friendly_names[workflow_name] = display_name
     if workflow_name not in endpoint_training:
         endpoint_message = get_endpoint_message(workflow_name)
         logger.debug(f'Setting endpoint message for {workflow_name}')
@@ -2960,7 +2960,7 @@ async def startup_event():
 
     # 🎭 DEMO CONTINUATION CHECK - Resume demo after server restart
     try:
-        demo_continuation_state = self.db.get('demo_continuation_state')
+        demo_continuation_state = self.self.db.get('demo_continuation_state')
         if demo_continuation_state:
             logger.info(f"🎭 FINDER_TOKEN: DEMO_CONTINUATION_FOUND - Demo continuation state found: {demo_continuation_state}")
             # Store a flag for the frontend to check
@@ -3159,9 +3159,9 @@ async def home(request):
     db['last_app_choice'] = menux
     db['last_visited_url'] = request.url.path
     current_profile_id = get_current_profile_id()
-    menux = self.db.get('last_app_choice', 'App')
+    menux = self.self.db.get('last_app_choice', 'App')
     # 🎬 CINEMATIC MAGIC: Check for Oz door grayscale state
-    grayscale_enabled = self.db.get('oz_door_grayscale') == 'true'
+    grayscale_enabled = self.self.db.get('oz_door_grayscale') == 'true'
     if grayscale_enabled:
         logger.info("🎬 Oz door grayscale state detected - injecting script into Container")
 
@@ -3269,7 +3269,7 @@ def create_env_menu():
 
 def create_nav_menu():
     logger.debug('Creating navigation menu.')
-    menux = self.db.get('last_app_choice', 'App')
+    menux = self.self.db.get('last_app_choice', 'App')
     selected_profile_id = get_current_profile_id()
     selected_profile_name = get_profile_name()
     profiles_plugin_inst = plugin_instances.get('profiles')
@@ -3329,7 +3329,7 @@ def create_nav_menu():
 def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
-    profile_locked = self.db.get('profile_locked', '0') == '1'
+    profile_locked = self.self.db.get('profile_locked', '0') == '1'
     menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', aria_label='Lock or unlock profile editing'), 'Lock Profile', cls='dropdown-menu-item'), cls='profile-menu-item'))
     menu_items.append(Li(Hr(cls='profile-menu-separator'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
@@ -3637,7 +3637,7 @@ async def create_outer_container(current_profile_id, menux, request, grayscale_e
     nav_group = create_nav_group()
 
     # Get saved sizes from DB, with a default of [65, 35]
-    saved_sizes_str = self.db.get('split-sizes', '[65, 35]')
+    saved_sizes_str = self.self.db.get('split-sizes', '[65, 35]')
 
     # Initialize splitter script with server-provided sizes
     init_splitter_script = Script(f"""
@@ -3867,15 +3867,15 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
 
 @rt('/poke-flyout', methods=['GET'])
 async def poke_flyout(request):
-    current_app = self.db.get('last_app_choice', '')
+    current_app = self.self.db.get('last_app_choice', '')
     workflow_instance = get_workflow_instance(current_app)
     is_workflow = workflow_instance is not None and hasattr(workflow_instance, 'steps')
-    profile_locked = self.db.get('profile_locked', '0') == '1'
+    profile_locked = self.self.db.get('profile_locked', '0') == '1'
     lock_button_text = '🔓 Unlock Profile' if profile_locked else '🔒 Lock Profile'
     is_dev_mode = get_current_environment() == 'Development'
 
     # Get current theme setting (default to 'dark' for new users)
-    current_theme = self.db.get('theme_preference', 'dark')
+    current_theme = self.self.db.get('theme_preference', 'dark')
     theme_is_dark = current_theme == 'dark'
 
     # Create buttons
@@ -4047,8 +4047,8 @@ async def add_to_conversation_history_endpoint(request):
         content = form_data.get('content', '')
 
         if content:
-            # Use the existing append_to_conversation function that adds to history without triggering LLM
-            append_to_conversation(content, role)
+            # Use the existing self.append_to_conversation function that adds to history without triggering LLM
+            self.append_to_conversation(content, role)
             logger.info(f"🎯 DEMO: Added to conversation history - {role}: {content[:100]}...")
 
         return ''
@@ -4061,7 +4061,7 @@ async def add_to_conversation_history_endpoint(request):
 async def demo_bookmark_check():
     """Check if there's a demo bookmark to resume"""
     try:
-        demo_bookmark = self.db.get('demo_bookmark')
+        demo_bookmark = self.self.db.get('demo_bookmark')
         if demo_bookmark:
             logger.info(f"📖 Retrieved bookmark data type: {type(demo_bookmark)}")
             logger.info(f"📖 Retrieved bookmark data: {demo_bookmark}")
@@ -4185,7 +4185,7 @@ def redirect_handler(request):
     message = build_endpoint_messages(path)
     if message:
         prompt = read_training(message)
-        append_to_conversation(prompt, role='system')
+        self.append_to_conversation(prompt, role='system')
 
         # Always set temp_message for redirects - this is legitimate navigation
         # The coordination system will prevent race condition duplicates in other pathways
@@ -4337,7 +4337,7 @@ async def open_folder_endpoint(request):
 
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):
-    current = self.db.get('profile_locked', '0')
+    current = self.self.db.get('profile_locked', '0')
     db['profile_locked'] = '1' if current == '0' else '0'
     return HTMLResponse('', headers={'HX-Refresh': 'true'})
 
@@ -4345,7 +4345,7 @@ async def toggle_profile_lock(request):
 @rt('/toggle_theme', methods=['POST'])
 async def toggle_theme(request):
     """Toggle between light and dark theme."""
-    current_theme = self.db.get('theme_preference', 'auto')
+    current_theme = self.self.db.get('theme_preference', 'auto')
 
     # Toggle between light and dark (we'll skip 'auto' for simplicity)
     new_theme = 'dark' if current_theme != 'dark' else 'light'
@@ -4533,7 +4533,7 @@ async def generate_new_key(request):
 async def refresh_app_menu_endpoint(request):
     """Refresh the App menu dropdown via HTMX endpoint."""
     logger.debug('Refreshing App menu dropdown via HTMX endpoint /refresh-app-menu')
-    menux = self.db.get('last_app_choice', '')
+    menux = self.self.db.get('last_app_choice', '')
     app_menu_details_component = create_app_menu(menux)
     return HTMLResponse(to_xml(app_menu_details_component))
 
@@ -4664,16 +4664,16 @@ async def mcp_tool_executor_endpoint(request):
 
 @rt('/clear-pipeline', methods=['POST'])
 async def clear_pipeline(request):
-    menux = self.db.get('last_app_choice', 'App')
+    menux = self.self.db.get('last_app_choice', 'App')
     workflow_display_name = 'Pipeline'
     if menux and menux in plugin_instances:
         instance = plugin_instances.get(menux)
         if instance and hasattr(instance, 'DISPLAY_NAME'):
             workflow_display_name = instance.DISPLAY_NAME
         else:
-            workflow_display_name = self.friendly_names.get(menux, menux.replace('_', ' ').title())
-    last_app_choice = self.db.get('last_app_choice')
-    last_visited_url = self.db.get('last_visited_url')
+            workflow_display_name = self.self.friendly_names.get(menux, menux.replace('_', ' ').title())
+    last_app_choice = self.self.db.get('last_app_choice')
+    last_visited_url = self.self.db.get('last_visited_url')
     keys = list(db.keys())
     for key in keys:
         del db[key]
@@ -4744,15 +4744,15 @@ async def clear_db(request):
         slog.log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB INITIAL')
 
     # Safely preserve certain values before clearing
-    last_app_choice = self.db.get('last_app_choice')
-    last_visited_url = self.db.get('last_visited_url')
-    temp_message = self.db.get('temp_message')
+    last_app_choice = self.self.db.get('last_app_choice')
+    last_visited_url = self.self.db.get('last_visited_url')
+    temp_message = self.self.db.get('temp_message')
 
     # 🎭 DEMO RESTART DETECTION - Check BEFORE clearing database
     demo_triggered = False
     demo_continuation_state = None
     try:
-        demo_continuation_state = self.db.get('demo_continuation_state')
+        demo_continuation_state = self.self.db.get('demo_continuation_state')
         if demo_continuation_state:
             demo_triggered = True
             logger.info(f'🎭 DEMO_RESTART: Demo continuation state detected before DB clear: {demo_continuation_state}')
@@ -4771,7 +4771,7 @@ async def clear_db(request):
     # 💬 PRESERVE CONVERSATION HISTORY - Backup conversation before database reset
     conversation_backup = None
     if 'llm_conversation_history' in db:
-        conversation_backup = self.db.get('llm_conversation_history')
+        conversation_backup = self.self.db.get('llm_conversation_history')
         logger.info(f"💬 FINDER_TOKEN: CONVERSATION_BACKUP_DB_RESET - Backing up conversation history before database reset")
     else:
         logger.info("💬 FINDER_TOKEN: CONVERSATION_BACKUP_DB_RESET - No conversation history to backup")
@@ -5153,7 +5153,7 @@ async def select_profile(request):
         prompt = f"You have switched to the '{profile_name}' profile."
         db['temp_message'] = prompt
         logger.debug(f"Stored temp_message in db: {db['temp_message']}")
-    redirect_url = self.db.get('last_visited_url', '/')
+    redirect_url = self.self.db.get('last_visited_url', '/')
     logger.debug(f'Redirecting to: {redirect_url}')
     return Redirect(redirect_url)
 
@@ -5214,7 +5214,7 @@ async def check_demo_comeback(request):
     """Check if we're coming back from a demo-triggered restart and return demo state for continuation."""
     try:
         # First check database for demo comeback state (set during startup)
-        demo_comeback_state = self.db.get('demo_comeback_state')
+        demo_comeback_state = self.self.db.get('demo_comeback_state')
         logger.info(f"🎭 DEBUG: /check-demo-comeback called, demo_comeback_state in db: {demo_comeback_state}")
         
         if demo_comeback_state:
@@ -5633,7 +5633,7 @@ async def send_startup_environment_message():
         demo_comeback_message = None
         demo_comeback_detected = False
         try:
-            if self.db.get('demo_comeback_message') == 'true':
+            if self.self.db.get('demo_comeback_message') == 'true':
                 demo_comeback_detected = True
                 # Clear the flag immediately (flipflop behavior)
                 del db['demo_comeback_message']
@@ -5680,8 +5680,8 @@ async def send_startup_environment_message():
 
         # Also send endpoint message and training for current location
         # 🔧 BUG FIX: Simplified and robust endpoint detection
-        current_endpoint = self.db.get('last_app_choice', '')
-        visited_url = self.db.get('last_visited_url', '')
+        current_endpoint = self.self.db.get('last_app_choice', '')
+        visited_url = self.self.db.get('last_visited_url', '')
 
         logger.info(f"🔧 STARTUP_DEBUG: Initial last_app_choice='{current_endpoint}', last_visited_url='{visited_url}'")
 
@@ -5850,7 +5850,7 @@ Your MCP tools are now available:
 Use these tools to assist users within your guided capabilities. Remember that advanced AI exploration (file system access, complex debugging) is handled by Claude/GPT in Cursor/Windsurf/VSCode when needed."""
 
             # Add to conversation history silently (not to visible chat)
-            append_to_conversation(context_msg, role='system')
+            self.append_to_conversation(context_msg, role='system')
 
         except Exception as msg_error:
             logger.debug(f"Could not add local LLM context to conversation: {msg_error}")
@@ -5946,8 +5946,8 @@ def restart_server(force_restart=False):
 
     # 🔧 PRESERVE ENDPOINT CONTEXT: Store current endpoint message in temp_message for restart preservation
     try:
-        current_endpoint = self.db.get('last_app_choice', '')
-        visited_url = self.db.get('last_visited_url', '')
+        current_endpoint = self.self.db.get('last_app_choice', '')
+        visited_url = self.self.db.get('last_visited_url', '')
 
         # Extract endpoint from URL if available (same logic as startup function)
         if visited_url:
@@ -6290,7 +6290,7 @@ class Pipulate:
     PRESERVE_REFILL = True
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
 
-        def __init__(self, pipeline_table, db, self.friendly_names, append_func, chat_instance=None):
+        def __init__(self, pipeline_table, db, self.self.friendly_names, append_func, chat_instance=None):
         """Initialize Pipulate with required dependencies.
 
         Args:
@@ -6300,14 +6300,14 @@ class Pipulate:
         self.pipeline_table = pipeline_table
                 self.chat = chat_instance
         self.db = db
-        self.self.friendly_names = self.friendly_names
-        self.append_to_conversation = append_func
+        self.self.self.friendly_names = self.self.friendly_names
+        self.self.append_to_conversation = append_func
         self.message_queue = self.OrderedMessageQueue()
 
         # This method is now a direct alias to the injected function
-    def append_to_conversation_from_instance(self, message: str, role: str = 'user'):
-        """Instance method wrapper for the global append_to_conversation function."""
-        return self.append_to_conversation(message, role=role)
+    def self.append_to_conversation_from_instance(self, message: str, role: str = 'user'):
+        """Instance method wrapper for the global self.append_to_conversation function."""
+        return self.self.append_to_conversation(message, role=role)
 
     def append_to_history(self, message: str, role: str = 'system') -> None:
         """Add a message to the LLM conversation history without triggering a response.
@@ -6323,7 +6323,7 @@ class Pipulate:
             message: The message to add to history
             role: The role of the message sender ("system", "user", "assistant")
         """
-        self.append_to_conversation(message, role=role)
+        self.self.append_to_conversation(message, role=role)
 
     class OrderedMessageQueue:
         """A lightweight queue to ensure messages are delivered in order.
@@ -6421,8 +6421,8 @@ class Pipulate:
         """Set the chat instance after initialization."""
                 self.chat = chat_instance
         self.db = db
-        self.self.friendly_names = self.friendly_names
-        self.append_to_conversation = append_func
+        self.self.self.friendly_names = self.self.friendly_names
+        self.self.append_to_conversation = append_func
 
     def get_message_queue(self):
         """Return the message queue instance for ordered message delivery."""
@@ -6954,8 +6954,8 @@ class Pipulate:
 
     def fmt(self, endpoint: str) -> str:
         """Format an endpoint string into a human-readable form."""
-        if endpoint in self.friendly_names:
-            return self.friendly_names[endpoint]
+        if endpoint in self.self.friendly_names:
+            return self.self.friendly_names[endpoint]
         return title_name(endpoint)
 
     def _get_clean_state(self, pkey):
@@ -6993,8 +6993,8 @@ class Pipulate:
             elif hasattr(plugin_instance, '__class__'):
                 plugin_name = plugin_instance.__class__.__name__
             if plugin_name and (not display_name):
-                if plugin_name in self.friendly_names:
-                    display_name = self.friendly_names[plugin_name]
+                if plugin_name in self.self.friendly_names:
+                    display_name = self.self.friendly_names[plugin_name]
                 else:
                     display_name = title_name(plugin_name)
         return {'plugin_name': display_name or plugin_name, 'internal_name': plugin_name, 'profile_id': profile_id, 'profile_name': profile_name}
@@ -7073,7 +7073,7 @@ class Pipulate:
         """Handles the logic for an interruptible LLM stream."""
         try:
             await self.chat.broadcast('%%STREAM_START%%')
-            conversation_history = append_to_conversation()
+            conversation_history = self.append_to_conversation()
             response_text = ''
     
             logger.info("ORCHESTRATOR: Entering LLM stream loop.")
@@ -7108,7 +7108,7 @@ class Pipulate:
         Returns:
             Card: A FastHTML Card component with revert functionality, or None if finalized and show_when_finalized=False
         """
-        pipeline_id = self.db.get('pipeline_id', '')
+        pipeline_id = self.self.db.get('pipeline_id', '')
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
         if pipeline_id and finalize_step and not show_when_finalized:
             final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
@@ -7164,7 +7164,7 @@ class Pipulate:
             Div: FastHTML container with revert control and widget content, or locked Card when finalized
         """
         # Check if workflow is finalized
-        pipeline_id = self.db.get('pipeline_id', '')
+        pipeline_id = self.self.db.get('pipeline_id', '')
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
         is_finalized = False
         if pipeline_id and finalize_step:
@@ -7416,7 +7416,7 @@ class Pipulate:
         safe_state = state_desc.replace('<', '\\<').replace('>', '\\>')
         safe_message = message.replace('<', '\\<').replace('>', '\\>')
         logger.debug(f'State: {safe_state}, Message: {safe_message}')
-        append_to_conversation(message, role='system')
+        self.append_to_conversation(message, role='system')
         return message
 
     @pipeline_operation
@@ -8224,7 +8224,7 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
 
 def get_current_profile_id():
     """Get the current profile ID, defaulting to the first profile if none is selected."""
-    profile_id = self.db.get('last_profile_id')
+    profile_id = self.self.db.get('last_profile_id')
     if profile_id is None:
         logger.debug('No last_profile_id found. Finding first available profile.')
         first_profiles = profiles(order_by='id', limit=1)
@@ -8346,7 +8346,7 @@ class Chat:
     async def handle_chat_message(self, websocket: WebSocket, message: str):
         task = None
         try:
-            # REMOVED: append_to_conversation(message, 'user') -> This was causing the duplicates.
+            # REMOVED: self.append_to_conversation(message, 'user') -> This was causing the duplicates.
             parts = message.split('|')
             msg = parts[0]
             verbatim = len(parts) > 1 and parts[1] == 'verbatim'
@@ -8359,10 +8359,10 @@ class Chat:
                 logger.info(f"🎯 USER MCP REQUEST: Found formal MCP tool call for '{tool_name}' in user input")
                 
                 # Append the user's MCP request to conversation history
-                append_to_conversation(msg, 'user')
+                self.append_to_conversation(msg, 'user')
                 
                 # Execute the formal MCP tool call directly
-                conversation_history = append_to_conversation()  # Get current conversation
+                conversation_history = self.append_to_conversation()  # Get current conversation
                 asyncio.create_task(
                     execute_formal_mcp_tool_call(conversation_history, tool_name, inner_content)
                 )
