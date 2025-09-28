@@ -79,21 +79,23 @@ class Pipulate:
     PRESERVE_REFILL = True
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
 
-        def __init__(self, pipeline_table, db, self.friendly_names, append_func, chat_instance=None):
+    def __init__(self, pipeline_table, db, friendly_names, append_func, chat_instance=None):
         """Initialize Pipulate with required dependencies.
 
         Args:
             pipeline_table: The database table for storing pipeline state
+            db: The DictLikeDB instance for key-value storage
+            friendly_names: The dictionary for mapping app names
+            append_func: The function for appending to conversation history
             chat_instance: Optional chat coordinator instance
         """
         self.pipeline_table = pipeline_table
-                self.chat = chat_instance
+        self.chat = chat_instance
         self.db = db
-        self.self.friendly_names = self.friendly_names
+        self.friendly_names = friendly_names
         self.append_to_conversation = append_func
         self.message_queue = self.OrderedMessageQueue()
 
-        # This method is now a direct alias to the injected function
     def append_to_conversation_from_instance(self, message: str, role: str = 'user'):
         """Instance method wrapper for the global append_to_conversation function."""
         return self.append_to_conversation(message, role=role)
