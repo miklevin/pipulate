@@ -8,6 +8,7 @@ import imports.server_logging as slog
 import config as CFG
 from imports import botify_code_generation
 from imports.stream_orchestrator import stream_orchestrator
+from typing import AsyncGenerator, Optional
 
 # imports/pipulate.py
 def title_name(word: str) -> str:
@@ -71,7 +72,7 @@ class Pipulate:
     PRESERVE_REFILL = True
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
 
-    def __init__(self, pipeline_table, db, self.friendly_names, append_func, chat_instance=None):
+    def __init__(self, pipeline_table, db, friendly_names, append_func, chat_instance=None):
         """Initialize Pipulate with required dependencies.
 
         Args:
@@ -100,7 +101,7 @@ class Pipulate:
             return self.friendly_names[endpoint]
         return title_name(endpoint)
 
-    def self.append_to_conversation_from_instance(self, message: str, role: str = 'user'):
+    def append_to_conversation_from_instance(self, message: str, role: str = 'user'):
         """Instance method wrapper for the global self.append_to_conversation function."""
         return self.self.append_to_conversation(message, role=role)
 
@@ -861,7 +862,7 @@ class Pipulate:
         """Wrapper that delegates to the external stream orchestrator."""
         from imports.stream_orchestrator import stream_orchestrator # Import just-in-time
         # Correctly pass self (pipulate_instance), self.chat (chat_instance), and message
-                return await stream_orchestrator(self, self.chat, message, **kwargs)
+        return await stream_orchestrator(self, self.chat, message, **kwargs)
 
     async def _handle_llm_stream(self):
         """Handles the logic for an interruptible LLM stream."""
@@ -6293,7 +6294,7 @@ class Pipulate:
     PRESERVE_REFILL = True
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
 
-        def __init__(self, pipeline_table, db, self.self.friendly_names, append_func, chat_instance=None):
+    def __init__(self, pipeline_table, db, friendly_names, append_func, chat_instance=None):
         """Initialize Pipulate with required dependencies.
 
         Args:
@@ -6301,14 +6302,14 @@ class Pipulate:
             chat_instance: Optional chat coordinator instance
         """
         self.pipeline_table = pipeline_table
-                self.chat = chat_instance
+        self.chat = chat_instance
         self.db = db
         self.self.self.friendly_names = self.self.friendly_names
         self.self.append_to_conversation = append_func
         self.message_queue = self.OrderedMessageQueue()
 
         # This method is now a direct alias to the injected function
-    def self.append_to_conversation_from_instance(self, message: str, role: str = 'user'):
+    def append_to_conversation_from_instance(self, message: str, role: str = 'user'):
         """Instance method wrapper for the global self.append_to_conversation function."""
         return self.self.append_to_conversation(message, role=role)
 
@@ -6422,7 +6423,7 @@ class Pipulate:
 
     def set_chat(self, chat_instance):
         """Set the chat instance after initialization."""
-                self.chat = chat_instance
+        self.chat = chat_instance
         self.db = db
         self.self.self.friendly_names = self.self.friendly_names
         self.self.append_to_conversation = append_func
@@ -7070,7 +7071,7 @@ class Pipulate:
         """Wrapper that delegates to the external stream orchestrator."""
         from imports.stream_orchestrator import stream_orchestrator # Import just-in-time
         # Correctly pass self (pipulate_instance), self.chat (chat_instance), and message
-                return await stream_orchestrator(self, self.chat, message, **kwargs)
+        return await stream_orchestrator(self, self.chat, message, **kwargs)
 
     async def _handle_llm_stream(self):
         """Handles the logic for an interruptible LLM stream."""
