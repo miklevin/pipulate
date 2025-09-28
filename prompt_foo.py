@@ -749,10 +749,6 @@ if prompt_content:
 # Set the output filename
 output_filename = args.output
 
-# Set the pre and post prompts from the active template
-pre_prompt = active_template["pre_prompt"]
-post_prompt = active_template["post_prompt"]
-
 # Override post_prompt with direct string if provided
 if direct_prompt:
     post_prompt = direct_prompt
@@ -878,15 +874,15 @@ print()
 if args.output:
     try:
         with open(args.output, 'w', encoding='utf-8') as outfile:
-            outfile.write(output_xml)
+            outfile.write(final_output)
         print(f"Output written to '{args.output}'")
     except Exception as e:
         print(f"Error writing to '{args.output}': {e}")
 
 # By default, copy the output to clipboard unless --no-clipboard is specified
 if not args.no_clipboard:
-    if copy_to_clipboard(output_xml):
-        print("Output copied to clipboard")
+    if copy_to_clipboard(final_output):
+        print("Markdown output copied to clipboard")
 
 # print("\nScript finished.") # MODIFICATION: Commented out
 
