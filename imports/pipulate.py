@@ -27,14 +27,6 @@ def title_name(word: str) -> str:
     return ' '.join(processed_words)
 
 
-def endpoint_name(endpoint: str) -> str:
-    if not endpoint:
-        return get_home_menu_item()
-    if endpoint in self.self.friendly_names:
-        return self.self.friendly_names[endpoint]
-    return title_name(endpoint)
-
-
 def pipeline_operation(func):
 
     @functools.wraps(func)
@@ -95,6 +87,18 @@ class Pipulate:
         self.self.friendly_names = self.friendly_names
         self.self.append_to_conversation = append_func
         self.message_queue = self.OrderedMessageQueue()
+
+    def get_home_menu_item(self) -> str:
+        """Returns the appropriate home menu item text based on the HOME_APP setting."""
+        home_app_name = getattr(CFG, 'HOME_APP', '030_roles') # Default to '030_roles'
+        return self.friendly_names.get(home_app_name, title_name(home_app_name))
+
+    def endpoint_name(self, endpoint: str) -> str:
+        if not endpoint:
+            return self.get_home_menu_item()
+        if endpoint in self.friendly_names:
+            return self.friendly_names[endpoint]
+        return title_name(endpoint)
 
     def self.append_to_conversation_from_instance(self, message: str, role: str = 'user'):
         """Instance method wrapper for the global self.append_to_conversation function."""
@@ -208,12 +212,11 @@ class Pipulate:
             return word[:-1]
         return word
 
+
     def set_chat(self, chat_instance):
-        """Set the chat instance after initialization."""
-                self.chat = chat_instance
-        self.db = db
-        self.self.self.friendly_names = self.self.friendly_names
-        self.self.append_to_conversation = append_func
+            """Set the chat instance after initialization."""
+            self.chat = chat_instance
+
 
     def get_message_queue(self):
         """Return the message queue instance for ordered message delivery."""
