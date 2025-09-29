@@ -232,40 +232,6 @@ def is_demo_in_progress():
     return os.path.exists(DEMO_STATE_FILE)
 
 
-def get_app_name(force_app_name=None):
-    """Get the name of the app from the whitelabel.txt file, or the parent directory name."""
-    name = force_app_name
-    if not name:
-        app_name_file = 'whitelabel.txt'
-        if Path(app_name_file).exists():
-            try:
-                name = Path(app_name_file).read_text().strip()
-            except:
-                pass
-        if not name:
-            name = Path(__file__).parent.name
-            name = name[:-5] if name.endswith('-main') else name
-    return name.capitalize()
-
-
-def get_db_filename():
-    current_env = get_current_environment()
-    if current_env == 'Development':
-        return f'data/{APP_NAME.lower()}_dev.db'
-    else:
-        return f'data/{APP_NAME.lower()}.db'
-
-
-def get_current_environment():
-    if ENV_FILE.exists():
-        return ENV_FILE.read_text().strip()
-    else:
-        # Ensure the data directory exists before writing the file
-        ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
-        ENV_FILE.write_text('Development')
-        return 'Development'
-
-
 def get_nix_version():
     """Get the version and description from the single source of truth: pipulate.__version__ and __version_description__"""
     # Get version and description from single source of truth
@@ -310,8 +276,6 @@ def get_git_hash():
     except Exception:
         return "unknown"
 
-ENV_FILE = Path(CFG.ENV_FILE)
-APP_NAME = get_app_name()
 logger.info(f'🏷️ FINDER_TOKEN: APP_CONFIG - App name: {APP_NAME}')
 
 # Import MCP tools module for enhanced AI assistant capabilities
