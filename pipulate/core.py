@@ -1521,130 +1521,165 @@ class Pipulate:
         return state
 
 
-async def execute_bracket_notation_command(mcp_block: str, operation_id: str, start_time: float):
-    """
-    Execute bracket notation commands - Level 1 of progressive reveal.
+    async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
+        # Import the formal MCP orchestrator for passive listening
+        from imports.mcp_orchestrator import parse_mcp_request
+        
+        url = 'http://localhost:11434/api/chat'
+        payload = {'MODEL': MODEL, 'messages': messages, 'stream': True}
+        accumulated_response = []
+        full_content_buffer = ""
+        word_buffer = ""  # Buffer for word-boundary detection
+        mcp_detected = False
+        chunk_count = 0
 
-    🎓 PROGRESSIVE REVEAL LEVEL 1: Ultra-simple for small models
-    Examples: [mcp-discover], [pipeline], [search FINDER_TOKEN]
+        # 🎯 GOLDEN PATH EXECUTION MATRIX - ORCHESTRATOR STATUS:
+        # ✅ WORKING: XML syntax <tool><params><url>value</url></params></tool>
+        # ✅ WORKING: JSON syntax <tool><params>{"url": "value"}</params></tool>
+        # 🟡 INTEGRATING: [cmd arg] bracket notation syntax (parser exists, integrating now)
+        # 🔴 NOT YET: python -c "..." inline code execution
+        # 🔴 NOT YET: python cli.py call forwarding from message stream
+        #
+        # 🎓 PROGRESSIVE REVEAL DESIGN FOR LLMs (simplest first):
+        # Level 1: [mcp-discover] - Ultra-simple for small models
+        # Level 2: .venv/bin/python cli.py mcp-discover - Terminal proficiency
+        # Level 3: python -c "from imports.ai_tool_discovery_simple_parser import execute_simple_command..."
+        # Level 4: <tool name="ai_self_discovery_assistant"><params>{"discovery_type":"capabilities"}</params></tool>
+        # Level 5: <tool name="ai_self_discovery_assistant"><params><discovery_type>capabilities</discovery_type></params></tool>
+        # Level 6: Formal MCP Protocol - Full conversation loop with automatic tool execution
+        #
+        # This orchestrator monitors LLM response streams for MCP tool calls.
+        # When found, tools are executed asynchronously and results injected back.
 
-    This is the simplest possible syntax, designed for quantized models
-    that can't handle complex tool calling but can embed simple commands.
-    """
-    try:
-        # Import the simple parser
-        import sys
-        from pathlib import Path
-        sys.path.insert(0, str(Path(__file__).parent / 'helpers'))
-        from ai_tool_discovery_simple_parser import execute_simple_command
+        # Match XML/JSON tool tags AND bracket notation commands
+        mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>|\[[^\]]+\])', re.DOTALL)
 
-        # Remove brackets and execute
-        command = mcp_block.strip('[]')
-        logger.info(f"🔧 FINDER_TOKEN: BRACKET_COMMAND_START - Command '{command}'")
+        logger.debug("🔍 DEBUG: === STARTING process_llm_interaction ===")
+        logger.debug(f"🔍 DEBUG: MODEL='{MODEL}', messages_count={len(messages)}")
 
-        # Execute using the simple parser
-        result = await execute_simple_command(command)
+        # 🚨 TRANSPARENCY: Show COMPLETE conversation history being sent to LLM
+        logger.info("🔍 TRANSPARENCY: === COMPLETE CONVERSATION HISTORY ===")
+        for i, msg in enumerate(messages):
+            role = msg.get('role', 'unknown')
+            content = msg.get('content', '')
+            logger.info(f"🔍 TRANSPARENCY: Message {i}: [{role}] {content}")
+        logger.info("🔍 TRANSPARENCY: === END CONVERSATION HISTORY ===")
 
-        if result.get('success'):
-            logger.info(f"🎯 FINDER_TOKEN: BRACKET_SUCCESS - Command '{command}' executed successfully")
+        table = Table(title='User Input')
+        table.add_column('Role', style='cyan')
+        table.add_column('Content', style='orange3')
+        if messages:
+            # Show the current user input (last message should be the current user's message)
+            current_message = messages[-1]
+            role = current_message.get('role', 'unknown')
+            content = current_message.get('content', '')
+            if isinstance(content, dict):
+                # Use Rich JSON display for LLM content formatting
+                content = slog.rich_json_display(content, console_output=False, log_output=True)
+            table.add_row(role, content)
+            logger.debug(f"🔍 DEBUG: Current user input - role: {role}, content: '{content[:100]}...'")
+        slog.print_and_log_table(table, "LLM DEBUG - ")
 
-            # 🔧 TRANSPARENCY DISABLED: Commented out to prevent response stream pollution
-            # This was causing massive amounts of pipeline data to be logged, making chat unusable
-            #
-            # logger.info(f"🔧 MCP_TRANSPARENCY: === COMPLETE TOOL EXECUTION DETAILS ===")
-            # logger.info(f"🔧 MCP_TRANSPARENCY: Command: '{command}'")
-            # logger.info(f"🔧 MCP_TRANSPARENCY: Result Success: {result.get('success')}")
-            # logger.info(f"🔧 MCP_TRANSPARENCY: Result Keys: {list(result.keys())}")
-            #
-            # # Log the full result structure for debugging
-            # if 'result' in result:
-            #     logger.info(f"🔧 MCP_TRANSPARENCY: Result Data: {result['result']}")
-            #
-            # # Log any pattern matches or search results
-            # if 'pattern' in result:
-            #     logger.info(f"🔧 MCP_TRANSPARENCY: Search Pattern: {result['pattern']}")
-            # if 'matches' in result:
-            #     logger.info(f"🔧 MCP_TRANSPARENCY: Match Count: {len(result['matches'])}")
-            #     logger.info(f"🔧 MCP_TRANSPARENCY: First 3 Matches: {result['matches'][:3]}")
-            #
-            # # Log file operations
-            # if 'file_path' in result:
-            #     logger.info(f"🔧 MCP_TRANSPARENCY: File Path: {result['file_path']}")
-            # if 'match_count' in result:
-            #     logger.info(f"🔧 MCP_TRANSPARENCY: Total Match Count: {result['match_count']}")
-            #
-            # logger.info(f"🔧 MCP_TRANSPARENCY: === END TRANSPARENCY LOG ===")
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=payload) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        error_msg = f'Ollama server error: {error_text}'
+                        logger.error(f"🔍 DEBUG: HTTP Error {response.status}: {error_text}")
+                        yield error_msg
+                        return
 
-            # Format response based on command type
-            if command in ['mcp', 'mcp-discover']:
-                # Special handling for discovery commands
-                categories = result.get('categories', [])
-                response_text = "🚀 **MCP Tool Discovery** 🚀\n\n"
-                response_text += "Available categories:\n\n"
-                for category in categories:
-                    response_text += f"• {category}\n"
-                response_text += f"\n💡 Try [tools] to see specific tools in each category"
-                response_text += f"\n🎓 **Progressive Reveal**: Start simple, get sophisticated!"
-                response_text += f"\n\n**Next levels:**"
-                response_text += f"\nLevel 2: `.venv/bin/python cli.py mcp-discover`"
-                response_text += f"\nLevel 3: `python -c \"from imports.ai_tool_discovery_simple_parser import execute_simple_command; import asyncio; print(asyncio.run(execute_simple_command('mcp')))\"`"
-                response_text += f"\nLevel 4: `<tool name=\"ai_self_discovery_assistant\"><params>{{\"discovery_type\":\"capabilities\"}}</params></tool>`"
-                response_text += f"\nLevel 5: `<tool name=\"ai_self_discovery_assistant\"><params><discovery_type>capabilities</discovery_type></params></tool>`"
+                    yield '\n'  # Start with a newline for better formatting in UI
 
-            elif command == 'tools':
-                # List tools by category
-                tools = result.get('tools', {})
-                response_text = "🔧 **Available MCP Tools** 🔧\n\n"
-                for category, tool_list in tools.items():
-                    response_text += f"**{category}:**\n"
-                    for tool in tool_list:
-                        response_text += f"• {tool}\n"
-                    response_text += "\n"
+                    async for line in response.content:
+                        if not line:
+                            continue
+                        try:
+                            chunk = json.loads(line)
+                            chunk_count += 1
 
-            elif command == 'pipeline':
-                # System state inspection
-                response_text = f"📊 **System State** 📊\n\n"
-                response_text += f"Pipeline state inspection completed.\n"
-                # BLOCKED: Massive data dump into chat - causes HTML pollution
-                # if 'result' in result:
-                #     response_text += f"Result: {result['result']}\n"
+                            if chunk.get('done', False):
+                                logger.debug(f"🔍 DEBUG: Stream complete (done=True)")
+                                break
 
-            else:
-                # Generic success handling
-                response_text = f"✅ **Command '{command}' completed!** ✅\n\n"
-                # BLOCKED: Massive data dump into chat - causes HTML pollution
-                # if 'result' in result:
-                #     response_text += f"Result: {result['result']}\n"
+                            if (content := chunk.get('message', {}).get('content', '')):
+                                # If we've already found and handled a tool call, ignore the rest of the stream.
+                                if mcp_detected:
+                                    continue
 
-            await pipulate.message_queue.add(pipulate, response_text, verbatim=True, role='assistant')
+                                full_content_buffer += content
 
-        else:
-            # Handle errors with enhanced transparency
-            error_msg = result.get('error', 'Unknown error')
-            suggestion = result.get('suggestion', '')
+                                # STAGE 3: Active MCP execution - detect and execute formal MCP requests
+                                formal_mcp_result = parse_mcp_request(full_content_buffer)
+                                if formal_mcp_result:
+                                    tool_name, inner_content = formal_mcp_result
+                                    mcp_detected = True  # Stop streaming the LLM response
+                                    
+                                    logger.info(f"🎯 MCP ACTIVATED: Found formal MCP tool call for '{tool_name}'")
+                                    logger.debug(f"🎯 MCP CONTENT: {inner_content}")
+                                    
+                                    # Execute the formal MCP tool call
+                                    asyncio.create_task(
+                                        execute_formal_mcp_tool_call(messages, tool_name, inner_content)
+                                    )
+                                    continue  # Skip the rest of the stream processing
 
-            # 🔧 ERROR TRANSPARENCY DISABLED: Commented out to prevent response stream pollution
-            # This was also causing excessive error logging that polluted the chat
-            #
-            # logger.error(f"🔧 MCP_TRANSPARENCY: === COMMAND FAILURE DETAILS ===")
-            # logger.error(f"🔧 MCP_TRANSPARENCY: Failed Command: '{command}'")
-            # logger.error(f"🔧 MCP_TRANSPARENCY: Error Message: {error_msg}")
-            # logger.error(f"🔧 MCP_TRANSPARENCY: Full Error Result: {result}")
-            # if suggestion:
-            #     logger.error(f"🔧 MCP_TRANSPARENCY: Suggested Fix: {suggestion}")
-            # logger.error(f"🔧 MCP_TRANSPARENCY: === END ERROR LOG ===")
+                                # Use regex to find a complete MCP block
+                                match = mcp_pattern.search(full_content_buffer)
+                                if match:
+                                    mcp_block = match.group(1)
+                                    mcp_detected = True  # Flag that we've found our tool call
 
-            response_text = f"❌ **Command Error** ❌\n\n"
-            response_text += f"Command: `{command}`\n"
-            response_text += f"Error: {error_msg}\n"
-            if suggestion:
-                response_text += f"Suggestion: {suggestion}\n"
-            response_text += f"\n💡 Try [mcp] for available commands"
+                                    logger.info(f"🔧 MCP CLIENT: Complete MCP tool call extracted.")
+                                    logger.debug(f"🔧 MCP BLOCK:\n{mcp_block}")
 
-            logger.error(f"🔧 BRACKET CLIENT: Command '{command}' failed: {error_msg}")
-            await pipulate.message_queue.add(pipulate, response_text, verbatim=True, role='system')
+                                    # Offload the tool execution to a background task
+                                    asyncio.create_task(
+                                        execute_and_respond_to_tool_call(messages, mcp_block)
+                                    )
+                                    # Now that we have the tool call, we ignore all subsequent content from this stream
+                                    continue
 
-    except Exception as e:
-        logger.error(f"🔧 BRACKET CLIENT: Error in bracket notation execution: {e}", exc_info=True)
-        await pipulate.message_queue.add(pipulate, f"An error occurred executing bracket command: {str(e)}", verbatim=True, role='system')
+                                # If no MCP block is detected yet, stream the content normally.
+                                # This handles regular, non-tool-call conversations.
+                                word_buffer += content
 
+                                # Check if word_buffer contains start of potential MCP/tool tag or markdown code block
+                                if '<tool' in word_buffer or '<mcp-request' in word_buffer or '```xml' in word_buffer:
+                                    # Hold off on yielding if we might be building a tool call
+                                    continue
+
+                                parts = re.split(r'(\s+)', word_buffer)
+                                if len(parts) > 1:
+                                    complete_parts = parts[:-1]
+                                    word_buffer = parts[-1]
+                                    for part in complete_parts:
+                                        accumulated_response.append(part)
+                                        yield part
+
+                        except json.JSONDecodeError:
+                            logger.warning(f"🔍 DEBUG: JSON decode error on chunk #{chunk_count}")
+                            continue
+
+                    # After the loop, if there's remaining content in the buffer and no tool was called, flush it.
+                    if word_buffer and not mcp_detected:
+                        accumulated_response.append(word_buffer)
+                        yield word_buffer
+
+                    # Final logging table for LLM responses (including tool calls)
+                    if accumulated_response:
+                        final_response = ''.join(accumulated_response)
+                        table = Table(title='Chat Response')
+                        table.add_column('Accumulated Response')
+                        table.add_row(final_response, style='green')
+                        slog.print_and_log_table(table, "LLM RESPONSE - ")
+
+        except aiohttp.ClientConnectorError as e:
+            error_msg = 'Unable to connect to Ollama server. Please ensure Ollama is running.'
+            logger.error(f"🔍 DEBUG: Connection error: {e}")
+            yield error_msg
+        except Exception as e:
+            error_msg = f'Error: {str(e)}'
+            logger.error(f"🔍 DEBUG: Unexpected error in process_llm_interaction: {e}")
+            yield error_msg
