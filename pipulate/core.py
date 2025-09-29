@@ -1,3 +1,6 @@
+import inspect
+import importlib
+from pathlib import Path
 import functools
 import json
 import re
@@ -72,13 +75,15 @@ class Pipulate:
     PRESERVE_REFILL = True
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
 
-    def __init__(self, pipeline_table, db, friendly_names, append_func, chat_instance=None):
+    def __init__(self, pipeline_table, db, friendly_names, append_func, get_profile_id_func, get_profile_name_func, chat_instance=None):
         self.pipeline_table = pipeline_table
         self.chat = chat_instance
         self.db = db
         self.friendly_names = friendly_names
         self.append_to_conversation = append_func
         self.message_queue = self.OrderedMessageQueue()
+        self.get_current_profile_id = get_profile_id_func
+        self.get_profile_name = get_profile_name_func
 
     def get_home_menu_item(self) -> str:
         """Returns the appropriate home menu item text based on the HOME_APP setting."""
@@ -767,8 +772,8 @@ class Pipulate:
         Returns:
             dict: Contains plugin_name, profile_id, and profile_name
         """
-        profile_id = get_current_profile_id()
-        profile_name = get_profile_name()
+        profile_id = self.get_current_profile_id()
+        profile_name = self.get_profile_name()
         plugin_name = None
         display_name = None
         if plugin_instance:
