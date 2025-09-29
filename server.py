@@ -1395,7 +1395,7 @@ db = DictLikeDB(store, Store)
 logger.info('💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized')
 
 
-from imports.pipulate import Pipulate
+from pipulate import Pipulate
 pipulate = Pipulate(pipeline, db, friendly_names, append_func=append_to_conversation)
 logger.info('💾 FINDER_TOKEN: PIPULATE - Pipeline object created.')
 
