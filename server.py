@@ -687,30 +687,6 @@ def endpoint_name(endpoint: str) -> str:
     return title_name(endpoint)
 
 
-def pipeline_operation(func):
-
-    @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
-        url = args[0] if args else None
-        if not url:
-            return func(self, *args, **kwargs)
-        old_state = self._get_clean_state(url)
-        result = func(self, *args, **kwargs)
-        new_state = self._get_clean_state(url)
-        if old_state != new_state:
-            changes = {k: new_state[k] for k in new_state if k not in old_state or old_state[k] != new_state[k]}
-            if changes:
-                operation = func.__name__
-                step_changes = [k for k in changes if not k.startswith('_')]
-                if step_changes:
-                    log.pipeline(f"Operation '{operation}' updated state", details=f"Steps: {', '.join(step_changes)}", pipeline_id=url)
-                # Use Rich JSON display for pipeline changes
-                formatted_changes = slog.rich_json_display(changes, console_output=False, log_output=True)
-                log.debug('pipeline', f"Pipeline '{url}' detailed changes", formatted_changes)
-        return result
-    return wrapper
-
-
 pipulate = Pipulate(pipeline, db, friendly_names, append_func=append_to_conversation)
 
 
