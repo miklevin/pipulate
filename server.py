@@ -94,7 +94,6 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 import config as CFG
-from imports.pipulate import Pipulate
 from config import get_db_filename, get_app_name, APP_NAME, get_current_environment
 
 import imports.ascii_displays as aa
@@ -120,6 +119,7 @@ DEMO_STATE_FILE
 DEFAULT_ACTIVE_ROLES
 BANNER_COLORS
 DISCUSSION_DB_PATH
+COLOR_MAP
 """.split('\n')[1:-1]
 for key in config_keys:
     globals()[key] = getattr(CFG, key)
@@ -687,9 +687,6 @@ def endpoint_name(endpoint: str) -> str:
     if endpoint in friendly_names:
         return friendly_names[endpoint]
     return title_name(endpoint)
-
-
-pipulate = Pipulate(pipeline, db, friendly_names, append_func=append_to_conversation)
 
 
 async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
@@ -1293,6 +1290,115 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
 )
 
 
+def db_operation(func):
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            result = func(*args, **kwargs)
+            if func.__name__ == '__setitem__':
+                key, value = (args[1], args[2])
+                if not key.startswith('_') and (not key.endswith('_temp')):
+                    if key in ('last_app_choice', 'last_profile_id', 'last_visited_url', 'pipeline_id'):
+                        log.data(f'State updated: {key}', value)
+                    else:
+                        log.debug('database', f'DB {func.__name__}: {key}', f'value: {str(value)[:30]}...' if len(str(value)) > 30 else f'value: {value}')
+            return result
+        except Exception as e:
+            # Don't log KeyError as ERROR for __getitem__ - it's expected behavior
+            if func.__name__ == '__getitem__' and isinstance(e, KeyError):
+                logger.debug(f'Key not found in database: {e}')
+            else:
+                log.error(f'Database operation {func.__name__} failed', e)
+            raise
+    return wrapper
+
+
+class DictLikeDB:
+
+    def __init__(self, store, Store):
+        self.store = store
+        self.Store = Store
+        logger.debug('DictLikeDB initialized.')
+
+    @db_operation
+    def __getitem__(self, key):
+        try:
+            value = self.store[key].value
+            logger.debug(f'Retrieved from DB: {key} = {value}')
+            return value
+        except NotFoundError:
+            # Don't log as error - this is expected behavior when checking for keys
+            logger.debug(f'Key not found: {key}')
+            raise KeyError(key)
+
+    @db_operation
+    def __setitem__(self, key, value):
+        try:
+            self.store.update({'key': key, 'value': value})
+            logger.debug(f'Updated persistence store: {key} = {value}')
+        except NotFoundError:
+            self.store.insert({'key': key, 'value': value})
+            logger.debug(f'Inserted new item in persistence store: {key} = {value}')
+
+    @db_operation
+    def __delitem__(self, key):
+        try:
+            self.store.delete(key)
+            if key != 'temp_message':
+                logger.warning(f'Deleted key from persistence store: {key}')
+        except NotFoundError:
+            logger.error(f'Attempted to delete non-existent key: {key}')
+            raise KeyError(key)
+
+    @db_operation
+    def __contains__(self, key):
+        exists = key in self.store
+        logger.debug(f"Key '<{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>' exists: <{COLOR_MAP['value']}>{exists}</{COLOR_MAP['value']}>")
+        return exists
+
+    @db_operation
+    def __iter__(self):
+        for record in self.store():
+            yield record.key
+
+    @db_operation
+    def items(self):
+        for record in self.store():
+            yield (record.key, record.value)
+
+    @db_operation
+    def keys(self):
+        return list(self)
+
+    @db_operation
+    def values(self):
+        for record in self.store():
+            yield record.value
+
+    @db_operation
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            logger.debug(f"Key '<{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>' not found. Returning default: <{COLOR_MAP['value']}>{default}</{COLOR_MAP['value']}>")
+            return default
+
+    @db_operation
+    def set(self, key, value):
+        self[key] = value
+        return value
+
+
+db = DictLikeDB(store, Store)
+logger.info('💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized')
+
+
+from imports.pipulate import Pipulate
+pipulate = Pipulate(pipeline, db, friendly_names, append_func=append_to_conversation)
+logger.info('💾 FINDER_TOKEN: PIPULATE - Pipeline object created.')
+
+
 class Chat:
     def __init__(self, app, id_suffix='', pipulate_instance=None):
         self.app = app
@@ -1581,113 +1687,6 @@ def build_endpoint_training(endpoint):
 
     append_to_conversation(endpoint_training.get(endpoint, ''), 'system')
     return
-
-
-COLOR_MAP = {'key': 'yellow', 'value': 'white', 'error': 'red', 'warning': 'yellow', 'success': 'green', 'debug': 'blue'}
-
-
-def db_operation(func):
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            result = func(*args, **kwargs)
-            if func.__name__ == '__setitem__':
-                key, value = (args[1], args[2])
-                if not key.startswith('_') and (not key.endswith('_temp')):
-                    if key in ('last_app_choice', 'last_profile_id', 'last_visited_url', 'pipeline_id'):
-                        log.data(f'State updated: {key}', value)
-                    else:
-                        log.debug('database', f'DB {func.__name__}: {key}', f'value: {str(value)[:30]}...' if len(str(value)) > 30 else f'value: {value}')
-            return result
-        except Exception as e:
-            # Don't log KeyError as ERROR for __getitem__ - it's expected behavior
-            if func.__name__ == '__getitem__' and isinstance(e, KeyError):
-                logger.debug(f'Key not found in database: {e}')
-            else:
-                log.error(f'Database operation {func.__name__} failed', e)
-            raise
-    return wrapper
-
-
-class DictLikeDB:
-
-    def __init__(self, store, Store):
-        self.store = store
-        self.Store = Store
-        logger.debug('DictLikeDB initialized.')
-
-    @db_operation
-    def __getitem__(self, key):
-        try:
-            value = self.store[key].value
-            logger.debug(f'Retrieved from DB: {key} = {value}')
-            return value
-        except NotFoundError:
-            # Don't log as error - this is expected behavior when checking for keys
-            logger.debug(f'Key not found: {key}')
-            raise KeyError(key)
-
-    @db_operation
-    def __setitem__(self, key, value):
-        try:
-            self.store.update({'key': key, 'value': value})
-            logger.debug(f'Updated persistence store: {key} = {value}')
-        except NotFoundError:
-            self.store.insert({'key': key, 'value': value})
-            logger.debug(f'Inserted new item in persistence store: {key} = {value}')
-
-    @db_operation
-    def __delitem__(self, key):
-        try:
-            self.store.delete(key)
-            if key != 'temp_message':
-                logger.warning(f'Deleted key from persistence store: {key}')
-        except NotFoundError:
-            logger.error(f'Attempted to delete non-existent key: {key}')
-            raise KeyError(key)
-
-    @db_operation
-    def __contains__(self, key):
-        exists = key in self.store
-        logger.debug(f"Key '<{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>' exists: <{COLOR_MAP['value']}>{exists}</{COLOR_MAP['value']}>")
-        return exists
-
-    @db_operation
-    def __iter__(self):
-        for record in self.store():
-            yield record.key
-
-    @db_operation
-    def items(self):
-        for record in self.store():
-            yield (record.key, record.value)
-
-    @db_operation
-    def keys(self):
-        return list(self)
-
-    @db_operation
-    def values(self):
-        for record in self.store():
-            yield record.value
-
-    @db_operation
-    def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            logger.debug(f"Key '<{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>' not found. Returning default: <{COLOR_MAP['value']}>{default}</{COLOR_MAP['value']}>")
-            return default
-
-    @db_operation
-    def set(self, key, value):
-        self[key] = value
-        return value
-
-
-db = DictLikeDB(store, Store)
-logger.info('💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized')
 
 
 def populate_initial_data():
