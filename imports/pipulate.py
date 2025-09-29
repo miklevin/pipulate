@@ -6295,17 +6295,12 @@ class Pipulate:
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
 
     def __init__(self, pipeline_table, db, friendly_names, append_func, chat_instance=None):
-        """Initialize Pipulate with required dependencies.
-
-        Args:
-            pipeline_table: The database table for storing pipeline state
-            chat_instance: Optional chat coordinator instance
-        """
+        """Initialize Pipulate with required dependencies."""
         self.pipeline_table = pipeline_table
         self.chat = chat_instance
         self.db = db
-        self.self.self.friendly_names = self.self.friendly_names
-        self.self.append_to_conversation = append_func
+        self.friendly_names = friendly_names
+        self.append_to_conversation = append_func
         self.message_queue = self.OrderedMessageQueue()
 
         # This method is now a direct alias to the injected function
