@@ -5,6 +5,7 @@ import functools
 import json
 import re
 import asyncio
+import aiohttp
 from datetime import datetime
 from fasthtml.common import *
 from loguru import logger
@@ -1521,7 +1522,8 @@ class Pipulate:
         return state
 
 
-    async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
+    async def process_llm_interaction(self, MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
+        from rich.table import Table
         # Import the formal MCP orchestrator for passive listening
         from imports.mcp_orchestrator import parse_mcp_request
         
