@@ -389,3 +389,39 @@ AVAILABLE_ROLES = {
 # 🔑 API Token Configuration (STANDARDIZED FILE PATHS)
 BOTIFY_TOKEN_FILE = 'botify_token.txt'  # Root level token file
 BOTIFY_HELPERS_TOKEN_FILE = 'helpers/botify/botify_token.txt'  # Helper scripts token file 
+
+# --- Dynamic Configuration ---
+
+ENV_FILE = Path('data/current_environment.txt')
+
+def get_app_name(force_app_name=None):
+    """Get the name of the app from the whitelabel.txt file, or the parent directory name."""
+    name = force_app_name
+    if not name:
+        app_name_file = 'whitelabel.txt'
+        if Path(app_name_file).exists():
+            try:
+                name = Path(app_name_file).read_text().strip()
+            except:
+                pass
+        if not name:
+            name = Path(__file__).parent.name
+            name = name[:-5] if name.endswith('-main') else name
+    return name.capitalize()
+
+APP_NAME = get_app_name()
+
+def get_current_environment():
+    if ENV_FILE.exists():
+        return ENV_FILE.read_text().strip()
+    else:
+        ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
+        ENV_FILE.write_text('Development')
+        return 'Development'
+
+def get_db_filename():
+    current_env = get_current_environment()
+    if current_env == 'Development':
+        return f'data/{APP_NAME.lower()}_dev.db'
+    else:
+        return f'data/{APP_NAME.lower()}.db'
