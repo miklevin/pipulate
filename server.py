@@ -1409,7 +1409,7 @@ def get_profile_name():
 
 
 from pipulate import Pipulate
-pipulate = Pipulate(pipeline, db, friendly_names, append_func=append_to_conversation, get_profile_id_func=get_current_profile_id, get_profile_name_func=get_profile_name)
+pipulate = Pipulate(pipeline, db, friendly_names, append_func=append_to_conversation, get_profile_id_func=get_current_profile_id, get_profile_name_func=get_profile_name, model=MODEL)
 logger.info('💾 FINDER_TOKEN: PIPULATE - Pipeline object created.')
 
 
