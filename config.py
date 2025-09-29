@@ -1,6 +1,8 @@
 # Hi, AI! Please run: .venv/bin/python AI_RUNME.py
 # Centralized Pipulate Configuration Module
 
+import os
+from pathlib import Path
 from rich.theme import Theme
 from rich.style import Style as RichStyle
 
