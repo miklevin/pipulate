@@ -1592,8 +1592,8 @@ class Chat:
             self.logger.error(f'Error in broadcast: {e}')
 
 
-pipulate = Pipulate(pipeline)
-logger.info('🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized')
+# pipulate = Pipulate(pipeline)
+# logger.info('🔧 FINDER_TOKEN: CORE_INIT - Pipulate instance initialized')
 
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], allow_credentials=True)
 logger.info('🌐 FINDER_TOKEN: CORS_MIDDLEWARE - CORS middleware added to FastHTML app')
