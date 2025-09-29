@@ -47,7 +47,7 @@ py-modules = ["cli", "server", "common", "config", "ai_dictdb", "__init__"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["apps*", "imports*", "tools*", "static*"]
+include = ["apps*", "imports*", "tools*", "static*", "pipulate*"]
 exclude = [
     "logs*", 
     "data*", 
