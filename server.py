@@ -1185,21 +1185,6 @@ async def execute_bracket_notation_command(mcp_block: str, operation_id: str, st
         await pipulate.message_queue.add(pipulate, f"An error occurred executing bracket command: {str(e)}", verbatim=True, role='system')
 
 
-def get_current_profile_id():
-    """Get the current profile ID, defaulting to the first profile if none is selected."""
-    profile_id = db.get('last_profile_id')
-    if profile_id is None:
-        logger.debug('No last_profile_id found. Finding first available profile.')
-        first_profiles = profiles(order_by='id', limit=1)
-        if first_profiles:
-            profile_id = first_profiles[0].id
-            db['last_profile_id'] = profile_id
-            logger.debug(f'Set default profile ID to {profile_id}')
-        else:
-            logger.warning('No profiles found in the database')
-    return profile_id
-
-
 def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-background-class'):
     """
     HYBRID JAVASCRIPT PATTERN: Creates static includes + Python-parameterized initialization
@@ -1395,8 +1380,36 @@ db = DictLikeDB(store, Store)
 logger.info('💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized')
 
 
+def get_current_profile_id():
+    """Get the current profile ID, defaulting to the first profile if none is selected."""
+    profile_id = db.get('last_profile_id')
+    if profile_id is None:
+        logger.debug('No last_profile_id found. Finding first available profile.')
+        first_profiles = profiles(order_by='id', limit=1)
+        if first_profiles:
+            profile_id = first_profiles[0].id
+            db['last_profile_id'] = profile_id
+            logger.debug(f'Set default profile ID to {profile_id}')
+        else:
+            logger.warning('No profiles found in the database')
+    return profile_id
+
+
+def get_profile_name():
+    profile_id = get_current_profile_id()
+    logger.debug(f'Retrieving profile name for ID: {profile_id}')
+    try:
+        profile = profiles.get(profile_id)
+        if profile:
+            logger.debug(f'Found profile: {profile.name}')
+            return profile.name
+    except NotFoundError:
+        logger.warning(f'No profile found for ID: {profile_id}')
+        return 'Unknown Profile'
+
+
 from pipulate import Pipulate
-pipulate = Pipulate(pipeline, db, friendly_names, append_func=append_to_conversation)
+pipulate = Pipulate(pipeline, db, friendly_names, append_func=append_to_conversation, get_profile_id_func=get_current_profile_id, get_profile_name_func=get_profile_name)
 logger.info('💾 FINDER_TOKEN: PIPULATE - Pipeline object created.')
 
 
@@ -2301,19 +2314,6 @@ else:
 
 MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
-
-
-def get_profile_name():
-    profile_id = get_current_profile_id()
-    logger.debug(f'Retrieving profile name for ID: {profile_id}')
-    try:
-        profile = profiles.get(profile_id)
-        if profile:
-            logger.debug(f'Found profile: {profile.name}')
-            return profile.name
-    except NotFoundError:
-        logger.warning(f'No profile found for ID: {profile_id}')
-        return 'Unknown Profile'
 
 
 async def home(request):
