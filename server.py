@@ -287,6 +287,7 @@ mcp_tools.MCP_TOOL_REGISTRY = MCP_TOOL_REGISTRY
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
 DB_FILENAME = get_db_filename()
+friendly_names = {'': HOME_MENU_ITEM} # This now exists before it's needed
 logger.info(f'🗄️ FINDER_TOKEN: DB_CONFIG - Database filename: {DB_FILENAME}')
 
 # 🚨 CRITICAL WARNING: DB_FILENAME is static and can become stale!
@@ -1952,7 +1953,6 @@ if __name__ == '__main__':
 plugin_instances = {}
 discovered_modules = discover_plugin_files()
 discovered_classes = find_plugin_classes(discovered_modules, discovered_modules)
-friendly_names = {'': HOME_MENU_ITEM}
 endpoint_training = {}
 
 
