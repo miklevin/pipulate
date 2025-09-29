@@ -58,7 +58,7 @@ BANNER_COLORS = {
 }
 
 # Temporary friendly_names to avoid circular imports - TODO: refactor into shared config
-friendly_names = {
+STEP_FRIENDLY_NAMES = {
     'step_01': 'Step 1',
     'step_02': 'Step 2', 
     'step_03': 'Step 3',
