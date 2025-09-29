@@ -870,7 +870,7 @@ class Pipulate:
             response_text = ''
     
             logger.info("ORCHESTRATOR: Entering LLM stream loop.")
-            async for chunk in process_llm_interaction(self.model, conversation_history):
+            async for chunk in self.process_llm_interaction(self.model, conversation_history):
                 await self.chat.broadcast(chunk)
                 response_text += chunk
             logger.info(f"ORCHESTRATOR: Exited LLM stream loop. Full response_text: '{response_text}'")
