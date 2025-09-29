@@ -16,6 +16,8 @@ DEMO_STATE_FILE = 'data/demo_state.json'
 ENV_FILE = 'data/current_environment.txt'
 DISCUSSION_DB_PATH = 'data/discussion.db'
 
+COLOR_MAP = {'key': 'yellow', 'value': 'white', 'error': 'red', 'warning': 'yellow', 'success': 'green', 'debug': 'blue'}
+
 # 🎨 BANNER COLOR CONFIGURATION
 BANNER_COLORS = {
     # Main banner colors
