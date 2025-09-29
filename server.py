@@ -3420,63 +3420,6 @@ Do not say anything else. Just output the exact MCP block above."""
     return ""
 
 
-@rt('/poke-botify', methods=['POST'])
-async def poke_botify_test():
-    """
-    🔧 FINDER_TOKEN: BOTIFY_MCP_TEST_ENDPOINT
-
-    🚀 Botify MCP Integration Test - Demonstrates end-to-end Botify API tool execution
-
-    Tests the complete Botify MCP pipeline by prompting the LLM to use the 
-    botify_ping tool with test credentials, showcasing authentication, error 
-    handling, and full MCP transparency logging.
-    """
-    logger.info('🔧 BOTIFY MCP: Integration test initiated via poke-botify endpoint')
-
-    # 1. Send immediate feedback to chat
-    test_message = "🚀 Testing Botify MCP integration with botify_ping tool..."
-    asyncio.create_task(pipulate.message_queue.add(pipulate, test_message, verbatim=True, role='system', spaces_before=1))
-
-    # 2. Create Botify-specific MCP prompt
-    import random
-    import time as time_module
-    timestamp = int(time_module.time())
-    session_id = random.randint(1000, 9999)
-
-    botify_mcp_prompt = f"""You are a helpful assistant with access to Botify API tools. When the user wants to test Botify connectivity, you must use the botify_ping tool.
-To use the tool, you MUST stop generating conversational text and output an MCP request block.
-Here are the available Botify tools:
-Tool Name: `botify_ping`
-Description: Tests Botify API connectivity and authentication
-Parameters: api_token (required)
----
-🆔 Request ID: {session_id} | ⏰ Timestamp: {timestamp}
-The user wants to test Botify API connectivity. Use the `botify_ping` tool by generating this EXACT MCP request block:
-<mcp-request>
-  <tool name="botify_ping">
-    <params>
-    {{"api_token": "test_token_demo_123"}}
-    </params>
-  </tool>
-</mcp-request>
-Do not say anything else. Just output the exact MCP block above."""
-
-    # 3. Execute the Botify MCP test in background
-    async def consume_botify_mcp_response():
-        """Consume the Botify MCP response generator without displaying it."""
-        try:
-            async for chunk in process_llm_interaction(MODEL, [{"role": "user", "content": botify_mcp_prompt}]):
-                # Consume the chunks but don't display them - the tool execution handles the response
-                pass
-        except Exception as e:
-            logger.error(f"Error in Botify MCP tool call: {e}")
-
-    asyncio.create_task(consume_botify_mcp_response())
-
-    # 4. Return empty response to HTMX request
-    return ""
-
-
 @rt('/open-folder', methods=['GET'])
 async def open_folder_endpoint(request):
     """
