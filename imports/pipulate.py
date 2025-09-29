@@ -11,6 +11,23 @@ from imports.stream_orchestrator import stream_orchestrator
 from typing import AsyncGenerator, Optional
 
 
+def title_name(word: str) -> str:
+    """Format a string into a title case form."""
+    if not word:
+        return ''
+    formatted = word.replace('.', ' ').replace('-', ' ')
+    words = []
+    for part in formatted.split('_'):
+        words.extend(part.split())
+    processed_words = []
+    for word in words:
+        if word.isdigit():
+            processed_words.append(word.lstrip('0') or '0')
+        else:
+            processed_words.append(word.capitalize())
+    return ' '.join(processed_words)
+
+
 def pipeline_operation(func):
 
     @functools.wraps(func)
@@ -77,7 +94,7 @@ class Pipulate:
 
     def append_to_conversation_from_instance(self, message: str, role: str = 'user'):
         """Instance method wrapper for the global self.append_to_conversation function."""
-        return self.self.append_to_conversation(message, role=role)
+        return self.append_to_conversation(message, role=role)
 
     def append_to_history(self, message: str, role: str = 'system') -> None:
         """Add a message to the LLM conversation history without triggering a response.
@@ -93,7 +110,7 @@ class Pipulate:
             message: The message to add to history
             role: The role of the message sender ("system", "user", "assistant")
         """
-        self.self.append_to_conversation(message, role=role)
+        self.append_to_conversation(message, role=role)
 
     class OrderedMessageQueue:
         """A lightweight queue to ensure messages are delivered in order.
@@ -723,8 +740,8 @@ class Pipulate:
 
     def fmt(self, endpoint: str) -> str:
         """Format an endpoint string into a human-readable form."""
-        if endpoint in self.self.friendly_names:
-            return self.self.friendly_names[endpoint]
+        if endpoint in self.friendly_names:
+            return self.friendly_names[endpoint]
         return title_name(endpoint)
 
     def _get_clean_state(self, pkey):
@@ -762,8 +779,8 @@ class Pipulate:
             elif hasattr(plugin_instance, '__class__'):
                 plugin_name = plugin_instance.__class__.__name__
             if plugin_name and (not display_name):
-                if plugin_name in self.self.friendly_names:
-                    display_name = self.self.friendly_names[plugin_name]
+                if plugin_name in self.friendly_names:
+                    display_name = self.friendly_names[plugin_name]
                 else:
                     display_name = title_name(plugin_name)
         return {'plugin_name': display_name or plugin_name, 'internal_name': plugin_name, 'profile_id': profile_id, 'profile_name': profile_name}
@@ -877,7 +894,7 @@ class Pipulate:
         Returns:
             Card: A FastHTML Card component with revert functionality, or None if finalized and show_when_finalized=False
         """
-        pipeline_id = self.self.db.get('pipeline_id', '')
+        pipeline_id = self.db.get('pipeline_id', '')
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
         if pipeline_id and finalize_step and not show_when_finalized:
             final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
@@ -933,7 +950,7 @@ class Pipulate:
             Div: FastHTML container with revert control and widget content, or locked Card when finalized
         """
         # Check if workflow is finalized
-        pipeline_id = self.self.db.get('pipeline_id', '')
+        pipeline_id = self.db.get('pipeline_id', '')
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
         is_finalized = False
         if pipeline_id and finalize_step:
