@@ -179,16 +179,41 @@ class Pipulate:
     PRESERVE_REFILL = True
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
 
-    def __init__(self, pipeline_table, db, friendly_names, append_func, get_profile_id_func, get_profile_name_func, model, chat_instance=None):
-        self.pipeline_table = pipeline_table
+    def __init__(self, pipeline_table=None, db=None, friendly_names=None, append_func=None, get_profile_id_func=None, get_profile_name_func=None, model=None, chat_instance=None, db_path=None):
         self.chat = chat_instance
-        self.db = db
         self.friendly_names = friendly_names
         self.append_to_conversation = append_func
-        self.message_queue = self.OrderedMessageQueue()
         self.get_current_profile_id = get_profile_id_func
         self.get_profile_name = get_profile_name_func
         self.model = model
+        self.message_queue = self.OrderedMessageQueue()
+
+        if db_path:
+            # Standalone/Notebook Context: Create our "Parallel Universe" DB using fastlite directly
+            logger.info(f"Pipulate initializing in standalone mode with db: {db_path}")
+
+            # 1. Create a database connection using fastlite.Database
+            db_conn = Database(db_path)
+
+            # 2. Access the table handles via the .t property
+            l_store = db_conn.t.store
+            l_pipeline = db_conn.t.pipeline
+            # Note: We don't need to explicitly create tables; fastlite handles it.
+
+            self.pipeline_table = l_pipeline
+            # The second argument `Store` from fast_app isn't needed by DictLikeDB.
+            self.db = DictLikeDB(l_store, None)
+
+            # In standalone mode, some features that rely on the server are stubbed out
+            if self.append_to_conversation is None: self.append_to_conversation = lambda msg, role: print(f"[{role}] {msg}")
+            if self.get_current_profile_id is None: self.get_current_profile_id = lambda: 'standalone'
+            if self.get_profile_name is None: self.get_profile_name = lambda: 'standalone'
+
+        else:
+            # Server Context: Use the objects passed in from server.py
+            logger.info("Pipulate initializing in server mode.")
+            self.pipeline_table = pipeline_table
+            self.db = db
 
     def get_home_menu_item(self) -> str:
         """Returns the appropriate home menu item text based on the HOME_APP setting."""
