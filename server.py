@@ -102,6 +102,8 @@ from tools import get_all_tools
 from imports import botify_code_generation, mcp_orchestrator
 import imports.server_logging as slog
 
+from pipulate import Pipulate
+
 # Various debug settings
 DEBUG_MODE = False
 STATE_TABLES = False
@@ -1113,6 +1115,8 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     }
 )
 
+# Import the class that now lives in core.py
+from pipulate.core import Pipulate, DictLikeDB
 
 db = DictLikeDB(store, Store)
 logger.info('💾 FINDER_TOKEN: DB_WRAPPER - Database wrapper initialized')
@@ -1146,8 +1150,16 @@ def get_profile_name():
         return 'Unknown Profile'
 
 
-from pipulate import Pipulate
-pipulate = Pipulate(pipeline, db, friendly_names, append_func=append_to_conversation, get_profile_id_func=get_current_profile_id, get_profile_name_func=get_profile_name, model=MODEL)
+# 2. Instantiate Pipulate, "injecting" the db object we just created.
+pipulate = Pipulate(
+    pipeline_table=pipeline,
+    db=db,  # Pass the `db` object here
+    friendly_names=friendly_names,
+    append_func=append_to_conversation,
+    get_profile_id_func=get_current_profile_id,
+    get_profile_name_func=get_profile_name,
+    model=MODEL
+)
 logger.info('💾 FINDER_TOKEN: PIPULATE - Pipeline object created.')
 
 
@@ -1455,39 +1467,39 @@ def populate_initial_data():
             default_profile = profiles.insert(default_profile_data)
             logger.debug(f'Inserted default profile: {default_profile} with data {default_profile_data}')
             if default_profile and hasattr(default_profile, 'id'):
-                db['last_profile_id'] = str(default_profile.id)
+                pipulate.db['last_profile_id'] = str(default_profile.id)
                 logger.debug(f'Set last_profile_id to new default: {default_profile.id}')
             else:
                 logger.error('Failed to retrieve ID from newly inserted default profile.')
         else:
             logger.debug(f"Default profile named '{default_profile_name_for_db_entry}' already exists. Skipping insertion.")
             if 'last_profile_id' not in db and existing_default_list:
-                db['last_profile_id'] = str(existing_default_list[0].id)
+                pipulate.db['last_profile_id'] = str(existing_default_list[0].id)
                 logger.debug(f'Set last_profile_id to existing default: {existing_default_list[0].id}')
     elif 'last_profile_id' not in db:
         first_profile_list = list(profiles(order_by='priority, id', limit=1))
         if first_profile_list:
-            db['last_profile_id'] = str(first_profile_list[0].id)
+            pipulate.db['last_profile_id'] = str(first_profile_list[0].id)
             logger.debug(f'Set last_profile_id to first available profile: {first_profile_list[0].id}')
         else:
             logger.warning("No profiles exist and 'last_profile_id' was not set. This might occur if default creation failed or DB is empty.")
     if 'last_app_choice' not in db:
-        db['last_app_choice'] = ''
+        pipulate.db['last_app_choice'] = ''
         logger.debug('Initialized last_app_choice to empty string')
     if 'current_environment' not in db:
-        db['current_environment'] = 'Development'
+        pipulate.db['current_environment'] = 'Development'
         logger.debug("Initialized current_environment to 'Development'")
     if 'profile_locked' not in db:
-        db['profile_locked'] = '0'
+        pipulate.db['profile_locked'] = '0'
         logger.debug("Initialized profile_locked to '0'")
     if 'split-sizes' not in db:
-        db['split-sizes'] = '[65, 35]'  # Default split panel sizes
+        pipulate.db['split-sizes'] = '[65, 35]'  # Default split panel sizes
         logger.debug("Initialized split-sizes to default '[65, 35]'")
     if 'theme_preference' not in db:
-        db['theme_preference'] = 'auto'  # Default theme preference
+        pipulate.db['theme_preference'] = 'auto'  # Default theme preference
         logger.debug("Initialized theme_preference to 'auto'")
     if 'intro_current_page' not in db:
-        db['intro_current_page'] = '1'  # Default to page 1 of introduction
+        pipulate.db['intro_current_page'] = '1'  # Default to page 1 of introduction
         logger.debug("Initialized intro_current_page to '1'")
     if TABLE_LIFECYCLE_LOGGING:
         slog.log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles AFTER')
@@ -1888,7 +1900,7 @@ async def startup_event():
         if demo_continuation_state:
             logger.info(f"🎭 FINDER_TOKEN: DEMO_CONTINUATION_FOUND - Demo continuation state found: {demo_continuation_state}")
             # Store a flag for the frontend to check
-            db['demo_resume_after_restart'] = True
+            pipulate.db['demo_resume_after_restart'] = True
             logger.info("🎭 FINDER_TOKEN: DEMO_CONTINUATION_FLAG_SET - Demo resume flag set for frontend")
         else:
             logger.info("🎭 FINDER_TOKEN: DEMO_CONTINUATION_NONE - No demo continuation state found")
@@ -1901,8 +1913,8 @@ async def startup_event():
         if demo_state:
             logger.info("🎭 FINDER_TOKEN: DEMO_RESTART_DETECTED - Server is coming back from a demo-triggered restart")
             # Set demo comeback message with the actual demo state for continuation
-            db['demo_comeback_message'] = 'true'
-            db['demo_comeback_state'] = demo_state  # Store the demo state for continuation
+            pipulate.db['demo_comeback_message'] = 'true'
+            pipulate.db['demo_comeback_state'] = demo_state  # Store the demo state for continuation
             clear_demo_state()  # Clear the file after transferring to database
             logger.info(f"🎭 FINDER_TOKEN: DEMO_RESTART_FLIPFLOP - Demo comeback message set with state: {demo_state}, file cleared")
         else:
@@ -2067,8 +2079,8 @@ async def home(request):
     logger.debug(f'Received request for path: {url_path}')
     menux = normalize_menu_path(url_path)
     logger.debug(f'Selected explore item: {menux}')
-    db['last_app_choice'] = menux
-    db['last_visited_url'] = request.url.path
+    pipulate.db['last_app_choice'] = menux
+    pipulate.db['last_visited_url'] = request.url.path
     current_profile_id = get_current_profile_id()
     menux = db.get('last_app_choice', 'App')
     # 🎬 CINEMATIC MAGIC: Check for Oz door grayscale state
@@ -2706,8 +2718,8 @@ def create_chat_interface(autofocus=False):
     msg_list_height = 'height: calc(75vh - 200px);'
     temp_message = None
     if 'temp_message' in db:
-        temp_message = db['temp_message']
-        del db['temp_message']
+        temp_message = pipulate.db['temp_message']
+        del pipulate.db['temp_message']
     init_script = f'\n    // Set global variables for the external script\n    window.CFG = {{\n        tempMessage: {json.dumps(temp_message)},\n        clipboardSVG: {json.dumps(CFG.SVG_ICONS["CLIPBOARD"])}\n    }};\n    window.APP_NAME = {json.dumps(APP_NAME)};\n    '
     # Enter/Shift+Enter handling is now externalized in pipulate.js
     return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height, role='log', aria_label='Chat conversation', aria_live='polite'), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)', role='form', aria_label='Chat input form'), Script(init_script), Script(src='/assets/pipulate-init.js'), Script('initializeChatInterface();')), id='chat-interface', role='complementary', aria_label='AI Assistant Chat')
@@ -2992,7 +3004,7 @@ async def demo_bookmark_store(request):
         data = await request.json()
         logger.info(f"📖 About to store bookmark data type: {type(data)}")
         logger.info(f"📖 About to store bookmark data: {data}")
-        db['demo_bookmark'] = data
+        pipulate.db['demo_bookmark'] = data
         logger.info(f"📖 Demo bookmark stored: {data.get('script_name', 'UNKNOWN')}")
         return JSONResponse({"success": True})
     except Exception as e:
@@ -3005,7 +3017,7 @@ async def demo_bookmark_clear():
     """Clear demo bookmark to prevent infinite loop"""
     try:
         if 'demo_bookmark' in db:
-            del db['demo_bookmark']
+            del pipulate.db['demo_bookmark']
             logger.info("📖 Demo bookmark cleared")
         return JSONResponse({"success": True})
     except Exception as e:
@@ -3017,7 +3029,7 @@ async def demo_bookmark_clear():
 async def oz_door_grayscale_store(request):
     """Store Oz door grayscale state for cinematic transition"""
     try:
-        db['oz_door_grayscale'] = 'true'
+        pipulate.db['oz_door_grayscale'] = 'true'
         logger.info("🎬 Oz door grayscale state stored for cinematic transition")
         return JSONResponse({"success": True})
     except Exception as e:
@@ -3030,7 +3042,7 @@ async def oz_door_grayscale_clear():
     """Clear Oz door grayscale state"""
     try:
         if 'oz_door_grayscale' in db:
-            del db['oz_door_grayscale']
+            del pipulate.db['oz_door_grayscale']
             logger.info("🎬 Oz door grayscale state cleared")
         return JSONResponse({"success": True})
     except Exception as e:
@@ -3100,7 +3112,7 @@ def redirect_handler(request):
 
         # Always set temp_message for redirects - this is legitimate navigation
         # The coordination system will prevent race condition duplicates in other pathways
-        db['temp_message'] = message
+        pipulate.db['temp_message'] = message
         logger.debug(f"Set temp_message for redirect to: {path}")
 
     build_endpoint_training(path)
@@ -3192,7 +3204,7 @@ async def open_folder_endpoint(request):
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):
     current = db.get('profile_locked', '0')
-    db['profile_locked'] = '1' if current == '0' else '0'
+    pipulate.db['profile_locked'] = '1' if current == '0' else '0'
     return HTMLResponse('', headers={'HX-Refresh': 'true'})
 
 
@@ -3203,7 +3215,7 @@ async def toggle_theme(request):
 
     # Toggle between light and dark (we'll skip 'auto' for simplicity)
     new_theme = 'dark' if current_theme != 'dark' else 'light'
-    db['theme_preference'] = new_theme
+    pipulate.db['theme_preference'] = new_theme
 
     # Create the updated switch component
     theme_is_dark = new_theme == 'dark'
@@ -3240,7 +3252,7 @@ async def sync_theme(request):
     theme = form.get('theme', 'auto')
 
     if theme in ['light', 'dark']:
-        db['theme_preference'] = theme
+        pipulate.db['theme_preference'] = theme
 
     return HTMLResponse('OK')
 
@@ -3402,7 +3414,7 @@ async def save_split_sizes(request):
             # Basic validation
             parsed_sizes = json.loads(sizes)
             if isinstance(parsed_sizes, list) and all(isinstance(x, (int, float)) for x in parsed_sizes):
-                db['split-sizes'] = sizes
+                pipulate.db['split-sizes'] = sizes
                 return HTMLResponse('')
         return HTMLResponse('Invalid format or sizes not provided', status_code=400)
     except Exception as e:
@@ -3530,12 +3542,12 @@ async def clear_pipeline(request):
     last_visited_url = db.get('last_visited_url')
     keys = list(db.keys())
     for key in keys:
-        del db[key]
+        del pipulate.db[key]
     logger.debug(f'{workflow_display_name} DictLikeDB cleared')
     if last_app_choice:
-        db['last_app_choice'] = last_app_choice
+        pipulate.db['last_app_choice'] = last_app_choice
     if last_visited_url:
-        db['last_visited_url'] = last_visited_url
+        pipulate.db['last_visited_url'] = last_visited_url
     if hasattr(pipulate.table, 'xtra'):
         pipulate.table.xtra()
     records = list(pipulate.table())
@@ -3543,7 +3555,7 @@ async def clear_pipeline(request):
     for record in records:
         pipulate.table.delete(record.pkey)
     logger.debug(f'{workflow_display_name} table cleared')
-    db['temp_message'] = f'{workflow_display_name} cleared. Next ID will be 01.'
+    pipulate.db['temp_message'] = f'{workflow_display_name} cleared. Next ID will be 01.'
     logger.debug(f'{workflow_display_name} DictLikeDB cleared for debugging')
     response = Div(pipulate.update_datalist('pipeline-ids', should_clear=True), P(f'{workflow_display_name} cleared.'), cls='clear-message')
     html_response = HTMLResponse(str(response))
@@ -3734,21 +3746,21 @@ async def clear_db(request):
         logger.bind(lifecycle=True).info('CLEAR_DB: After synchronize_roles_to_db.')
     # Restore preserved values if they existed
     if last_app_choice:
-        db['last_app_choice'] = last_app_choice
+        pipulate.db['last_app_choice'] = last_app_choice
     if last_visited_url:
-        db['last_visited_url'] = last_visited_url
+        pipulate.db['last_visited_url'] = last_visited_url
     if temp_message:
-        db['temp_message'] = temp_message
+        pipulate.db['temp_message'] = temp_message
 
     # 🎭 RESTORE DEMO STATE - Preserve demo flags after database reset for restart detection
     if demo_triggered and demo_continuation_state:
-        db['demo_continuation_state'] = demo_continuation_state
-        db['demo_restart_flag'] = 'true'
+        pipulate.db['demo_continuation_state'] = demo_continuation_state
+        pipulate.db['demo_restart_flag'] = 'true'
         logger.info('🎭 DEMO_RESTART: Demo flags preserved after database reset for restart detection')
 
     # 💬 RESTORE CONVERSATION HISTORY - Restore conversation after database reset
     if conversation_backup:
-        db['llm_conversation_history'] = conversation_backup
+        pipulate.db['llm_conversation_history'] = conversation_backup
         logger.info(f"💬 FINDER_TOKEN: CONVERSATION_RESTORED_DB_RESET - Restored conversation history after database reset")
         # Also restore to in-memory conversation history
         try:
@@ -3998,15 +4010,15 @@ async def select_profile(request):
     if profile_id:
         profile_id = int(profile_id)
         logger.debug(f'Converted profile_id to int: {profile_id}')
-        db['last_profile_id'] = profile_id
+        pipulate.db['last_profile_id'] = profile_id
         logger.debug(f'Updated last_profile_id in db to: {profile_id}')
         profile = profiles[profile_id]
         logger.debug(f'Retrieved profile: {profile}')
         profile_name = getattr(profile, 'name', 'Unknown Profile')
         logger.debug(f'Profile name: {profile_name}')
         prompt = f"You have switched to the '{profile_name}' profile."
-        db['temp_message'] = prompt
-        logger.debug(f"Stored temp_message in db: {db['temp_message']}")
+        pipulate.db['temp_message'] = prompt
+        logger.debug(f"Stored temp_message in db: {pipulate.db['temp_message']}")
     redirect_url = db.get('last_visited_url', '/')
     logger.debug(f'Redirecting to: {redirect_url}')
     return Redirect(redirect_url)
@@ -4073,7 +4085,7 @@ async def check_demo_comeback(request):
         
         if demo_comeback_state:
             # Clear the state after reading it (single use)
-            del db['demo_comeback_state']
+            del pipulate.db['demo_comeback_state']
             logger.info(f"🎭 Demo comeback detected from database with state: {demo_comeback_state}")
             
             # Parse JSON string if needed
@@ -4458,7 +4470,7 @@ async def send_delayed_endpoint_message(message, session_key):
 
         if current_time - last_sent > 5:  # 5-second window for delayed messages
             await pipulate.message_queue.add(pipulate, message, verbatim=True, role='system', spaces_after=1)
-            db[session_key] = 'sent'  # Mark as sent for this session
+            pipulate.db[session_key] = 'sent'  # Mark as sent for this session
 
             # Update coordination system
             message_coordination['last_endpoint_message_time'][message_id] = current_time
@@ -4466,7 +4478,7 @@ async def send_delayed_endpoint_message(message, session_key):
         else:
             logger.debug(f"Skipping delayed endpoint message - recently sent by another pathway: {message_id}")
             # Still mark session as sent to prevent future attempts
-            db[session_key] = 'sent'
+            pipulate.db[session_key] = 'sent'
     except Exception as e:
         logger.warning(f"Failed to send delayed endpoint message for {session_key}: {e}")
 
@@ -4490,7 +4502,7 @@ async def send_startup_environment_message():
             if db.get('demo_comeback_message') == 'true':
                 demo_comeback_detected = True
                 # Clear the flag immediately (flipflop behavior)
-                del db['demo_comeback_message']
+                del pipulate.db['demo_comeback_message']
                 logger.info("🎭 FINDER_TOKEN: DEMO_COMEBACK_DISPLAYED - Demo comeback message will be handled by JavaScript, flag cleared")
                 
                 # DO NOT create system message - let JavaScript handle the demo continuation
@@ -4525,7 +4537,7 @@ async def send_startup_environment_message():
         # Clear any existing endpoint message session keys to allow fresh messages after server restart
         endpoint_keys_to_clear = [key for key in db.keys() if key.startswith('endpoint_message_sent_')]
         for key in endpoint_keys_to_clear:
-            del db[key]
+            del pipulate.db[key]
         logger.debug(f"Cleared {len(endpoint_keys_to_clear)} endpoint message session keys on startup")
 
         # Clear message coordination on startup to allow fresh messages
@@ -4617,7 +4629,7 @@ async def send_startup_environment_message():
 
                         # Also mark in session system for backward compatibility
                         session_key = f'endpoint_message_sent_{current_endpoint}_{current_env}'
-                        db[session_key] = 'sent'
+                        pipulate.db[session_key] = 'sent'
                     except Exception as e:
                         logger.warning(f"🔧 STARTUP_DEBUG: Failed to send startup endpoint message: {e}")
                 else:
@@ -4824,7 +4836,7 @@ def restart_server(force_restart=False):
         if current_endpoint and current_endpoint != '':
             endpoint_message = build_endpoint_messages(current_endpoint)
             if endpoint_message:
-                db['temp_message'] = endpoint_message
+                pipulate.db['temp_message'] = endpoint_message
                 logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Stored endpoint message for '{current_endpoint}' in temp_message")
             else:
                 logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: No endpoint message found for '{current_endpoint}'")
@@ -4832,7 +4844,7 @@ def restart_server(force_restart=False):
             # 🔧 BUG FIX: For homepage (empty endpoint), explicitly clear temp_message
             # This ensures the startup sequence will generate the correct Roles message
             if 'temp_message' in db:
-                del db['temp_message']
+                del pipulate.db['temp_message']
                 logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Cleared temp_message for homepage to ensure correct Roles message on restart")
             else:
                 logger.info(f"🔧 WATCHDOG_CONTEXT_PRESERVATION: Homepage endpoint '{current_endpoint}', no temp_message to clear")
