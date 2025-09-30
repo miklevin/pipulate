@@ -8,7 +8,7 @@ import asyncio
 import aiohttp
 from datetime import datetime
 from fasthtml.common import *
-from fastlite import FL  # Import the core fastlite engine
+from fastlite import Database  # CORRECTED: Use the Database class
 from loguru import logger
 import imports.server_logging as slog
 import config as CFG
