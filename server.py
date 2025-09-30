@@ -1896,7 +1896,7 @@ async def startup_event():
 
     # 🎭 DEMO CONTINUATION CHECK - Resume demo after server restart
     try:
-        demo_continuation_state = db.get('demo_continuation_state')
+        demo_continuation_state = pipulate.db.get('demo_continuation_state')
         if demo_continuation_state:
             logger.info(f"🎭 FINDER_TOKEN: DEMO_CONTINUATION_FOUND - Demo continuation state found: {demo_continuation_state}")
             # Store a flag for the frontend to check
@@ -2082,9 +2082,9 @@ async def home(request):
     pipulate.db['last_app_choice'] = menux
     pipulate.db['last_visited_url'] = request.url.path
     current_profile_id = get_current_profile_id()
-    menux = db.get('last_app_choice', 'App')
+    menux = pipulate.db.get('last_app_choice', 'App')
     # 🎬 CINEMATIC MAGIC: Check for Oz door grayscale state
-    grayscale_enabled = db.get('oz_door_grayscale') == 'true'
+    grayscale_enabled = pipulate.db.get('oz_door_grayscale') == 'true'
     if grayscale_enabled:
         logger.info("🎬 Oz door grayscale state detected - injecting script into Container")
 
@@ -2192,7 +2192,7 @@ def create_env_menu():
 
 def create_nav_menu():
     logger.debug('Creating navigation menu.')
-    menux = db.get('last_app_choice', 'App')
+    menux = pipulate.db.get('last_app_choice', 'App')
     selected_profile_id = get_current_profile_id()
     selected_profile_name = get_profile_name()
     profiles_plugin_inst = plugin_instances.get('profiles')
@@ -2252,7 +2252,7 @@ def create_nav_menu():
 def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
-    profile_locked = db.get('profile_locked', '0') == '1'
+    profile_locked = pipulate.db.get('profile_locked', '0') == '1'
     menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', aria_label='Lock or unlock profile editing'), 'Lock Profile', cls='dropdown-menu-item'), cls='profile-menu-item'))
     menu_items.append(Li(Hr(cls='profile-menu-separator'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
@@ -2560,7 +2560,7 @@ async def create_outer_container(current_profile_id, menux, request, grayscale_e
     nav_group = create_nav_group()
 
     # Get saved sizes from DB, with a default of [65, 35]
-    saved_sizes_str = db.get('split-sizes', '[65, 35]')
+    saved_sizes_str = pipulate.db.get('split-sizes', '[65, 35]')
 
     # Initialize splitter script with server-provided sizes
     init_splitter_script = Script(f"""
@@ -2790,15 +2790,15 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
 
 @rt('/poke-flyout', methods=['GET'])
 async def poke_flyout(request):
-    current_app = db.get('last_app_choice', '')
+    current_app = pipulate.db.get('last_app_choice', '')
     workflow_instance = get_workflow_instance(current_app)
     is_workflow = workflow_instance is not None and hasattr(workflow_instance, 'steps')
-    profile_locked = db.get('profile_locked', '0') == '1'
+    profile_locked = pipulate.db.get('profile_locked', '0') == '1'
     lock_button_text = '🔓 Unlock Profile' if profile_locked else '🔒 Lock Profile'
     is_dev_mode = get_current_environment() == 'Development'
 
     # Get current theme setting (default to 'dark' for new users)
-    current_theme = db.get('theme_preference', 'dark')
+    current_theme = pipulate.db.get('theme_preference', 'dark')
     theme_is_dark = current_theme == 'dark'
 
     # Create buttons
@@ -2984,7 +2984,7 @@ async def add_to_conversation_history_endpoint(request):
 async def demo_bookmark_check():
     """Check if there's a demo bookmark to resume"""
     try:
-        demo_bookmark = db.get('demo_bookmark')
+        demo_bookmark = pipulate.db.get('demo_bookmark')
         if demo_bookmark:
             logger.info(f"📖 Retrieved bookmark data type: {type(demo_bookmark)}")
             logger.info(f"📖 Retrieved bookmark data: {demo_bookmark}")
@@ -3203,7 +3203,7 @@ async def open_folder_endpoint(request):
 
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):
-    current = db.get('profile_locked', '0')
+    current = pipulate.db.get('profile_locked', '0')
     pipulate.db['profile_locked'] = '1' if current == '0' else '0'
     return HTMLResponse('', headers={'HX-Refresh': 'true'})
 
@@ -3211,7 +3211,7 @@ async def toggle_profile_lock(request):
 @rt('/toggle_theme', methods=['POST'])
 async def toggle_theme(request):
     """Toggle between light and dark theme."""
-    current_theme = db.get('theme_preference', 'auto')
+    current_theme = pipulate.db.get('theme_preference', 'auto')
 
     # Toggle between light and dark (we'll skip 'auto' for simplicity)
     new_theme = 'dark' if current_theme != 'dark' else 'light'
@@ -3399,7 +3399,7 @@ async def generate_new_key(request):
 async def refresh_app_menu_endpoint(request):
     """Refresh the App menu dropdown via HTMX endpoint."""
     logger.debug('Refreshing App menu dropdown via HTMX endpoint /refresh-app-menu')
-    menux = db.get('last_app_choice', '')
+    menux = pipulate.db.get('last_app_choice', '')
     app_menu_details_component = create_app_menu(menux)
     return HTMLResponse(to_xml(app_menu_details_component))
 
@@ -3530,7 +3530,7 @@ async def mcp_tool_executor_endpoint(request):
 
 @rt('/clear-pipeline', methods=['POST'])
 async def clear_pipeline(request):
-    menux = db.get('last_app_choice', 'App')
+    menux = pipulate.db.get('last_app_choice', 'App')
     workflow_display_name = 'Pipeline'
     if menux and menux in plugin_instances:
         instance = plugin_instances.get(menux)
@@ -3538,9 +3538,9 @@ async def clear_pipeline(request):
             workflow_display_name = instance.DISPLAY_NAME
         else:
             workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
-    last_app_choice = db.get('last_app_choice')
-    last_visited_url = db.get('last_visited_url')
-    keys = list(db.keys())
+    last_app_choice = pipulate.db.get('last_app_choice')
+    last_visited_url = pipulate.db.get('last_visited_url')
+    keys = list(pipulate.db.keys())
     for key in keys:
         del pipulate.db[key]
     logger.debug(f'{workflow_display_name} DictLikeDB cleared')
@@ -3610,15 +3610,15 @@ async def clear_db(request):
         slog.log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB INITIAL')
 
     # Safely preserve certain values before clearing
-    last_app_choice = db.get('last_app_choice')
-    last_visited_url = db.get('last_visited_url')
-    temp_message = db.get('temp_message')
+    last_app_choice = pipulate.db.get('last_app_choice')
+    last_visited_url = pipulate.db.get('last_visited_url')
+    temp_message = pipulate.db.get('temp_message')
 
     # 🎭 DEMO RESTART DETECTION - Check BEFORE clearing database
     demo_triggered = False
     demo_continuation_state = None
     try:
-        demo_continuation_state = db.get('demo_continuation_state')
+        demo_continuation_state = pipulate.db.get('demo_continuation_state')
         if demo_continuation_state:
             demo_triggered = True
             logger.info(f'🎭 DEMO_RESTART: Demo continuation state detected before DB clear: {demo_continuation_state}')
@@ -3637,7 +3637,7 @@ async def clear_db(request):
     # 💬 PRESERVE CONVERSATION HISTORY - Backup conversation before database reset
     conversation_backup = None
     if 'llm_conversation_history' in db:
-        conversation_backup = db.get('llm_conversation_history')
+        conversation_backup = pipulate.db.get('llm_conversation_history')
         logger.info(f"💬 FINDER_TOKEN: CONVERSATION_BACKUP_DB_RESET - Backing up conversation history before database reset")
     else:
         logger.info("💬 FINDER_TOKEN: CONVERSATION_BACKUP_DB_RESET - No conversation history to backup")
@@ -4019,7 +4019,7 @@ async def select_profile(request):
         prompt = f"You have switched to the '{profile_name}' profile."
         pipulate.db['temp_message'] = prompt
         logger.debug(f"Stored temp_message in db: {pipulate.db['temp_message']}")
-    redirect_url = db.get('last_visited_url', '/')
+    redirect_url = pipulate.db.get('last_visited_url', '/')
     logger.debug(f'Redirecting to: {redirect_url}')
     return Redirect(redirect_url)
 
@@ -4080,7 +4080,7 @@ async def check_demo_comeback(request):
     """Check if we're coming back from a demo-triggered restart and return demo state for continuation."""
     try:
         # First check database for demo comeback state (set during startup)
-        demo_comeback_state = db.get('demo_comeback_state')
+        demo_comeback_state = pipulate.db.get('demo_comeback_state')
         logger.info(f"🎭 DEBUG: /check-demo-comeback called, demo_comeback_state in db: {demo_comeback_state}")
         
         if demo_comeback_state:
@@ -4321,7 +4321,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
             cookie_table = Table(title='🍪 Stored Cookie States')
             cookie_table.add_column('Key', style='cyan')
             cookie_table.add_column('Value', style='magenta')
-            for key, value in db.items():
+            for key, value in pipulate.db.items():
                 json_value = JSON.from_data(value, indent=2)
                 cookie_table.add_row(key, json_value)
             slog.print_and_log_table(cookie_table, "STATE TABLES - ")
@@ -4499,7 +4499,7 @@ async def send_startup_environment_message():
         demo_comeback_message = None
         demo_comeback_detected = False
         try:
-            if db.get('demo_comeback_message') == 'true':
+            if pipulate.db.get('demo_comeback_message') == 'true':
                 demo_comeback_detected = True
                 # Clear the flag immediately (flipflop behavior)
                 del pipulate.db['demo_comeback_message']
@@ -4535,7 +4535,7 @@ async def send_startup_environment_message():
                     raise
 
         # Clear any existing endpoint message session keys to allow fresh messages after server restart
-        endpoint_keys_to_clear = [key for key in db.keys() if key.startswith('endpoint_message_sent_')]
+        endpoint_keys_to_clear = [key for key in pipulate.db.keys() if key.startswith('endpoint_message_sent_')]
         for key in endpoint_keys_to_clear:
             del pipulate.db[key]
         logger.debug(f"Cleared {len(endpoint_keys_to_clear)} endpoint message session keys on startup")
@@ -4546,8 +4546,8 @@ async def send_startup_environment_message():
 
         # Also send endpoint message and training for current location
         # 🔧 BUG FIX: Simplified and robust endpoint detection
-        current_endpoint = db.get('last_app_choice', '')
-        visited_url = db.get('last_visited_url', '')
+        current_endpoint = pipulate.db.get('last_app_choice', '')
+        visited_url = pipulate.db.get('last_visited_url', '')
 
         logger.info(f"🔧 STARTUP_DEBUG: Initial last_app_choice='{current_endpoint}', last_visited_url='{visited_url}'")
 
@@ -4812,8 +4812,8 @@ def restart_server(force_restart=False):
 
     # 🔧 PRESERVE ENDPOINT CONTEXT: Store current endpoint message in temp_message for restart preservation
     try:
-        current_endpoint = db.get('last_app_choice', '')
-        visited_url = db.get('last_visited_url', '')
+        current_endpoint = pipulate.db.get('last_app_choice', '')
+        visited_url = pipulate.db.get('last_visited_url', '')
 
         # Extract endpoint from URL if available (same logic as startup function)
         if visited_url:
