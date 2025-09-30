@@ -856,8 +856,10 @@ import pipulate as pip
 job = "Workflow Mockup in Notebook"
 state = pip.read(job)  # Acquire previous state if any
 # Do in-memory stuff that needs to be made persistent
+# ...
 pip.write(state)  # Write state
 # Do more in-memory stuff that needs to be made persistent
+# ...
 pip.write(state)  # Write state
 ```
 
