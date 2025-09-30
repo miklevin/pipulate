@@ -1,5 +1,6 @@
 # ripgrep filters for good search & replaces with `rg | xargs sed` pattern
 assets/js/
+Notebooks/Client_Work/
 
 prompt.md
 article.txt
