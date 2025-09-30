@@ -78,7 +78,7 @@ def db_operation(func):
             if func.__name__ == '__getitem__' and isinstance(e, KeyError):
                 logger.debug(f'Key not found in database: {e}')
             else:
-                log.error(f'Database operation {func.__name__} failed', e)
+                logger.error(f'Database operation {func.__name__} failed', e)
             raise
     return wrapper
 
