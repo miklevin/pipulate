@@ -16,6 +16,9 @@ from config import COLOR_MAP
 from imports import botify_code_generation
 from imports.stream_orchestrator import stream_orchestrator
 from typing import AsyncGenerator, Optional
+import imports.server_logging as slog
+
+log = slog.LogManager(logger)
 
 
 def title_name(word: str) -> str:
@@ -78,7 +81,7 @@ def db_operation(func):
             if func.__name__ == '__getitem__' and isinstance(e, KeyError):
                 logger.debug(f'Key not found in database: {e}')
             else:
-                logger.error(f'Database operation {func.__name__} failed', e)
+                log.error(f'Database operation {func.__name__} failed', e)
             raise
     return wrapper
 
