@@ -8,9 +8,11 @@ import asyncio
 import aiohttp
 from datetime import datetime
 from fasthtml.common import *
+from fastlite import FL  # Import the core fastlite engine
 from loguru import logger
 import imports.server_logging as slog
 import config as CFG
+from config import COLOR_MAP
 from imports import botify_code_generation
 from imports.stream_orchestrator import stream_orchestrator
 from typing import AsyncGenerator, Optional
