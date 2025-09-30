@@ -90,7 +90,6 @@ class DictLikeDB:
 
     def __init__(self, store, Store):
         self.store = store
-        self.Store = Store
         logger.debug('DictLikeDB initialized.')
 
     @db_operation
