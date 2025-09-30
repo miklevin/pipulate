@@ -840,6 +840,29 @@ Jupyter Notebooks run alongside the FastHTML server, allowing developers to prot
       └──────────────────┘    └──────────────────┘
 ```
 
+### Starting Workflows in Jupyter Notebooks
+
+Pipulate's `pipulate` module can be imported in a Notebook running on the JupyterLab instance that's runs side-by-side with Pipulate and shares its Python virtual environment (`.venv/`) providing an ideal location to mock up new fully operational workflows ready to be later ported into Pipulate `apps/` where you deal with more of the unusual HTMX aspects. Before the port a simple:
+
+```python
+install pipulate as pip
+```
+
+...at the top of a Notebook following the conventions of `install numpy as np` and `install pandas as pd` gives you all the Pipulate state-management capabilities which allows a dramatic simplification of the Notebook logic, compels adherence to the Unix pipe `input` | `process` | `output` pattern and sets up an easy port. The abstract template is:
+
+```python
+import pipulate as pip
+
+job = "Workflow Mockup in Notebook"
+state = pip.read(job)  # Acquire previous state if any
+# Do in-memory stuff that needs to be made persistent
+pip.write(state)  # Write state
+# Do more in-memory stuff that needs to be made persistent
+pip.write(state)  # Write state
+```
+
+When you're done you'll have the process working in a Jupyter Notebook and technically won't need to port to Pipulate simply to get the work done, but if you do, it will be easier for non-Python-users to use the Web App version of your workflow.
+
 ### Local-First & Single-Tenant Details  <!-- key: local-first-single-tenant-details -->
 
 Pipulate manages all state server-side within the local environment (think *local-server cookies*), with optional cloud integration as needed. This approach offers:
