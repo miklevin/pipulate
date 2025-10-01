@@ -277,7 +277,6 @@ You're here to make the workflow concepts accessible and help users understand t
         self.pip = pipulate
         self.pipeline = pipeline
         self.steps_indices = {}
-        pip = self.pipulate
         pip = self.pip
         self.message_queue = self.pip.get_message_queue()
 
