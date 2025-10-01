@@ -87,14 +87,22 @@ if __name__ == '__main__':
     ordered_files = get_post_order()
     
     print("Posts in intended chronological order (full paths):")
+    
+    # Initialize a variable to keep the running total
+    cumulative_tokens = 0
+
     for filepath in ordered_files:
         if args.token:
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.read()
+                
                 token_count = count_tokens(content)
-                # Formats with two spaces before the hash comment, as requested
-                print(f"{filepath}  # {token_count:,} tokens")
+                # Add the current file's tokens to the cumulative total
+                cumulative_tokens += token_count
+                
+                # Print the new format with both individual and cumulative counts
+                print(f"{filepath}  # {token_count:,} tokens ({cumulative_tokens:,} total)")
             except Exception as e:
                 print(f"{filepath}  # Error: Could not read file - {e}")
         else:
