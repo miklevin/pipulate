@@ -1,4 +1,4 @@
-2tiktoken
+tiktoken
 pydot
 huggingface-hub
 blinker==1.8.
