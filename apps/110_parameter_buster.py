@@ -20,6 +20,8 @@ from fasthtml.common import *
 from loguru import logger
 from imports.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
+import config
+
 ROLES = ['Botify Employee']
 TOKEN_FILE = 'botify_token.txt'
 import asyncio
@@ -371,7 +373,7 @@ class ParameterBuster:
 
     async def get_suggestion(self, step_id, state):
         """Gets a suggested input value for a step, often using the previous step's transformed output."""
-        pip, db, steps = (self.pipulate, self.db, self.steps)
+        pip, db, steps = (self.pipulate, self.pipulate.db, self.steps)
         step = next((s for s in steps if s.id == step_id), None)
         if not step or not step.transform:
             return ''
@@ -1549,7 +1551,7 @@ class ParameterBuster:
 
     async def parameter_preview(self, request):
         """Process real-time parameter preview requests based on threshold settings."""
-        pip, db, app_name = (self.pipulate, self.db, self.app_name)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.app_name)
         pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         gsc_threshold = int(form.get('gsc_threshold', '0'))
