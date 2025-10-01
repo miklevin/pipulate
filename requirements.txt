@@ -17,14 +17,6 @@ itables==2.4.4
 jupyter_ai==2.31.5
 jupyterlab-spellchecker==0.8.4
 jupytext==1.17.2
-langchain-anthropic==0.3.17
-langchain-aws==0.2.29
-langchain-cohere==0.4.4
-langchain-google-genai==2.1.8
-langchain-mistralai==0.2.11
-langchain-nvidia-ai-endpoints==0.3.12
-langchain-ollama==0.3.5
-langchain-openai==0.3.28
 loguru==0.7.3
 matplotlib==3.10.3
 nbstripout==0.8.1
