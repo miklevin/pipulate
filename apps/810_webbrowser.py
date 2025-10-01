@@ -24,13 +24,14 @@ class WebbrowserUrlOpenerWidget:
     TRAINING_PROMPT = 'This workflow is for demonstrating and testing the webbrowser URL opener. The user will input a URL, which will then be opened in their default browser.'
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        self.pipulate = pipulate
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
         self.app_name = app_name
         self.pipulate = pipulate
         self.pipeline = pipeline
         self.steps_indices = {}
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
         self.message_queue = pip.message_queue
         steps = [Step(id='step_01', done='url_to_open', show='URL to Open', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else '')]
@@ -55,7 +56,7 @@ class WebbrowserUrlOpenerWidget:
         return pip.create_standard_landing_page(self)
 
     async def init(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         user_input = form.get('pipeline_id', '').strip()
         if not user_input:
@@ -74,7 +75,7 @@ class WebbrowserUrlOpenerWidget:
         else:
             _, temp_prefix, user_provided_id_part = pip.generate_pipeline_key(self, user_input)
             pipeline_id = f'{expected_prefix}{user_provided_id_part}'
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
         if error:
             return error
@@ -83,8 +84,8 @@ class WebbrowserUrlOpenerWidget:
         return pip.run_all_cells(app_name, steps)
 
     async def finalize(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
@@ -102,8 +103,8 @@ class WebbrowserUrlOpenerWidget:
             return pip.run_all_cells(app_name, steps)
 
     async def unfinalize(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
         return pip.run_all_cells(app_name, steps)
@@ -114,10 +115,10 @@ class WebbrowserUrlOpenerWidget:
         return ''
 
     async def handle_revert(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         step_id = form.get('step_id')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         if not step_id:
             return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
@@ -133,12 +134,12 @@ class WebbrowserUrlOpenerWidget:
         return Div(P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary'))
 
     async def step_01(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
@@ -158,12 +159,12 @@ class WebbrowserUrlOpenerWidget:
             return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, cls='text-secondary'), Form(Div(Input(type='url', name=step.done, placeholder='https://example.com', required=True, value=display_value, cls='contrast'), Div(Button('Open URL ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         url_to_open = form.get(step.done, '').strip()
         if not url_to_open:

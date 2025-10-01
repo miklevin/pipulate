@@ -40,13 +40,14 @@ class RangeSelectorWorkflow:
     RANGE_CONFIG = {'min': 0, 'max': 100, 'step': 1, 'default': 50, 'label': 'Select a value', 'description': 'Use the slider to select a value between 0 and 100', 'show_value': True, 'show_ticks': False, 'tick_labels': {}}
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        self.pipulate = pipulate
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
         self.app_name = app_name
         self.pipulate = pipulate
         self.pipeline = pipeline
         self.steps_indices = {}
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
         self.message_queue = pip.message_queue
         steps = [Step(id='step_01', done='range_value', show='Range Selection', refill=True, transform=lambda prev_value: int(prev_value) if prev_value else self.RANGE_CONFIG['default'])]
@@ -74,7 +75,7 @@ class RangeSelectorWorkflow:
 
     async def init(self, request):
         """Handles the key submission, initializes state, and renders the step UI placeholders."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         user_input = form.get('pipeline_id', '').strip()
         if not user_input:
@@ -93,7 +94,7 @@ class RangeSelectorWorkflow:
         else:
             _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
             pipeline_id = f'{prefix}{user_provided_id}'
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
         if error:
             return error
@@ -103,8 +104,8 @@ class RangeSelectorWorkflow:
 
     async def finalize(self, request):
         """Handles GET request to show Finalize button and POST request to lock the workflow."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
@@ -123,8 +124,8 @@ class RangeSelectorWorkflow:
 
     async def unfinalize(self, request):
         """Handles POST request to unlock the workflow."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
         return pip.run_all_cells(app_name, steps)
@@ -135,12 +136,12 @@ class RangeSelectorWorkflow:
 
     async def handle_revert(self, request):
         """Handles POST request to revert to a previous step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         step_id = form.get('step_id', '')
         if step_id not in self.steps_indices:
             return P('Error: Invalid step', cls='text-invalid')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -150,12 +151,12 @@ class RangeSelectorWorkflow:
     async def step_01(self, request):
         """Handles GET request for range selection step."""
         logger.debug('Entering step_01')
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         logger.debug(f'Pipeline ID: {pipeline_id}')
@@ -184,12 +185,12 @@ class RangeSelectorWorkflow:
 
     async def step_01_submit(self, request):
         """Handles POST request for range selection step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         value = form.get(step.done, '').strip()
         if not value:

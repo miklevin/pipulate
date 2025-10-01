@@ -23,13 +23,14 @@ class PrismWidget:
     TRAINING_PROMPT = 'This workflow is for demonstrating and testing the PrismJS code highlighting widget. The user will input code (optionally with a language specifier like ```python), and the system will render it with syntax highlighting.'
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        self.pipulate = pipulate
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
         self.app_name = app_name
         self.pipulate = pipulate
         self.pipeline = pipeline
         self.steps_indices = {}
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
         self.message_queue = pip.message_queue
         steps = [Step(id='step_01', done='code_content', show='Code Content', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else '')]
@@ -54,7 +55,7 @@ class PrismWidget:
         return pip.create_standard_landing_page(self)
 
     async def init(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         user_input = form.get('pipeline_id', '').strip()
         if not user_input:
@@ -73,7 +74,7 @@ class PrismWidget:
         else:
             _, temp_prefix, user_provided_id_part = pip.generate_pipeline_key(self, user_input)
             pipeline_id = f'{expected_prefix}{user_provided_id_part}'
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
         if error:
             return error
@@ -82,8 +83,8 @@ class PrismWidget:
         return pip.run_all_cells(app_name, steps)
 
     async def finalize(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
@@ -101,8 +102,8 @@ class PrismWidget:
             return pip.run_all_cells(app_name, steps)
 
     async def unfinalize(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
         return pip.run_all_cells(app_name, steps)
@@ -113,10 +114,10 @@ class PrismWidget:
         return ''
 
     async def handle_revert(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         step_id = form.get('step_id')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         if not step_id:
             return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
@@ -163,12 +164,12 @@ class PrismWidget:
 
     async def step_01(self, request):
         """Handles GET request for Step 1: Code Input and Highlighting."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
@@ -212,12 +213,12 @@ class PrismWidget:
 
     async def step_01_submit(self, request):
         """Process the submission for Code Input and Highlighting."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         user_val_raw = form.get(step.done, '')
         user_val_stripped = user_val_raw.strip()

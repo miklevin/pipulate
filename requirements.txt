@@ -1,5 +1,7 @@
 tiktoken
 pydot
+huggingface-hub
+protobuf==4.25.3
 ai21==4.0.3
 appnope==0.1.4
 arxiv==2.2.0
@@ -10,7 +12,8 @@ extruct==0.18.0
 fqdn==1.5.1
 google-api-python-client==2.176.0
 gpt4all==2.8.2
-grpcio-status==1.73.1
+# grpcio-status==1.73.1
+grpcio-status
 httptools==0.6.4
 ipynbname==2024.1.0.0
 ipywidgets==8.1.7

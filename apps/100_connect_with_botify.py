@@ -31,6 +31,7 @@ class BotifyConnect:
     TRAINING_PROMPT = "Simply get the user to enter their Botify API token. They are looking at a link where they can find their API token."
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        self.pipulate = pipulate
         """
         Initialize the workflow.
         """
@@ -39,7 +40,7 @@ class BotifyConnect:
         self.pipulate = pipulate
         self.pipeline = pipeline
         self.steps_indices = {}
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
 
         # Use message queue from Pipulate for ordered message streaming

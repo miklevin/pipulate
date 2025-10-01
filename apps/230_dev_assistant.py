@@ -85,11 +85,12 @@ class DevAssistant:
     }
 
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
+        self.pipulate = pipulate
         self.app = app
         self.app_name = self.APP_NAME
         self.pipulate = pipulate
         self.pipeline = pipeline
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
         self.message_queue = pip.get_message_queue()
 
@@ -157,7 +158,7 @@ class DevAssistant:
              _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
              pipeline_id = f'{prefix}{user_part}'
 
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name})
         if error: return error
 
@@ -167,7 +168,7 @@ class DevAssistant:
 
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         if request.method == 'POST':
             await pip.set_step_data(pipeline_id, 'finalize', {'finalized': True}, self.steps)
@@ -206,7 +207,7 @@ class DevAssistant:
 
     async def unfinalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Development analysis session unlocked for editing.', verbatim=True)
         return pip.run_all_cells(app_name, self.steps)
@@ -215,7 +216,7 @@ class DevAssistant:
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
         form = await request.form()
         step_id = form.get('step_id')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         if not step_id:
             return P('Error: No step specified for revert.', cls='text-invalid')
@@ -869,7 +870,7 @@ class DevAssistant:
                         f"```python\n"
                         f"async def finalize_submit(self, request):\n"
                         f"    pip, db, app_name = self.pipulate, self.db, self.APP_NAME\n"
-                        f"    pipeline_id = db.get('pipeline_id', 'unknown')\n"
+                        f"    pipeline_id = pip.db.get('pipeline_id', 'unknown')\n"
                         f"    \n"
                         f"    await pip.set_step_data(pipeline_id, 'finalize', {{'finalized': True}}, self.steps)\n"
                         f"    await self.message_queue.add(pip, 'Workflow finalized.', verbatim=True)\n"
@@ -901,7 +902,7 @@ class DevAssistant:
                             f"```python\n"
                             f"async def finalize_submit(self, request):\n"
                             f"    pip, db, app_name = self.pipulate, self.db, self.app_name\n"
-                            f"    pipeline_id = db.get('pipeline_id', 'unknown')\n"
+                            f"    pipeline_id = pip.db.get('pipeline_id', 'unknown')\n"
                             f"    \n"
                             f"    await pip.set_step_data(pipeline_id, 'finalize', {{'finalized': True}}, self.steps)\n"
                             f"    await self.message_queue.add(pip, 'Workflow finalized.', verbatim=True)\n"
@@ -919,7 +920,7 @@ class DevAssistant:
                             f"```python\n"
                             f"async def finalize(self, request):\n"
                             f"    pip, db, app_name = self.pipulate, self.db, self.app_name\n"
-                            f"    pipeline_id = db.get('pipeline_id', 'unknown')\n"
+                            f"    pipeline_id = pip.db.get('pipeline_id', 'unknown')\n"
                             f"    \n"
                             f"    if request.method == 'GET':\n"
                             f"        # Handle GET request (show finalize form)\n"
@@ -944,10 +945,10 @@ class DevAssistant:
                         f"Add this method to the class:\n\n"
                         f"```python\n"
                         f"async def {step_submit}_submit(self, request):\n"
-                        f"    pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)\n"
+                        f"    pip, steps, app_name = (self.pipulate, self.steps, self.app_name)\n"
                         f"    step_id = '{step_submit}'\n"
                         f"    step_index = self.steps_indices[step_id]\n"
-                        f"    pipeline_id = db.get('pipeline_id', 'unknown')\n"
+                        f"    pipeline_id = pip.db.get('pipeline_id', 'unknown')\n"
                         f"    \n"
                         f"    form = await request.form()\n"
                         f"    # Process form data here\n"
@@ -1322,12 +1323,12 @@ class DevAssistant:
                         handler_code.append(f"""
 
     async def step_{num}(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_{num}'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {{}})
         user_val = step_data.get(step.done, '')
@@ -1360,10 +1361,10 @@ class DevAssistant:
                         handler_code.append(f"""
 
     async def step_{num}_submit(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_{num}'
         step_index = self.steps_indices[step_id]
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         form = await request.form()
         # Process form data here
@@ -1392,7 +1393,7 @@ class DevAssistant:
                 f"```python\n"
                 f"async def finalize(self, request):\n"
                 f"    pip, db, app_name = self.pipulate, self.db, self.APP_NAME\n"
-                f"    pipeline_id = db.get('pipeline_id', 'unknown')\n"
+                f"    pipeline_id = pip.db.get('pipeline_id', 'unknown')\n"
                 f"    \n"
                 f"    if request.method == 'POST':\n"
                 f"        await pip.set_step_data(pipeline_id, 'finalize', {{'finalized': True}}, self.steps)\n"

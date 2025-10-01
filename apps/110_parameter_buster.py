@@ -212,13 +212,14 @@ class ParameterBuster:
     }
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        self.pipulate = pipulate
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
         self.app_name = app_name
         self.pipulate = pipulate
         self.pipeline = pipeline
         self.steps_indices = {}
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
         self.message_queue = pip.message_queue
         # Access centralized configuration through dependency injection
@@ -310,7 +311,7 @@ class ParameterBuster:
 
     async def init(self, request):
         """Handles the key submission, initializes state, and renders the step UI placeholders."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         user_input = form.get('pipeline_id', '').strip()
         if not user_input:
@@ -328,7 +329,7 @@ class ParameterBuster:
         else:
             _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
             pipeline_id = f'{prefix}{user_provided_id}'
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
         if error:
             return error
@@ -341,8 +342,8 @@ class ParameterBuster:
         # PATTERN NOTE: The finalize step is the final destination of the chain reaction
         # and should be triggered by the last content step's submit handler.
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
@@ -362,8 +363,8 @@ class ParameterBuster:
 
     async def unfinalize(self, request):
         """Handles POST request to unlock the workflow."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, self.ui['MESSAGES']['WORKFLOW_UNLOCKED'], verbatim=True)
         return pip.run_all_cells(app_name, steps)
@@ -378,16 +379,16 @@ class ParameterBuster:
         if prev_index < 0:
             return ''
         prev_step = steps[prev_index]
-        prev_data = pip.get_step_data(db['pipeline_id'], prev_step.id, {})
+        prev_data = pip.get_step_data(pip.db['pipeline_id'], prev_step.id, {})
         prev_value = prev_data.get(prev_step.done, '')
         return step.transform(prev_value) if prev_value else ''
 
     async def handle_revert(self, request):
         """Handles POST request to revert to a previous step, clearing subsequent step data."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         step_id = form.get('step_id')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         if not step_id:
             return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
@@ -404,12 +405,12 @@ class ParameterBuster:
         # STEP PATTERN: GET handler returns current step UI + empty placeholder for next step
         # Important: The next step div should NOT have hx_trigger here, only in the submit handler
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         project_data_str = step_data.get(step.done, '')
@@ -469,12 +470,12 @@ class ParameterBuster:
         # 1. Revert control for the completed step
         # 2. Next step div with explicit hx_trigger="load" to chain reaction to next step
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         botify_url = form.get('botify_url', '').strip()
         is_valid, message, project_data = self.validate_botify_url(botify_url)
@@ -490,12 +491,12 @@ class ParameterBuster:
 
     async def step_02(self, request):
         """Handles GET request for Analysis selection between steps 1 and 2."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         analysis_result_str = step_data.get(step.done, '')
@@ -630,12 +631,12 @@ class ParameterBuster:
 
     async def step_02_submit(self, request):
         """Process the selected analysis slug for step_02 and download crawl data."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         prev_step_id = 'step_01'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
@@ -707,12 +708,12 @@ class ParameterBuster:
 
     async def step_03(self, request):
         """Handles GET request for checking if a Botify project has web logs."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_03'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         check_result_str = step_data.get(step.done, '')
@@ -833,12 +834,12 @@ class ParameterBuster:
 
     async def step_03_submit(self, request):
         """Process the check for Botify web logs and download if available."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_03'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         # Check if user clicked skip button
         form = await request.form()
         action = form.get('action', 'download')  # Default to download for backward compatibility
@@ -907,12 +908,12 @@ class ParameterBuster:
 
     async def step_04(self, request):
         """Handles GET request for checking if a Botify project has Search Console data."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_04'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         check_result_str = step_data.get(step.done, '')
@@ -1029,12 +1030,12 @@ class ParameterBuster:
 
     async def step_04_submit(self, request):
         """Process the check for Botify Search Console data."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_04'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         # Check if user clicked skip button
         form = await request.form()
         action = form.get('action', 'download')  # Default to download for backward compatibility
@@ -1091,12 +1092,12 @@ class ParameterBuster:
 
     async def step_04_complete(self, request):
         """Handles completion after the progress indicator has been shown."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_04'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         
         prev_step_id = 'step_01'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
@@ -1190,12 +1191,12 @@ class ParameterBuster:
 
     async def step_05(self, request):
         """Handles GET request for Parameter Optimization Generation."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         optimization_result = step_data.get(step.done, '')
@@ -1244,19 +1245,19 @@ class ParameterBuster:
         # 2. Use Script tag with setTimeout + htmx.ajax to trigger background processing
         # 3. Background processor updates state and returns completed UI with next step trigger
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         param_count = form.get('param_count', '40')
         return Card(H3(f'{step.show}'), P('Counting parameters...', cls='mb-15px'), Progress(style='margin-top: 10px;'), Script("\n            setTimeout(function() {\n                htmx.ajax('POST', '" + f'/{app_name}/step_05_process' + "', {\n                    target: '#" + step_id + "',\n                    values: { \n                        'pipeline_id': '" + pipeline_id + "',\n                        'param_count': '" + param_count + "'\n                    }\n                });\n            }, 500);\n            "), id=step_id)
 
     async def step_05_process(self, request):
         """Process parameter analysis using raw parameter counting and caching."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
@@ -1313,12 +1314,12 @@ class ParameterBuster:
 
     async def step_06(self, request):
         """Handles GET request for the JavaScript Code Display Step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_06'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
@@ -1487,11 +1488,11 @@ class ParameterBuster:
 
     async def step_06_submit(self, request):
         """Process the submission for the parameter threshold settings."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_06'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
         gsc_threshold = form.get('gsc_threshold', '0')
@@ -1549,7 +1550,7 @@ class ParameterBuster:
     async def parameter_preview(self, request):
         """Process real-time parameter preview requests based on threshold settings."""
         pip, db, app_name = (self.pipulate, self.db, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         gsc_threshold = int(form.get('gsc_threshold', '0'))
         min_frequency = int(form.get('min_frequency', '100000'))
@@ -1630,12 +1631,12 @@ class ParameterBuster:
 
     async def step_07(self, request):
         """Handles GET request for Step 7 Markdown widget."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_07'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         step_06_data = pip.get_step_data(pipeline_id, 'step_06', {})
@@ -1693,12 +1694,12 @@ class ParameterBuster:
 
     async def step_07_submit(self, request):
         """Process the markdown content submission for Step 7."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_07'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         markdown_content = form.get('markdown_content', '')
         existing_data = {}
@@ -2735,12 +2736,12 @@ await main()
 
     async def step_02_process(self, request):
         """Process the actual download after showing the progress indicator."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         analysis_slug = form.get('analysis_slug', '').strip()
         username = form.get('username', '').strip()
@@ -3042,12 +3043,12 @@ await main()
 
     async def step_03_process(self, request):
         """Process the web logs check and download if available."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_03'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         analysis_slug = form.get('analysis_slug', '').strip()
         username = form.get('username', '').strip()
@@ -3287,13 +3288,13 @@ await main()
 
     async def common_toggle(self, request):
         """Unified toggle method for all step widgets using configuration-driven approach."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         # Extract step_id from query parameters
         step_id = request.query_params.get('step_id')
         if not step_id or step_id not in self.TOGGLE_CONFIG:
             return Div("Invalid step ID", style="color: red;")
         config = self.TOGGLE_CONFIG[step_id]
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         # Handle simple content case (step_05)
         if 'simple_content' in config:
             state = pip.read_state(pipeline_id)

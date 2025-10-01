@@ -263,6 +263,7 @@ You're here to make the workflow concepts accessible and help users understand t
     # --- END_CLASS_ATTRIBUTES_BUNDLE ---
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        self.pipulate = pipulate
         """
         Initialize the workflow, define steps, and register routes.
 
@@ -276,7 +277,7 @@ You're here to make the workflow concepts accessible and help users understand t
         self.pip = pipulate
         self.pipeline = pipeline
         self.steps_indices = {}
-        self.db = db
+        pip = self.pipulate
         pip = self.pip
         self.message_queue = self.pip.get_message_queue()
 
@@ -331,7 +332,7 @@ You're here to make the workflow concepts accessible and help users understand t
 
     async def init(self, request):
         """ Handles the key submission, initializes state, and renders the step UI placeholders. """
-        pip, db, steps, app_name = (self.pip, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pip, self.steps, self.app_name)
         form = await request.form()
         user_input = form.get('pipeline_id', '').strip()
         if not user_input:
@@ -350,7 +351,7 @@ You're here to make the workflow concepts accessible and help users understand t
         else:
             _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
             pipeline_id = f'{prefix}{user_provided_id}'
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         logger.debug(f'Using pipeline ID: {pipeline_id}')
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
         if error:
@@ -382,8 +383,8 @@ You're here to make the workflow concepts accessible and help users understand t
 
     async def finalize(self, request):
         """ Handles GET request to show Finalize button and POST request to lock the workflow. """
-        pip, db, steps, app_name = (self.pip, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pip, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
@@ -453,8 +454,8 @@ You're here to make the workflow concepts accessible and help users understand t
 
     async def unfinalize(self, request):
         """ Handles POST request to unlock the workflow. """
-        pip, db, steps, app_name = (self.pip, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pip, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, f'{self.ui["EMOJIS"]["UNLOCKED"]} Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
         return pip.run_all_cells(app_name, steps)
@@ -469,16 +470,16 @@ You're here to make the workflow concepts accessible and help users understand t
         if prev_index < 0:
             return ''
         prev_step = steps[prev_index]
-        prev_data = pip.get_step_data(db['pipeline_id'], prev_step.id, {})
+        prev_data = pip.get_step_data(pip.db['pipeline_id'], prev_step.id, {})
         prev_word = prev_data.get(prev_step.done, '')
         return step.transform(prev_word) if prev_word else ''
 
     async def handle_revert(self, request):
         """ Handles POST request to revert to a previous step, clearing subsequent step data. """
-        pip, db, steps, app_name = (self.pip, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pip, self.steps, self.app_name)
         form = await request.form()
         step_id = form.get('step_id')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         if not step_id:
             await self.message_queue.add(pip, f'{self.ui["EMOJIS"]["ERROR"]} Error: No step specified', verbatim=True)
             return P('Error: No step specified', cls='text-invalid')
@@ -500,12 +501,12 @@ You're here to make the workflow concepts accessible and help users understand t
         2. Revert Phase: Shows completed view with revert option
         3. Input Phase: Shows input form for new/updated value
         """
-        pip, db, steps, app_name = (self.pip, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pip, self.steps, self.app_name)
         step_id = 'step_01'  # This string literal will be replaced by swap_workflow_step.py
         step_index = self.steps_indices[step_id]
         step = steps[step_index]  # Use the resolved step object
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')  # Use step.done from resolved Step object
@@ -619,7 +620,7 @@ You're here to make the workflow concepts accessible and help users understand t
         3. Updates the workflow state
         4. Returns a UI showing the completed step and triggering the next step
         """
-        pip, db, steps, app_name = (self.pip, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pip, self.steps, self.app_name)
         step_id = 'step_01'  # This string literal will be replaced by swap_workflow_step.py
         step_index = self.steps_indices[step_id]
         step = steps[step_index]  # Use the resolved step object
@@ -651,12 +652,12 @@ You're here to make the workflow concepts accessible and help users understand t
     # --- START_STEP_BUNDLE: step_02 ---
     async def step_02(self, request):
         """ Handles GET request for Step 2: Displays input form or completed value. """
-        pip, db, steps, app_name = (self.pip, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pip, self.steps, self.app_name)
         step_id = 'step_02'  # This string literal will be replaced by swap_workflow_step.py
         step_index = self.steps_indices[step_id]
         step = steps[step_index]  # Use the resolved step object
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')  # Use step.done from resolved Step object
@@ -760,11 +761,11 @@ You're here to make the workflow concepts accessible and help users understand t
 
     async def step_02_submit(self, request):
         """ Handles POST submission for Step 2: Validates, saves state, returns navigation. """
-        pip, db, steps, app_name = (self.pip, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pip, self.steps, self.app_name)
         step_id = 'step_02'  # This string literal will be replaced by swap_workflow_step.py
         step_index = self.steps_indices[step_id]
         step = steps[step_index]  # Use the resolved step object
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         if step.done == 'finalized':
             return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)

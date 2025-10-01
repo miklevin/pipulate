@@ -148,6 +148,7 @@ This training data should equip the LLM to effectively explain and guide users t
 If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        self.pipulate = pipulate
         """
         Initialize the workflow, define steps, and register routes.
         """
@@ -156,7 +157,7 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         self.pipulate = pipulate
         self.pipeline = pipeline
         self.steps_indices = {}
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
         self.message_queue = pip.message_queue
         steps = [Step(id='step_01', done='simple_content', show='Simple Text Widget', refill=True), Step(id='step_02', done='markdown_content', show='Markdown Renderer (MarkedJS)', refill=True), Step(id='step_03', done='mermaid_content', show='Mermaid Diagram Renderer', refill=True), Step(id='step_04', done='table_data', show='Pandas Table Widget', refill=True), Step(id='step_05', done='code_content', show='Code Syntax Highlighter', refill=True), Step(id='step_06', done='js_content', show='JavaScript Widget', refill=True), Step(id='step_07', done='counter_data', show='Matplotlib Histogram', refill=True), Step(id='step_08', done='url', show='URL Opener Widget', refill=True), Step(id='step_09', done='rich_table', show='Rich Table Widget', refill=True), Step(id='step_10', done='selenium_url', show='Selenium URL Opener', refill=True), Step(id='step_11', done='file_uploads', show='File Upload Widget', refill=True)]
@@ -189,7 +190,7 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def init(self, request):
         """ Initialize the workflow state and redirect to the first step. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         user_input = form.get('pipeline_id', '').strip()
         if not user_input:
@@ -208,7 +209,7 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         else:
             _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
             pipeline_id = f'{prefix}{user_provided_id}'
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         logger.debug(f'Using pipeline ID: {pipeline_id}')
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
         if error:
@@ -233,8 +234,8 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def finalize(self, request):
         """ Handle GET/POST requests to finalize (lock) the workflow. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
@@ -253,8 +254,8 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def unfinalize(self, request):
         """ Handle POST request to unlock the workflow. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
         return pip.run_all_cells(app_name, steps)
@@ -267,10 +268,10 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def handle_revert(self, request):
         """ Handle POST request to revert to a previous step. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         step_id = form.get('step_id')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         if not step_id:
             return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
@@ -293,12 +294,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         In a "Separated Step" pattern, this would only handle input collection,
         and a separate step would display the widget.
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
@@ -328,11 +329,11 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         This immediate transformation from input to widget in the same step
         creates a tight cause-effect relationship visible to the user.
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
         user_val = form.get(step.done, '')
@@ -354,12 +355,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         Allows the user to input markdown content that will be rendered
         using the marked.js library for a Jupyter notebook-like experience.
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
@@ -397,11 +398,11 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         Takes the user's markdown input, creates a marked.js widget,
         and returns it as part of the response with MarkedJS initialization.
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
         user_val = form.get(step.done, '')
@@ -421,12 +422,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def step_03(self, request):
         """ Handles GET request for Step 3: Mermaid Diagram Renderer. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_03'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
@@ -474,11 +475,11 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         - Support for different Mermaid API versions
         - Comprehensive error handling
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_03'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
         user_val = form.get(step.done, '')
@@ -504,12 +505,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         Note that when displaying an existing widget, we recreate it from
         the saved data rather than storing the rendered widget itself.
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_04'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
@@ -547,11 +548,11 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         When using the "Combined Step" pattern with complex widgets, it's
         important to handle errors gracefully to avoid breaking the workflow.
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_04'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         user_val = form.get(step.done, '')
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
@@ -581,12 +582,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def step_05(self, request):
         """ Handles GET request for Step 5: Code Syntax Highlighter. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
@@ -641,11 +642,11 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def step_05_submit(self, request):
         """ Process the submission for Step 5. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
         user_val = form.get(step.done, '')
@@ -675,12 +676,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def step_06(self, request):
         """ Handles GET request for Step 6: JavaScript Widget. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_06'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
@@ -715,11 +716,11 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def step_06_submit(self, request):
         """ Process the submission for Step 6. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_06'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
         user_val = form.get(step.done, '')
@@ -811,12 +812,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
         This step allows users to input counter data and visualizes it as a histogram.
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_07'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         counter_data = step_data.get(step.done, '')
@@ -847,11 +848,11 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
         Takes counter data as input and creates a histogram visualization.
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_07'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
         counter_data = form.get(step.done, '').strip()
@@ -885,12 +886,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         This widget allows users to input a URL and open it in their default browser.
         It demonstrates a practical use case for workflow steps.
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_08'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         url_value = step_data.get(step.done, '')
@@ -912,11 +913,11 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         Takes a URL input, validates it, opens it in the default browser,
         and provides a button to reopen it later.
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_08'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
         url = form.get('url', '').strip()
@@ -989,12 +990,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         - Proper cell padding and alignment
         - Color-coded columns
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_09'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         table_data = step_data.get(step.done, '')
@@ -1024,12 +1025,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def step_09_submit(self, request):
         """Process the submission for Rich Table Widget."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_09'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         table_data = form.get(step.done, '').strip()
         is_valid, error_msg, error_component = pip.validate_step_input(table_data, step.show)
@@ -1079,12 +1080,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def step_10(self, request):
         """Handles GET request for Selenium URL step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_10'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         url_value = step_data.get(step.done, '')
@@ -1101,12 +1102,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def step_10_submit(self, request):
         """Process the submission for Step 10."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_10'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
@@ -1161,12 +1162,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
         - Automatic file saving
         - Upload summary display
         """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_11'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         file_summary = step_data.get(step.done, '')
@@ -1184,12 +1185,12 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def step_11_submit(self, request):
         """Process the submission for the file upload widget."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_11'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form_data = await request.form()
         uploaded_files = form_data.getlist('uploaded_files')
         if not uploaded_files:

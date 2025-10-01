@@ -58,13 +58,14 @@ class BrowserAutomation:
     TRAINING_PROMPT = 'This workflow showcases browser automation using Selenium. It uses webdriver-manager for cross-platform compatibility and provides a foundation for developing more advanced automation features.'
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        self.pipulate = pipulate
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
         self.app_name = app_name
         self.pipulate = pipulate
         self.pipeline = pipeline
         self.steps_indices = {}
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
         self.message_queue = pip.message_queue
         steps = [Step(id='step_01', done='url', show='Enter URL', refill=True), Step(id='step_02', done='placeholder', show='Placeholder Step', refill=True), Step(id='step_03', done='session_test_complete', show='Ephemeral Login Test', refill=False), Step(id='step_04', done='persistent_session_test_complete', show='Persistent Login Test', refill=False), Step(id='step_05', done='placeholder', show='Step 5 Placeholder', refill=False)]
@@ -94,7 +95,7 @@ class BrowserAutomation:
 
     async def init(self, request):
         """Handles the key submission, initializes state, and renders the step UI placeholders."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         user_input = form.get('pipeline_id', '').strip()
         if not user_input:
@@ -113,7 +114,7 @@ class BrowserAutomation:
         else:
             _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
             pipeline_id = f'{prefix}{user_provided_id}'
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
         if error:
             return error
@@ -123,8 +124,8 @@ class BrowserAutomation:
 
     async def finalize(self, request):
         """Handles GET request to show Finalize button and POST request to lock the workflow."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
@@ -150,8 +151,8 @@ class BrowserAutomation:
 
     async def unfinalize(self, request):
         """Handles POST request to unlock the workflow."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         if 'finalize' in state:
             del state['finalize']
@@ -172,16 +173,16 @@ class BrowserAutomation:
         if prev_index < 0:
             return ''
         prev_step = steps[prev_index]
-        prev_data = pip.get_step_data(db['pipeline_id'], prev_step.id, {})
+        prev_data = pip.get_step_data(pip.db['pipeline_id'], prev_step.id, {})
         prev_value = prev_data.get(prev_step.done, '')
         return step.transform(prev_value) if prev_value else ''
 
     async def handle_revert(self, request):
         """Handles POST request to revert to a previous step, clearing subsequent step data."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         step_id = form.get('step_id')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         if not step_id:
             return P('Error: No step specified', cls='text-invalid')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
@@ -204,12 +205,12 @@ class BrowserAutomation:
 
     async def step_01(self, request):
         """Handles GET request for Open URL step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         url_value = step_data.get(step.done, '')
@@ -226,12 +227,12 @@ class BrowserAutomation:
 
     async def step_01_submit(self, request):
         """Process the Open URL submission and open it with Selenium."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
@@ -321,12 +322,12 @@ class BrowserAutomation:
 
     async def step_02(self, request):
         """Handles GET request for Crawl URL step (identical to Step 1, independent state, crawl semantics)."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         url_value = step_data.get(step.done, '')
@@ -350,12 +351,12 @@ class BrowserAutomation:
 
     async def step_02_submit(self, request):
         """Process the Crawl URL submission, open with Selenium-wire, and save crawl data."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
@@ -521,12 +522,12 @@ class BrowserAutomation:
 
     async def step_03_confirm(self, request):
         """Handle confirmation of Ephemeral Login Test."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_03'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = state.get(step_id, {})
         step_data[step.done] = True
@@ -603,12 +604,12 @@ class BrowserAutomation:
 
     async def step_04_confirm(self, request):
         """Handle confirmation of Persistent Login Test."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_04'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = state.get(step_id, {})
         step_data[step.done] = True
@@ -620,12 +621,12 @@ class BrowserAutomation:
 
     async def step_05(self, request):
         """Handles GET request for Step 5 placeholder."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         placeholder_value = step_data.get(step.done, '')
@@ -643,12 +644,12 @@ class BrowserAutomation:
 
     async def step_05_submit(self, request):
         """Process the submission for Step 5 placeholder."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         placeholder_value = 'completed'
         await pip.set_step_data(pipeline_id, step_id, placeholder_value, steps)
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{placeholder_value}')

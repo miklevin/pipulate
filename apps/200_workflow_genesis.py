@@ -51,11 +51,12 @@ class WorkflowGenesis:
     TRAINING_PROMPT = """You are assisting with workflow creation in Pipulate. Help users choose between three approaches: 1) Blank placeholder for beginners learning step management, 2) Hello world recreation for understanding helper tool sequences, 3) Trifecta workflow for complex data collection scenarios. Guide them through command generation and explain the purpose of each approach."""
 
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
+        self.pipulate = pipulate
         self.app = app
         self.app_name = self.APP_NAME
         self.pipulate = pipulate
         self.pipeline = pipeline
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
         self.message_queue = pip.get_message_queue()
 
@@ -143,7 +144,7 @@ class WorkflowGenesis:
             _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
             pipeline_id = f'{prefix}{user_part}'
 
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name})
         if error: return error
 
@@ -155,7 +156,7 @@ class WorkflowGenesis:
     # Common finalization methods (simplified)
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         finalize_step_obj = next(s for s in self.steps if s.id == 'finalize')
         finalize_data = pip.get_step_data(pipeline_id, finalize_step_obj.id, {})
@@ -194,7 +195,7 @@ class WorkflowGenesis:
 
     async def unfinalize(self, request):
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow creation unfinalized. You can now modify any step.', verbatim=True)
         return pip.run_all_cells(app_name, self.steps)
@@ -203,7 +204,7 @@ class WorkflowGenesis:
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
         form = await request.form()
         step_id_to_revert_to = form.get('step_id')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         if not step_id_to_revert_to:
             return P('Error: No step specified for revert.', style='color: #dc3545;')
@@ -498,7 +499,7 @@ class WorkflowGenesis:
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
 
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         current_value = step_data.get(step_obj.done, '')
@@ -576,7 +577,7 @@ class WorkflowGenesis:
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
 
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form_data = await request.form()
 
         # Properly capture form data with fallbacks for empty fields
@@ -613,7 +614,7 @@ class WorkflowGenesis:
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
 
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         current_value = step_data.get(step_obj.done, '')
@@ -668,7 +669,7 @@ class WorkflowGenesis:
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
 
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form_data = await request.form()
 
         template_choice = {
@@ -775,7 +776,7 @@ class WorkflowGenesis:
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
 
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         current_value = step_data.get(step_obj.done, '')
@@ -868,7 +869,7 @@ class WorkflowGenesis:
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
 
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         # Get workflow parameters and template data
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
