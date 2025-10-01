@@ -1,6 +1,7 @@
-tiktoken
+2tiktoken
 pydot
 huggingface-hub
+blinker==1.8.
 protobuf==4.25.3
 ai21==4.0.3
 appnope==0.1.4
