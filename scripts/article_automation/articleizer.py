@@ -179,7 +179,7 @@ def main():
     # ... (This part is unchanged) ...
     print("Calling the Gemini API directly... (This may take a moment)")
     try:
-        model = genai.GenerativeModel('gemini-1.5-pro-latest')
+        model = genai.GenerativeModel('gemini-2.5-pro')
         response = model.generate_content(full_prompt)
         gemini_output = response.text
         print("Successfully received response from API.")
