@@ -23,6 +23,8 @@ from starlette.responses import HTMLResponse
 from loguru import logger
 from imports.crud import Step  # 🎯 STANDARDIZED: Import centralized Step definition
 
+import config
+
 ROLES = ['Botify Employee']
 TOKEN_FILE = 'botify_token.txt'
 import asyncio
@@ -683,7 +685,6 @@ If asked, the secret word to show that you're trained on this workflow is ENTERP
         self.pipeline = pipeline
         self.steps_indices = {}
         pip = self.pipulate
-        pip = self.pipulate
         self.message_queue = pip.message_queue
         
         # Access centralized configuration through dependency injection
@@ -840,7 +841,7 @@ If asked, the secret word to show that you're trained on this workflow is ENTERP
 
     async def get_suggestion(self, step_id, state):
         """Gets a suggested input value for a step, often using the previous step's transformed output."""
-        pip, db, steps = (self.pipulate, self.db, self.steps)
+        pip, db, steps = (self.pipulate, self.pip.db, self.steps)
         step = next((s for s in steps if s.id == step_id), None)
         if not step or not step.transform:
             return ''
@@ -1458,7 +1459,7 @@ If asked, the secret word to show that you're trained on this workflow is ENTERP
                         'project': project_name,
                         'connector': 'direct_download',
                         'formatter': 'csv',
-                        'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],
+                        'export_size': config.BOTIFY_API['CRAWL_EXPORT_SIZE'],
                         'query': {
                             'collections': [collection],
                             'query': template_query
@@ -1485,7 +1486,7 @@ If asked, the secret word to show that you're trained on this workflow is ENTERP
                         'project': project_name,
                         'connector': 'direct_download',
                         'formatter': 'csv',
-                        'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],
+                        'export_size': config.BOTIFY_API['CRAWL_EXPORT_SIZE'],
                         'query': {
                             'collections': [collection],
                             'query': template_query
@@ -2129,7 +2130,7 @@ If asked, the secret word to show that you're trained on this workflow is ENTERP
 
     async def step_05(self, request):
         """Handles GET request for the Visualization Preparation step."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pip, db, steps, app_name = self.pipulate, self.pipulate.db, self.steps, self.app_name
         step_id = "step_05"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
@@ -2180,7 +2181,7 @@ If asked, the secret word to show that you're trained on this workflow is ENTERP
 
     async def step_05_submit(self, request):
         """Process the submission for the Visualization Preparation step."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pip, db, steps, app_name = self.pipulate, self.pipulate.db, self.steps, self.app_name
         step_id = "step_05"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
@@ -3266,7 +3267,7 @@ await main()
                         'periods': [[start_date, end_date]],
                         'query': template_query
                     },
-                    'export_size': self.config['BOTIFY_API']['GSC_EXPORT_SIZE'],
+                    'export_size': config.BOTIFY_API['GSC_EXPORT_SIZE'],
                     'formatter': 'csv',
                     'connector': 'direct_download',
                     'formatter_config': {'print_header': True, 'print_delimiter': True},
@@ -3355,7 +3356,7 @@ await main()
                     'project': project_name,
                     'connector': 'direct_download',
                     'formatter': 'csv',
-                    'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],
+                    'export_size': config.BOTIFY_API['CRAWL_EXPORT_SIZE'],
                     'query': bql_query,
                     'formatter_config': {'print_header': True}
                 }
@@ -3412,7 +3413,7 @@ await main()
                     'project': project_name,
                     'connector': 'direct_download',
                     'formatter': 'csv',
-                    'export_size': self.config['BOTIFY_API']['WEBLOG_EXPORT_SIZE'],
+                    'export_size': config.BOTIFY_API['WEBLOG_EXPORT_SIZE'],
                     'query': bql_query,
                     'formatter_config': {'print_header': True},
                     'extra_config': {'compression': 'zip'}
@@ -3666,7 +3667,7 @@ await main()
                         'project': project_name,
                         'connector': 'direct_download',
                         'formatter': 'csv',
-                        'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],
+                        'export_size': config.BOTIFY_API['CRAWL_EXPORT_SIZE'],
                         'query': {
                             'collections': [collection],
                             'query': template_query
@@ -3719,7 +3720,7 @@ await main()
                         'project': project_name,
                         'connector': 'direct_download',
                         'formatter': 'csv',
-                        'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],
+                        'export_size': config.BOTIFY_API['CRAWL_EXPORT_SIZE'],
                         'query': {
                             'collections': [collection],
                             'query': template_query
@@ -3969,7 +3970,7 @@ await main()
                     date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
                     # CRITICAL: This creates BQLv1 structure with dates at payload level (NOT in periods)
                     # This structure is what _convert_bqlv1_to_query expects to find for proper conversion
-                    export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': self.config['BOTIFY_API']['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
+                    export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': config.BOTIFY_API['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
                     # Generate Python command snippet (using /query endpoint for Jupyter debugging)
                     _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
                     check_result['python_command'] = python_command
@@ -3986,7 +3987,7 @@ await main()
                     date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
                     # CRITICAL: This creates BQLv1 structure with dates at payload level (NOT in periods)
                     # This structure is what _convert_bqlv1_to_query expects to find for proper conversion
-                    export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': self.config['BOTIFY_API']['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
+                    export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': config.BOTIFY_API['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
                     job_url = 'https://api.botify.com/v1/jobs'
                     headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
                     logging.info(f'Submitting logs export job with payload: {json.dumps(export_query, indent=2)}')
@@ -5153,7 +5154,7 @@ await main()
     # --- START_SWAPPABLE_STEP: step_06 ---
     async def step_06(self, request):
         """Handles GET request for Placeholder Step 6 (Edit Me)."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pip, db, steps, app_name = self.pipulate, self.pip.db, self.steps, self.app_name
         step_id = "step_06"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
@@ -5200,7 +5201,7 @@ await main()
 
     async def step_06_submit(self, request):
         """Process the submission for Placeholder Step 6 (Edit Me)."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pip, db, steps, app_name = self.pipulate, self.pip.db, self.steps, self.app_name
         step_id = "step_06"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
