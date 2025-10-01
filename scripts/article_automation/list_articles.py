@@ -2,10 +2,25 @@
 # list_posts_chronologically_config.py
 import os
 import yaml
+import argparse
+import tiktoken
 from datetime import datetime
 
-# CONFIGURATION: Hardwire the absolute path to your posts directory here.
+# NOTE: This script now requires 'tiktoken' and 'PyYAML'.
+# Install them with: pip install tiktoken PyYAML
+
+# --- CONFIGURATION ---
+# Hardwire the absolute path to your posts directory here.
 POSTS_DIRECTORY = "/home/mike/repos/MikeLev.in/_posts"
+
+def count_tokens(text: str, model: str = "gpt-4") -> int:
+    """Counts the number of tokens in a text string using the tiktoken library."""
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+        return len(encoding.encode(text))
+    except Exception:
+        # Fallback for any tiktoken errors
+        return 0
 
 def get_post_order(posts_dir=POSTS_DIRECTORY):
     """
@@ -14,7 +29,6 @@ def get_post_order(posts_dir=POSTS_DIRECTORY):
     """
     posts_data = []
     
-    # The script now uses the provided 'posts_dir' argument directly.
     if not os.path.isdir(posts_dir):
         print(f"Error: Could not find the configured directory at {posts_dir}")
         return []
@@ -60,9 +74,28 @@ def get_post_order(posts_dir=POSTS_DIRECTORY):
     return [post['path'] for post in sorted_posts]
 
 if __name__ == '__main__':
-    # The function is called without arguments, so it uses the default
-    # value from the POSTS_DIRECTORY configuration variable.
+    parser = argparse.ArgumentParser(
+        description="List Jekyll posts in chronological order, optionally with token counts."
+    )
+    parser.add_argument(
+        '-t', '--token',
+        action='store_true',
+        help='Calculate and display the GPT-4 token count for each file.'
+    )
+    args = parser.parse_args()
+
     ordered_files = get_post_order()
+    
     print("Posts in intended chronological order (full paths):")
-    for filename in ordered_files:
-        print(filename)
+    for filepath in ordered_files:
+        if args.token:
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                token_count = count_tokens(content)
+                # Formats with two spaces before the hash comment, as requested
+                print(f"{filepath}  # {token_count:,} tokens")
+            except Exception as e:
+                print(f"{filepath}  # Error: Could not read file - {e}")
+        else:
+            print(filepath)
