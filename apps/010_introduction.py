@@ -304,7 +304,7 @@ class IntroductionPlugin:
 
         # Store current page in database
         try:
-            self.db['intro_current_page'] = str(page_num)
+            self.pipulate.db['intro_current_page'] = str(page_num)
         except Exception as e:
             logger.warning(f"Could not store intro_current_page: {e}")
             # Continue without storing - this is non-critical
@@ -335,7 +335,7 @@ class IntroductionPlugin:
         from server import APP_NAME, MODEL
 
         # Get current page from database, default to 1
-        current_page = int(self.db.get('intro_current_page', '1'))
+        current_page = int(self.pipulate.db.get('intro_current_page', '1'))
 
         # Send the intro message to conversation history, but only once per session
         if self.pipulate is not None:
