@@ -3184,7 +3184,7 @@ await main()
                         'periods': [[start_date, end_date]],
                         'query': template_query
                     },
-                    'export_size': self.config['BOTIFY_API']['GSC_EXPORT_SIZE'],
+                    'export_size': config.BOTIFY_API['GSC_EXPORT_SIZE'],
                     'formatter': 'csv',
                     'connector': 'direct_download',
                     'formatter_config': {'print_header': True, 'print_delimiter': True},
@@ -3286,7 +3286,7 @@ await main()
                     'project': project_name,
                     'connector': 'direct_download',
                     'formatter': 'csv',
-                    'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],
+                    'export_size': config.BOTIFY_API['CRAWL_EXPORT_SIZE'],
                     'query': bql_query,
                     'formatter_config': {'print_header': True}
                 }
@@ -3343,7 +3343,7 @@ await main()
                     'project': project_name,
                     'connector': 'direct_download',
                     'formatter': 'csv',
-                    'export_size': self.config['BOTIFY_API']['WEBLOG_EXPORT_SIZE'],
+                    'export_size': config.BOTIFY_API['WEBLOG_EXPORT_SIZE'],
                     'query': bql_query,
                     'formatter_config': {'print_header': True},
                     'extra_config': {'compression': 'zip'}
@@ -3599,7 +3599,7 @@ await main()
                         'project': project_name,
                         'connector': 'direct_download',
                         'formatter': 'csv',
-                        'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],
+                        'export_size': config.BOTIFY_API['CRAWL_EXPORT_SIZE'],
                         'query': {
                             'collections': [collection],
                             'query': template_query
@@ -3655,7 +3655,7 @@ await main()
                         'project': project_name,
                         'connector': 'direct_download',
                         'formatter': 'csv',
-                        'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],
+                        'export_size': config.BOTIFY_API['CRAWL_EXPORT_SIZE'],
                         'query': {
                             'collections': [collection],
                             'query': template_query
@@ -3899,7 +3899,7 @@ await main()
                 date_end = analysis_date_obj.strftime('%Y-%m-%d')
                 date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
                 # Create example BQLv1 structure for web logs (even though project doesn't have them)
-                export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': self.config['BOTIFY_API']['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
+                export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': config.BOTIFY_API['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
                 # Generate Python command snippet (for educational debugging)
                 _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
                 check_result['python_command'] = python_command
@@ -3919,7 +3919,7 @@ await main()
                     date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
                     # CRITICAL: This creates BQLv1 structure with dates at payload level (NOT in periods)
                     # This structure is what _convert_bqlv1_to_query expects to find for proper conversion
-                    export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': self.config['BOTIFY_API']['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
+                    export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': config.BOTIFY_API['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
                     # Generate Python command snippet (using /query endpoint for Jupyter debugging)
                     _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
                     check_result['python_command'] = python_command
@@ -3936,7 +3936,7 @@ await main()
                     date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
                     # CRITICAL: This creates BQLv1 structure with dates at payload level (NOT in periods)
                     # This structure is what _convert_bqlv1_to_query expects to find for proper conversion
-                    export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': self.config['BOTIFY_API']['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
+                    export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': config.BOTIFY_API['WEBLOG_EXPORT_SIZE'], 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
                     job_url = 'https://api.botify.com/v1/jobs'
                     headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
                     logger.info(f'Submitting logs export job with payload: {json.dumps(export_query, indent=2)}')
