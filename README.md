@@ -842,28 +842,40 @@ Jupyter Notebooks run alongside the FastHTML server, allowing developers to prot
 
 ### Starting Workflows in Jupyter Notebooks
 
-Pipulate's `pipulate` module can be imported in a Notebook running on the JupyterLab instance that's runs side-by-side with Pipulate and shares its Python virtual environment (`.venv/`) providing an ideal location to mock up new fully operational workflows ready to be later ported into Pipulate `apps/` where you deal with more of the unusual HTMX aspects. Before the port a simple:
+Pipulate's `pipulate` module can be imported in any Notebook, providing an ideal location to mock up new, fully operational workflows that are easy to port into the Pipulate Web App later. A simple:
 
 ```python
-install pipulate as pip
-```
+import pipulate as pip
+````
 
-...at the top of a Notebook following the conventions of `install numpy as np` and `install pandas as pd` gives you all the Pipulate state-management capabilities which allows a dramatic simplification of the Notebook logic, compels adherence to the Unix pipe `input` | `process` | `output` pattern and sets up an easy port. The abstract template is:
+...at the top of a Notebook (following the conventions of `import numpy as np`) gives you all of Pipulate's state-management capabilities. This dramatically simplifies notebook logic, compels adherence to a linear `input` -\> `process` -\> `output` pattern, and makes porting to the web UI trivial.
+
+The abstract template is:
 
 ```python
 import pipulate as pip
 
-job = "Workflow Mockup in Notebook"
-state = pip.read(job)  # Acquire previous state if any
-# Do in-memory stuff that needs to be made persistent
-# ...
-pip.write(state)  # Write state
-# Do more in-memory stuff that needs to be made persistent
-# ...
-pip.write(state)  # Write state
+# Define a job name, which corresponds to one record in the database
+job = "Workflow_Mockup_in_Notebook"
+
+# Cell 1: Set some initial data
+pip.set(job, step="customer_name", value="ACME Corp")
+pip.set(job, step="year", value=2025)
+
+# Cell 2: Retrieve data and add more
+# This works even if you restart the kernel between cells!
+customer = pip.get(job, step="customer_name")
+print(f"Working on job for {customer}")
+
+pip.set(job, step="contact_person", value="Wile E. Coyote")
+
+# Cell 3: View the final state
+final_state = pip.read(job)
+print(final_state)
+# Output: {'customer_name': 'ACME Corp', 'year': 2025, 'contact_person': 'Wile E. Coyote'}
 ```
 
-When you're done you'll have the process working in a Jupyter Notebook and technically won't need to port to Pipulate simply to get the work done, but if you do, it will be easier for non-Python-users to use the Web App version of your workflow.
+When you're done, you'll have a working process in a Jupyter Notebook. You can use it as is, or port it to a Pipulate `apps/` file to make it easily accessible to non-Python users via the Web App.
 
 ### Local-First & Single-Tenant Details  <!-- key: local-first-single-tenant-details -->
 
