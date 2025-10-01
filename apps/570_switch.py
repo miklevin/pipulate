@@ -40,13 +40,14 @@ class SwitchWorkflow:
     SWITCH_CONFIG = {'switches': [{'id': 'switch_1', 'label': 'First Switch', 'description': 'This is the first switch', 'default': False}, {'id': 'switch_2', 'label': 'Second Switch', 'description': 'This is the second switch', 'default': False}]}
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        self.pipulate = pipulate
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
         self.app_name = app_name
         self.pipulate = pipulate
         self.pipeline = pipeline
         self.steps_indices = {}
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
         self.message_queue = pip.message_queue
         steps = [Step(id='step_01', done='switch_state', show='Switch State', refill=True, transform=lambda prev_value: bool(prev_value) if prev_value is not None else self.SWITCH_CONFIG['switches'][-1]['default'])]
@@ -74,7 +75,7 @@ class SwitchWorkflow:
 
     async def init(self, request):
         """Handles the key submission, initializes state, and renders the step UI placeholders."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         user_input = form.get('pipeline_id', '').strip()
         if not user_input:
@@ -93,7 +94,7 @@ class SwitchWorkflow:
         else:
             _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
             pipeline_id = f'{prefix}{user_provided_id}'
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
         if error:
             return error
@@ -103,8 +104,8 @@ class SwitchWorkflow:
 
     async def finalize(self, request):
         """Handles GET request to show Finalize button and POST request to lock the workflow."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
@@ -123,8 +124,8 @@ class SwitchWorkflow:
 
     async def unfinalize(self, request):
         """Handles POST request to unlock the workflow."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
         return pip.run_all_cells(app_name, steps)
@@ -135,12 +136,12 @@ class SwitchWorkflow:
 
     async def handle_revert(self, request):
         """Handles POST request to revert to a previous step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         form = await request.form()
         step_id = form.get('step_id', '')
         if step_id not in self.steps_indices:
             return P('Error: Invalid step', cls='text-invalid')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
@@ -149,12 +150,12 @@ class SwitchWorkflow:
 
     async def step_01(self, request):
         """Handles GET request for switch configuration step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.get_step_data(pipeline_id, step_id, {})
         switch_state = state.get(step.done, {})
         pip.append_to_history(f'[WIDGET STATE] {step.show}: Showing input form')
@@ -167,12 +168,12 @@ class SwitchWorkflow:
 
     async def step_01_submit(self, request):
         """Handles POST request for switch configuration step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pip, steps, app_name = (self.pipulate, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         form = await request.form()
         switch_state = {}
         for switch in self.SWITCH_CONFIG['switches']:
