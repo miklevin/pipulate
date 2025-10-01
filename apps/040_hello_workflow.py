@@ -462,7 +462,7 @@ You're here to make the workflow concepts accessible and help users understand t
 
     async def get_suggestion(self, step_id, state):
         """ Gets a suggested input value for a step, often using the previous step's transformed output. """
-        pip, db, steps = (self.pip, self.db, self.steps)
+        pip, steps = (self.pip, self.steps)
         step = next((s for s in steps if s.id == step_id), None)
         if not step or not step.transform:
             return ''
@@ -470,7 +470,7 @@ You're here to make the workflow concepts accessible and help users understand t
         if prev_index < 0:
             return ''
         prev_step = steps[prev_index]
-        prev_data = pip.get_step_data(pip.db['pipeline_id'], prev_step.id, {})
+        prev_data = pip.get_step_data(pip.db.get('pipeline_id', 'unknown'), prev_step.id, {})
         prev_word = prev_data.get(prev_step.done, '')
         return step.transform(prev_word) if prev_word else ''
 
@@ -625,7 +625,7 @@ You're here to make the workflow concepts accessible and help users understand t
         step_index = self.steps_indices[step_id]
         step = steps[step_index]  # Use the resolved step object
 
-        pipeline_id = self.db["pipeline_id"]
+        pipeline_id = self.pip.db["pipeline_id"]
         form = await request.form()
         user_val = form.get(step.done, "")  # CRITICAL CHANGE: Use step.done from the resolved Step object
 
