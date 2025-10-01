@@ -4,6 +4,7 @@ Notebooks/Client_Work/
 
 prompt.md
 article.txt
+combined_prompt.txt
 
 # File-types that should never get into repo
 *.csv
