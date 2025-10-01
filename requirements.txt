@@ -1,3 +1,5 @@
+tiktoken
+pydot
 ai21==4.0.3
 appnope==0.1.4
 arxiv==2.2.0
