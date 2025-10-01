@@ -28,11 +28,12 @@ class BlankPlaceholder:
     # --- END_CLASS_ATTRIBUTES_BUNDLE ---
 
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
+        self.pipulate = pipulate
         self.app = app
         self.app_name = self.APP_NAME
         self.pipulate = pipulate
         self.pipeline = pipeline
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
         self.message_queue = pip.get_message_queue()
 
@@ -92,7 +93,7 @@ class BlankPlaceholder:
         else:
             _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
             pipeline_id = f'{prefix}{user_provided_id}'
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         logger.debug(f'Using pipeline ID: {pipeline_id}')
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
         if error:
@@ -125,7 +126,7 @@ class BlankPlaceholder:
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
         # Use self.steps as it's the definitive list including 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         finalize_step_obj = next(s for s in self.steps if s.id == 'finalize')
         finalize_data = pip.get_step_data(pipeline_id, finalize_step_obj.id, {})
@@ -191,7 +192,7 @@ class BlankPlaceholder:
 
     async def unfinalize(self, request):
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, self.ui['MESSAGES']['WORKFLOW_UNLOCKED'], verbatim=True)
         return pip.run_all_cells(app_name, self.steps)
@@ -215,7 +216,7 @@ class BlankPlaceholder:
         current_steps_to_pass_helpers = self.steps # Use self.steps which includes 'finalize'
         form = await request.form()
         step_id_to_revert_to = form.get('step_id')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         if not step_id_to_revert_to:
             return P('Error: No step specified for revert.', cls='text-invalid')
@@ -238,7 +239,7 @@ class BlankPlaceholder:
         step = steps[step_index]
         # Determine next_step_id dynamically based on runtime position in steps list
         next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         current_value = step_data.get(step.done, "") # 'step.done' will be like 'placeholder_data_01'
@@ -302,7 +303,7 @@ class BlankPlaceholder:
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         form_data = await request.form()
         # Minimal placeholder: just mark as completed

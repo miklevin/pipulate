@@ -53,11 +53,12 @@ class SimonSaysMcpWidget:
     # --- END_CLASS_ATTRIBUTES_BUNDLE ---
 
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
+        self.pipulate = pipulate
         self.app = app
         self.app_name = self.APP_NAME
         self.pipulate = pipulate
         self.pipeline = pipeline
-        self.db = db
+        pip = self.pipulate
         pip = self.pipulate
         self.message_queue = pip.get_message_queue()
 
@@ -124,7 +125,7 @@ class SimonSaysMcpWidget:
              _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
              pipeline_id = f'{prefix}{user_part}'
 
-        db['pipeline_id'] = pipeline_id
+        pip.db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name})
         if error: return error
 
@@ -135,7 +136,7 @@ class SimonSaysMcpWidget:
 
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         finalize_step_obj = next(s for s in self.steps if s.id == 'finalize')
         finalize_data = pip.get_step_data(pipeline_id, finalize_step_obj.id, {})
         state = pip.read_state(pipeline_id)
@@ -190,7 +191,7 @@ class SimonSaysMcpWidget:
 
     async def unfinalize(self, request):
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         # Skip unfinalize message for cleaner demonstration
         return pip.run_all_cells(app_name, self.steps)
@@ -214,7 +215,7 @@ class SimonSaysMcpWidget:
         current_steps_to_pass_helpers = self.steps # Use self.steps which includes 'finalize'
         form = await request.form()
         step_id_to_revert_to = form.get('step_id')
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         if not step_id_to_revert_to:
             return P('Error: No step specified for revert.', cls='text-invalid')
