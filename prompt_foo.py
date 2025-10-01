@@ -778,6 +778,7 @@ for file_path, comment in processed_files:
         content_lines.append(f"```{lang_type}:{file_path}")
         content_lines.append(file_content)
         content_lines.append("```")
+        content_lines.append(f"\n# {file_path}")
         content_lines.append("") # Add a newline for spacing
 
     except Exception as e:
