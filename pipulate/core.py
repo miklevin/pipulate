@@ -190,30 +190,33 @@ class Pipulate:
         self.get_profile_name = get_profile_name_func
         self.model = model
         self.message_queue = self.OrderedMessageQueue()
-
+    
         if db_path:
             # Standalone/Notebook Context: Create our "Parallel Universe" DB using fastlite directly
+            from fastlite import Database
+            from loguru import logger
             logger.info(f"Pipulate initializing in standalone mode with db: {db_path}")
-
+    
             # 1. Create a database connection using fastlite.Database
             db_conn = Database(db_path)
-
+    
             # 2. Access the table handles via the .t property
             l_store = db_conn.t.store
             l_pipeline = db_conn.t.pipeline
             # Note: We don't need to explicitly create tables; fastlite handles it.
-
+    
             self.pipeline_table = l_pipeline
             # The second argument `Store` from fast_app isn't needed by DictLikeDB.
             self.db = DictLikeDB(l_store, None)
-
+    
             # In standalone mode, some features that rely on the server are stubbed out
             if self.append_to_conversation is None: self.append_to_conversation = lambda msg, role: print(f"[{role}] {msg}")
             if self.get_current_profile_id is None: self.get_current_profile_id = lambda: 'standalone'
             if self.get_profile_name is None: self.get_profile_name = lambda: 'standalone'
-
+    
         else:
             # Server Context: Use the objects passed in from server.py
+            from loguru import logger
             logger.info("Pipulate initializing in server mode.")
             self.pipeline_table = pipeline_table
             self.db = db
@@ -1818,4 +1821,41 @@ class Pipulate:
             yield error_msg
 
     # START: notebook_api_methods
+    def read(self, job: str) -> dict:
+        """Reads the entire state dictionary for a given job (pipeline_id)."""
+        state = self.read_state(job)
+        state.pop('created', None)
+        state.pop('updated', None)
+        return state
+    
+    def write(self, job: str, state: dict):
+        """Writes an entire state dictionary for a given job (pipeline_id)."""
+        # Ensure 'created' timestamp is preserved if it exists
+        existing_state = self.read_state(job)
+        if 'created' in existing_state:
+            state['created'] = existing_state['created']
+        self.write_state(job, state)
+    
+    def set(self, job: str, step: str, value: any):
+        """Sets a key-value pair within a job's state."""
+        state = self.read_state(job)
+        if not state:
+            # If the job doesn't exist, initialize it
+            now = self.get_timestamp()
+            state = {'created': now}
+            self.pipeline_table.insert({
+                'pkey': job,
+                'app_name': 'notebook',
+                'data': json.dumps(state),
+                'created': now,
+                'updated': now
+            })
+    
+        state[step] = value
+        self.write_state(job, state)
+    
+    def get(self, job: str, step: str, default: any = None) -> any:
+        """Gets a value for a key within a job's state."""
+        state = self.read_state(job)
+        return state.get(step, default)
     # END: notebook_api_methods
