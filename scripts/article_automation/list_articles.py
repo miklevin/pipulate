@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # list_posts_chronologically_config.py
 import os
+import sys
 import yaml
 import argparse
 import tiktoken
@@ -30,7 +31,7 @@ def get_post_order(posts_dir=POSTS_DIRECTORY, reverse_order=False):
     posts_data = []
     
     if not os.path.isdir(posts_dir):
-        print(f"Error: Could not find the configured directory at {posts_dir}")
+        print(f"Error: Could not find the configured directory at {posts_dir}", file=sys.stderr)
         return []
 
     for filename in os.listdir(posts_dir):
@@ -63,7 +64,7 @@ def get_post_order(posts_dir=POSTS_DIRECTORY, reverse_order=False):
         except (ValueError, yaml.YAMLError):
             continue
         except Exception as e:
-            print(f"Could not process {filepath}: {e}")
+            print(f"Could not process {filepath}: {e}", file=sys.stderr)
 
     # The 'reverse' flag of the sorted function is controlled by the new argument
     sorted_posts = sorted(
@@ -83,7 +84,6 @@ if __name__ == '__main__':
         action='store_true',
         help='Calculate and display the GPT-4 token count for each file.'
     )
-    # Add the new reverse argument
     parser.add_argument(
         '-r', '--reverse',
         action='store_true',
@@ -97,22 +97,41 @@ if __name__ == '__main__':
     order_description = "chronological (oldest first)" if args.reverse else "reverse chronological (newest first)"
     print(f"Posts in {order_description} order (full paths):")
     
-    # Initialize a variable to keep the running total
-    cumulative_tokens = 0
-
-    for filepath in ordered_files:
-        if args.token:
+    if args.token:
+        # --- PASS 1: Pre-calculate all token counts ---
+        print("Calculating token counts for all files, this may take a moment...", file=sys.stderr)
+        file_data = []
+        for filepath in ordered_files:
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.read()
-                
                 token_count = count_tokens(content)
-                # Add the current file's tokens to the cumulative total
-                cumulative_tokens += token_count
-                
-                # Print the new format with both individual and cumulative counts
-                print(f"{filepath}  # {token_count:,} tokens ({cumulative_tokens:,} total)")
+                file_data.append({'path': filepath, 'tokens': token_count})
             except Exception as e:
-                print(f"{filepath}  # Error: Could not read file - {e}")
-        else:
+                print(f"{filepath}  # Error: Could not read file - {e}", file=sys.stderr)
+                # Add a record with 0 tokens to avoid breaking the logic
+                file_data.append({'path': filepath, 'tokens': 0})
+        
+        grand_total_tokens = sum(item['tokens'] for item in file_data)
+        print("", file=sys.stderr) # Add a newline after the status message
+
+        # --- PASS 2: Print formatted output with dual cumulative counts ---
+        ascending_total = 0
+        descending_total = grand_total_tokens
+
+        for item in file_data:
+            filepath = item['path']
+            token_count = item['tokens']
+            
+            ascending_total += token_count
+            
+            # Print the new format with individual, ascending, and descending counts
+            print(f"{filepath}  # {token_count:,} tokens ({ascending_total:,} / {descending_total:,} total)")
+            
+            # Decrement the descending total for the next iteration
+            descending_total -= token_count
+
+    else:
+        # If --token is not used, just print the file paths as before
+        for filepath in ordered_files:
             print(filepath)
