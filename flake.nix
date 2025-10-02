@@ -408,7 +408,6 @@
           # Install all dependencies from requirements.txt
           pip install -r requirements.txt --quiet
           # Install the local project in editable mode so it's importable
-          # This is the key step for making `from imports import ...` work
           pip install -e . --no-deps --quiet
         '';
         # --- REFACTORED SHELL LOGIC ---
@@ -420,7 +419,7 @@
           export PATH="$VIRTUAL_ENV/bin:$PATH"
           # Prioritize Python 3.12 libraries first to avoid version conflicts
           export LD_LIBRARY_PATH=${pkgs.python312}/lib:${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
-          export PYTHONPATH=""
+          unset PYTHONPATH
           # --- JupyterLab Local Configuration ---
           export JUPYTER_CONFIG_DIR="$(pwd)/.jupyter"
           export JUPYTER_WORKSPACE_NAME="${jupyterWorkspaceName}"
@@ -505,7 +504,7 @@
           if [[ "$(uname -s)" == "Darwin" ]]; then export EFFECTIVE_OS="darwin"; else export EFFECTIVE_OS="linux"; fi
           echo "INFO: EFFECTIVE_OS set to: $EFFECTIVE_OS"
           # Add aliases
-          alias isnix='if [ -n "$IN_NIX_SHELL" ]; then echo "✓ In Nix shell v${version}"; else echo "✗ Not in Nix shell"; fi'
+          alias isnix="if [ -n \"$IN_NIX_SHELL\" ]; then echo \"✓ In Nix shell v${version}\"; else echo \"✗ Not in Nix shell\"; fi"
           export PS1="(nix) $PS1"
           alias release='.venv/bin/python helpers/release/publish.py'
           alias mcp='.venv/bin/python cli.py call'
@@ -573,8 +572,6 @@
             shellHook = ''
               # Sets up venv, installs packages, and configures the shell prompt
               ${pythonSetupLogic}
-              ${pythonInstallLogic}
-              ${miscSetupLogic}
             '';
           };
         };
