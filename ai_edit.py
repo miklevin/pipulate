@@ -1,9 +1,9 @@
 # ai_edit.py
 import ast
-import json
 import argparse
 from pathlib import Path
 import sys
+import importlib.util
 
 class CodeRefactorer:
     """
@@ -23,10 +23,9 @@ class CodeRefactorer:
             print(f"    ✅ AST validation successful for block '{block_name}'.")
         except SyntaxError as e:
             print(f"    ❌ AST validation FAILED for block '{block_name}'. The proposed change would break the file.")
-            # Provide more detailed error context
             error_line = code_to_check.splitlines()[e.lineno - 1]
             print(f"    Error near line {e.lineno}: {error_line.strip()}")
-            print(f"    { ' ' * (e.offset - 1)}^")
+            print(f"    {' ' * (e.offset - 1)}^")
             print(f"    Reason: {e.msg}")
             raise e
 
@@ -38,19 +37,19 @@ class CodeRefactorer:
             before_block, rest = self._new_content.split(start_sentinel, 1)
             old_block, after_block = rest.split(end_sentinel, 1)
 
-            indentation = before_block.split('\n')[-1]
-            
-            # Smartly handle indentation for the new code
-            lines = new_code.strip().split('\n')
-            first_line_indent = len(lines[0]) - len(lines[0].lstrip())
+            # Use textwrap.dedent to handle triple-quoted string indentation
+            import textwrap
+            new_code = textwrap.dedent(new_code).strip()
+
+            base_indentation = before_block.split('\n')[-1]
             indented_new_code = "\n".join(
-                f"{indentation}{line[first_line_indent:]}" for line in lines
+                f"{base_indentation}{line}" for line in new_code.split('\n')
             )
 
             content_with_replacement = (
                 f"{before_block}{start_sentinel}\n"
                 f"{indented_new_code}\n"
-                f"{indentation}{end_sentinel}{after_block}"
+                f"{base_indentation}{end_sentinel}{after_block}"
             )
 
             self._verify_syntax(content_with_replacement, block_name)
@@ -71,9 +70,24 @@ class CodeRefactorer:
         else:
             print(f"🤷 No changes were made to {self.file_path}.")
 
+def load_patches_from_module(patch_module_path: Path):
+    """Dynamically imports a Python module and returns its 'patches' list."""
+    try:
+        module_name = patch_module_path.stem
+        spec = importlib.util.spec_from_file_location(module_name, patch_module_path)
+        patch_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(patch_module)
+        return getattr(patch_module, 'patches')
+    except AttributeError:
+        print(f"Error: The patch file '{patch_module_path}' must define a list named 'patches'.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error loading patch module '{patch_module_path}': {e}")
+        sys.exit(1)
+
 def main():
-    parser = argparse.ArgumentParser(description="Apply deterministic, AST-validated code patches from a JSON file.")
-    parser.add_argument("patch_file", help="Path to the JSON file containing the refactoring instructions.")
+    parser = argparse.ArgumentParser(description="Apply deterministic, AST-validated code patches from a Python module.")
+    parser.add_argument("patch_file", help="Path to the Python file containing the 'patches' list.")
     args = parser.parse_args()
 
     patch_file_path = Path(args.patch_file)
@@ -81,17 +95,11 @@ def main():
         print(f"Error: Patch file not found at '{patch_file_path}'")
         sys.exit(1)
 
-    with open(patch_file_path, 'r') as f:
-        try:
-            patches = json.load(f)
-        except json.JSONDecodeError as e:
-            print(f"Error: Invalid JSON in patch file '{patch_file_path}': {e}")
-            sys.exit(1)
+    patches = load_patches_from_module(patch_file_path)
 
     print(f"Applying patches from: {patch_file_path.name}")
     print("-" * 30)
 
-    # Group patches by file
     patches_by_file = {}
     for patch in patches:
         file = patch.get("file")
@@ -120,7 +128,6 @@ def main():
             
     print("\n" + "-" * 30)
     print("Refactoring process complete. Please review the changes with 'git diff'.")
-
 
 if __name__ == "__main__":
     main()
