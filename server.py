@@ -126,7 +126,7 @@ from tools import get_all_tools
 from imports import botify_code_generation, mcp_orchestrator
 import imports.server_logging as slog
 
-from pipulate import Pipulate
+from pipulate.core import Pipulate
 
 # Various debug settings
 DEBUG_MODE = False
