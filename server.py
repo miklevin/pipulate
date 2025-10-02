@@ -1,7 +1,12 @@
 # Hi, AI! Please run: .venv/bin/python AI_RUNME.py
 
-"""
-🔧 AIRTIGHT AGENTIC PROMPT CONTRACT TEMPLATE v2.0
+'''
+Of course. Here is the updated contract template that specifies the new, more human-friendly `.py` patch format.
+
+-----
+
+### 🔧 AIRTIGHT AGENTIC PROMPT CONTRACT TEMPLATE v2.1
+
 ═══════════════════════════════════════════════════════════════════════════════════════════════
 Hello Gemini.
 
@@ -19,44 +24,63 @@ The core principle of this project is **stability and predictability**. Your pri
 
 2.  **Deterministic Editing Protocol:** You have a hierarchy of tools for modifying code. You **MUST** use them in this order of preference:
 
-    * **🥇 GOLD STANDARD (for planned changes): `ai_edit.py`**
-        * This is your primary tool for surgical, multi-line code replacement.
-        * **Your Task:** Generate a `patch.json` file containing the `file`, `block_name`, and `new_code` for the change.
-        * **Execution:** Run `.venv/bin/python ai_edit.py patch.json` to apply the change.
-        * This is the **ONLY** approved method for complex refactoring.
+      * **🥇 GOLD STANDARD (for planned changes): `ai_edit.py`**
 
-    * **🥈 SILVER STANDARD (for simple, safe changes): `sed`**
-        * Use `sed -i 's/old/new/g' path/to/file.py` for trivial, single-line, unambiguous replacements ONLY.
-        * Always verify with `git diff` immediately after.
+          * This is your primary tool for surgical, multi-line code replacement.
+          * **Your Task:** Generate a Python patch file (e.g., `patch.py`) that defines a list of dictionaries named `patches`.
+          * **Patch File Format:** Each dictionary must have "file", "block\_name", and "new\_code" keys. Use triple-quoted f-strings for the `new_code` value for maximum readability and flexibility.
+            ```python
+            # patch.py
+            patches = [
+                {
+                    "file": "path/to/your_file.py",
+                    "block_name": "sentinel_name_in_file",
+                    "new_code": """
+            # Your new, properly indented code goes here.
+            # Use triple quotes for clean, multi-line strings.
+            new_function_call()
+            """
+                }
+            ]
+            ```
+          * **Execution:** Run `.venv/bin/python ai_edit.py patch.py` to apply the changes.
+          * This is the **ONLY** approved method for complex refactoring.
 
-    * **🚫 FORBIDDEN:** You **MUST NOT** perform generative edits directly on existing source code files. Your generative capabilities should only be used to create the content for the `new_code` blocks within your `patch.json` file.
+      * **🥈 SILVER STANDARD (for simple, safe changes): `sed`**
+
+          * Use `sed -i 's/old/new/g' path/to/file.py` for trivial, single-line, unambiguous replacements ONLY.
+          * Always verify with `git diff` immediately after.
+
+      * **🚫 FORBIDDEN:** You **MUST NOT** perform generative edits directly on existing source code files. Your generative capabilities should only be used to create the content for the `new_code` blocks within your Python patch file.
 
 3.  **One Small Step:** Execute only one atomic change at a time. After each successful commit, re-orient yourself before proceeding to the next step.
 
 4.  **Verify or Revert:**
-    * After every file modification, run `git diff` to confirm the change was correct.
-    * Run `.venv/bin/python server.py` to check for syntax errors and ensure the server can start. If it fails, capture the error.
-    * **If Successful:** `git add .` and `git commit` with a clear message.
-    * **If It Fails:** You **MUST IMMEDIATELY** run `git reset --hard HEAD`, append the captured error to the "Critical Failure Analysis" section, and terminate the session.
+
+      * After every file modification, run `git diff` to confirm the change was correct.
+      * Watchdog is used to live-reload `server.py` on every edit so attempts to run the server should only be made to check for syntax errors.
+      * Run `.venv/bin/python server.py` to check for syntax errors and ensure the server can start. If it fails, capture the error.
+      * **If Successful:** `git add .` and `git commit` with a clear message.
+      * **If It Fails:** You **MUST IMMEDIATELY** run `git reset --hard HEAD`, append the captured error to the "Critical Failure Analysis" section, and terminate the session.
 
 5.  **Nix Environment:** You are in a `nix develop` shell. **NEVER** `pip install` anything. Use `.venv/bin/python` for all Python scripts.
 
 ### Current State and Critical Failure Analysis
 
-* **Branch:** You are on the git branch: `{{GIT_BRANCH}}`.
-* **Last Known State:** {{Describe_the_last_successful_commit_or_the_current_state.}}
-* **Critical Failure Analysis:** {{If_this_is_a_retry,_paste_the_exact_error_from_the_previous_failed_run_here.}}
+  * **Branch:** You are on the git branch: `{{GIT_BRANCH}}`.
+  * **Last Known State:** {{Describe\_the\_last\_successful\_commit\_or\_the\_current\_state.}}
+  * **Critical Failure Analysis:** {{If\_this\_is\_a\_retry,\_paste\_the\_exact\_error\_from\_the\_previous\_failed\_run\_here.}}
 
 ### The Implementation Plan
 
-{{Provide the high-level goal and the step-by-step plan. For each step involving code changes, instruct the AI to generate a `patch.json` file and then call `ai_edit.py` to apply it.}}
+{{Provide the high-level goal and the step-by-step plan. For each step involving code changes, instruct the AI to generate a Python patch file (e.g., `patch.py`) and then call `ai_edit.py` to apply it.}}
 
 ### Completion Protocol (Definition of Done)
 
-You are **DONE** when all steps in the plan are committed and `git status` is clean. Announce completion, show the `git log`, and terminate.
----
+## You are **DONE** when all steps in the plan are committed and `git status` is clean. Announce completion, show the `git log`, and terminate.
+
 Your first action is to **orient yourself**. Begin now.
-"""
+'''
 
 import argparse
 import ast
