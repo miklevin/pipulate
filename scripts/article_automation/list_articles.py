@@ -22,9 +22,9 @@ def count_tokens(text: str, model: str = "gpt-4") -> int:
         # Fallback for any tiktoken errors
         return 0
 
-def get_post_order(posts_dir=POSTS_DIRECTORY):
+def get_post_order(posts_dir=POSTS_DIRECTORY, reverse_order=False):
     """
-    Parses Jekyll posts from a specified directory, sorts them by date 
+    Parses Jekyll posts from a specified directory, sorts them by date
     and 'sort_order', and returns an ordered list of full absolute file paths.
     """
     posts_data = []
@@ -65,10 +65,11 @@ def get_post_order(posts_dir=POSTS_DIRECTORY):
         except Exception as e:
             print(f"Could not process {filepath}: {e}")
 
+    # The 'reverse' flag of the sorted function is controlled by the new argument
     sorted_posts = sorted(
         posts_data, 
         key=lambda p: (p['date'], p['sort_order']), 
-        reverse=True
+        reverse=not reverse_order
     )
 
     return [post['path'] for post in sorted_posts]
@@ -82,11 +83,19 @@ if __name__ == '__main__':
         action='store_true',
         help='Calculate and display the GPT-4 token count for each file.'
     )
+    # Add the new reverse argument
+    parser.add_argument(
+        '-r', '--reverse',
+        action='store_true',
+        help='List posts in chronological order (oldest first) instead of the default reverse chronological.'
+    )
     args = parser.parse_args()
 
-    ordered_files = get_post_order()
+    # Pass the reverse flag to the function
+    ordered_files = get_post_order(reverse_order=args.reverse)
     
-    print("Posts in intended chronological order (full paths):")
+    order_description = "chronological (oldest first)" if args.reverse else "reverse chronological (newest first)"
+    print(f"Posts in {order_description} order (full paths):")
     
     # Initialize a variable to keep the running total
     cumulative_tokens = 0
