@@ -181,6 +181,7 @@ class Pipulate:
     PRESERVE_REFILL = True
     UNLOCK_BUTTON_LABEL = '🔓 Unlock'
 
+    # START: pipulate_init
     def __init__(self, pipeline_table=None, db=None, friendly_names=None, append_func=None, get_profile_id_func=None, get_profile_name_func=None, model=None, chat_instance=None, db_path=None):
         self.chat = chat_instance
         self.friendly_names = friendly_names
@@ -216,6 +217,7 @@ class Pipulate:
             logger.info("Pipulate initializing in server mode.")
             self.pipeline_table = pipeline_table
             self.db = db
+    # END: pipulate_init
 
     def get_home_menu_item(self) -> str:
         """Returns the appropriate home menu item text based on the HOME_APP setting."""
@@ -1814,3 +1816,6 @@ class Pipulate:
             error_msg = f'Error: {str(e)}'
             logger.error(f"🔍 DEBUG: Unexpected error in process_llm_interaction: {e}")
             yield error_msg
+
+    # START: notebook_api_methods
+    # END: notebook_api_methods
