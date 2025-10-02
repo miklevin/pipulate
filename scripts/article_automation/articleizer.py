@@ -49,9 +49,8 @@ def get_api_key():
 
     return key
 
-# (Your full, unchanged create_jekyll_post function goes here)
 def create_jekyll_post(article_content, instructions):
-    # ... (Omitted for brevity, but it's your complete function from before) ...
+    # ... (All the initial code of the function remains the same) ...
     print("Formatting final Jekyll post...")
 
     editing_instr = instructions.get("editing_instructions", {})
@@ -59,6 +58,7 @@ def create_jekyll_post(article_content, instructions):
     yaml_updates = editing_instr.get("yaml_updates", {})
 
     # 1. Build the Jekyll YAML front matter
+    # ... (This part is unchanged) ...
     new_yaml_data = {
         'title': yaml_updates.get("title"),
         'permalink': yaml_updates.get("permalink"),
@@ -83,7 +83,14 @@ def create_jekyll_post(article_content, instructions):
             print(f"Warning: Skipping subheading '{subheading}' due to missing snippet.")
             continue
 
-        pattern_text = re.escape(snippet).replace(r'\\ ', r'\\s+')
+        # --- START OF THE FIX ---
+        # 1. Clean the snippet: remove leading/trailing whitespace and ellipses.
+        clean_snippet = snippet.strip().strip('...')
+        
+        # 2. Create the regex pattern from the CLEANED snippet.
+        pattern_text = re.escape(clean_snippet).replace(r'\\ ', r'\\s+')
+        # --- END OF THE FIX ---
+
         match = re.search(pattern_text, article_body, re.IGNORECASE)
         if match:
             insertion_point = article_body.find('\n', match.end())
@@ -97,6 +104,7 @@ def create_jekyll_post(article_content, instructions):
         else:
             print(f"Warning: Snippet not found for subheading '{subheading}': '{snippet}'")
 
+    # ... (The rest of your function from step 4 onwards is unchanged) ...
     # 4. Prepend the "Curious Reader" intro
     prepend_text = editing_instr.get("prepend_to_article_body", "")
     if prepend_text:
@@ -104,10 +112,10 @@ def create_jekyll_post(article_content, instructions):
         article_body = f"{intro_section}\n\n{article_body}"
 
     # 5. Build the Book Analysis section
+    # ... (omitted for brevity)
     analysis_markdown = "\n## Book Analysis\n"
     if 'ai_editorial_take' in analysis_content:
         analysis_markdown += f"\n### Ai Editorial Take\n{analysis_content['ai_editorial_take']}\n"
-    
     for key, value in analysis_content.items():
         if key in ['authors_imprint', 'ai_editorial_take']:
             continue
@@ -122,13 +130,13 @@ def create_jekyll_post(article_content, instructions):
                 else:
                     analysis_markdown += f"- {item}\n"
         elif isinstance(value, dict):
-             for sub_key, sub_value in value.items():
-                analysis_markdown += f"- **{sub_key.replace('_', ' ').title()}:**\n"
-                if isinstance(sub_value, list):
-                    for point in sub_value:
-                        analysis_markdown += f"  - {point}\n"
-                else:
-                    analysis_markdown += f"  - {sub_value}\n"
+                for sub_key, sub_value in value.items():
+                    analysis_markdown += f"- **{sub_key.replace('_', ' ').title()}:**\n"
+                    if isinstance(sub_value, list):
+                        for point in sub_value:
+                            analysis_markdown += f"  - {point}\n"
+                    else:
+                        analysis_markdown += f"  - {sub_value}\n"
         else:
             analysis_markdown += f"{value}\n"
 
