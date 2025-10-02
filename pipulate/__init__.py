@@ -1,5 +1,6 @@
 # START: main_init_content
 import os
+import sys
 from pathlib import Path
 from .core import Pipulate, DictLikeDB
 
@@ -40,4 +41,8 @@ pip = Pipulate(db_path=str(db_path))
 # This allows `from pipulate import Pipulate` and makes the `pip` object available.
 # It also exposes the version info for the build/release process.
 __all__ = ['Pipulate', 'pip', '__version__', '__version_description__']
+
+# 🎯 CRITICAL: This line makes `import pipulate as pip` work as expected by
+# exposing the `pip` object directly on the module.
+sys.modules[__name__] = pip
 # END: main_init_content
