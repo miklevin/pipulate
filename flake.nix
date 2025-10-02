@@ -205,7 +205,8 @@
           
           # Always keep pip installation quiet - no scary technical output for users
           if pip install --upgrade pip --quiet && \
-            pip install -r requirements.txt --quiet; then
+            pip install -r requirements.txt --quiet && \
+            pip install -e . --no-deps --quiet; then    # <-- THIS IS THE NEW LINE
             true  # Success case handled below
           else
             false  # Error case handled below
@@ -643,8 +644,10 @@
           quiet = pkgs.mkShell {
             buildInputs = commonPackages; # Add back cudaPackages logic if needed
             shellHook = ''
-              # Only sets up the Python venv path, no pip install or other output
+              # Sets up venv, installs packages, and configures the shell prompt
               ${pythonSetupLogic}
+              ${pythonInstallLogic}
+              ${miscSetupLogic}
             '';
           };
         };
