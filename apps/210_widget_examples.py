@@ -262,7 +262,7 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def get_suggestion(self, step_id, state):
         """ Gets a suggested input value for a step, often using the previous step's transformed output. """
-        pip, db, steps = (self.pipulate, self.db, self.steps)
+        pip, db, steps = (self.pipulate, self.pipulate.db, self.steps)
         examples = {'step_01': 'Simple text content example:\n- Basic text formatting\n- Preserves line breaks and formatting\n- Great for lists, paragraphs, descriptions, etc.\n- Easy to modify\n\nThis is a sample widget that shows basic text content.', 'step_02': '# Markdown Example\n\nThis is a **bold statement** about _markdown_.\n\n## Features demonstrated:\n\n1. Headings (h1, h2)\n2. Formatted text (**bold**, _italic_)\n3. Ordered lists\n4. Unordered lists\n   - Nested item 1\n   - Nested item 2\n5. Code blocks\n\n### Code Example\n\n```python\ndef hello_world():\n    print("Hello from Markdown!")\n    for i in range(3):\n        print(f"Count: {i}")\n```\n\n> Blockquotes are also supported\n> - With nested lists\n> - And formatting\n\n[Learn more about Markdown](https://www.markdownguide.org/)\n', 'step_03': 'graph TD\n    A[Start] --> B{Decision}\n    B -->|Yes| C[Action 1]\n    B -->|No| D[Action 2]\n    C --> E[Result 1]\n    D --> F[Result 2]\n    E --> G[End]\n    F --> G', 'step_04': '[\n    {"Name": "John", "Age": 32, "Role": "Developer", "Department": "Engineering"},\n    {"Name": "Jane", "Age": 28, "Role": "Designer", "Department": "Product"},\n    {"Name": "Bob", "Age": 45, "Role": "Manager", "Department": "Engineering"},\n    {"Name": "Alice", "Age": 33, "Role": "PM", "Department": "Product"},\n    {"Name": "Charlie", "Age": 40, "Role": "Architect", "Department": "Engineering"}\n]', 'step_05': 'function calculateFactorial(n) {\n    // Base case: factorial of 0 or 1 is 1\n    if (n <= 1) {\n        return 1;\n    }\n    \n    // Recursive case: n! = n * (n-1)!\n    return n * calculateFactorial(n - 1);\n}\n\n// Example usage\nfor (let i = 0; i < 10; i++) {\n    console.log(`Factorial of ${i} is ${calculateFactorial(i)}`);\n}\n', 'step_06': "// Simple counter example\nlet count = 0;\nconst countDisplay = document.createElement('div');\ncountDisplay.style.fontSize = '24px';\ncountDisplay.style.margin = '20px 0';\ncountDisplay.textContent = count;\n\nconst button = document.createElement('button');\nbutton.textContent = 'Increment Count';\nbutton.style.backgroundColor = '#9370DB';\nbutton.style.borderColor = '#9370DB';\nbutton.onclick = function() {\n    count++;\n    countDisplay.textContent = count;\n};\n\nwidget.appendChild(countDisplay);\nwidget.appendChild(button);", 'step_07': '{\n    "apples": 35,\n    "oranges": 42, \n    "bananas": 28,\n    "grapes": 51,\n    "peaches": 22,\n    "plums": 18,\n    "mangoes": 39\n}', 'step_08': 'New placeholder step - no user content needed.\n\nThis step serves as a placeholder for future widget types.'}
         return examples.get(step_id, '')
 
@@ -1233,7 +1233,7 @@ If asked for a secret word to confirm this training, it is CARPENTER!"""
 
     async def reopen_url(self, request):
         """Handle reopening a URL with Selenium."""
-        pip, db = (self.pipulate, self.db)
+        pip, db = (self.pipulate, self.pipulate.db)
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:

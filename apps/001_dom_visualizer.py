@@ -72,7 +72,7 @@ class DOMVisualizer:
 
     async def init(self, request):
         """ Handles the key submission, initializes state, and renders the step UI placeholders. """
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.APP_NAME)
+        pip, db, steps, app_name = (self.pipulate, self.pipulate.db, self.steps, self.APP_NAME)
         form = await request.form()
         user_input = form.get('pipeline_id', '').strip()
         if not user_input:
@@ -122,7 +122,7 @@ class DOMVisualizer:
         return pip.run_all_cells(app_name, steps)
 
     async def finalize(self, request):
-        pip, db, app_name = self.pipulate, self.db, self.APP_NAME
+        pip, db, app_name = self.pipulate, self.pipulate.db, self.APP_NAME
         # Use self.steps as it's the definitive list including 'finalize'
         pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
@@ -189,14 +189,14 @@ class DOMVisualizer:
             return pip.run_all_cells(app_name, self.steps)
 
     async def unfinalize(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, self.ui['MESSAGES']['WORKFLOW_UNLOCKED'], verbatim=True)
         return pip.run_all_cells(app_name, self.steps)
 
     async def get_suggestion(self, step_id, state):
-        pip, db, current_steps = self.pipulate, self.db, self.steps
+        pip, db, current_steps = self.pipulate, self.pipulate.db, self.steps
         step_obj = next((s for s in current_steps if s.id == step_id), None)
         if not step_obj or not step_obj.transform: return ''
 
@@ -210,7 +210,7 @@ class DOMVisualizer:
         return step_obj.transform(prev_value) if prev_value and callable(step_obj.transform) else ''
 
     async def handle_revert(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         current_steps_to_pass_helpers = self.steps # Use self.steps which includes 'finalize'
         form = await request.form()
         step_id_to_revert_to = form.get('step_id')
@@ -231,7 +231,7 @@ class DOMVisualizer:
     # --- START_STEP_BUNDLE: step_01 ---
     async def step_01(self, request):
         """Handles GET request for Step 1 Placeholder."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.APP_NAME
+        pip, db, steps, app_name = self.pipulate, self.pipulate.db, self.steps, self.APP_NAME
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
@@ -315,7 +315,7 @@ class DOMVisualizer:
 
     async def step_01_submit(self, request):
         """Process the submission for Step 1 Placeholder."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.APP_NAME
+        pip, db, steps, app_name = self.pipulate, self.pipulate.db, self.steps, self.APP_NAME
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]

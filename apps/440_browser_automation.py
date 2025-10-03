@@ -165,7 +165,7 @@ class BrowserAutomation:
 
     async def get_suggestion(self, step_id, state):
         """Gets a suggested input value for a step, often using the previous step's transformed output."""
-        pip, db, steps = (self.pipulate, self.db, self.steps)
+        pip, db, steps = (self.pipulate, self.pipulate.db, self.steps)
         step = next((s for s in steps if s.id == step_id), None)
         if not step or not step.transform:
             return ''
@@ -280,7 +280,7 @@ class BrowserAutomation:
 
     async def reopen_url(self, request):
         """Handle reopening a URL with Selenium."""
-        pip, db = (self.pipulate, self.db)
+        pip, db = (self.pipulate, self.pipulate.db)
         form = await request.form()
         url = form.get('url', '').strip()
         if not url:
@@ -457,7 +457,7 @@ class BrowserAutomation:
 
     async def step_03(self, request):
         """Handles GET request for Ephemeral Login Test."""
-        pipeline_id = self.db.get('pipeline_id', 'unknown')
+        pipeline_id = self.pipulate.db.get('pipeline_id', 'unknown')
         if not pipeline_id or pipeline_id == 'unknown':
             return JSONResponse(status_code=400, content={'error': 'No pipeline ID found in db'})
         user_data_dir, profile_dir = self._get_selenium_profile_paths(pipeline_id)
@@ -478,7 +478,7 @@ class BrowserAutomation:
     async def step_03_submit(self, request):
         """Handles POST request for Ephemeral Login Test."""
         try:
-            pipeline_id = self.db.get('pipeline_id', 'unknown')
+            pipeline_id = self.pipulate.db.get('pipeline_id', 'unknown')
             if not pipeline_id or pipeline_id == 'unknown':
                 return JSONResponse(status_code=400, content={'error': 'No pipeline ID found in db'})
             user_data_dir, profile_dir = self._get_selenium_profile_paths(pipeline_id)
@@ -539,7 +539,7 @@ class BrowserAutomation:
 
     async def step_04(self, request):
         """Handles GET request for Persistent Login Test."""
-        pipeline_id = self.db.get('pipeline_id', 'unknown')
+        pipeline_id = self.pipulate.db.get('pipeline_id', 'unknown')
         if not pipeline_id or pipeline_id == 'unknown':
             return JSONResponse(status_code=400, content={'error': 'No pipeline ID found in db'})
         user_data_dir, profile_dir = self._get_persistent_profile_paths(pipeline_id)
@@ -560,7 +560,7 @@ class BrowserAutomation:
     async def step_04_submit(self, request):
         """Handles POST request for Persistent Login Test."""
         try:
-            pipeline_id = self.db.get('pipeline_id', 'unknown')
+            pipeline_id = self.pipulate.db.get('pipeline_id', 'unknown')
             if not pipeline_id or pipeline_id == 'unknown':
                 return JSONResponse(status_code=400, content={'error': 'No pipeline ID found in db'})
             user_data_dir, profile_dir = self._get_persistent_profile_paths(pipeline_id)
