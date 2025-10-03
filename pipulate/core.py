@@ -1847,7 +1847,7 @@ class Pipulate:
         if 'created' in existing_state:
             state['created'] = existing_state['created']
         self.write_state(job, state)
-    
+
     def set(self, job: str, step: str, value: any):
         """Sets a key-value pair within a job's state."""
         state = self.read_state(job)
@@ -1855,14 +1855,16 @@ class Pipulate:
             # If the job doesn't exist, initialize it
             now = self.get_timestamp()
             state = {'created': now}
-            self.pipeline_table.insert({
+            # Use upsert to create the record if it doesn't exist, preventing a crash if it does.
+            # This is the key fix for the ConstraintError.
+            self.pipeline_table.upsert({
                 'pkey': job,
                 'app_name': 'notebook',
                 'data': json.dumps(state),
                 'created': now,
                 'updated': now
-            })
-    
+            }, pk='pkey')
+
         state[step] = value
         self.write_state(job, state)
     
