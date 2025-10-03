@@ -92,7 +92,7 @@ def generate_uml_and_dot(target_file="server.py", project_name="pipulate") -> Di
                 dot_content = f.read()
 
             # Step 2: Run PlantUML on the generated DOT file
-            plantuml_cmd = [plantuml_exec, "-tutxt", "-pipe"]
+            plantuml_cmd = [plantuml_exec, "-tdot", "-pipe"]
             result = subprocess.run(plantuml_cmd, input=dot_content, check=True, capture_output=True, text=True, cwd=temp_dir)
             ascii_uml = result.stdout
 
