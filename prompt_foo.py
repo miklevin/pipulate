@@ -64,7 +64,7 @@ def get_literary_perspective(word_count: int, token_word_ratio: float) -> str:
 # --- Restored & Corrected: UML and DOT Context Generation ---
 # ============================================================================
 def generate_uml_and_dot(target_file="server.py", project_name="pipulate") -> Dict:
-    """Generates a UML ASCII diagram and DOT dependency graph for a Python file."""
+    """Generates a UML ASCII diagram and a DOT dependency graph for a target Python file."""
     pyreverse_exec = shutil.which("pyreverse")
     plantuml_exec = shutil.which("plantuml")
 
@@ -79,28 +79,95 @@ def generate_uml_and_dot(target_file="server.py", project_name="pipulate") -> Di
         return {"ascii_uml": f"Skipping: Target file for UML generation not found: {target_path}"}
 
     with tempfile.TemporaryDirectory() as temp_dir:
+        dot_file_path = os.path.join(temp_dir, "classes.dot")
+        puml_file_path = os.path.join(temp_dir, "diagram.puml")
+        
+        # --- Step 1: Run pyreverse ---
         try:
-            # Step 1: Run pyreverse to get DOT file
-            pyreverse_cmd = [pyreverse_exec, "-o", "dot", "-p", project_name, target_path]
-            subprocess.run(pyreverse_cmd, check=True, capture_output=True, text=True, cwd=temp_dir)
-            dot_file_path = os.path.join(temp_dir, f"classes_{project_name}.dot")
-
-            if not os.path.exists(dot_file_path):
-                return {"ascii_uml": "Error: pyreverse did not generate the expected DOT file."}
-
-            with open(dot_file_path, 'r') as f:
-                dot_content = f.read()
-
-            # Step 2: Run PlantUML on the generated DOT file
-            plantuml_cmd = [plantuml_exec, "-tdot", "-pipe"]
-            result = subprocess.run(plantuml_cmd, input=dot_content, check=True, capture_output=True, text=True, cwd=temp_dir)
-            ascii_uml = result.stdout
-
-            return {"ascii_uml": ascii_uml, "dot_graph": dot_content}
+            pyreverse_cmd = [
+                pyreverse_exec,
+                "-f", "dot",
+                "-o", "dot", # This format is just a prefix
+                "-p", project_name,
+                target_path
+            ]
+            subprocess.run(
+                pyreverse_cmd,
+                check=True,
+                capture_output=True,
+                text=True,
+                cwd=temp_dir
+            )
+            generated_dot_name = f"classes_{project_name}.dot"
+            os.rename(os.path.join(temp_dir, generated_dot_name), dot_file_path)
 
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
             error_msg = e.stderr if hasattr(e, 'stderr') else str(e)
-            return {"ascii_uml": f"Error during UML generation: {error_msg}"}
+            return {"ascii_uml": f"Error: pyreverse failed. {error_msg}", "dot_graph": None}
+
+        # --- Step 2: Convert DOT to PlantUML ---
+        try:
+            graphs = pydot.graph_from_dot_file(dot_file_path)
+            graph = graphs[0]
+            dot_content = graph.to_string()
+
+            puml_lines = ["@startuml", "skinparam linetype ortho", ""]
+
+            def sanitize_line(line):
+                clean = re.sub(r'<br[^>]*>', '', line)
+                clean = re.sub(r'<[^>]+>', '', clean)
+                return clean.strip()
+
+            for node in graph.get_nodes():
+                label = node.get_label()
+                if not label: continue
+
+                parts = label.strip('<>{} ').split('|')
+                class_name = sanitize_line(parts[0])
+                puml_lines.append(f"class {class_name} {{")
+
+                if len(parts) > 1:
+                    for attr in re.split(r'<br[^>]*>', parts[1]):
+                        clean_attr = sanitize_line(attr).split(':')[0].strip()
+                        if clean_attr:
+                            puml_lines.append(f"  - {clean_attr}")
+
+                if len(parts) > 2:
+                    method_block = parts[2].strip()
+                    for method_line in re.split(r'<br[^>]*>', method_block):
+                        clean_method = sanitize_line(method_line)
+                        if clean_method:
+                            puml_lines.append(f"  + {clean_method}")
+
+                puml_lines.append("}\n")
+
+            for edge in graph.get_edges():
+                source_name = edge.get_source().strip('"').split('.')[-1]
+                dest_name = edge.get_destination().strip('"').split('.')[-1]
+                puml_lines.append(f"{source_name} ..> {dest_name}")
+
+            puml_lines.append("@enduml")
+            with open(puml_file_path, 'w') as f:
+                f.write('\n'.join(puml_lines))
+
+        except Exception as e:
+            with open(dot_file_path, 'r') as f:
+                dot_content_on_error = f.read()
+            return {"ascii_uml": f"Error: DOT to PUML conversion failed. {str(e)}", "dot_graph": dot_content_on_error}
+ 
+        # --- Step 3: Run PlantUML ---
+        try:
+            plantuml_cmd = ["plantuml", "-tutxt", puml_file_path]
+            subprocess.run(plantuml_cmd, check=True, capture_output=True, text=True, cwd=temp_dir)
+            
+            utxt_file_path = puml_file_path.replace(".puml", ".utxt")
+            with open(utxt_file_path, 'r') as f:
+                ascii_uml = f.read()
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            error_msg = e.stderr if hasattr(e, 'stderr') else str(e)
+            return {"ascii_uml": f"Error: plantuml failed. {error_msg}", "dot_graph": dot_content}
+
+    return {"ascii_uml": ascii_uml, "dot_graph": dot_content}
 
 # ============================================================================
 # --- Helper Functions (Tokenizing, File Parsing, Clipboard) ---
