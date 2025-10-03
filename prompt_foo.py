@@ -91,16 +91,10 @@ def generate_uml_and_dot(target_file="server.py", project_name="pipulate") -> Di
             with open(dot_file_path, 'r') as f:
                 dot_content = f.read()
 
-            # CHANGED: Reverted to a more robust file-based conversion
             # Step 2: Run PlantUML on the generated DOT file
-            utxt_file_path = os.path.join(temp_dir, "diagram.utxt")
-            plantuml_cmd = [plantuml_exec, "-tutxt", dot_file_path, "-o", os.path.dirname(utxt_file_path)]
-            subprocess.run(plantuml_cmd, check=True, capture_output=True, text=True, cwd=temp_dir)
-            
-            # The output file will be named based on the input, e.g., 'classes_pipulate.utxt'
-            generated_utxt_path = os.path.join(temp_dir, f"classes_{project_name}.utxt")
-            with open(generated_utxt_path, 'r') as f:
-                ascii_uml = f.read()
+            plantuml_cmd = [plantuml_exec, "-tutxt", "-pipe"]
+            result = subprocess.run(plantuml_cmd, input=dot_content, check=True, capture_output=True, text=True, cwd=temp_dir)
+            ascii_uml = result.stdout
 
             return {"ascii_uml": ascii_uml, "dot_graph": dot_content}
 
@@ -285,22 +279,24 @@ def main():
 
     # 3. Build the prompt and add auto-generated context
     builder = PromptBuilder(processed_files_data, prompt_content)
-    
+
     processed_paths = {f['path'] for f in processed_files_data}
     uml_trigger_files = {"server.py", "pipulate/core.py"}
 
-    # --- THE ROBUST FIX: Use Set Intersection ---
-    intersecting_files = processed_paths.intersection(uml_trigger_files)
+    # Robust check using endswith()
+    trigger_file = None
+    for path in processed_paths:
+        for trigger in uml_trigger_files:
+            if path.endswith(trigger):
+                trigger_file = trigger
+                break
+        if trigger_file:
+            break
 
-    if intersecting_files:
-        # We found at least one match!
-        trigger_file = intersecting_files.pop() # Get one of the files that triggered it
+    if trigger_file:
         print(f"Key file '{trigger_file}' detected. Generating UML and DOT file context...")
-        
         uml_context = generate_uml_and_dot(target_file=trigger_file)
         builder.add_auto_context(f"UML Class Diagram (ASCII for {trigger_file})", uml_context.get("ascii_uml"))
-        # Optionally add the raw DOT graph if you want it
-        # builder.add_auto_context(f"Dependency Graph (DOT for {trigger_file})", uml_context.get("dot_graph"))
         print("...done.")
     
     # 4. Generate final output and print summary
