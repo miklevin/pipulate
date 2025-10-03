@@ -140,7 +140,7 @@ class DevAssistant:
         )
 
     async def init(self, request):
-        pip, db = self.pipulate, self.db
+        pip, db = self.pipulate, self.pipulate.db
         internal_app_name = self.APP_NAME
         form = await request.form()
         user_input_key = form.get('pipeline_id', '').strip()
@@ -167,7 +167,7 @@ class DevAssistant:
         return pip.run_all_cells(internal_app_name, self.steps)
 
     async def finalize(self, request):
-        pip, db, app_name = self.pipulate, self.db, self.APP_NAME
+        pip, db, app_name = self.pipulate, self.pipulate.db, self.APP_NAME
         pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         if request.method == 'POST':
@@ -206,14 +206,14 @@ class DevAssistant:
             )
 
     async def unfinalize(self, request):
-        pip, db, app_name = self.pipulate, self.db, self.APP_NAME
+        pip, db, app_name = self.pipulate, self.pipulate.db, self.APP_NAME
         pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Development analysis session unlocked for editing.', verbatim=True)
         return pip.run_all_cells(app_name, self.steps)
 
     async def handle_revert(self, request):
-        pip, db, app_name = self.pipulate, self.db, self.APP_NAME
+        pip, db, app_name = self.pipulate, self.pipulate.db, self.APP_NAME
         form = await request.form()
         step_id = form.get('step_id')
         pipeline_id = pip.db.get('pipeline_id', 'unknown')
@@ -869,7 +869,7 @@ class DevAssistant:
                         f"Add this method to the class:\n\n"
                         f"```python\n"
                         f"async def finalize_submit(self, request):\n"
-                        f"    pip, db, app_name = self.pipulate, self.db, self.APP_NAME\n"
+                        f"    pip, db, app_name = self.pipulate, self.pipulate.db, self.APP_NAME\n"
                         f"    pipeline_id = pip.db.get('pipeline_id', 'unknown')\n"
                         f"    \n"
                         f"    await pip.set_step_data(pipeline_id, 'finalize', {{'finalized': True}}, self.steps)\n"
@@ -901,7 +901,7 @@ class DevAssistant:
                             f"SOLUTION 1 - Add the missing method:\n"
                             f"```python\n"
                             f"async def finalize_submit(self, request):\n"
-                            f"    pip, db, app_name = self.pipulate, self.db, self.app_name\n"
+                            f"    pip, db, app_name = self.pipulate, self.pipulate.db, self.app_name\n"
                             f"    pipeline_id = pip.db.get('pipeline_id', 'unknown')\n"
                             f"    \n"
                             f"    await pip.set_step_data(pipeline_id, 'finalize', {{'finalized': True}}, self.steps)\n"
@@ -919,7 +919,7 @@ class DevAssistant:
                             f"SOLUTION 3 - Handle POST in finalize() method (RECOMMENDED):\n"
                             f"```python\n"
                             f"async def finalize(self, request):\n"
-                            f"    pip, db, app_name = self.pipulate, self.db, self.app_name\n"
+                            f"    pip, db, app_name = self.pipulate, self.pipulate.db, self.app_name\n"
                             f"    pipeline_id = pip.db.get('pipeline_id', 'unknown')\n"
                             f"    \n"
                             f"    if request.method == 'GET':\n"
@@ -1392,7 +1392,7 @@ class DevAssistant:
                 f"Add this method to handle workflow finalization:\n\n"
                 f"```python\n"
                 f"async def finalize(self, request):\n"
-                f"    pip, db, app_name = self.pipulate, self.db, self.APP_NAME\n"
+                f"    pip, db, app_name = self.pipulate, self.pipulate.db, self.APP_NAME\n"
                 f"    pipeline_id = pip.db.get('pipeline_id', 'unknown')\n"
                 f"    \n"
                 f"    if request.method == 'POST':\n"

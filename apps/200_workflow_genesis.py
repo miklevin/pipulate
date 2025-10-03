@@ -126,7 +126,7 @@ class WorkflowGenesis:
         return pip.create_standard_landing_page(self)
 
     async def init(self, request):
-        pip, db = self.pipulate, self.db
+        pip, db = self.pipulate, self.pipulate.db
         internal_app_name = self.APP_NAME
         form = await request.form()
         user_input_key = form.get('pipeline_id', '').strip()
@@ -155,7 +155,7 @@ class WorkflowGenesis:
 
     # Common finalization methods (simplified)
     async def finalize(self, request):
-        pip, db, app_name = self.pipulate, self.db, self.APP_NAME
+        pip, db, app_name = self.pipulate, self.pipulate.db, self.APP_NAME
         pipeline_id = pip.db.get('pipeline_id', 'unknown')
 
         finalize_step_obj = next(s for s in self.steps if s.id == 'finalize')
@@ -194,14 +194,14 @@ class WorkflowGenesis:
             return pip.run_all_cells(app_name, self.steps)
 
     async def unfinalize(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow creation unfinalized. You can now modify any step.', verbatim=True)
         return pip.run_all_cells(app_name, self.steps)
 
     async def handle_revert(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         form = await request.form()
         step_id_to_revert_to = form.get('step_id')
         pipeline_id = pip.db.get('pipeline_id', 'unknown')
@@ -493,7 +493,7 @@ class WorkflowGenesis:
     # Step implementation methods (simplified structure)
     async def step_01(self, request):
         """Step 1: Define workflow parameters"""
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]
@@ -571,7 +571,7 @@ class WorkflowGenesis:
 
     async def step_01_submit(self, request):
         """Handle step 1 submission"""
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]
@@ -608,7 +608,7 @@ class WorkflowGenesis:
 
     async def step_02(self, request):
         """Step 2: Choose template approach"""
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]
@@ -663,7 +663,7 @@ class WorkflowGenesis:
 
     async def step_02_submit(self, request):
         """Handle step 2 submission"""
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]
@@ -770,7 +770,7 @@ class WorkflowGenesis:
 
     async def step_03(self, request):
         """Step 3: Execute command sequence (placeholder for subprocess execution)"""
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         step_id = 'step_03'
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]
@@ -863,7 +863,7 @@ class WorkflowGenesis:
 
     async def step_03_submit(self, request):
         """Handle step 3 submission - actually execute the command sequence"""
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         step_id = 'step_03'
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]

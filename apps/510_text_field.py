@@ -108,7 +108,7 @@ class TextFieldWidget:
         return pip.run_all_cells(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
-        pip, db, steps = (self.pipulate, self.db, self.steps)
+        pip, db, steps = (self.pipulate, self.pipulate.db, self.steps)
         step = next((s for s in steps if s.id == step_id), None)
         if not step or not step.transform:
             return ''
