@@ -105,7 +105,7 @@ class SimonSaysMcpWidget:
         )
 
     async def init(self, request):
-        pip, db = self.pipulate, self.db
+        pip, db = self.pipulate, self.pipulate.db
         internal_app_name = self.APP_NAME
         form = await request.form()
         user_input_key = form.get('pipeline_id', '').strip()
@@ -135,7 +135,7 @@ class SimonSaysMcpWidget:
         return pip.run_all_cells(internal_app_name, self.steps)
 
     async def finalize(self, request):
-        pip, db, app_name = self.pipulate, self.db, self.APP_NAME
+        pip, db, app_name = self.pipulate, self.pipulate.db, self.APP_NAME
         pipeline_id = pip.db.get('pipeline_id', 'unknown')
         finalize_step_obj = next(s for s in self.steps if s.id == 'finalize')
         finalize_data = pip.get_step_data(pipeline_id, finalize_step_obj.id, {})
@@ -190,14 +190,14 @@ class SimonSaysMcpWidget:
             return pip.run_all_cells(app_name, self.steps)
 
     async def unfinalize(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         pipeline_id = pip.db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         # Skip unfinalize message for cleaner demonstration
         return pip.run_all_cells(app_name, self.steps)
 
     async def get_suggestion(self, step_id, state):
-        pip, db, current_steps = self.pipulate, self.db, self.steps
+        pip, db, current_steps = self.pipulate, self.pipulate.db, self.steps
         step_obj = next((s for s in current_steps if s.id == step_id), None)
         if not step_obj or not step_obj.transform: return ''
 
@@ -211,7 +211,7 @@ class SimonSaysMcpWidget:
         return step_obj.transform(prev_value) if prev_value and callable(step_obj.transform) else ''
 
     async def handle_revert(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        pip, db, app_name = (self.pipulate, self.pipulate.db, self.APP_NAME)
         current_steps_to_pass_helpers = self.steps # Use self.steps which includes 'finalize'
         form = await request.form()
         step_id_to_revert_to = form.get('step_id')

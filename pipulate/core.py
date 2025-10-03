@@ -1187,6 +1187,7 @@ class Pipulate:
 
         return Card(heading_tag(message), Div(content, **content_container_attrs), cls='card-container')
 
+    # START: wrap_with_inline_button
     def wrap_with_inline_button(self, input_element: Input, button_label: str = 'Next ▸', button_class: str = 'primary', show_new_key_button: bool = False, app_name: str = None) -> Div:
         """Wrap an input element with an inline button in a flex container.
 
@@ -1248,6 +1249,7 @@ class Pipulate:
             role='group',
             aria_label='Input with submit button' + (' and new key generator' if show_new_key_button else '')
         )
+    # END: wrap_with_inline_button
 
     def create_standard_landing_page(self, plugin_instance):
         """

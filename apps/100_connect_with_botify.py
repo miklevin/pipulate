@@ -199,7 +199,7 @@ class BotifyConnect:
         Returns:
             FastHTML components representing the workflow UI
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pip, db, steps, app_name = self.pipulate, self.pipulate.db, self.steps, self.app_name
         form = await request.form()
         pipeline_id = form.get("pipeline_id")
         if not pipeline_id:
@@ -256,7 +256,7 @@ class BotifyConnect:
         Returns:
             UI components for either the finalization prompt or confirmation
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pip, db, steps, app_name = self.pipulate, self.pipulate.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "")
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
@@ -400,7 +400,7 @@ class BotifyConnect:
             return None
 
     async def unfinalize(self, request):
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pip, db, steps, app_name = self.pipulate, self.pipulate.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
 
         # Update state using DRY helper
@@ -427,7 +427,7 @@ class BotifyConnect:
         return pip.run_all_cells(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
-        pip, db, steps = self.pipulate, self.db, self.steps
+        pip, db, steps = self.pipulate, self.pipulate.db, self.steps
         # If a transform function exists, use the previous step's output.
         step = next((s for s in steps if s.id == step_id), None)
         if not step or not step.transform:
@@ -442,7 +442,7 @@ class BotifyConnect:
         return step.transform(prev_word) if prev_word else ""
 
     async def handle_revert(self, request):
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pip, db, steps, app_name = self.pipulate, self.pipulate.db, self.steps, self.app_name
         form = await request.form()
         step_id = form.get("step_id")
         pipeline_id = db.get("pipeline_id", "unknown")

@@ -133,7 +133,7 @@ class CheckboxWorkflow:
 
     async def get_suggestion(self, step_id, state):
         """Gets a suggested input value for a step, often using the previous step's transformed output."""
-        pip, db, steps = (self.pipulate, self.db, self.steps)
+        pip, db, steps = (self.pipulate, self.pipulate.db, self.steps)
         step = next((s for s in steps if s.id == step_id), None)
         if not step or not step.transform:
             return ''
