@@ -1,14 +1,22 @@
-# START: main_init_content
+# %%
+# Replace the contents of pipulate/__init__.py with this
+
 import os
 import sys
 from pathlib import Path
 from .core import Pipulate, DictLikeDB
+from loguru import logger
 
 # --- START: Version Information (DO NOT REMOVE) ---
 # This is the single source of truth for the package version
 __version__ = "1.2.1"
 __version_description__ = "JupyterLab Integration"
 # --- END: Version Information ---
+
+# 🎯 NOTEBOOK LOGGING: Configure logger for a cleaner Jupyter experience.
+# This removes the default verbose handler and adds one that only shows warnings and errors.
+logger.remove()
+logger.add(sys.stderr, level="WARNING")
 
 def _find_project_root(start_path):
     """Find the project root by looking for the flake.nix file."""
@@ -45,4 +53,3 @@ __all__ = ['Pipulate', 'pip', '__version__', '__version_description__']
 # 🎯 CRITICAL: This line makes `import pipulate as pip` work as expected by
 # exposing the `pip` object directly on the module.
 sys.modules[__name__] = pip
-# END: main_init_content
