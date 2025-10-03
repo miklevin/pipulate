@@ -1,892 +1,316 @@
+# prompt_foo.py (Corrected Synthesis)
+
 import os
 import re
 import sys
 import pydot
 import argparse
 import tiktoken
-from typing import Dict, List, Optional, Union
 import subprocess
 import tempfile
+import shutil
+from typing import Dict, List, Optional, Tuple
 
-# Hello there, AI! This is the file that I use to make getting code assistance
-# on the command-line with full 1-shot prompts that bundles up the parts of the
-# codebase that should be in context into a single XML payload.
-
-# ============================================================================
-# USER CONFIGURATION: Files to include in context
-# ============================================================================
-# Files are configured in foo_files.py module.
-# To update the file list:
-#    1. Edit foo_files.py to to include the files you want in context.
-#    2. Run prompt_foo.py
-
-# --- Configuration for context building ---
-# Edit these values as needed
-repo_root = "/home/mike/repos/pipulate"  # Path to your repository
-
-# Token buffer for pre/post prompts and overhead
-TOKEN_BUFFER = 10_000
-MAX_TOKENS = 4_000_000  # Set to a high value since we're not chunking
-
-# FILES_TO_INCLUDE_RAW will be loaded from foo_files.py when needed
-FILES_TO_INCLUDE_RAW = None
+# Hello there, AI! This is a tool for generating a single, comprehensive prompt
+# from the command line, bundling codebase files and auto-generated context
+# into a structured Markdown format for effective AI assistance.
 
 # ============================================================================
-# UML AND DOT CONTEXT GENERATION
+# --- Configuration ---
 # ============================================================================
+def find_repo_root(start_path: str) -> str:
+    """Find the git repository root from a starting path."""
+    path = os.path.abspath(start_path)
+    while path != os.path.dirname(path):
+        if os.path.isdir(os.path.join(path, '.git')):
+            return path
+        path = os.path.dirname(path)
+    raise FileNotFoundError("Could not find the repository root (.git directory).")
 
-def generate_uml_and_dot(target_file="server.py", project_name="pipulate"):
-    """
-    Generates a UML ASCII diagram and a DOT dependency graph for a target Python file.
+REPO_ROOT = find_repo_root(os.path.dirname(__file__))
 
-    This function orchestrates the process:
-    1. Runs pyreverse to create a DOT file.
-    2. Converts the DOT file content to PlantUML syntax.
-    3. Runs PlantUML to create an ASCII art diagram.
-    4. Cleans up all intermediate files.
+# ============================================================================
+# --- Accurate Literary Size Scale (Word Count Based) ---
+# ============================================================================
+LITERARY_SIZE_SCALE = [
+    (3000, "Short Essay"),
+    (7500, "Short Story"),
+    (20000, "Novelette"),
+    (50000, "Novella or a Master's Dissertation"),
+    (80000, "Average Paperback Novel or a Ph.D. Dissertation"),
+    (120000, "Long Novel"),
+    (200000, "Epic Fantasy Novel"),
+    (500000, "Seriously Long Epic (like 'Infinite Jest')"),
+]
 
-    Args:
-        target_file (str): The Python file to analyze (e.g., "server.py").
-        project_name (str): The project name to pass to pyreverse.
+def get_literary_perspective(word_count: int, token_word_ratio: float) -> str:
+    """Get a human-readable literary comparison for the codebase size."""
+    description = f"Longer than {LITERARY_SIZE_SCALE[-1][1]}"
+    for words, desc in LITERARY_SIZE_SCALE:
+        if word_count <= words:
+            description = desc
+            break
 
-    Returns:
-        dict: A dictionary containing 'ascii_uml' and 'dot_graph' content,
-              or error messages if a step fails.
-    """
-    pyreverse_exec = os.path.join(repo_root, ".venv/bin/pyreverse")
-    target_path = os.path.join(repo_root, target_file)
-    
-    # Use a temporary directory to keep the root clean
+    density_warning = ""
+    if token_word_ratio > 1.8:
+        density_warning = (
+            f" (Note: With a token/word ratio of {token_word_ratio:.2f}, "
+            f"this content is far denser and more complex than typical prose of this length)."
+        )
+
+    return f"📚 Equivalent in length to a **{description}**{density_warning}"
+
+# ============================================================================
+# --- Restored & Corrected: UML and DOT Context Generation ---
+# ============================================================================
+def generate_uml_and_dot(target_file="server.py", project_name="pipulate") -> Dict:
+    """Generates a UML ASCII diagram and DOT dependency graph for a Python file."""
+    pyreverse_exec = shutil.which("pyreverse")
+    plantuml_exec = shutil.which("plantuml")
+
+    if not pyreverse_exec or not plantuml_exec:
+        msg = []
+        if not pyreverse_exec: msg.append("`pyreverse` (from pylint)")
+        if not plantuml_exec: msg.append("`plantuml`")
+        return {"ascii_uml": f"Skipping: Required command(s) not found: {', '.join(msg)}."}
+
+    target_path = os.path.join(REPO_ROOT, target_file)
+    if not os.path.exists(target_path):
+        return {"ascii_uml": f"Skipping: Target file for UML generation not found: {target_path}"}
+
     with tempfile.TemporaryDirectory() as temp_dir:
-        dot_file_path = os.path.join(temp_dir, "classes.dot")
-        puml_file_path = os.path.join(temp_dir, "diagram.puml")
-        
-        # --- Step 1: Run pyreverse ---
         try:
-            # Note: pyreverse annoyingly prepends 'classes_' to the output file.
-            # We'll run it in the temp dir and move the result.
-            pyreverse_cmd = [
-                pyreverse_exec,
-                "-f", "dot",
-                "-o", "dot", # This format is just a prefix
-                "-p", project_name,
-                target_path
-            ]
-            subprocess.run(
-                pyreverse_cmd,
-                check=True,
-                capture_output=True,
-                text=True,
-                cwd=temp_dir
-            )
-            # The actual output file will be named like 'classes_pipulate.dot'
-            generated_dot_name = f"classes_{project_name}.dot"
-            os.rename(os.path.join(temp_dir, generated_dot_name), dot_file_path)
+            # Step 1: Run pyreverse to get DOT file
+            pyreverse_cmd = [pyreverse_exec, "-o", "dot", "-p", project_name, target_path]
+            subprocess.run(pyreverse_cmd, check=True, capture_output=True, text=True, cwd=temp_dir)
+            dot_file_path = os.path.join(temp_dir, f"classes_{project_name}.dot")
 
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            error_msg = e.stderr if hasattr(e, 'stderr') else str(e)
-            return {"ascii_uml": f"Error: pyreverse failed. {error_msg}", "dot_graph": None}
+            if not os.path.exists(dot_file_path):
+                return {"ascii_uml": "Error: pyreverse did not generate the expected DOT file."}
 
-        # --- Step 2: Convert DOT to PlantUML ---
-        try:
-            graphs = pydot.graph_from_dot_file(dot_file_path)
-            graph = graphs[0]
-            dot_content = graph.to_string()
-
-            puml_lines = ["@startuml", "skinparam linetype ortho", ""]
-
-            def sanitize_line(line):
-                clean = re.sub(r'<br[^>]*>', '', line)
-                clean = re.sub(r'<[^>]+>', '', clean)
-                return clean.strip()
-
-            for node in graph.get_nodes():
-                label = node.get_label()
-                if not label: continue
-
-                parts = label.strip('<>{} ').split('|')
-                class_name = sanitize_line(parts[0])
-                puml_lines.append(f"class {class_name} {{")
-
-                if len(parts) > 1:
-                    for attr in re.split(r'<br[^>]*>', parts[1]):
-                        clean_attr = sanitize_line(attr).split(':')[0].strip()
-                        if clean_attr:
-                            puml_lines.append(f"  - {clean_attr}")
-
-                if len(parts) > 2:
-                    method_block = parts[2].strip()
-                    for method_line in re.split(r'<br[^>]*>', method_block):
-                        clean_method = sanitize_line(method_line)
-                        if clean_method:
-                            puml_lines.append(f"  + {clean_method}")
-
-                puml_lines.append("}\n")
-
-            for edge in graph.get_edges():
-                source_name = edge.get_source().strip('"').split('.')[-1]
-                dest_name = edge.get_destination().strip('"').split('.')[-1]
-                puml_lines.append(f"{source_name} ..> {dest_name}")
-
-            puml_lines.append("@enduml")
-            with open(puml_file_path, 'w') as f:
-                f.write('\n'.join(puml_lines))
-
-        except Exception as e:
             with open(dot_file_path, 'r') as f:
-                dot_content_on_error = f.read()
-            return {"ascii_uml": f"Error: DOT to PUML conversion failed. {str(e)}", "dot_graph": dot_content_on_error}
- 
- 
+                dot_content = f.read()
 
-        # --- Step 3: Run PlantUML ---
-        try:
-            plantuml_cmd = ["plantuml", "-tutxt", puml_file_path]
+            # CHANGED: Reverted to a more robust file-based conversion
+            # Step 2: Run PlantUML on the generated DOT file
+            utxt_file_path = os.path.join(temp_dir, "diagram.utxt")
+            plantuml_cmd = [plantuml_exec, "-tutxt", dot_file_path, "-o", os.path.dirname(utxt_file_path)]
             subprocess.run(plantuml_cmd, check=True, capture_output=True, text=True, cwd=temp_dir)
             
-            # PlantUML creates a .utxt file
-            utxt_file_path = puml_file_path.replace(".puml", ".utxt")
-            with open(utxt_file_path, 'r') as f:
+            # The output file will be named based on the input, e.g., 'classes_pipulate.utxt'
+            generated_utxt_path = os.path.join(temp_dir, f"classes_{project_name}.utxt")
+            with open(generated_utxt_path, 'r') as f:
                 ascii_uml = f.read()
+
+            return {"ascii_uml": ascii_uml, "dot_graph": dot_content}
+
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
             error_msg = e.stderr if hasattr(e, 'stderr') else str(e)
-            return {"ascii_uml": f"Error: plantuml failed. {error_msg}", "dot_graph": dot_content}
-
-    return {"ascii_uml": ascii_uml, "dot_graph": dot_content}
-def load_files_to_include():
-    """Load FILES_TO_INCLUDE_RAW from foo_files.py module."""
-    global FILES_TO_INCLUDE_RAW
-    if FILES_TO_INCLUDE_RAW is None:
-        try:
-            import foo_files
-            FILES_TO_INCLUDE_RAW = foo_files.FILES_TO_INCLUDE_RAW
-        except ImportError:
-                print("ERROR: foo_files.py not found! Please ensure it exists.")
-                sys.exit(1)
-        except AttributeError:
-                print("ERROR: foo_files.py exists but doesn't contain FILES_TO_INCLUDE_RAW!")
-                print("Please ensure the variable is defined in foo_files.py.")
-                sys.exit(1)
-    return FILES_TO_INCLUDE_RAW
-
-# Now process the raw string into the list we'll use  
-def get_files_to_include():
-    """Get the processed list of files to include."""
-    files_raw = load_files_to_include()
-    files_list = files_raw.strip().splitlines()
-    
-    # Filter out any commented lines
-    files_list = [line for line in files_list if not line.strip().startswith('#')]
-    # Filter out blank lines
-    files_list = [line for line in files_list if line.strip()]
-    
-    # Strip off any <-- comments and trailing # comments (handling variable whitespace)
-    files_list = [re.sub(r'\s*#.*$', '', line.split('<--')[0]).rstrip() for line in files_list]
-    
-    # Remove duplicates while preserving order
-    seen_files = set()
-    deduplicated_files = []
-    for file_path in files_list:
-        if file_path and file_path not in seen_files:
-            seen_files.add(file_path)
-            deduplicated_files.append(file_path)
-    
-    return deduplicated_files
-
-def get_files_with_comments():
-    """Get the processed list of files with their comments preserved."""
-    files_raw = load_files_to_include()
-    files_list = files_raw.strip().splitlines()
-    
-    # Filter out any commented lines (starting with #)
-    files_list = [line for line in files_list if not line.strip().startswith('#')]
-    # Filter out blank lines
-    files_list = [line for line in files_list if line.strip()]
-    
-    # Process each line to extract file path and comment
-    seen_files = set()
-    files_with_comments = []
-    
-    for line in files_list:
-        line = line.strip()
-        if not line:
-            continue
-            
-        # Extract file path and comment
-        file_path = line
-        comment = ""
-        
-        # Handle <-- style comments first (takes priority over # comments)
-        if '<--' in line:
-            parts = line.split('<--', 1)
-            file_path = parts[0].strip()
-            comment = parts[1].strip()
-            # Remove any trailing # from the file_path if it exists
-            if file_path.endswith('#'):
-                file_path = file_path.rstrip('#').strip()
-        # Handle trailing # comments
-        elif '#' in line:
-            parts = line.split('#', 1)
-            file_path = parts[0].strip()
-            comment = parts[1].strip()
-        else:
-            file_path = line.strip()
-            comment = ""
-        
-        # Remove duplicates while preserving order
-        if file_path and file_path not in seen_files:
-            seen_files.add(file_path)
-            files_with_comments.append((file_path, comment))
-    
-    return files_with_comments
-
-PROMPT_FILE = None  # Default prompt file is None
+            return {"ascii_uml": f"Error during UML generation: {error_msg}"}
 
 # ============================================================================
-# CONTENT SIZE REFERENCE SCALE
+# --- Helper Functions (Tokenizing, File Parsing, Clipboard) ---
 # ============================================================================
-# Real-world comparisons for understanding token and word counts
-CONTENT_SIZE_SCALE = {
-    "words": [
-        (500, "Short blog post"),
-        (1000, "Long blog post or magazine article"),
-        (2500, "Academic paper or white paper"),
-        (5000, "Long-form journalism piece"),
-        (7500, "Short story"),
-        (10000, "College research paper"),
-        (15000, "Novella or master's thesis chapter"),
-        (25000, "Master's thesis"),
-        (40000, "Doctoral dissertation chapter"),
-        (60000, "Short non-fiction book"),
-        (80000, "Standard novel"),
-        (120000, "Long novel"),
-        (200000, "Epic fantasy novel"),
-    ],
-    "tokens": [
-        (1000, "Email or short memo"),
-        (2500, "Blog post"),
-        (5000, "Magazine article"),
-        (10000, "Academic paper"),
-        (25000, "Long-form article"),
-        (50000, "Short story or report"),
-        (75000, "Novella chapter"),
-        (100000, "Technical documentation"),
-        (150000, "Short book"),
-        (250000, "Standard novel"),
-        (400000, "Long novel"),
-        (500000, "Technical manual"),
-        (750000, "Epic novel"),
-    ]
-}
-
-def get_size_comparison(count, count_type="words"):
-    """Get a human-readable comparison for word or token counts."""
-    scale = CONTENT_SIZE_SCALE.get(count_type, CONTENT_SIZE_SCALE["words"])
-    
-    for threshold, description in scale:
-        if count <= threshold:
-            return description
-    
-    # If larger than our biggest reference
-    return f"Larger than {scale[-1][1]}"
-
-def format_size_with_comparison(word_count, token_count):
-    """Format size information with human-readable comparisons."""
-    word_comparison = get_size_comparison(word_count, "words")
-    token_comparison = get_size_comparison(token_count, "tokens")
-    
-    return {
-        "words": f"{word_count:,} words ({word_comparison})",
-        "tokens": f"{token_count:,} tokens ({token_comparison})",
-        "word_comparison": word_comparison,
-        "token_comparison": token_comparison
-    }
-
-
-# file_list will be initialized when needed via get_files_to_include()
-
-def count_tokens(text: str, model: str = "gpt-4") -> int:
-    """Count the number of tokens in a text string."""
-    encoding = tiktoken.encoding_for_model(model)
-    return len(encoding.encode(text))
+def count_tokens(text: str, model: str = "gpt-4o") -> int:
+    """Counts tokens in a text string using tiktoken."""
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+        return len(encoding.encode(text))
+    except Exception:
+        return len(text.split())
 
 def count_words(text: str) -> int:
-    """Count the number of words in a text string."""
-    # Simple word counting: split on whitespace and filter out empty strings
-    words = text.split()
-    return len(words)
+    """Counts words in a text string."""
+    return len(text.split())
 
-def format_token_count(num: int) -> str:
-    """Format a token count with commas."""
-    return f"{num:,} tokens"
-
-def format_word_count(num: int) -> str:
-    """Format a word count with commas."""
-    return f"{num:,} words"
-
-def run_tree_command():
-    """Run the eza command to generate a tree view that respects .gitignore."""
+def parse_file_list_from_config() -> List[Tuple[str, str]]:
+    """Loads and parses the file list from foo_files.py."""
     try:
-        import subprocess
-        result = subprocess.run(
-            ['eza', '--tree', '--git-ignore'],
-            capture_output=True,
-            text=True,
-            cwd=repo_root
-        )
-        if result.returncode == 0:
-            return result.stdout
-        else:
-            return f"Error running eza command: {result.stderr}"
-    except Exception as e:
-        return f"Error running eza command: {str(e)}"
-
-# --- AI Assistant Manifest System ---
-class AIAssistantManifest:
-    """
-    Manifest system for AI coding assistants to understand context before receiving files.
-    
-    This class generates a structured overview of what files and information 
-    the assistant is about to receive, helping to:
-    1. Set expectations about content length and complexity
-    2. Provide a map of key components and their relationships
-    3. Establish important conventions specific to this codebase
-    4. Track token usage for each component and total context
-    """
-    
-    def __init__(self, model="gpt-4"):
-        self.files = []
-        self.conventions = []
-        self.environment_info = {}
-        self.critical_patterns = []
-        self.model = model
-        self.token_counts = {
-            "files": {
-                "metadata": 0,  # For file descriptions and components
-                "content": {}   # For actual file contents, keyed by filename
-            },
-            "environment": 0,
-            "conventions": 0,
-            "patterns": 0,
-            "manifest_structure": 0,
-            "total_content": 0  # Running total of file contents
-        }
-                        # Add XSD schema for XML structure understanding (front-load for LLM understanding)
-        xsd_schema = self._load_xsd_schema()
-        if xsd_schema:
-            self.set_environment("XML Schema Definition", f"Below is the XSD schema that defines the structure of this XML context document:\n\n{xsd_schema}", description="schema")
-        
-        # Add tree output to environment info
-        tree_output = run_tree_command()
-        self.set_environment("Codebase Structure", f"Below is the output of 'tree -I \"__pycache__|client|data|*.csv|*.zip|*.pkl\"' showing the current state of the codebase:\n\n{tree_output}", description="tree")
-    
-    def add_file(self, path, description, key_components=None, content=None):
-        """Register a file that will be provided to the assistant."""
-        file_info = {
-            "path": path,
-            "description": description,
-            "key_components": key_components or []
-        }
-        self.files.append(file_info)
-        
-        # Count tokens for this file's manifest entry (metadata)
-        manifest_text = f"- `{path}`: {description}"
-        if key_components:
-            manifest_text += "\n  Key components:\n" + "\n".join(f"  - {comp}" for comp in key_components)
-        self.token_counts["files"]["metadata"] += count_tokens(manifest_text, self.model)
-        
-        # If content is provided, count its tokens
-        if content:
-            content_tokens = count_tokens(content, self.model)
-            self.token_counts["files"]["content"][path] = content_tokens
-            self.token_counts["total_content"] += content_tokens
-            
-        return self
-    
-    def add_convention(self, name, description):
-        """Add a coding convention specific to this project."""
-        convention = {"name": name, "description": description}
-        self.conventions.append(convention)
-        self.token_counts["conventions"] += count_tokens(f"{name}: {description}", self.model)
-        return self
-    
-    def set_environment(self, env_type, details, description=None):
-        """Describe the execution environment."""
-        self.environment_info[env_type] = {"details": details, "description": description}
-        self.token_counts["environment"] += count_tokens(f"{env_type}: {details}", self.model)
-        return self
-    
-    def add_critical_pattern(self, pattern, explanation):
-        """Document a pattern that should never be modified."""
-        pattern_info = {"pattern": pattern, "explanation": explanation}
-        self.critical_patterns.append(pattern_info)
-        self.token_counts["patterns"] += count_tokens(f"{pattern}: {explanation}", self.model)
-        return self
-    
-    def generate_xml(self):
-        """Generate the XML manifest for the AI assistant."""
-        manifest = ['<manifest>']
-        
-        # Files section with token counts
-        files_section = ['<files>']
-        for file in self.files:
-            path = file['path']
-            content_tokens = self.token_counts["files"]["content"].get(path, 0)
-            file_type = self._get_file_type(path)
-            file_content = [
-                f"<path>{path}</path>",
-                f"<description>{file['description']}</description>"
-            ]
-            
-            if file_type:
-                file_content.append(f"<file_type>{file_type}</file_type>")
-                
-            if file['key_components']:
-                file_content.append(create_xml_element("key_components", [
-                    f"<component>{comp}</component>" for comp in file['key_components']
-            ]))
-                
-            file_content.append(f"<tokens>{content_tokens}</tokens>")
-            files_section.append(create_xml_element("file", file_content))
-        
-        files_section.append('</files>')
-        manifest.append("\n".join(files_section))
-        
-        # Environment details as simple detail elements
-        if self.environment_info:
-            for env_type, env_data in self.environment_info.items():
-                if isinstance(env_data, dict):
-                    details = env_data["details"]
-                    description = env_data.get("description")
-                else:
-                    # Handle backward compatibility for old format
-                    details = env_data
-                    description = None
-                
-                detail_attrs = {"description": description} if description else None
-                manifest.append(create_xml_element("detail", details, detail_attrs))
-        
-        # Conventions section
-        if self.conventions:
-            conv_section = ['<conventions>']
-            for convention in self.conventions:
-                conv_section.append(create_xml_element("convention", [
-                    f"<name>{convention['name']}</name>",
-                    f"<description>{convention['description']}</description>"
-                ]))
-            conv_section.append('</conventions>')
-            manifest.append("\n".join(conv_section))
-        
-        # Critical patterns section
-        if self.critical_patterns:
-            patterns_section = ['<critical_patterns>']
-            for pattern in self.critical_patterns:
-                patterns_section.append(create_xml_element("pattern", [
-                    f"<pattern>{pattern['pattern']}</pattern>",
-                    f"<explanation>{pattern['explanation']}</explanation>"
-                ]))
-            patterns_section.append('</critical_patterns>')
-            manifest.append("\n".join(patterns_section))
-        
-        # Token usage summary
-        token_section = ['<token_usage>']
-        token_section.append(create_xml_element("files", [
-            f"<metadata>{self.token_counts['files']['metadata']}</metadata>",
-            create_xml_element("content", [
-                create_xml_element("file", [
-                    f"<path>{path}</path>",
-                    f"<tokens>{tokens}</tokens>"
-                ]) for path, tokens in self.token_counts["files"]["content"].items()
-            ]),
-            f"<total>{self.token_counts['total_content']}</total>"
-        ]))
-        token_section.append('</token_usage>')
-        manifest.append("\n".join(token_section))
-        
-        manifest.append('</manifest>')
-        result = "\n".join(manifest)
-        # Clean up any remaining double newlines
-        result = result.replace('\n\n', '\n')
-        return result
-    
-    def _load_xsd_schema(self):
-        """Load the XSD schema file for embedding in the manifest."""
-        try:
-            # Look for the XSD file in the helpers directory
-            # xsd_path = os.path.join(os.path.dirname(__file__), 'pipulate-context.xsd')
-            # if not os.path.exists(xsd_path):
-            #     # Fallback: look relative to repo root
-            #     xsd_path = os.path.join(repo_root, 'helpers', 'pipulate-context.xsd')
-            xsd_path = '/home/mike/repos/pipulate/assets/prompts/pipulate-context.xsd'
-            
-            if os.path.exists(xsd_path):
-                with open(xsd_path, 'r', encoding='utf-8') as f:
-                    return f.read()
-            else:
-                print(f"Warning: XSD schema not found at {xsd_path}")
-                return None
-        except Exception as e:
-            print(f"Warning: Could not load XSD schema: {e}")
-            return None
-    
-    def _get_file_type(self, path):
-        """Get file type based on extension for better LLM context"""
-        ext = os.path.splitext(path)[1].lower()
-        if ext:
-            lang_map = {
-                '.py': 'python',
-                '.js': 'javascript',
-                '.html': 'html',
-                '.css': 'css',
-                '.md': 'markdown',
-                '.json': 'json',
-                '.nix': 'nix',
-                '.sh': 'bash',
-                '.txt': 'text'
-            }
-            return lang_map.get(ext, 'text')
-        return None
-    
-    def generate(self):
-        """Generate the manifest for the AI assistant (legacy format)."""
-        return self.generate_xml()  # Default to XML format
-
-def create_pipulate_manifest(file_paths_with_comments):
-    """Create a manifest specific to the Pipulate project."""
-    manifest = AIAssistantManifest()
-
-    # Conditionally generate and add UML/DOT context to the manifest
-    file_paths = [fp for fp, _ in file_paths_with_comments]
-    if "server.py" in file_paths:
-        print("Generating UML and DOT file context for server.py...")
-        uml_context = generate_uml_and_dot()
-        if uml_context.get("ascii_uml"):
-            manifest.set_environment("UML Class Diagram", f"Below is a UML class diagram for server.py:\n\n{uml_context['ascii_uml']}", description="uml")
-        if uml_context.get("dot_graph"):
-            manifest.set_environment("Dependency Graph (DOT)", f"Below is the DOT file content for server.py:\n\n{uml_context['dot_graph']}", description="dot")
-        print("...done.")
-    # Track total tokens and processed files to respect limit and avoid duplicates
-    total_tokens = 0
-    max_tokens = MAX_TOKENS - TOKEN_BUFFER
-    processed_files = set()
-    result_files = []
-    
-    # Define the environment
-    # Combine Python/Nix environment details
-    environment_details = "Python 3.12 in a Nix-managed virtualenv (.venv). Hybrid approach using Nix flakes for system dependencies + pip for Python packages."
-    manifest.set_environment("Development Environment", environment_details, description="environment")
-    # Add the raw FILES_TO_INCLUDE content for context
-    manifest.set_environment("Files Selection", "Below is the raw FILES_TO_INCLUDE content before any processing:\n\n" + FILES_TO_INCLUDE_RAW, description="story")
-    
-    # Check for missing files and collect them
-    missing_files = []
-    for file_path, comment in file_paths_with_comments:
-        file_path = file_path.strip()
-        if not file_path:
-            continue
-            
-        full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
-        if not os.path.exists(full_path):
-            missing_files.append(full_path)
-    
-    # If any files are missing, raise an exception with clear details
-    if missing_files:
-        error_message = "The following files were not found:\n"
-        for missing_file in missing_files:
-            error_message += f"  - {missing_file}\n"
-        error_message += "\nPlease check the file paths in FILES_TO_INCLUDE variable."
-        print(error_message)
+        import foo_files
+        files_raw = foo_files.FILES_TO_INCLUDE_RAW
+    except (ImportError, AttributeError):
+        print("ERROR: foo_files.py not found or doesn't contain FILES_TO_INCLUDE_RAW.")
         sys.exit(1)
-    
-    # Register key files with their contents and comments
-    for file_path, comment in file_paths_with_comments:
-        file_path = file_path.strip()
-        if not file_path or file_path in processed_files:
+
+    lines = files_raw.strip().splitlines()
+    seen_files, parsed_files = set(), []
+
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith('#'):
             continue
-            
-        processed_files.add(file_path)
-        result_files.append((file_path, comment))  # Store both path and comment
-        full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
-            
+        parts = re.split(r'\s*<--\s*|\s*#\s*', line, 1)
+        file_path = parts[0].strip()
+        comment = parts[1].strip() if len(parts) > 1 else ""
+
+        if file_path and file_path not in seen_files:
+            seen_files.add(file_path)
+            parsed_files.append((file_path, comment))
+    return parsed_files
+
+def copy_to_clipboard(text: str):
+    """Copies text to the system clipboard using 'xclip'."""
+    if not shutil.which('xclip'):
+        print("\nWarning: 'xclip' not found. Cannot copy to clipboard.")
+        return
+    try:
+        subprocess.run(['xclip', '-selection', 'clipboard'], input=text.encode('utf-8'), check=True)
+        print("Markdown output copied to clipboard")
+    except Exception as e:
+        print(f"\nWarning: Could not copy to clipboard: {e}")
+
+# ============================================================================
+# --- Intelligent PromptBuilder Class ---
+# ============================================================================
+class PromptBuilder:
+    """
+    Builds a complete, structured Markdown prompt including file manifests,
+    auto-generated context, file contents, and the user's final prompt.
+    """
+    def __init__(self, processed_files: List[Dict], prompt_text: str):
+        self.processed_files = processed_files
+        self.prompt_text = prompt_text
+        self.auto_context = {}
+        self.total_tokens = sum(f['tokens'] for f in processed_files) + count_tokens(prompt_text)
+        self.total_words = sum(f['words'] for f in processed_files) + count_words(prompt_text)
+
+    def add_auto_context(self, title: str, content: str):
+        """Adds auto-generated context like UML diagrams to the prompt."""
+        if content and "error" not in content.lower() and "skipping" not in content.lower():
+            self.auto_context[title] = content
+            self.total_tokens += count_tokens(content)
+            self.total_words += count_words(content)
+
+    def _generate_manifest_header(self) -> str:
+        lines = ["# Codebase Context & Manifest", ""]
+        for f in self.processed_files:
+            purpose = f" ({f['comment']})" if f['comment'] else ""
+            lines.append(f"- **{f['path']}**{purpose} ({f['tokens']:,} tokens)")
+        return "\n".join(lines)
+
+    def _generate_auto_context_section(self) -> str:
+        if not self.auto_context:
+            return ""
+        lines = ["", "---", "", "# Auto-Generated Context", ""]
+        for title, content in self.auto_context.items():
+            lines.append(f"## {title}")
+            lines.append("```text")
+            lines.append(content.strip())
+            lines.append("```")
+        return "\n".join(lines)
+
+    def _generate_file_contents(self) -> str:
+        lines = []
+        for f in self.processed_files:
+            lines.append(f"```{f['lang']}:{f['path']}")
+            lines.append(f['content'])
+            lines.append("```")
+            lines.append(f"\n# End of {f['path']}\n")
+        return "\n".join(lines)
+
+    def build_final_prompt(self) -> str:
+        """Assembles all parts into the final Markdown string."""
+        return "\n".join(filter(None, [
+            self._generate_manifest_header(),
+            self._generate_auto_context_section(),
+            "\n---\n\n# File Contents\n",
+            self._generate_file_contents(),
+            "---\n\n# User Prompt\n",
+            self.prompt_text
+        ]))
+
+    def print_summary(self):
+        """Prints a comprehensive summary to the console."""
+        print("--- Files Included ---")
+        for f in self.processed_files:
+            print(f"• {f['path']} ({f['tokens']:,} tokens)")
+        print("\n--- Prompt Summary ---")
+        print(f"Total Tokens: {self.total_tokens:,}")
+        print(f"Total Words:  {self.total_words:,}")
+
+        ratio = self.total_tokens / self.total_words if self.total_words > 0 else 0
+        perspective = get_literary_perspective(self.total_words, ratio)
+        print("\n--- Size Perspective ---")
+        print(perspective)
+        print()
+
+# ============================================================================
+# --- Main Execution Logic ---
+# ============================================================================
+# prompt_foo.py (Corrected main function)
+
+def main():
+    """Main function to parse args, process files, and generate output."""
+    parser = argparse.ArgumentParser(description='Generate a Markdown context file for AI code assistance.')
+    parser.add_argument('prompt', nargs='?', default=None, help='A prompt string or path to a prompt file (e.g., prompt.md).')
+    parser.add_argument('-o', '--output', type=str, help='Optional: Output filename.')
+    parser.add_argument('--no-clipboard', action='store_true', help='Disable copying output to clipboard.')
+    args = parser.parse_args()
+
+    # 1. Handle user prompt
+    prompt_content = "Please review the provided context and assist with the codebase."
+    if args.prompt:
+        if os.path.exists(args.prompt):
+            with open(args.prompt, 'r', encoding='utf-8') as f:
+                prompt_content = f.read()
+        else:
+            prompt_content = args.prompt
+    elif os.path.exists("prompt.md"):
+        with open("prompt.md", 'r', encoding='utf-8') as f:
+            prompt_content = f.read()
+
+    # 2. Process all specified files
+    files_to_process = parse_file_list_from_config()
+    processed_files_data = []
+    for path, comment in files_to_process:
+        # We'll use the original path (which might be absolute) for processing
+        full_path = os.path.join(REPO_ROOT, path) if not os.path.isabs(path) else path
+        if not os.path.exists(full_path):
+            print(f"Warning: File not found and will be skipped: {full_path}")
+            continue
         try:
             with open(full_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-                content_tokens = count_tokens(content)
-                
-                # Check if adding this file would exceed token limit
-                if total_tokens + content_tokens > max_tokens:
-                    description = f"{os.path.basename(file_path)} [skipped: would exceed token limit]"
-                    if comment:
-                        description += f" - {comment}"
-                    manifest.add_file(
-                        file_path,
-                        description
-                    )
-                    continue
-                
-                total_tokens += content_tokens
-                description = f"{os.path.basename(file_path)} [loaded]"
-                if comment:
-                    description += f" - {comment}"
-                
-                # Add file to manifest
-                manifest.add_file(
-                    file_path,
-                    description,
-                    content=content
-                )
-                
-        except UnicodeDecodeError as e:
-            print(f"ERROR: Could not decode {full_path}: {e}")
-            sys.exit(1)  # Exit with error code for encoding issues
+            ext = os.path.splitext(path)[1].lower()
+            lang_map = {'.py': 'python', '.js': 'javascript', '.html': 'html', '.css': 'css', '.md': 'markdown', '.json': 'json', '.nix': 'nix', '.sh': 'bash'}
+            processed_files_data.append({
+                # Store the original path from foo_files.py for the check
+                "path": path, "comment": comment, "content": content,
+                "tokens": count_tokens(content), "words": count_words(content),
+                "lang": lang_map.get(ext, 'text')
+            })
         except Exception as e:
-            print(f"ERROR: Could not read {full_path}: {e}")
-            sys.exit(1)  # Exit with error code for any other exceptions
-    
-    # Add conventions and patterns only if we have room
-    remaining_tokens = max_tokens - total_tokens
-    if remaining_tokens > 1000:  # Arbitrary threshold for metadata
-        manifest.add_convention(
-            "FastHTML Rendering", 
-            "All FastHTML objects must be converted with to_xml() before being returned in HTTP responses"
-        )
-        
-        manifest.add_convention(
-            "Environment Activation", 
-            "Always run 'nix develop' in new terminals before any other commands"
-        )
-        
-        manifest.add_convention(
-            "Dependency Management",
-            "System deps go in flake.nix, Python packages in requirements.txt"
-        )
-        
-        manifest.add_critical_pattern(
-            "to_xml(ft_object)",
-            "Required to convert FastHTML objects to strings before HTTP responses"
-        )
-        
-        manifest.add_critical_pattern(
-            "HTMLResponse(str(to_xml(rendered_item)))",
-            "Proper pattern for returning FastHTML content with HTMX triggers"
-        )
-    
-    return manifest, result_files, total_tokens
-
-# Add a function to copy text to clipboard
-def copy_to_clipboard(text):
-    """Copy text to system clipboard."""
-    try:
-        # For Linux
-        import subprocess
-        process = subprocess.Popen(['xclip', '-selection', 'clipboard'], stdin=subprocess.PIPE)
-        process.communicate(text.encode('utf-8'))
-        return True
-    except Exception as e:
-        print(f"Warning: Could not copy to clipboard: {e}")
-        print("Make sure xclip is installed (sudo apt-get install xclip)")
-        return False
-
-parser = argparse.ArgumentParser(description='Generate an XML context file for AI code assistance.')
-parser.add_argument('prompt', nargs='?', default=None,
-                    help='An optional prompt string. If omitted, reads from prompt.md.')
-parser.add_argument('-o', '--output', type=str, default=None,
-                    help='Optional: Output filename.')
-parser.add_argument('--no-clipboard', action='store_true',
-                    help='Disable copying output to clipboard.')
-args = parser.parse_args()
-
-# Get the file list with comments
-final_file_list = get_files_with_comments()  # Start with the default list
-
-# Handle prompt file - now with default prompt.md behavior
-prompt_path = args.prompt
-prompt_content = None
-direct_prompt = None  # New variable to store direct string prompts
-
-if prompt_path:
-    # Check if the prompt is a file path or direct string
-    if os.path.exists(prompt_path):
-        # It's a file path
-        if not os.path.isabs(prompt_path):
-            prompt_path = os.path.join(os.getcwd(), prompt_path)
-        
-        try:
-            with open(prompt_path, 'r', encoding='utf-8') as f:
-                prompt_content = f.read()
-            # print(f"Using prompt file: {prompt_path}") # MODIFICATION: Commented out
-        except Exception as e:
-            print(f"Error reading prompt file {prompt_path}: {e}")
+            print(f"ERROR: Could not read or process {full_path}: {e}")
             sys.exit(1)
-    else:
-        # It's a direct string prompt
-        direct_prompt = prompt_path  # Store the direct string
-        prompt_content = prompt_path
-        # print("Using direct string prompt") # MODIFICATION: Commented out
-else:
-    # If no prompt specified, look for prompt.md in current directory
-    prompt_path = os.path.join(os.getcwd(), "prompt.md")
-    if os.path.exists(prompt_path):
-        try:
-            with open(prompt_path, 'r', encoding='utf-8') as f:
-                prompt_content = f.read()
-            # print(f"Using default prompt file: {prompt_path}") # MODIFICATION: Commented out
-        except Exception as e:
-            print(f"Error reading default prompt file: {e}")
-            sys.exit(1)
-    # else: # MODIFICATION: Commented out
-        # print("No prompt file specified and prompt.md not found in current directory.")
-        # print("Running without a prompt file.")
 
-if prompt_content:
-    # Add prompt file to files list if not already present
-    if prompt_path and os.path.exists(prompt_path):
-        # Check if this file path is already in the list
-        existing_paths = [file_path for file_path, comment in final_file_list]
-        if prompt_path not in existing_paths:
-            final_file_list.append((prompt_path, "User prompt file"))
+    # 3. Build the prompt and add auto-generated context
+    builder = PromptBuilder(processed_files_data, prompt_content)
+    
+    # CORRECTED: Check if any processed path ENDS WITH a trigger path
+    processed_paths = {f['path'] for f in processed_files_data}
+    uml_trigger_files = {"server.py", "pipulate/core.py"}
+    
+    # This check now correctly compares absolute vs. relative paths
+    if any(any(p.endswith(trigger) for trigger in uml_trigger_files) for p in processed_paths):
+        print("Key file detected. Generating UML and DOT file context...")
+        # Determine which file triggered the UML generation
+        target_trigger = next((trigger for trigger in uml_trigger_files if any(p.endswith(trigger) for p in processed_paths)), "server.py")
+        uml_context = generate_uml_and_dot(target_file=target_trigger)
+        builder.add_auto_context(f"UML Class Diagram (ASCII for {target_trigger})", uml_context.get("ascii_uml"))
+        print("...done.")
+    
+    # 4. Generate final output and print summary
+    final_output = builder.build_final_prompt()
+    builder.print_summary()
 
-# Set the output filename
-output_filename = args.output
-
-# Override post_prompt with direct string if provided
-if direct_prompt:
-    post_prompt = direct_prompt
-
-# Create the manifest object and get the list of files to process
-manifest, processed_files, manifest_tokens = create_pipulate_manifest(final_file_list)
-
-# --- 1. Create a Markdown Manifest Header ---
-manifest_lines = ["# Codebase Context & Manifest", ""]
-for file_path, comment in processed_files:
-    purpose = f" ({comment})" if comment else ""
-    manifest_lines.append(f"- **{file_path}**{purpose}")
-manifest_header = "\n".join(manifest_lines)
-
-# --- 2. Process each file into a Markdown code block ---
-content_lines = []
-for file_path, comment in processed_files:
-    full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
-    try:
-        with open(full_path, 'r', encoding='utf-8') as infile:
-            file_content = infile.read()
-
-        # Get the language type from the manifest object
-        lang_type = manifest._get_file_type(file_path) or ""
-
-        # Create the new format
-        content_lines.append(f"```{lang_type}:{file_path}")
-        content_lines.append(file_content)
-        content_lines.append("```")
-        content_lines.append(f"\n# {file_path}")
-        content_lines.append("") # Add a newline for spacing
-
-    except Exception as e:
-        print(f"ERROR: Could not read file {full_path}: {e}")
-        sys.exit(1)
-
-# --- 3. Assemble the final output ---
-# Use the direct_prompt for the post_prompt if it exists, otherwise use the prompt content
-final_post_prompt = direct_prompt or prompt_content or "No prompt provided."
-
-final_output = "\n".join([
-    manifest_header,
-    "\n---\n",
-    "# File Contents",
-    "\n".join(content_lines),
-    "---\n",
-    "# User Prompt",
-    "",
-    final_post_prompt
-])
-
-# Calculate the final token count
-def calculate_total_tokens(files_tokens, prompt_tokens):
-    """Calculate total tokens and component breakdowns"""
-    file_tokens = sum(files_tokens.values())
-    total = file_tokens + prompt_tokens
-    return {
-        "files": file_tokens,
-        "prompt": prompt_tokens,
-        "total": total
-    }
-
-def calculate_total_words(files_words, prompt_words):
-    """Calculate total words and component breakdowns"""
-    file_words = sum(files_words.values())
-    total = file_words + prompt_words
-    return {
-        "files": file_words,
-        "prompt": prompt_words,
-        "total": total
-    }
-
-# Calculate total tokens and words with proper accounting
-files_tokens_dict = {}
-files_words_dict = {}
-for file_path, comment in processed_files:
-    try:
-        full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
-        with open(full_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        files_tokens_dict[file_path] = count_tokens(content, "gpt-4")
-        files_words_dict[file_path] = count_words(content)
-    except Exception as e:
-        print(f"ERROR: Could not count tokens/words for {file_path}: {e}")
-        sys.exit(1)  # Exit with error code
-
-# Calculate totals
-prompt_tokens = count_tokens(final_post_prompt, "gpt-4")
-token_counts = calculate_total_tokens(files_tokens_dict, prompt_tokens)
-prompt_words = count_words(final_post_prompt)
-word_counts = calculate_total_words(files_words_dict, prompt_words)
-
-# ============================================================================
-# MODIFIED OUTPUT SECTION
-# ============================================================================
-
-# --- Files Included Section ---
-print("--- Files Included ---")
-for file_path, comment in processed_files:
-    full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
-    token_count = files_tokens_dict.get(file_path, 0)
-    print(f"• {full_path} ({format_token_count(token_count)})")
-print()
-
-# --- Token Summary Section ---
-print("--- Token Summary ---")
-print(f"Total tokens: {format_token_count(token_counts['total'])}")
-if word_counts['total'] is not None:
-    print(f"Total words: {format_word_count(word_counts['total'])}")
-
-    # --- Size Perspective Section ---
-    size_info = format_size_with_comparison(word_counts['total'], token_counts['total'])
-    print(f"\n--- Size Perspective ---")
-    print(f"📝 Content size: {size_info['word_comparison']}")
-    print(f"🤖 Token size: {size_info['token_comparison']}")
-
-    # Calculate and show token-to-word ratio
-    ratio = token_counts['total'] / word_counts['total'] if word_counts['total'] > 0 else 0
-    print(f"📊 Token-to-word ratio: {ratio:.2f} (higher = more technical/structured content)")
-
-print()
-
-# Write the complete XML output to the file
-if args.output:
-    try:
-        with open(args.output, 'w', encoding='utf-8') as outfile:
-            outfile.write(final_output)
+    # 5. Handle output
+    if args.output:
+        with open(args.output, 'w', encoding='utf-8') as f:
+            f.write(final_output)
         print(f"Output written to '{args.output}'")
-    except Exception as e:
-        print(f"Error writing to '{args.output}': {e}")
+    if not args.no_clipboard:
+        copy_to_clipboard(final_output)
 
-# By default, copy the output to clipboard unless --no-clipboard is specified
-if not args.no_clipboard:
-    if copy_to_clipboard(final_output):
-        print("Markdown output copied to clipboard")
 
-# print("\nScript finished.") # MODIFICATION: Commented out
-
-# When creating the final output, use direct_prompt if available
-if direct_prompt:
-    post_prompt = direct_prompt  # Use the direct string instead of template XML
+if __name__ == "__main__":
+    main()
