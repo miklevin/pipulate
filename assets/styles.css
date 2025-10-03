@@ -1312,6 +1312,18 @@ article > div:first-child {
     text-align: center;
 }
 
+
+/* Fix dropdown tooltip z-index and positioning */
+details.dropdown [data-tooltip]::before,
+details.dropdown [data-tooltip]::after {
+    z-index: 9999 !important; /* Much higher than default 99 */
+}
+
+/* Ensure dropdown containers don't clip tooltips */
+details.dropdown {
+    overflow: visible !important;
+
+
 /* Key Field Styling - Global "Key Hole" Appearance */
 /* All search inputs and password inputs are key fields and get distinctive black background */
 input[type="search"],
