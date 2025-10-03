@@ -220,6 +220,27 @@ def copy_to_clipboard(text: str):
     except Exception as e:
         print(f"\nWarning: Could not copy to clipboard: {e}")
 
+def run_tree_command() -> str:
+    """Runs the 'eza' command to generate a tree view that respects .gitignore."""
+    eza_exec = shutil.which("eza")
+    if not eza_exec:
+        return "Skipping: `eza` command not found."
+    
+    try:
+        result = subprocess.run(
+            [eza_exec, '--tree', '--git-ignore', '--color=never'],
+            capture_output=True,
+            text=True,
+            cwd=REPO_ROOT,
+            check=True
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        return f"Error running eza command: {e.stderr}"
+    except Exception as e:
+        return f"An unexpected error occurred while running eza: {str(e)}"
+
+
 # ============================================================================
 # --- Intelligent PromptBuilder Class ---
 # ============================================================================
@@ -346,6 +367,12 @@ def main():
 
     # 3. Build the prompt and add auto-generated context
     builder = PromptBuilder(processed_files_data, prompt_content)
+    
+    # --- Add the Codebase Tree ---
+    print("Generating codebase tree diagram...")
+    tree_output = run_tree_command()
+    builder.add_auto_context("Codebase Structure (eza --tree)", tree_output)
+    print("...done.")
 
     processed_paths = {f['path'] for f in processed_files_data}
     uml_trigger_files = {"server.py", "pipulate/core.py"}
