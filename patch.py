@@ -1,142 +1,78 @@
 # patch.py
-# This file contains the deterministic patch instructions for the "serverectomy" refactor.
-# It will be executed by the ai_edit.py script to safely modify the Pipulate codebase.
-
-import json
-
 patches = [
     {
-        "file": "pipulate/core.py",
-        "block_name": "pipulate_init",
-        "new_code": """
-    def __init__(self, pipeline_table=None, db=None, friendly_names=None, append_func=None, get_profile_id_func=None, get_profile_name_func=None, model=None, chat_instance=None, db_path=None):
-        self.chat = chat_instance
-        self.friendly_names = friendly_names
-        self.append_to_conversation = append_func
-        self.get_current_profile_id = get_profile_id_func
-        self.get_profile_name = get_profile_name_func
-        self.model = model
-        self.message_queue = self.OrderedMessageQueue()
+        "file": "/home/mike/repos/pipulate/pipulate/core.py",
+        "block_name": "wrap_with_inline_button",
+        "new_code": """    def wrap_with_inline_button(self, input_element: Input, button_label: str = 'Next ▸', button_class: str = 'primary', show_new_key_button: bool = False, app_name: str = None, **kwargs) -> Div:
+        \"\"\"Wrap an input element with an inline button in a flex container.
 
-        if db_path:
-            # Standalone/Notebook Context: Create our "Parallel Universe" DB using fastlite directly
-            from fastlite import Database
-            from loguru import logger
-            logger.info(f"Pipulate initializing in standalone mode with db: {db_path}")
+        Args:
+            input_element: The input element to wrap
+            button_label: Text to display on the button (default: 'Next ▸')
+            button_class: CSS class for the button (default: 'primary')
+            show_new_key_button: Whether to show the 🆕 new key button (default: False)
+            app_name: App name for new key generation (required if show_new_key_button=True)
+            **kwargs: Additional attributes for the button, prefixed with 'button_' (e.g., button_data_testid='my-id')
 
-            # 1. Create a database connection using fastlite.Database
-            db_conn = Database(db_path)
+        Returns:
+            Div: A flex container with the input and button(s)
+        \"\"\"
+        # Styles are now externalized to CSS classes for maintainability
 
-            # 2. Access the table handles via the .t property
-            l_store = db_conn.t.store
-            l_pipeline = db_conn.t.pipeline
-            # Note: We don't need to explicitly create tables; fastlite handles it.
+        # Generate unique IDs for input-button association
+        input_id = input_element.attrs.get('id') or f'input-{hash(str(input_element))}'
+        button_id = f'btn-{input_id}'
 
-            self.pipeline_table = l_pipeline
-            # The second argument `Store` from fast_app isn't needed by DictLikeDB.
-            self.db = DictLikeDB(l_store, None)
+        # Enhance input element with semantic attributes if not already present
+        if 'aria_describedby' not in input_element.attrs:
+            input_element.attrs['aria_describedby'] = button_id
+        if 'id' not in input_element.attrs:
+            input_element.attrs['id'] = input_id
 
-            # In standalone mode, some features that rely on the server are stubbed out
-            if self.append_to_conversation is None: self.append_to_conversation = lambda msg, role: print(f"[{role}] {msg}")
-            if self.get_current_profile_id is None: self.get_current_profile_id = lambda: 'standalone'
-            if self.get_profile_name is None: self.get_profile_name = lambda: 'standalone'
+        # Prepare button attributes with defaults
+        button_attrs = {
+            'type': 'submit',
+            'cls': f'{button_class} inline-button-submit',
+            'id': button_id,
+            'aria_label': f'Submit {input_element.attrs.get("placeholder", "input")}',
+            'title': f'Submit form ({button_label})'
+        }
 
-        else:
-            # Server Context: Use the objects passed in from server.py
-            from loguru import logger
-            logger.info("Pipulate initializing in server mode.")
-            self.pipeline_table = pipeline_table
-            self.db = db
-        """
-    },
-    {
-        "file": "pipulate/core.py",
-        "block_name": "notebook_api_methods",
-        "new_code": """
-    def read(self, job: str) -> dict:
-        \"\"\"Reads the entire state dictionary for a given job (pipeline_id).\"\"\"
-        state = self.read_state(job)
-        state.pop('created', None)
-        state.pop('updated', None)
-        return state
+        # Process and merge kwargs, allowing overrides
+        for key, value in kwargs.items():
+            if key.startswith('button_'):
+                # Convert button_data_testid to data-testid
+                attr_name = key.replace('button_', '', 1).replace('_', '-')
+                button_attrs[attr_name] = value
 
-    def write(self, job: str, state: dict):
-        \"\"\"Writes an entire state dictionary for a given job (pipeline_id).\"\"\"
-        # Ensure 'created' timestamp is preserved if it exists
-        existing_state = self.read_state(job)
-        if 'created' in existing_state:
-            state['created'] = existing_state['created']
-        self.write_state(job, state)
+        # Create enhanced button with semantic attributes and pass through extra kwargs
+        enhanced_button = Button(button_label, **button_attrs)
 
-    def set(self, job: str, step: str, value: any):
-        \"\"\"Sets a key-value pair within a job's state.\"\"\"
-        state = self.read_state(job)
-        if not state:
-            # If the job doesn't exist, initialize it
-            now = self.get_timestamp()
-            state = {'created': now}
-            self.pipeline_table.insert({
-                'pkey': job,
-                'app_name': 'notebook',
-                'data': json.dumps(state),
-                'created': now,
-                'updated': now
-            })
-        
-        state[step] = value
-        self.write_state(job, state)
+        # Prepare elements for container
+        elements = [input_element, enhanced_button]
 
-    def get(self, job: str, step: str, default: any = None) -> any:
-        \"\"\"Gets a value for a key within a job's state.\"\"\"
-        state = self.read_state(job)
-        return state.get(step, default)
-        """
-    },
-    {
-        "file": "pipulate/__init__.py",
-        "block_name": "main_init_content",
-        "new_code": """
-import os
-from pathlib import Path
-from .core import Pipulate, DictLikeDB
+        # Add new key button if requested
+        if show_new_key_button and app_name:
+            ui_constants = CFG.UI_CONSTANTS
+            # 🆕 New Key button styled via CSS class for maintainability
+            new_key_button = Button(
+                ui_constants['BUTTON_LABELS']['NEW_KEY'],
+                type='button',  # Not a submit button
+                cls='new-key-button',  # Externalized styling in styles.css
+                id=f'new-key-{input_id}',
+                hx_get=f'/generate-new-key/{app_name}',
+                hx_target=f'#{input_id}',
+                hx_swap='outerHTML',
+                aria_label='Generate new pipeline key',
+                title='Generate a new auto-incremented pipeline key'
+            )
+            elements.append(new_key_button)
 
-# --- START: Version Information (DO NOT REMOVE) ---
-# This is the single source of truth for the package version
-__version__ = "1.2.1"
-__version_description__ = "JupyterLab Integration"
-# --- END: Version Information ---
-
-def _find_project_root(start_path):
-    \"\"\"Find the project root by looking for the flake.nix file.\"\"\"
-    current_path = Path(start_path).resolve()
-    while current_path != current_path.parent:
-        if (current_path / 'flake.nix').exists():
-            return current_path
-        current_path = current_path.parent
-    return None
-
-def _get_db_path():
-    \"\"\"Get the path to the project's development database.\"\"\"
-    project_root = _find_project_root(os.getcwd())
-    
-    if project_root:
-        app_name_file = project_root / 'whitelabel.txt'
-        if app_name_file.exists():
-            app_name = app_name_file.read_text().strip().lower()
-        else:
-            app_name = 'pipulate' # fallback
-        return project_root / f'data/{app_name}_dev.db'
-    
-    # Fallback to a local db file if not in a pipulate project
-    return Path(os.getcwd()) / 'pipulate_notebook.db'
-
-# The "factory" instantiation. This code runs when `import pipulate` is executed.
-db_path = _get_db_path()
-pip = Pipulate(db_path=str(db_path))
-
-# This allows `from pipulate import Pipulate` and makes the `pip` object available.
-# It also exposes the version info for the build/release process.
-__all__ = ['Pipulate', 'pip', '__version__', '__version_description__']
-        """
+        return Div(
+            *elements,
+            cls='inline-button-container',
+            role='group',
+            aria_label='Input with submit button' + (' and new key generator' if show_new_key_button else '')
+        )"""
     }
 ]

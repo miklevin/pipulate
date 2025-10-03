@@ -369,6 +369,10 @@ body > main:first-of-type > main.container {
     --pico-line-height: 1.5;                           /* Scaled down from 1.5 (preserve proportions) */
 }
 
+details.dropdown summary + ul li {
+"""
+    }
+]
 /* Make PROFILE and APP text bold in nav menus */
 details.dropdown summary {
     font-weight: bold;
@@ -1300,8 +1304,6 @@ article > div:first-child {
 [data-theme="dark"] .token.string { color: #c3e88d !important; }
 [data-theme="dark"] .token.number { color: #f78c6c !important; }
 [data-theme="dark"] .token.comment { color: #545454 !important; }
-
-
 
 .menu-item-header {
     font-weight: bold;
