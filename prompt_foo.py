@@ -29,6 +29,11 @@ def find_repo_root(start_path: str) -> str:
 
 REPO_ROOT = find_repo_root(os.path.dirname(__file__))
 
+# Centralized configuration as recommended in Architectural Analysis (Section VI-B)
+CONFIG = {
+    "PROJECT_NAME": "pipulate"
+}
+
 # ============================================================================
 # --- Accurate Literary Size Scale (Word Count Based) ---
 # ============================================================================
@@ -63,7 +68,7 @@ def get_literary_perspective(word_count: int, token_word_ratio: float) -> str:
 # ============================================================================
 # --- Restored & Corrected: UML and DOT Context Generation ---
 # ============================================================================
-def generate_uml_and_dot(target_file="server.py", project_name="pipulate") -> Dict:
+def generate_uml_and_dot(target_file: str, project_name: str) -> Dict:
     """Generates a UML ASCII diagram and a DOT dependency graph for a target Python file."""
     pyreverse_exec = shutil.which("pyreverse")
     plantuml_exec = shutil.which("plantuml")
@@ -165,6 +170,21 @@ def generate_uml_and_dot(target_file="server.py", project_name="pipulate") -> Di
             utxt_file_path = puml_file_path.replace(".puml", ".utxt")
             with open(utxt_file_path, 'r') as f:
                 ascii_uml = f.read()
+            
+            # --- Normalize whitespace from plantuml output ---
+            lines = ascii_uml.splitlines()
+            non_empty_lines = [line for line in lines if line.strip()]
+            
+            if non_empty_lines:
+                min_indent = min(len(line) - len(line.lstrip(' ')) for line in non_empty_lines)
+                dedented_lines = [line[min_indent:] for line in lines]
+                stripped_lines = [line.rstrip() for line in dedented_lines]
+                ascii_uml = '\n'.join(stripped_lines)
+                
+                # Prepend a newline to "absorb the chop" from rendering
+                if ascii_uml:
+                    ascii_uml = '\n' + ascii_uml
+
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
             error_msg = e.stderr if hasattr(e, 'stderr') else str(e)
             return {"ascii_uml": f"Error: plantuml failed. {error_msg}", "dot_graph": dot_content}
@@ -242,6 +262,30 @@ def run_tree_command() -> str:
     except Exception as e:
         return f"An unexpected error occurred while running eza: {str(e)}"
 
+def check_dependencies():
+    """Verifies that all required external command-line tools are installed."""
+    print("Checking for required external dependencies...")
+    dependencies = {
+        "pyreverse": "Provided by `pylint`. Install with: pip install pylint",
+        "plantuml": "A Java-based tool. See https://plantuml.com/starting",
+        "eza": "A modern replacement for `ls`. See https://eza.rocks/install",
+        "xclip": "Clipboard utility for Linux. Install with your package manager (e.g., sudo apt-get install xclip)",
+    }
+    missing = []
+    
+    for tool, instructions in dependencies.items():
+        if not shutil.which(tool):
+            missing.append((tool, instructions))
+    
+    if not missing:
+        print("✅ All dependencies found.")
+    else:
+        print("\n❌ Missing dependencies detected:")
+        for tool, instructions in missing:
+            print(f"  - Command not found: `{tool}`")
+            print(f"    ↳ {instructions}")
+        print("\nPlease install the missing tools and ensure they are in your system's PATH.")
+        sys.exit(1)
 
 # ============================================================================
 # --- Intelligent PromptBuilder Class ---
@@ -276,7 +320,6 @@ class PromptBuilder:
         if not self.auto_context:
             return ""
         lines = ["", "---", "", "# Auto-Generated Context", ""]
-        # Ensure Codebase Structure is always first if it exists
         if "Codebase Structure (eza --tree)" in self.auto_context:
             title = "Codebase Structure (eza --tree)"
             content = self.auto_context[title]
@@ -289,7 +332,8 @@ class PromptBuilder:
             if title != "Codebase Structure (eza --tree)":
                 lines.append(f"## {title}")
                 lines.append("```text")
-                lines.append(content.strip())
+                # The .strip() call that was removing the sacrificial newline has been removed.
+                lines.append(content)
                 lines.append("```")
         return "\n".join(lines)
 
@@ -337,7 +381,12 @@ def main():
     parser.add_argument('prompt', nargs='?', default=None, help='A prompt string or path to a prompt file (e.g., prompt.md).')
     parser.add_argument('-o', '--output', type=str, help='Optional: Output filename.')
     parser.add_argument('--no-clipboard', action='store_true', help='Disable copying output to clipboard.')
+    parser.add_argument('--check-dependencies', action='store_true', help='Verify that all required external tools are installed.')
     args = parser.parse_args()
+
+    if args.check_dependencies:
+        check_dependencies()
+        sys.exit(0)
 
     # 1. Handle user prompt
     prompt_content = "Please review the provided context and assist with the codebase."
@@ -355,7 +404,6 @@ def main():
     files_to_process = parse_file_list_from_config()
     processed_files_data = []
     for path, comment in files_to_process:
-        # We'll use the original path (which might be absolute) for processing
         full_path = os.path.join(REPO_ROOT, path) if not os.path.isabs(path) else path
         if not os.path.exists(full_path):
             print(f"Warning: File not found and will be skipped: {full_path}")
@@ -366,7 +414,6 @@ def main():
             ext = os.path.splitext(path)[1].lower()
             lang_map = {'.py': 'python', '.js': 'javascript', '.html': 'html', '.css': 'css', '.md': 'markdown', '.json': 'json', '.nix': 'nix', '.sh': 'bash'}
             processed_files_data.append({
-                # Store the original path from foo_files.py for the check
                 "path": path, "comment": comment, "content": content,
                 "tokens": count_tokens(content), "words": count_words(content),
                 "lang": lang_map.get(ext, 'text')
@@ -393,8 +440,10 @@ def main():
         print("Python file(s) detected. Generating UML diagrams...")
         for py_file_path in python_files_to_diagram:
             print(f"  -> Generating for {py_file_path}...")
-            uml_context = generate_uml_and_dot(target_file=py_file_path)
-            # The title here provides the label for each diagram
+            uml_context = generate_uml_and_dot(
+                target_file=py_file_path,
+                project_name=CONFIG["PROJECT_NAME"]
+            )
             builder.add_auto_context(
                 f"UML Class Diagram (ASCII for {py_file_path})",
                 uml_context.get("ascii_uml")
