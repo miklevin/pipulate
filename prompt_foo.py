@@ -108,6 +108,8 @@ def generate_uml_and_dot(target_file="server.py", project_name="pipulate") -> Di
         # --- Step 2: Convert DOT to PlantUML ---
         try:
             graphs = pydot.graph_from_dot_file(dot_file_path)
+            if not graphs:
+                return {"ascii_uml": f"Note: No classes found in {target_file} to generate a diagram.", "dot_graph": None}
             graph = graphs[0]
             dot_content = graph.to_string()
 
@@ -274,11 +276,21 @@ class PromptBuilder:
         if not self.auto_context:
             return ""
         lines = ["", "---", "", "# Auto-Generated Context", ""]
-        for title, content in self.auto_context.items():
+        # Ensure Codebase Structure is always first if it exists
+        if "Codebase Structure (eza --tree)" in self.auto_context:
+            title = "Codebase Structure (eza --tree)"
+            content = self.auto_context[title]
             lines.append(f"## {title}")
             lines.append("```text")
             lines.append(content.strip())
             lines.append("```")
+        
+        for title, content in self.auto_context.items():
+            if title != "Codebase Structure (eza --tree)":
+                lines.append(f"## {title}")
+                lines.append("```text")
+                lines.append(content.strip())
+                lines.append("```")
         return "\n".join(lines)
 
     def _generate_file_contents(self) -> str:
@@ -319,8 +331,6 @@ class PromptBuilder:
 # ============================================================================
 # --- Main Execution Logic ---
 # ============================================================================
-# prompt_foo.py (Corrected main function)
-
 def main():
     """Main function to parse args, process files, and generate output."""
     parser = argparse.ArgumentParser(description='Generate a Markdown context file for AI code assistance.')
@@ -374,24 +384,22 @@ def main():
     builder.add_auto_context("Codebase Structure (eza --tree)", tree_output)
     print("...done.")
 
-    processed_paths = {f['path'] for f in processed_files_data}
-    uml_trigger_files = {"server.py", "pipulate/core.py"}
+    # --- Generate UML for all included Python files ---
+    python_files_to_diagram = [
+        f['path'] for f in processed_files_data if f['path'].endswith('.py')
+    ]
 
-    # Robust check using endswith()
-    trigger_file = None
-    for path in processed_paths:
-        for trigger in uml_trigger_files:
-            if path.endswith(trigger):
-                trigger_file = trigger
-                break
-        if trigger_file:
-            break
-
-    if trigger_file:
-        print(f"Key file '{trigger_file}' detected. Generating UML and DOT file context...")
-        uml_context = generate_uml_and_dot(target_file=trigger_file)
-        builder.add_auto_context(f"UML Class Diagram (ASCII for {trigger_file})", uml_context.get("ascii_uml"))
-        print("...done.")
+    if python_files_to_diagram:
+        print("Python file(s) detected. Generating UML diagrams...")
+        for py_file_path in python_files_to_diagram:
+            print(f"  -> Generating for {py_file_path}...")
+            uml_context = generate_uml_and_dot(target_file=py_file_path)
+            # The title here provides the label for each diagram
+            builder.add_auto_context(
+                f"UML Class Diagram (ASCII for {py_file_path})",
+                uml_context.get("ascii_uml")
+            )
+        print("...UML generation complete.")
     
     # 4. Generate final output and print summary
     final_output = builder.build_final_prompt()
