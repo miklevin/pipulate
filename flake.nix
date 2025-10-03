@@ -115,6 +115,7 @@
           sox                          # Sound processing with 'play' command for audio playback
           pylint
           plantuml
+          graphviz
           # python312Packages.webencodings
         ] ++ (with pkgs; pkgs.lib.optionals isLinux [
           virtualenv
