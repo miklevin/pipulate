@@ -8,6 +8,7 @@ distributed==2025.7.0
 extruct==0.18.0
 fqdn==1.5.1
 google-api-python-client==2.176.0
+google-generativeai
 gpt4all==2.8.2
 grpcio-status
 httptools==0.6.4
