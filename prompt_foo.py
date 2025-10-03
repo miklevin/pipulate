@@ -286,17 +286,21 @@ def main():
     # 3. Build the prompt and add auto-generated context
     builder = PromptBuilder(processed_files_data, prompt_content)
     
-    # CORRECTED: Check if any processed path ENDS WITH a trigger path
     processed_paths = {f['path'] for f in processed_files_data}
     uml_trigger_files = {"server.py", "pipulate/core.py"}
-    
-    # This check now correctly compares absolute vs. relative paths
-    if any(any(p.endswith(trigger) for trigger in uml_trigger_files) for p in processed_paths):
-        print("Key file detected. Generating UML and DOT file context...")
-        # Determine which file triggered the UML generation
-        target_trigger = next((trigger for trigger in uml_trigger_files if any(p.endswith(trigger) for p in processed_paths)), "server.py")
-        uml_context = generate_uml_and_dot(target_file=target_trigger)
-        builder.add_auto_context(f"UML Class Diagram (ASCII for {target_trigger})", uml_context.get("ascii_uml"))
+
+    # --- THE ROBUST FIX: Use Set Intersection ---
+    intersecting_files = processed_paths.intersection(uml_trigger_files)
+
+    if intersecting_files:
+        # We found at least one match!
+        trigger_file = intersecting_files.pop() # Get one of the files that triggered it
+        print(f"Key file '{trigger_file}' detected. Generating UML and DOT file context...")
+        
+        uml_context = generate_uml_and_dot(target_file=trigger_file)
+        builder.add_auto_context(f"UML Class Diagram (ASCII for {trigger_file})", uml_context.get("ascii_uml"))
+        # Optionally add the raw DOT graph if you want it
+        # builder.add_auto_context(f"Dependency Graph (DOT for {trigger_file})", uml_context.get("dot_graph"))
         print("...done.")
     
     # 4. Generate final output and print summary
