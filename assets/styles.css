@@ -369,10 +369,6 @@ body > main:first-of-type > main.container {
     --pico-line-height: 1.5;                           /* Scaled down from 1.5 (preserve proportions) */
 }
 
-details.dropdown summary + ul li {
-"""
-    }
-]
 /* Make PROFILE and APP text bold in nav menus */
 details.dropdown summary {
     font-weight: bold;
@@ -1305,24 +1301,14 @@ article > div:first-child {
 [data-theme="dark"] .token.number { color: #f78c6c !important; }
 [data-theme="dark"] .token.comment { color: #545454 !important; }
 
+
+
 .menu-item-header {
     font-weight: bold;
     border-bottom: 1px solid var(--pico-muted-border-color);
     display: block;
     text-align: center;
 }
-
-
-/* Fix dropdown tooltip z-index and positioning */
-details.dropdown [data-tooltip]::before,
-details.dropdown [data-tooltip]::after {
-    z-index: 9999 !important; /* Much higher than default 99 */
-}
-
-/* Ensure dropdown containers don't clip tooltips */
-details.dropdown {
-    overflow: visible !important;
-
 
 /* Key Field Styling - Global "Key Hole" Appearance */
 /* All search inputs and password inputs are key fields and get distinctive black background */
@@ -1964,11 +1950,12 @@ details.dropdown [data-tooltip]::after {
     z-index: 9999 !important; /* Much higher than default 99 */
 }
 
-/* Ensure dropdown containers don't clip tooltips */
+/* Ensure dropdown containers don't clip tooltips 
+ * But it would kill APP dropdown scrolling
 details.dropdown,
 details.dropdown summary + ul {
     overflow: visible !important;
-}
+}*/
 
 /* Specific fix for environment dropdown tooltips */
 .env-dropdown-menu [data-tooltip]::before,
