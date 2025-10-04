@@ -948,24 +948,27 @@ class Pipulate:
 
     def read_state(self, pkey: str) -> dict:
         logger.debug(f'Reading state for pipeline: {pkey}')
-        # print(f"DEBUG: read_state() called for pkey: '{pkey}'")
         try:
             record = self.pipeline_table[pkey]
-            # print(f"DEBUG: Raw record retrieved from DB: {record}")
 
-            # 🎯 THE FINAL FIX: Use dictionary key checking ('in') and access ('[]').
-            if record and 'data' in record:
-                state = json.loads(record['data']) # Use record['data']
-                # print(f"DEBUG: Parsed state from DB: {state}")
-                return state
-            
-            # print("DEBUG: Record found but the 'data' key is missing.")
+            # 🎯 UNIFIED FIX: Handle both dicts (from notebook) and objects (from server).
+            if record:
+                if isinstance(record, dict) and 'data' in record:
+                    # Handle dictionary from notebook context
+                    state = json.loads(record['data'])
+                    return state
+                elif hasattr(record, 'data'):
+                    # Handle object from server context
+                    state = json.loads(record.data)
+                    return state
+
             return {}
         except NotFoundError:
-            # print(f"DEBUG: NotFoundError caught. Record for pkey '{pkey}' does not exist in the database.")
+            # This is the expected exception when a record doesn't exist.
+            logger.debug(f'No record found for pkey: {pkey}')
             return {}
         except Exception as e:
-            # print(f"DEBUG: An unexpected error occurred in read_state(): {e}")
+            logger.debug(f'Error reading state for pkey {pkey}: {str(e)}')
             return {}
 
     def write_state(self, pkey: str, state: dict) -> None:
@@ -1843,7 +1846,6 @@ class Pipulate:
     
     def write(self, job: str, state: dict):
         """Writes an entire state dictionary for a given job (pipeline_id)."""
-        # Ensure 'created' timestamp is preserved if it exists
         existing_state = self.read_state(job)
         if 'created' in existing_state:
             state['created'] = existing_state['created']
@@ -1862,14 +1864,10 @@ class Pipulate:
             'pkey': job,
             'app_name': 'notebook',
             'data': json.dumps(state),
-            'created': state.get('created', state['updated']), # Preserve original created time
+            'created': state.get('created', state['updated']),
             'updated': state['updated']
         }
-
-        # print(f"DEBUG: Preparing to UPSERT payload for job '{job}':")
-        # import pprint; pprint.pprint(payload)
         self.pipeline_table.upsert(payload, pk='pkey')
-        # print(f"DEBUG: UPSERT operation completed for job '{job}'.")
     
     def get(self, job: str, step: str, default: any = None) -> any:
         """Gets a value for a key within a job's state."""
