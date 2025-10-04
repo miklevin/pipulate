@@ -948,23 +948,24 @@ class Pipulate:
 
     def read_state(self, pkey: str) -> dict:
         logger.debug(f'Reading state for pipeline: {pkey}')
+        # print(f"DEBUG: read_state() called for pkey: '{pkey}'")
         try:
-            self.pipeline_table.xtra(pkey=pkey)
-            records = self.pipeline_table()
-            logger.debug(f'Records found: {records}')
-            if records:
-                logger.debug(f'First record type: {type(records[0])}')
-                logger.debug(f'First record dir: {dir(records[0])}')
-            if records and hasattr(records[0], 'data'):
-                state = json.loads(records[0].data)
-                # Use Rich JSON display for found state
-                formatted_state = slog.rich_json_display(state, console_output=False, log_output=True)
-                logger.debug(f'Found state: {formatted_state}')
+            record = self.pipeline_table[pkey]
+            # print(f"DEBUG: Raw record retrieved from DB: {record}")
+
+            # 🎯 THE FINAL FIX: Use dictionary key checking ('in') and access ('[]').
+            if record and 'data' in record:
+                state = json.loads(record['data']) # Use record['data']
+                # print(f"DEBUG: Parsed state from DB: {state}")
                 return state
-            logger.debug('No valid state found')
+            
+            # print("DEBUG: Record found but the 'data' key is missing.")
+            return {}
+        except NotFoundError:
+            # print(f"DEBUG: NotFoundError caught. Record for pkey '{pkey}' does not exist in the database.")
             return {}
         except Exception as e:
-            logger.debug(f'Error reading state: {str(e)}')
+            # print(f"DEBUG: An unexpected error occurred in read_state(): {e}")
             return {}
 
     def write_state(self, pkey: str, state: dict) -> None:
@@ -1849,24 +1850,26 @@ class Pipulate:
         self.write_state(job, state)
 
     def set(self, job: str, step: str, value: any):
-        """Sets a key-value pair within a job's state."""
+        """Sets a key-value pair within a job's state for notebook usage."""
         state = self.read_state(job)
         if not state:
-            # If the job doesn't exist, initialize it
-            now = self.get_timestamp()
-            state = {'created': now}
-            # Use upsert to create the record if it doesn't exist, preventing a crash if it does.
-            # This is the key fix for the ConstraintError.
-            self.pipeline_table.upsert({
-                'pkey': job,
-                'app_name': 'notebook',
-                'data': json.dumps(state),
-                'created': now,
-                'updated': now
-            }, pk='pkey')
+            state = {'created': self.get_timestamp()}
 
         state[step] = value
-        self.write_state(job, state)
+        state['updated'] = self.get_timestamp()
+
+        payload = {
+            'pkey': job,
+            'app_name': 'notebook',
+            'data': json.dumps(state),
+            'created': state.get('created', state['updated']), # Preserve original created time
+            'updated': state['updated']
+        }
+
+        # print(f"DEBUG: Preparing to UPSERT payload for job '{job}':")
+        # import pprint; pprint.pprint(payload)
+        self.pipeline_table.upsert(payload, pk='pkey')
+        # print(f"DEBUG: UPSERT operation completed for job '{job}'.")
     
     def get(self, job: str, step: str, default: any = None) -> any:
         """Gets a value for a key within a job's state."""
