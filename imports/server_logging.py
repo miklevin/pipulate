@@ -217,7 +217,7 @@ def rich_json_display(data, title=None, console_output=True, log_output=True, ai
         if ai_log_output:
             ai_title = f"AI_JSON_DATA: {title}" if title else "AI_JSON_DATA"
             # Use WARNING level so AI assistants can easily grep for "WARNING.*AI_JSON_DATA"
-            logger.warning(f"🤖 {ai_title}:\n{json_str}")
+            logger.debug(f"🤖 {ai_title}:\n{json_str}")
 
         # Standard log output
         if log_output and json_str:
