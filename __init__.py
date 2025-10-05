@@ -12,8 +12,8 @@ Usage:
     pipulate
 """
 
-__version__ = "1.2.2"
-__version_description__ = "Pipulate Notebook Extraction"
+__version__ = "1.2.3"
+__version_description__ = "Working in Google Colab"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local First AI SEO Software" 
 
