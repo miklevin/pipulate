@@ -12,8 +12,8 @@ Usage:
     pipulate
 """
 
-__version__ = "1.3.1"
-__version_description__ = "Fix macOS Startup via Pre-Flight Directory Creation"
+__version__ = "1.3.2"
+__version_description__ = "Re-activating Voice Synth features"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local First AI SEO Software" 
 

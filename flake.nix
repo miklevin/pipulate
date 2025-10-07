@@ -186,10 +186,6 @@
           if pip install --upgrade pip --quiet && \
             pip install -r requirements.txt --quiet && \
             pip install -e . --no-deps --quiet; then
-            if [[ "$(uname)" != "Darwin" ]]; then
-                echo "Installing Linux-only Python packages (piper-tts)..."
-                pip install piper-tts --quiet
-            fi
             true  # Success case handled below
           else
             false  # Error case handled below
