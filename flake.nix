@@ -101,6 +101,7 @@
         # Common packages that we want available in our environment
         # regardless of the operating system
         commonPackages = with pkgs; [
+          sqlite                       # Ensures correct SQLite library is linked on macOS
           python312                    # Python 3.12 interpreter (consistent version)
           figlet                       # For creating ASCII art welcome messages
           tmux                         # Terminal multiplexer for managing sessions
