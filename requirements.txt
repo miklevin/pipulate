@@ -2,7 +2,7 @@ ai21==4.0.3
 appnope==0.1.4
 arxiv==2.2.0
 autopep8==2.3.2
-blinker==1.6.2
+blinker==1.7.0
 build==1.2.2.post1
 distributed==2025.7.0
 extruct==0.18.0
@@ -59,4 +59,4 @@ webdriver-manager==4.0.2
 wordninja==2.0.0
 xlsxwriter==3.2.5
 yapf==0.43.0
-shapely==2.1.1
+faiss-cpu==1.11.0.post1
