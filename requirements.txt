@@ -17,7 +17,7 @@ ipynbname==2024.1.0.0
 ipywidgets==8.1.7
 isoduration==20.11.0
 itables==2.4.4
-jupyter_ai==2.31.5
+jupyter-ai[all]
 jupyterlab-spellchecker==0.8.4
 jupytext==1.17.2
 loguru==0.7.3
