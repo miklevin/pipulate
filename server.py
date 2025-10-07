@@ -72,6 +72,12 @@ COLOR_MAP
 for key in config_keys:
     globals()[key] = getattr(CFG, key)
 
+try:
+    Path('data').mkdir(parents=True, exist_ok=True)
+    print("✅ Data directory ensured.")
+except Exception as e:
+    print(f"⚠️ Could not create data directory: {e}")
+
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
     try:

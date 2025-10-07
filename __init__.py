@@ -12,8 +12,8 @@ Usage:
     pipulate
 """
 
-__version__ = "1.2.9"
-__version_description__ = "Old Pinned Requirements"
+__version__ = "1.3.0"
+__version_description__ = "Fix macOS Install: Create data dir on startup"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local First AI SEO Software" 
 
