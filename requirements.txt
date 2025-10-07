@@ -62,6 +62,3 @@ yapf==0.43.0
 pyarrow==19.0.1
 shapely==2.1.1
 faiss-cpu==1.11.0.post1
-argon2-cffi-bindings==21.2.0
-grpcio==1.73.1
-cryptography==45.0.5
