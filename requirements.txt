@@ -59,4 +59,4 @@ webdriver-manager==4.0.2
 wordninja==2.0.0
 xlsxwriter==3.2.5
 yapf==0.43.0
-pyarrow==19.0.1
+shapely==2.1.1
