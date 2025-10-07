@@ -24,6 +24,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import AsyncGenerator, Optional
 
+# --- START: Pre-flight Directory Check (MOVED HERE) ---
+# Ensure the data directory exists before ANY database operations are attempted.
+# This prevents SQLite errors on a completely fresh installation.
+try:
+    Path('data').mkdir(parents=True, exist_ok=True)
+    # This print statement can be removed after debugging, but is useful for now.
+    print("✅ Data directory ensured at top of script.")
+except Exception as e:
+    print(f"⚠️ Could not create data directory at top of script: {e}")
+# --- END: Pre-flight Directory Check ---
+
 import aiohttp
 import uvicorn
 from fasthtml.common import *
@@ -71,12 +82,6 @@ COLOR_MAP
 """.split('\n')[1:-1]
 for key in config_keys:
     globals()[key] = getattr(CFG, key)
-
-try:
-    Path('data').mkdir(parents=True, exist_ok=True)
-    print("✅ Data directory ensured.")
-except Exception as e:
-    print(f"⚠️ Could not create data directory: {e}")
 
 # Show startup banner only when running as main script, not on watchdog restarts or imports
 if __name__ == '__main__' and not os.environ.get('PIPULATE_WATCHDOG_RESTART'):
