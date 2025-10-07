@@ -60,5 +60,3 @@ wordninja==2.0.0
 xlsxwriter==3.2.5
 yapf==0.43.0
 pyarrow==19.0.1
-shapely==2.1.1
-faiss-cpu==1.11.0.post1
