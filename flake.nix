@@ -111,13 +111,13 @@
           cmake                        # Cross-platform build system generator
           htop                         # Interactive process viewer for Unix systems
           nbstripout                   # Git filter for stripping notebook outputs
-          espeak-ng                    # Text-to-speech synthesis for phonemization
-          sox                          # Sound processing with 'play' command for audio playback
           pylint
           plantuml
           graphviz
           # python312Packages.webencodings
         ] ++ (with pkgs; pkgs.lib.optionals isLinux [
+          espeak-ng                    # Text-to-speech, Linux only
+          sox                          # Sound processing, Linux only
           virtualenv
           gcc                          # GNU Compiler Collection for compiling C/C++ code
           stdenv.cc.cc.lib             # Standard C library for Linux systems
