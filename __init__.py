@@ -12,8 +12,8 @@ Usage:
     pipulate
 """
 
-__version__ = "1.2.7"
-__version_description__ = "Mac Dependency Hunt"
+__version__ = "1.2.9"
+__version_description__ = "Old Pinned Requirements"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local First AI SEO Software" 
 
