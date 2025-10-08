@@ -31,136 +31,23 @@ class IntroductionPlugin:
         # Register routes for page navigation
         app.route('/introduction/page/{page_num}', methods=['GET', 'POST'])(self.serve_page)
 
-    def get_intro_page_data(self, page_num: int, app_name: str, model: str):
-        """Returns page data for intro pages."""
-        pages = {
-            1: {
-                'title': f'Welcome to {app_name} 🎯',
-                'features': [
-                    ('👤 PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace. In other words, they each get their own separate Task List.'),
-                    ('⚡ APP', 'For each Profile (Client/Customer), try each APP (Parameter Buster for example).'),
-                    ('DEV/Prod', 'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.')
-                ],
-                'secret_word': 'FOUNDATION'
-            },
-            2: {
-                'title': 'Local AI Assistant Setup 🤖',
-                'intro_text': f'{app_name} uses a separately installed local chatbot called Ollama. Having a local LLM installed is not required for {app_name} to keep working, but is encouraged because it will keep an AI "in the loop" to provide context-aware advice.',
-                'benefits': [
-                    ('🔒 PRIVATE', 'No registration or API token required. Completely local and private.'),
-                    ('💰 FREE', 'Free for the price of electricity - no monthly subscriptions.'),
-                    ('🧠 CONTEXT-AWARE', 'Always knows what you\'re doing and can provide specific advice.'),
-                    ('🚀 INSTANT', 'No network delays - responds immediately from your machine.')
-                ],
-                'installation_title': 'Installation Steps',
-                'installation_steps': [
-                    ('DOWNLOAD OLLAMA', 'Ollama has custom Mac and Windows installers - use them for best results.'),
-                    ('LOAD GEMMA 3', 'Once Ollama is installed, open a Terminal and type "ollama pull gemma3".'),
-                    ('EXPERIMENT', 'Feel free to try other models once you\'re comfortable with the basics.')
-                ],
-                'fallback_note': f'If you don\'t take this step, the majority of {app_name} will still work — just without an AI riding shotgun.',
-                'secret_word': 'OLLAMA'
-            },
-            3: {
-                'experimenting_title': 'Positive First Experience',
-                'experimenting_steps': [
-                    ('🚀 START', 'in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable. You can do no harm. This is what DEV mode is for.'),
-                    ('👥 PROFILES', 'Add them. Rearrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu. Notice how "Lock" works to help avoid accidentally showing other Client (Nick)names to each other.'),
-                    ('⚡ WORKFLOWS', f'Try the Hello Workflow to get a feel for how {app_name} workflows work.')
-                ],
-                'interface_title': 'Understanding the Interface',
-                'interface_items': [
-                    ('👤 PROFILES', 'Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won\'t delete. So experiment in DEV and let permanent choices "settle in" in Prod.'),
-                    ('📊 APPS', "Botify folks: try Parameter Buster on your Client. It's a big potential win."),
-                    ('🔗 LINK GRAPH', "Botify folks: try Link Graph Visualizer to explore internal linking patterns.")
-                ],
-                'secret_word': 'PRACTICE'
-            },
-            4: {
-                'title': 'Tips for Effective Use',
-                'tips': [
-                    ('🔗 CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster and Link Graph Visualizer.'),
-                    ('🗑️ DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'),
-                    ('💾 SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse directly to files or attach new workflows to them by using the same input. Caveat: a complete reinstall using that "rm -rf ~/Botifython" command will delete everything.'),
-                    ('🔒 LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'),
-                    ('📁 BROWSE', 'Go look where things are saved.')
-                ],
-                'secret_word': 'WORKFLOW'
-            },
-            5: {
-                'title': 'The Localhost Advantage 🏠',
-                'intro_text': f'You\'ve paid the price of a more difficult install than a cloud app. Congratulations! Time to reap the rewards.',
-                'advantages': [
-                    ('🔐 BROWSER LOGINS', 'Access web UIs like Botify, SEMRush, ahrefs without APIs. Browser saves passwords locally, nothing leaves your machine.'),
-                    ('💾 PERSISTENT FILES', 'All CSVs and web scrapes stay on your machine for browsing. No daily clearing like Google Colab.'),
-                    ('⏱️ LONG-RUNNING WORKFLOWS', 'Crawls can run 24+ hours without being "shut down" for resource usage. No cloud time limits.'),
-                    ('🛡️ VPN FLEXIBILITY', 'Use your VPN to control web traffic appearance. No known cloud IPs or complex IP-hiding costs.')
-                ],
-                'benefits_title': 'Real-World Benefits',
-                'benefits': [
-                    ('Control your data', 'Everything stays local and under your control.'),
-                    ('No artificial limits', 'Run workflows as long as needed.'),
-                    ('Use existing tools', 'Leverage your VPN and browser setup.'),
-                    ('Browse files naturally', 'Access outputs like any local file.')
-                ],
-                'secret_word': 'LOCALHOST'
-            },
-            6: {
-                'title': 'Local LLM Assistant 🤖',
-                'llm_features': [
-                    ('🔒 PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'),
-                    ('🧠 CONTEXT', 'The LLM understands your current workflow and can help with specific tasks.'),
-                    ('💡 GUIDANCE', 'Ask questions about workflows, get help with API keys, or request explanations.'),
-                    ('🔗 INTEGRATION', 'The LLM is aware of your current profile, environment, and active workflow.'),
-                    ('⚡ REAL-TIME', 'Chat updates in real-time as you progress through workflows.')
-                ],
-                'usage_tips': [
-                    'Try asking "What can I do with this workflow?" when starting a new one.',
-                    'Ask for help with specific steps if you get stuck.',
-                    'Request explanations of workflow outputs or data.',
-                    'Get suggestions for next steps or alternative approaches.'
-                ],
-                'secret_word': 'ASSISTANT'
-            },
-            7: {
-                'title': 'Background LLM Training',
-                'intro_text': f'🧠 {app_name} automatically trains your local LLM as you navigate. The LLM learns what you\'re viewing without cluttering your chat.',
-                'how_it_works': [
-                    ('SILENT UPDATES', 'Page content added to LLM history in the background.'),
-                    ('SECRET WORDS', 'Each page has a secret word proving successful training.'),
-                    ('CONTEXTUAL AWARENESS', 'LLM can answer questions about content you\'ve viewed.')
-                ],
-                'examples_title': 'Where This Works',
-                'examples': [
-                    ('📖 Introduction Pages', 'Each page trains the LLM with its content and secret word.'),
-                    ('🐇 Workflows', 'Starting workflows loads specific training content.'),
-                    ('📚 Documentation', 'Viewing docs automatically adds full content to LLM context.')
-                ],
-                'testing_tip': 'Ask: "What are all the secret words from the Introduction pages?"',
-                'secret_word': 'CONTEXT'
-            }
-        }
-        return pages.get(page_num)
-
     def create_page_content(self, page_num: int, app_name: str, model: str):
         """Create FastHTML content for a specific page."""
-        page_data = self.get_intro_page_data(page_num, app_name, model)
-
-        if not page_data:
-            return Card(
-                H3("Page Not Found"),
-                P(f"Introduction page {page_num} not found."),
-                cls="min-height-300"
-            )
 
         card_class = "intro-card"
 
         if page_num == 1:
+            title = f'Welcome to {app_name} 🎯'
+            features = [
+                ('👤 PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace. In other words, they each get their own separate Task List.'),
+                ('⚡ APP', 'For each Profile (Client/Customer), try each APP (Parameter Buster for example).'),
+                ('DEV/Prod', 'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.')
+            ]
             return Card(
-                H2(page_data['title']),
-                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['features']]),
+                H2(title),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]),
                 P(f'The chat interface on the right is optionally powered by a local LLM ({model}) to assist you 🤖. Click ',
-                  A('Next ▸', 
+                  A('Next ▸',
                     hx_post='/introduction/page/2',
                     hx_target='#grid-left-content',
                     hx_swap='innerHTML',
@@ -172,46 +59,81 @@ class IntroductionPlugin:
             )
 
         elif page_num == 2:
+            title = 'Local AI Assistant Setup 🤖'
+            intro_text = f'{app_name} uses a separately installed local chatbot called Ollama. Having a local LLM installed is not required for {app_name} to keep working, but is encouraged because it will keep an AI "in the loop" to provide context-aware advice.'
+            benefits = [
+                ('🔒 PRIVATE', 'No registration or API token required. Completely local and private.'),
+                ('💰 FREE', 'Free for the price of electricity - no monthly subscriptions.'),
+                ('🧠 CONTEXT-AWARE', 'Always knows what you\'re doing and can provide specific advice.'),
+                ('🚀 INSTANT', 'No network delays - responds immediately from your machine.')
+            ]
+            installation_title = 'Installation Steps'
+            installation_steps = [
+                ('DOWNLOAD OLLAMA', 'Ollama has custom Mac and Windows installers - use them for best results.'),
+                ('LOAD GEMMA 3', 'Once Ollama is installed, open a Terminal and type "ollama pull gemma3".'),
+                ('EXPERIMENT', 'Feel free to try other models once you\'re comfortable with the basics.')
+            ]
+            fallback_note = f'If you don\'t take this step, the majority of {app_name} will still work — just without an AI riding shotgun.'
             return Card(
-                H3(page_data['title']),
-                P(page_data['intro_text']),
-                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['benefits']]),
-                H3(page_data['installation_title']),
+                H3(title),
+                P(intro_text),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in benefits]),
+                H3(installation_title),
                 Ol(
                     Li(
                         Strong(
-                            A('DOWNLOAD OLLAMA', 
-                              href='https://ollama.com/', 
+                            A('DOWNLOAD OLLAMA',
+                              href='https://ollama.com/',
                               target='_blank',
                               cls='link-inherit-plain',
                               onmouseover='this.style.textDecoration="underline"; this.style.color="#007bff";',
                               onmouseout='this.style.textDecoration="none"; this.style.color="inherit";'),
-                            Img(src='/assets/feather/external-link.svg', 
-                                alt='External link', 
+                            Img(src='/assets/feather/external-link.svg',
+                                alt='External link',
                                 style='width: 14px; height: 14px; margin-left: 0.25rem; vertical-align: middle; filter: brightness(0) invert(1);'),
                             ':'
-                        ), 
+                        ),
                         ' Ollama has custom Mac and Windows installers - use them for best results.'
                     ),
-                    *[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['installation_steps'][1:]]
+                    *[Li(Strong(f'{name}:'), f' {desc}') for name, desc in installation_steps[1:]]
                 ),
-                P(page_data['fallback_note']),
+                P(fallback_note),
                 cls=card_class
             )
 
         elif page_num == 3:
+            experimenting_title = 'Positive First Experience'
+            experimenting_steps = [
+                ('🚀 START', 'in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable. You can do no harm. This is what DEV mode is for.'),
+                ('👥 PROFILES', 'Add them. Rearrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu. Notice how "Lock" works to help avoid accidentally showing other Client (Nick)names to each other.'),
+                ('⚡ WORKFLOWS', f'Try the Hello Workflow to get a feel for how {app_name} workflows work.')
+            ]
+            interface_title = 'Understanding the Interface'
+            interface_items = [
+                ('👤 PROFILES', 'Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won\'t delete. So experiment in DEV and let permanent choices "settle in" in Prod.'),
+                ('📊 APPS', "Botify folks: try Parameter Buster on your Client. It's a big potential win."),
+                ('🔗 LINK GRAPH', "Botify folks: try Link Graph Visualizer to explore internal linking patterns.")
+            ]
             return Card(
-                H3(page_data['experimenting_title']),
-                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['experimenting_steps']]),
-                H3(page_data['interface_title']),
-                Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['interface_items']]),
+                H3(experimenting_title),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in experimenting_steps]),
+                H3(interface_title),
+                Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in interface_items]),
                 cls=card_class
             )
 
         elif page_num == 4:
+            title = 'Tips for Effective Use'
+            tips = [
+                ('🔗 CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster and Link Graph Visualizer.'),
+                ('🗑️ DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'),
+                ('💾 SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse directly to files or attach new workflows to them by using the same input. Caveat: a complete reinstall using that "rm -rf ~/Botifython" command will delete everything.'),
+                ('🔒 LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'),
+                ('📁 BROWSE', 'Go look where things are saved.')
+            ]
             return Card(
-                H3(page_data['title']),
-                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['tips']]),
+                H3(title),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in tips]),
                 Hr(),
                 P('Try it now: ', A('Open Downloads Folder',
                                    href='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())),
@@ -221,38 +143,87 @@ class IntroductionPlugin:
             )
 
         elif page_num == 5:
+            title = 'The Localhost Advantage 🏠'
+            intro_text = f'You\'ve paid the price of a more difficult install than a cloud app. Congratulations! Time to reap the rewards.'
+            advantages = [
+                ('🔐 BROWSER LOGINS', 'Access web UIs like Botify, SEMRush, ahrefs without APIs. Browser saves passwords locally, nothing leaves your machine.'),
+                ('💾 PERSISTENT FILES', 'All CSVs and web scrapes stay on your machine for browsing. No daily clearing like Google Colab.'),
+                ('⏱️ LONG-RUNNING WORKFLOWS', 'Crawls can run 24+ hours without being "shut down" for resource usage. No cloud time limits.'),
+                ('🛡️ VPN FLEXIBILITY', 'Use your VPN to control web traffic appearance. No known cloud IPs or complex IP-hiding costs.')
+            ]
+            benefits_title = 'Real-World Benefits'
+            benefits = [
+                ('Control your data', 'Everything stays local and under your control.'),
+                ('No artificial limits', 'Run workflows as long as needed.'),
+                ('Use existing tools', 'Leverage your VPN and browser setup.'),
+                ('Browse files naturally', 'Access outputs like any local file.')
+            ]
             return Card(
-                H3(page_data['title']),
-                P(page_data['intro_text']),
-                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['advantages']]),
-                H4(page_data['benefits_title']),
-                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['benefits']]),
+                H3(title),
+                P(intro_text),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in advantages]),
+                H4(benefits_title),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in benefits]),
                 cls=card_class
             )
 
         elif page_num == 6:
+            title = 'Local LLM Assistant 🤖'
+            llm_features = [
+                ('🔒 PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'),
+                ('🧠 CONTEXT', 'The LLM understands your current workflow and can help with specific tasks.'),
+                ('💡 GUIDANCE', 'Ask questions about workflows, get help with API keys, or request explanations.'),
+                ('🔗 INTEGRATION', 'The LLM is aware of your current profile, environment, and active workflow.'),
+                ('⚡ REAL-TIME', 'Chat updates in real-time as you progress through workflows.')
+            ]
+            usage_tips = [
+                'Try asking "What can I do with this workflow?" when starting a new one.',
+                'Ask for help with specific steps if you get stuck.',
+                'Request explanations of workflow outputs or data.',
+                'Get suggestions for next steps or alternative approaches.'
+            ]
             return Card(
-                H3(page_data['title']),
+                H3(title),
                 P(f'Your local LLM ({model}) provides intelligent assistance throughout your workflow:'),
-                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['llm_features']]),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in llm_features]),
                 H4('How to Use the LLM'),
-                Ul(*[Li(tip) for tip in page_data['usage_tips']]),
+                Ul(*[Li(tip) for tip in usage_tips]),
                 cls=card_class
             )
 
         elif page_num == 7:
+            title = 'Background LLM Training'
+            intro_text = f'🧠 {app_name} automatically trains your local LLM as you navigate. The LLM learns what you\'re viewing without cluttering your chat.'
+            how_it_works = [
+                ('SILENT UPDATES', 'Page content added to LLM history in the background.'),
+                ('SECRET WORDS', 'Each page has a secret word proving successful training.'),
+                ('CONTEXTUAL AWARENESS', 'LLM can answer questions about content you\'ve viewed.')
+            ]
+            examples_title = 'Where This Works'
+            examples = [
+                ('📖 Introduction Pages', 'Each page trains the LLM with its content and secret word.'),
+                ('🐇 Workflows', 'Starting workflows loads specific training content.'),
+                ('📚 Documentation', 'Viewing docs automatically adds full content to LLM context.')
+            ]
+            testing_tip = 'Ask: "What are all the secret words from the Introduction pages?"'
             return Card(
-                H3(page_data['title']),
-                P(page_data['intro_text']),
+                H3(title),
+                P(intro_text),
                 H4('How It Works'),
-                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['how_it_works']]),
-                H4(page_data['examples_title']),
-                Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['examples']]),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in how_it_works]),
+                H4(examples_title),
+                Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in examples]),
                 Hr(),
-                P(Strong('🧪 Test the System: '), page_data['testing_tip']),
+                P(Strong('🧪 Test the System: '), testing_tip),
                 cls=card_class
             )
 
+        else:
+            return Card(
+                H3("Page Not Found"),
+                P(f"Introduction page {page_num} not found."),
+                cls="min-height-300"
+            )
 
     async def serve_page(self, request):
         """Handle page navigation within the main app framework."""
