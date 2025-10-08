@@ -12,8 +12,8 @@ Usage:
     pipulate
 """
 
-__version__ = "1.3.3"
-__version_description__ = "Stopping Extra Voice Synth Windows"
+__version__ = "1.3.4"
+__version_description__ = "Promoting release system to repo root"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local First AI SEO Software" 
 
