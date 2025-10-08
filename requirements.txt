@@ -31,6 +31,8 @@ anyio==4.11.0
     #   openai
     #   starlette
     #   watchfiles
+appnope==0.1.4
+    # via ipykernel
 apsw==3.50.4.0
     # via apswutils
 apswutils==0.1.0
@@ -267,8 +269,6 @@ googleapis-common-protos[grpc]==1.70.0
     #   grpcio-status
 gpt4all==2.8.2
     # via jupyter-ai-magics
-greenlet==3.2.4
-    # via sqlalchemy
 grpc-google-iam-v1==0.14.2
     # via google-cloud-resource-manager
 grpcio==1.75.1
