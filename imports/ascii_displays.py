@@ -23,28 +23,30 @@ def safe_console_print(*args, **kwargs):
     except (BlockingIOError, OSError, IOError) as e:
         # 🍎 MAC SPECIFIC: Handle Mac blocking I/O errors gracefully
         import platform
+        import sys
         if platform.system() == 'Darwin' and "write could not complete without blocking" in str(e):
             # Mac blocking I/O - silently skip output to prevent cascade failures
             pass
         else:
             # Other I/O errors - log and fall back
-            print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
+            print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print", file=sys.stderr)
             try:
                 # Convert Rich objects and filter kwargs for fallback
                 simple_args = [str(arg) if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__') else arg for arg in args]
                 safe_kwargs = {k: v for k, v in kwargs.items() if k in ['sep', 'end', 'file', 'flush']}
-                print(*simple_args, **safe_kwargs)
+                print(*simple_args, **safe_kwargs, file=sys.stderr)
             except Exception as fallback_error:
                 pass  # Silent fallback to prevent error cascades
     except Exception as e:
         # If rich fails (e.g., TypeError for 'style'), fall back gracefully
-        print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print")
+        import sys
+        print(f"🎨 SAFE_CONSOLE: Rich output failed ({e}), falling back to simple print", file=sys.stderr)
         try:
             simple_args = [str(arg) if hasattr(arg, '__rich__') or hasattr(arg, '__rich_console__') else arg for arg in args]
             safe_kwargs = {k: v for k, v in kwargs.items() if k in ['sep', 'end', 'file', 'flush']}
-            print(*simple_args, **safe_kwargs)
+            print(*simple_args, **safe_kwargs, file=sys.stderr)
         except Exception as fallback_error:
-            print(f"🎨 SAFE_CONSOLE: Both Rich and simple print failed for: {args}")
+            print(f"🎨 SAFE_CONSOLE: Both Rich and simple print failed for: {args}", file=sys.stderr)
 
 
 def safe_console_capture(console, panel, fallback_text="Rich display content"):
