@@ -1,4 +1,10 @@
 google-generativeai
+google-ai-generativelanguage
+google-api-core
+google-api-python-client
+google-auth
+google-auth-httplib2
+googleapis-common-protos
 jupyter-ai[all]
 ai21==4.0.3
 aiohappyeyeballs==2.6.1
@@ -70,12 +76,6 @@ fqdn==1.5.1
 frozenlist==1.7.0
 fsspec==2025.7.0
 future==1.0.0
-google-ai-generativelanguage==0.6.18
-google-api-core==2.25.1
-google-api-python-client==2.176.0
-google-auth==2.40.3
-google-auth-httplib2==0.2.0
-googleapis-common-protos==1.70.0
 gpt4all==2.8.2
 grpcio==1.73.1
 grpcio-status==1.73.1
