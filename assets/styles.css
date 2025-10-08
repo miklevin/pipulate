@@ -1752,6 +1752,7 @@ input[type="password"]:focus {
 
 .flex-center-gap {
     margin-top: 1rem;
+    margin-bottom: 1rem;
 }
 
 /* Flex item behaviors - CONSOLIDATED */
