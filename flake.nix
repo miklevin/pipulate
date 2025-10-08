@@ -199,7 +199,7 @@
           fi
           # --- Pip Install Verbosity Toggle ---
           # Set to "true" to see detailed pip install output for debugging
-          PIP_VERBOSE="true"
+          PIP_VERBOSE="false"
           PIP_QUIET_FLAG="--quiet"
           if [ "$PIP_VERBOSE" = "true" ]; then
             PIP_QUIET_FLAG=""
