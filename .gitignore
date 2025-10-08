@@ -36,6 +36,8 @@ whitelabel.txt
 __pycache__/
 .sesskey
 hello_world.ipynb
+workflow.ipynb
+secretsauce.py
 training/botify_api_local.md
 
 # Python packaging and build artifacts
