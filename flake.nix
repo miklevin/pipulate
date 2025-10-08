@@ -127,7 +127,7 @@
           eza                          # A tree directory visualizer that uses .gitignore
         ]);
         # Define notebook paths for the copy-on-first-run solution
-        originalNotebook = "scripts/botify/hello_world_git_managed.ipynb";
+        originalNotebook = "assets/nbs/hello_world_git_managed.ipynb";
         localNotebook = "Notebooks/hello_world.ipynb";
         # This script sets up our Python environment and project
         runScript = pkgs.writeShellScriptBin "run-script" ''
