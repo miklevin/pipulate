@@ -12,8 +12,8 @@ Usage:
     pipulate
 """
 
-__version__ = "1.3.9"
-__version_description__ = "Using a requirements.in file"
+__version__ = "1.4.0"
+__version_description__ = "Pinning apsw to version 3.50.3.0"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local First AI SEO Software" 
 

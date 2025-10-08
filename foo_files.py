@@ -1,20 +1,12 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/__init__.py
-/home/mike/repos/pipulate/assets/installer/install.sh
-/home/mike/repos/pipulate/pyproject.toml
-/home/mike/repos/pipulate/flake.nix
+/home/mike/repos/pipulate/requirements.in
 /home/mike/repos/pipulate/requirements.txt
-/home/mike/repos/pipulate/server.py
-/home/mike/repos/pipulate/config.py
-/home/mike/repos/pipulate/assets/styles.css
-/home/mike/repos/pipulate/imports/__init__.py
-/home/mike/repos/pipulate/imports/durable_backup_system.py
-/home/mike/repos/pipulate/assets/init.js
-/home/mike/repos/pipulate/assets/pipulate-init.js
-/home/mike/repos/pipulate/assets/pipulate.js
-/home/mike/repos/pipulate/assets/theme.js
-/home/mike/repos/pipulate/assets/utils.js
-/home/mike/repos/pipulate/assets/tests/demo.json
+/home/mike/repos/MikeLev.in/_posts/2025-09-09-pip-freeze-nix-dependency-hell.md
+/home/mike/repos/MikeLev.in/_posts/2025-09-09-debugging-nix-dev-environment-segfault.md
+/home/mike/repos/MikeLev.in/_posts/2025-10-07-macos-nix-debugging-segfault-to-afplay.md
+/home/mike/repos/MikeLev.in/_posts/2025-10-07-macos-debugging-saga-segfaults-ghosts.md
+/home/mike/repos/MikeLev.in/_posts/2025-10-08-forging-jupyter-master-template-dependency-hell.md
+/home/mike/repos/MikeLev.in/_posts/2025-10-08-ai-vs-ai-debugging-saga.md
 """
 
 # RELEASE SYSTEM
@@ -37,6 +29,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/assets/installer/install.sh
 # /home/mike/repos/pipulate/pyproject.toml
 # /home/mike/repos/pipulate/flake.nix
+# /home/mike/repos/pipulate/requirements.in
 # /home/mike/repos/pipulate/requirements.txt
 
 # THE CORE APP
