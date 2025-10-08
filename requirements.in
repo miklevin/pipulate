@@ -47,3 +47,4 @@ isort
 python-dotenv
 loguru
 rich
+watchdog
