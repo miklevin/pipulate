@@ -1,0 +1,49 @@
+# Top-level dependencies for Pipulate
+# This file is used by pip-compile to generate requirements.txt
+
+# Core AI and LangChain
+google-generativeai
+langchain
+langchain-openai
+langchain-google-genai
+langchain-community
+
+# Jupyter Environment
+jupyterlab
+jupyter-ai[all]
+ipywidgets
+itables
+jupytext
+nbstripout
+
+# Web Scraping and Data Processing
+requests
+beautifulsoup4
+pandas
+openpyxl
+lxml
+
+# Web Server
+python-fasthtml
+uvicorn
+
+# Automation
+selenium
+undetected-chromedriver
+webdriver-manager
+
+# Data Science and Plotting
+matplotlib
+scikit-learn
+numpy
+
+# Code Quality
+pylint
+vulture
+yapf
+isort
+
+# Other utilities
+python-dotenv
+loguru
+rich

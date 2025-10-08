@@ -112,8 +112,7 @@
           cmake                        # Cross-platform build system generator
           htop                         # Interactive process viewer for Unix systems
           nbstripout                   # Git filter for stripping notebook outputs
-          pylint
-          plantuml
+                    pylint          plantuml
           graphviz
           # python312Packages.webencodings
         ] ++ (with pkgs; pkgs.lib.optionals isLinux [
