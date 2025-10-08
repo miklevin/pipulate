@@ -1,6 +1,11 @@
 # Top-level dependencies for Pipulate
 # This file is used by pip-compile to generate requirements.txt
 
+# The pinned problems
+piper-tts==1.3.0
+onnxruntime==1.22.1
+blinker==1.6.2
+
 # Core AI and LangChain
 google-generativeai
 langchain
@@ -29,6 +34,8 @@ uvicorn
 
 # Automation
 selenium
+selenium-wire
+selenium-stealth
 undetected-chromedriver
 webdriver-manager
 
@@ -49,3 +56,4 @@ loguru
 rich
 watchdog
 pyfiglet
+
