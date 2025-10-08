@@ -37,7 +37,7 @@ except ImportError:
 
 # --- Configuration ---
 try:
-    PIPULATE_ROOT = Path(__file__).parent.parent.parent.resolve()
+    PIPULATE_ROOT = Path(".")
 except FileNotFoundError:
     print("Error: Could not resolve script path.")
     sys.exit(1)
