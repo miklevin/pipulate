@@ -68,6 +68,7 @@ TABLE_LIFECYCLE_LOGGING = False  # Set to True to enable detailed table lifecycl
 
 # Get global values from config
 config_keys = """
+ENV_FILE
 TONE
 MODEL
 MAX_LLM_RESPONSE_WORDS

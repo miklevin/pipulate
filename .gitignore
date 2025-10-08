@@ -21,7 +21,6 @@ logs/
 botify_token.txt
 flake.lock
 foo.txt
-foo_files.py
 service_account.txt
 whitelabel.txt
 
