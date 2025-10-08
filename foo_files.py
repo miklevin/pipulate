@@ -1,0 +1,152 @@
+FILES_TO_INCLUDE_RAW = """\
+/home/mike/repos/pipulate/__init__.py
+/home/mike/repos/pipulate/assets/installer/install.sh
+/home/mike/repos/pipulate/pyproject.toml
+/home/mike/repos/pipulate/flake.nix
+/home/mike/repos/pipulate/requirements.txt
+/home/mike/repos/pipulate/server.py
+/home/mike/repos/pipulate/config.py
+/home/mike/repos/pipulate/assets/styles.css
+/home/mike/repos/pipulate/imports/__init__.py
+/home/mike/repos/pipulate/imports/durable_backup_system.py
+/home/mike/repos/pipulate/assets/init.js
+/home/mike/repos/pipulate/assets/pipulate-init.js
+/home/mike/repos/pipulate/assets/pipulate.js
+/home/mike/repos/pipulate/assets/theme.js
+/home/mike/repos/pipulate/assets/utils.js
+/home/mike/repos/pipulate/assets/tests/demo.json
+"""
+
+# RELEASE SYSTEM
+# /home/mike/repos/pipulate/release.py
+
+# MAIN BACKUP
+# /home/mike/repos/pipulate/imports/durable_backup_system.py
+
+# GRATUITOUS EVANGELIZING (AVOID)
+# /home/mike/repos/pipulate/README.md
+
+# PROMPT FU
+# /home/mike/repos/pipulate/prompt_foo.py
+# /home/mike/repos/pipulate/scripts/articles/list_articles.py
+# /home/mike/repos/pipulate/scripts/articles/instructions.json
+# /home/mike/repos/pipulate/scripts/articles/articleizer.py
+
+# INSTALL & INFRASTRUCTURE AS CODE
+# /home/mike/repos/pipulate/__init__.py
+# /home/mike/repos/pipulate/assets/installer/install.sh
+# /home/mike/repos/pipulate/pyproject.toml
+# /home/mike/repos/pipulate/flake.nix
+# /home/mike/repos/pipulate/requirements.txt
+
+# THE CORE APP
+# /home/mike/repos/pipulate/server.py
+# /home/mike/repos/pipulate/config.py
+# /home/mike/repos/pipulate/assets/styles.css
+# /home/mike/repos/pipulate/imports/__init__.py
+
+# PIPULATE STATE MANAGER
+# /home/mike/repos/pipulate/pipulate/__init__.py
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/apps/040_hello_workflow.py
+# /home/mike/repos/pipulate/scripts/botify/hello_world_git_managed.ipynb
+
+# DRY OO APP PLUGINS
+# /home/mike/repos/pipulate/imports/crud.py
+# /home/mike/repos/pipulate/apps/060_tasks.py
+# /home/mike/repos/pipulate/apps/030_roles.py
+# /home/mike/repos/pipulate/apps/020_profiles.py
+
+# AI ERGONOMICS & TOOL CALLING CORE
+# /home/mike/repos/pipulate/AI_RUNME.py
+# /home/mike/repos/pipulate/cli.py
+# /home/mike/repos/pipulate/imports/stream_orchestrator.py
+# /home/mike/repos/pipulate/imports/ai_tool_discovery_simple_parser.py
+# /home/mike/repos/pipulate/imports/mcp_orchestrator.py
+# /home/mike/repos/pipulate/tools/__init__.py 
+# /home/mike/repos/pipulate/tools/system_tools.py
+
+# CHIP O'THESEUS
+# /home/mike/repos/pipulate/imports/ai_dictdb.py
+# /home/mike/repos/pipulate/imports/append_only_conversation.py
+# /home/mike/repos/pipulate/imports/voice_synthesis.py
+# /home/mike/repos/pipulate/ai_edit.py
+
+# RADICAL TRANSPARENCY
+# /home/mike/repos/pipulate/imports/server_logging.py
+# /home/mike/repos/pipulate/logs/server.log
+
+# ADVANCED TOOL CALLING
+# /home/mike/repos/pipulate/tools/advanced_automation_tools.py
+# /home/mike/repos/pipulate/tools/conversation_tools.py
+# /home/mike/repos/pipulate/tools/keychain_tools.py
+# /home/mike/repos/pipulate/tools/mcp_tools.py
+# /home/mike/repos/pipulate/tools/botify_tools.py
+
+# ALL CUSTOM JAVASCRIPT
+# /home/mike/repos/pipulate/assets/init.js
+# /home/mike/repos/pipulate/assets/pipulate-init.js
+# /home/mike/repos/pipulate/assets/pipulate.js
+# /home/mike/repos/pipulate/assets/theme.js
+# /home/mike/repos/pipulate/assets/utils.js
+# /home/mike/repos/pipulate/assets/tests/demo.json
+
+# OTHER IMPORTS (SORT)
+# /home/mike/repos/pipulate/imports/ascii_displays.py
+# /home/mike/repos/pipulate/imports/botify_code_generation.py
+# /home/mike/repos/pipulate/imports/dom_processing
+# /home/mike/repos/pipulate/imports/__init__.py
+# /home/mike/repos/pipulate/imports/stream_orchestrator.py
+# /home/mike/repos/pipulate/imports/voice_synthesis.py
+
+# OTHER PLUGIN APPS
+# /home/mike/repos/pipulate/apps/001_dom_visualizer.py
+# /home/mike/repos/pipulate/apps/010_introduction.py
+# /home/mike/repos/pipulate/apps/050_documentation.py
+# /home/mike/repos/pipulate/apps/070_history.py
+# /home/mike/repos/pipulate/apps/100_connect_with_botify.py
+# /home/mike/repos/pipulate/apps/110_parameter_buster.py
+# /home/mike/repos/pipulate/apps/120_link_graph.py
+# /home/mike/repos/pipulate/apps/130_gap_analysis.py
+# /home/mike/repos/pipulate/apps/200_workflow_genesis.py
+# /home/mike/repos/pipulate/apps/210_widget_examples.py
+# /home/mike/repos/pipulate/apps/220_roadmap.py
+# /home/mike/repos/pipulate/apps/230_dev_assistant.py
+# /home/mike/repos/pipulate/apps/240_simon_mcp.py
+# /home/mike/repos/pipulate/apps/300_blank_placeholder.py
+# /home/mike/repos/pipulate/apps/400_botify_trifecta.py
+# /home/mike/repos/pipulate/apps/430_tab_opener.py
+# /home/mike/repos/pipulate/apps/440_browser_automation.py
+# /home/mike/repos/pipulate/apps/450_stream_simulator.py
+# /home/mike/repos/pipulate/apps/510_text_field.py
+# /home/mike/repos/pipulate/apps/520_text_area.py
+# /home/mike/repos/pipulate/apps/530_dropdown.py
+# /home/mike/repos/pipulate/apps/540_checkboxes.py
+# /home/mike/repos/pipulate/apps/550_radios.py
+# /home/mike/repos/pipulate/apps/560_range.py
+# /home/mike/repos/pipulate/apps/570_switch.py
+# /home/mike/repos/pipulate/apps/580_upload.py
+# /home/mike/repos/pipulate/apps/610_markdown.py
+# /home/mike/repos/pipulate/apps/620_mermaid.py
+# /home/mike/repos/pipulate/apps/630_prism.py
+# /home/mike/repos/pipulate/apps/640_javascript.py
+# /home/mike/repos/pipulate/apps/710_pandas.py
+# /home/mike/repos/pipulate/apps/720_rich.py
+# /home/mike/repos/pipulate/apps/730_matplotlib.py
+# /home/mike/repos/pipulate/apps/810_webbrowser.py
+# /home/mike/repos/pipulate/apps/820_selenium.py
+
+# CONFIGURATION.NIX
+# /home/mike/repos/nixos/configuration.nix
+# /home/mike/repos/nixos/hardware-configuration.nix
+# /home/mike/repos/nixos/autognome.py
+
+# FAQUILIZER
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/pyproject.toml
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/src/faquilizer/__init__.py
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/src/faquilizer/template.py
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/workflow.ipynb
+# /home/mike/repos/pipulate/scripts/botify/hello_world_git_managed.ipynb
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/faq-session-01_output.xlsx
+
