@@ -586,7 +586,7 @@ oauthlib==3.3.1
     # via python-fasthtml
 ollama==0.6.0
     # via langchain-ollama
-onnxruntime==1.22.1
+onnxruntime==1.23.1
     # via
     #   -r requirements.in
     #   piper-tts
