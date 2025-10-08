@@ -688,6 +688,8 @@ pydantic-core==2.41.1
     #   pydantic
 pydantic-settings==2.11.0
     # via langchain-community
+pyfiglet==1.0.4
+    # via -r requirements.in
 pygments==2.19.2
     # via
     #   ipython
