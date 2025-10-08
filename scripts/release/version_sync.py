@@ -160,6 +160,38 @@ def update_install_sh(version):
         print(f"ℹ️  {install_file} already up to date")
         return False
 
+def update_pipulate_init(version, description):
+    """Update version and description in pipulate/__init__.py"""
+    pipulate_init_file = Path("pipulate") / "__init__.py"
+    if not pipulate_init_file.exists():
+        print(f"⚠️  {pipulate_init_file} not found, skipping...")
+        return False
+
+    content = pipulate_init_file.read_text()
+    old_content = content
+
+    # Update version line
+    content = re.sub(
+        r'__version__\s*=\s*["\'][^"\']+["\']',
+        f'__version__ = "{version}"',
+        content
+    )
+
+    # Update description line
+    content = re.sub(
+        r'__version_description__\s*=\s*["\'][^"\']+["\']',
+        f'__version_description__ = "{description}"',
+        content
+    )
+
+    if content != old_content:
+        pipulate_init_file.write_text(content)
+        print(f"✅ Updated {pipulate_init_file}")
+        return True
+    else:
+        print(f"ℹ️  {pipulate_init_file} already up to date")
+        return False
+
 def sync_all_versions():
     """Synchronize all version numbers and descriptions from the single source of truth"""
     print("🔄 Synchronizing version and description from single source of truth...")
@@ -174,6 +206,7 @@ def sync_all_versions():
         updates.append(update_pyproject_toml(version, description))
         updates.append(update_flake_nix(version))
         updates.append(update_install_sh(version))
+        updates.append(update_pipulate_init(version, description))
         
         print()
         if any(updates):
