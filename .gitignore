@@ -11,6 +11,7 @@ combined_prompt.txt
 *.gz
 *.json
 *.pkl
+*.xlsx
 
 # Pipulate framework stuff
 data/
