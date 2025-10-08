@@ -67,6 +67,10 @@ beautifulsoup4==4.14.2
     #   python-fasthtml
 bleach[css]==6.2.0
     # via nbconvert
+blinker==1.6.2
+    # via
+    #   -r requirements.in
+    #   selenium-wire
 boto3==1.40.47
     # via
     #   jupyter-ai-magics
@@ -77,6 +81,8 @@ botocore==1.40.47
     #   s3transfer
 bottleneck==1.6.0
     # via langchain-google-vertexai
+brotli==1.1.0
+    # via selenium-wire
 cachetools==6.2.0
     # via
     #   google-auth
@@ -87,8 +93,11 @@ certifi==2025.10.5
     #   httpx
     #   requests
     #   selenium
+    #   selenium-wire
 cffi==2.0.0
-    # via argon2-cffi-bindings
+    # via
+    #   argon2-cffi-bindings
+    #   cryptography
 charset-normalizer==3.4.3
     # via requests
 click==8.1.8
@@ -107,12 +116,16 @@ cohere==5.15.0
     # via
     #   jupyter-ai-magics
     #   langchain-cohere
+coloredlogs==15.0.1
+    # via onnxruntime
 comm==0.2.3
     # via
     #   ipykernel
     #   ipywidgets
 contourpy==1.3.3
     # via matplotlib
+cryptography==46.0.2
+    # via pyopenssl
 cycler==0.12.1
     # via matplotlib
 dask[distributed]==2025.9.1
@@ -166,7 +179,7 @@ fastlite==0.2.1
     # via python-fasthtml
 feedparser==6.0.12
     # via arxiv
-filelock==3.19.1
+filelock==3.20.0
     # via
     #   huggingface-hub
     #   together
@@ -174,6 +187,8 @@ filetype==1.2.0
     # via
     #   langchain-google-genai
     #   langchain-nvidia-ai-endpoints
+flatbuffers==25.9.23
+    # via onnxruntime
 fonttools==4.60.1
     # via matplotlib
 fqdn==1.5.1
@@ -217,7 +232,7 @@ google-auth==2.41.1
     #   google-generativeai
 google-auth-httplib2==0.2.0
     # via google-api-python-client
-google-cloud-aiplatform==1.119.0
+google-cloud-aiplatform==1.120.0
     # via langchain-google-vertexai
 google-cloud-bigquery==3.38.0
     # via google-cloud-aiplatform
@@ -269,8 +284,12 @@ h11==0.16.0
     #   httpcore
     #   uvicorn
     #   wsproto
+h2==4.3.0
+    # via selenium-wire
 hf-xet==1.1.10
     # via huggingface-hub
+hpack==4.1.0
+    # via h2
 httpcore==1.0.9
     # via httpx
 httplib2==0.31.0
@@ -302,6 +321,12 @@ huggingface-hub==0.35.3
     # via
     #   jupyter-ai-magics
     #   tokenizers
+humanfriendly==10.0
+    # via coloredlogs
+hyperframe==6.1.0
+    # via
+    #   h2
+    #   selenium-wire
 idna==3.10
     # via
     #   anyio
@@ -415,6 +440,8 @@ jupyterlab-widgets==3.0.15
     # via ipywidgets
 jupytext==1.17.3
     # via -r requirements.in
+kaitaistruct==0.11
+    # via selenium-wire
 kiwisolver==1.4.9
     # via matplotlib
 langchain==0.3.27
@@ -505,6 +532,8 @@ mdurl==0.1.2
     # via markdown-it-py
 mistune==3.1.4
     # via nbconvert
+mpmath==1.3.0
+    # via sympy
 msgpack==1.1.2
     # via distributed
 multidict==6.7.0
@@ -545,6 +574,7 @@ numpy==2.3.3
     #   langchain-community
     #   matplotlib
     #   numexpr
+    #   onnxruntime
     #   pandas
     #   scikit-learn
     #   scipy
@@ -554,6 +584,10 @@ oauthlib==3.3.1
     # via python-fasthtml
 ollama==0.6.0
     # via langchain-ollama
+onnxruntime==1.22.1
+    # via
+    #   -r requirements.in
+    #   piper-tts
 openai==2.2.0
     # via langchain-openai
 openpyxl==3.1.5
@@ -584,6 +618,7 @@ packaging==25.0
     #   marshmallow
     #   matplotlib
     #   nbconvert
+    #   onnxruntime
     #   webdriver-manager
 pandas==2.3.3
     # via
@@ -602,7 +637,9 @@ pillow==11.3.0
     #   jupyter-ai-magics
     #   matplotlib
     #   together
-platformdirs==4.4.0
+piper-tts==1.3.0
+    # via -r requirements.in
+platformdirs==4.5.0
     # via
     #   jupyter-core
     #   pylint
@@ -635,6 +672,7 @@ protobuf==5.29.5
     #   googleapis-common-protos
     #   grpc-google-iam-v1
     #   grpcio-status
+    #   onnxruntime
     #   proto-plus
 psutil==7.1.0
     # via
@@ -652,6 +690,7 @@ pyasn1==0.6.1
     # via
     #   pyasn1-modules
     #   rsa
+    #   selenium-wire
 pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.23
@@ -698,14 +737,19 @@ pygments==2.19.2
     #   rich
 pylint==3.3.9
     # via -r requirements.in
+pyopenssl==25.3.0
+    # via selenium-wire
 pyparsing==3.2.5
     # via
     #   httplib2
     #   matplotlib
+    #   selenium-wire
 pypdf==6.1.1
     # via jupyter-ai
 pysocks==1.7.1
-    # via urllib3
+    # via
+    #   selenium-wire
+    #   urllib3
 python-dateutil==2.9.0.post0
     # via
     #   arrow
@@ -810,7 +854,13 @@ scipy==1.16.2
 selenium==4.36.0
     # via
     #   -r requirements.in
+    #   selenium-stealth
+    #   selenium-wire
     #   undetected-chromedriver
+selenium-stealth==1.0.6
+    # via -r requirements.in
+selenium-wire==5.1.0
+    # via -r requirements.in
 send2trash==1.8.3
     # via jupyter-server
 sgmllib3k==1.0.0
@@ -844,6 +894,8 @@ stack-data==0.6.3
     # via ipython
 starlette==0.48.0
     # via python-fasthtml
+sympy==1.14.0
+    # via onnxruntime
 tabulate==0.9.0
     # via together
 tblib==3.1.0
@@ -941,6 +993,7 @@ typing-extensions==4.15.0
     #   openai
     #   pydantic
     #   pydantic-core
+    #   pyopenssl
     #   referencing
     #   selenium
     #   sqlalchemy
@@ -1005,7 +1058,9 @@ websockets==15.0.1
 widgetsnbextension==4.0.14
     # via ipywidgets
 wsproto==1.2.0
-    # via trio-websocket
+    # via
+    #   selenium-wire
+    #   trio-websocket
 yapf==0.43.0
     # via -r requirements.in
 yarl==1.22.0
@@ -1015,7 +1070,9 @@ zict==3.0.0
 zipp==3.23.0
     # via importlib-metadata
 zstandard==0.25.0
-    # via langsmith
+    # via
+    #   langsmith
+    #   selenium-wire
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
