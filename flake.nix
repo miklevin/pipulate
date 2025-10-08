@@ -198,10 +198,18 @@
           else
             echo "- Confirming pip packages..."
           fi
+          # --- Pip Install Verbosity Toggle ---
+          # Set to "true" to see detailed pip install output for debugging
+          PIP_VERBOSE="true"
+          PIP_QUIET_FLAG="--quiet"
+          if [ "$PIP_VERBOSE" = "true" ]; then
+            PIP_QUIET_FLAG=""
+            echo "🔧 Pip verbose mode enabled."
+          fi
           # Always keep pip installation quiet - no scary technical output for users
-          if pip install --upgrade pip --quiet && \
-            pip install -r requirements.txt --quiet && \
-            pip install -e . --no-deps --quiet; then
+          if pip install --upgrade pip $PIP_QUIET_FLAG && \
+            pip install -r requirements.txt $PIP_QUIET_FLAG && \
+            pip install -e . --no-deps $PIP_QUIET_FLAG; then
             true  # Success case handled below
           else
             false  # Error case handled below
