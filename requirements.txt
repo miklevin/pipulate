@@ -1,3 +1,4 @@
+google-generativeai
 jupyter-ai[all]
 ai21==4.0.3
 aiohappyeyeballs==2.6.1
