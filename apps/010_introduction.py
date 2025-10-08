@@ -36,17 +36,11 @@ class IntroductionPlugin:
         pages = {
             1: {
                 'title': f'Welcome to {app_name} 🎯',
-                'intro': 'Layout:',
                 'features': [
-                    ('📍 Breadcrumb', f'Headline is {app_name} / Profile Name / APP Name.'),
                     ('👤 PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace. In other words, they each get their own separate Task List.'),
                     ('⚡ APP', 'For each Profile (Client/Customer), try each APP (Parameter Buster for example).'),
-                    ('👥 Roles (Home)', 'Control which apps appear in the APP menu. Drag to reorder, check/uncheck to show/hide.')
+                    ('DEV/Prod', 'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.')
                 ],
-                'getting_started': 'Getting Started',
-                'nav_help': f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.',
-                'home': f'The home page is also the Roles app where you can add apps to the APP menu.',
-                'llm_help': f'The chat interface on the right is optionally powered by a local LLM ({model}) to assist you 🤖. Click Next ▸ button to continue.',
                 'secret_word': 'FOUNDATION'
             },
             2: {
@@ -164,11 +158,7 @@ class IntroductionPlugin:
         if page_num == 1:
             return Card(
                 H2(page_data['title']),
-                H4(page_data['intro']),
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['features']]),
-                H4(page_data['getting_started']),
-                P(page_data['nav_help']),
-                P(page_data['home']),
                 P(f'The chat interface on the right is optionally powered by a local LLM ({model}) to assist you 🤖. Click ',
                   A('Next ▸', 
                     hx_post='/introduction/page/2',
@@ -263,37 +253,6 @@ class IntroductionPlugin:
                 cls=card_class
             )
 
-    def create_llm_context(self, page_num: int, app_name: str, model: str):
-        """Create LLM context for a specific page."""
-        page_data = self.get_intro_page_data(page_num, app_name, model)
-
-        if not page_data:
-            return f'The user is viewing an unknown introduction page ({page_num}).'
-
-        # Get the secret word for this page
-        secret_word = page_data.get('secret_word', 'UNKNOWN')
-
-        if page_num == 1:
-            context = f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['home']}\n{page_data['llm_help']}"
-        elif page_num == 2:
-            context = f"The user is viewing the Local AI Assistant Setup page which shows:\n\n{page_data['title']}\n\n{page_data['intro_text']}\n\nBenefits:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['benefits']))}"
-        elif page_num == 3:
-            context = f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
-        elif page_num == 4:
-            context = f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
-        elif page_num == 5:
-            context = f"The user is viewing the Localhost Advantage page which shows:\n\n{page_data['title']}\n\n{page_data['intro_text']}\n\nAdvantages:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['advantages']))}\n\nBenefits:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['benefits']))}"
-        elif page_num == 6:
-            context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
-        elif page_num == 7:
-            context = f"The user is viewing the Background LLM Training page which shows:\n\n{page_data['title']}\n\n{page_data['intro_text']}\n\nHow It Works:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['how_it_works'])))}\n\n{page_data['examples_title']}:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['examples']))}\n\nTesting Tip: {page_data['testing_tip']}"
-        else:
-            context = f"Unknown page {page_num}"
-
-        # Add secret word to the context (for LLM only, not displayed to user)
-        context += f"\n\n[CONFIDENTIAL - For LLM only] The secret word for Introduction page {page_num} is: {secret_word}. If the user asks about the secret word, you can tell them it is '{secret_word}' to confirm that this page content has been added to the conversation history."
-
-        return context
 
     async def serve_page(self, request):
         """Handle page navigation within the main app framework."""
@@ -308,23 +267,6 @@ class IntroductionPlugin:
         except Exception as e:
             logger.warning(f"Could not store intro_current_page: {e}")
             # Continue without storing - this is non-critical
-
-        # Always update LLM context when page changes
-        if self.pipulate and self._last_streamed_page != page_num:
-            # Stream a verbatim message to let user know about page change
-            await self.pipulate.stream(
-                f"📖 Now viewing Introduction page {page_num}",
-                verbatim=True
-            )
-
-            # Add LLM context to conversation history
-            llm_context = self.create_llm_context(page_num, APP_NAME, MODEL)
-            self.pipulate.append_to_history(
-                f"[INTRODUCTION PAGE {page_num}] {llm_context}",
-                role='system'
-            )
-            self._last_streamed_page = page_num
-            logger.debug(f"Introduction page {page_num} context added to conversation history")
 
         # Return the updated content directly (same as landing method)
         return await self.landing()
@@ -346,26 +288,8 @@ class IntroductionPlugin:
                     self._has_sent_endpoint_message = True
                     logger.debug("Introduction endpoint message added to conversation history")
 
-                # Always append current page info to history if it's different from last streamed
-                if self._last_streamed_page != current_page:
-                    # Stream a verbatim message for initial page load (but not for page 1 on first load)
-                    if self._last_streamed_page is not None:
-                        await self.pipulate.stream(
-                            f"📖 Now viewing Introduction page {current_page}",
-                            verbatim=True
-                        )
-
-                    llm_context = self.create_llm_context(current_page, APP_NAME, MODEL)
-                    self.pipulate.append_to_history(
-                        f"[INTRODUCTION PAGE {current_page}] {llm_context}",
-                        role="system"
-                    )
-                    self._last_streamed_page = current_page
-                    logger.debug(f"Introduction page {current_page} context added to conversation history")
             except Exception as e:
                 logger.error(f"Error in introduction plugin: {str(e)}")
-
-
 
         # Create navigation arrows (matching original server.py style)
         prev_button = Button(
@@ -397,6 +321,7 @@ class IntroductionPlugin:
 
         return Div(
             H2(f"📖 Introduction Guide - Page {current_page} of 7"),
+            nav_arrows,
             page_content,
             nav_arrows
         )
