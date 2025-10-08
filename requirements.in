@@ -48,3 +48,4 @@ python-dotenv
 loguru
 rich
 watchdog
+pyfiglet
