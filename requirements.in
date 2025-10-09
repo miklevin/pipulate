@@ -59,4 +59,4 @@ loguru
 rich
 watchdog
 pyfiglet
-
+pydot
