@@ -1,78 +1,92 @@
 # patch.py
+# This patch adds the .scrape() method to the Pipulate class in core.py.
+
 patches = [
     {
-        "file": "/home/mike/repos/pipulate/pipulate/core.py",
-        "block_name": "wrap_with_inline_button",
-        "new_code": """    def wrap_with_inline_button(self, input_element: Input, button_label: str = 'Next ▸', button_class: str = 'primary', show_new_key_button: bool = False, app_name: str = None, **kwargs) -> Div:
-        \"\"\"Wrap an input element with an inline button in a flex container.
+        "file": "pipulate/core.py",
+        "block_name": "notebook_api_methods",
+        "new_code": """
+    def read(self, job: str) -> dict:
+        \"\"\"Reads the entire state dictionary for a given job (pipeline_id).\"\"\"
+        state = self.read_state(job)
+        state.pop('created', None)
+        state.pop('updated', None)
+        return state
+    
+    def write(self, job: str, state: dict):
+        \"\"\"Writes an entire state dictionary for a given job (pipeline_id).\"\"\"
+        existing_state = self.read_state(job)
+        if 'created' in existing_state:
+            state['created'] = existing_state['created']
+        self.write_state(job, state)
+
+    def set(self, job: str, step: str, value: any):
+        \"\"\"Sets a key-value pair within a job's state for notebook usage.\"\"\"
+        state = self.read_state(job)
+        if not state:
+            state = {'created': self.get_timestamp()}
+
+        state[step] = value
+        state['updated'] = self.get_timestamp()
+
+        payload = {
+            'pkey': job,
+            'app_name': 'notebook',
+            'data': json.dumps(state),
+            'created': state.get('created', state['updated']),
+            'updated': state['updated']
+        }
+        self.pipeline_table.upsert(payload, pk='pkey')
+    
+    def get(self, job: str, step: str, default: any = None) -> any:
+        \"\"\"Gets a value for a key within a job's state.\"\"\"
+        state = self.read_state(job)
+        return state.get(step, default)
+
+    async def scrape(self, url: str, take_screenshot: bool = False, **kwargs):
+        \"\"\"
+        Gives AI "eyes" by performing advanced browser automation to scrape a URL.
+
+        This method acts as a simplified bridge to the powerful browser automation
+        tools, allowing for direct, on-demand scraping from notebooks or other clients.
 
         Args:
-            input_element: The input element to wrap
-            button_label: Text to display on the button (default: 'Next ▸')
-            button_class: CSS class for the button (default: 'primary')
-            show_new_key_button: Whether to show the 🆕 new key button (default: False)
-            app_name: App name for new key generation (required if show_new_key_button=True)
-            **kwargs: Additional attributes for the button, prefixed with 'button_' (e.g., button_data_testid='my-id')
+            url (str): The URL to scrape.
+            take_screenshot (bool): Whether to capture a screenshot of the page.
+            **kwargs: Additional parameters to pass to the underlying automation tool.
 
         Returns:
-            Div: A flex container with the input and button(s)
+            dict: The result from the browser automation tool, typically including
+                  paths to captured artifacts like DOM, source, and screenshot.
         \"\"\"
-        # Styles are now externalized to CSS classes for maintainability
+        from tools.advanced_automation_tools import browser_hijack_workflow_complete
+        from urllib.parse import urlparse
+        from datetime import datetime
 
-        # Generate unique IDs for input-button association
-        input_id = input_element.attrs.get('id') or f'input-{hash(str(input_element))}'
-        button_id = f'btn-{input_id}'
+        logger.info(f"👁️‍🗨️ Initiating advanced scrape for: {url}")
 
-        # Enhance input element with semantic attributes if not already present
-        if 'aria_describedby' not in input_element.attrs:
-            input_element.attrs['aria_describedby'] = button_id
-        if 'id' not in input_element.attrs:
-            input_element.attrs['id'] = input_id
+        # Create a transient, descriptive pipeline_id for this one-off scrape.
+        # This allows us to use the workflow hijacking tool for a simple scrape.
+        domain = urlparse(url).netloc
+        timestamp = datetime.now().strftime('%H%M%S')
+        scrape_pipeline_id = f"scrape-{domain.replace('.', '-')}-{timestamp}"
 
-        # Prepare button attributes with defaults
-        button_attrs = {
-            'type': 'submit',
-            'cls': f'{button_class} inline-button-submit',
-            'id': button_id,
-            'aria_label': f'Submit {input_element.attrs.get("placeholder", "input")}',
-            'title': f'Submit form ({button_label})'
+        params = {
+            "url": url,
+            "pipeline_id": scrape_pipeline_id,
+            "take_screenshot": take_screenshot,
+            **kwargs  # Pass through any other params
         }
 
-        # Process and merge kwargs, allowing overrides
-        for key, value in kwargs.items():
-            if key.startswith('button_'):
-                # Convert button_data_testid to data-testid
-                attr_name = key.replace('button_', '', 1).replace('_', '-')
-                button_attrs[attr_name] = value
-
-        # Create enhanced button with semantic attributes and pass through extra kwargs
-        enhanced_button = Button(button_label, **button_attrs)
-
-        # Prepare elements for container
-        elements = [input_element, enhanced_button]
-
-        # Add new key button if requested
-        if show_new_key_button and app_name:
-            ui_constants = CFG.UI_CONSTANTS
-            # 🆕 New Key button styled via CSS class for maintainability
-            new_key_button = Button(
-                ui_constants['BUTTON_LABELS']['NEW_KEY'],
-                type='button',  # Not a submit button
-                cls='new-key-button',  # Externalized styling in styles.css
-                id=f'new-key-{input_id}',
-                hx_get=f'/generate-new-key/{app_name}',
-                hx_target=f'#{input_id}',
-                hx_swap='outerHTML',
-                aria_label='Generate new pipeline key',
-                title='Generate a new auto-incremented pipeline key'
-            )
-            elements.append(new_key_button)
-
-        return Div(
-            *elements,
-            cls='inline-button-container',
-            role='group',
-            aria_label='Input with submit button' + (' and new key generator' if show_new_key_button else '')
-        )"""
+        try:
+            # We call the 'workflow_hijack' tool, but in this context, it's just
+            # navigating and capturing artifacts. We bypass the form-filling parts
+            # by providing a unique, non-existent pipeline_id.
+            result = await browser_hijack_workflow_complete(params)
+            return result
+        except Exception as e:
+            logger.error(f"❌ Advanced scrape failed for {url}: {e}")
+            return {"success": False, "error": str(e)}
+"""
     }
 ]

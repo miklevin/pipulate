@@ -29,6 +29,7 @@ import socket
 
 # Initialize logger
 logger = logging.getLogger(__name__)
+MAX_ROLLED_LOOKING_AT_DIRS = 5
 
 # Import necessary functions from the core module
 try:
