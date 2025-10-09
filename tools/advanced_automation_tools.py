@@ -374,6 +374,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
             "session_hijacking_steps": hijacking_steps if 'hijacking_steps' in locals() else []
         }
 
+# START: browser_hijack_workflow_complete
 async def browser_hijack_workflow_complete(params: dict) -> dict:
     """
     MCP Tool: COMPLETE WORKFLOW HIJACKING - Navigate + Enter + Chain Reaction + Capture
@@ -800,6 +801,7 @@ if __name__ == "__main__":
             "success": False,
             "error": f"Workflow hijacking failed: {str(e)}"
         }
+# END: browser_hijack_workflow_complete
 
 async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dict:
     """🎯 BOURBON VANILLA JSON Recipe Execution Engine
@@ -1436,6 +1438,7 @@ async def execute_automation_recipe(params: dict = None) -> dict:
             "params": params
         }
 
+# START: execute_mcp_cli_command
 async def execute_mcp_cli_command(params: dict) -> dict:
     """
     Execute MCP CLI commands for local LLM access to the unified interface.
@@ -1515,6 +1518,7 @@ async def execute_mcp_cli_command(params: dict) -> dict:
             "interface_type": "cli_unified",
             "description": "CLI command execution failed"
         }
+# END: execute_mcp_cli_command
 
 async def persist_perception_state(params: dict) -> dict:
     """Save looking_at state to permanent scrapes directory (the 'snag-a-scrape' tool)"""
@@ -1568,6 +1572,7 @@ async def persist_perception_state(params: dict) -> dict:
         "message": f"Perception state persisted to {dest_dir}"
     }
 
+# START: server_reboot
 async def server_reboot(params: dict) -> dict:
     """
     Gracefully reboot the Pipulate server using the watchdog system.
@@ -1671,6 +1676,7 @@ async def server_reboot(params: dict) -> dict:
             "error": str(e),
             "message": "Failed to reboot server"
         }
+# END: server_reboot
 
 async def execute_shell_command(params: dict) -> dict:
     """
