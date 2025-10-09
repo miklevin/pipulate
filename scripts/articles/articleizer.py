@@ -7,16 +7,15 @@ from datetime import datetime
 import getpass
 from pathlib import Path
 import google.generativeai as genai
-import argparse # NEW: Import argparse for command-line flags
+import argparse
+import time # NEW: Import time for the retry delay
 
 # --- CONFIGURATION ---
 OUTPUT_DIR = "/home/mike/repos/MikeLev.in/_posts"
 ARTICLE_FILENAME = "article.txt"
 PROMPT_FILENAME = "editing_prompt.txt"
 PROMPT_PLACEHOLDER = "[INSERT FULL ARTICLE]"
-# --- NEW CACHE CONFIG ---
-INSTRUCTIONS_CACHE_FILE = "instructions.json" # NEW: Define a filename for the cache
-# --- NEW KEY MANAGEMENT CONFIG ---
+INSTRUCTIONS_CACHE_FILE = "instructions.json"
 CONFIG_DIR = Path.home() / ".config" / "articleizer"
 API_KEY_FILE = CONFIG_DIR / "api_key.txt"
 # --------------------------------
@@ -34,7 +33,7 @@ def get_api_key():
     print("Please go to https://aistudio.google.com/app/apikey to get one.")
     key = getpass.getpass("Enter your Google API Key: ")
 
-    save_key_choice = input(f"Do you want to save this key to {API_KEY_FILE} for future use? (y/n): ").lower()
+    save_key_choice = input(f"Do you want to save this key to {API_KEY_FILE} for future use? (y/n): ").lower().strip()
     if save_key_choice == 'y':
         try:
             CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -46,13 +45,16 @@ def get_api_key():
     return key
 
 def create_jekyll_post(article_content, instructions):
+    """
+    Assembles and writes a Jekyll post file from the article content and
+    structured AI-generated instructions.
+    """
     print("Formatting final Jekyll post...")
 
     editing_instr = instructions.get("editing_instructions", {})
     analysis_content = instructions.get("book_analysis_content", {})
     yaml_updates = editing_instr.get("yaml_updates", {})
 
-    # 1. Build the Jekyll YAML front matter
     new_yaml_data = {
         'title': yaml_updates.get("title"),
         'permalink': yaml_updates.get("permalink"),
@@ -64,11 +66,9 @@ def create_jekyll_post(article_content, instructions):
     }
     final_yaml_block = f"---\n{yaml.dump(new_yaml_data, Dumper=yaml.SafeDumper, sort_keys=False, default_flow_style=False)}---"
 
-    # 2. Get the raw article body and add a header
     article_body = article_content.strip()
     article_body = f"## Technical Journal Entry Begins\n\n{article_body}"
 
-    # 3. Insert subheadings
     subheadings = editing_instr.get("insert_subheadings", [])
     for item in reversed(subheadings):
         snippet = item.get("after_text_snippet", "")
@@ -77,12 +77,10 @@ def create_jekyll_post(article_content, instructions):
             print(f"Warning: Skipping subheading '{subheading}' due to missing snippet.")
             continue
 
-        # Clean the snippet: remove leading/trailing whitespace and ellipses.
-        clean_snippet = snippet.strip().strip('...')
-        # Create the regex pattern from the CLEANED snippet.
-        pattern_text = re.escape(clean_snippet).replace(r'\\ ', r'\\s+')
+        words = re.findall(r'\w+', snippet.lower())
+        pattern_text = r'.*?'.join(re.escape(word) for word in words)
 
-        match = re.search(pattern_text, article_body, re.IGNORECASE)
+        match = re.search(pattern_text, article_body, re.IGNORECASE | re.DOTALL)
         if match:
             insertion_point = article_body.find('\n', match.end())
             if insertion_point == -1:
@@ -95,13 +93,11 @@ def create_jekyll_post(article_content, instructions):
         else:
             print(f"Warning: Snippet not found for subheading '{subheading}': '{snippet}'")
 
-    # 4. Prepend the "Curious Reader" intro
     prepend_text = editing_instr.get("prepend_to_article_body", "")
     if prepend_text:
         intro_section = f"## Setting the Stage: Context for the Curious Book Reader\n\n{prepend_text}\n\n---"
         article_body = f"{intro_section}\n\n{article_body}"
 
-    # 5. Build the Book Analysis section
     analysis_markdown = "\n## Book Analysis\n"
     if 'ai_editorial_take' in analysis_content:
         analysis_markdown += f"\n### Ai Editorial Take\n{analysis_content['ai_editorial_take']}\n"
@@ -119,20 +115,18 @@ def create_jekyll_post(article_content, instructions):
                 else:
                     analysis_markdown += f"- {item}\n"
         elif isinstance(value, dict):
-                for sub_key, sub_value in value.items():
-                    analysis_markdown += f"- **{sub_key.replace('_', ' ').title()}:**\n"
-                    if isinstance(sub_value, list):
-                        for point in sub_value:
-                            analysis_markdown += f"  - {point}\n"
-                    else:
-                        analysis_markdown += f"  - {sub_value}\n"
+            for sub_key, sub_value in value.items():
+                analysis_markdown += f"- **{sub_key.replace('_', ' ').title()}:**\n"
+                if isinstance(sub_value, list):
+                    for point in sub_value:
+                        analysis_markdown += f"  - {point}\n"
+                else:
+                    analysis_markdown += f"  - {sub_value}\n"
         else:
             analysis_markdown += f"{value}\n"
 
-    # 6. Assemble final document
     final_content = f"{final_yaml_block}\n\n{article_body}\n\n---\n{analysis_markdown}"
 
-    # 7. Generate filename and save
     current_date = datetime.now().strftime('%Y-%m-%d')
     slug = "untitled-article"
     title_brainstorm = analysis_content.get("title_brainstorm", [])
@@ -149,7 +143,6 @@ def create_jekyll_post(article_content, instructions):
     print(f"✨ Success! Article saved to: {output_path}")
 
 def main():
-    # NEW: Set up command-line argument parsing
     parser = argparse.ArgumentParser(description="Process an article with the Gemini API and format it for Jekyll.")
     parser.add_argument(
         '-l', '--local',
@@ -158,7 +151,6 @@ def main():
     )
     args = parser.parse_args()
 
-    # Step 1: Load the base article text (needed in both modes)
     if not os.path.exists(ARTICLE_FILENAME):
         print(f"Error: Article file '{ARTICLE_FILENAME}' not found.")
         return
@@ -167,7 +159,6 @@ def main():
 
     instructions = None
 
-    # NEW: Main logic branches based on the --local flag
     if args.local:
         print(f"Attempting to use local cache file: {INSTRUCTIONS_CACHE_FILE}")
         if not os.path.exists(INSTRUCTIONS_CACHE_FILE):
@@ -181,7 +172,6 @@ def main():
             print("Error: Could not parse the local instructions cache file. It may be corrupt.")
             return
     else:
-        # This block contains the original API call logic
         api_key = get_api_key()
         if not api_key:
             print("API Key not provided. Exiting.")
@@ -196,33 +186,42 @@ def main():
 
         full_prompt = prompt_template.replace(PROMPT_PLACEHOLDER, article_text)
 
-        print("Calling the Gemini API directly... (This may take a moment)")
-        try:
-            model = genai.GenerativeModel('gemini-2.5-pro') # Make sure this model name is correct
-            response = model.generate_content(full_prompt)
-            gemini_output = response.text
-            print("Successfully received response from API.")
-        except Exception as e:
-            print(f"\nAn error occurred while calling the API: {e}")
-            return
-
-        try:
-            json_match = re.search(r'```json\s*([\s\S]*?)\s*```', gemini_output)
-            json_str = json_match.group(1) if json_match else gemini_output
-            instructions = json.loads(json_str)
-            print("Successfully parsed JSON instructions.")
+        print("Calling the Gemini API directly...")
+        max_retries = 5
+        retry_delay = 2
+        for attempt in range(max_retries):
+            try:
+                # Use a free-tier compatible model.
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                response = model.generate_content(full_prompt)
+                gemini_output = response.text
+                print("Successfully received response from API.")
+                
+                json_match = re.search(r'```json\s*([\s\S]*?)\s*```', gemini_output)
+                json_str = json_match.group(1) if json_match else gemini_output
+                instructions = json.loads(json_str)
+                print("Successfully parsed JSON instructions.")
+                
+                with open(INSTRUCTIONS_CACHE_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(instructions, f, indent=4)
+                print(f"✅ Instructions saved to '{INSTRUCTIONS_CACHE_FILE}' for future use.")
+                break  # Exit the loop on success
             
-            # NEW: Save the successful instructions to the cache file
-            with open(INSTRUCTIONS_CACHE_FILE, 'w', encoding='utf-8') as f:
-                json.dump(instructions, f, indent=4)
-            print(f"✅ Instructions saved to '{INSTRUCTIONS_CACHE_FILE}' for future use.")
-
-        except json.JSONDecodeError:
-            print("\nError: Failed to parse JSON from API output.")
-            print("--- API Raw Output ---\n" + gemini_output)
+            except Exception as e:
+                # Check for the specific 429 error.
+                if "429" in str(e) and "Quota exceeded" in str(e):
+                    print(f"Rate limit hit. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries})")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    print(f"\nAn error occurred while calling the API: {e}")
+                    if 'gemini_output' in locals():
+                        print("--- API Raw Output ---\n" + gemini_output)
+                    return
+        else: # This block runs if the loop completes without a break
+            print("Error: Max retries exceeded. Failed to get a successful response from the API.")
             return
 
-    # Final step: If we have instructions (from API or cache), format the post.
     if instructions:
         create_jekyll_post(article_text, instructions)
 
