@@ -488,10 +488,16 @@ def main():
     builder = PromptBuilder(processed_files_data, prompt_content, context_only=args.context_only)
     
     # --- Add the Codebase Tree ---
-    print("Generating codebase tree diagram...")
+    print("Generating codebase tree diagram...", end='', flush=True)
     tree_output = run_tree_command()
-    builder.add_auto_context("Codebase Structure (eza --tree)", tree_output)
-    print("...done.")
+    title = "Codebase Structure (eza --tree)"
+    builder.add_auto_context(title, tree_output)
+    if title in builder.auto_context:
+        token_count = builder.auto_context[title]['tokens']
+        print(f" ({token_count:,} tokens)")
+    else:
+        print(" (skipped)")
+
 
     # --- Generate UML for all included Python files ---
     python_files_to_diagram = [
@@ -501,15 +507,23 @@ def main():
     if python_files_to_diagram:
         print("Python file(s) detected. Generating UML diagrams...")
         for py_file_path in python_files_to_diagram:
-            print(f"  -> Generating for {py_file_path}...")
+            print(f"  -> Generating for {py_file_path}...", end='', flush=True)
             uml_context = generate_uml_and_dot(
                 target_file=py_file_path,
                 project_name=CONFIG["PROJECT_NAME"]
             )
-            builder.add_auto_context(
-                f"UML Class Diagram (ASCII for {py_file_path})",
-                uml_context.get("ascii_uml")
-            )
+            uml_content = uml_context.get("ascii_uml")
+            title = f"UML Class Diagram (ASCII for {py_file_path})"
+            builder.add_auto_context(title, uml_content)
+
+            if title in builder.auto_context:
+                token_count = builder.auto_context[title]['tokens']
+                print(f" ({token_count:,} tokens)")
+            elif uml_content and "note: no classes" in uml_content.lower():
+                print(" (no classes found)")
+            else:
+                print(" (skipped)")
+
         print("...UML generation complete.")
     
     # 4. Generate final output and print summary
