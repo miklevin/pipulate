@@ -1,8 +1,6 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/scripts/articles/instructions.json
-/home/mike/repos/pipulate/scripts/articles/articleizer.py
-/home/mike/repos/pipulate/foo_files.py
 /home/mike/repos/pipulate/prompt_foo.py
+/home/mike/repos/pipulate/foo_files.py
 """
 
 # RELEASE SYSTEM
@@ -19,6 +17,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/scripts/articles/list_articles.py
 # /home/mike/repos/pipulate/scripts/articles/instructions.json
 # /home/mike/repos/pipulate/scripts/articles/articleizer.py
+# /home/mike/repos/pipulate/foo_files.py
 
 # INSTALL & INFRASTRUCTURE AS CODE
 # /home/mike/repos/pipulate/__init__.py
@@ -148,4 +147,29 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/MikeLev.in/_posts/2025-10-07-macos-debugging-saga-segfaults-ghosts.md
 # /home/mike/repos/MikeLev.in/_posts/2025-10-08-forging-jupyter-master-template-dependency-hell.md
 # /home/mike/repos/MikeLev.in/_posts/2025-10-08-ai-vs-ai-debugging-saga.md
+
+# FINDING EYES
+# tools/mcp_tools.py
+# imports/dom_processing/ai_dom_beautifier.py
+# browser_automation/dom_processing/dom_hierarchy_visualizer.py
+# browser_automation/dom_processing/dom_box_visualizer.py
+# /home/mike/repos/pipulate/README.md
+# /home/mike/repos/pipulate/server.py
+# /home/mike/repos/pipulate/config.py
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/prompt.txt
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow.ipynb
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
+# /home/mike/repos/pipulate/browser_automation/dom_schema_visualizer.py
+# /home/mike/repos/pipulate/browser_automation/recipe_executor.py
+# /home/mike/repos/pipulate/browser_automation/review_perception_history.py
+# /home/mike/repos/pipulate/tools/advanced_automation_tools.py
+# /home/mike/repos/pipulate/AI_RUNME.py
+# /home/mike/repos/pipulate/cli.py
+# /home/mike/repos/pipulate/tools/__init__.py 
+# /home/mike/repos/pipulate/tools/system_tools.py
+# /home/mike/repos/pipulate/imports/__init__.py
+# /home/mike/repos/pipulate/imports/stream_orchestrator.py
+# /home/mike/repos/pipulate/imports/ai_tool_discovery_simple_parser.py
+# /home/mike/repos/pipulate/imports/mcp_orchestrator.py
+
 
