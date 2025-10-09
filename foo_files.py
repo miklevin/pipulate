@@ -1,12 +1,8 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/requirements.in
-/home/mike/repos/pipulate/requirements.txt
-/home/mike/repos/MikeLev.in/_posts/2025-09-09-pip-freeze-nix-dependency-hell.md
-/home/mike/repos/MikeLev.in/_posts/2025-09-09-debugging-nix-dev-environment-segfault.md
-/home/mike/repos/MikeLev.in/_posts/2025-10-07-macos-nix-debugging-segfault-to-afplay.md
-/home/mike/repos/MikeLev.in/_posts/2025-10-07-macos-debugging-saga-segfaults-ghosts.md
-/home/mike/repos/MikeLev.in/_posts/2025-10-08-forging-jupyter-master-template-dependency-hell.md
-/home/mike/repos/MikeLev.in/_posts/2025-10-08-ai-vs-ai-debugging-saga.md
+/home/mike/repos/pipulate/scripts/articles/instructions.json
+/home/mike/repos/pipulate/scripts/articles/articleizer.py
+/home/mike/repos/pipulate/foo_files.py
+/home/mike/repos/pipulate/prompt_foo.py
 """
 
 # RELEASE SYSTEM
@@ -142,4 +138,14 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/workflow.ipynb
 # /home/mike/repos/pipulate/scripts/botify/hello_world_git_managed.ipynb
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/faq-session-01_output.xlsx
+
+# PREVIOUS CONTEXT DUMPS (PROBABLY DELETE BELOW THIS POINT)
+# /home/mike/repos/pipulate/requirements.in
+# /home/mike/repos/pipulate/requirements.txt
+# /home/mike/repos/MikeLev.in/_posts/2025-09-09-pip-freeze-nix-dependency-hell.md
+# /home/mike/repos/MikeLev.in/_posts/2025-09-09-debugging-nix-dev-environment-segfault.md
+# /home/mike/repos/MikeLev.in/_posts/2025-10-07-macos-nix-debugging-segfault-to-afplay.md
+# /home/mike/repos/MikeLev.in/_posts/2025-10-07-macos-debugging-saga-segfaults-ghosts.md
+# /home/mike/repos/MikeLev.in/_posts/2025-10-08-forging-jupyter-master-template-dependency-hell.md
+# /home/mike/repos/MikeLev.in/_posts/2025-10-08-ai-vs-ai-debugging-saga.md
 
