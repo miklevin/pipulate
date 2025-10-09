@@ -295,9 +295,10 @@ class PromptBuilder:
     Builds a complete, structured Markdown prompt including file manifests,
     auto-generated context, file contents, and the user's final prompt.
     """
-    def __init__(self, processed_files: List[Dict], prompt_text: str):
+    def __init__(self, processed_files: List[Dict], prompt_text: str, context_only: bool = False):
         self.processed_files = processed_files
         self.prompt_text = prompt_text
+        self.context_only = context_only
         self.auto_context = {}
         self.total_tokens = sum(f['tokens'] for f in processed_files) + count_tokens(prompt_text)
         self.total_words = sum(f['words'] for f in processed_files) + count_words(prompt_text)
@@ -363,15 +364,30 @@ Before addressing the user's prompt, perform the following verification steps:
         """Assembles all parts into the final Markdown string."""
         ai_checklist = self._generate_ai_checklist()
         
-        return "\n".join(filter(None, [
+        parts = [
             self._generate_manifest_header(),
             self._generate_auto_context_section(),
-            "\n---\n\n# File Contents\n",
-            self._generate_file_contents(),
+        ]
+
+        if not self.context_only:
+            parts.extend([
+                "\n---\n\n# File Contents\n",
+                self._generate_file_contents(),
+            ])
+            # Adjust total counts for context-only mode
+            self.total_tokens = count_tokens(self.prompt_text)
+            self.total_words = count_words(self.prompt_text)
+            for content in self.auto_context.values():
+                self.total_tokens += count_tokens(content)
+                self.total_words += count_words(content)
+
+        parts.extend([
             "---\n\n# User Prompt\n",
             ai_checklist, # PREPEND THE CHECKLIST
             self.prompt_text
-        ]))
+        ])
+        
+        return "\n".join(filter(None, parts))
 
     def print_summary(self):
         """Prints a comprehensive summary to the console."""
@@ -379,6 +395,10 @@ Before addressing the user's prompt, perform the following verification steps:
         for f in self.processed_files:
             print(f"• {f['path']} ({f['tokens']:,} tokens)")
         print("\n--- Prompt Summary ---")
+        
+        if self.context_only:
+             print("NOTE: Running in --context-only mode. File contents are excluded from final output.")
+
         print(f"Total Tokens: {self.total_tokens:,}")
         print(f"Total Words:  {self.total_words:,}")
 
@@ -398,6 +418,7 @@ def main():
     parser.add_argument('-o', '--output', type=str, help='Optional: Output filename.')
     parser.add_argument('--no-clipboard', action='store_true', help='Disable copying output to clipboard.')
     parser.add_argument('--check-dependencies', action='store_true', help='Verify that all required external tools are installed.')
+    parser.add_argument('--context-only', action='store_true', help='Generate a context-only prompt without file contents.')
     args = parser.parse_args()
 
     if args.check_dependencies:
@@ -439,7 +460,7 @@ def main():
             sys.exit(1)
 
     # 3. Build the prompt and add auto-generated context
-    builder = PromptBuilder(processed_files_data, prompt_content)
+    builder = PromptBuilder(processed_files_data, prompt_content, context_only=args.context_only)
     
     # --- Add the Codebase Tree ---
     print("Generating codebase tree diagram...")
