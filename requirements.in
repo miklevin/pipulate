@@ -60,3 +60,4 @@ rich
 watchdog
 pyfiglet
 pydot
+sqlitedict

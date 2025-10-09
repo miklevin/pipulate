@@ -73,11 +73,11 @@ blinker==1.6.2
     # via
     #   -r requirements.in
     #   selenium-wire
-boto3==1.40.47
+boto3==1.40.48
     # via
     #   jupyter-ai-magics
     #   langchain-aws
-botocore==1.40.47
+botocore==1.40.48
     # via
     #   boto3
     #   s3transfer
@@ -207,7 +207,7 @@ future==1.0.0
     # via bce-python-sdk
 google-ai-generativelanguage==0.6.15
     # via google-generativeai
-google-api-core[grpc]==2.25.2
+google-api-core[grpc]==2.26.0
     # via
     #   google-ai-generativelanguage
     #   google-api-python-client
@@ -252,7 +252,7 @@ google-crc32c==1.7.1
     # via
     #   google-cloud-storage
     #   google-resumable-media
-google-genai==1.41.0
+google-genai==1.42.0
     # via google-cloud-aiplatform
 google-generativeai==0.8.5
     # via
@@ -520,7 +520,7 @@ markupsafe==3.0.3
     #   nbconvert
 marshmallow==3.26.1
     # via dataclasses-json
-matplotlib==3.10.6
+matplotlib==3.10.7
     # via -r requirements.in
 matplotlib-inline==0.1.7
     # via
@@ -654,7 +654,7 @@ prompt-toolkit==3.0.52
     # via
     #   ipython
     #   qianfan
-propcache==0.3.2
+propcache==0.4.1
     # via
     #   aiohttp
     #   yarl
@@ -729,6 +729,8 @@ pydantic-core==2.41.1
     #   pydantic
 pydantic-settings==2.11.0
     # via langchain-community
+pydot==4.0.1
+    # via -r requirements.in
 pyfiglet==1.0.4
     # via -r requirements.in
 pygments==2.19.2
@@ -745,6 +747,7 @@ pyparsing==3.2.5
     # via
     #   httplib2
     #   matplotlib
+    #   pydot
     #   selenium-wire
 pypdf==6.1.1
     # via jupyter-ai
@@ -892,6 +895,8 @@ sqlalchemy==2.0.43
     # via
     #   langchain
     #   langchain-community
+sqlitedict==2.1.0
+    # via -r requirements.in
 stack-data==0.6.3
     # via ipython
 starlette==0.48.0
