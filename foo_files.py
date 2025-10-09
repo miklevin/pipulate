@@ -1,4 +1,12 @@
 FILES_TO_INCLUDE_RAW = """\
+/home/mike/repos/pipulate/ai_edit.py
+/home/mike/repos/pipulate/tools/advanced_automation_tools.py
+/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
+/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow.ipynb
+/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
+/home/mike/repos/pipulate/pipulate/__init__.py
+/home/mike/repos/pipulate/pipulate/core.py
+/home/mike/repos/pipulate/pipulate/pipulate.py
 """
 
 # RELEASE SYSTEM
