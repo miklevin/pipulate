@@ -11,6 +11,12 @@ import tempfile
 import shutil
 from typing import Dict, List, Optional, Tuple
 
+try:
+    import jupytext
+    JUPYTEXT_AVAILABLE = True
+except ImportError:
+    JUPYTEXT_AVAILABLE = False
+
 # Hello there, AI! This is a tool for generating a single, comprehensive prompt
 # from the command line, bundling codebase files and auto-generated context
 # into a structured Markdown format for effective AI assistance.
@@ -465,29 +471,51 @@ def main():
     # 2. Process all specified files
     files_to_process = parse_file_list_from_config()
     processed_files_data = []
+    print("--- Processing Files ---")
     for path, comment in files_to_process:
         full_path = os.path.join(REPO_ROOT, path) if not os.path.isabs(path) else path
         if not os.path.exists(full_path):
             print(f"Warning: File not found and will be skipped: {full_path}")
             continue
-        try:
-            with open(full_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            ext = os.path.splitext(path)[1].lower()
-            lang_map = {'.py': 'python', '.js': 'javascript', '.html': 'html', '.css': 'css', '.md': 'markdown', '.json': 'json', '.nix': 'nix', '.sh': 'bash'}
-            processed_files_data.append({
-                "path": path, "comment": comment, "content": content,
-                "tokens": count_tokens(content), "words": count_words(content),
-                "lang": lang_map.get(ext, 'text')
-            })
-        except Exception as e:
-            print(f"ERROR: Could not read or process {full_path}: {e}")
-            sys.exit(1)
+
+        content = ""
+        lang = "text"
+        ext = os.path.splitext(path)[1].lower()
+
+        if ext == '.ipynb':
+            if JUPYTEXT_AVAILABLE:
+                print(f"  -> Converting notebook: {path}")
+                try:
+                    notebook = jupytext.read(full_path)
+                    content = jupytext.writes(notebook, fmt='py:percent')
+                    lang = 'python'
+                except Exception as e:
+                    content = f"# FAILED TO CONVERT NOTEBOOK: {path}\n# ERROR: {e}"
+                    print(f"Warning: Failed to convert {path}: {e}")
+            else:
+                content = f"# SKIPPING NOTEBOOK CONVERSION: jupytext not installed for {path}"
+                print(f"Warning: `jupytext` library not found. Skipping conversion for {path}.")
+        else:
+            try:
+                with open(full_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                lang_map = {'.py': 'python', '.js': 'javascript', '.html': 'html', '.css': 'css', '.md': 'markdown', '.json': 'json', '.nix': 'nix', '.sh': 'bash'}
+                lang = lang_map.get(ext, 'text')
+            except Exception as e:
+                print(f"ERROR: Could not read or process {full_path}: {e}")
+                sys.exit(1)
+
+        processed_files_data.append({
+            "path": path, "comment": comment, "content": content,
+            "tokens": count_tokens(content), "words": count_words(content),
+            "lang": lang
+        })
 
     # 3. Build the prompt and add auto-generated context
     builder = PromptBuilder(processed_files_data, prompt_content, context_only=args.context_only)
     
     # --- Add the Codebase Tree ---
+    print("\n--- Generating Auto-Context ---")
     print("Generating codebase tree diagram...", end='', flush=True)
     tree_output = run_tree_command()
     title = "Codebase Structure (eza --tree)"
@@ -524,7 +552,7 @@ def main():
             else:
                 print(" (skipped)")
 
-        print("...UML generation complete.")
+        print("...UML generation complete.\n")
     
     # 4. Generate final output and print summary
     final_output = builder.build_final_prompt()

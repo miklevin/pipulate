@@ -1,41 +1,4 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/__init__.py
-/home/mike/repos/pipulate/assets/installer/install.sh
-/home/mike/repos/pipulate/pyproject.toml
-/home/mike/repos/pipulate/flake.nix
-/home/mike/repos/pipulate/requirements.in
-/home/mike/repos/pipulate/requirements.txt
-/home/mike/repos/pipulate/server.py
-/home/mike/repos/pipulate/config.py
-/home/mike/repos/pipulate/assets/styles.css
-/home/mike/repos/pipulate/imports/__init__.py
-/home/mike/repos/pipulate/pipulate/__init__.py
-/home/mike/repos/pipulate/pipulate/core.py
-/home/mike/repos/pipulate/pipulate/pipulate.py
-/home/mike/repos/pipulate/apps/040_hello_workflow.py
-/home/mike/repos/pipulate/scripts/botify/hello_world_git_managed.ipynb
-/home/mike/repos/pipulate/imports/crud.py
-/home/mike/repos/pipulate/apps/060_tasks.py
-/home/mike/repos/pipulate/apps/030_roles.py
-/home/mike/repos/pipulate/apps/020_profiles.py
-/home/mike/repos/pipulate/AI_RUNME.py
-/home/mike/repos/pipulate/cli.py
-/home/mike/repos/pipulate/imports/stream_orchestrator.py
-/home/mike/repos/pipulate/imports/ai_tool_discovery_simple_parser.py
-/home/mike/repos/pipulate/imports/mcp_orchestrator.py
-/home/mike/repos/pipulate/tools/__init__.py 
-/home/mike/repos/pipulate/tools/system_tools.py
-/home/mike/repos/pipulate/imports/ai_dictdb.py
-/home/mike/repos/pipulate/imports/append_only_conversation.py
-/home/mike/repos/pipulate/imports/voice_synthesis.py
-/home/mike/repos/pipulate/ai_edit.py
-/home/mike/repos/pipulate/imports/server_logging.py
-/home/mike/repos/pipulate/logs/server.log
-/home/mike/repos/pipulate/tools/advanced_automation_tools.py
-/home/mike/repos/pipulate/tools/conversation_tools.py
-/home/mike/repos/pipulate/tools/keychain_tools.py
-/home/mike/repos/pipulate/tools/mcp_tools.py
-/home/mike/repos/pipulate/tools/botify_tools.py
 """
 
 # RELEASE SYSTEM
@@ -207,4 +170,42 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/imports/ai_tool_discovery_simple_parser.py
 # /home/mike/repos/pipulate/imports/mcp_orchestrator.py
 
+# THE WHOLE SHEBANG TEST FOR --context-only UML TOKEN COUNTS
+# /home/mike/repos/pipulate/__init__.py
+# /home/mike/repos/pipulate/assets/installer/install.sh
+# /home/mike/repos/pipulate/pyproject.toml
+# /home/mike/repos/pipulate/flake.nix
+# /home/mike/repos/pipulate/requirements.in
+# /home/mike/repos/pipulate/requirements.txt
+# /home/mike/repos/pipulate/server.py
+# /home/mike/repos/pipulate/config.py
+# /home/mike/repos/pipulate/assets/styles.css
+# /home/mike/repos/pipulate/imports/__init__.py
+# /home/mike/repos/pipulate/pipulate/__init__.py
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/apps/040_hello_workflow.py
+# /home/mike/repos/pipulate/scripts/botify/hello_world_git_managed.ipynb
+# /home/mike/repos/pipulate/imports/crud.py
+# /home/mike/repos/pipulate/apps/060_tasks.py
+# /home/mike/repos/pipulate/apps/030_roles.py
+# /home/mike/repos/pipulate/apps/020_profiles.py
+# /home/mike/repos/pipulate/AI_RUNME.py
+# /home/mike/repos/pipulate/cli.py
+# /home/mike/repos/pipulate/imports/stream_orchestrator.py
+# /home/mike/repos/pipulate/imports/ai_tool_discovery_simple_parser.py
+# /home/mike/repos/pipulate/imports/mcp_orchestrator.py
+# /home/mike/repos/pipulate/tools/__init__.py 
+# /home/mike/repos/pipulate/tools/system_tools.py
+# /home/mike/repos/pipulate/imports/ai_dictdb.py
+# /home/mike/repos/pipulate/imports/append_only_conversation.py
+# /home/mike/repos/pipulate/imports/voice_synthesis.py
+# /home/mike/repos/pipulate/ai_edit.py
+# /home/mike/repos/pipulate/imports/server_logging.py
+# /home/mike/repos/pipulate/logs/server.log
+# /home/mike/repos/pipulate/tools/advanced_automation_tools.py
+# /home/mike/repos/pipulate/tools/conversation_tools.py
+# /home/mike/repos/pipulate/tools/keychain_tools.py
+# /home/mike/repos/pipulate/tools/mcp_tools.py
+# /home/mike/repos/pipulate/tools/botify_tools.py
 
