@@ -147,7 +147,7 @@
             fi
             # Copy workflow.ipynb
             if [ -f "${originalWorkflow}" ] && [ ! -f "${localWorkflow}" ]; then
-              echo "INFO: Creating a local 'Faquillizer' master template notebook..."
+              echo "INFO: Creating a local 'Master Template' notebook..."
               echo "      Your work will be saved in '${localWorkflow}'."
               cp "${originalWorkflow}" "${localWorkflow}"
             fi
