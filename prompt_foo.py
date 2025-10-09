@@ -300,21 +300,22 @@ class PromptBuilder:
         self.prompt_text = prompt_text
         self.context_only = context_only
         self.auto_context = {}
-        self.total_tokens = sum(f['tokens'] for f in processed_files) + count_tokens(prompt_text)
-        self.total_words = sum(f['words'] for f in processed_files) + count_words(prompt_text)
 
     def add_auto_context(self, title: str, content: str):
         """Adds auto-generated context like UML diagrams to the prompt."""
         if content and "error" not in content.lower() and "skipping" not in content.lower():
-            self.auto_context[title] = content
-            self.total_tokens += count_tokens(content)
-            self.total_words += count_words(content)
+            self.auto_context[title] = {
+                'content': content,
+                'tokens': count_tokens(content),
+                'words': count_words(content)
+            }
 
     def _generate_manifest_header(self) -> str:
         lines = ["# Codebase Context & Manifest", ""]
         for f in self.processed_files:
             purpose = f" ({f['comment']})" if f['comment'] else ""
-            lines.append(f"- **{f['path']}**{purpose} ({f['tokens']:,} tokens)")
+            token_display = f" ({f['tokens']:,} tokens)" if not self.context_only else ""
+            lines.append(f"- **{f['path']}**{purpose}{token_display}")
         return "\n".join(lines)
 
     def _generate_auto_context_section(self) -> str:
@@ -323,18 +324,17 @@ class PromptBuilder:
         lines = ["", "---", "", "# Auto-Generated Context", ""]
         if "Codebase Structure (eza --tree)" in self.auto_context:
             title = "Codebase Structure (eza --tree)"
-            content = self.auto_context[title]
+            content = self.auto_context[title]['content']
             lines.append(f"## {title}")
             lines.append("```text")
             lines.append(content.strip())
             lines.append("```")
         
-        for title, content in self.auto_context.items():
+        for title, data in self.auto_context.items():
             if title != "Codebase Structure (eza --tree)":
                 lines.append(f"## {title}")
                 lines.append("```text")
-                # The .strip() call that was removing the sacrificial newline has been removed.
-                lines.append(content)
+                lines.append(data['content'])
                 lines.append("```")
         return "\n".join(lines)
 
@@ -362,8 +362,6 @@ Before addressing the user's prompt, perform the following verification steps:
 
     def build_final_prompt(self) -> str:
         """Assembles all parts into the final Markdown string."""
-        ai_checklist = self._generate_ai_checklist()
-        
         parts = [
             self._generate_manifest_header(),
             self._generate_auto_context_section(),
@@ -374,36 +372,63 @@ Before addressing the user's prompt, perform the following verification steps:
                 "\n---\n\n# File Contents\n",
                 self._generate_file_contents(),
             ])
-            # Adjust total counts for context-only mode
-            self.total_tokens = count_tokens(self.prompt_text)
-            self.total_words = count_words(self.prompt_text)
-            for content in self.auto_context.values():
-                self.total_tokens += count_tokens(content)
-                self.total_words += count_words(content)
 
         parts.extend([
             "---\n\n# User Prompt\n",
-            ai_checklist, # PREPEND THE CHECKLIST
+            self._generate_ai_checklist(),
             self.prompt_text
         ])
         
         return "\n".join(filter(None, parts))
 
     def print_summary(self):
-        """Prints a comprehensive summary to the console."""
+        """Calculates and prints an accurate, comprehensive summary to the console."""
+        # --- Calculate token counts for all components ---
+        manifest_str = self._generate_manifest_header()
+        manifest_tokens = count_tokens(manifest_str)
+        manifest_words = count_words(manifest_str)
+        
+        prompt_tokens = count_tokens(self.prompt_text)
+        prompt_words = count_words(self.prompt_text)
+
+        checklist_str = self._generate_ai_checklist()
+        checklist_tokens = count_tokens(checklist_str)
+        checklist_words = count_words(checklist_str)
+
+        auto_context_total_tokens = sum(v['tokens'] for v in self.auto_context.values())
+        auto_context_total_words = sum(v['words'] for v in self.auto_context.values())
+
+        file_content_total_tokens = sum(f['tokens'] for f in self.processed_files)
+        file_content_total_words = sum(f['words'] for f in self.processed_files)
+
+        # --- Display the breakdown ---
         print("--- Files Included ---")
         for f in self.processed_files:
-            print(f"• {f['path']} ({f['tokens']:,} tokens)")
-        print("\n--- Prompt Summary ---")
+            if self.context_only:
+                print(f"• {f['path']} (content omitted)")
+            else:
+                print(f"• {f['path']} ({f['tokens']:,} tokens)")
         
+        if self.auto_context:
+            print("\n--- Auto-Context Included ---")
+            for title, data in self.auto_context.items():
+                print(f"• {title} ({data['tokens']:,} tokens)")
+
+        # --- Calculate and display the final summary ---
+        print("\n--- Prompt Summary ---")
         if self.context_only:
-             print("NOTE: Running in --context-only mode. File contents are excluded from final output.")
+            print("NOTE: Running in --context-only mode. File contents are excluded.")
+            total_tokens = manifest_tokens + auto_context_total_tokens + prompt_tokens + checklist_tokens
+            total_words = manifest_words + auto_context_total_words + prompt_words + checklist_words
+        else:
+            total_tokens = manifest_tokens + auto_context_total_tokens + file_content_total_tokens + prompt_tokens + checklist_tokens
+            total_words = manifest_words + auto_context_total_words + file_content_total_words + prompt_words + checklist_words
 
-        print(f"Total Tokens: {self.total_tokens:,}")
-        print(f"Total Words:  {self.total_words:,}")
+        print(f"Total Tokens: {total_tokens:,}")
+        print(f"Total Words:  {total_words:,}")
 
-        ratio = self.total_tokens / self.total_words if self.total_words > 0 else 0
-        perspective = get_literary_perspective(self.total_words, ratio)
+        ratio = total_tokens / total_words if total_words > 0 else 0
+        perspective = get_literary_perspective(total_words, ratio)
         print("\n--- Size Perspective ---")
         print(perspective)
         print()
