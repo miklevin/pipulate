@@ -63,7 +63,7 @@ def get_ai_insights(job: str):
 
     print(f"🧠 Generating AI insights... {len(processed_titles)} of {len(raw_data)} items already complete.")
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash') # Updated model
+        model = genai.GenerativeModel('gemini-2.5-flash') # Updated model
         for item in raw_data:
             title = item.get('title')
             if title in processed_titles:
