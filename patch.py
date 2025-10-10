@@ -17,7 +17,8 @@ patches = [
             Args:
                 params: A dictionary containing:
                     - url (str): The URL to scrape.
-                    - pipeline_id (str): A unique ID for this job, used for the output folder name.
+                    - domain (str): The domain of the URL, used as the root folder.
+                    - url_path_slug (str): The URL-encoded path, used as the sub-folder.
                     - take_screenshot (bool): Whether to capture a screenshot of the page.
                     - headless (bool): Whether to run the browser in headless mode. Defaults to True.
 
@@ -26,20 +27,20 @@ patches = [
                 to all captured artifacts.
             \"\"\"
             url = params.get("url")
-            pipeline_id = params.get("pipeline_id", f"scrape-{datetime.now().isoformat()}")
+            domain = params.get("domain")
+            url_path_slug = params.get("url_path_slug")
             take_screenshot = params.get("take_screenshot", False)
-            headless = params.get("headless", True) # Default to headless mode
+            headless = params.get("headless", True)
 
-            if not url:
-                return {"success": False, "error": "URL parameter is required."}
+            if not all([url, domain, url_path_slug is not None]):
+                return {"success": False, "error": "URL, domain, and url_path_slug parameters are required."}
 
             driver = None
             artifacts = {}
 
             try:
-                # --- 1. Set up output directory ---
-                domain, path_slug = get_safe_path_component(url)
-                output_dir = Path("browser_automation/looking_at/") / pipeline_id
+                # --- 1. Set up output directory using new structure ---
+                output_dir = Path("browser_automation/looking_at/") / domain / url_path_slug
                 output_dir.mkdir(parents=True, exist_ok=True)
                 logger.info(f"💾 Saving artifacts to: {output_dir}")
 
@@ -49,14 +50,14 @@ patches = [
                     chrome_options.add_argument("--headless")
                 chrome_options.add_argument("--no-sandbox")
                 chrome_options.add_argument("--disable-dev-shm-usage")
+                chrome_options.add_argument("--start-maximized") # Better for non-headless
                 chrome_options.add_argument("--window-size=1920,1080")
 
-                # Use webdriver-manager for cross-platform compatibility
                 effective_os = os.environ.get('EFFECTIVE_OS', sys.platform)
                 if effective_os == 'darwin':
                     service = Service(ChromeDriverManager().install())
                 else:
-                    service = Service() # Assumes chromedriver is in PATH
+                    service = Service()
 
                 logger.info(f"🚀 Initializing Chrome driver (Headless: {headless})...")
                 driver = wire_webdriver.Chrome(service=service, options=chrome_options)
@@ -64,12 +65,11 @@ patches = [
                 # --- 3. Scrape the Page ---
                 logger.info(f" navigating to: {url}")
                 driver.get(url)
-                await asyncio.sleep(3) # Wait for JS to render
+                await asyncio.sleep(3)
 
                 # --- 4. Capture Artifacts ---
                 dom_path = output_dir / "dom.html"
-                dom_content = driver.execute_script("return document.documentElement.outerHTML;")
-                dom_path.write_text(dom_content, encoding='utf-8')
+                dom_path.write_text(driver.execute_script("return document.documentElement.outerHTML;"), encoding='utf-8')
                 artifacts['dom'] = str(dom_path)
 
                 source_path = output_dir / "source.html"
@@ -122,19 +122,22 @@ patches = [
                 dict: The result from the scraper tool, including paths to captured artifacts.
             \"\"\"
             from tools.scraper_tools import selenium_automation
-            from urllib.parse import urlparse
+            from urllib.parse import urlparse, quote
             from datetime import datetime
 
             logger.info(f"👁️‍🗨️ Initiating scrape for: {url} (Mode: {mode}, Headless: {headless})")
 
-            # Create a transient, descriptive pipeline_id for this one-off scrape.
-            domain = urlparse(url).netloc
-            timestamp = datetime.now().strftime('%H%M%S')
-            scrape_pipeline_id = f"scrape-{domain.replace('.', '-')}-{timestamp}"
+            # --- New Directory Logic ---
+            parsed_url = urlparse(url)
+            domain = parsed_url.netloc
+            path = parsed_url.path or '/'
+            # Use quote with an empty safe string to encode everything, including slashes
+            url_path_slug = quote(path, safe='')
 
             params = {
                 "url": url,
-                "pipeline_id": scrape_pipeline_id,
+                "domain": domain,
+                "url_path_slug": url_path_slug,
                 "take_screenshot": take_screenshot,
                 "headless": headless,
                 **kwargs # Pass through any other params
@@ -150,6 +153,40 @@ patches = [
             else:
                 logger.warning(f"Scrape mode '{mode}' is not yet implemented.")
                 return {"success": False, "error": f"Mode '{mode}' not implemented."}
+        """
+    },
+    {
+        "file": "/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py",
+        "block_name": "test_advanced_scrape",
+        "new_code": """
+        async def test_advanced_scrape(job: str, headless: bool = False):
+            \"\"\"
+            NEW (Optional Test): Scrapes the FIRST URL from the list using the advanced
+            pip.scrape() browser automation to capture a full set of artifacts.
+            \"\"\"
+            print("\\n--- 🧪 Starting Advanced Scrape Test Flight ---")
+            urls_to_process = pip.get(job, URL_LIST_STEP, [])
+            if not urls_to_process:
+                print("  -> No URLs found to test. Skipping.")
+                return
+            url_to_test = urls_to_process[0]
+            print(f"  -> Target: {url_to_test}")
+            print(f"  -> Headless Mode: {headless}")
+
+            # This is the call to the powerful, Selenium-based scraper
+            # exposed through the pipulate library, now with headless toggle.
+            result = await pip.scrape(url=url_to_test, take_screenshot=True, headless=headless)
+
+            if result.get('success'):
+                print(f"  -> ✅ Success! Advanced scrape complete.")
+                files_created = result.get('looking_at_files', {})
+                print("  -> Artifacts captured in 'browser_automation/looking_at/':")
+                for key, path in files_created.items():
+                    if path:
+                        print(f"       - {key}: {path}")
+            else:
+                print(f"  -> ❌ Failed: {result.get('error')}")
+            print("--- 🧪 Test Flight Complete ---\\n")
         """
     }
 ]
