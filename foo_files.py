@@ -1,12 +1,16 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/ai_edit.py
-/home/mike/repos/pipulate/tools/advanced_automation_tools.py
+/home/mike/repos/pipulate/apps/820_selenium.py
+/home/mike/repos/pipulate/apps/440_browser_automation.py
 /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
 /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow.ipynb
 /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
 /home/mike/repos/pipulate/pipulate/__init__.py
 /home/mike/repos/pipulate/pipulate/core.py
 /home/mike/repos/pipulate/pipulate/pipulate.py
+/home/mike/repos/pipulate/cli.py
+/home/mike/repos/pipulate/tools/__init__.py 
+/home/mike/repos/pipulate/tools/system_tools.py
+/home/mike/repos/pipulate/imports/stream_orchestrator.py
 """
 
 # RELEASE SYSTEM
@@ -55,11 +59,11 @@ FILES_TO_INCLUDE_RAW = """\
 # AI ERGONOMICS & TOOL CALLING CORE
 # /home/mike/repos/pipulate/AI_RUNME.py
 # /home/mike/repos/pipulate/cli.py
+# /home/mike/repos/pipulate/tools/__init__.py 
+# /home/mike/repos/pipulate/tools/system_tools.py
 # /home/mike/repos/pipulate/imports/stream_orchestrator.py
 # /home/mike/repos/pipulate/imports/ai_tool_discovery_simple_parser.py
 # /home/mike/repos/pipulate/imports/mcp_orchestrator.py
-# /home/mike/repos/pipulate/tools/__init__.py 
-# /home/mike/repos/pipulate/tools/system_tools.py
 
 # CHIP O'THESEUS
 # /home/mike/repos/pipulate/imports/ai_dictdb.py
@@ -72,7 +76,6 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/logs/server.log
 
 # ADVANCED TOOL CALLING
-# /home/mike/repos/pipulate/tools/advanced_automation_tools.py
 # /home/mike/repos/pipulate/tools/conversation_tools.py
 # /home/mike/repos/pipulate/tools/keychain_tools.py
 # /home/mike/repos/pipulate/tools/mcp_tools.py
@@ -111,7 +114,6 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/apps/300_blank_placeholder.py
 # /home/mike/repos/pipulate/apps/400_botify_trifecta.py
 # /home/mike/repos/pipulate/apps/430_tab_opener.py
-# /home/mike/repos/pipulate/apps/440_browser_automation.py
 # /home/mike/repos/pipulate/apps/450_stream_simulator.py
 # /home/mike/repos/pipulate/apps/510_text_field.py
 # /home/mike/repos/pipulate/apps/520_text_area.py
@@ -129,7 +131,6 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/apps/720_rich.py
 # /home/mike/repos/pipulate/apps/730_matplotlib.py
 # /home/mike/repos/pipulate/apps/810_webbrowser.py
-# /home/mike/repos/pipulate/apps/820_selenium.py
 
 # CONFIGURATION.NIX
 # /home/mike/repos/nixos/configuration.nix
@@ -168,7 +169,6 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/browser_automation/dom_schema_visualizer.py
 # /home/mike/repos/pipulate/browser_automation/recipe_executor.py
 # /home/mike/repos/pipulate/browser_automation/review_perception_history.py
-# /home/mike/repos/pipulate/tools/advanced_automation_tools.py
 # /home/mike/repos/pipulate/AI_RUNME.py
 # /home/mike/repos/pipulate/cli.py
 # /home/mike/repos/pipulate/tools/__init__.py 
@@ -211,7 +211,6 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/ai_edit.py
 # /home/mike/repos/pipulate/imports/server_logging.py
 # /home/mike/repos/pipulate/logs/server.log
-# /home/mike/repos/pipulate/tools/advanced_automation_tools.py
 # /home/mike/repos/pipulate/tools/conversation_tools.py
 # /home/mike/repos/pipulate/tools/keychain_tools.py
 # /home/mike/repos/pipulate/tools/mcp_tools.py

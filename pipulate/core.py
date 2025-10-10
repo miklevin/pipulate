@@ -1890,7 +1890,7 @@ class Pipulate:
             dict: The result from the browser automation tool, typically including
                   paths to captured artifacts like DOM, source, and screenshot.
         """
-        from tools.advanced_automation_tools import browser_hijack_workflow_complete
+        from tools.scraper_tools import selenium_automation
         from urllib.parse import urlparse
         from datetime import datetime
     
@@ -1913,7 +1913,7 @@ class Pipulate:
             # We call the 'workflow_hijack' tool, but in this context, it's just
             # navigating and capturing artifacts. We bypass the form-filling parts
             # by providing a unique, non-existent pipeline_id.
-            result = await browser_hijack_workflow_complete(params)
+            result = await selenium_automation(params)
             return result
         except Exception as e:
             logger.error(f"❌ Advanced scrape failed for {url}: {e}")
