@@ -3,11 +3,19 @@ import os
 import sys
 from pathlib import Path
 from loguru import logger
+import warnings
 from .core import Pipulate
 
 # 🎯 NOTEBOOK LOGGING: Configure logger for a cleaner Jupyter experience.
 logger.remove()
 logger.add(sys.stderr, level="WARNING")
+
+# Suppress the specific UserWarning from pkg_resources in selenium-wire
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    message="pkg_resources is deprecated as an API.*"
+)
 
 def _find_project_root(start_path):
     """Find the project root by looking for the flake.nix file."""

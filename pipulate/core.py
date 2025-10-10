@@ -1874,7 +1874,7 @@ class Pipulate:
         return state.get(step, default)
 
     # START: scrape_method
-    async def scrape(self, url: str, take_screenshot: bool = False, mode: str = 'selenium', headless: bool = False, **kwargs):
+    async def scrape(self, url: str, take_screenshot: bool = False, mode: str = 'selenium', headless: bool = True, **kwargs):
         """
         Gives AI "eyes" by performing browser automation or HTTP requests to scrape a URL.
     
@@ -1885,26 +1885,29 @@ class Pipulate:
             url (str): The URL to scrape.
             take_screenshot (bool): Whether to capture a screenshot (selenium mode only). Defaults to False.
             mode (str): The scraping mode to use ('selenium', 'requests', etc.). Defaults to 'selenium'.
-            headless (bool): Whether to run the browser in headless mode (selenium mode only). Defaults to False.
+            headless (bool): Whether to run the browser in headless mode (selenium mode only). Defaults to True.
             **kwargs: Additional parameters to pass to the underlying automation tool.
     
         Returns:
             dict: The result from the scraper tool, including paths to captured artifacts.
         """
         from tools.scraper_tools import selenium_automation
-        from urllib.parse import urlparse
+        from urllib.parse import urlparse, quote
         from datetime import datetime
     
         logger.info(f"👁️‍🗨️ Initiating scrape for: {url} (Mode: {mode}, Headless: {headless})")
     
-        # Create a transient, descriptive pipeline_id for this one-off scrape.
-        domain = urlparse(url).netloc
-        timestamp = datetime.now().strftime('%H%M%S')
-        scrape_pipeline_id = f"scrape-{domain.replace('.', '-')}-{timestamp}"
+        # --- New Directory Logic ---
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc
+        path = parsed_url.path or '/'
+        # Use quote with an empty safe string to encode everything, including slashes
+        url_path_slug = quote(path, safe='')
     
         params = {
             "url": url,
-            "pipeline_id": scrape_pipeline_id,
+            "domain": domain,
+            "url_path_slug": url_path_slug,
             "take_screenshot": take_screenshot,
             "headless": headless,
             **kwargs # Pass through any other params
