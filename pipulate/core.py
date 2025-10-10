@@ -1836,7 +1836,6 @@ class Pipulate:
             logger.error(f"🔍 DEBUG: Unexpected error in process_llm_interaction: {e}")
             yield error_msg
 
-    # START: notebook_api_methods
     def read(self, job: str) -> dict:
         """Reads the entire state dictionary for a given job (pipeline_id)."""
         state = self.read_state(job)
@@ -1873,31 +1872,32 @@ class Pipulate:
         """Gets a value for a key within a job's state."""
         state = self.read_state(job)
         return state.get(step, default)
-    
-    async def scrape(self, url: str, take_screenshot: bool = False, **kwargs):
+
+    # START: scrape_method
+    async def scrape(self, url: str, take_screenshot: bool = False, mode: str = 'selenium', headless: bool = False, **kwargs):
         """
-        Gives AI "eyes" by performing advanced browser automation to scrape a URL.
+        Gives AI "eyes" by performing browser automation or HTTP requests to scrape a URL.
     
-        This method acts as a simplified bridge to the powerful browser automation
-        tools, allowing for direct, on-demand scraping from notebooks or other clients.
+        This method is the primary entrypoint for scraping and supports multiple modes.
+        The default mode is 'selenium' which uses a full browser.
     
         Args:
             url (str): The URL to scrape.
-            take_screenshot (bool): Whether to capture a screenshot of the page.
+            take_screenshot (bool): Whether to capture a screenshot (selenium mode only). Defaults to False.
+            mode (str): The scraping mode to use ('selenium', 'requests', etc.). Defaults to 'selenium'.
+            headless (bool): Whether to run the browser in headless mode (selenium mode only). Defaults to False.
             **kwargs: Additional parameters to pass to the underlying automation tool.
     
         Returns:
-            dict: The result from the browser automation tool, typically including
-                  paths to captured artifacts like DOM, source, and screenshot.
+            dict: The result from the scraper tool, including paths to captured artifacts.
         """
         from tools.scraper_tools import selenium_automation
         from urllib.parse import urlparse
         from datetime import datetime
     
-        logger.info(f"👁️‍🗨️ Initiating advanced scrape for: {url}")
+        logger.info(f"👁️‍🗨️ Initiating scrape for: {url} (Mode: {mode}, Headless: {headless})")
     
         # Create a transient, descriptive pipeline_id for this one-off scrape.
-        # This allows us to use the workflow hijacking tool for a simple scrape.
         domain = urlparse(url).netloc
         timestamp = datetime.now().strftime('%H%M%S')
         scrape_pipeline_id = f"scrape-{domain.replace('.', '-')}-{timestamp}"
@@ -1906,16 +1906,18 @@ class Pipulate:
             "url": url,
             "pipeline_id": scrape_pipeline_id,
             "take_screenshot": take_screenshot,
-            **kwargs  # Pass through any other params
+            "headless": headless,
+            **kwargs # Pass through any other params
         }
     
-        try:
-            # We call the 'workflow_hijack' tool, but in this context, it's just
-            # navigating and capturing artifacts. We bypass the form-filling parts
-            # by providing a unique, non-existent pipeline_id.
-            result = await selenium_automation(params)
-            return result
-        except Exception as e:
-            logger.error(f"❌ Advanced scrape failed for {url}: {e}")
-            return {"success": False, "error": str(e)}
-    # END: notebook_api_methods
+        if mode == 'selenium':
+            try:
+                result = await selenium_automation(params)
+                return result
+            except Exception as e:
+                logger.error(f"❌ Advanced scrape failed for {url}: {e}")
+                return {"success": False, "error": str(e)}
+        else:
+            logger.warning(f"Scrape mode '{mode}' is not yet implemented.")
+            return {"success": False, "error": f"Mode '{mode}' not implemented."}
+    # END: scrape_method
