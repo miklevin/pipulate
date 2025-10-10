@@ -54,13 +54,13 @@ htmlcov/
 # AI Keychain persistent memory - survives application resets
 
 # Browser automation outputs - keep these local only
-browser_automation/looking_at/
+browser_cache/looking_at/
 
 # Browser automation rotating directories - AI perception history (local only)
-browser_automation/looking_at-*/
+browser_cache/looking_at-*/
 
 # Browser automation temp scripts - disposable one-offs
-browser_automation/temp_scripts/
+browser_cache/temp_scripts/
 *_automation_summary.txt
 *_automation_targets.py
 *_beautiful_dom.html
@@ -68,7 +68,7 @@ browser_automation/temp_scripts/
 *_source.html
 
 # Directory rotation test files - development use only
-browser_automation/test_rotation_data/
+browser_cache/test_rotation_data/
 
 # Voice synthesis models - auto-downloaded as needed
 piper_models/
