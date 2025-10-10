@@ -46,11 +46,11 @@ import aiohttp
 
 # Import tools with graceful fallback
 try:
-    from tools import (browser_hijack_workflow_complete, execute_automation_recipe,
+    from tools import (selenium_automation, execute_automation_recipe,
                        execute_complete_session_hijacking, execute_mcp_cli_command)
 except ImportError:
     # Graceful fallback - tools will be available when server is fully initialized
-    browser_hijack_workflow_complete = None
+    selenium_automation = None
     execute_automation_recipe = None
     execute_complete_session_hijacking = None
     execute_mcp_cli_command = None
@@ -4693,7 +4693,7 @@ def get_available_tools():
         'browser_scrape_page',
         'browser_automate_workflow_walkthrough',
         'browser_interact_with_current_page',
-        'browser_hijack_workflow_complete',
+        'selenium_automation',
         'execute_automation_recipe',
         'execute_mcp_cli_command',
         'botify_get_full_schema',
