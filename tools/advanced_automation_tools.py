@@ -378,11 +378,11 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
 async def browser_hijack_workflow_complete(params: dict) -> dict:
     """
     MCP Tool: COMPLETE WORKFLOW HIJACKING - Navigate + Enter + Chain Reaction + Capture
-    
+
     🎭 "HI JACK" MAGIC WORDS PATTERN - The Irresistible Simple Way
     ═══════════════════════════════════════════════════════════════════════════════════
     SIMPLEST METHOD: Just type "Hi Jack" in chat → Complete hijacking happens automatically
-    
+
     PROGRAMMATIC METHOD for AI understanding:
     python -c "
     import asyncio
@@ -392,26 +392,26 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
         'pipeline_id': 'Default_Profile-hello-16'
     }))
     print(f'🎭 Hijack: {result.get(\"success\")}')"
-    
+
     This is the common pattern for all session hijacking that handles:
     1. Navigate to workflow URL (e.g., http://localhost:5001/hello_workflow)
     2. Fill in pipeline key input field  
     3. Press Enter to trigger HTMX chain reaction
     4. Wait for chain reaction to complete (all hx_trigger="load" steps)
     5. Capture final workflow state (DOM + screenshot)
-    
+
     This captures the POST-ENTER workflow state, not just the landing page form.
-    
+
     Args:
         params: {
             "url": "http://localhost:5001/hello_workflow",  # Required: Workflow URL
             "pipeline_id": "Default_Profile-hello-16",      # Required: Pipeline key to enter
             "take_screenshot": True                         # Optional: capture visual state
         }
-        
+
         Timing: Uses centralized WorkflowHijackTiming configuration ({WorkflowHijackTiming.total_browser_time()}s total)
         To adjust timing: Change WorkflowHijackTiming class values or apply_timing_preset("lightning"/"fast"/"dramatic")
-    
+
     Returns:
         dict: {
             "success": True,
@@ -441,44 +441,42 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
     from datetime import datetime
     from pathlib import Path
     from urllib.parse import urlparse
-    
+    import sys  # <-- ADDED IMPORT
+
     logger.info(f"🎭 FINDER_TOKEN: MCP_WORKFLOW_HIJACK_START - URL: {params.get('url')}, Pipeline: {params.get('pipeline_id')}")
-    
+
     try:
         url = params.get('url')
         pipeline_id = params.get('pipeline_id')
         take_screenshot = params.get('take_screenshot', True)
-        
+
         # Show current timing configuration
         logger.info(f"⏰ FINDER_TOKEN: TIMING_CONFIG - {WorkflowHijackTiming.get_timing_summary()}")
-        
+
         # === VALIDATION ===
         if not url:
             return {"success": False, "error": "URL parameter is required"}
         if not pipeline_id:
             return {"success": False, "error": "pipeline_id parameter is required"}
-        
+
         # Validate URL format
         if not url.startswith(('http://', 'https://')):
             return {"success": False, "error": f"URL must start with http:// or https://. Got: {url}"}
-        
+
         logger.info(f"✅ FINDER_TOKEN: WORKFLOW_HIJACK_VALIDATION_PASSED - URL: {url}, Pipeline: {pipeline_id}")
-        
+
         # === DIRECTORY ROTATION ===
-        # rotate_looking_at_directory is now defined locally in this module
         rotation_success = rotate_looking_at_directory(
             looking_at_path=Path('browser_automation/looking_at'),
             max_rolled_dirs=MAX_ROLLED_LOOKING_AT_DIRS
         )
-        
+
         looking_at_dir = 'browser_automation/looking_at'
         os.makedirs(looking_at_dir, exist_ok=True)
-        
+
         hijacking_steps = []
-        
+
         # === SUBPROCESS WORKFLOW HIJACKING TO AVOID THREADING ISSUES ===
-        # Create a Python script that handles the complete workflow hijacking
-        # Use centralized timing configuration - get actual values for subprocess
         timing = WorkflowHijackTiming
         page_load_wait = timing.PAGE_LOAD_WAIT
         form_delay = timing.FORM_INTERACTION_DELAY  
@@ -487,7 +485,7 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
         stabilization = timing.FINAL_STABILIZATION
         human_view = timing.HUMAN_OBSERVATION
         total_time = timing.total_browser_time()
-        
+
         from config import get_browser_script_imports
         hijack_script = f'''
 {get_browser_script_imports()}
@@ -502,44 +500,35 @@ def run_workflow_hijacking():
         from selenium.webdriver.support import expected_conditions as EC
         from selenium.common.exceptions import TimeoutException, NoSuchElementException
         from seleniumwire import webdriver as wire_webdriver
-        
+
         target_url = "{url}"
         target_pipeline_id = "{pipeline_id}"
         print(f"🎭 SUBPROCESS: Starting workflow hijacking for {{target_url}} with pipeline {{target_pipeline_id}}")
-        
-        # Set up Chrome with visible browser (dramatic effect)
+
         import tempfile
         from config import get_chrome_options
         chrome_options = get_chrome_options()
-        
-        # Unique session isolation
+
         profile_dir = tempfile.mkdtemp(prefix='pipulate_workflow_hijack_')
         chrome_options.add_argument(f'--user-data-dir={{profile_dir}}')
-        
-        # Initialize driver
+
         driver = wire_webdriver.Chrome(options=chrome_options)
-        
+
         try:
-            # === STEP 1: NAVIGATION ===
             print(f"🌐 SUBPROCESS: Step 1 - Navigating to {{target_url}}")
             driver.get(target_url)
-            time.sleep({page_load_wait})  # Let page load
+            time.sleep({page_load_wait})
             print(f"✅ SUBPROCESS: Navigation completed")
-            
-            # === STEP 2: FIND AND FILL PIPELINE KEY INPUT ===
+
             print(f"🔑 SUBPROCESS: Step 2 - Looking for pipeline key input field")
-            
-            # Try multiple selectors for pipeline key input
+
             pipeline_input = None
             selectors = [
-                'input[name="pipeline_id"]',
-                'input[placeholder*="pipeline"]',
-                'input[placeholder*="key"]',
-                'input[type="text"]',
-                '#pipeline_id',
-                '.pipeline-input'
+                'input[name="pipeline_id"]', 'input[placeholder*="pipeline"]',
+                'input[placeholder*="key"]', 'input[type="text"]',
+                '#pipeline_id', '.pipeline-input'
             ]
-            
+
             for selector in selectors:
                 try:
                     pipeline_input = driver.find_element(By.CSS_SELECTOR, selector)
@@ -547,260 +536,139 @@ def run_workflow_hijacking():
                     break
                 except NoSuchElementException:
                     continue
-            
+
             if not pipeline_input:
-                return {{
-                    "success": False,
-                    "error": "Could not find pipeline key input field",
-                    "page_title": driver.title,
-                    "current_url": driver.current_url
-                }}
-            
-            # Clear and fill the pipeline key
+                return {{"success": False, "error": "Could not find pipeline key input field", "page_title": driver.title, "current_url": driver.current_url}}
+
             pipeline_input.clear()
             pipeline_input.send_keys(target_pipeline_id)
             print(f"🔑 SUBPROCESS: Filled pipeline key: {{target_pipeline_id}}")
-            time.sleep({form_delay})  # Dramatic pause
-            
-            # === STEP 3: PRESS ENTER TO TRIGGER HTMX CHAIN REACTION ===
+            time.sleep({form_delay})
+
             print(f"⚡ SUBPROCESS: Step 3 - Pressing Enter to trigger HTMX chain reaction")
             pipeline_input.send_keys(Keys.RETURN)
-            
-            # === STEP 3.5: CONSOLIDATED POST + HTMX RESPONSE WAIT ===
+
             print(f"📤 SUBPROCESS: Step 3.5 - Waiting {post_wait}s for POST request + HTMX response...")
-            time.sleep({post_wait})  # Consolidated wait for POST + HTMX
-            
-            # === STEP 4: WAIT FOR HTMX CHAIN REACTION TO COMPLETE ===
+            time.sleep({post_wait})
+
             print(f"🔄 SUBPROCESS: Step 4 - Waiting {chain_wait} seconds for HTMX chain reaction to complete")
-            
-            # Wait and watch for DOM changes indicating chain reaction progress
+
             for i in range({chain_wait}):
                 time.sleep(1)
-                if i % 2 == 0:  # Progress messages every 2 seconds
+                if i % 2 == 0:
                     try:
-                        # Look for workflow step indicators
                         steps = driver.find_elements(By.CSS_SELECTOR, '[id*="step_"], .card h3, .card h2')
                         print(f"🔄 SUBPROCESS: Chain reaction progress - {{len(steps)}} workflow elements detected")
                     except:
                         print(f"🔄 SUBPROCESS: Chain reaction progress - {{i+1}}/{chain_wait} seconds")
-            
+
             print(f"✅ SUBPROCESS: Chain reaction wait completed")
-            
-            # Extra time for workflow stabilization
+
             print(f"⏳ SUBPROCESS: Allowing {stabilization} seconds for workflow stabilization...")
             time.sleep({stabilization})
-            
-            # === STEP 5: CAPTURE FINAL WORKFLOW STATE ===
+
             print(f"📸 SUBPROCESS: Step 5 - Capturing final workflow state")
-            
-            # Get final page info
+
             page_title = driver.title
             current_url = driver.current_url
-            print(f"📄 SUBPROCESS: Final state - Title: {{page_title}}")
-            print(f"📄 SUBPROCESS: Final state - URL: {{current_url}}")
-            
-            # Capture page source
-            with open("{looking_at_dir}/source.html", "w", encoding="utf-8") as f:
-                f.write(driver.page_source)
-            print(f"💾 SUBPROCESS: Saved source.html")
-            
-            # Capture DOM via JavaScript  
+
+            with open("{looking_at_dir}/source.html", "w", encoding="utf-8") as f: f.write(driver.page_source)
             dom_content = driver.execute_script("return document.documentElement.outerHTML;")
-            with open("{looking_at_dir}/dom.html", "w", encoding="utf-8") as f:
-                f.write(dom_content)
-            print(f"💾 SUBPROCESS: Saved dom.html")
-            
-            # Create simplified DOM for AI consumption
+            with open("{looking_at_dir}/dom.html", "w", encoding="utf-8") as f: f.write(dom_content)
+
             simple_dom = f"""<html>
 <head><title>{{page_title}}</title></head>
 <body>
-<!-- Workflow captured from: {{current_url}} -->
-<!-- Pipeline ID: {{target_pipeline_id}} -->
-<!-- Timestamp: {{datetime.now().isoformat()}} -->
-<!-- Post-HTMX Chain Reaction State -->
 {{dom_content}}
 </body>
 </html>"""
-            
-            with open("{looking_at_dir}/simple_dom.html", "w", encoding="utf-8") as f:
-                f.write(simple_dom)
-            print(f"💾 SUBPROCESS: Saved simple_dom.html")
-            
-            # Take screenshot
+
+            with open("{looking_at_dir}/simple_dom.html", "w", encoding="utf-8") as f: f.write(simple_dom)
+
             screenshot_saved = False
             if {take_screenshot}:
                 driver.save_screenshot("{looking_at_dir}/screenshot.png")
                 screenshot_saved = True
-                print(f"📸 SUBPROCESS: Saved screenshot.png")
-            
-            # Save headers and metadata
-            headers_data = {{
-                "url": current_url,
-                "original_url": target_url,
-                "title": page_title,
-                "pipeline_id": target_pipeline_id,
-                "timestamp": datetime.now().isoformat(),
-                "hijacking_type": "complete_workflow_chain_reaction", 
-                "chain_reaction_wait_seconds": {chain_wait},
-                "total_browser_time_seconds": {total_time},
-                "screenshot_taken": screenshot_saved,
-                "status": "success"
-            }}
-            
-            with open("{looking_at_dir}/headers.json", "w") as f:
-                json.dump(headers_data, f, indent=2)
-            print(f"💾 SUBPROCESS: Saved headers.json")
-            
-            print(f"🎉 SUBPROCESS: Workflow hijacking completed successfully!")
-            print(f"📁 SUBPROCESS: All files saved to {looking_at_dir}")
-            
-            # Brief pause to allow human observation of final state
+
+            headers_data = {{"url": current_url, "original_url": target_url, "title": page_title, "pipeline_id": target_pipeline_id, "timestamp": datetime.now().isoformat(), "hijacking_type": "complete_workflow_chain_reaction", "chain_reaction_wait_seconds": {chain_wait}, "total_browser_time_seconds": {total_time}, "screenshot_taken": screenshot_saved, "status": "success"}}
+
+            with open("{looking_at_dir}/headers.json", "w") as f: json.dump(headers_data, f, indent=2)
+
             print(f"👁️ SUBPROCESS: Displaying final state for {human_view} seconds...")
             time.sleep({human_view})
-            
-            return {{
-                "success": True,
-                "workflow_hijacked": True,
-                "chain_reaction_completed": True,
-                "url": current_url,
-                "original_url": target_url,
-                "pipeline_id": target_pipeline_id,
-                "title": page_title,
-                "timestamp": datetime.now().isoformat(),
-                "screenshot_saved": screenshot_saved
-            }}
-            
+
+            return {{"success": True, "workflow_hijacked": True, "chain_reaction_completed": True, "url": current_url, "original_url": target_url, "pipeline_id": target_pipeline_id, "title": page_title, "timestamp": datetime.now().isoformat(), "screenshot_saved": screenshot_saved}}
+
         finally:
-            print(f"🚀 SUBPROCESS: Closing browser gracefully...")
             driver.quit()
-            # Clean up profile directory
             import shutil
-            try:
-                shutil.rmtree(profile_dir)
-            except:
-                pass
-                
+            try: shutil.rmtree(profile_dir)
+            except: pass
+
     except Exception as e:
-        print(f"❌ SUBPROCESS: Workflow hijacking failed: {{e}}")
-        return {{
-            "success": False,
-            "error": str(e)
-        }}
+        return {{"success": False, "error": str(e)}}
 
 if __name__ == "__main__":
     result = run_workflow_hijacking()
     print(f"SUBPROCESS_RESULT:{{json.dumps(result)}}")
 '''
-        
-        # Write the hijacking script to a temporary file
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as script_file:
             script_file.write(hijack_script)
             script_path = script_file.name
-        
+
         try:
-            # Run the workflow hijacking in subprocess
             logger.info(f"🔄 FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_START - Running complete workflow hijacking")
-            
-            # Use asyncio.create_subprocess_exec for async subprocess
+
             process = await asyncio.create_subprocess_exec(
-                '.venv/bin/python', script_path,
+                sys.executable, script_path,  # <-- FIXED
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=os.getcwd()
             )
-            
-            # Wait for completion with timeout
+
             try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=120.0)  # Longer timeout for chain reaction
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=120.0)
             except asyncio.TimeoutError:
                 process.kill()
                 await process.wait()
-                return {
-                    "success": False,
-                    "error": "Workflow hijacking timed out after 120 seconds"
-                }
-            
-            # Parse the result from subprocess output
+                return {"success": False, "error": "Workflow hijacking timed out after 120 seconds"}
+
             output = stdout.decode('utf-8')
             error_output = stderr.decode('utf-8')
-            
+
             if process.returncode != 0:
                 logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_ERROR - Return code: {process.returncode}")
                 logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_WORKFLOW_HIJACK_STDERR - {error_output}")
-                return {
-                    "success": False,
-                    "error": f"Workflow hijacking subprocess failed: {error_output}"
-                }
-            
-            # Extract result from subprocess output
+                return {"success": False, "error": f"Workflow hijacking subprocess failed: {error_output}"}
+
             result_line = None
             for line in output.split('\n'):
                 if line.startswith('SUBPROCESS_RESULT:'):
                     result_line = line.replace('SUBPROCESS_RESULT:', '')
                     break
-            
+
             if result_line:
                 try:
                     subprocess_result = json.loads(result_line)
-                    
                     if subprocess_result.get('success'):
-                        # Build the complete response
-                        return {
-                            "success": True,
-                            "workflow_hijacked": True,
-                            "chain_reaction_completed": True,
-                            "url": subprocess_result.get('url'),
-                            "original_url": url,
-                            "pipeline_id": pipeline_id,
-                            "title": subprocess_result.get('title'),
-                            "timestamp": subprocess_result.get('timestamp'),
-                            "looking_at_files": {
-                                "headers": f"{looking_at_dir}/headers.json",
-                                "source": f"{looking_at_dir}/source.html",
-                                "dom": f"{looking_at_dir}/dom.html",
-                                "simple_dom": f"{looking_at_dir}/simple_dom.html",
-                                "screenshot": f"{looking_at_dir}/screenshot.png" if take_screenshot else None
-                            },
-                            "hijacking_steps": [
-                                {"step": "navigation", "status": "success", "details": {"url": url}},
-                                {"step": "pipeline_key_entry", "status": "success", "details": {"pipeline_id": pipeline_id}},
-                                {"step": "form_submission", "status": "success", "details": {"method": "enter_key"}},
-                                {"step": "chain_reaction_wait", "status": "success", "details": {"wait_seconds": chain_wait}},
-                                {"step": "final_state_capture", "status": "success", "details": {"files_saved": 4 + (1 if take_screenshot else 0)}}
-                            ]
-                        }
+                        return {"success": True, "workflow_hijacked": True, "chain_reaction_completed": True, "url": subprocess_result.get('url'), "original_url": url, "pipeline_id": pipeline_id, "title": subprocess_result.get('title'), "timestamp": subprocess_result.get('timestamp'), "looking_at_files": {"headers": f"{looking_at_dir}/headers.json", "source": f"{looking_at_dir}/source.html", "dom": f"{looking_at_dir}/dom.html", "simple_dom": f"{looking_at_dir}/simple_dom.html", "screenshot": f"{looking_at_dir}/screenshot.png" if take_screenshot else None}, "hijacking_steps": [{"step": "navigation", "status": "success", "details": {"url": url}}, {"step": "pipeline_key_entry", "status": "success", "details": {"pipeline_id": pipeline_id}}, {"step": "form_submission", "status": "success", "details": {"method": "enter_key"}}, {"step": "chain_reaction_wait", "status": "success", "details": {"wait_seconds": chain_wait}}, {"step": "final_state_capture", "status": "success", "details": {"files_saved": 4 + (1 if take_screenshot else 0)}}]}
                     else:
-                        return {
-                            "success": False,
-                            "error": subprocess_result.get('error', 'Unknown subprocess error')
-                        }
-                        
+                        return {"success": False, "error": subprocess_result.get('error', 'Unknown subprocess error')}
                 except json.JSONDecodeError as e:
                     logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_JSON_DECODE_ERROR - {e}")
-                    return {
-                        "success": False,
-                        "error": f"Failed to parse subprocess result: {e}"
-                    }
+                    return {"success": False, "error": f"Failed to parse subprocess result: {e}"}
             else:
                 logger.error(f"❌ FINDER_TOKEN: SUBPROCESS_NO_RESULT - No result line found in output")
-                return {
-                    "success": False,
-                    "error": "No result found in subprocess output"
-                }
-                
+                return {"success": False, "error": "No result found in subprocess output"}
+
         finally:
-            # Clean up the temporary script file
-            try:
-                os.unlink(script_path)
-            except:
-                pass
-        
+            try: os.unlink(script_path)
+            except: pass
+
     except Exception as e:
         logger.error(f"❌ FINDER_TOKEN: MCP_WORKFLOW_HIJACK_ERROR - {e}")
-        return {
-            "success": False,
-            "error": f"Workflow hijacking failed: {str(e)}"
-        }
+        return {"success": False, "error": f"Workflow hijacking failed: {str(e)}"}
 # END: browser_hijack_workflow_complete
 
 async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dict:
@@ -1442,82 +1310,61 @@ async def execute_automation_recipe(params: dict = None) -> dict:
 async def execute_mcp_cli_command(params: dict) -> dict:
     """
     Execute MCP CLI commands for local LLM access to the unified interface.
-    
+
     This enables the local LLM to use the same CLI interface as external AI assistants.
     The local LLM can execute commands like: mcp execute_automation_recipe --recipe_path ...
-    
+
     Args:
         params (dict): Parameters for CLI command execution
             - tool_name (str): Name of the MCP tool to execute
             - arguments (dict, optional): Key-value pairs for CLI arguments
             - raw_command (str, optional): Raw CLI command to execute
-    
+
     Returns:
         dict: Results of CLI command execution
     """
     import subprocess
     import os
     import asyncio
-    
+    import sys  # <-- ADDED IMPORT
+
     try:
         # Get parameters
         tool_name = params.get('tool_name')
         arguments = params.get('arguments', {})
         raw_command = params.get('raw_command')
-        
+
         # Build the CLI command
         if raw_command:
-            # Use raw command directly
             cmd_parts = raw_command.split()
         elif tool_name:
-            # Build command from tool name and arguments
-            cmd_parts = [".venv/bin/python", "cli.py", "call", tool_name]
-            
-            # Add arguments
+            cmd_parts = [sys.executable, "cli.py", "call", tool_name] # <-- FIXED
             for key, value in arguments.items():
                 cmd_parts.extend([f"--{key}", str(value)])
         else:
-            # Discovery mode - list available tools
-            cmd_parts = [".venv/bin/python", "helpers/ai_tool_discovery.py", "list"]
-        
-        # Execute the command safely with timeout
+            cmd_parts = [sys.executable, "helpers/ai_tool_discovery.py", "list"] # <-- FIXED
+
         process = await asyncio.create_subprocess_exec(
             *cmd_parts,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=os.getcwd()
         )
-        
+
         try:
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30.0)
         except asyncio.TimeoutError:
             process.kill()
             await process.wait()
             raise Exception("Command execution timed out after 30 seconds")
-        
-        # Process results
+
         stdout_text = stdout.decode('utf-8') if stdout else ""
         stderr_text = stderr.decode('utf-8') if stderr else ""
-        
-        return {
-            "success": process.returncode == 0,
-            "command": " ".join(cmd_parts),
-            "stdout": stdout_text,
-            "stderr": stderr_text,
-            "return_code": process.returncode,
-            "tool_name": tool_name or "discovery",
-            "interface_type": "cli_unified",
-            "description": "Local LLM executed CLI command via unified interface"
-        }
-        
+
+        return {"success": process.returncode == 0, "command": " ".join(cmd_parts), "stdout": stdout_text, "stderr": stderr_text, "return_code": process.returncode, "tool_name": tool_name or "discovery", "interface_type": "cli_unified", "description": "Local LLM executed CLI command via unified interface"}
+
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "tool_name": params.get('tool_name', 'unknown'),
-            "interface_type": "cli_unified",
-            "description": "CLI command execution failed"
-        }
+        return {"success": False, "error": str(e), "tool_name": params.get('tool_name', 'unknown'), "interface_type": "cli_unified", "description": "CLI command execution failed"}
 # END: execute_mcp_cli_command
 
 async def persist_perception_state(params: dict) -> dict:
@@ -1576,16 +1423,16 @@ async def persist_perception_state(params: dict) -> dict:
 async def server_reboot(params: dict) -> dict:
     """
     Gracefully reboot the Pipulate server using the watchdog system.
-    
+
     This tool performs an elegant server restart by:
     1. Checking if the server is currently running
     2. If running, touching server.py to trigger watchdog restart
     3. If not running, falling back to direct start
     4. Verifying the server responds after restart
-    
+
     Args:
         params: Dictionary (no parameters required)
-        
+
     Returns:
         dict: Result of the reboot operation with server verification
     """
@@ -1595,52 +1442,31 @@ async def server_reboot(params: dict) -> dict:
         import os
         import aiohttp
         from pathlib import Path
-        
-        # Check if server is currently running
-        check_process = subprocess.run(
-            ['pgrep', '-f', 'python server.py'],
-            capture_output=True,
-            text=True
-        )
+        import sys  # <-- ADDED IMPORT
+
+        check_process = subprocess.run(['pgrep', '-f', 'python server.py'], capture_output=True, text=True)
         server_was_running = check_process.returncode == 0
         server_pids = check_process.stdout.strip().split('\n') if server_was_running else []
-        
+
         if server_was_running:
-            # Elegant approach: Touch server.py to trigger watchdog restart
             server_py_path = Path('server.py')
             if server_py_path.exists():
                 server_py_path.touch()
                 restart_method = "watchdog_triggered"
                 restart_details = f"Touched server.py to trigger watchdog restart (PIDs: {', '.join(server_pids)})"
             else:
-                return {
-                    "success": False,
-                    "error": "server.py not found in current directory",
-                    "current_directory": os.getcwd(),
-                    "message": "Cannot trigger watchdog restart - server.py missing"
-                }
+                return {"success": False, "error": "server.py not found in current directory", "current_directory": os.getcwd(), "message": "Cannot trigger watchdog restart - server.py missing"}
         else:
-            # Fallback: Start server directly since it's not running
-            start_result = subprocess.Popen(
-                ['.venv/bin/python', 'server.py'],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                cwd=os.getcwd(),
-                start_new_session=True
-            )
+            start_result = subprocess.Popen([sys.executable, 'server.py'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=os.getcwd(), start_new_session=True) # <-- FIXED
             restart_method = "direct_start"
             restart_details = f"Server was not running, started directly (PID: {start_result.pid})"
-        
-        # Give the server time to restart/start
-        # Watchdog restarts are more graceful but take longer
+
         await asyncio.sleep(8 if server_was_running else 3)
-        
-        # Verify server is responding
+
         server_responding = False
         response_status = None
         response_error = None
-        
-        # Give watchdog restarts more attempts since they're more variable in timing
+
         max_attempts = 5 if server_was_running else 3
         for attempt in range(max_attempts):
             try:
@@ -1652,30 +1478,13 @@ async def server_reboot(params: dict) -> dict:
                             break
             except Exception as e:
                 response_error = str(e)
-                if attempt < max_attempts - 1:  # Don't sleep after the last attempt
-                    # Shorter intervals for more responsive watchdog detection
+                if attempt < max_attempts - 1:
                     await asyncio.sleep(1.5 if server_was_running else 2)
-        
-        return {
-            "success": server_responding,
-            "message": "Server reboot completed successfully" if server_responding else "Server reboot failed - server not responding",
-            "restart_method": restart_method,
-            "restart_details": restart_details,
-            "server_was_running": server_was_running,
-            "server_responding": server_responding,
-            "response_status": response_status,
-            "response_error": response_error,
-            "status": "Graceful restart via watchdog - verified responding" if server_responding and server_was_running else 
-                     "Direct start - verified responding" if server_responding else 
-                     "Restart attempted but server not responding"
-        }
-        
+
+        return {"success": server_responding, "message": "Server reboot completed successfully" if server_responding else "Server reboot failed - server not responding", "restart_method": restart_method, "restart_details": restart_details, "server_was_running": server_was_running, "server_responding": server_responding, "response_status": response_status, "response_error": response_error, "status": "Graceful restart via watchdog - verified responding" if server_responding and server_was_running else "Direct start - verified responding" if server_responding else "Restart attempted but server not responding"}
+
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "Failed to reboot server"
-        }
+        return {"success": False, "error": str(e), "message": "Failed to reboot server"}
 # END: server_reboot
 
 async def execute_shell_command(params: dict) -> dict:
