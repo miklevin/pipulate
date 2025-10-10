@@ -59,10 +59,10 @@ except ImportError:
 
 __all__ = botify_exports + [
     'execute_complete_session_hijacking',
-    'browser_hijack_workflow_complete',
+    'selenium_automation',
     'execute_automation_recipe',
     'execute_mcp_cli_command',
     'conversation_history_view',
     'conversation_history_clear',
-    'get_advanced_automation_tools'
+    'get_selenium_automation'
 ] 
