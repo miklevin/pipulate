@@ -1,231 +1,200 @@
+# /home/mike/repos/pipulate/tools/dom_tools.py
 #!/usr/bin/env python3
 """
-DOM Hierarchy Visualizer
+DOM Visualization Tools
 
-Takes the simplified DOM and renders it as a beautiful color-coded hierarchical structure.
-Uses Rich console for terminal output with colors representing nesting depth.
+Provides functions to render DOM structures as ASCII art, either as a
+hierarchical tree or as nested boxes. These are exposed as auto-discoverable
+tools for AI and CLI usage.
 """
 
 import sys
-import os
 from pathlib import Path
 from bs4 import BeautifulSoup
 from rich.console import Console
 from rich.text import Text
 from rich.panel import Panel
 from rich.tree import Tree
-from rich.syntax import Syntax
-from rich.columns import Columns
-from rich.padding import Padding
+from rich.box import ROUNDED, DOUBLE, HEAVY, ASCII
 import re
 
-# Add the parent directory to the path so we can import from pipulate
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# This makes the 'tools' package importable when run as a script
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-class DOMHierarchyVisualizer:
-    def __init__(self):
-        self.console = Console()
-        # Color scheme for different nesting levels
-        self.level_colors = [
-            "bright_red",      # Level 0 (html)
-            "bright_green",    # Level 1 (body, head)
-            "bright_yellow",   # Level 2 (main sections)
-            "bright_blue",     # Level 3 (subsections)
-            "bright_magenta",  # Level 4 (components)
-            "bright_cyan",     # Level 5 (elements)
-            "red",             # Level 6+ (deep nesting)
-            "green",
-            "yellow",
-            "blue",
-            "magenta",
-            "cyan",
-            "white"
-        ]
-        
+from tools import auto_tool
+
+# Note: The classes are kept internal to this module, and the async functions
+# below are the public-facing tools.
+
+class _DOMHierarchyVisualizer:
+    # ... (All the code from the original DOMHierarchyVisualizer class)
+    def __init__(self, console_width=180):
+        self.console = Console(record=True, width=console_width)
+        self.level_colors = ["bright_red", "bright_green", "bright_yellow", "bright_blue", "bright_magenta", "bright_cyan", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]
+
     def get_color_for_level(self, level):
-        """Get color for a specific nesting level"""
-        if level < len(self.level_colors):
-            return self.level_colors[level]
-        # Cycle through colors for very deep nesting
         return self.level_colors[level % len(self.level_colors)]
-    
+
     def extract_element_info(self, element):
-        """Extract meaningful information from an element"""
-        info = {
-            'tag': element.name,
-            'id': element.get('id'),
-            'class': element.get('class'),
-            'aria_label': element.get('aria-label'),
-            'data_testid': element.get('data-testid'),
-            'href': element.get('href'),
-            'src': element.get('src'),
-            'text': None
-        }
-        
-        # Get text content (first 50 chars, no nested elements)
+        info = {'tag': element.name, 'id': element.get('id'), 'class': element.get('class'), 'aria_label': element.get('aria-label'), 'data_testid': element.get('data-testid'), 'href': element.get('href'), 'src': element.get('src'), 'text': None}
         if element.string:
             text = element.string.strip()
-            if text:
-                info['text'] = text[:50] + "..." if len(text) > 50 else text
-        
+            if text: info['text'] = text[:50] + "..." if len(text) > 50 else text
         return info
-    
+
     def format_element_display(self, info, level):
-        """Format element information for display"""
         color = self.get_color_for_level(level)
-        
-        # Start with tag name
         display_parts = [f"<{info['tag']}>"]
-        
-        # Add meaningful attributes
-        if info['id']:
-            display_parts.append(f"id='{info['id']}'")
-        if info['class']:
-            classes = ' '.join(info['class']) if isinstance(info['class'], list) else info['class']
-            display_parts.append(f"class='{classes}'")
-        if info['data_testid']:
-            display_parts.append(f"data-testid='{info['data_testid']}'")
-        if info['aria_label']:
-            display_parts.append(f"aria-label='{info['aria_label']}'")
-        if info['href']:
-            display_parts.append(f"href='{info['href'][:30]}...'")
-        if info['src']:
-            display_parts.append(f"src='{info['src'][:30]}...'")
-        
-        # Add text content if available
-        if info['text']:
-            display_parts.append(f'"{info['text']}"')
-        
+        if info['id']: display_parts.append(f"id='{info['id']}'")
+        if info['class']: display_parts.append(f"class='{' '.join(info['class'])}'")
+        if info['data_testid']: display_parts.append(f"data-testid='{info['data_testid']}'")
+        if info['aria_label']: display_parts.append(f"aria-label='{info['aria_label']}'")
+        if info['href']: display_parts.append(f"href='{info['href'][:30]}...'")
+        if info['src']: display_parts.append(f"src='{info['src'][:30]}...'")
+        if info['text']: display_parts.append(f'"{info["text"]}"')
         return Text(" ".join(display_parts), style=color)
-    
+
     def build_tree_structure(self, element, tree_node, level=0):
-        """Recursively build the tree structure"""
         info = self.extract_element_info(element)
         display_text = self.format_element_display(info, level)
-        
-        # Add this element to the tree
         current_node = tree_node.add(display_text)
-        
-        # Process children
-        child_level = level + 1
         for child in element.children:
-            if hasattr(child, 'name') and child.name:  # Skip text nodes
-                self.build_tree_structure(child, current_node, child_level)
-    
-    def visualize_dom_file(self, file_path):
-        """Visualize DOM from a file"""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                html_content = f.read()
-            
-            self.visualize_dom_content(html_content, file_path)
-            
-        except Exception as e:
-            self.console.print(f"❌ Error reading file: {e}", style="red")
-    
+            if hasattr(child, 'name') and child.name:
+                self.build_tree_structure(child, current_node, level + 1)
+
     def visualize_dom_content(self, html_content, source_name="DOM"):
-        """Visualize DOM from HTML content"""
-        try:
-            soup = BeautifulSoup(html_content, 'html.parser')
-            
-            # Create title panel
-            title = Panel(
-                f"🌳 DOM Hierarchy Visualization: {source_name}",
-                style="bold blue",
-                padding=(1, 2)
-            )
-            self.console.print(title)
-            
-            # Create the tree
-            tree = Tree(
-                Text("🌐 Document Root", style="bold white"),
-                style="dim"
-            )
-            
-            # Find the root element (usually html)
-            root_element = soup.find('html') or soup
-            if root_element and hasattr(root_element, 'name'):
-                self.build_tree_structure(root_element, tree, 0)
-            
-            # Display the tree
-            self.console.print(tree)
-            
-            # Add statistics
-            stats = self._get_dom_stats(soup)
-            self.console.print(f"\n📊 Structure Statistics:", style="bold cyan")
-            self.console.print(f"  • Total elements: {stats['total_elements']}")
-            self.console.print(f"  • Maximum depth: {stats['max_depth']}")
-            self.console.print(f"  • Most common tags: {', '.join(stats['common_tags'][:5])}")
-            
-        except Exception as e:
-            self.console.print(f"❌ Error parsing HTML: {e}", style="red")
-    
-    def _get_dom_stats(self, soup):
-        """Get statistics about the DOM structure"""
-        all_elements = soup.find_all()
-        total_elements = len(all_elements)
-        
-        # Count tag frequency
-        tag_counts = {}
-        for element in all_elements:
-            tag = element.name
-            tag_counts[tag] = tag_counts.get(tag, 0) + 1
-        
-        # Get most common tags
-        common_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)
-        common_tags = [tag for tag, count in common_tags]
-        
-        # Calculate maximum depth
-        max_depth = 0
-        for element in all_elements:
-            depth = len(list(element.parents))
-            max_depth = max(max_depth, depth)
-        
-        return {
-            'total_elements': total_elements,
-            'max_depth': max_depth,
-            'common_tags': common_tags,
-            'tag_counts': tag_counts
-        }
-    
-    def show_color_legend(self):
-        """Show the color legend for nesting levels"""
-        self.console.print("\n🎨 Color Legend (Nesting Levels):", style="bold white")
-        
-        for i, color in enumerate(self.level_colors[:8]):  # Show first 8 levels
-            sample_text = f"Level {i}: <example-tag>"
-            colored_text = Text(sample_text, style=color)
-            self.console.print(f"  {colored_text}")
-        
-        self.console.print("  (Colors cycle for deeper nesting levels)")
+        soup = BeautifulSoup(html_content, 'html.parser')
+        tree = Tree(Text("🌐 Document Root", style="bold white"), style="dim")
+        root_element = soup.find('html') or soup
+        if root_element and hasattr(root_element, 'name'):
+            self.build_tree_structure(root_element, tree, 0)
+        self.console.print(tree)
+        return self.console.export_text()
 
-def main():
-    """Main function to run the visualizer"""
-    visualizer = DOMHierarchyVisualizer()
-    
-    # Default to the current looking_at directory
-    looking_at_dir = Path("browser_cache/looking_at")
-    simple_dom_file = looking_at_dir / "simple_dom.html"
-    
-    if len(sys.argv) > 1:
-        # Use provided file path
-        file_path = Path(sys.argv[1])
-        if file_path.exists():
-            visualizer.visualize_dom_file(file_path)
+class _DOMBoxVisualizer:
+    # ... (All the code from the original DOMBoxVisualizer class)
+    def __init__(self, console_width=180):
+        self.console = Console(record=True, width=console_width)
+        self.level_colors = ["bright_red", "bright_green", "bright_yellow", "bright_blue", "bright_magenta", "bright_cyan", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]
+        self.box_styles = [DOUBLE, HEAVY, ROUNDED, ASCII]
+        self.max_content_width = int(console_width * 0.9)
+        self.max_children_to_show = 8
+
+    def get_color_for_level(self, level):
+        return self.level_colors[level % len(self.level_colors)]
+
+    def get_box_style_for_level(self, level):
+        return self.box_styles[level % len(self.box_styles)]
+
+    def extract_element_info(self, element):
+        info = {'tag': element.name, 'id': element.get('id'), 'class': element.get('class'), 'aria_label': element.get('aria-label'), 'data_testid': element.get('data-testid'), 'href': element.get('href'), 'src': element.get('src'), 'text': None}
+        if element.string:
+            text = element.string.strip()
+            if text: info['text'] = text[:60] + "..." if len(text) > 60 else text
         else:
-            print(f"❌ File not found: {file_path}")
-            sys.exit(1)
-    elif simple_dom_file.exists():
-        # Use the latest scraped DOM
-        visualizer.console.print("🔍 Using latest scraped DOM from browser_cache/looking_at/", style="dim")
-        visualizer.visualize_dom_file(simple_dom_file)
-    else:
-        print("❌ No DOM file found. Please provide a file path or ensure browser_cache/looking_at/simple_dom.html exists.")
-        print("Usage: python dom_hierarchy_visualizer.py [path_to_html_file]")
-        sys.exit(1)
-    
-    # Show color legend
-    visualizer.show_color_legend()
+            texts = []
+            for child in element.children:
+                if isinstance(child, str):
+                    child_text = child.strip()
+                    if child_text: texts.append(child_text)
+                elif hasattr(child, 'string') and child.string:
+                    child_text = child.string.strip()
+                    if child_text: texts.append(child_text)
+            if texts:
+                combined_text = ' '.join(texts)
+                info['text'] = combined_text[:60] + "..." if len(combined_text) > 60 else combined_text
+        return info
 
-if __name__ == "__main__":
-    main() 
+    def format_element_title(self, info, level):
+        color = self.get_color_for_level(level)
+        title_parts = [f"<{info['tag']}>"]
+        if info['id']: title_parts.append(f"#{info['id']}")
+        if info['data_testid']: title_parts.append(f"[testid={info['data_testid']}]")
+        if info['aria_label']: title_parts.append(f"[aria={info['aria_label'][:15]}...]")
+        return Text(" ".join(title_parts), style=f"bold {color}")
+
+    def format_element_content(self, info, children_count, level):
+        color = self.get_color_for_level(level)
+        content_lines = []
+        if info['class']:
+            classes = ' '.join(info['class']) if isinstance(info['class'], list) else info['class']
+            if len(classes) > 50: classes = classes[:47] + "..."
+            content_lines.append(Text(f"class: {classes}", style=f"dim {color}"))
+        if info['href']:
+            href = info['href'][:45] + "..." if len(info['href']) > 45 else info['href']
+            content_lines.append(Text(f"href: {href}", style=f"dim {color}"))
+        if info['src']:
+            src = info['src'][:45] + "..." if len(info['src']) > 45 else info['src']
+            content_lines.append(Text(f"src: {src}", style=f"dim {color}"))
+        if info['text']: content_lines.append(Text(f'"{info["text"]}"', style=f"italic {color}"))
+        if children_count > 0:
+            child_info = f"[{children_count} child element{'s' if children_count != 1 else ''}]"
+            if children_count > self.max_children_to_show: child_info += f" (showing first {self.max_children_to_show})"
+            content_lines.append(Text(child_info, style=f"dim {color}"))
+        return content_lines
+
+    def build_nested_boxes(self, element, level=0, max_depth=6):
+        if level > max_depth: return Text("... (max depth reached)", style="dim white")
+        info = self.extract_element_info(element)
+        child_elements = [child for child in element.children if hasattr(child, 'name') and child.name]
+        children_to_show = child_elements[:self.max_children_to_show]
+        title = self.format_element_title(info, level)
+        content_lines = self.format_element_content(info, len(child_elements), level)
+        if children_to_show and level < max_depth:
+            child_boxes = [self.build_nested_boxes(child, level + 1, max_depth) for child in children_to_show if child]
+            all_content = content_lines + ([Text("")] if content_lines and child_boxes else [])
+            for i, child_box in enumerate(child_boxes):
+                all_content.append(child_box)
+                if i < len(child_boxes) - 1: all_content.append(Text(""))
+        else:
+            all_content = content_lines
+        if not all_content: all_content = [Text("(empty element)", style="dim")]
+        
+        from rich.console import Group
+        panel_content = Group(*all_content) if len(all_content) > 1 or not isinstance(all_content[0], (Text, Panel)) else all_content[0]
+
+        width_reduction = int(self.max_content_width * 0.08 * level)
+        min_width = max(int(self.max_content_width * 0.25), 40)
+        calculated_width = max(self.max_content_width - width_reduction, min_width)
+        
+        return Panel(panel_content, title=title, border_style=self.get_color_for_level(level), box=self.get_box_style_for_level(level), padding=(0, 1), width=calculated_width)
+
+    def visualize_dom_content(self, html_content, source_name="DOM"):
+        soup = BeautifulSoup(html_content, 'html.parser')
+        root_element = soup.find('html') or soup
+        if root_element and hasattr(root_element, 'name'):
+            max_depth = 6 if len(soup.find_all()) > 100 else 12
+            nested_layout = self.build_nested_boxes(root_element, 0, max_depth)
+            self.console.print(nested_layout)
+        return self.console.export_text()
+
+
+@auto_tool
+async def visualize_dom_hierarchy(params: dict) -> dict:
+    """Renders the DOM from a file as a hierarchical tree."""
+    file_path = params.get("file_path")
+    if not file_path or not os.path.exists(file_path):
+        return {"success": False, "error": f"File not found: {file_path}"}
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        visualizer = _DOMHierarchyVisualizer()
+        output = visualizer.visualize_dom_content(html_content, source_name=file_path)
+        return {"success": True, "output": output}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@auto_tool
+async def visualize_dom_boxes(params: dict) -> dict:
+    """Renders the DOM from a file as nested boxes."""
+    file_path = params.get("file_path")
+    if not file_path or not os.path.exists(file_path):
+        return {"success": False, "error": f"File not found: {file_path}"}
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        visualizer = _DOMBoxVisualizer()
+        output = visualizer.visualize_dom_content(html_content, source_name=file_path)
+        return {"success": True, "output": output}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
