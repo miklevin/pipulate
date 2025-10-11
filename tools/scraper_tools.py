@@ -15,9 +15,7 @@ from seleniumwire import webdriver as wire_webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 
 from tools import auto_tool
-from . import dom_tools # NEW: Import our new DOM tools
-
-# --- Helper Functions (still here, unchanged) ---
+from . import dom_tools
 
 def get_safe_path_component(url: str) -> tuple[str, str]:
     """Converts a URL into filesystem-safe components for directory paths."""
@@ -25,13 +23,10 @@ def get_safe_path_component(url: str) -> tuple[str, str]:
     domain = parsed.netloc
     path = parsed.path
     if not path or path == '/':
-        path_slug = "%2F" # Use encoded slash for root
+        path_slug = "%2F"
     else:
         path_slug = quote(path, safe='').replace('/', '_')[:100]
-
     return domain, path_slug
-
-# --- The Enhanced Browser Automation Tool ---
 
 @auto_tool
 async def selenium_automation(params: dict) -> dict:
@@ -45,23 +40,28 @@ async def selenium_automation(params: dict) -> dict:
     url_path_slug = params.get("url_path_slug")
     take_screenshot = params.get("take_screenshot", False)
     headless = params.get("headless", True)
+    is_notebook_context = params.get("is_notebook_context", False) # NEW: Get context flag
 
     if not all([url, domain, url_path_slug is not None]):
         return {"success": False, "error": "URL, domain, and url_path_slug parameters are required."}
 
     driver = None
     artifacts = {}
-    output_dir = Path("browser_cache/looking_at/") / domain / url_path_slug
+
+    # NEW: Conditionally set the base directory
+    base_dir = Path("browser_cache/")
+    if not is_notebook_context:
+        base_dir = base_dir / "looking_at"
+    
+    output_dir = base_dir / domain / url_path_slug
 
     try:
-        # --- 1. Clear and Set up output directory ---
         if output_dir.exists():
             logger.info(f"🗑️ Clearing existing artifacts in: {output_dir}")
             shutil.rmtree(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"💾 Saving new artifacts to: {output_dir}")
 
-        # --- 2. Configure Selenium WebDriver ---
         chrome_options = Options()
         if headless:
             chrome_options.add_argument("--headless")
@@ -76,12 +76,10 @@ async def selenium_automation(params: dict) -> dict:
         logger.info(f"🚀 Initializing Chrome driver (Headless: {headless})...")
         driver = wire_webdriver.Chrome(service=service, options=chrome_options)
 
-        # --- 3. Scrape the Page ---
         logger.info(f"Navigating to: {url}")
         driver.get(url)
         await asyncio.sleep(3)
 
-        # --- 4. Capture Core Artifacts ---
         dom_path = output_dir / "rendered_dom.html"
         dom_path.write_text(driver.execute_script("return document.documentElement.outerHTML;"), encoding='utf-8')
         artifacts['rendered_dom'] = str(dom_path)
@@ -101,7 +99,6 @@ async def selenium_automation(params: dict) -> dict:
             driver.save_screenshot(str(screenshot_path))
             artifacts['screenshot'] = str(screenshot_path)
 
-        # --- 5. NEW: Generate Visualization Artifact ---
         logger.info(f"🎨 Generating DOM box visualization...")
         viz_result = await dom_tools.visualize_dom_boxes({"file_path": str(dom_path)})
         if viz_result.get("success"):
@@ -111,7 +108,6 @@ async def selenium_automation(params: dict) -> dict:
             logger.success("✅ DOM visualization saved.")
         else:
             logger.warning(f"⚠️ Could not generate DOM visualization: {viz_result.get('error')}")
-
 
         logger.success(f"✅ Scrape successful for {url}")
         return {"success": True, "looking_at_files": artifacts}
