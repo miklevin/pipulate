@@ -1,6 +1,7 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/README.md
 /home/mike/repos/MikeLev.in/_posts/list_articles.py
+/home/mike/repos/pipulate/foo_files.py
+/home/mike/repos/pipulate/prompt_foo.py
 """
 
 # RELEASE SYSTEM
