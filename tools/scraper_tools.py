@@ -33,14 +33,14 @@ async def selenium_automation(params: dict) -> dict:
     """
     Performs an advanced browser automation scrape of a single URL.
     Captures a rich set of artifacts including DOM, source, headers, screenshot,
-    and a visual DOM layout as ASCII art.
+    and visual DOM layouts as ASCII art.
     """
     url = params.get("url")
     domain = params.get("domain")
     url_path_slug = params.get("url_path_slug")
     take_screenshot = params.get("take_screenshot", False)
     headless = params.get("headless", True)
-    is_notebook_context = params.get("is_notebook_context", False) # NEW: Get context flag
+    is_notebook_context = params.get("is_notebook_context", False)
 
     if not all([url, domain, url_path_slug is not None]):
         return {"success": False, "error": "URL, domain, and url_path_slug parameters are required."}
@@ -48,7 +48,6 @@ async def selenium_automation(params: dict) -> dict:
     driver = None
     artifacts = {}
 
-    # NEW: Conditionally set the base directory
     base_dir = Path("browser_cache/")
     if not is_notebook_context:
         base_dir = base_dir / "looking_at"
@@ -80,6 +79,7 @@ async def selenium_automation(params: dict) -> dict:
         driver.get(url)
         await asyncio.sleep(3)
 
+        # --- Capture Core Artifacts ---
         dom_path = output_dir / "rendered_dom.html"
         dom_path.write_text(driver.execute_script("return document.documentElement.outerHTML;"), encoding='utf-8')
         artifacts['rendered_dom'] = str(dom_path)
@@ -99,15 +99,27 @@ async def selenium_automation(params: dict) -> dict:
             driver.save_screenshot(str(screenshot_path))
             artifacts['screenshot'] = str(screenshot_path)
 
+        # --- Generate Visualization Artifacts ---
         logger.info(f"🎨 Generating DOM box visualization...")
         viz_result = await dom_tools.visualize_dom_boxes({"file_path": str(dom_path)})
         if viz_result.get("success"):
             viz_path = output_dir / "dom_layout_boxes.txt"
             viz_path.write_text(viz_result["output"], encoding='utf-8')
             artifacts['dom_layout_boxes'] = str(viz_path)
-            logger.success("✅ DOM visualization saved.")
+            logger.success("✅ DOM box layout saved.")
         else:
-            logger.warning(f"⚠️ Could not generate DOM visualization: {viz_result.get('error')}")
+            logger.warning(f"⚠️ Could not generate DOM box visualization: {viz_result.get('error')}")
+
+        # --- NEW: Generate Hierarchy Visualization Artifact ---
+        logger.info(f"🌳 Generating DOM hierarchy visualization...")
+        hierarchy_viz_result = await dom_tools.visualize_dom_hierarchy({"file_path": str(dom_path)})
+        if hierarchy_viz_result.get("success"):
+            hierarchy_viz_path = output_dir / "dom_hierarchy.txt"
+            hierarchy_viz_path.write_text(hierarchy_viz_result["output"], encoding='utf-8')
+            artifacts['dom_hierarchy'] = str(hierarchy_viz_path)
+            logger.success("✅ DOM hierarchy saved.")
+        else:
+            logger.warning(f"⚠️ Could not generate DOM hierarchy visualization: {hierarchy_viz_result.get('error')}")
 
         logger.success(f"✅ Scrape successful for {url}")
         return {"success": True, "looking_at_files": artifacts}
