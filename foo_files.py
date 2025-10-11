@@ -1,5 +1,5 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/database_safety_wrapper.py
+/home/mike/repos/pipulate/imports/database_safety_wrapper.py
 /home/mike/repos/pipulate/release.py
 /home/mike/repos/pipulate/__init__.py
 /home/mike/repos/pipulate/imports/__init__.py
