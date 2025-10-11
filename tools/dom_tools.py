@@ -8,6 +8,7 @@ hierarchical tree or as nested boxes. These are exposed as auto-discoverable
 tools for AI and CLI usage.
 """
 
+import os
 import sys
 from pathlib import Path
 from bs4 import BeautifulSoup
