@@ -190,6 +190,7 @@ class Pipulate:
         self.get_profile_name = get_profile_name_func
         self.model = model
         self.message_queue = self.OrderedMessageQueue()
+        self.is_notebook_context = bool(db_path) # Flag for notebook context
     
         if db_path:
             # Standalone/Notebook Context: Create our "Parallel Universe" DB using fastlite directly
@@ -1910,6 +1911,7 @@ class Pipulate:
             "url_path_slug": url_path_slug,
             "take_screenshot": take_screenshot,
             "headless": headless,
+            "is_notebook_context": self.is_notebook_context, # Pass the context flag
             **kwargs # Pass through any other params
         }
     
