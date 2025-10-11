@@ -72,7 +72,7 @@ async def execute_complete_session_hijacking(params: dict) -> dict:
     """
     MCP Tool: COMPLETE SESSION HIJACKING - Full end-to-end user session takeover
     
-    🧠 CRITICAL: BROWSER EYES ARE PRIMARY - Check browser_automation/looking_at/ FIRST!
+    🧠 CRITICAL: BROWSER EYES ARE PRIMARY - Check browser_cache/looking_at/ FIRST!
     
     COMMON MISTAKE: Focusing on return values (Success: True, Steps: 0, Final URL: None)
     instead of checking browser evidence. Return values can be misleading - visual evidence
@@ -420,9 +420,9 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
             "url": "http://localhost:5001/hello_workflow",
             "pipeline_id": "Default_Profile-hello-16",
             "looking_at_files": {
-                "screenshot": "browser_automation/looking_at/screenshot.png",
-                "dom": "browser_automation/looking_at/dom.html",
-                "simple_dom": "browser_automation/looking_at/simple_dom.html"
+                "screenshot": "browser_cache/looking_at/screenshot.png",
+                "dom": "browser_cache/looking_at/dom.html",
+                "simple_dom": "browser_cache/looking_at/simple_dom.html"
             },
             "hijacking_steps": [
                 {"step": "navigation", "status": "success"},
@@ -467,11 +467,11 @@ async def browser_hijack_workflow_complete(params: dict) -> dict:
 
         # === DIRECTORY ROTATION ===
         rotation_success = rotate_looking_at_directory(
-            looking_at_path=Path('browser_automation/looking_at'),
+            looking_at_path=Path('browser_cache/looking_at'),
             max_rolled_dirs=MAX_ROLLED_LOOKING_AT_DIRS
         )
 
-        looking_at_dir = 'browser_automation/looking_at'
+        looking_at_dir = 'browser_cache/looking_at'
         os.makedirs(looking_at_dir, exist_ok=True)
 
         hijacking_steps = []
@@ -746,21 +746,21 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
             """Capture browser state for immediate AI analysis"""
             try:
                 # Ensure looking_at directory exists
-                looking_at_dir = Path("browser_automation/looking_at")
+                looking_at_dir = Path("browser_cache/looking_at")
                 looking_at_dir.mkdir(exist_ok=True)
                 
                 # Take screenshot
-                screenshot_path = f"browser_automation/looking_at/recipe_step_{step_num}_{step_type}.png"
+                screenshot_path = f"browser_cache/looking_at/recipe_step_{step_num}_{step_type}.png"
                 driver.save_screenshot(screenshot_path)
                 
                 # Capture DOM snapshot
                 dom_content = driver.page_source
-                dom_path = f"browser_automation/looking_at/recipe_step_{step_num}_{step_type}_dom.html"
+                dom_path = f"browser_cache/looking_at/recipe_step_{step_num}_{step_type}_dom.html"
                 with open(dom_path, 'w', encoding='utf-8') as f:
                     f.write(dom_content)
                 
                 # Create simplified DOM for AI analysis
-                simple_dom_path = f"browser_automation/looking_at/recipe_step_{step_num}_{step_type}_simple.html"
+                simple_dom_path = f"browser_cache/looking_at/recipe_step_{step_num}_{step_type}_simple.html"
                 simple_dom = f"""
                 <html>
                 <head><title>Recipe Step {step_num} Analysis</title></head>
@@ -1072,7 +1072,7 @@ async def _execute_json_recipe(recipe_data: dict, execution_params: dict) -> dic
                 "continuous_feedback": continuous_feedback,
                 "execution_time": time.time(),
                 "looking_at_files": {
-                    "directory": "browser_automation/looking_at/",
+                    "directory": "browser_cache/looking_at/",
                     "snapshots_captured": len(continuous_feedback["looking_at_snapshots"])
                 }
             }
@@ -1131,12 +1131,12 @@ async def execute_automation_recipe(params: dict = None) -> dict:
     try:
         # Import the recipe automation executor
         import sys
-        sys.path.append('browser_automation')
+        sys.path.append('browser_cache')
         from recipe_executor import RecipeExecutor
         
         # Level 1: No parameters - show available origins and quick actions
         if not params:
-            recipes_dir = Path("browser_automation/automation_recipes")
+            recipes_dir = Path("browser_cache/automation_recipes")
             available_origins = []
             
             if recipes_dir.exists():
@@ -1173,11 +1173,11 @@ async def execute_automation_recipe(params: dict = None) -> dict:
             origin = params["origin"]
             # Convert origin to directory name format
             origin_dir = origin.replace('://', '_', 1).replace('.', '_').replace(':', '_')
-            recipes_path = Path(f"browser_automation/automation_recipes/{origin_dir}")
+            recipes_path = Path(f"browser_cache/automation_recipes/{origin_dir}")
             
             if not recipes_path.exists():
                 available_origins = []
-                recipes_dir = Path("browser_automation/automation_recipes")
+                recipes_dir = Path("browser_cache/automation_recipes")
                 if recipes_dir.exists():
                     for d in recipes_dir.iterdir():
                         if d.is_dir() and not d.name.startswith('.'):
@@ -1254,7 +1254,7 @@ async def execute_automation_recipe(params: dict = None) -> dict:
             
             # Convert origin to directory name format
             origin_dir = origin.replace('://', '_', 1).replace('.', '_').replace(':', '_')
-            recipe_path = Path(f"browser_automation/automation_recipes/{origin_dir}/{recipe_name}.json")
+            recipe_path = Path(f"browser_cache/automation_recipes/{origin_dir}/{recipe_name}.json")
             
             if not recipe_path.exists():
                 return {
@@ -1373,15 +1373,15 @@ async def persist_perception_state(params: dict) -> dict:
     
     # Source directory logic
     if from_dir_num == "current":
-        source_dir = Path("browser_automation/looking_at")
+        source_dir = Path("browser_cache/looking_at")
     else:
-        source_dir = Path(f"browser_automation/looking_at-{from_dir_num}")
+        source_dir = Path(f"browser_cache/looking_at-{from_dir_num}")
     
     if not source_dir.exists():
         return {
             "success": False,
             "error": f"Source directory {source_dir} does not exist",
-            "available_dirs": [p.name for p in Path("browser_automation").glob("looking_at*")]
+            "available_dirs": [p.name for p in Path("browser_cache").glob("looking_at*")]
         }
     
     # Create timestamped destination in scrapes/
@@ -1623,7 +1623,7 @@ async def follow_breadcrumb_trail(params: dict) -> dict:
         
         # Verify we're in the right environment
         env_check = await execute_shell_command({
-            "command": "ls -la server.py plugins browser_automation"
+            "command": "ls -la server.py plugins browser_cache"
         })
         
         if env_check.get("success"):
@@ -1693,7 +1693,7 @@ async def follow_breadcrumb_trail(params: dict) -> dict:
         
         # Check for browser automation evidence
         browser_check = await execute_shell_command({
-            "command": "ls -la browser_automation/"
+            "command": "ls -la browser_cache/"
         })
         
         if browser_check.get("success") and browser_check.get("stdout"):

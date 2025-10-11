@@ -197,7 +197,7 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
     """
     🔄 DIRECTORY ROTATION SYSTEM
 
-    Rotates the browser_automation/looking_at directory before each new browser scrape.
+    Rotates the browser_cache/looking_at directory before each new browser scrape.
     This preserves AI perception history across multiple look-at operations.
 
     Similar to log rotation but for entire directories:
@@ -207,7 +207,7 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
     - Oldest directories beyond limit are deleted
 
     Args:
-        looking_at_path: Path to the looking_at directory (default: browser_automation/looking_at)
+        looking_at_path: Path to the looking_at directory (default: browser_cache/looking_at)
         max_rolled_dirs: Maximum number of historical directories to keep
 
     Returns:
@@ -217,7 +217,7 @@ def rotate_looking_at_directory(looking_at_path: Path = None, max_rolled_dirs: i
     and allows them to review their automation history for better decisions.
     """
     if looking_at_path is None:
-        looking_at_path = Path('browser_automation') / 'looking_at'
+        looking_at_path = Path('browser_cache') / 'looking_at'
     else:
         looking_at_path = Path(looking_at_path)
 
@@ -1314,8 +1314,8 @@ async def execute_ai_session_hijacking_demonstration(params: dict) -> dict:
                     success_msg = f"""🎭 **SESSION HIJACKING EXECUTED!** Result: Success = {hijack_result.get('success')}
 
 👁️ **BROWSER EVIDENCE CAPTURED:**
-- Check: browser_automation/looking_at/simple_dom.html (fits in your context!)
-- Screenshot: browser_automation/looking_at/screenshot.png
+- Check: browser_cache/looking_at/simple_dom.html (fits in your context!)
+- Screenshot: browser_cache/looking_at/screenshot.png
 - Automation ready: {hijack_result.get('session_hijacking_steps', [])}
 
 🧠 **SIMPLE PATTERN DEMONSTRATED:**
@@ -1336,7 +1336,7 @@ print(f'🎭 Hijack: {{result.get("success")}}')
             "demonstration_type": "simple_1_shot_pattern",
             "server_available": server_available,
             "instructions": "The simple pattern executed successfully. Use execute_complete_session_hijacking({}) for rigged success!",
-            "next_step": "Check browser_automation/looking_at/ for evidence, then verify with user's data if available"
+            "next_step": "Check browser_cache/looking_at/ for evidence, then verify with user's data if available"
         }
 
     except Exception as e:
@@ -1595,7 +1595,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
     """
     MCP Tool: AI BRAIN - Analyze current /looking_at/ page state for automation opportunities.
 
-    Analyzes the current page state captured in /browser_automation/looking_at/
+    Analyzes the current page state captured in /browser_cache/looking_at/
     to identify automation targets, form elements, and interaction opportunities.
 
     Now includes ENHANCED DOM PROCESSING for automation assistant functionality!
@@ -1625,7 +1625,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
                 return {"success": False, "error": f"Backup HTML not found for backup_id: {backup_id}"}
         else:
             # Analyze current /looking_at/ state
-            html_file = "browser_automation/looking_at/simple_dom.html"
+            html_file = "browser_cache/looking_at/simple_dom.html"
             if not os.path.exists(html_file):
                 return {"success": False, "error": "No current page state found. Use browser_scrape_page first to capture page state."}
 
@@ -1645,7 +1645,7 @@ async def browser_analyze_scraped_page(params: dict) -> dict:
         if backup_id:
             accessibility_tree_file = f"downloads/browser_scrapes/{backup_id}/accessibility_tree.json"
         else:
-            accessibility_tree_file = "browser_automation/looking_at/accessibility_tree.json"
+            accessibility_tree_file = "browser_cache/looking_at/accessibility_tree.json"
 
         if os.path.exists(accessibility_tree_file):
             try:
@@ -2036,7 +2036,7 @@ async def browser_scrape_page(params: dict) -> dict:
     MCP Tool: AI EYES - Scrape a web page and save to /looking_at/ for AI perception.
 
     This is the AI's primary sensory interface - captures current browser state
-    into the /browser_automation/looking_at/ directory for AI analysis.
+    into the /browser_cache/looking_at/ directory for AI analysis.
 
     Uses subprocess to avoid threading conflicts with the main server event loop.
 
@@ -2044,7 +2044,7 @@ async def browser_scrape_page(params: dict) -> dict:
     ═══════════════════════════════════════════════════════════════════════
     # Check last 5 automation states for debugging progression:
     for i in range(1, 6):
-        metadata_file = f"browser_automation/looking_at-{i}/headers.json"
+        metadata_file = f"browser_cache/looking_at-{i}/headers.json"
         if os.path.exists(metadata_file):
             data = json.load(open(metadata_file))
             print(f"State {i}: {data.get('step', 'unknown')} at {data.get('url', 'unknown')}")
@@ -2069,11 +2069,11 @@ async def browser_scrape_page(params: dict) -> dict:
             "success": True,
             "url": "https://example.com",
             "looking_at_files": {
-                "headers": "browser_automation/looking_at/headers.json",
-                "source": "browser_automation/looking_at/source.html", 
-                "dom": "browser_automation/looking_at/dom.html",
-                "simple_dom": "browser_automation/looking_at/simple_dom.html",
-                "screenshot": "browser_automation/looking_at/screenshot.png"
+                "headers": "browser_cache/looking_at/headers.json",
+                "source": "browser_cache/looking_at/source.html", 
+                "dom": "browser_cache/looking_at/dom.html",
+                "simple_dom": "browser_cache/looking_at/simple_dom.html",
+                "screenshot": "browser_cache/looking_at/screenshot.png"
             },
             "page_info": {
                 "title": "Page Title",
@@ -2142,7 +2142,7 @@ async def browser_scrape_page(params: dict) -> dict:
         # rotate_looking_at_directory is now defined locally in this module
 
         rotation_success = rotate_looking_at_directory(
-            looking_at_path=Path('browser_automation/looking_at'),
+            looking_at_path=Path('browser_cache/looking_at'),
             max_rolled_dirs=MAX_ROLLED_LOOKING_AT_DIRS
         )
 
@@ -2150,7 +2150,7 @@ async def browser_scrape_page(params: dict) -> dict:
             logger.warning("⚠️ FINDER_TOKEN: DIRECTORY_ROTATION_WARNING - Directory rotation failed, continuing with scrape")
 
         # Set up the /looking_at/ directory - AI's primary perception interface
-        looking_at_dir = 'browser_automation/looking_at'
+        looking_at_dir = 'browser_cache/looking_at'
         os.makedirs(looking_at_dir, exist_ok=True)
 
         # Also create timestamped backup in downloads for history
@@ -2167,7 +2167,7 @@ async def browser_scrape_page(params: dict) -> dict:
         browser_script = f'''
 {get_browser_script_imports()}
 
-def run_browser_automation():
+def run_browser_cache():
     try:
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options
@@ -2373,7 +2373,7 @@ def run_browser_automation():
         }}
 
 if __name__ == "__main__":
-    result = run_browser_automation()
+    result = run_browser_cache()
     print(f"SUBPROCESS_RESULT:{{json.dumps(result)}}")
 '''
 
@@ -2532,7 +2532,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
             '160_blank_placeholder': 'blank_placeholder',
             '170_botify_trifecta': 'botify_trifecta',
             '180_tab_opener': 'tab_opener',
-            '190_browser_automation': 'browser_automation',
+            '190_browser_cache': 'browser_cache',
             '200_stream_simulator': 'stream_simulator'
         }
         app_name = plugin_to_app_mapping.get(plugin_name, plugin_name)
@@ -2570,7 +2570,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         from pathlib import Path
 
         rotation_success = rotate_looking_at_directory(
-            looking_at_path=Path('browser_automation/looking_at'),
+            looking_at_path=Path('browser_cache/looking_at'),
             max_rolled_dirs=MAX_ROLLED_LOOKING_AT_DIRS
         )
 
@@ -2680,7 +2680,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
         def update_looking_at_state(step_name: str):
             """Update /looking_at/ directory with current browser state"""
             try:
-                looking_at_dir = 'browser_automation/looking_at'
+                looking_at_dir = 'browser_cache/looking_at'
                 os.makedirs(looking_at_dir, exist_ok=True)
 
                 # Capture current state
@@ -2759,7 +2759,7 @@ async def browser_automate_workflow_walkthrough(params: dict) -> dict:
                 '160_blank_placeholder': 'blank_placeholder',
                 '170_botify_trifecta': 'botify_trifecta',
                 '180_tab_opener': 'tab_opener',
-                '190_browser_automation': 'browser_automation',
+                '190_browser_cache': 'browser_cache',
                 '200_stream_simulator': 'stream_simulator'
             }
 
@@ -3344,7 +3344,7 @@ async def browser_interact_with_current_page(params: dict) -> dict:
     MCP Tool: AI INTERACTION - Interact with the current page using /looking_at/ state.
 
     This tool allows the AI to interact with the current page that's captured
-    in /browser_automation/looking_at/ directory. It can click elements, fill forms,
+    in /browser_cache/looking_at/ directory. It can click elements, fill forms,
     and perform other interactions based on the current DOM state.
 
     Args:
@@ -3401,7 +3401,7 @@ async def browser_interact_with_current_page(params: dict) -> dict:
 
         try:
             # Get current URL from /looking_at/ state
-            headers_file = 'browser_automation/looking_at/headers.json'
+            headers_file = 'browser_cache/looking_at/headers.json'
             current_url = None
 
             if os.path.exists(headers_file):
@@ -3429,7 +3429,7 @@ async def browser_interact_with_current_page(params: dict) -> dict:
                     driver.get(current_url)
                     time.sleep(wait_seconds)
 
-                screenshot_path = 'browser_automation/looking_at/screenshot.png'
+                screenshot_path = 'browser_cache/looking_at/screenshot.png'
                 driver.save_screenshot(screenshot_path)
 
                 result = {
@@ -3519,7 +3519,7 @@ async def browser_interact_with_current_page(params: dict) -> dict:
             # Update /looking_at/ state if requested
             if update_looking_at and result.get("success"):
                 try:
-                    looking_at_dir = 'browser_automation/looking_at'
+                    looking_at_dir = 'browser_cache/looking_at'
                     os.makedirs(looking_at_dir, exist_ok=True)
 
                     # Capture current state
@@ -3713,7 +3713,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                 "example_params": {
                     "browser_scrape_page": {"url": "https://example.com", "take_screenshot": True},
                     "browser_analyze_scraped_page": {"analysis_type": "all"},
-                    "local_llm_read_file": {"file_path": "browser_automation/looking_at/simple_dom.html"},
+                    "local_llm_read_file": {"file_path": "browser_cache/looking_at/simple_dom.html"},
                     "ui_flash_element": {"element_id": "important-element", "message": "Found key information!"}
                 }
             },
@@ -3766,7 +3766,7 @@ async def ai_self_discovery_assistant(params: dict) -> dict:
                 "solution": "Check server startup logs, ensure tool is registered in register_all_mcp_tools()",
                 "prevention": "Always verify tool availability before attempting usage"
             },
-            "browser_automation_failure": {
+            "browser_cache_failure": {
                 "symptom": "Selenium operations fail or timeout",
                 "solution": "Check Chrome/Chromedriver installation, increase wait_seconds parameter",
                 "prevention": "Use headless mode for reliability, add error handling"
@@ -3985,7 +3985,7 @@ async def _run_context_aware_test_suite() -> dict:
     # Test 4: Browser Automation (Always available if Selenium installed)
     test_results["tests_run"] += 1
     browser_result = await test_basic_browser_capability()
-    test_results["results"]["browser_automation"] = browser_result
+    test_results["results"]["browser_cache"] = browser_result
     if browser_result["success"]:
         test_results["tests_passed"] += 1
     else:

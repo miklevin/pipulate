@@ -524,7 +524,7 @@ def startup_environment_warnings() -> str:
     )
     warnings_table.add_row(
         "🎯 Browser Evidence", 
-        "Check browser_automation/looking_at/ FIRST, system internals second"
+        "Check browser_cache/looking_at/ FIRST, system internals second"
     )
     
     # Create warning panel
@@ -712,7 +712,7 @@ def startup_environment_warnings() -> str:
     )
     warnings_table.add_row(
         "🎯 Browser Evidence", 
-        "Check browser_automation/looking_at/ FIRST, system internals second"
+        "Check browser_cache/looking_at/ FIRST, system internals second"
     )
     
     # Create warning panel
@@ -731,7 +731,7 @@ def startup_environment_warnings() -> str:
 • Python Path Issue: NEVER use 'python' - ALWAYS use '.venv/bin/python'
 • Golden Path: cd pipulate && .venv/bin/python cli.py call <tool_name> works everywhere
 • Working Directory: MCP tools require 'cd pipulate' first - never run from workspace root
-• Browser Evidence: Check browser_automation/looking_at/ FIRST, system internals second
+• Browser Evidence: Check browser_cache/looking_at/ FIRST, system internals second
 
 Essential knowledge for 100% success rate"""
     

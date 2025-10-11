@@ -335,7 +335,7 @@ def main():
     visualizer = DOMBoxVisualizer()
     
     # Default to the current looking_at directory
-    looking_at_dir = Path("browser_automation/looking_at")
+    looking_at_dir = Path("browser_cache/looking_at")
     simple_dom_file = looking_at_dir / "simple_dom.html"
     
     if len(sys.argv) > 1:
@@ -348,10 +348,10 @@ def main():
             sys.exit(1)
     elif simple_dom_file.exists():
         # Use the latest scraped DOM
-        visualizer.console.print("🔍 Using latest scraped DOM from browser_automation/looking_at/", style="dim")
+        visualizer.console.print("🔍 Using latest scraped DOM from browser_cache/looking_at/", style="dim")
         visualizer.visualize_dom_file(simple_dom_file)
     else:
-        print("❌ No DOM file found. Please provide a file path or ensure browser_automation/looking_at/simple_dom.html exists.")
+        print("❌ No DOM file found. Please provide a file path or ensure browser_cache/looking_at/simple_dom.html exists.")
         print("Usage: python dom_box_visualizer.py [path_to_html_file]")
         sys.exit(1)
     

@@ -38,7 +38,7 @@ class GoogleSearchAutomationDemo:
     
     def __init__(self):
         self.processor = EnhancedDOMProcessor()
-        self.looking_at_dir = "browser_automation/looking_at"
+        self.looking_at_dir = "browser_cache/looking_at"
         self.search_results = []
         self.redirect_chain = []
         
@@ -279,7 +279,7 @@ async def main():
     results = await demo.run_complete_demo("AI automation tools")
     
     # Save results
-    results_file = "browser_automation/looking_at/demo_results.json"
+    results_file = "browser_cache/looking_at/demo_results.json"
     with open(results_file, 'w') as f:
         # Convert any non-serializable objects to strings
         serializable_results = json.loads(json.dumps(results, default=str))

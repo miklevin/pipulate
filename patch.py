@@ -40,7 +40,7 @@ patches = [
 
             try:
                 # --- 1. Set up output directory using new structure ---
-                output_dir = Path("browser_automation/looking_at/") / domain / url_path_slug
+                output_dir = Path("browser_cache/looking_at/") / domain / url_path_slug
                 output_dir.mkdir(parents=True, exist_ok=True)
                 logger.info(f"💾 Saving artifacts to: {output_dir}")
 
@@ -180,7 +180,7 @@ patches = [
             if result.get('success'):
                 print(f"  -> ✅ Success! Advanced scrape complete.")
                 files_created = result.get('looking_at_files', {})
-                print("  -> Artifacts captured in 'browser_automation/looking_at/':")
+                print("  -> Artifacts captured in 'browser_cache/looking_at/':")
                 for key, path in files_created.items():
                     if path:
                         print(f"       - {key}: {path}")

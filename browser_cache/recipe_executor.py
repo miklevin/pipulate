@@ -349,7 +349,7 @@ async def test_baby_steps_executor():
     executor = RecipeExecutor(headless=False, debug=True)
     
     # Test with existing profile creation recipe
-    recipe_path = "browser_automation/automation_recipes/http_localhost_5001/profile_creation_recipe.json"
+    recipe_path = "browser_cache/automation_recipes/http_localhost_5001/profile_creation_recipe.json"
     
     logger.info("🎯 BABY_STEPS: Starting test execution")
     result = executor.execute_recipe_from_file(recipe_path)
