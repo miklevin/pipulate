@@ -23,7 +23,7 @@ def count_tokens(text: str, model: str = "gpt-4") -> int:
         # Fallback for any tiktoken errors
         return 0
 
-def get_post_order(posts_dir=POSTS_DIRECTORY, reverse_order=False):
+def get_post_order(posts_dir=POSTS_DIRECTORY, chronological=True):
     """
     Parses Jekyll posts, sorts them by date and 'sort_order', and returns an
     ordered list of dictionaries, each containing post data.
@@ -54,14 +54,13 @@ def get_post_order(posts_dir=POSTS_DIRECTORY, reverse_order=False):
                 front_matter = yaml.safe_load(parts[1]) or {}
 
             sort_order = int(front_matter.get('sort_order', 0))
-            # Extract meta_description, default to an empty string if not found
             meta_description = front_matter.get('meta_description', '')
 
             posts_data.append({
                 'path': filepath,
                 'date': post_date,
                 'sort_order': sort_order,
-                'meta_description': meta_description # <-- New field added here
+                'meta_description': meta_description
             })
 
         except (ValueError, yaml.YAMLError):
@@ -72,39 +71,61 @@ def get_post_order(posts_dir=POSTS_DIRECTORY, reverse_order=False):
     sorted_posts = sorted(
         posts_data,
         key=lambda p: (p['date'], p['sort_order']),
-        reverse=not reverse_order
+        reverse=False
     )
-    # Return the full list of dictionaries now
+
+    for i, post in enumerate(sorted_posts):
+        post['index'] = i
+
+    if not chronological:
+        sorted_posts.reverse()
+
     return sorted_posts
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="List Jekyll posts in chronological order, with optional token counts and meta descriptions."
+        description="List Jekyll posts. Default is chronological (oldest first) with tokens and meta descriptions."
+    )
+    # --- CHANGE: Reinstated flags but changed their behavior ---
+    parser.add_argument(
+        '-t', '--no-tokens',
+        action='store_false',
+        dest='tokens',
+        help='Do not calculate and display token counts.'
     )
     parser.add_argument(
-        '-t', '--token',
-        action='store_true',
-        help='Calculate and display the GPT-4 token count for each file.'
+        '-m', '--no-meta',
+        action='store_false',
+        dest='meta',
+        help='Do not display meta descriptions.'
     )
     parser.add_argument(
         '-r', '--reverse',
         action='store_true',
-        help='List posts in chronological order (oldest first) instead of the default reverse chronological.'
+        help='List in reverse chronological order (newest first).'
     )
     parser.add_argument(
-        '-m', '--meta',
+        '-q', '--quiet',
         action='store_true',
-        help='Include the meta_description from the front matter in the output.'
+        help='Only display file paths (implies --no-tokens and --no-meta).'
     )
+    parser.set_defaults(tokens=True, meta=True)
     args = parser.parse_args()
 
-    ordered_posts = get_post_order(reverse_order=args.reverse)
+    is_chronological = not args.reverse
+    ordered_posts = get_post_order(chronological=is_chronological)
 
-    order_description = "chronological (oldest first)" if args.reverse else "reverse chronological (newest first)"
+    # Determine what to show based on flags
+    show_tokens = args.tokens
+    show_meta = args.meta
+    if args.quiet:
+        show_tokens = False
+        show_meta = False
+
+    order_description = "chronological (oldest first)" if is_chronological else "reverse chronological (newest first)"
     print(f"Posts in {order_description} order:")
 
-    if args.token:
-        # --- PASS 1: Pre-calculate all token counts ---
+    if show_tokens:
         print("Calculating token counts for all files, this may take a moment...", file=sys.stderr)
         file_data = []
         for post in ordered_posts:
@@ -113,29 +134,25 @@ if __name__ == '__main__':
                 with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.read()
                 token_count = count_tokens(content)
-                # Carry the meta_description through
-                file_data.append({'path': filepath, 'tokens': token_count, 'meta_description': post['meta_description']})
+                file_data.append({'path': filepath, 'tokens': token_count, 'meta_description': post['meta_description'], 'index': post['index']})
             except Exception as e:
-                print(f"{filepath}  # Error: Could not read file - {e}", file=sys.stderr)
-                file_data.append({'path': filepath, 'tokens': 0, 'meta_description': post['meta_description']})
+                print(f"[{post.get('index', ''):>3}] {filepath}  # Error: Could not read file - {e}", file=sys.stderr)
+                file_data.append({'path': filepath, 'tokens': 0, 'meta_description': post['meta_description'], 'index': post['index']})
 
         grand_total_tokens = sum(item['tokens'] for item in file_data)
         print("", file=sys.stderr)
 
-        # --- PASS 2: Print formatted output ---
         ascending_total = 0
         descending_total = grand_total_tokens
 
         for item in file_data:
             ascending_total += item['tokens']
-            print(f"{item['path']}  # {item['tokens']:,} tokens ({ascending_total:,} / {descending_total:,} total)")
-            if args.meta and item['meta_description']:
-                print(f"  └─ {item['meta_description']}") # Nicely formatted meta output
+            print(f"[{item['index']:>3}] {item['path']}  # {item['tokens']:,} tokens ({ascending_total:,} / {descending_total:,} total)")
+            if show_meta and item['meta_description']:
+                print(f"      └─ {item['meta_description']}")
             descending_total -= item['tokens']
-
-    else:
-        # If --token is not used, just print the file paths and optionally meta
+    else: # Simple path output (quiet mode, or if --no-tokens is used)
         for post in ordered_posts:
-            print(post['path'])
-            if args.meta and post['meta_description']:
-                print(f"  └─ {post['meta_description']}") # Nicely formatted meta output
+            print(f"[{post['index']:>3}] {post['path']}")
+            if show_meta and post['meta_description']:
+                print(f"      └─ {post['meta_description']}")
