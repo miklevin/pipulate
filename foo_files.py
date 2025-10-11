@@ -1,16 +1,5 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/apps/820_selenium.py
-/home/mike/repos/pipulate/apps/440_browser_automation.py
-/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
-/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow.ipynb
-/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
-/home/mike/repos/pipulate/pipulate/__init__.py
-/home/mike/repos/pipulate/pipulate/core.py
-/home/mike/repos/pipulate/pipulate/pipulate.py
-/home/mike/repos/pipulate/cli.py
-/home/mike/repos/pipulate/tools/__init__.py 
-/home/mike/repos/pipulate/tools/system_tools.py
-/home/mike/repos/pipulate/imports/stream_orchestrator.py
+/home/mike/repos/pipulate/README.md
 """
 
 # RELEASE SYSTEM
@@ -215,4 +204,18 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/tools/keychain_tools.py
 # /home/mike/repos/pipulate/tools/mcp_tools.py
 # /home/mike/repos/pipulate/tools/botify_tools.py
+
+# FIXING BROWSER AUTOMATION
+# /home/mike/repos/pipulate/apps/820_selenium.py
+# /home/mike/repos/pipulate/apps/440_browser_automation.py
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow.ipynb
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
+# /home/mike/repos/pipulate/pipulate/__init__.py
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/cli.py
+# /home/mike/repos/pipulate/tools/__init__.py 
+# /home/mike/repos/pipulate/tools/system_tools.py
+# /home/mike/repos/pipulate/imports/stream_orchestrator.py
 
