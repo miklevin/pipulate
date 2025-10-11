@@ -81,7 +81,7 @@ exclude = [
     "data*", 
     "downloads*", 
     "scripts*", 
-    "browser_automation*",
+    "browser_cache*",
     "Notebooks*",
     ".venv*"
 ]

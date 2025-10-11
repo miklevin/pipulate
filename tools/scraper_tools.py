@@ -15,7 +15,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from tools import auto_tool
 
-# --- Helper Functions (Borrowed from 440_browser_automation.py) ---
+# --- Helper Functions (Borrowed from 440_browser_cache.py) ---
 
 def get_safe_path_component(url: str) -> tuple[str, str]:
     """Converts a URL into filesystem-safe components for directory paths."""
@@ -69,7 +69,7 @@ async def selenium_automation(params: dict) -> dict:
 
     try:
         # --- 1. Set up output directory using new structure ---
-        output_dir = Path("browser_automation/looking_at/") / domain / url_path_slug
+        output_dir = Path("browser_cache/looking_at/") / domain / url_path_slug
         output_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"💾 Saving artifacts to: {output_dir}")
 

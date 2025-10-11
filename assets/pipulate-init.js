@@ -1910,7 +1910,7 @@ async function executeCleanMcpToolCallStep(step) {
 - cli.py (Command line interface)
 - apps/ (41 plugin files)
 - /assets/ (Web assets)
-- browser_automation/ (Automation scripts)
+- browser_cache/ (Automation scripts)
 
 **Safe read-only operation completed!** 📖`;
     } else if (step.tool_name === 'ui_flash_element') {

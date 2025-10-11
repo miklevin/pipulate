@@ -442,7 +442,7 @@ def main():
     visualizer = DOMSchemaVisualizer()
     
     # Default to looking_at directory
-    looking_at_dir = Path("browser_automation/looking_at")
+    looking_at_dir = Path("browser_cache/looking_at")
     simple_dom_file = looking_at_dir / "simple_dom.html"
     
     if len(sys.argv) > 1:
@@ -455,13 +455,13 @@ def main():
             sys.exit(1)
     elif simple_dom_file.exists():
         # Use the latest scraped DOM
-        visualizer.console.print("🔍 Using latest scraped DOM from browser_automation/looking_at/", style="dim")
+        visualizer.console.print("🔍 Using latest scraped DOM from browser_cache/looking_at/", style="dim")
         visualizer.console.print()
         visualizer.visualize_dom_file(simple_dom_file)
     else:
         print("❌ No DOM file found.")
         print("Usage: python dom_schema_visualizer.py [path_to_html_file]")
-        print("Default: Uses browser_automation/looking_at/simple_dom.html")
+        print("Default: Uses browser_cache/looking_at/simple_dom.html")
         sys.exit(1)
 
 if __name__ == "__main__":
