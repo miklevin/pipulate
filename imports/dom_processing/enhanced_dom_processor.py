@@ -286,7 +286,7 @@ class EnhancedDOMProcessor:
         
         return '/' + '/'.join(path_parts) if path_parts else "//unknown"
     
-    def process_looking_at_directory(self, looking_at_dir: str = "browser_automation/looking_at") -> Dict:
+    def process_looking_at_directory(self, looking_at_dir: str = "browser_cache/looking_at") -> Dict:
         """
         Process all files in /looking_at/ directory for 2nd-stage automation
         

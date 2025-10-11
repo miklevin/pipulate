@@ -211,7 +211,7 @@ class InteractiveGoogleSearch:
         
         # Save current page source
         page_source = self.driver.page_source
-        with open("browser_automation/looking_at/search_results_source.html", "w", encoding="utf-8") as f:
+        with open("browser_cache/looking_at/search_results_source.html", "w", encoding="utf-8") as f:
             f.write(page_source)
         
         # Save extracted results as JSON
@@ -223,14 +223,14 @@ class InteractiveGoogleSearch:
             'results': results
         }
         
-        with open("browser_automation/looking_at/search_results.json", "w", encoding="utf-8") as f:
+        with open("browser_cache/looking_at/search_results.json", "w", encoding="utf-8") as f:
             json.dump(results_data, f, indent=2)
         
         # Take screenshot
-        screenshot_path = "browser_automation/looking_at/search_results_screenshot.png"
+        screenshot_path = "browser_cache/looking_at/search_results_screenshot.png"
         self.driver.save_screenshot(screenshot_path)
         
-        print(f"💾 Results saved to browser_automation/looking_at/")
+        print(f"💾 Results saved to browser_cache/looking_at/")
         print(f"   - search_results.json")
         print(f"   - search_results_source.html") 
         print(f"   - search_results_screenshot.png")

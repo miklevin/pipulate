@@ -436,7 +436,7 @@ def beautify_current_looking_at() -> Tuple[str, List[AutomationTarget]]:
     """Beautify the current /looking_at/ simple_dom.html file"""
     import os
     
-    simple_dom_path = "browser_automation/looking_at/simple_dom.html"
+    simple_dom_path = "browser_cache/looking_at/simple_dom.html"
     
     if not os.path.exists(simple_dom_path):
         raise FileNotFoundError(f"No current DOM state found at {simple_dom_path}")
@@ -448,19 +448,19 @@ def beautify_current_looking_at() -> Tuple[str, List[AutomationTarget]]:
     beautified_html, registry = beautifier.beautify_dom(html_content)
     
     # Save beautified version
-    with open("browser_automation/looking_at/beautiful_dom.html", 'w', encoding='utf-8') as f:
+    with open("browser_cache/looking_at/beautiful_dom.html", 'w', encoding='utf-8') as f:
         f.write(beautified_html)
     
     # Save automation registry
-    with open("browser_automation/looking_at/automation_registry.json", 'w', encoding='utf-8') as f:
+    with open("browser_cache/looking_at/automation_registry.json", 'w', encoding='utf-8') as f:
         f.write(beautifier.export_automation_registry('json'))
     
     # Save Python registry
-    with open("browser_automation/looking_at/automation_targets.py", 'w', encoding='utf-8') as f:
+    with open("browser_cache/looking_at/automation_targets.py", 'w', encoding='utf-8') as f:
         f.write(beautifier.export_automation_registry('python'))
     
     # Save summary
-    with open("browser_automation/looking_at/automation_summary.txt", 'w', encoding='utf-8') as f:
+    with open("browser_cache/looking_at/automation_summary.txt", 'w', encoding='utf-8') as f:
         f.write(beautifier.export_automation_registry('summary'))
     
     return beautified_html, registry
@@ -474,10 +474,10 @@ if __name__ == "__main__":
         print(f"📊 Found {len(registry)} automation targets")
         print(f"🎯 High priority targets: {len([t for t in registry if t.priority_score >= 70])}")
         print("\n📁 Generated files:")
-        print("  - browser_automation/looking_at/beautiful_dom.html")
-        print("  - browser_automation/looking_at/automation_registry.json") 
-        print("  - browser_automation/looking_at/automation_targets.py")
-        print("  - browser_automation/looking_at/automation_summary.txt")
+        print("  - browser_cache/looking_at/beautiful_dom.html")
+        print("  - browser_cache/looking_at/automation_registry.json") 
+        print("  - browser_cache/looking_at/automation_targets.py")
+        print("  - browser_cache/looking_at/automation_summary.txt")
     except FileNotFoundError as e:
         print(f"❌ {e}")
         print("💡 Run browser_scrape_page first to capture current page state")

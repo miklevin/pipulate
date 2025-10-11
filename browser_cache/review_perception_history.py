@@ -34,7 +34,7 @@ from pathlib import Path
 def find_perception_directories(base_dir: Path = None):
     """Find all available perception directories"""
     if base_dir is None:
-        base_dir = Path('browser_automation')
+        base_dir = Path('browser_cache')
     
     directories = []
     

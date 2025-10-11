@@ -1106,7 +1106,7 @@ This structure enables AI assistants to programmatically interact with all UI co
     .
     ├── .venv/                     # Common Python environment for FastHTML, Jupyter & Cursor
     ├── apps/                      # Workflow plugins (010_introduction.py, 400_trifecta.py, etc.)
-    ├── browser_automation/        # Selenium browser control & DOM capture
+    ├── browser_cache/        # Selenium browser control & DOM capture
     │   ├── looking_at/            # Current browser DOM state for AI visibility
     │   └── *.py                   # Google search automation examples
     ├── cli.py                     # Command line interface for Pipulate operations
@@ -1415,7 +1415,7 @@ apps/                    # Your workflows (auto-discovered)
 
 mcp_tools.py               # AI assistant interface  
 crud.py                  # Base classes for workflows
-browser_automation/        # Selenium automation tools
+browser_cache/        # Selenium automation tools
 logs/server.log            # Debug everything here
 data/data.db              # SQLite application state
 ```

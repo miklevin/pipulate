@@ -349,7 +349,7 @@ MCP_ENDPOINT = "/mcp-tool-executor"
 WORKSPACE_ROOT = "/home/mike/repos"
 PIPULATE_ROOT = "/home/mike/repos/pipulate"
 AI_DISCOVERY_DIR = "pipulate/ai_discovery"
-BROWSER_AUTOMATION_DIR = "pipulate/browser_automation"
+BROWSER_AUTOMATION_DIR = "pipulate/browser_cache"
 LOGS_DIR = "pipulate/logs"
 DATA_DIR = "pipulate/data"
 
