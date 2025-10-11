@@ -3637,7 +3637,7 @@ async def clear_db(request):
     
     # 🚨 NUCLEAR OPTION: Use hardwired safety wrapper for absolute protection
     try:
-        from database_safety_wrapper import safe_sqlite_connect, SafetyViolationError
+        from imports.database_safety_wrapper import safe_sqlite_connect, SafetyViolationError
         logger.info(f'🔒 NUCLEAR SAFETY: Using hardwired safety wrapper for database operations')
         
         try:
