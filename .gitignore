@@ -54,13 +54,9 @@ htmlcov/
 # AI Keychain persistent memory - survives application resets
 
 # Browser automation outputs - keep these local only
-browser_cache/looking_at/
-
-# Browser automation rotating directories - AI perception history (local only)
-browser_cache/looking_at-*/
+browser_cache/
 
 # Browser automation temp scripts - disposable one-offs
-browser_cache/temp_scripts/
 *_automation_summary.txt
 *_automation_targets.py
 *_beautiful_dom.html

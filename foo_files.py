@@ -1,7 +1,19 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/MikeLev.in/_posts/list_articles.py
-/home/mike/repos/pipulate/foo_files.py
-/home/mike/repos/pipulate/prompt_foo.py
+/home/mike/repos/pipulate/Notebooks/open_eyes.ipynb
+/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
+/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
+/home/mike/repos/pipulate/pipulate/__init__.py
+/home/mike/repos/pipulate/pipulate/core.py
+/home/mike/repos/pipulate/pipulate/pipulate.py
+/home/mike/repos/pipulate/cli.py
+/home/mike/repos/pipulate/tools/__init__.py 
+/home/mike/repos/pipulate/tools/system_tools.py
+/home/mike/repos/pipulate/imports/stream_orchestrator.py
+/home/mike/repos/pipulate/tools/scraper_tools.py
+browser_cache/dom_processing/dom_hierarchy_visualizer.py
+browser_cache/dom_processing/dom_box_visualizer.py
+/imports/dom_processing/ai_dom_beautifier.py
+/home/mike/repos/pipulate/ai_edit.py
 """
 
 # RELEASE SYSTEM
@@ -83,7 +95,6 @@ FILES_TO_INCLUDE_RAW = """\
 # OTHER IMPORTS (SORT)
 # /home/mike/repos/pipulate/imports/ascii_displays.py
 # /home/mike/repos/pipulate/imports/botify_code_generation.py
-# /home/mike/repos/pipulate/imports/dom_processing
 # /home/mike/repos/pipulate/imports/__init__.py
 # /home/mike/repos/pipulate/imports/stream_orchestrator.py
 # /home/mike/repos/pipulate/imports/voice_synthesis.py
@@ -149,8 +160,6 @@ FILES_TO_INCLUDE_RAW = """\
 # FINDING EYES
 # tools/mcp_tools.py
 # imports/dom_processing/ai_dom_beautifier.py
-# browser_automation/dom_processing/dom_hierarchy_visualizer.py
-# browser_automation/dom_processing/dom_box_visualizer.py
 # /home/mike/repos/pipulate/README.md
 # /home/mike/repos/pipulate/server.py
 # /home/mike/repos/pipulate/config.py
@@ -221,3 +230,19 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/tools/system_tools.py
 # /home/mike/repos/pipulate/imports/stream_orchestrator.py
 
+# /home/mike/repos/pipulate/apps/820_selenium.py
+# /home/mike/repos/pipulate/apps/440_browser_automation.py
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
+# /home/mike/repos/pipulate/pipulate/__init__.py
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/cli.py
+# /home/mike/repos/pipulate/tools/__init__.py 
+# /home/mike/repos/pipulate/tools/system_tools.py
+# /home/mike/repos/pipulate/imports/stream_orchestrator.py
+# /home/mike/repos/pipulate/tools/scraper_tools.py
+# browser_cache/dom_processing/dom_hierarchy_visualizer.py
+# browser_cache/dom_processing/dom_box_visualizer.py
+# /imports/dom_processing/ai_dom_beautifier.py
+# /home/mike/repos/pipulate/apps/001_dom_visualizer.py
