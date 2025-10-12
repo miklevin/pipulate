@@ -12,13 +12,13 @@ FILES_TO_INCLUDE_RAW = """\
 /home/mike/repos/pipulate/tools/system_tools.py
 /home/mike/repos/pipulate/cli.py
 /home/mike/repos/pipulate/imports/stream_orchestrator.py
-/home/mike/repos/pipulate/assets/nbs/hello_world_git_managed.ipynb
-/home/mike/repos/pipulate/assets/nbs/secretsauce_git_managed.py
-/home/mike/repos/pipulate/assets/nbs/workflow_git_managed.ipynb
-/home/mike/repos/pipulate/Notebooks/hello_world.ipynb
+/home/mike/repos/pipulate/assets/nbs/Hello_AI.ipynb
+/home/mike/repos/pipulate/assets/nbs/secretsauce.py
+/home/mike/repos/pipulate/assets/nbs/AI_Scrape.ipynb
+/home/mike/repos/pipulate/Notebooks/Hello_AI.ipynb
 /home/mike/repos/pipulate/Notebooks/open_eyes.ipynb
 /home/mike/repos/pipulate/Notebooks/secretsauce.py
-/home/mike/repos/pipulate/Notebooks/workflow.ipynb
+/home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
 /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
 /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
 """
@@ -65,7 +65,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/pipulate/core.py
 # /home/mike/repos/pipulate/pipulate/pipulate.py
 # /home/mike/repos/pipulate/apps/040_hello_workflow.py
-# /home/mike/repos/pipulate/scripts/botify/hello_world_git_managed.ipynb
+# /home/mike/repos/pipulate/scripts/botify/Hello_AI.ipynb
 
 # DRY OO APP PLUGINS
 # /home/mike/repos/pipulate/imports/crud.py
@@ -157,8 +157,8 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/pyproject.toml
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/src/faquilizer/__init__.py
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/src/faquilizer/template.py
-# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/workflow.ipynb
-# /home/mike/repos/pipulate/scripts/botify/hello_world_git_managed.ipynb
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/AI_Scrape.ipynb
+# /home/mike/repos/pipulate/scripts/botify/Hello_AI.ipynb
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/faq-session-01_output.xlsx
 
 # PREVIOUS CONTEXT DUMPS (PROBABLY DELETE BELOW THIS POINT)
@@ -178,7 +178,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/server.py
 # /home/mike/repos/pipulate/config.py
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/prompt.txt
-# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow.ipynb
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/AI_Scrape.ipynb
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
 # /home/mike/repos/pipulate/browser_automation/dom_schema_visualizer.py
 # /home/mike/repos/pipulate/browser_automation/recipe_executor.py
@@ -207,7 +207,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/pipulate/core.py
 # /home/mike/repos/pipulate/pipulate/pipulate.py
 # /home/mike/repos/pipulate/apps/040_hello_workflow.py
-# /home/mike/repos/pipulate/scripts/botify/hello_world_git_managed.ipynb
+# /home/mike/repos/pipulate/scripts/botify/Hello_AI.ipynb
 # /home/mike/repos/pipulate/imports/crud.py
 # /home/mike/repos/pipulate/apps/060_tasks.py
 # /home/mike/repos/pipulate/apps/030_roles.py
@@ -234,7 +234,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/apps/820_selenium.py
 # /home/mike/repos/pipulate/apps/440_browser_automation.py
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
-# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow.ipynb
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/AI_Scrape.ipynb
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
 # /home/mike/repos/pipulate/pipulate/__init__.py
 # /home/mike/repos/pipulate/pipulate/core.py
