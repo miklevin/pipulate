@@ -66,7 +66,7 @@ The JSON object must conform to the following schema:
       * after_text_snippet: A **short, unique, verbatim string of text** (5-10 words) from the original article. This snippet **must be an exact, character-for-character copy** of the text that immediately precedes where the subheading should be inserted. It should typically be the **end of a sentence or paragraph**. Do not add quotes, ellipses, or any other characters unless they are part of the original source text. This is critical for accuracy.  
 * **book_analysis_content**: This top-level key contains all the valuable analysis that doesn't get edited into the file directly but is used for the book-writing process.  
   * authors_imprint: Populate with the first-person summary.  
-  * title_brainstorm: Populate with the full list of your 3-5 title ideas, including rationales and filenames. Ensure the first entry is your preferred choice.  
+  * title_brainstorm: Populate with the full list of your 3-5 title ideas, including rationales and filenames. Ensure the first entry is your preferred choice. Do not prepend the date on the filename (that happens automatically).  
   * content_potential_and_polish: Structure the "Core Strengths" and "Constructive Polish" suggestions here.  
   * ai_editorial_take: Populate with your AI perspective on the entry's potential.  
   * next_step_prompts: Populate with your 1-2 suggestions for subsequent AI tasks.
