@@ -98,6 +98,31 @@
         isLinux = pkgs.stdenv.isLinux;
         # Define a static workspace name to prevent random file generation
         jupyterWorkspaceName = "pipulate-main";
+
+        # --- NEW: Declarative list for notebooks to copy ---
+        notebookFilesToCopy = [
+          {
+            source = "assets/nbs/hello_world_git_managed.ipynb";
+            dest = "Notebooks/hello_world.ipynb";
+            desc = "a local 'Hello World' example notebook";
+          }
+          {
+            source = "assets/nbs/workflow_git_managed.ipynb";
+            dest = "Notebooks/workflow.ipynb";
+            desc = "a local 'Master Template' notebook";
+          }
+          {
+            source = "assets/nbs/secretsauce_git_managed.py";
+            dest = "Notebooks/secretsauce.py";
+            desc = "a local 'secretsauce.py' helper file";
+          }
+        ];
+
+        # Convert the Nix list to a string that Bash can loop over
+        notebookFilesString = pkgs.lib.concatStringsSep "\n" (
+          map (file: "${file.source};${file.dest};${file.desc}") notebookFilesToCopy
+        );
+
         # Common packages that we want available in our environment
         # regardless of the operating system
         commonPackages = with pkgs; [
