@@ -100,22 +100,22 @@
         jupyterWorkspaceName = "pipulate-main";
  
  		# Define the default notebook for JupyterLab to open on startup
- 		jupyterStartupNotebook = "Notebooks/workflow.ipynb";
+ 		jupyterStartupNotebook = "Notebooks/FAQuilizer.ipynb";
 
         # --- NEW: Declarative list for notebooks to copy ---
         notebookFilesToCopy = [
           {
-            source = "assets/nbs/hello_world_git_managed.ipynb";
-            dest = "Notebooks/hello_world.ipynb";
+            source = "assets/nbs/Hello_AI.ipynb";
+            dest = "Notebooks/Hello_AI.ipynb";
             desc = "a local 'Hello World' example notebook";
           }
           {
-            source = "assets/nbs/workflow_git_managed.ipynb";
-            dest = "Notebooks/workflow.ipynb";
+            source = "assets/nbs/AI_Scrape.ipynb";
+            dest = "Notebooks/AI_Scrape.ipynb";
             desc = "a local 'Master Template' notebook";
           }
           {
-            source = "assets/nbs/secretsauce_git_managed.py";
+            source = "assets/nbs/secretsauce.py";
             dest = "Notebooks/secretsauce.py";
             desc = "a local 'secretsauce.py' helper file";
           }
