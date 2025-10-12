@@ -159,12 +159,12 @@
           eza                          # A tree directory visualizer that uses .gitignore
         ]);
         # This script sets up our Python environment and project
-        runScript = pkgs.writeShellScriptBin "run-script" ''
+runScript = pkgs.writeShellScriptBin "run-script" ''
           #!/usr/bin/env bash
           # Activate the virtual environment
           source .venv/bin/activate
           # Define function to copy notebook if needed (copy-on-first-run solution)
-          # --- REFACTORED: Loop-based copy function ---
+          # --- CORRECTED: Loop-based copy function ---
           copy_notebook_if_needed() {
             while IFS=';' read -r source dest desc; do
               if [ -f "$source" ] && [ ! -f "$dest" ]; then
@@ -382,7 +382,7 @@
           tmux kill-session -t jupyter 2>/dev/null || true
           # Start JupyterLab with error logging
           echo "Starting JupyterLab..."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${jupyterStartupNotebook} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${jupyterStartupNotebook} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True 2>&1 | tee /tmp/jupyter-startup.log"
           # Wait for JupyterLab to start with better feedback
           echo "Waiting for JupyterLab to start (checking http://localhost:8888)..."
           JUPYTER_STARTED=false
