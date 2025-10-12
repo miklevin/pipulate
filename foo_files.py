@@ -1,7 +1,6 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/__init__.py
+/home/mike/repos/MikeLev.in/_posts/2025-10-12-chisel-strike-nix-flake-jupyter-ai-collaboration.md
 /home/mike/repos/pipulate/assets/installer/install.sh
-/home/mike/repos/pipulate/pyproject.toml
 /home/mike/repos/pipulate/flake.nix
 """
 
