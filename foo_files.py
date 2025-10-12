@@ -1,13 +1,5 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/pipulate/core.py
-/home/mike/repos/pipulate/tools/scraper_tools.py
-/home/mike/repos/pipulate/tools/dom_tools.py
-/home/mike/repos/pipulate/Notebooks/open_eyes.ipynb
-/home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/dom_layout_boxes.txt
-/home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/rendered_dom.html
-/home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/response_headers.json
-/home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/source_html.html
-/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
+/home/mike/repos/pipulate/tools/mcp_tools.py
 """
 
 # RELEASE SYSTEM
@@ -258,4 +250,15 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/__init__.py
 # /home/mike/repos/pipulate/imports/__init__.py
 # /home/mike/repos/pipulate/pipulate/__init__.py
+
+# GOT HIERARCHY DOM WORKING
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/tools/scraper_tools.py
+# /home/mike/repos/pipulate/tools/dom_tools.py
+# /home/mike/repos/pipulate/Notebooks/open_eyes.ipynb
+# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/dom_layout_boxes.txt
+# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/rendered_dom.html
+# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/response_headers.json
+# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/source_html.html
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
 
