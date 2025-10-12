@@ -102,17 +102,22 @@
  		# Define the default notebook for JupyterLab to open on startup
  		jupyterStartupNotebook = "Notebooks/FAQuilizer.ipynb";
 
-        # --- NEW: Declarative list for notebooks to copy ---
+        # --- CORRECTED: Declarative list for notebooks to copy ---
         notebookFilesToCopy = [
           {
             source = "assets/nbs/Hello_AI.ipynb";
             dest = "Notebooks/Hello_AI.ipynb";
-            desc = "a local 'Hello World' example notebook";
+            desc = "a local 'Hello, AI!' example notebook";
           }
           {
             source = "assets/nbs/AI_Scrape.ipynb";
             dest = "Notebooks/AI_Scrape.ipynb";
-            desc = "a local 'Master Template' notebook";
+            desc = "a local 'AI, Scrape.' master template";
+          }
+          {
+            source = "assets/nbs/FAQuilizer.ipynb";
+            dest = "Notebooks/FAQuilizer.ipynb";
+            desc = "a local 'FAQuilizer' advanced workflow";
           }
           {
             source = "assets/nbs/secretsauce.py";
