@@ -169,7 +169,7 @@ def _get_article_list_data(posts_dir: str = CONFIG["POSTS_DIRECTORY"]) -> List[D
         print(f"Warning: Article directory not found at {posts_dir}", file=sys.stderr)
         return []
     for filename in os.listdir(posts_dir):
-        if not filename.endswith(('.md', '.markdown')): continue
+        if not filename.endswith((".md", ".markdown")): continue
         filepath = os.path.join(posts_dir, filename)
         try:
             date_str = filename[:10]
@@ -283,10 +283,16 @@ class PromptBuilder:
         self.all_sections = {}
 
     def add_auto_context(self, title: str, content: str):
-        if content and "error" not in content.lower() and "skipping" not in content.lower():
+        # START: add_auto_context_method_body
+        # --- START DEBUGGING BLOCK ---
+        condition = bool(content and "error" not in content.lower() and "skipping" not in content.lower())
+        print(f"\n[6] Inside add_auto_context for title '{title}': Condition to add is {condition}")
+        # --- END DEBUGGING BLOCK ---
+        if condition:
             self.auto_context[title] = {
                 'content': content, 'tokens': count_tokens(content), 'words': count_words(content)
             }
+        # END: add_auto_context_method_body
 
     def _build_manifest_content(self) -> str:
         lines = []
@@ -392,6 +398,7 @@ Before addressing the user's prompt, perform the following verification steps:
 
     def print_summary(self):
         """Calculates and prints an accurate, comprehensive summary to the console."""
+        # START: print_summary_body
         # This method uses self.all_sections populated by build_final_prompt
         print("--- Files Included ---")
         for f in self.processed_files:
@@ -404,22 +411,23 @@ Before addressing the user's prompt, perform the following verification steps:
             print("\n--- Auto-Context Included ---")
             for title, data in self.auto_context.items():
                 print(f"• {title} ({data['tokens']:,} tokens)")
-
+        
         print("\n--- Prompt Summary ---")
         if self.context_only:
             print("NOTE: Running in --context-only mode. File contents are excluded.")
-
+        
         total_tokens = sum(v.get('tokens', 0) for v in self.all_sections.values())
         total_words = sum(count_words(v.get('content', '')) for v in self.all_sections.values())
-
+        
         print(f"Total Tokens: {total_tokens:,}")
         print(f"Total Words:  {total_words:,}")
-
+        
         ratio = total_tokens / total_words if total_words > 0 else 0
         perspective = get_literary_perspective(total_words, ratio)
         print("\n--- Size Perspective ---")
         print(perspective)
         print()
+        # END: print_summary_body
 
 
 # ============================================================================
@@ -440,9 +448,16 @@ def main():
     )
     args = parser.parse_args()
 
+    # START: main_post_argparse
+    # --- START DEBUGGING BLOCK ---
+    print("\n--- DEBUGGING OUTPUT ---")
+    print(f"[1] Argument received by argparse for --list: {args.list!r}")
+    # --- END DEBUGGING BLOCK ---
+    
     if args.check_dependencies:
         check_dependencies()
         sys.exit(0)
+    # END: main_post_argparse
 
     # 1. Handle user prompt
     prompt_content = "Please review the provided context and assist with the codebase."
@@ -502,13 +517,29 @@ def main():
     print(f" ({builder.auto_context.get(title, {}).get('tokens', 0):,} tokens)")
 
     if args.list is not None:
+        # START: main_article_logic
         print("Adding narrative context from articles...", end='', flush=True)
         all_articles = _get_article_list_data()
+        
+        # --- START DEBUGGING BLOCK ---
+        print(f"\n[2] Total articles found by _get_article_list_data(): {len(all_articles)}")
+        # --- END DEBUGGING BLOCK ---
+        
         sliced_articles = []
         try:
             slice_or_index = parse_slice_arg(args.list)
+        
+            # --- START DEBUGGING BLOCK ---
+            print(f"[3] Parsed slice/index object: {slice_or_index!r}")
+            # --- END DEBUGGING BLOCK ---
+        
             if isinstance(slice_or_index, int): sliced_articles = [all_articles[slice_or_index]]
             elif isinstance(slice_or_index, slice): sliced_articles = all_articles[slice_or_index]
+        
+            # --- START DEBUGGING BLOCK ---
+            print(f"[4] Length of article list AFTER slicing: {len(sliced_articles)}")
+            # --- END DEBUGGING BLOCK ---
+        
         except (ValueError, IndexError):
             print(f" (invalid slice '{args.list}')")
             sliced_articles = []
@@ -518,10 +549,15 @@ def main():
                 f"### {article['title']} ({article['date']})\n> {article['summary']}\n"
                 for article in sliced_articles
             )
+            # --- START DEBUGGING BLOCK ---
+            print(f"\n[5] Generated narrative_content length: {len(narrative_content)}")
+            # --- END DEBUGGING BLOCK ---
+        
             builder.add_auto_context("Recent Narrative Context", narrative_content)
             print(f" ({len(sliced_articles)} articles)")
         else:
             print(" (no articles found or invalid slice)")
+        # END: main_article_logic
 
     python_files_to_diagram = [f['path'] for f in processed_files_data if f['path'].endswith('.py')]
     if python_files_to_diagram:
@@ -541,8 +577,16 @@ def main():
                 print(" (skipped)")
         print("...UML generation complete.\n")
     
+    # START: main_pre_summary
+    # --- START DEBUGGING BLOCK ---
+    print("\n--- MORE DEBUGGING ---")
+    print(f"[7] Final auto_context keys before building prompt: {list(builder.auto_context.keys())}")
+    print("--- END DEBUGGING ---\n")
+    # --- END DEBUGGING BLOCK ---
+    
     # 4. Generate final output and print summary
     final_output = builder.build_final_prompt()
+    # END: main_pre_summary
     builder.print_summary()
 
     # 5. Handle output
