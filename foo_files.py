@@ -1,26 +1,4 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/assets/installer/install.sh
-/home/mike/repos/pipulate/flake.nix
-/home/mike/repos/pipulate/__init__.py
-/home/mike/repos/pipulate/pyproject.toml
-/home/mike/repos/pipulate/AI_RUNME.py
-/home/mike/repos/pipulate/pipulate/__init__.py
-/home/mike/repos/pipulate/pipulate/pipulate.py
-/home/mike/repos/pipulate/pipulate/core.py
-/home/mike/repos/pipulate/tools/__init__.py 
-/home/mike/repos/pipulate/tools/scraper_tools.py
-/home/mike/repos/pipulate/tools/system_tools.py
-/home/mike/repos/pipulate/cli.py
-/home/mike/repos/pipulate/imports/stream_orchestrator.py
-/home/mike/repos/pipulate/assets/nbs/Hello_AI.ipynb
-/home/mike/repos/pipulate/assets/nbs/secretsauce.py
-/home/mike/repos/pipulate/assets/nbs/AI_Scrape.ipynb
-/home/mike/repos/pipulate/Notebooks/Hello_AI.ipynb
-/home/mike/repos/pipulate/Notebooks/open_eyes.ipynb
-/home/mike/repos/pipulate/Notebooks/secretsauce.py
-/home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
-/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
-/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
 """
 
 #LATEST
@@ -288,5 +266,29 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/rendered_dom.html
 # /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/response_headers.json
 # /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/source_html.html
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
+
+# NOTEBOOK EXPERIENCE
+# /home/mike/repos/pipulate/assets/installer/install.sh
+# /home/mike/repos/pipulate/flake.nix
+# /home/mike/repos/pipulate/__init__.py
+# /home/mike/repos/pipulate/pyproject.toml
+# /home/mike/repos/pipulate/AI_RUNME.py
+# /home/mike/repos/pipulate/pipulate/__init__.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/tools/__init__.py 
+# /home/mike/repos/pipulate/tools/scraper_tools.py
+# /home/mike/repos/pipulate/tools/system_tools.py
+# /home/mike/repos/pipulate/cli.py
+# /home/mike/repos/pipulate/imports/stream_orchestrator.py
+# /home/mike/repos/pipulate/assets/nbs/Hello_AI.ipynb
+# /home/mike/repos/pipulate/assets/nbs/secretsauce.py
+# /home/mike/repos/pipulate/assets/nbs/AI_Scrape.ipynb
+# /home/mike/repos/pipulate/Notebooks/Hello_AI.ipynb
+# /home/mike/repos/pipulate/Notebooks/open_eyes.ipynb
+# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
+# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
 
