@@ -1,8 +1,34 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/MikeLev.in/_posts/2025-10-12-chisel-strike-nix-flake-jupyter-ai-collaboration.md
 /home/mike/repos/pipulate/assets/installer/install.sh
 /home/mike/repos/pipulate/flake.nix
+/home/mike/repos/pipulate/__init__.py
+/home/mike/repos/pipulate/pyproject.toml
+/home/mike/repos/pipulate/AI_RUNME.py
+/home/mike/repos/pipulate/pipulate/__init__.py
+/home/mike/repos/pipulate/pipulate/pipulate.py
+/home/mike/repos/pipulate/pipulate/core.py
+/home/mike/repos/pipulate/tools/__init__.py 
+/home/mike/repos/pipulate/tools/scraper_tools.py
+/home/mike/repos/pipulate/tools/system_tools.py
+/home/mike/repos/pipulate/cli.py
+/home/mike/repos/pipulate/imports/stream_orchestrator.py
+/home/mike/repos/pipulate/assets/nbs/hello_world_git_managed.ipynb
+/home/mike/repos/pipulate/assets/nbs/secretsauce_git_managed.py
+/home/mike/repos/pipulate/assets/nbs/workflow_git_managed.ipynb
+/home/mike/repos/pipulate/Notebooks/hello_world.ipynb
+/home/mike/repos/pipulate/Notebooks/open_eyes.ipynb
+/home/mike/repos/pipulate/Notebooks/secretsauce.py
+/home/mike/repos/pipulate/Notebooks/workflow.ipynb
+/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
+/home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
 """
+
+#LATEST
+# /home/mike/repos/pipulate/README.md
+# /home/mike/repos/mikelev.in/_posts/2025-10-12-chisel-strike-nix-flake-jupyter-ai-collaboration.md
+# /home/mike/repos/MikeLev.in/_posts/2025-10-12-surgical-ai-context-narrative-time-machine.md
+# /home/mike/repos/pipulate/assets/installer/install.sh
+# /home/mike/repos/pipulate/flake.nix
 
 # RELEASE SYSTEM
 # /home/mike/repos/pipulate/release.py
@@ -34,7 +60,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/assets/styles.css
 # /home/mike/repos/pipulate/imports/__init__.py
 
-# PIPULATE STATE MANAGER
+# PIPULATE STATE MANAGER (The Magic Wand)
 # /home/mike/repos/pipulate/pipulate/__init__.py
 # /home/mike/repos/pipulate/pipulate/core.py
 # /home/mike/repos/pipulate/pipulate/pipulate.py
