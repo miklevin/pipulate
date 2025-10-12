@@ -163,25 +163,18 @@
           # Activate the virtual environment
           source .venv/bin/activate
           # Define function to copy notebook if needed (copy-on-first-run solution)
+          # --- REFACTORED: Loop-based copy function ---
           copy_notebook_if_needed() {
-            # Copy hello_world.ipynb
-            if [ -f "${originalNotebook}" ] && [ ! -f "${localNotebook}" ]; then
-              echo "INFO: Creating a local 'Hello World' example notebook..."
-              echo "      Your work will be saved in '${localNotebook}'."
-              cp "${originalNotebook}" "${localNotebook}"
-            fi
-            # Copy workflow.ipynb
-            if [ -f "${originalWorkflow}" ] && [ ! -f "${localWorkflow}" ]; then
-              echo "INFO: Creating a local 'Master Template' notebook..."
-              echo "      Your work will be saved in '${localWorkflow}'."
-              cp "${originalWorkflow}" "${localWorkflow}"
-            fi
-            # Copy secretsauce.py
-            if [ -f "${originalSecretsauce}" ] && [ ! -f "${localSecretsauce}" ]; then
-              echo "INFO: Creating a local 'secretsauce.py' helper file..."
-              echo "      Your work will be saved in '${localSecretsauce}'."
-              cp "${originalSecretsauce}" "${localSecretsauce}"
-            fi
+            while IFS=';' read -r source dest desc; do
+              if [ -f "$source" ] && [ ! -f "$dest" ]; then
+                echo "INFO: Creating $desc..."
+                echo "      Your work will be saved in '$dest'."
+                mkdir -p "$(dirname "$dest")"
+                cp "$source" "$dest"
+              fi
+            done <<EOF
+          ${notebookFilesString}
+          EOF
           }
           # Create a fancy welcome message
           if [ ! -f whitelabel.txt ]; then
