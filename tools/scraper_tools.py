@@ -109,8 +109,7 @@ async def selenium_automation(params: dict) -> dict:
             logger.success("✅ DOM box layout saved.")
         else:
             logger.warning(f"⚠️ Could not generate DOM box visualization: {viz_result.get('error')}")
-
-        # --- NEW: Generate Hierarchy Visualization Artifact ---
+            
         logger.info(f"🌳 Generating DOM hierarchy visualization...")
         hierarchy_viz_result = await dom_tools.visualize_dom_hierarchy({"file_path": str(dom_path)})
         if hierarchy_viz_result.get("success"):
@@ -120,6 +119,32 @@ async def selenium_automation(params: dict) -> dict:
             logger.success("✅ DOM hierarchy saved.")
         else:
             logger.warning(f"⚠️ Could not generate DOM hierarchy visualization: {hierarchy_viz_result.get('error')}")
+
+        # --- NEW: Generate Accessibility Tree Artifact ---
+        logger.info("🌲 Extracting accessibility tree...")
+        try:
+            driver.execute_cdp_cmd("Accessibility.enable", {})
+            ax_tree_result = driver.execute_cdp_cmd("Accessibility.getFullAXTree", {})
+            accessibility_tree = ax_tree_result.get("nodes", [])
+            
+            ax_tree_path = output_dir / "accessibility_tree.json"
+            with open(ax_tree_path, "w", encoding="utf-8") as f:
+                json.dump({
+                    "success": True,
+                    "timestamp": datetime.now().isoformat(),
+                    "url": driver.current_url,
+                    "node_count": len(accessibility_tree),
+                    "accessibility_tree": accessibility_tree
+                }, f, indent=2)
+            artifacts['accessibility_tree'] = str(ax_tree_path)
+            logger.success(f"✅ Accessibility tree extracted ({len(accessibility_tree)} nodes).")
+        except Exception as ax_error:
+            logger.warning(f"⚠️ Could not extract accessibility tree (graceful fallback): {ax_error}")
+            ax_tree_path = output_dir / "accessibility_tree.json"
+            with open(ax_tree_path, "w", encoding="utf-8") as f:
+                json.dump({ "success": False, "error": str(ax_error) }, f, indent=2)
+            artifacts['accessibility_tree'] = str(ax_tree_path)
+
 
         logger.success(f"✅ Scrape successful for {url}")
         return {"success": True, "looking_at_files": artifacts}
