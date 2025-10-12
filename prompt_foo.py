@@ -55,7 +55,6 @@ LITERARY_SIZE_SCALE = [
 ]
 
 def get_literary_perspective(word_count: int, token_word_ratio: float) -> str:
-    """Get a human-readable literary comparison for the codebase size."""
     description = f"Longer than {LITERARY_SIZE_SCALE[-1][1]}"
     for words, desc in LITERARY_SIZE_SCALE:
         if word_count <= words:
@@ -83,6 +82,7 @@ def count_words(text: str) -> int:
 # --- Auto-Context Generation (UML, Tree, Narrative) ---
 # ============================================================================
 def generate_uml_and_dot(target_file: str, project_name: str) -> Dict:
+    # This function remains unchanged.
     pyreverse_exec = shutil.which("pyreverse")
     plantuml_exec = shutil.which("plantuml")
     if not pyreverse_exec or not plantuml_exec:
@@ -196,7 +196,7 @@ def parse_slice_arg(arg_str: str):
         end = int(parts[1].strip()) if parts[1].strip() else None
         return slice(start, end)
     elif content: return int(content)
-    return None
+    return slice(None, None) # CHANGE: Handle `[:]` to mean the whole list.
 
 def run_tree_command() -> str:
     eza_exec = shutil.which("eza")
@@ -242,46 +242,68 @@ def copy_to_clipboard(text: str):
     except Exception as e:
         print(f"\nWarning: Could not copy to clipboard: {e}")
 
+def check_dependencies():
+    """Verifies that all required external command-line tools are installed."""
+    print("Checking for required external dependencies...")
+    dependencies = {
+        "pyreverse": "Provided by `pylint`. Install with: pip install pylint",
+        "plantuml": "A Java-based tool. See https://plantuml.com/starting",
+        "eza": "A modern replacement for `ls`. See https://eza.rocks/install",
+        "xclip": "Clipboard utility for Linux. Install with your package manager (e.g., sudo apt-get install xclip)",
+    }
+    missing = []
+    for tool, instructions in dependencies.items():
+        if not shutil.which(tool):
+            missing.append((tool, instructions))
+    
+    if not missing:
+        print("✅ All dependencies found.")
+    else:
+        print("\n❌ Missing dependencies detected:")
+        for tool, instructions in missing:
+            print(f"  - Command not found: `{tool}`")
+            print(f"    ↳ {instructions}")
+        print("\nPlease install the missing tools and ensure they are in your system's PATH.")
+        sys.exit(1)
+
 # ============================================================================
-# --- NEW: Refactored PromptBuilder Class ---
+# --- Refined PromptBuilder Class ---
 # ============================================================================
 class PromptBuilder:
     """
     Builds a complete, structured Markdown prompt with consistent START/END markers
     for each section, including Manifest, Story, File Tree, UMLs, Codebase, and Prompt.
     """
-    def __init__(self, processed_files: List[Dict], prompt_text: str, context_only: bool = False):
+    def __init__(self, processed_files: List[Dict], prompt_text: str, context_only: bool = False, list_arg: Optional[str] = None):
         self.processed_files = processed_files
         self.prompt_text = prompt_text
         self.context_only = context_only
+        self.list_arg = list_arg # NEW: Keep track of whether the list flag was used
         self.auto_context = {}
-        self.all_sections = {} # Will store final content and tokens for the manifest
+        self.all_sections = {}
 
     def add_auto_context(self, title: str, content: str):
         if content and "error" not in content.lower() and "skipping" not in content.lower():
             self.auto_context[title] = {
-                'content': content,
-                'tokens': count_tokens(content),
-                'words': count_words(content)
+                'content': content, 'tokens': count_tokens(content), 'words': count_words(content)
             }
 
     def _build_manifest_content(self) -> str:
-        """Generates the content for the Manifest section."""
         lines = []
-        for section_name, data in self.all_sections.items():
-            token_str = f"({data['tokens']:,} tokens)" if data['tokens'] > 0 else ""
-            lines.append(f"- {section_name} {token_str}")
+        # Ensure a consistent order for the manifest
+        section_order = ["Story", "File Tree", "UML Diagrams", "Codebase", "Prompt"]
+        for section_name in section_order:
+            if section_name in self.all_sections:
+                data = self.all_sections[section_name]
+                token_str = f"({data['tokens']:,} tokens)" if data['tokens'] > 0 else ""
+                lines.append(f"- {section_name} {token_str}")
         return "\n".join(lines)
 
     def _build_story_content(self) -> str:
-        """Extracts and formats the story/narrative context."""
         title = "Recent Narrative Context"
-        if title in self.auto_context:
-            return self.auto_context[title]['content'].strip()
-        return ""
+        return self.auto_context.get(title, {}).get('content', '').strip()
 
     def _build_tree_content(self) -> str:
-        """Extracts and formats the file tree context."""
         title = "Codebase Structure (eza --tree)"
         if title in self.auto_context:
             content = self.auto_context[title]['content'].strip()
@@ -289,7 +311,6 @@ class PromptBuilder:
         return ""
 
     def _build_uml_content(self) -> str:
-        """Extracts and formats all UML diagram contexts."""
         uml_parts = []
         for title, data in self.auto_context.items():
             if "UML Class Diagram" in title:
@@ -297,9 +318,9 @@ class PromptBuilder:
         return "\n\n".join(uml_parts)
 
     def _build_codebase_content(self) -> str:
-        """Generates the wrapped content for each file in the codebase."""
-        if self.context_only:
-            return ""
+        if self.context_only: return ""
+        if not self.processed_files: return ""
+        
         lines = []
         for f in self.processed_files:
             lines.append(f"--- START: {f['path']} ({f['tokens']:,} tokens) ---")
@@ -307,11 +328,9 @@ class PromptBuilder:
             lines.append(f['content'])
             lines.append("```")
             lines.append(f"--- END: {f['path']} ---\n")
-        # Use a single join at the end to avoid extra newlines
         return "\n".join(lines).strip()
 
     def _build_prompt_content(self) -> str:
-        """Generates the content for the user prompt section."""
         checklist = self._generate_ai_checklist()
         return f"{checklist}\n\n{self.prompt_text}"
 
@@ -327,38 +346,47 @@ Before addressing the user's prompt, perform the following verification steps:
 '''
     def build_final_prompt(self) -> str:
         """Assembles all parts into the final, structured Markdown string."""
-        # First, prepare all content sections to calculate their tokens for the manifest
+        # Prepare content for all sections
         story_content = self._build_story_content()
         tree_content = self._build_tree_content()
         uml_content = self._build_uml_content()
         codebase_content = self._build_codebase_content()
         prompt_content = self._build_prompt_content()
 
+        # Define placeholder messages
+        placeholders = {
+            "Story": f"# Narrative context not requested. Use the -l or --list flag to include recent articles.",
+            "File Tree": "# File tree generation failed or was skipped.",
+            "UML Diagrams": "# No Python files with classes were included, or UML generation failed.",
+            "Codebase": ("# No files were specified for inclusion in the codebase." if not self.processed_files 
+                         else "# Running in --context-only mode. File contents are omitted."),
+        }
+
+        # Store final content and tokens for the manifest calculation
         self.all_sections["Story"] = {'content': story_content, 'tokens': count_tokens(story_content)}
         self.all_sections["File Tree"] = {'content': tree_content, 'tokens': count_tokens(tree_content)}
         self.all_sections["UML Diagrams"] = {'content': uml_content, 'tokens': count_tokens(uml_content)}
         self.all_sections["Codebase"] = {'content': codebase_content, 'tokens': sum(f['tokens'] for f in self.processed_files) if not self.context_only else 0}
         self.all_sections["Prompt"] = {'content': prompt_content, 'tokens': count_tokens(prompt_content)}
-
-        # Now that tokens are calculated, build the manifest
+        
         manifest_content = self._build_manifest_content()
         self.all_sections["Manifest"] = {'content': manifest_content, 'tokens': count_tokens(manifest_content)}
 
-        # Assemble the final output string
-        parts = [
-            "# KUNG FU PROMPT CONTEXT\n\nWhat you will find below is:\n\n- Manifest\n- Story\n- File Tree\n- UML Diagrams\n- Codebase\n- Prompt"
-        ]
+        # Assemble the final output string with START/END markers for all sections
+        parts = ["# KUNG FU PROMPT CONTEXT\n\nWhat you will find below is:\n\n- Manifest\n- Story\n- File Tree\n- UML Diagrams\n- Codebase\n- Prompt"]
 
-        def add_section(name, content):
-            if content and content.strip():
-                parts.append(f"--- START: {name} ---\n{content.strip()}\n--- END: {name} ---")
+        def add_section(name, content, placeholder):
+            final_content = content.strip() if content and content.strip() else placeholder
+            parts.append(f"--- START: {name} ---\n{final_content}\n--- END: {name} ---")
 
-        add_section("Manifest", manifest_content)
-        add_section("Story", story_content)
-        add_section("File Tree", tree_content)
-        add_section("UML Diagrams", uml_content)
-        add_section("Codebase", codebase_content)
-        add_section("Prompt", prompt_content)
+        add_section("Manifest", manifest_content, "# Manifest generation failed.")
+        # Special handling for story placeholder
+        story_placeholder = placeholders["Story"] if self.list_arg is None else "# No articles found for the specified slice."
+        add_section("Story", story_content, story_placeholder)
+        add_section("File Tree", tree_content, placeholders["File Tree"])
+        add_section("UML Diagrams", uml_content, placeholders["UML Diagrams"])
+        add_section("Codebase", codebase_content, placeholders["Codebase"])
+        add_section("Prompt", prompt_content, "# No prompt was provided.")
 
         return "\n\n".join(parts)
 
@@ -381,8 +409,8 @@ Before addressing the user's prompt, perform the following verification steps:
         if self.context_only:
             print("NOTE: Running in --context-only mode. File contents are excluded.")
 
-        total_tokens = sum(v['tokens'] for v in self.all_sections.values())
-        total_words = sum(count_words(v['content']) for v in self.all_sections.values())
+        total_tokens = sum(v.get('tokens', 0) for v in self.all_sections.values())
+        total_words = sum(count_words(v.get('content', '')) for v in self.all_sections.values())
 
         print(f"Total Tokens: {total_tokens:,}")
         print(f"Total Words:  {total_words:,}")
@@ -393,12 +421,12 @@ Before addressing the user's prompt, perform the following verification steps:
         print(perspective)
         print()
 
+
 # ============================================================================
 # --- Main Execution Logic ---
 # ============================================================================
 def main():
     """Main function to parse args, process files, and generate output."""
-    # (The main function remains largely the same, only its interaction with PromptBuilder changes slightly)
     parser = argparse.ArgumentParser(description='Generate a Markdown context file for AI code assistance.')
     parser.add_argument('prompt', nargs='?', default=None, help='A prompt string or path to a prompt file (e.g., prompt.md).')
     parser.add_argument('-o', '--output', type=str, help='Optional: Output filename.')
@@ -408,7 +436,7 @@ def main():
     parser.add_argument(
         '-l', '--list',
         nargs='?', const='[-5:]', default=None,
-        help='Include a list of recent articles. Optionally provide a slice, e.g., "[-10:]". Defaults to "[-5:]".'
+        help='Include a list of recent articles. Optionally provide a slice, e.g., "[:]". Defaults to "[-5:]".'
     )
     args = parser.parse_args()
 
@@ -420,13 +448,11 @@ def main():
     prompt_content = "Please review the provided context and assist with the codebase."
     if args.prompt:
         if os.path.exists(args.prompt):
-            with open(args.prompt, 'r', encoding='utf-8') as f:
-                prompt_content = f.read()
+            with open(args.prompt, 'r', encoding='utf-8') as f: prompt_content = f.read()
         else:
             prompt_content = args.prompt
     elif os.path.exists("prompt.md"):
-        with open("prompt.md", 'r', encoding='utf-8') as f:
-            prompt_content = f.read()
+        with open("prompt.md", 'r', encoding='utf-8') as f: prompt_content = f.read()
 
     # 2. Process all specified files
     files_to_process = parse_file_list_from_config()
@@ -466,7 +492,7 @@ def main():
         })
 
     # 3. Build the prompt and add auto-generated context
-    builder = PromptBuilder(processed_files_data, prompt_content, context_only=args.context_only)
+    builder = PromptBuilder(processed_files_data, prompt_content, context_only=args.context_only, list_arg=args.list)
     
     print("\n--- Generating Auto-Context ---")
     print("Generating codebase tree diagram...", end='', flush=True)
@@ -475,7 +501,7 @@ def main():
     builder.add_auto_context(title, tree_output)
     print(f" ({builder.auto_context.get(title, {}).get('tokens', 0):,} tokens)")
 
-    if args.list:
+    if args.list is not None:
         print("Adding narrative context from articles...", end='', flush=True)
         all_articles = _get_article_list_data()
         sliced_articles = []
@@ -521,8 +547,7 @@ def main():
 
     # 5. Handle output
     if args.output:
-        with open(args.output, 'w', encoding='utf-8') as f:
-            f.write(final_output)
+        with open(args.output, 'w', encoding='utf-8') as f: f.write(final_output)
         print(f"Output written to '{args.output}'")
     if not args.no_clipboard:
         copy_to_clipboard(final_output)
