@@ -1,5 +1,5 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/README.md
+/home/mike/repos/pipulate/codebase_foo.py
 """
 
 # RELEASE SYSTEM
