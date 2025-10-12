@@ -98,6 +98,9 @@
         isLinux = pkgs.stdenv.isLinux;
         # Define a static workspace name to prevent random file generation
         jupyterWorkspaceName = "pipulate-main";
+ 
+ 		# Define the default notebook for JupyterLab to open on startup
+ 		jupyterStartupNotebook = "Notebooks/workflow.ipynb";
 
         # --- NEW: Declarative list for notebooks to copy ---
         notebookFilesToCopy = [
@@ -150,13 +153,6 @@
           chromium                     # Chromium browser for Selenium automation
           eza                          # A tree directory visualizer that uses .gitignore
         ]);
-        # Define notebook paths for the copy-on-first-run solution
-        originalNotebook = "assets/nbs/hello_world_git_managed.ipynb";
-        localNotebook = "Notebooks/hello_world.ipynb";
-        originalWorkflow = "assets/nbs/workflow_git_managed.ipynb";
-        localWorkflow = "Notebooks/workflow.ipynb";
-        originalSecretsauce = "assets/nbs/secretsauce_git_managed.py";
-        localSecretsauce = "Notebooks/secretsauce.py";
         # This script sets up our Python environment and project
         runScript = pkgs.writeShellScriptBin "run-script" ''
           #!/usr/bin/env bash
@@ -266,7 +262,7 @@
           copy_notebook_if_needed
           echo "A JupyterLab tab will open in your default browser."
           tmux kill-session -t jupyter 2>/dev/null || echo "No tmux session named 'jupyter' is running."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localWorkflow} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${jupyterStartupNotebook} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           echo "If no tab opens, visit http://localhost:8888/lab"
           echo "To view JupyterLab server: tmux attach -t jupyter"
           echo "To stop JupyterLab server: stop"
@@ -301,7 +297,7 @@
           # Kill existing jupyter tmux session
           tmux kill-session -t jupyter 2>/dev/null || true
           # Start JupyterLab
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localWorkflow} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${jupyterStartupNotebook} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
           for i in {1..30}; do
@@ -328,7 +324,7 @@
           pkill -f "python server.py" || true
           # Start JupyterLab
           echo "Starting JupyterLab..."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localWorkflow} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${jupyterStartupNotebook} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
           for i in {1..30}; do
@@ -381,7 +377,7 @@
           tmux kill-session -t jupyter 2>/dev/null || true
           # Start JupyterLab with error logging
           echo "Starting JupyterLab..."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localWorkflow} --workspace=pipulate-main --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True 2>&1 | tee /tmp/jupyter-startup.log"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${jupyterStartupNotebook} --workspace=\$JUPYTER_WORKSPACE_NAME --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           # Wait for JupyterLab to start with better feedback
           echo "Waiting for JupyterLab to start (checking http://localhost:8888)..."
           JUPYTER_STARTED=false
