@@ -1,5 +1,8 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/codebase_foo.py
+/home/mike/repos/pipulate/__init__.py
+/home/mike/repos/pipulate/assets/installer/install.sh
+/home/mike/repos/pipulate/pyproject.toml
+/home/mike/repos/pipulate/flake.nix
 """
 
 # RELEASE SYSTEM
