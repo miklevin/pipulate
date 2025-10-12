@@ -134,10 +134,11 @@ if __name__ == '__main__':
                 with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.read()
                 token_count = count_tokens(content)
-                file_data.append({'path': filepath, 'tokens': token_count, 'meta_description': post['meta_description'], 'index': post['index']})
+                # --- CHANGE 1: Add sort_order to the dictionary ---
+                file_data.append({'path': filepath, 'tokens': token_count, 'meta_description': post['meta_description'], 'index': post['index'], 'sort_order': post['sort_order']})
             except Exception as e:
-                print(f"[{post.get('index', ''):>3}] {filepath}  # Error: Could not read file - {e}", file=sys.stderr)
-                file_data.append({'path': filepath, 'tokens': 0, 'meta_description': post['meta_description'], 'index': post['index']})
+                print(f"[{post.get('index', ''):>3}:{post.get('sort_order', '')}] {filepath}  # Error: Could not read file - {e}", file=sys.stderr)
+                file_data.append({'path': filepath, 'tokens': 0, 'meta_description': post['meta_description'], 'index': post['index'], 'sort_order': post['sort_order']})
 
         grand_total_tokens = sum(item['tokens'] for item in file_data)
         print("", file=sys.stderr)
@@ -147,12 +148,14 @@ if __name__ == '__main__':
 
         for item in file_data:
             ascending_total += item['tokens']
-            print(f"[{item['index']:>3}] {item['path']}  # {item['tokens']:,} tokens ({ascending_total:,} / {descending_total:,} total)")
+            # --- CHANGE 2: Update the print format to include sort_order ---
+            print(f"[{item['index']:>3}:{item['sort_order']}] {item['path']}  # {item['tokens']:,} tokens ({ascending_total:,} / {descending_total:,} total)")
             if show_meta and item['meta_description']:
                 print(f"      └─ {item['meta_description']}")
             descending_total -= item['tokens']
     else: # Simple path output (quiet mode, or if --no-tokens is used)
         for post in ordered_posts:
-            print(f"[{post['index']:>3}] {post['path']}")
+            # --- CHANGE 3: Update the print format to include sort_order ---
+            print(f"[{post['index']:>3}:{post['sort_order']}] {post['path']}")
             if show_meta and post['meta_description']:
                 print(f"      └─ {post['meta_description']}")
