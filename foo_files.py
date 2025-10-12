@@ -1,5 +1,5 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/tools/mcp_tools.py
+/home/mike/repos/pipulate/README.md
 """
 
 # RELEASE SYSTEM

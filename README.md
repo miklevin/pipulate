@@ -1470,7 +1470,7 @@ These "speedbumps" reinforce Pipulate's core philosophy:
 
   * **Monitoring:** A file system watchdog monitors code changes. Valid changes trigger an automatic, monitored server restart via Uvicorn, facilitating live development.
 
-```
+```plaintext
         ┌─────────────┐         ┌──────────────┐
         │ File System │ Changes │  AST Syntax  │ Checks Code
         │  Watchdog   │ Detects │   Checker    │ Validity
@@ -1487,7 +1487,7 @@ These "speedbumps" reinforce Pipulate's core philosophy:
 
 The system provides comprehensive debugging and state inspection capabilities through MCP tools and real-time monitoring:
 
-```
+```plaintext
 📊 PIPELINE STATE INSPECTOR
 ├─── 🔍 Discovering active workflows...
 ├─── ⚡ Found 3 running processes
@@ -1577,7 +1577,7 @@ This README serves as the **upstream source of truth** for all Pipulate document
 
 ### The ASCII Art Synchronization System
 
-```
+```plaintext
 🌊 THE UPSTREAM TRUTH CASCADE
 ═══════════════════════════════════════════════════════════════
 
@@ -1675,7 +1675,7 @@ PLUGINS
 
 ## Contributing
 
-Contributions are welcome\! Please adhere to the project's core philosophy:
+Contributions are welcome! Please adhere to the project's core philosophy:
 
   * Maintain Local-First Simplicity (No multi-tenant patterns, complex ORMs, heavy client-side state).
   * Respect Server-Side State (Use DictLikeDB/JSON for workflows, MiniDataAPI for CRUD).
@@ -1695,4 +1695,3 @@ This project is licensed under the MIT License. See the [LICENSE](https://github
 **Enhanced Documentation:** <a href="https://pipulate.com/">Pipulate AI SEO Software</a>
 
 **On GitHub:** <a href="https://github.com/miklevin/pipulate">Pipulate on GitHub</a>
-
