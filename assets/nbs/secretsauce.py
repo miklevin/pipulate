@@ -6,7 +6,6 @@ import google.generativeai as genai
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import getpass
 from io import StringIO
 import json
 from sqlitedict import SqliteDict
@@ -26,22 +25,7 @@ FINAL_DATAFRAME_STEP = "final_dataframe"
 EXPORT_FILE_STEP = "export_file_path"
 
 # --- WORKFLOW FUNCTIONS ---
-# setup_google_ai, cache_url_responses, and extract_webpage_data remain unchanged.
-
-def setup_google_ai(job: str):
-    """Handles getting, storing, and configuring the Google AI API key."""
-    api_key = pip.get(job, API_KEY_STEP)
-    if not api_key:
-        try:
-            api_key = getpass.getpass("Enter your Google AI API Key: ")
-            pip.set(job, API_KEY_STEP, api_key)
-            print("✅ API Key received and stored for this session.")
-        except Exception as e:
-            print(f"❌ Could not get API key: {e}")
-            return
-    if api_key:
-        genai.configure(api_key=api_key)
-        print("✅ Google AI configured successfully.")
+# cache_url_responses, and extract_webpage_data remain unchanged.
 
 def cache_url_responses(job: str):
     """
