@@ -12,6 +12,9 @@ combined_prompt.txt
 *.json
 *.pkl
 *.xlsx
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 
 # Pipulate framework stuff
 data/
