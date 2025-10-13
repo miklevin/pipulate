@@ -28,6 +28,57 @@ EXPORT_FILE_STEP = "export_file_path"
 # --- WORKFLOW FUNCTIONS ---
 # cache_url_responses, and extract_webpage_data remain unchanged.
 
+# Add this new function to Notebooks/secretsauce.py
+
+async def scrape_and_extract(job: str, headless: bool = True):
+    """
+    Replaces both caching and extracting. Scrapes each URL using pip.scrape()
+    and then immediately parses the resulting HTML to extract SEO data.
+    """
+    print("🚀 Starting browser-based scraping and extraction...")
+    urls_to_process = pip.get(job, URL_LIST_STEP, [])
+    extracted_data = []
+
+    for url in urls_to_process:
+        print(f"  -> 👁️  Processing: {url}")
+        try:
+            # 1. Scrape the URL using the new browser automation engine
+            scrape_result = await pip.scrape(url=url, take_screenshot=True, headless=headless)
+
+            if not scrape_result.get("success"):
+                print(f"  -> ❌ Scrape failed: {scrape_result.get('error')}")
+                continue
+
+            # 2. Immediately parse the result from the file-based cache
+            dom_path = scrape_result.get("looking_at_files", {}).get("rendered_dom")
+            if not dom_path:
+                print(f"  -> ⚠️ Scrape succeeded, but no DOM file was found.")
+                continue
+
+            with open(dom_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            title = soup.title.string.strip() if soup.title else "No Title Found"
+            meta_desc_tag = soup.find('meta', attrs={'name': 'description'})
+            meta_description = meta_desc_tag['content'].strip() if meta_desc_tag else ""
+            h1s = [h1.get_text(strip=True) for h1 in soup.find_all('h1')]
+            h2s = [h2.get_text(strip=True) for h2 in soup.find_all('h2')]
+            
+            extracted_data.append({
+                'url': url, 'title': title, 'meta_description': meta_description,
+                'h1s': h1s, 'h2s': h2s
+            })
+            print(f"  -> ✅ Scraped and Extracted.")
+
+        except Exception as e:
+            print(f"  -> ❌ A critical error occurred while processing {url}: {e}")
+
+    # 3. Save the final extracted data to the pip state
+    pip.set(job, EXTRACTED_DATA_STEP, extracted_data)
+    print(f"\n--- ✅ Extraction complete for {len(extracted_data)} URLs! ---")
+
+
 async def scrape_all_urls(job: str, headless: bool = True):
     """
     Iterates through the URL list from the pip state, scraping each one
@@ -251,11 +302,12 @@ async def test_advanced_scrape(job: str, headless: bool = False):
     print("--- 🧪 Test Flight Complete ---\n")
 # END: test_advanced_scrape
 
+# Replace the old faquilizer function with this one
 
-def faquilizer(job: str):
+async def faquilizer(job: str):
     """
-    A self-aware function that reads its own notebook for inputs (prompt and URLs)
-    and then executes the entire end-to-end FAQ generation workflow.
+    A self-aware function that now uses the browser automation engine to
+    execute the entire end-to-end FAQ generation workflow.
     """
     import nbformat
     from pathlib import Path
@@ -279,7 +331,6 @@ def faquilizer(job: str):
                 return cell.source
         return None
 
-    # --- Main Logic ---
     try:
         project_root = _find_project_root(os.getcwd())
         notebook_path = project_root / "Notebooks" / "FAQuilizer.ipynb"
@@ -296,27 +347,10 @@ def faquilizer(job: str):
             print("❌ Error: Could not find cells with tags 'prompt-input' and 'url-list-input'.")
             return
 
-        # Create the prompt file for the workflow
-        with open(PROMPT_TEMPLATE_FILE, 'w') as f:
-            f.write(prompt_text)
-        print(f"✅ Prompt saved to '{PROMPT_TEMPLATE_FILE}'")
-
-        # Parse and save the URL list
-        cleaned_urls = []
-        for line in url_list_text.strip().split('\n'):
-            # Take only the part before the first '#', then strip whitespace
-            line_without_comment = line.split('#', 1)[0].strip()
-            if line_without_comment:
-                cleaned_urls.append(line_without_comment)
-        urls = cleaned_urls
-        pip.set(job, URL_LIST_STEP, urls)
-        print(f"✅ Found {len(urls)} URLs to process.")
-        
-        # 2. Execute the entire existing workflow, step-by-step
+        # 2. Execute the entire new workflow, step-by-step
         print("\n--- Starting Pipeline Execution ---")
         pip.api_key(job)
-        cache_url_responses(job)
-        extract_webpage_data(job)
+        await scrape_and_extract(job, headless=False) # <- THE KEY CHANGE
         generate_faqs(job)
         display_results_log(job)
         export_to_excel(job)
