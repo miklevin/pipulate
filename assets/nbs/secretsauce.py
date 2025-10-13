@@ -27,26 +27,27 @@ EXPORT_FILE_STEP = "export_file_path"
 
 # --- WORKFLOW FUNCTIONS ---
 # cache_url_responses, and extract_webpage_data remain unchanged.
+# In Notebooks/secretsauce.py
 async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = False):
     """
     Scrapes each URL using pip.scrape() and immediately parses the HTML
     to extract key SEO data. Verbosity is now controllable.
     """
-    if verbose:
-        print("🚀 Starting browser-based scraping and extraction...")
+    print("🚀 Starting browser-based scraping and extraction...")
     
     urls_to_process = pip.get(job, URL_LIST_STEP, [])
     extracted_data = []
 
-    for url in urls_to_process:
-        if verbose:
-            print(f"  -> 👁️  Processing: {url}")
+    for i, url in enumerate(urls_to_process):
+        # This line now prints for every URL, regardless of the verbose setting.
+        print(f"  -> 👁️  [{i+1}/{len(urls_to_process)}] Processing: {url}")
+        
         try:
             scrape_result = await pip.scrape(
                 url=url,
                 take_screenshot=True,
                 headless=headless,
-                verbose=verbose # <-- Add this line
+                verbose=verbose
             )
 
             if not scrape_result.get("success"):
@@ -78,8 +79,8 @@ async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = Fa
                 print(f"  -> ✅ Scraped and Extracted.")
 
         except Exception as e:
-            if verbose:
-                print(f"  -> ❌ A critical error occurred while processing {url}: {e}")
+            # Always show critical errors for the specific URL that failed.
+            print(f"  -> ❌ A critical error occurred while processing {url}: {e}")
 
     pip.set(job, EXTRACTED_DATA_STEP, extracted_data)
     print(f"✅ Scraping and extraction complete for {len(extracted_data)} URLs.")
