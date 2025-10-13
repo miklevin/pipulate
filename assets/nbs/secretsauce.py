@@ -217,3 +217,71 @@ async def test_advanced_scrape(job: str, headless: bool = False):
         print(f"  -> ❌ Failed: {result.get('error')}")
     print("--- 🧪 Test Flight Complete ---\n")
 # END: test_advanced_scrape
+
+
+def faquilizer(job: str):
+    """
+    A self-aware function that reads its own notebook for inputs (prompt and URLs)
+    and then executes the entire end-to-end FAQ generation workflow.
+    """
+    import nbformat
+    from pathlib import Path
+    import os
+
+    print("🚀 Kicking off the self-aware FAQuilizer workflow...")
+    
+    # Helper to find the project root
+    def _find_project_root(start_path):
+        current_path = Path(start_path).resolve()
+        while current_path != current_path.parent:
+            if (current_path / 'flake.nix').exists():
+                return current_path
+            current_path = current_path.parent
+        return None
+
+    # Helper to get content from a tagged cell
+    def _get_content_from_tagged_cell(nb, tag: str) -> str | None:
+        for cell in nb.cells:
+            if tag in cell.metadata.get('tags', []):
+                return cell.source
+        return None
+
+    # --- Main Logic ---
+    try:
+        project_root = _find_project_root(os.getcwd())
+        notebook_path = project_root / "Notebooks" / "FAQuilizer.ipynb"
+        
+        with open(notebook_path, 'r', encoding='utf-8') as f:
+            nb = nbformat.read(f, as_version=4)
+
+        # 1. Extract inputs from tagged cells
+        print("🔍 Reading inputs from notebook cells...")
+        prompt_text = _get_content_from_tagged_cell(nb, 'prompt-input')
+        url_list_text = _get_content_from_tagged_cell(nb, 'url-list-input')
+
+        if not prompt_text or not url_list_text:
+            print("❌ Error: Could not find cells with tags 'prompt-input' and 'url-list-input'.")
+            return
+
+        # Create the prompt file for the workflow
+        with open(PROMPT_TEMPLATE_FILE, 'w') as f:
+            f.write(prompt_text)
+        print(f"✅ Prompt saved to '{PROMPT_TEMPLATE_FILE}'")
+
+        # Parse and save the URL list
+        urls = [line.strip() for line in url_list_text.strip().split('\n') if line.strip() and not line.startswith('#')]
+        pip.set(job, URL_LIST_STEP, urls)
+        print(f"✅ Found {len(urls)} URLs to process.")
+        
+        # 2. Execute the entire existing workflow, step-by-step
+        print("\n--- Starting Pipeline Execution ---")
+        pip.api_key(job)
+        cache_url_responses(job)
+        extract_webpage_data(job)
+        generate_faqs(job)
+        display_results_log(job)
+        export_to_excel(job)
+        print("\n--- ✅ FAQuilizer Workflow Complete! ---")
+
+    except Exception as e:
+        print(f"❌ A critical error occurred in the faquilizer workflow: {e}")

@@ -3,7 +3,8 @@ FILES_TO_INCLUDE_RAW = """\
 /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
 /home/mike/repos/pipulate/Notebooks/Hello_AI.ipynb
 /home/mike/repos/pipulate/Notebooks/secretsauce.py
-/home/mike/repos/pipulate/pipulate/core.py
+/home/mike/repos/pipulate/Notebooks/prompt.txt
+# /home/mike/repos/pipulate/pipulate/core.py
 """
 
 #LATEST
