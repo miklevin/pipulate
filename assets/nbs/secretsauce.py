@@ -269,7 +269,13 @@ def faquilizer(job: str):
         print(f"✅ Prompt saved to '{PROMPT_TEMPLATE_FILE}'")
 
         # Parse and save the URL list
-        urls = [line.strip() for line in url_list_text.strip().split('\n') if line.strip() and not line.startswith('#')]
+        cleaned_urls = []
+        for line in url_list_text.strip().split('\n'):
+            # Take only the part before the first '#', then strip whitespace
+            line_without_comment = line.split('#', 1)[0].strip()
+            if line_without_comment:
+                cleaned_urls.append(line_without_comment)
+        urls = cleaned_urls
         pip.set(job, URL_LIST_STEP, urls)
         print(f"✅ Found {len(urls)} URLs to process.")
         
