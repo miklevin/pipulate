@@ -9,6 +9,7 @@ import pandas as pd
 from io import StringIO
 import json
 from sqlitedict import SqliteDict
+import asyncio
 
 # --- CONFIGURATION ---
 CACHE_DB_FILE = "url_cache.sqlite"
@@ -26,6 +27,38 @@ EXPORT_FILE_STEP = "export_file_path"
 
 # --- WORKFLOW FUNCTIONS ---
 # cache_url_responses, and extract_webpage_data remain unchanged.
+
+async def scrape_all_urls(job: str, headless: bool = True):
+    """
+    Iterates through the URL list from the pip state, scraping each one
+    using the advanced pip.scrape() browser automation.
+    """
+    print("🚀 Starting browser automation scrape for all URLs...")
+    urls_to_process = pip.get(job, URL_LIST_STEP, [])
+    
+    scraped_data_paths = {}
+    for url in urls_to_process:
+        print(f"  -> 👁️  Scraping: {url}")
+        try:
+            # Call the core scrape method for each URL
+            result = await pip.scrape(
+                url=url,
+                take_screenshot=True,
+                headless=headless
+            )
+            if result.get("success"):
+                scraped_data_paths[url] = result.get("looking_at_files", {})
+                print(f"  -> ✅ Success! Artifacts saved.")
+            else:
+                print(f"  -> ❌ Failed: {result.get('error')}")
+        except Exception as e:
+            print(f"  -> ❌ A critical error occurred while scraping {url}: {e}")
+    
+    # For now, we'll just confirm completion. The next step will be to use this data.
+    print("\n--- ✅ Browser automation complete! ---")
+    # We can store the paths to the results for the next step, though we won't use it yet.
+    pip.set(job, "scraped_data_paths", scraped_data_paths)
+
 
 def cache_url_responses(job: str):
     """
