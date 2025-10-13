@@ -1926,3 +1926,63 @@ class Pipulate:
             logger.warning(f"Scrape mode '{mode}' is not yet implemented.")
             return {"success": False, "error": f"Mode '{mode}' not implemented."}
     # END: scrape_method
+
+
+    def _find_project_root(self, start_path):
+        """Walks up from a starting path to find the project root (marked by 'flake.nix')."""
+        current_path = Path(start_path).resolve()
+        while current_path != current_path.parent:
+            if (current_path / 'flake.nix').exists():
+                return current_path
+            current_path = current_path.parent
+        return None
+
+    def nbup(self, notebook_filename: str):
+        """
+        Cleans and syncs a notebook from the working 'Notebooks/' directory back to the
+        version-controlled 'assets/nbs/' template directory.
+        """
+        # Import necessary libraries inside the function
+        import nbformat
+        from pathlib import Path
+        import os
+
+        print(f"🔄 Syncing '{notebook_filename}' back to templates...")
+
+        # 1. Find the project root in a portable way
+        project_root = self._find_project_root(os.getcwd())
+        if not project_root:
+            print("❌ Error: Could not find project root (flake.nix). Cannot sync.")
+            return
+
+        # 2. Define source and destination paths robustly
+        source_path = project_root / "Notebooks" / notebook_filename
+        dest_path = project_root / "assets" / "nbs" / notebook_filename
+
+        if not source_path.exists():
+            print(f"❌ Error: Source file not found at '{source_path}'")
+            return
+
+        try:
+            # 3. Read the "dirty" notebook using nbformat
+            with open(source_path, 'r', encoding='utf-8') as f:
+                nb = nbformat.read(f, as_version=4)
+
+            # 4. Clean the notebook object (the "nbstripout" logic)
+            for cell in nb.cells:
+                if cell.cell_type == 'code':
+                    cell.outputs.clear()
+                    cell.execution_count = None
+                    # Optionally clear other transient metadata if needed
+                    if 'metadata' in cell and 'execution' in cell.metadata:
+                        del cell.metadata['execution']
+
+            # 5. Write the "clean" notebook to the destination
+            with open(dest_path, 'w', encoding='utf-8') as f:
+                nbformat.write(nb, f)
+
+            print(f"✅ Success! '{notebook_filename}' has been cleaned and synced to:")
+            print(f"   {dest_path}")
+
+        except Exception as e:
+            print(f"❌ An error occurred during the sync process: {e}")
