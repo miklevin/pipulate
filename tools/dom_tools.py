@@ -170,17 +170,21 @@ class _DOMBoxVisualizer:
         return self.console.export_text()
 
 
+# In tools/dom_tools.py
+
 @auto_tool
 async def visualize_dom_hierarchy(params: dict) -> dict:
     """Renders the DOM from a file as a hierarchical tree."""
     file_path = params.get("file_path")
+    verbose = params.get("verbose", True)  # Check for verbose flag
     if not file_path or not os.path.exists(file_path):
         return {"success": False, "error": f"File not found: {file_path}"}
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
         visualizer = _DOMHierarchyVisualizer()
-        output = visualizer.visualize_dom_content(html_content, source_name=file_path)
+        # Pass verbose flag to the internal method
+        output = visualizer.visualize_dom_content(html_content, source_name=file_path, verbose=verbose)
         return {"success": True, "output": output}
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -189,13 +193,33 @@ async def visualize_dom_hierarchy(params: dict) -> dict:
 async def visualize_dom_boxes(params: dict) -> dict:
     """Renders the DOM from a file as nested boxes."""
     file_path = params.get("file_path")
+    verbose = params.get("verbose", True)  # Check for verbose flag
     if not file_path or not os.path.exists(file_path):
         return {"success": False, "error": f"File not found: {file_path}"}
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
         visualizer = _DOMBoxVisualizer()
-        output = visualizer.visualize_dom_content(html_content, source_name=file_path)
+        # Pass verbose flag to the internal method
+        output = visualizer.visualize_dom_content(html_content, source_name=file_path, verbose=verbose)
         return {"success": True, "output": output}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+# Also, update the internal methods in the classes themselves to accept `verbose`
+# In class _DOMHierarchyVisualizer:
+def visualize_dom_content(self, html_content, source_name="DOM", verbose=True):
+    # ... existing code ...
+    if verbose:
+        self.console.print(tree)
+    return self.console.export_text()
+
+# In class _DOMBoxVisualizer:
+def visualize_dom_content(self, html_content, source_name="DOM", verbose=True):
+    # ... existing code ...
+    if root_element and hasattr(root_element, 'name'):
+        max_depth = 6 if len(soup.find_all()) > 100 else 12
+        nested_layout = self.build_nested_boxes(root_element, 0, max_depth)
+        if verbose:
+            self.console.print(nested_layout)
+    return self.console.export_text()
