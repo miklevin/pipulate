@@ -18,6 +18,8 @@ from rich.panel import Panel
 from rich.tree import Tree
 from rich.box import ROUNDED, DOUBLE, HEAVY, ASCII
 import re
+import json
+
 
 # This makes the 'tools' package importable when run as a script
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -208,3 +210,96 @@ async def visualize_dom_boxes(params: dict) -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
+class _AXTreeSummarizer:
+    """Parses a raw accessibility tree JSON into a simplified text outline."""
+
+    def __init__(self):
+        self.output_lines = []
+        self.node_map = {}
+
+    def _walk_node(self, node_id: str, level: int = 0):
+        """Recursively walks the accessibility tree and builds the summary."""
+        node = self.node_map.get(node_id)
+        if not node or node.get("ignored", False):
+            return
+
+        indent = "  " * level
+        role = node.get("role", {}).get("value", "unknown")
+        name = node.get("name", {}).get("value", "").strip()
+
+        # Build the core description line
+        line = f"{indent}[{role}]"
+
+        # Add important properties to the description
+        properties = []
+        for prop in node.get("properties", []):
+            if prop.get("name") == "level": # For headings
+                properties.append(f"level: {prop['value']['value']}")
+            if prop.get("name") == "url": # For links
+                properties.append(f"url: {prop['value']['value']}")
+        
+        if properties:
+            line += f" ({', '.join(properties)})"
+
+        if name:
+            line += f' "{name}"'
+
+        self.output_lines.append(line)
+
+        # Recurse through children
+        for child_id in node.get("childIds", []):
+            self._walk_node(child_id, level + 1)
+
+
+    def summarize_tree(self, ax_tree_data: dict) -> str:
+        """
+        Processes the full accessibility tree data and returns the summary.
+        
+        Args:
+            ax_tree_data: The loaded JSON data from an accessibility_tree.json file.
+
+        Returns:
+            A string containing the formatted, indented semantic outline.
+        """
+        nodes = ax_tree_data.get("accessibility_tree", [])
+        if not nodes:
+            return "No accessibility nodes found in the provided file."
+
+        # Create a map for quick node lookup by ID
+        self.node_map = {node["nodeId"]: node for node in nodes}
+        
+        # Find the root node(s) (nodes without a parentId)
+        root_ids = [node["nodeId"] for node in nodes if "parentId" not in node]
+
+        if not root_ids:
+             # Fallback for trees that might not have a clear root defined
+            if nodes: root_ids = [nodes[0]['nodeId']]
+            else: return "Could not determine the root of the accessibility tree."
+
+        for root_id in root_ids:
+            self._walk_node(root_id)
+            
+        return "\n".join(self.output_lines)
+
+
+@auto_tool
+async def summarize_accessibility_tree(params: dict) -> dict:
+    """Parses a raw accessibility_tree.json file into a simplified text outline."""
+    file_path = params.get("file_path")
+    if not file_path or not os.path.exists(file_path):
+        return {"success": False, "error": f"File not found: {file_path}"}
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        if not data.get("success", True): # Check for success flag from scrape
+             return {"success": False, "error": f"Accessibility tree file indicates a previous failure: {data.get('error')}"}
+
+        summarizer = _AXTreeSummarizer()
+        summary_output = summarizer.summarize_tree(data)
+        
+        return {"success": True, "output": summary_output}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
