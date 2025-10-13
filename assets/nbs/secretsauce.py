@@ -25,9 +25,30 @@ FAQ_DATA_STEP = "faq_data"
 FINAL_DATAFRAME_STEP = "final_dataframe"
 EXPORT_FILE_STEP = "export_file_path"
 
-# --- WORKFLOW FUNCTIONS ---
-# cache_url_responses, and extract_webpage_data remain unchanged.
-# In Notebooks/secretsauce.py
+
+def _get_urls_from_notebook(notebook_filename="FAQuilizer.ipynb"):
+    """Parses a notebook file to extract URLs from the 'url-list-input' tagged cell."""
+    try:
+        # Assuming the notebook is in the same directory as this script
+        notebook_path = Path(__file__).parent / notebook_filename
+        with open(notebook_path, 'r', encoding='utf-8') as f:
+            nb = nbformat.read(f, as_version=4)
+        
+        for cell in nb.cells:
+            if "url-list-input" in cell.metadata.get("tags", []):
+                urls_raw = cell.source
+                urls = [
+                    line.split('#')[0].strip() 
+                    for line in urls_raw.splitlines() 
+                    if line.strip() and not line.strip().startswith('#')
+                ]
+                return urls
+        return []
+    except Exception as e:
+        print(f"⚠️ Could not read URLs from notebook: {e}")
+        return []
+
+
 async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = False):
     """
     Scrapes each URL using pip.scrape() and immediately parses the HTML
@@ -35,11 +56,21 @@ async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = Fa
     """
     print("🚀 Starting browser-based scraping and extraction...")
     
+    # --- NEW: Read fresh URLs from the notebook and update the state ---
+    fresh_urls = _get_urls_from_notebook()
+    if fresh_urls:
+        print(f"✨ Found {len(fresh_urls)} URLs in the notebook.")
+        pip.set(job, URL_LIST_STEP, fresh_urls)
+    # --------------------------------------------------------------------
+
     urls_to_process = pip.get(job, URL_LIST_STEP, [])
+    if not urls_to_process:
+        print("❌ No URLs to process. Please add them to the 'url-list-input' cell in your notebook.")
+        return
+
     extracted_data = []
 
     for i, url in enumerate(urls_to_process):
-        # This line now prints for every URL, regardless of the verbose setting.
         print(f"  -> 👁️  [{i+1}/{len(urls_to_process)}] Processing: {url}")
         
         try:
@@ -49,6 +80,7 @@ async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = Fa
                 headless=headless,
                 verbose=verbose
             )
+            # ... (the rest of the function remains exactly the same) ...
 
             if not scrape_result.get("success"):
                 if verbose:
@@ -79,43 +111,10 @@ async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = Fa
                 print(f"  -> ✅ Scraped and Extracted.")
 
         except Exception as e:
-            # Always show critical errors for the specific URL that failed.
             print(f"  -> ❌ A critical error occurred while processing {url}: {e}")
 
     pip.set(job, EXTRACTED_DATA_STEP, extracted_data)
     print(f"✅ Scraping and extraction complete for {len(extracted_data)} URLs.")
-
-
-async def scrape_all_urls(job: str, headless: bool = True):
-    """
-    Iterates through the URL list from the pip state, scraping each one
-    using the advanced pip.scrape() browser automation.
-    """
-    print("🚀 Starting browser automation scrape for all URLs...")
-    urls_to_process = pip.get(job, URL_LIST_STEP, [])
-    
-    scraped_data_paths = {}
-    for url in urls_to_process:
-        print(f"  -> 👁️  Scraping: {url}")
-        try:
-            # Call the core scrape method for each URL
-            result = await pip.scrape(
-                url=url,
-                take_screenshot=True,
-                headless=headless
-            )
-            if result.get("success"):
-                scraped_data_paths[url] = result.get("looking_at_files", {})
-                print(f"  -> ✅ Success! Artifacts saved.")
-            else:
-                print(f"  -> ❌ Failed: {result.get('error')}")
-        except Exception as e:
-            print(f"  -> ❌ A critical error occurred while scraping {url}: {e}")
-    
-    # For now, we'll just confirm completion. The next step will be to use this data.
-    print("\n--- ✅ Browser automation complete! ---")
-    # We can store the paths to the results for the next step, though we won't use it yet.
-    pip.set(job, "scraped_data_paths", scraped_data_paths)
 
 
 def extract_webpage_data(job: str):
