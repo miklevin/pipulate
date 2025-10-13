@@ -146,6 +146,15 @@ async def selenium_automation(params: dict) -> dict:
                 json.dump({ "success": False, "error": str(ax_error) }, f, indent=2)
             artifacts['accessibility_tree'] = str(ax_tree_path)
 
+        logger.info("📄 Summarizing accessibility tree...")
+        summary_result = await dom_tools.summarize_accessibility_tree({"file_path": str(ax_tree_path)})
+        if summary_result.get("success"):
+            summary_path = output_dir / "accessibility_tree_summary.txt"
+            summary_path.write_text(summary_result["output"], encoding='utf-8')
+            artifacts['accessibility_tree_summary'] = str(summary_path)
+            logger.success("✅ Accessibility tree summary saved.")
+        else:
+            logger.warning(f"⚠️ Could not summarize accessibility tree: {summary_result.get('error')}")
 
         logger.success(f"✅ Scrape successful for {url}")
         return {"success": True, "looking_at_files": artifacts}
