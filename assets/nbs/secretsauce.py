@@ -1,4 +1,4 @@
-# secretsauce.py (version 2.3 - Full Transparency)
+# secretsauce.py (version 2.4 - State Fix)
 # This module contains the implementation details for a 1-to-many AI enrichment workflow.
 
 from pipulate import pip
@@ -10,6 +10,8 @@ from io import StringIO
 import json
 from sqlitedict import SqliteDict
 import asyncio
+import nbformat
+from pathlib import Path
 
 # --- CONFIGURATION ---
 CACHE_DB_FILE = "url_cache.sqlite"
