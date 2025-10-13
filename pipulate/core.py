@@ -1937,20 +1937,17 @@ class Pipulate:
             current_path = current_path.parent
         return None
 
-    def nbup(self, notebook_filename: str):
+    def nbup(self, notebook_filename: str, modules: tuple = None):
         """
-        Cleans and syncs a notebook from the working 'Notebooks/' directory back to the
-        version-controlled 'assets/nbs/' template directory.
-
-        This version includes logic to automatically find and remove the cell
-        containing the 'pip.nbup(...)' call to prevent circular poisoning of the template.
+        Cleans and syncs a notebook and optionally its associated Python modules
+        from the working 'Notebooks/' directory back to the version-controlled
+        'assets/nbs/' template directory.
         """
         # Import necessary libraries inside the function
         import nbformat
         from pathlib import Path
         import os
-
-        print(f"🔄 Syncing '{notebook_filename}' back to templates...")
+        import shutil
 
         # 1. Find the project root in a portable way
         project_root = self._find_project_root(os.getcwd())
@@ -1958,47 +1955,61 @@ class Pipulate:
             print("❌ Error: Could not find project root (flake.nix). Cannot sync.")
             return
 
-        # 2. Define source and destination paths robustly
-        source_path = project_root / "Notebooks" / notebook_filename
-        dest_path = project_root / "assets" / "nbs" / notebook_filename
+        # --- Notebook Sync Logic ---
+        print(f"🔄 Syncing notebook '{notebook_filename}'...")
+        notebook_source_path = project_root / "Notebooks" / notebook_filename
+        notebook_dest_path = project_root / "assets" / "nbs" / notebook_filename
 
-        if not source_path.exists():
-            print(f"❌ Error: Source file not found at '{source_path}'")
-            return
+        if not notebook_source_path.exists():
+            print(f"❌ Error: Source notebook not found at '{notebook_source_path}'")
+            # Continue to module sync even if notebook is missing, in case that's all the user wants
+        else:
+            try:
+                with open(notebook_source_path, 'r', encoding='utf-8') as f:
+                    nb = nbformat.read(f, as_version=4)
 
-        try:
-            # 3. Read the "dirty" notebook using nbformat
-            with open(source_path, 'r', encoding='utf-8') as f:
-                nb = nbformat.read(f, as_version=4)
+                original_cell_count = len(nb.cells)
+                pruned_cells = [
+                    cell for cell in nb.cells if 'pip.nbup' not in cell.source
+                ]
+                
+                if len(pruned_cells) < original_cell_count:
+                    print("✂️  Auto-pruned the 'pip.nbup()' command cell from the template.")
+                
+                nb.cells = pruned_cells
 
-            # 4. --- NEW: Auto-prune the 'pip.nbup()' cell ---
-            original_cell_count = len(nb.cells)
-            # Create a new list of cells, excluding any that contain the sync command.
-            pruned_cells = [
-                cell for cell in nb.cells
-                if 'pip.nbup' not in cell.source
-            ]
-            
-            if len(pruned_cells) < original_cell_count:
-                print("✂️  Auto-pruned the 'pip.nbup()' command cell from the template.")
-            
-            # Replace the notebook's cells with the clean, pruned list.
-            nb.cells = pruned_cells
+                for cell in nb.cells:
+                    if cell.cell_type == 'code':
+                        cell.outputs.clear()
+                        cell.execution_count = None
+                        if 'metadata' in cell and 'execution' in cell.metadata:
+                            del cell.metadata['execution']
 
-            # 5. Clean outputs and execution counts from the remaining cells
-            for cell in nb.cells:
-                if cell.cell_type == 'code':
-                    cell.outputs.clear()
-                    cell.execution_count = None
-                    if 'metadata' in cell and 'execution' in cell.metadata:
-                        del cell.metadata['execution']
+                with open(notebook_dest_path, 'w', encoding='utf-8') as f:
+                    nbformat.write(nb, f)
 
-            # 6. Write the clean, pruned notebook to the destination
-            with open(dest_path, 'w', encoding='utf-8') as f:
-                nbformat.write(nb, f)
+                print(f"✅ Success! Notebook '{notebook_filename}' has been cleaned and synced.")
 
-            print(f"✅ Success! '{notebook_filename}' has been cleaned and synced to:")
-            print(f"   {dest_path}")
+            except Exception as e:
+                print(f"❌ An error occurred during the notebook sync process: {e}")
 
-        except Exception as e:
-            print(f"❌ An error occurred during the sync process: {e}")
+        # --- NEW: Module Sync Logic ---
+        if modules:
+            print("\n--- Syncing Associated Modules ---")
+            # Ensure modules is iterable even if a single string is passed
+            if isinstance(modules, str):
+                modules = (modules,)
+
+            for module_name in modules:
+                module_filename = f"{module_name}.py"
+                module_source_path = project_root / "Notebooks" / module_filename
+                module_dest_path = project_root / "assets" / "nbs" / module_filename
+
+                if module_source_path.exists():
+                    try:
+                        shutil.copy2(module_source_path, module_dest_path)
+                        print(f"🧬 Synced module: '{module_filename}'")
+                    except Exception as e:
+                        print(f"❌ Error syncing module '{module_filename}': {e}")
+                else:
+                    print(f"⚠️ Warning: Module file not found, skipping sync: '{module_source_path}'")
