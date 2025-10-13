@@ -2057,3 +2057,34 @@ class Pipulate:
                 print("✅ Google AI configured successfully.")
             except Exception as e:
                 print(f"❌ Failed to configure Google AI. Is the key correct? Error: {e}")
+
+    def prompt(self, prompt_text: str, model_name: str = 'gemini-2.5-flash'):
+        """
+        Sends a simple, one-shot prompt to the configured AI model and returns the response.
+        This is a bare-minimum implementation for demonstration, not a chat system.
+        """
+        if not GOOGLE_AI_AVAILABLE:
+            error_msg = "❌ Error: The 'google-generativeai' package is not installed."
+            print(error_msg)
+            return error_msg
+
+        print(f"🤖 Sending prompt to {model_name}...")
+
+        try:
+            # Instantiate the model for this specific call
+            model = genai.GenerativeModel(model_name)
+            
+            # Send the prompt and get the response
+            response = model.generate_content(prompt_text)
+            
+            # Extract and return the text
+            response_text = response.text.strip()
+            print("✅ AI response received.")
+            return response_text
+
+        except Exception as e:
+            # Catch common errors like authentication failure or model not found
+            error_msg = f"❌ AI prompt failed: {e}"
+            print(error_msg)
+            print("   Did you remember to run pip.api_key(job) in a previous cell?")
+            return error_msg
