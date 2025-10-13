@@ -20,6 +20,13 @@ import imports.server_logging as slog
 
 log = slog.LogManager(logger)
 
+import getpass
+try:
+    import google.generativeai as genai
+    GOOGLE_AI_AVAILABLE = True
+except ImportError:
+    GOOGLE_AI_AVAILABLE = False
+
 
 def title_name(word: str) -> str:
     """Format a string into a title case form."""
@@ -2013,3 +2020,40 @@ class Pipulate:
                         print(f"❌ Error syncing module '{module_filename}': {e}")
                 else:
                     print(f"⚠️ Warning: Module file not found, skipping sync: '{module_source_path}'")
+
+    def api_key(self, job: str, service: str = 'google'):
+        """
+        Handles getting, storing, and configuring an API key for a given service.
+        For now, it's hard-wired for Google AI as an 80/20 solution.
+        """
+        if service.lower() != 'google':
+            print(f"⚠️ Service '{service}' not yet supported. Only 'google' is currently configured.")
+            return
+
+        if not GOOGLE_AI_AVAILABLE:
+            print("❌ Error: The 'google-generativeai' package is not installed.")
+            print("   Please run: pip install google-generativeai")
+            return
+
+        # Use a specific key in the job's state to store the API key
+        api_key_step = "google_api_key"
+
+        api_key = self.get(job, api_key_step)
+
+        if not api_key:
+            try:
+                prompt_message = "Enter your Google AI API Key: "
+                api_key = getpass.getpass(prompt_message)
+                self.set(job, api_key_step, api_key)
+                print("✅ API Key received and stored for this job session.")
+            except Exception as e:
+                # getpass can fail in some environments like Google Colab without TTY
+                print(f"❌ Could not prompt for API key in this environment: {e}")
+                return
+
+        if api_key:
+            try:
+                genai.configure(api_key=api_key)
+                print("✅ Google AI configured successfully.")
+            except Exception as e:
+                print(f"❌ Failed to configure Google AI. Is the key correct? Error: {e}")
