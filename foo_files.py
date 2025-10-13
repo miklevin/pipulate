@@ -1,9 +1,22 @@
 FILES_TO_INCLUDE_RAW = """\
+/home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
 /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
 /home/mike/repos/pipulate/Notebooks/secretsauce.py
 /home/mike/repos/pipulate/pipulate/core.py
 /home/mike/repos/pipulate/tools/scraper_tools.py
 /home/mike/repos/pipulate/tools/dom_tools.py
+/home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/accessibility_tree.json
+/home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/dom_hierarchy.txt
+/home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/dom_layout_boxes.txt
+/home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/rendered_dom.html
+/home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/response_headers.json
+/home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/source_html.html
+/home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/accessibility_tree.json
+/home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/dom_hierarchy.txt
+/home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/dom_layout_boxes.txt
+/home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/rendered_dom.html
+/home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/response_headers.json
+/home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/source_html.html
 """
 # /home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
 # /home/mike/repos/pipulate/Notebooks/Hello_AI.ipynb
