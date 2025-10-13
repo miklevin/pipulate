@@ -1941,6 +1941,9 @@ class Pipulate:
         """
         Cleans and syncs a notebook from the working 'Notebooks/' directory back to the
         version-controlled 'assets/nbs/' template directory.
+
+        This version includes logic to automatically find and remove the cell
+        containing the 'pip.nbup(...)' call to prevent circular poisoning of the template.
         """
         # Import necessary libraries inside the function
         import nbformat
@@ -1968,16 +1971,29 @@ class Pipulate:
             with open(source_path, 'r', encoding='utf-8') as f:
                 nb = nbformat.read(f, as_version=4)
 
-            # 4. Clean the notebook object (the "nbstripout" logic)
+            # 4. --- NEW: Auto-prune the 'pip.nbup()' cell ---
+            original_cell_count = len(nb.cells)
+            # Create a new list of cells, excluding any that contain the sync command.
+            pruned_cells = [
+                cell for cell in nb.cells
+                if 'pip.nbup' not in cell.source
+            ]
+            
+            if len(pruned_cells) < original_cell_count:
+                print("✂️  Auto-pruned the 'pip.nbup()' command cell from the template.")
+            
+            # Replace the notebook's cells with the clean, pruned list.
+            nb.cells = pruned_cells
+
+            # 5. Clean outputs and execution counts from the remaining cells
             for cell in nb.cells:
                 if cell.cell_type == 'code':
                     cell.outputs.clear()
                     cell.execution_count = None
-                    # Optionally clear other transient metadata if needed
                     if 'metadata' in cell and 'execution' in cell.metadata:
                         del cell.metadata['execution']
 
-            # 5. Write the "clean" notebook to the destination
+            # 6. Write the clean, pruned notebook to the destination
             with open(dest_path, 'w', encoding='utf-8') as f:
                 nbformat.write(nb, f)
 
