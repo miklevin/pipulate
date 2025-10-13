@@ -35,9 +35,12 @@ whitelabel.txt
 .venv/
 __pycache__/
 .sesskey
-hello_world.ipynb
-workflow.ipynb
-secretsauce.py
+
+# User-facing notebooks generated on first run
+/Notebooks/Hello_AI.ipynb
+/Notebooks/AI_Scrape.ipynb
+/Notebooks/FAQuilizer.ipynb
+/Notebooks/secretsauce.py
 
 # Python packaging and build artifacts
 build/
