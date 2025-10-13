@@ -219,37 +219,42 @@ class _AXTreeSummarizer:
         self.node_map = {}
 
     def _walk_node(self, node_id: str, level: int = 0):
-        """Recursively walks the accessibility tree and builds the summary."""
-        node = self.node_map.get(node_id)
-        if not node or node.get("ignored", False):
-            return
+            """Recursively walks the tree, skipping ignored containers but processing their children."""
+            node = self.node_map.get(node_id)
+            if not node:
+                return
 
-        indent = "  " * level
-        role = node.get("role", {}).get("value", "unknown")
-        name = node.get("name", {}).get("value", "").strip()
+            is_ignored = node.get("ignored", False)
 
-        # Build the core description line
-        line = f"{indent}[{role}]"
+            # Only process and print the node if it's NOT ignored.
+            if not is_ignored:
+                indent = "  " * level
+                role = node.get("role", {}).get("value", "unknown")
+                name = node.get("name", {}).get("value", "").strip()
 
-        # Add important properties to the description
-        properties = []
-        for prop in node.get("properties", []):
-            if prop.get("name") == "level": # For headings
-                properties.append(f"level: {prop['value']['value']}")
-            if prop.get("name") == "url": # For links
-                properties.append(f"url: {prop['value']['value']}")
-        
-        if properties:
-            line += f" ({', '.join(properties)})"
+                line = f"{indent}[{role}]"
 
-        if name:
-            line += f' "{name}"'
+                properties = []
+                for prop in node.get("properties", []):
+                    if prop.get("name") == "level":
+                        properties.append(f"level: {prop['value']['value']}")
+                    if prop.get("name") == "url":
+                        properties.append(f"url: {prop['value']['value']}")
 
-        self.output_lines.append(line)
+                if properties:
+                    line += f" ({', '.join(properties)})"
 
-        # Recurse through children
-        for child_id in node.get("childIds", []):
-            self._walk_node(child_id, level + 1)
+                if name:
+                    line += f' "{name}"'
+
+                self.output_lines.append(line)
+
+            # ALWAYS recurse, but adjust the indentation level.
+            # If the current node was ignored, its children stay at the same level.
+            # If it was printed, its children are indented.
+            next_level = level if is_ignored else level + 1
+            for child_id in node.get("childIds", []):
+                self._walk_node(child_id, next_level)
 
 
     def summarize_tree(self, ax_tree_data: dict) -> str:
