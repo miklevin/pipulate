@@ -12,6 +12,7 @@ from sqlitedict import SqliteDict
 import asyncio
 import nbformat
 from pathlib import Path
+import re 
 
 # --- CONFIGURATION ---
 CACHE_DB_FILE = "url_cache.sqlite"
@@ -26,6 +27,22 @@ EXTRACTED_DATA_STEP = "extracted_data"
 FAQ_DATA_STEP = "faq_data"
 FINAL_DATAFRAME_STEP = "final_dataframe"
 EXPORT_FILE_STEP = "export_file_path"
+
+
+def _get_prompt_from_notebook(notebook_filename="FAQuilizer.ipynb"):
+    """Parses a notebook file to extract the prompt from the 'prompt-input' tagged cell."""
+    try:
+        notebook_path = Path(__file__).parent / notebook_filename
+        with open(notebook_path, 'r', encoding='utf-8') as f:
+            nb = nbformat.read(f, as_version=4)
+        
+        for cell in nb.cells:
+            if "prompt-input" in cell.metadata.get("tags", []):
+                return cell.source
+        return None # Return None if the tag isn't found
+    except Exception as e:
+        print(f"⚠️ Could not read prompt from notebook: {e}")
+        return None
 
 
 def _get_urls_from_notebook(notebook_filename="FAQuilizer.ipynb"):
@@ -151,19 +168,57 @@ def extract_webpage_data(job: str):
 
 
 def generate_faqs(job: str):
-    """Generates 5 FAQs for each URL using a dynamic prompt template."""
+    """
+    Generates FAQs by wrapping a user-editable prompt from the notebook
+    inside a robust system prompt to ensure valid JSON output.
+    """
     extracted_data = pip.get(job, EXTRACTED_DATA_STEP, [])
     faq_data = pip.get(job, FAQ_DATA_STEP, [])
     processed_urls = {item.get('url') for item in faq_data}
 
     print(f"🧠 Generating FAQs... {len(processed_urls)} of {len(extracted_data)} URLs already complete.")
 
-    try:
-        with open(PROMPT_TEMPLATE_FILE, 'r') as f:
-            prompt_template = f.read()
-    except FileNotFoundError:
-        print(f"❌ Error: Prompt file '{PROMPT_TEMPLATE_FILE}' not found. Please create it.")
+    # Get the user's instructions from the notebook cell
+    user_prompt_instructions = _get_prompt_from_notebook()
+    if not user_prompt_instructions:
+        print("❌ Error: Prompt not found in 'prompt-input' cell of the notebook.")
         return
+
+    # Define the robust system prompt that wraps the user's input
+    system_prompt_wrapper = """
+Your task is to analyze webpage data and generate a structured JSON object.
+Your output must be **only a single, valid JSON object inside a markdown code block** and nothing else. Adherence to the schema is critical.
+
+--- START USER INSTRUCTIONS ---
+
+{user_instructions}
+
+--- END USER INSTRUCTIONS ---
+
+**Input Data:**
+
+--- WEBPAGE DATA BEGIN ---
+{webpage_data}
+--- WEBPAGE DATA END ---
+
+**Final Instructions:**
+
+Based *only* on the provided webpage data and the user instructions, generate the requested data.
+Remember, your entire output must be a single JSON object in a markdown code block. Do not include any text or explanation outside of this block.
+
+The JSON object must conform to the following schema:
+
+{{
+  "faqs": [
+    {{
+      "priority": "integer (1-5, 1 is highest)",
+      "question": "string (The generated question)",
+      "target_intent": "string (What is the user's goal in asking this?)",
+      "justification": "string (Why is this a valuable question to answer? e.g., sales, seasonal, etc.)"
+    }}
+  ]
+}}
+"""
 
     try:
         model = genai.GenerativeModel('gemini-2.5-flash')
@@ -175,14 +230,29 @@ def generate_faqs(job: str):
             print(f"  -> Generating FAQs for {url}...")
             
             webpage_data_str = json.dumps(item, indent=2)
-            full_prompt = prompt_template.replace("{webpage_data}", webpage_data_str)
+            
+            # Construct the final prompt by injecting the user instructions and webpage data
+            full_prompt = system_prompt_wrapper.format(
+                user_instructions=user_prompt_instructions,
+                webpage_data=webpage_data_str
+            )
             
             try:
                 ai_response = model.generate_content(full_prompt)
-                response_text = ai_response.text.strip().replace("```json", "").replace("```", "")
-                faq_json = json.loads(response_text)
                 
-                for faq in faq_json['faqs']:
+                # Robustly clean the response to extract JSON from the markdown block
+                response_text = ai_response.text.strip()
+                json_match = re.search(r"```json\n(.*?)\n```", response_text, re.DOTALL)
+                
+                if json_match:
+                    clean_json = json_match.group(1)
+                else:
+                    # If no markdown block, assume the whole response is the JSON
+                    clean_json = response_text
+
+                faq_json = json.loads(clean_json)
+                
+                for faq in faq_json.get('faqs', []):
                     flat_record = {
                         'url': item.get('url'),
                         'title': item.get('title'),
@@ -195,10 +265,12 @@ def generate_faqs(job: str):
                 
                 processed_urls.add(url)
                 pip.set(job, FAQ_DATA_STEP, faq_data)
-                print(f"  -> ✅ Successfully generated 5 FAQs for {url}")
+                print(f"  -> ✅ Successfully generated FAQs for {url}")
 
-            except (json.JSONDecodeError, KeyError, Exception) as e:
+            except (json.JSONDecodeError, KeyError, AttributeError, Exception) as e:
                 print(f"❌ AI processing or parsing failed for '{url}': {e}")
+                if 'ai_response' in locals():
+                    print(f"    RAW AI RESPONSE:\n---\n{ai_response.text}\n---")
 
     except Exception as e:
         print(f"❌ Could not initialize AI model. Is your API key correct? Error: {e}")
