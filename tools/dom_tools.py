@@ -69,7 +69,6 @@ class _DOMHierarchyVisualizer:
         root_element = soup.find('html') or soup
         if root_element and hasattr(root_element, 'name'):
             self.build_tree_structure(root_element, tree, 0)
-        self.console.print(tree)
         if verbose:
             self.console.print(tree)
         return self.console.export_text()
