@@ -63,13 +63,15 @@ class _DOMHierarchyVisualizer:
             if hasattr(child, 'name') and child.name:
                 self.build_tree_structure(child, current_node, level + 1)
 
-    def visualize_dom_content(self, html_content, source_name="DOM"):
+    def visualize_dom_content(self, html_content, source_name="DOM", verbose=True):
         soup = BeautifulSoup(html_content, 'html.parser')
         tree = Tree(Text("🌐 Document Root", style="bold white"), style="dim")
         root_element = soup.find('html') or soup
         if root_element and hasattr(root_element, 'name'):
             self.build_tree_structure(root_element, tree, 0)
         self.console.print(tree)
+        if verbose:
+            self.console.print(tree)
         return self.console.export_text()
 
 class _DOMBoxVisualizer:
@@ -160,13 +162,14 @@ class _DOMBoxVisualizer:
         
         return Panel(panel_content, title=title, border_style=self.get_color_for_level(level), box=self.get_box_style_for_level(level), padding=(0, 1), width=calculated_width)
 
-    def visualize_dom_content(self, html_content, source_name="DOM"):
+    def visualize_dom_content(self, html_content, source_name="DOM", verbose=True):
         soup = BeautifulSoup(html_content, 'html.parser')
         root_element = soup.find('html') or soup
         if root_element and hasattr(root_element, 'name'):
             max_depth = 6 if len(soup.find_all()) > 100 else 12
             nested_layout = self.build_nested_boxes(root_element, 0, max_depth)
-            self.console.print(nested_layout)
+            if verbose:
+                self.console.print(nested_layout)
         return self.console.export_text()
 
 
@@ -206,20 +209,3 @@ async def visualize_dom_boxes(params: dict) -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-# Also, update the internal methods in the classes themselves to accept `verbose`
-# In class _DOMHierarchyVisualizer:
-def visualize_dom_content(self, html_content, source_name="DOM", verbose=True):
-    # ... existing code ...
-    if verbose:
-        self.console.print(tree)
-    return self.console.export_text()
-
-# In class _DOMBoxVisualizer:
-def visualize_dom_content(self, html_content, source_name="DOM", verbose=True):
-    # ... existing code ...
-    if root_element and hasattr(root_element, 'name'):
-        max_depth = 6 if len(soup.find_all()) > 100 else 12
-        nested_layout = self.build_nested_boxes(root_element, 0, max_depth)
-        if verbose:
-            self.console.print(nested_layout)
-    return self.console.export_text()
