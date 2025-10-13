@@ -27,32 +27,37 @@ EXPORT_FILE_STEP = "export_file_path"
 
 # --- WORKFLOW FUNCTIONS ---
 # cache_url_responses, and extract_webpage_data remain unchanged.
-
-# Add this new function to Notebooks/secretsauce.py
-
-async def scrape_and_extract(job: str, headless: bool = True):
+async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = False):
     """
-    Replaces both caching and extracting. Scrapes each URL using pip.scrape()
-    and then immediately parses the resulting HTML to extract SEO data.
+    Scrapes each URL using pip.scrape() and immediately parses the HTML
+    to extract key SEO data. Verbosity is now controllable.
     """
-    print("🚀 Starting browser-based scraping and extraction...")
+    if verbose:
+        print("🚀 Starting browser-based scraping and extraction...")
+    
     urls_to_process = pip.get(job, URL_LIST_STEP, [])
     extracted_data = []
 
     for url in urls_to_process:
-        print(f"  -> 👁️  Processing: {url}")
+        if verbose:
+            print(f"  -> 👁️  Processing: {url}")
         try:
-            # 1. Scrape the URL using the new browser automation engine
-            scrape_result = await pip.scrape(url=url, take_screenshot=True, headless=headless)
+            scrape_result = await pip.scrape(
+                url=url,
+                take_screenshot=True,
+                headless=headless,
+                verbose=verbose # <-- Add this line
+            )
 
             if not scrape_result.get("success"):
-                print(f"  -> ❌ Scrape failed: {scrape_result.get('error')}")
+                if verbose:
+                    print(f"  -> ❌ Scrape failed: {scrape_result.get('error')}")
                 continue
 
-            # 2. Immediately parse the result from the file-based cache
             dom_path = scrape_result.get("looking_at_files", {}).get("rendered_dom")
             if not dom_path:
-                print(f"  -> ⚠️ Scrape succeeded, but no DOM file was found.")
+                if verbose:
+                    print(f"  -> ⚠️ Scrape succeeded, but no DOM file was found.")
                 continue
 
             with open(dom_path, 'r', encoding='utf-8') as f:
@@ -69,14 +74,15 @@ async def scrape_and_extract(job: str, headless: bool = True):
                 'url': url, 'title': title, 'meta_description': meta_description,
                 'h1s': h1s, 'h2s': h2s
             })
-            print(f"  -> ✅ Scraped and Extracted.")
+            if verbose:
+                print(f"  -> ✅ Scraped and Extracted.")
 
         except Exception as e:
-            print(f"  -> ❌ A critical error occurred while processing {url}: {e}")
+            if verbose:
+                print(f"  -> ❌ A critical error occurred while processing {url}: {e}")
 
-    # 3. Save the final extracted data to the pip state
     pip.set(job, EXTRACTED_DATA_STEP, extracted_data)
-    print(f"\n--- ✅ Extraction complete for {len(extracted_data)} URLs! ---")
+    print(f"✅ Scraping and extraction complete for {len(extracted_data)} URLs.")
 
 
 async def scrape_all_urls(job: str, headless: bool = True):
@@ -111,35 +117,6 @@ async def scrape_all_urls(job: str, headless: bool = True):
     pip.set(job, "scraped_data_paths", scraped_data_paths)
 
 
-def cache_url_responses(job: str):
-    """
-    Iterates through URLs and caches the 'requests' response object, using a
-    common browser user agent to avoid being blocked.
-    """
-    urls_to_process = pip.get(job, URL_LIST_STEP, [])
-    # NEW: Define a standard browser header
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-    
-    print(f"🔄 Caching web responses for {len(urls_to_process)} URLs...")
-    with SqliteDict(CACHE_DB_FILE, autocommit=True) as cache:
-        processed_count = len(cache)
-        print(f"  -> Cache contains {processed_count} items.")
-        for url in urls_to_process:
-            if url in cache and isinstance(cache[url], requests.Response):
-                continue
-            try:
-                print(f"  -> Fetching and caching {url}...")
-                # MODIFIED: Pass the headers with the request
-                response = requests.get(url, timeout=15, headers=headers)
-                response.raise_for_status()
-                cache[url] = response
-            except requests.exceptions.RequestException as e:
-                print(f"❌ Failed to fetch {url}: {e}")
-                cache[url] = str(e)
-    print("✅ Caching complete.")
-
 def extract_webpage_data(job: str):
     """Reads from cache, extracts key SEO elements, and saves to CSV."""
     urls_to_process = pip.get(job, URL_LIST_STEP, [])
@@ -169,6 +146,7 @@ def extract_webpage_data(job: str):
         print(f"✅ Extraction complete. Intermediate data saved to '{EXTRACTED_DATA_CSV}'")
     except Exception as e:
         print(f"⚠️ Could not save intermediate CSV: {e}")
+
 
 def generate_faqs(job: str):
     """Generates 5 FAQs for each URL using a dynamic prompt template."""
@@ -271,90 +249,3 @@ def export_to_excel(job: str):
         print(f"❌ Failed to export to Excel: {e}")
 
 
-# START: test_advanced_scrape
-async def test_advanced_scrape(job: str, headless: bool = False):
-    """
-    NEW (Optional Test): Scrapes the FIRST URL from the list using the advanced
-    pip.scrape() browser automation to capture a full set of artifacts.
-    """
-    print("\n--- 🧪 Starting Advanced Scrape Test Flight ---")
-    urls_to_process = pip.get(job, URL_LIST_STEP, [])
-    if not urls_to_process:
-        print("  -> No URLs found to test. Skipping.")
-        return
-    url_to_test = urls_to_process[0]
-    print(f"  -> Target: {url_to_test}")
-    print(f"  -> Headless Mode: {headless}")
-
-    # This is the call to the powerful, Selenium-based scraper
-    # exposed through the pipulate library, now with headless toggle.
-    result = await pip.scrape(url=url_to_test, take_screenshot=True, headless=headless)
-
-    if result.get('success'):
-        print(f"  -> ✅ Success! Advanced scrape complete.")
-        files_created = result.get('looking_at_files', {})
-        print("  -> Artifacts captured in 'browser_cache/looking_at/':")
-        for key, path in files_created.items():
-            if path:
-                print(f"       - {key}: {path}")
-    else:
-        print(f"  -> ❌ Failed: {result.get('error')}")
-    print("--- 🧪 Test Flight Complete ---\n")
-# END: test_advanced_scrape
-
-# Replace the old faquilizer function with this one
-
-async def faquilizer(job: str):
-    """
-    A self-aware function that now uses the browser automation engine to
-    execute the entire end-to-end FAQ generation workflow.
-    """
-    import nbformat
-    from pathlib import Path
-    import os
-
-    print("🚀 Kicking off the self-aware FAQuilizer workflow...")
-    
-    # Helper to find the project root
-    def _find_project_root(start_path):
-        current_path = Path(start_path).resolve()
-        while current_path != current_path.parent:
-            if (current_path / 'flake.nix').exists():
-                return current_path
-            current_path = current_path.parent
-        return None
-
-    # Helper to get content from a tagged cell
-    def _get_content_from_tagged_cell(nb, tag: str) -> str | None:
-        for cell in nb.cells:
-            if tag in cell.metadata.get('tags', []):
-                return cell.source
-        return None
-
-    try:
-        project_root = _find_project_root(os.getcwd())
-        notebook_path = project_root / "Notebooks" / "FAQuilizer.ipynb"
-        
-        with open(notebook_path, 'r', encoding='utf-8') as f:
-            nb = nbformat.read(f, as_version=4)
-
-        # 1. Extract inputs from tagged cells
-        print("🔍 Reading inputs from notebook cells...")
-        prompt_text = _get_content_from_tagged_cell(nb, 'prompt-input')
-        url_list_text = _get_content_from_tagged_cell(nb, 'url-list-input')
-
-        if not prompt_text or not url_list_text:
-            print("❌ Error: Could not find cells with tags 'prompt-input' and 'url-list-input'.")
-            return
-
-        # 2. Execute the entire new workflow, step-by-step
-        print("\n--- Starting Pipeline Execution ---")
-        pip.api_key(job)
-        await scrape_and_extract(job, headless=False) # <- THE KEY CHANGE
-        generate_faqs(job)
-        display_results_log(job)
-        export_to_excel(job)
-        print("\n--- ✅ FAQuilizer Workflow Complete! ---")
-
-    except Exception as e:
-        print(f"❌ A critical error occurred in the faquilizer workflow: {e}")
