@@ -35,6 +35,7 @@ async def selenium_automation(params: dict) -> dict:
     Captures a rich set of artifacts including DOM, source, headers, screenshot,
     and visual DOM layouts as ASCII art.
     """
+    verbose = params.get("verbose", True)
     url = params.get("url")
     domain = params.get("domain")
     url_path_slug = params.get("url_path_slug")
@@ -101,7 +102,7 @@ async def selenium_automation(params: dict) -> dict:
 
         # --- Generate Visualization Artifacts ---
         logger.info(f"🎨 Generating DOM box visualization...")
-        viz_result = await dom_tools.visualize_dom_boxes({"file_path": str(dom_path)})
+        viz_result = await dom_tools.visualize_dom_boxes({"file_path": str(dom_path), "verbose": verbose})
         if viz_result.get("success"):
             viz_path = output_dir / "dom_layout_boxes.txt"
             viz_path.write_text(viz_result["output"], encoding='utf-8')
@@ -111,7 +112,7 @@ async def selenium_automation(params: dict) -> dict:
             logger.warning(f"⚠️ Could not generate DOM box visualization: {viz_result.get('error')}")
             
         logger.info(f"🌳 Generating DOM hierarchy visualization...")
-        hierarchy_viz_result = await dom_tools.visualize_dom_hierarchy({"file_path": str(dom_path)})
+        hierarchy_viz_result = await dom_tools.visualize_dom_hierarchy({"file_path": str(dom_path), "verbose": verbose}) 
         if hierarchy_viz_result.get("success"):
             hierarchy_viz_path = output_dir / "dom_hierarchy.txt"
             hierarchy_viz_path.write_text(hierarchy_viz_result["output"], encoding='utf-8')
