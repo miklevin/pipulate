@@ -1882,7 +1882,7 @@ class Pipulate:
         return state.get(step, default)
 
     # START: scrape_method
-    async def scrape(self, url: str, take_screenshot: bool = False, mode: str = 'selenium', headless: bool = True, **kwargs):
+    async def scrape(self, url: str, take_screenshot: bool = False, mode: str = 'selenium', headless: bool = True, verbose: bool = True, **kwargs):
         """
         Gives AI "eyes" by performing browser automation or HTTP requests to scrape a URL.
     
@@ -1919,6 +1919,7 @@ class Pipulate:
             "take_screenshot": take_screenshot,
             "headless": headless,
             "is_notebook_context": self.is_notebook_context, # Pass the context flag
+            "verbose": verbose,
             **kwargs # Pass through any other params
         }
     
