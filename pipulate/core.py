@@ -1976,6 +1976,17 @@ class Pipulate:
                 with open(notebook_source_path, 'r', encoding='utf-8') as f:
                     nb = nbformat.read(f, as_version=4)
 
+                for cell in nb.cells:
+                    if cell.cell_type == 'code':
+                        # This regex finds `pip.api_key(...)` and specifically targets the `key="..."` part
+                        # It replaces the key's value with None, leaving the rest of the call intact.
+                        cell.source = re.sub(
+                            r'(pip\.api_key\(.*?)key\s*=\s*["\'].*?["\'](.*?)\)',
+                            r'\1key=None\2',
+                            cell.source,
+                            flags=re.DOTALL
+                        )
+
                 original_cell_count = len(nb.cells)
                 pruned_cells = [
                     cell for cell in nb.cells if 'pip.nbup' not in cell.source
@@ -2022,10 +2033,10 @@ class Pipulate:
                 else:
                     print(f"⚠️ Warning: Module file not found, skipping sync: '{module_source_path}'")
 
-    def api_key(self, job: str, service: str = 'google'):
+    def api_key(self, job: str, service: str = 'google', key: str = None):
         """
         Handles getting, storing, and configuring an API key for a given service.
-        For now, it's hard-wired for Google AI as an 80/20 solution.
+        Can accept a key directly or prompt the user if one is not provided.
         """
         if service.lower() != 'google':
             print(f"⚠️ Service '{service}' not yet supported. Only 'google' is currently configured.")
@@ -2039,18 +2050,23 @@ class Pipulate:
         # Use a specific key in the job's state to store the API key
         api_key_step = "google_api_key"
 
-        api_key = self.get(job, api_key_step)
-
-        if not api_key:
-            try:
-                prompt_message = "Enter your Google AI API Key: "
-                api_key = getpass.getpass(prompt_message)
-                self.set(job, api_key_step, api_key)
-                print("✅ API Key received and stored for this job session.")
-            except Exception as e:
-                # getpass can fail in some environments like Google Colab without TTY
-                print(f"❌ Could not prompt for API key in this environment: {e}")
-                return
+        # Use the provided key if it exists
+        if key:
+            api_key = key
+            self.set(job, api_key_step, api_key)
+            print("✅ API Key received via parameter and stored for this job session.")
+        else:
+            # Fallback to existing logic if no key is provided
+            api_key = self.get(job, api_key_step)
+            if not api_key:
+                try:
+                    prompt_message = "Enter your Google AI API Key: "
+                    api_key = getpass.getpass(prompt_message)
+                    self.set(job, api_key_step, api_key)
+                    print("✅ API Key received via prompt and stored for this job session.")
+                except Exception as e:
+                    print(f"❌ Could not prompt for API key in this environment: {e}")
+                    return
 
         if api_key:
             try:
