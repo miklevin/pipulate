@@ -42,7 +42,11 @@ def find_project_root(start_path):
     return None
 
 project_root = find_project_root(os.getcwd()) or Path.cwd()
-DB_PATH = project_root / "Notebooks" / "pipeline.sqlite"
+data_dir = project_root / "Notebooks" / "data"
+data_dir.mkdir(exist_ok=True)
+
+# Define the explicit, user-facing database path inside the new data directory.
+DB_PATH = data_dir / "pipeline.sqlite"
 
 # Create the singleton instance that gets imported by `from pipulate import pip`.
 pip = Pipulate(db_path=str(DB_PATH))
