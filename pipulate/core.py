@@ -1978,14 +1978,13 @@ class Pipulate:
 
                 for cell in nb.cells:
                     if cell.cell_type == 'code':
-                        # This regex finds `pip.api_key(...)` and specifically targets the `key="..."` part
-                        # It replaces the key's value with None, leaving the rest of the call intact.
+                        # This simpler, safer regex finds a 'key="...value..."' argument
+                        # and replaces just the value part with None.
                         cell.source = re.sub(
-                            r'(pip\.api_key\(.*?)key\s*=\s*["\'].*?["\'](.*?)\)',
-                            r'\1key=None\2',
-                            cell.source,
-                            flags=re.DOTALL
-                        )
+                            r'(key\s*=\s*)["\'].*?["\']',
+                            r'\1None',
+                            cell.source
+                        )                
 
                 original_cell_count = len(nb.cells)
                 pruned_cells = [
