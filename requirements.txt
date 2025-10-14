@@ -45,7 +45,7 @@ arrow==1.3.0
     # via isoduration
 arxiv==2.2.0
     # via jupyter-ai
-astroid==3.3.11
+astroid==4.0.1
     # via pylint
 asttokens==3.0.0
     # via stack-data
@@ -73,11 +73,11 @@ blinker==1.6.2
     # via
     #   -r requirements.in
     #   selenium-wire
-boto3==1.40.48
+boto3==1.40.51
     # via
     #   jupyter-ai-magics
     #   langchain-aws
-botocore==1.40.48
+botocore==1.40.51
     # via
     #   boto3
     #   s3transfer
@@ -85,7 +85,7 @@ bottleneck==1.6.0
     # via langchain-google-vertexai
 brotli==1.1.0
     # via selenium-wire
-cachetools==6.2.0
+cachetools==6.2.1
     # via
     #   google-auth
     #   qianfan
@@ -168,7 +168,7 @@ executing==2.2.1
     # via stack-data
 faiss-cpu==1.12.0
     # via jupyter-ai
-fastavro==1.12.0
+fastavro==1.12.1
     # via cohere
 fastcore==1.8.12
     # via
@@ -252,7 +252,7 @@ google-crc32c==1.7.1
     # via
     #   google-cloud-storage
     #   google-resumable-media
-google-genai==1.42.0
+google-genai==1.43.0
     # via google-cloud-aiplatform
 google-generativeai==0.8.5
     # via
@@ -273,13 +273,14 @@ greenlet==3.2.4
     # via sqlalchemy
 grpc-google-iam-v1==0.14.2
     # via google-cloud-resource-manager
-grpcio==1.75.1
+grpcio==1.60.1
     # via
+    #   -r requirements.in
     #   google-api-core
     #   googleapis-common-protos
     #   grpc-google-iam-v1
     #   grpcio-status
-grpcio-status==1.71.2
+grpcio-status==1.60.1
     # via google-api-core
 h11==0.16.0
     # via
@@ -298,7 +299,7 @@ httplib2==0.31.0
     # via
     #   google-api-python-client
     #   google-auth-httplib2
-httptools==0.6.4
+httptools==0.7.1
     # via uvicorn
 httpx==0.28.1
     # via
@@ -329,7 +330,7 @@ hyperframe==6.1.0
     # via
     #   h2
     #   selenium-wire
-idna==3.10
+idna==3.11
     # via
     #   anyio
     #   httpx
@@ -341,7 +342,7 @@ importlib-metadata==8.7.0
     # via
     #   jupyter-ai
     #   jupyter-ai-magics
-ipykernel==6.30.1
+ipykernel==7.0.0
     # via jupyterlab
 ipython==9.6.0
     # via
@@ -357,7 +358,7 @@ ipywidgets==8.1.7
     #   jupyter-ai-magics
 isoduration==20.11.0
     # via jsonschema
-isort==6.1.0
+isort==7.0.0
     # via
     #   -r requirements.in
     #   pylint
@@ -451,7 +452,7 @@ langchain==0.3.27
     #   -r requirements.in
     #   jupyter-ai-magics
     #   langchain-community
-langchain-anthropic==0.3.21
+langchain-anthropic==0.3.22
     # via jupyter-ai-magics
 langchain-aws==0.2.35
     # via jupyter-ai-magics
@@ -462,7 +463,7 @@ langchain-community==0.3.31
     #   -r requirements.in
     #   jupyter-ai-magics
     #   langchain-cohere
-langchain-core==0.3.78
+langchain-core==0.3.79
     # via
     #   langchain
     #   langchain-anthropic
@@ -494,7 +495,7 @@ langchain-openai==0.3.35
     #   jupyter-ai-magics
 langchain-text-splitters==0.3.11
     # via langchain
-langsmith==0.4.33
+langsmith==0.4.34
     # via
     #   langchain
     #   langchain-community
@@ -563,7 +564,7 @@ nest-asyncio==1.6.0
     # via ipykernel
 notebook-shim==0.2.4
     # via jupyterlab
-numexpr==2.13.1
+numexpr==2.14.1
     # via langchain-google-vertexai
 numpy==2.3.3
     # via
@@ -590,7 +591,7 @@ onnxruntime==1.23.1
     # via
     #   -r requirements.in
     #   piper-tts
-openai==2.2.0
+openai==2.3.0
     # via langchain-openai
 openpyxl==3.1.5
     # via -r requirements.in
@@ -699,7 +700,7 @@ pycparser==2.23
     # via cffi
 pycryptodome==3.23.0
     # via bce-python-sdk
-pydantic==2.12.0
+pydantic==2.12.1
     # via
     #   ai21
     #   anthropic
@@ -723,7 +724,7 @@ pydantic==2.12.0
     #   pydantic-settings
     #   qianfan
     #   together
-pydantic-core==2.41.1
+pydantic-core==2.41.3
     # via
     #   cohere
     #   pydantic
@@ -739,7 +740,7 @@ pygments==2.19.2
     #   ipython-pygments-lexers
     #   nbconvert
     #   rich
-pylint==3.3.9
+pylint==4.0.0
     # via -r requirements.in
 pyopenssl==25.3.0
     # via selenium-wire
@@ -798,7 +799,7 @@ pyzmq==27.1.0
     #   jupyter-server
 qianfan==0.4.12.3
     # via jupyter-ai-magics
-referencing==0.36.2
+referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
@@ -838,7 +839,7 @@ rfc3986-validator==0.1.1
     #   jupyter-events
 rfc3987-syntax==1.1.0
     # via jsonschema
-rich==14.1.0
+rich==14.2.0
     # via
     #   -r requirements.in
     #   qianfan
@@ -891,7 +892,7 @@ sortedcontainers==2.4.0
     #   trio
 soupsieve==2.8
     # via beautifulsoup4
-sqlalchemy==2.0.43
+sqlalchemy==2.0.44
     # via
     #   langchain
     #   langchain-community
@@ -994,7 +995,6 @@ typing-extensions==4.15.0
     #   google-cloud-aiplatform
     #   google-genai
     #   google-generativeai
-    #   grpcio
     #   huggingface-hub
     #   langchain-core
     #   openai
