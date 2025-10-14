@@ -4,6 +4,7 @@
 # The pinned problems
 blinker==1.6.2
 apsw==3.50.3.0
+grpcio==1.60.1
 
 # Off the hook
 piper-tts
