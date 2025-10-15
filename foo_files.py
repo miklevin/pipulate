@@ -1,13 +1,10 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/README.md
 /home/mike/repos/pipulate/assets/installer/install.sh
 /home/mike/repos/pipulate/requirements.in
 /home/mike/repos/pipulate/requirements.txt
 /home/mike/repos/pipulate/pyproject.toml
 /home/mike/repos/pipulate/flake.nix
-/home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
 /home/mike/repos/pipulate/pipulate/core.py
-/home/mike/repos/pipulate/Notebooks/prompt.txt
 /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
 /home/mike/repos/pipulate/Notebooks/secretsauce.py
 /home/mike/repos/pipulate/tools/scraper_tools.py
@@ -301,4 +298,19 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
+
+# STEALTH
+# /home/mike/repos/pipulate/README.md
+# /home/mike/repos/pipulate/assets/installer/install.sh
+# /home/mike/repos/pipulate/requirements.in
+# /home/mike/repos/pipulate/requirements.txt
+# /home/mike/repos/pipulate/pyproject.toml
+# /home/mike/repos/pipulate/flake.nix
+# /home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/Notebooks/prompt.txt
+# /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
+# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/tools/scraper_tools.py
+# /home/mike/repos/pipulate/tools/dom_tools.py
 
