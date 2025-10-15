@@ -1946,91 +1946,119 @@ class Pipulate:
         return None
 
     def nbup(self, notebook_filename: str, modules: tuple = None):
-        """
-        Cleans and syncs a notebook and optionally its associated Python modules
-        from the working 'Notebooks/' directory back to the version-controlled
-        'assets/nbs/' template directory.
-        """
-        # Import necessary libraries inside the function
-        import nbformat
-        from pathlib import Path
-        import os
-        import shutil
+            """
+            Cleans and syncs a notebook and optionally its associated Python modules
+            from the working 'Notebooks/' directory back to the version-controlled
+            'assets/nbs/' template directory.
+            """
+            # Import necessary libraries inside the function
+            import nbformat
+            from pathlib import Path
+            import os
+            import shutil
 
-        # 1. Find the project root in a portable way
-        project_root = self._find_project_root(os.getcwd())
-        if not project_root:
-            print("❌ Error: Could not find project root (flake.nix). Cannot sync.")
-            return
+            # --- Define Sample Data for Scrubbing ---
+            SAMPLE_PROMPT_SOURCE = [
+                "**Your Role (AI Content Strategist):**\n",
+                "\n",
+                "You are an AI Content Strategist. \n",
+                "Make 5 Frequently Asked Questions for each page.\n",
+                "For each question, produce the following so it fits the data structure:\n",
+                "\n",
+                "1. priority: integer (1-5, 1 is highest)\n",
+                "2. question: string (The generated question)\n",
+                "3. target_intent: string (What is the user's goal in asking this?)\n",
+                "4. justification: string (Why is this a valuable question to answer? e.g., sales, seasonal, etc.)"
+            ]
 
-        # --- Notebook Sync Logic ---
-        print(f"🔄 Syncing notebook '{notebook_filename}'...")
-        notebook_source_path = project_root / "Notebooks" / notebook_filename
-        notebook_dest_path = project_root / "assets" / "nbs" / notebook_filename
+            SAMPLE_URL_LIST_SOURCE = [
+                "https://nixos.org/    # Linux\n",
+                "https://pypi.org/     # Python\n",
+                "https://neovim.io/    # vim\n",
+                "https://git-scm.com/ # git"
+            ]
 
-        if not notebook_source_path.exists():
-            print(f"❌ Error: Source notebook not found at '{notebook_source_path}'")
-            # Continue to module sync even if notebook is missing, in case that's all the user wants
-        else:
-            try:
-                with open(notebook_source_path, 'r', encoding='utf-8') as f:
-                    nb = nbformat.read(f, as_version=4)
+            # 1. Find the project root in a portable way
+            project_root = self._find_project_root(os.getcwd())
+            if not project_root:
+                print("❌ Error: Could not find project root (flake.nix). Cannot sync.")
+                return
 
-                for cell in nb.cells:
-                    if cell.cell_type == 'code':
-                        # This simpler, safer regex finds a 'key="...value..."' argument
-                        # and replaces just the value part with None.
-                        cell.source = re.sub(
-                            r'(key\s*=\s*)["\'].*?["\']',
-                            r'\1None',
-                            cell.source
-                        )                
+            # --- Notebook Sync Logic ---
+            print(f"🔄 Syncing notebook '{notebook_filename}'...")
+            notebook_source_path = project_root / "Notebooks" / notebook_filename
+            notebook_dest_path = project_root / "assets" / "nbs" / notebook_filename
 
-                original_cell_count = len(nb.cells)
-                pruned_cells = [
-                    cell for cell in nb.cells if 'pip.nbup' not in cell.source
-                ]
-                
-                if len(pruned_cells) < original_cell_count:
-                    print("✂️  Auto-pruned the 'pip.nbup()' command cell from the template.")
-                
-                nb.cells = pruned_cells
+            if not notebook_source_path.exists():
+                print(f"❌ Error: Source notebook not found at '{notebook_source_path}'")
+                # Continue to module sync even if notebook is missing
+            else:
+                try:
+                    with open(notebook_source_path, 'r', encoding='utf-8') as f:
+                        nb = nbformat.read(f, as_version=4)
 
-                for cell in nb.cells:
-                    if cell.cell_type == 'code':
-                        cell.outputs.clear()
-                        cell.execution_count = None
-                        if 'metadata' in cell and 'execution' in cell.metadata:
-                            del cell.metadata['execution']
+                    # --- NEW: Scrub proprietary data and replace with samples ---
+                    for cell in nb.cells:
+                        tags = cell.metadata.get("tags", [])
+                        if "prompt-input" in tags:
+                            cell.source = SAMPLE_PROMPT_SOURCE
+                            print("    ✓ Scrubbed and replaced 'prompt-input' cell.")
+                        elif "url-list-input" in tags:
+                            cell.source = SAMPLE_URL_LIST_SOURCE
+                            print("    ✓ Scrubbed and replaced 'url-list-input' cell.")
 
-                with open(notebook_dest_path, 'w', encoding='utf-8') as f:
-                    nbformat.write(nb, f)
+                    # --- Existing Cleaning Logic ---
+                    original_cell_count = len(nb.cells)
+                    pruned_cells = [
+                        cell for cell in nb.cells if 'pip.nbup' not in cell.source
+                    ]
+                    
+                    if len(pruned_cells) < original_cell_count:
+                        print("    ✓ Auto-pruned the 'pip.nbup()' command cell from the template.")
+                    
+                    nb.cells = pruned_cells
 
-                print(f"✅ Success! Notebook '{notebook_filename}' has been cleaned and synced.")
+                    for cell in nb.cells:
+                        if cell.cell_type == 'code':
+                            # Scrub API key
+                            cell.source = re.sub(
+                                r'(key\s*=\s*)["\'].*?["\']',
+                                r'\1None',
+                                cell.source
+                            )
+                            # Clear outputs and execution counts
+                            cell.outputs.clear()
+                            cell.execution_count = None
+                            if 'metadata' in cell and 'execution' in cell.metadata:
+                                del cell.metadata['execution']
 
-            except Exception as e:
-                print(f"❌ An error occurred during the notebook sync process: {e}")
+                    with open(notebook_dest_path, 'w', encoding='utf-8') as f:
+                        nbformat.write(nb, f)
 
-        # --- NEW: Module Sync Logic ---
-        if modules:
-            print("\n--- Syncing Associated Modules ---")
-            # Ensure modules is iterable even if a single string is passed
-            if isinstance(modules, str):
-                modules = (modules,)
+                    print(f"✅ Success! Notebook '{notebook_filename}' has been cleaned and synced.")
 
-            for module_name in modules:
-                module_filename = f"{module_name}.py"
-                module_source_path = project_root / "Notebooks" / module_filename
-                module_dest_path = project_root / "assets" / "nbs" / module_filename
+                except Exception as e:
+                    print(f"❌ An error occurred during the notebook sync process: {e}")
 
-                if module_source_path.exists():
-                    try:
-                        shutil.copy2(module_source_path, module_dest_path)
-                        print(f"🧬 Synced module: '{module_filename}'")
-                    except Exception as e:
-                        print(f"❌ Error syncing module '{module_filename}': {e}")
-                else:
-                    print(f"⚠️ Warning: Module file not found, skipping sync: '{module_source_path}'")
+            # --- Module Sync Logic ---
+            if modules:
+                print("\n--- Syncing Associated Modules ---")
+                if isinstance(modules, str):
+                    modules = (modules,)
+
+                for module_name in modules:
+                    module_filename = f"{module_name}.py"
+                    module_source_path = project_root / "Notebooks" / module_filename
+                    module_dest_path = project_root / "assets" / "nbs" / module_filename
+
+                    if module_source_path.exists():
+                        try:
+                            shutil.copy2(module_source_path, module_dest_path)
+                            print(f"    🧬 Synced module: '{module_filename}'")
+                        except Exception as e:
+                            print(f"    ❌ Error syncing module '{module_filename}': {e}")
+                    else:
+                        print(f"    ⚠️ Warning: Module file not found, skipping sync: '{module_source_path}'")
 
     def api_key(self, job: str, service: str = 'google', key: str = None):
         """
