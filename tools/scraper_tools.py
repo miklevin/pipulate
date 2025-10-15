@@ -85,7 +85,7 @@ async def selenium_automation(params: dict) -> dict:
         dom_path.write_text(driver.execute_script("return document.documentElement.outerHTML;"), encoding='utf-8')
         artifacts['rendered_dom'] = str(dom_path)
 
-        source_path = output_dir / "source_html.html"
+        source_path = output_dir / "source_html.text"
         source_path.write_text(driver.page_source, encoding='utf-8')
         artifacts['source_html'] = str(source_path)
 
