@@ -1961,7 +1961,7 @@ class Pipulate:
             SAMPLE_PROMPT_SOURCE = [
                 "**Your Role (AI Content Strategist):**\n",
                 "\n",
-                "You are an AI Content Strategist. \n",
+                "You are an AI Content Strategist! \n",
                 "Make 5 Frequently Asked Questions for each page.\n",
                 "For each question, produce the following so it fits the data structure:\n",
                 "\n",
@@ -1974,7 +1974,7 @@ class Pipulate:
             SAMPLE_URL_LIST_SOURCE = [
                 "https://nixos.org/    # Linux\n",
                 "https://pypi.org/     # Python\n",
-                "https://neovim.io/    # vim\n",
+                "https://neovim.io/    # nvim\n",
                 "https://git-scm.com/ # git"
             ]
 
