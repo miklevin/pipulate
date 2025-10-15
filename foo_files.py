@@ -1,22 +1,23 @@
 FILES_TO_INCLUDE_RAW = """\
-# /home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
+/home/mike/repos/pipulate/README.md
+/home/mike/repos/pipulate/assets/installer/install.sh
+/home/mike/repos/pipulate/requirements.in
+/home/mike/repos/pipulate/requirements.txt
+/home/mike/repos/pipulate/pyproject.toml
+/home/mike/repos/pipulate/flake.nix
+/home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
 /home/mike/repos/pipulate/pipulate/core.py
 /home/mike/repos/pipulate/Notebooks/prompt.txt
 /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
 /home/mike/repos/pipulate/Notebooks/secretsauce.py
-# /home/mike/repos/pipulate/tools/scraper_tools.py
-# /home/mike/repos/pipulate/tools/dom_tools.py
+/home/mike/repos/pipulate/tools/scraper_tools.py
+/home/mike/repos/pipulate/tools/dom_tools.py
 """
+
 # /home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
 # /home/mike/repos/pipulate/Notebooks/Hello_AI.ipynb
 # /home/mike/repos/pipulate/Notebooks/prompt.txt
 # /home/mike/repos/pipulate/tools/__init__.py 
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/accessibility_tree.json
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/dom_hierarchy.txt
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/dom_layout_boxes.txt
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/rendered_dom.html
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/response_headers.json
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/source_html.html
 
 #LATEST
 # /home/mike/repos/pipulate/README.md
@@ -261,10 +262,6 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/pipulate/core.py
 # /home/mike/repos/pipulate/tools/scraper_tools.py
 # /home/mike/repos/pipulate/tools/dom_tools.py
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/dom_layout_boxes.txt
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/rendered_dom.html
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/response_headers.json
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/source_html.html
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
 
 # EXPLORING __INIT__'s
@@ -279,10 +276,6 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/tools/scraper_tools.py
 # /home/mike/repos/pipulate/tools/dom_tools.py
 # /home/mike/repos/pipulate/Notebooks/open_eyes.ipynb
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/dom_layout_boxes.txt
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/rendered_dom.html
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/response_headers.json
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/source_html.html
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
 
 # NOTEBOOK EXPERIENCE
@@ -308,17 +301,4 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
-
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/accessibility_tree.json
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/dom_hierarchy.txt
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/dom_layout_boxes.txt
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/rendered_dom.html
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/response_headers.json
-# /home/mike/repos/pipulate/Notebooks/browser_cache/example.com/%2F/source_html.html
-# /home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/accessibility_tree.json
-# /home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/dom_hierarchy.txt
-# /home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/dom_layout_boxes.txt
-# /home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/rendered_dom.html
-# /home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/response_headers.json
-# /home/mike/repos/pipulate/Notebooks/browser_cache/jupyter.org/%2F/source_html.html
 
