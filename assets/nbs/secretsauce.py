@@ -76,8 +76,8 @@ async def scrape_and_extract(job: str,
                              profile_name: str = "default", 
                              delay_range: tuple = (5, 10)):
     """
-    Scrapes each URL using pip.scrape() and immediately parses the HTML
-    to extract key SEO data. Verbosity is now controllable.
+    Scrapes each URL using pip.scrape(), leveraging cached data if available,
+    and immediately parses the HTML to extract key SEO data.
     """
     print("🚀 Starting browser-based scraping and extraction...")
     
@@ -96,8 +96,9 @@ async def scrape_and_extract(job: str,
     extracted_data = []
 
     for i, url in enumerate(urls_to_process):
-        print(f"  -> 👁️  [{i+1}/{len(urls_to_process)}] Processing: {url}")
-       
+        # The logging is now cleaner, showing a distinct message for cached items.
+        # The core processing logic remains the same.
+        
         # Apply delay only AFTER the first request to avoid an unnecessary initial wait
         current_delay_range = delay_range if i > 0 else None
 
@@ -112,6 +113,14 @@ async def scrape_and_extract(job: str,
                 profile_name=profile_name,
                 delay_range=current_delay_range
             )
+            
+            # --- AESTHETIC LOGGING UPDATE ---
+            is_cached = scrape_result.get("cached", False)
+            if is_cached:
+                print(f"  -> ✅ Cached [{i+1}/{len(urls_to_process)}] Using data for: {url}")
+            else:
+                print(f"  -> 👁️  Scraped [{i+1}/{len(urls_to_process)}] New data for: {url}")
+
 
             if not scrape_result.get("success"):
                 if verbose:
@@ -138,8 +147,7 @@ async def scrape_and_extract(job: str,
                 'url': url, 'title': title, 'meta_description': meta_description,
                 'h1s': h1s, 'h2s': h2s
             })
-            if verbose:
-                print(f"  -> ✅ Scraped and Extracted.")
+            # No need for a verbose check here, the new logging is always informative.
 
         except Exception as e:
             print(f"  -> ❌ A critical error occurred while processing {url}: {e}")
