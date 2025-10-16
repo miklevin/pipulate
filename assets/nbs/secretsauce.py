@@ -206,23 +206,27 @@ def stack_em(job: str) -> pd.DataFrame:
     print(f"✅ Stacked {len(df)} pages into the initial DataFrame.")
     return df
 
-def ai_faq_em(df: pd.DataFrame) -> pd.DataFrame:
+def ai_faq_em(job: str, df: pd.DataFrame) -> pd.DataFrame:
     """
-    Enriches a DataFrame with AI-generated FAQs.
-    This is the "FAQ 'Em" step.
+    Enriches a DataFrame with AI-generated FAQs, using the pipeline state as a cache
+    to avoid re-processing URLs. This is the "FAQ 'Em" step.
     """
     if df.empty:
         print("⚠️ DataFrame is empty, skipping AI enrichment.")
         return pd.DataFrame()
 
-    print(f"🧠 Generating FAQs for {len(df)} pages...")
+    # --- IDEMPOTENCY: Load existing data and create a lookup for processed URLs ---
+    faq_data = pip.get(job, FAQ_DATA_STEP, [])
+    processed_urls = {item.get('url') for item in faq_data}
+    
+    print(f"🧠 Generating FAQs for {len(df)} pages... ({len(processed_urls)} already cached)")
 
     # Get the user's instructions from the notebook cell
     user_prompt_instructions = _get_prompt_from_notebook()
     if not user_prompt_instructions:
         print("❌ Error: Prompt not found in 'prompt-input' cell of the notebook.")
         return df
-
+    
     # This is the same robust system prompt from the previous version
     system_prompt_wrapper = """
 Your task is to analyze webpage data and generate a structured JSON object.
@@ -230,14 +234,18 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
 ... (the rest of the system prompt is unchanged) ...
 """
     
-    all_faqs = []
     try:
         model = genai.GenerativeModel('gemini-2.5-flash')
         for index, row in df.iterrows():
             url = row.get('url')
-            print(f"  -> [{index + 1}/{len(df)}] Generating FAQs for {url}...")
+
+            # --- IDEMPOTENCY CHECK ---
+            if url in processed_urls:
+                print(f"  -> ✅ Cached [{index + 1}/{len(df)}] Using existing FAQs for: {url}")
+                continue
+
+            print(f"  -> 🤖 AI Call [{index + 1}/{len(df)}] Generating new FAQs for: {url}...")
             
-            # Convert row to dictionary for the prompt
             webpage_data_dict = row.to_dict()
             webpage_data_str = json.dumps(webpage_data_dict, indent=2)
 
@@ -254,6 +262,8 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
                 clean_json = json_match.group(1) if json_match else response_text
                 faq_json = json.loads(clean_json)
                 
+                # Process and save new FAQs for this URL
+                new_faqs_for_url = []
                 for faq in faq_json.get('faqs', []):
                     flat_record = {
                         'url': url,
@@ -263,8 +273,14 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
                         'target_intent': faq.get('target_intent'),
                         'justification': faq.get('justification')
                     }
-                    all_faqs.append(flat_record)
-                print(f"  -> ✅ Successfully generated FAQs for {url}")
+                    new_faqs_for_url.append(flat_record)
+                
+                if new_faqs_for_url:
+                    faq_data.extend(new_faqs_for_url)
+                    processed_urls.add(url)
+                    # --- PERSISTENCE: Save state after each successful API call ---
+                    pip.set(job, FAQ_DATA_STEP, faq_data)
+                    print(f"  -> ✅ Success! Saved {len(new_faqs_for_url)} new FAQs for {url}")
 
             except (json.JSONDecodeError, KeyError, AttributeError, Exception) as e:
                 print(f"❌ AI processing or parsing failed for '{url}': {e}")
@@ -275,7 +291,8 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
         print(f"❌ Could not initialize AI model. Is your API key correct? Error: {e}")
 
     print("✅ FAQ generation complete.")
-    return pd.DataFrame(all_faqs)
+    # Return a dataframe from the complete, updated list
+    return pd.DataFrame(faq_data)
 
 
 def rack_em(df: pd.DataFrame) -> pd.DataFrame:
