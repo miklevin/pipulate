@@ -1,4 +1,4 @@
-# secretsauce.py (version 2.4 - State Fix)
+# secretsauce.py (version 3.0 - Refactored Workflow)
 # This module contains the implementation details for a 1-to-many AI enrichment workflow.
 
 from pipulate import pip
@@ -12,7 +12,7 @@ from sqlitedict import SqliteDict
 import asyncio
 import nbformat
 from pathlib import Path
-import re 
+import re
 
 # --- CONFIGURATION ---
 CACHE_DB_FILE = "url_cache.sqlite"
@@ -177,6 +177,116 @@ def extract_webpage_data(job: str):
         print(f"✅ Extraction complete. Intermediate data saved to '{EXTRACTED_DATA_CSV}'")
     except Exception as e:
         print(f"⚠️ Could not save intermediate CSV: {e}")
+
+
+# -----------------------------------------------------------------------------
+# NEW REFACTORED WORKFLOW: Stack 'Em, FAQ 'Em, Rack 'Em
+# -----------------------------------------------------------------------------
+
+def stack_em(job: str) -> pd.DataFrame:
+    """
+    Loads pre-scraped and extracted data for a job into a DataFrame.
+    This is the "Stack 'Em" step.
+    """
+    print("📊 Stacking pre-extracted data into a DataFrame...")
+    extracted_data = pip.get(job, EXTRACTED_DATA_STEP, [])
+    if not extracted_data:
+        print("❌ No extracted data found. Please run `scrape_and_extract` first.")
+        return pd.DataFrame()
+
+    df = pd.DataFrame(extracted_data)
+    print(f"✅ Stacked {len(df)} pages into the initial DataFrame.")
+    return df
+
+def ai_faq_em(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Enriches a DataFrame with AI-generated FAQs.
+    This is the "FAQ 'Em" step.
+    """
+    if df.empty:
+        print("⚠️ DataFrame is empty, skipping AI enrichment.")
+        return pd.DataFrame()
+
+    print(f"🧠 Generating FAQs for {len(df)} pages...")
+
+    # Get the user's instructions from the notebook cell
+    user_prompt_instructions = _get_prompt_from_notebook()
+    if not user_prompt_instructions:
+        print("❌ Error: Prompt not found in 'prompt-input' cell of the notebook.")
+        return df
+
+    # This is the same robust system prompt from the previous version
+    system_prompt_wrapper = """
+Your task is to analyze webpage data and generate a structured JSON object.
+Your output must be **only a single, valid JSON object inside a markdown code block** and nothing else. Adherence to the schema is critical.
+... (the rest of the system prompt is unchanged) ...
+"""
+    
+    all_faqs = []
+    try:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        for index, row in df.iterrows():
+            url = row.get('url')
+            print(f"  -> [{index + 1}/{len(df)}] Generating FAQs for {url}...")
+            
+            # Convert row to dictionary for the prompt
+            webpage_data_dict = row.to_dict()
+            webpage_data_str = json.dumps(webpage_data_dict, indent=2)
+
+            full_prompt = system_prompt_wrapper.format(
+                user_instructions=user_prompt_instructions,
+                webpage_data=webpage_data_str
+            )
+            
+            try:
+                ai_response = model.generate_content(full_prompt)
+                response_text = ai_response.text.strip()
+                json_match = re.search(r"```json\n(.*?)\n```", response_text, re.DOTALL)
+                
+                clean_json = json_match.group(1) if json_match else response_text
+                faq_json = json.loads(clean_json)
+                
+                for faq in faq_json.get('faqs', []):
+                    flat_record = {
+                        'url': url,
+                        'title': row.get('title'),
+                        'priority': faq.get('priority'),
+                        'question': faq.get('question'),
+                        'target_intent': faq.get('target_intent'),
+                        'justification': faq.get('justification')
+                    }
+                    all_faqs.append(flat_record)
+                print(f"  -> ✅ Successfully generated FAQs for {url}")
+
+            except (json.JSONDecodeError, KeyError, AttributeError, Exception) as e:
+                print(f"❌ AI processing or parsing failed for '{url}': {e}")
+                if 'ai_response' in locals():
+                    print(f"    RAW AI RESPONSE:\n---\n{ai_response.text}\n---")
+
+    except Exception as e:
+        print(f"❌ Could not initialize AI model. Is your API key correct? Error: {e}")
+
+    print("✅ FAQ generation complete.")
+    return pd.DataFrame(all_faqs)
+
+
+def rack_em(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Pivots or formats the FAQ data into its final spreadsheet-like structure.
+    This is the "Rack 'Em" step.
+    (Placeholder for now)
+    """
+    if df.empty:
+        print("⚠️ DataFrame is empty, skipping final processing.")
+        return pd.DataFrame()
+        
+    print("🔄 Racking the data into its final form (placeholder)...")
+    # For now, we will just return the DataFrame as is.
+    # Later, you can add pivoting, grouping, or other transformations here.
+    final_df = df.copy()
+    print("✅ Data racked.")
+    return final_df
+
 
 
 def generate_faqs(job: str):
