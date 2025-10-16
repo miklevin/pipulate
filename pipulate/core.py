@@ -1881,8 +1881,7 @@ class Pipulate:
         state = self.read_state(job)
         return state.get(step, default)
 
-    # Add persistent=False and profile_name=None to the function signature
-    async def scrape(self, url: str, take_screenshot: bool = False, mode: str = 'selenium', headless: bool = True, verbose: bool = True, persistent: bool = False, profile_name: str = "default", **kwargs):
+    async def scrape(self, url: str, take_screenshot: bool = False, mode: str = 'selenium', headless: bool = True, verbose: bool = True, persistent: bool = False, profile_name: str = "default", delay_range: tuple = None, **kwargs):
         """
         Gives AI "eyes" by performing browser automation or HTTP requests to scrape a URL.
 
@@ -1896,6 +1895,7 @@ class Pipulate:
             headless (bool): Whether to run the browser in headless mode (selenium mode only). Defaults to True.
             persistent (bool): Whether to use a persistent browser profile. Defaults to False.
             profile_name (str): The name of the persistent profile to use. Defaults to "default".
+            delay_range (tuple): A tuple (min, max) for random delay in seconds between requests.
             **kwargs: Additional parameters to pass to the underlying automation tool.
 
         Returns:
@@ -1924,6 +1924,7 @@ class Pipulate:
             "verbose": verbose,
             "persistent": persistent,
             "profile_name": profile_name,
+            "delay_range": delay_range,
             **kwargs # Pass through any other params
         }
 

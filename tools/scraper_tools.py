@@ -1,7 +1,4 @@
 # /home/mike/repos/pipulate/tools/scraper_tools.py
-import faulthandler
-faulthandler.enable()
-
 import asyncio
 import json
 import os
@@ -11,6 +8,8 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote, urlparse
+import random
+import time
 
 from loguru import logger
 import undetected_chromedriver as uc
@@ -48,16 +47,26 @@ async def selenium_automation(params: dict) -> dict:
     persistent = params.get("persistent", False)
     profile_name = params.get("profile_name", "default")
     verbose = params.get("verbose", True)
+    delay_range = params.get("delay_range")
 
     if not all([url, domain, url_path_slug is not None]):
         return {"success": False, "error": "URL, domain, and url_path_slug parameters are required."}
+
+    # --- Fuzzed Delay Logic ---
+    if delay_range and isinstance(delay_range, (tuple, list)) and len(delay_range) == 2:
+        min_delay, max_delay = delay_range
+        if isinstance(min_delay, (int, float)) and isinstance(max_delay, (int, float)) and min_delay <= max_delay:
+            delay = random.uniform(min_delay, max_delay)
+            if verbose:
+                logger.info(f"⏳ Waiting for {delay:.3f} seconds before next request...")
+            await asyncio.sleep(delay)
+        else:
+            logger.warning(f"⚠️ Invalid delay_range provided: {delay_range}. Must be a tuple of two numbers (min, max).")
 
     driver = None
     artifacts = {}
     profile_path = None
     temp_profile = False
-
-
 
     # --- Find the browser executable path ---
     browser_path = shutil.which("chromium")
