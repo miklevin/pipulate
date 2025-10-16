@@ -362,134 +362,56 @@ The JSON object must conform to the following schema:
     pip.set(job, FAQ_DATA_STEP, faq_data)
     return pd.DataFrame(faq_data)
 
-
 def rack_em(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Pivots or formats the FAQ data into its final spreadsheet-like structure.
+    Pivots and reorders the long-format FAQ data into a wide-format DataFrame.
+    Each URL gets one row, with columns for each of its generated FAQs.
     This is the "Rack 'Em" step.
-    (Placeholder for now)
     """
     if df.empty:
-        print("⚠️ DataFrame is empty, skipping final processing.")
+        print("⚠️ DataFrame is empty, skipping the pivot.")
         return pd.DataFrame()
-        
-    print("🔄 Racking the data into its final form (placeholder)...")
-    # For now, we will just return the DataFrame as is.
-    # Later, you can add pivoting, grouping, or other transformations here.
-    final_df = df.copy()
-    print("✅ Data racked.")
-    return final_df
 
+    print("🔄 Racking the data into its final wide format...")
 
+    # 1. Create a unique identifier for each FAQ within a URL group.
+    df['faq_num'] = df.groupby('url').cumcount() + 1
 
-def generate_faqs(job: str):
-    """
-    Generates FAQs by wrapping a user-editable prompt from the notebook
-    inside a robust system prompt to ensure valid JSON output.
-    """
-    extracted_data = pip.get(job, EXTRACTED_DATA_STEP, [])
-    faq_data = pip.get(job, FAQ_DATA_STEP, [])
-    processed_urls = {item.get('url') for item in faq_data}
+    # 2. Set index and unstack to pivot the data.
+    pivoted_df = df.set_index(['url', 'title', 'faq_num']).unstack(level='faq_num')
 
-    print(f"🧠 Generating FAQs... {len(processed_urls)} of {len(extracted_data)} URLs already complete.")
+    # 3. Flatten the multi-level column index.
+    pivoted_df.columns = [f'{col[0]}_{col[1]}' for col in pivoted_df.columns]
+    pivoted_df = pivoted_df.reset_index()
 
-    # Get the user's instructions from the notebook cell
-    user_prompt_instructions = _get_prompt_from_notebook()
-    if not user_prompt_instructions:
-        print("❌ Error: Prompt not found in 'prompt-input' cell of the notebook.")
-        return
+    # --- NEW: Reorder columns for readability ---
+    print("🤓 Reordering columns for logical grouping...")
 
-    # Define the robust system prompt that wraps the user's input
-    system_prompt_wrapper = """
-Your task is to analyze webpage data and generate a structured JSON object.
-Your output must be **only a single, valid JSON object inside a markdown code block** and nothing else. Adherence to the schema is critical.
+    # Identify the static columns
+    static_cols = ['url', 'title']
+    
+    # Dynamically find the stems (e.g., 'priority', 'question')
+    # This makes the code adaptable to different column names
+    stems = sorted(list(set(
+        col.rsplit('_', 1)[0] for col in pivoted_df.columns if '_' in col
+    )))
 
---- START USER INSTRUCTIONS ---
+    # Dynamically find the max FAQ number
+    num_faqs = max(
+        int(col.rsplit('_', 1)[1]) for col in pivoted_df.columns if col.rsplit('_', 1)[-1].isdigit()
+    )
 
-{user_instructions}
-
---- END USER INSTRUCTIONS ---
-
-**Input Data:**
-
---- WEBPAGE DATA BEGIN ---
-{webpage_data}
---- WEBPAGE DATA END ---
-
-**Final Instructions:**
-
-Based *only* on the provided webpage data and the user instructions, generate the requested data.
-Remember, your entire output must be a single JSON object in a markdown code block. Do not include any text or explanation outside of this block.
-
-The JSON object must conform to the following schema:
-
-{{
-  "faqs": [
-    {{
-      "priority": "integer (1-5, 1 is highest)",
-      "question": "string (The generated question)",
-      "target_intent": "string (What is the user's goal in asking this?)",
-      "justification": "string (Why is this a valuable question to answer? e.g., sales, seasonal, etc.)"
-    }}
-  ]
-}}
-"""
-
-    try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        for item in extracted_data:
-            url = item.get('url')
-            if url in processed_urls:
-                continue
-
-            print(f"  -> Generating FAQs for {url}...")
-            
-            webpage_data_str = json.dumps(item, indent=2)
-            
-            # Construct the final prompt by injecting the user instructions and webpage data
-            full_prompt = system_prompt_wrapper.format(
-                user_instructions=user_prompt_instructions,
-                webpage_data=webpage_data_str
-            )
-            
-            try:
-                ai_response = model.generate_content(full_prompt)
-                
-                # Robustly clean the response to extract JSON from the markdown block
-                response_text = ai_response.text.strip()
-                json_match = re.search(r"```json\n(.*?)\n```", response_text, re.DOTALL)
-                
-                if json_match:
-                    clean_json = json_match.group(1)
-                else:
-                    # If no markdown block, assume the whole response is the JSON
-                    clean_json = response_text
-
-                faq_json = json.loads(clean_json)
-                
-                for faq in faq_json.get('faqs', []):
-                    flat_record = {
-                        'url': item.get('url'),
-                        'title': item.get('title'),
-                        'priority': faq.get('priority'),
-                        'question': faq.get('question'),
-                        'target_intent': faq.get('target_intent'),
-                        'justification': faq.get('justification')
-                    }
-                    faq_data.append(flat_record)
-                
-                processed_urls.add(url)
-                pip.set(job, FAQ_DATA_STEP, faq_data)
-                print(f"  -> ✅ Successfully generated FAQs for {url}")
-
-            except (json.JSONDecodeError, KeyError, AttributeError, Exception) as e:
-                print(f"❌ AI processing or parsing failed for '{url}': {e}")
-                if 'ai_response' in locals():
-                    print(f"    RAW AI RESPONSE:\n---\n{ai_response.text}\n---")
-
-    except Exception as e:
-        print(f"❌ Could not initialize AI model. Is your API key correct? Error: {e}")
-    print("✅ FAQ generation complete.")
+    # Build the new column order
+    new_column_order = static_cols.copy()
+    for i in range(1, num_faqs + 1):
+        for stem in stems:
+            new_column_order.append(f'{stem}_{i}')
+    
+    # Apply the new order
+    reordered_df = pivoted_df[new_column_order]
+    
+    print("✅ Data racked and reordered successfully.")
+    return reordered_df
 
 
 def display_results_log(job: str):
