@@ -206,7 +206,7 @@ def stack_em(job: str) -> pd.DataFrame:
     print(f"✅ Stacked {len(df)} pages into the initial DataFrame.")
     return df
 
-def ai_faq_em(job: str) -> pd.DataFrame:
+def ai_faq_em(job: str, debug: bool = False) -> pd.DataFrame:
     """
     Enriches scraped data with AI-generated FAQs, using a JSON file for robust caching
     to avoid re-processing URLs. This is the "FAQ 'Em" step.
@@ -251,14 +251,43 @@ def ai_faq_em(job: str) -> pd.DataFrame:
     system_prompt_wrapper = '''
 Your task is to analyze webpage data and generate a structured JSON object.
 Your output must be **only a single, valid JSON object inside a markdown code block** and nothing else. Adherence to the schema is critical.
-... (the rest of the system prompt is unchanged) ...
+
+--- START USER INSTRUCTIONS ---
+
+{user_instructions}
+
+--- END USER INSTRUCTIONS ---
+
+**Input Data:**
+
+--- WEBPAGE DATA BEGIN ---
+{webpage_data}
+--- WEBPAGE DATA END ---
+
+**Final Instructions:**
+
+Based *only* on the provided webpage data and the user instructions, generate the requested data.
+Remember, your entire output must be a single JSON object in a markdown code block. Do not include any text or explanation outside of this block.
+
+The JSON object must conform to the following schema:
+
+{{
+  "faqs": [
+    {{
+      "priority": "integer (1-5, 1 is highest)",
+      "question": "string (The generated question)",
+      "target_intent": "string (What is the user's goal in asking this?)",
+      "justification": "string (Why is this a valuable question to answer? e.g., sales, seasonal, etc.)"
+    }}
+  ]
+}}
 '''
     # The API key is configured via pip.api_key() in the notebook.
     # This function assumes that has been run.
     
     # --- 4. Process Loop ---
     try:
-        model = genai.GenerativeModel('models/gemini-1.5-flash')
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
         for index, webpage_data_dict in enumerate(extracted_data):
             url = webpage_data_dict.get('url')
             if url in processed_urls:
@@ -274,6 +303,11 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
                     webpage_data=webpage_data_str
                 )
                 
+                if debug:
+                    print("\n--- PROMPT ---")
+                    print(full_prompt)
+                    print("--- END PROMPT ---\n")
+
                 ai_response = model.generate_content(full_prompt)
                 response_text = ai_response.text.strip()
                 json_match = re.search(r"```json\\n(.*?)\\n```", response_text, re.DOTALL)
