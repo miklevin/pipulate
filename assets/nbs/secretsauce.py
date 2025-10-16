@@ -68,15 +68,20 @@ def _get_urls_from_notebook(notebook_filename="FAQuilizer.ipynb"):
         return []
 
 
-# Add persistent and profile_name to the function signature
-async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = False, stealth: bool = True, persistent: bool = False, profile_name: str = "default"):
+async def scrape_and_extract(job: str, 
+                             headless: bool = True, 
+                             verbose: bool = False, 
+                             stealth: bool = True, 
+                             persistent: bool = False, 
+                             profile_name: str = "default", 
+                             delay_range: tuple = (5, 10)):
     """
     Scrapes each URL using pip.scrape() and immediately parses the HTML
     to extract key SEO data. Verbosity is now controllable.
     """
     print("🚀 Starting browser-based scraping and extraction...")
     
-    # --- NEW: Read fresh URLs from the notebook and update the state ---
+    # --- Read fresh URLs from the notebook and update the state ---
     fresh_urls = _get_urls_from_notebook()
     if fresh_urls:
         print(f"✨ Found {len(fresh_urls)} URLs in the notebook.")
@@ -92,7 +97,10 @@ async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = Fa
 
     for i, url in enumerate(urls_to_process):
         print(f"  -> 👁️  [{i+1}/{len(urls_to_process)}] Processing: {url}")
-        
+       
+        # Apply delay only AFTER the first request to avoid an unnecessary initial wait
+        current_delay_range = delay_range if i > 0 else None
+
         try:
             scrape_result = await pip.scrape(
                 url=url,
@@ -100,8 +108,9 @@ async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = Fa
                 headless=headless,
                 verbose=verbose,
                 stealth=stealth,
-                persistent=persistent,        # Pass persistent flag
-                profile_name=profile_name     # Pass profile name
+                persistent=persistent,
+                profile_name=profile_name,
+                delay_range=current_delay_range
             )
 
             if not scrape_result.get("success"):
