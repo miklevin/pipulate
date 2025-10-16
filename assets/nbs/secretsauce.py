@@ -219,7 +219,7 @@ def ai_faq_em(job: str) -> pd.DataFrame:
             if (current_path / 'flake.nix').exists():
                 return current_path
             current_path = current_path.parent
-        return Path(os.getcwd()) # Fallback to CWD if root not found
+        return Path(os.getcwd())
 
     # --- Get Data & Define Cache Path ---
     extracted_data = pip.get(job, EXTRACTED_DATA_STEP, [])
@@ -227,38 +227,28 @@ def ai_faq_em(job: str) -> pd.DataFrame:
         print("❌ No extracted data found. Please run `scrape_and_extract` first.")
         return pd.DataFrame()
 
-    # --- DEBUGGING: Construct and print absolute path ---
     project_root = find_project_root(os.getcwd())
     cache_dir = project_root / "Notebooks" / "data"
-    print(f"🐞 DEBUG: Project root is: {project_root}")
-    print(f"🐞 DEBUG: Cache directory is: {cache_dir}")
-    
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / f"faq_cache_{job}.json"
     print(f"🐞 DEBUG: Absolute cache file path is: {cache_file.resolve()}")
 
     # --- Load from Cache ---
     faq_data = []
-    print(f"🐞 DEBUG: Checking for cache file existence...")
     if cache_file.exists():
         print(f"🐞 DEBUG: Cache file found!")
         try:
             raw_content = cache_file.read_text(encoding='utf-8')
-            print(f"🐞 DEBUG: Raw cache file content:\n---\n{raw_content}\n---")
-            
             if raw_content.strip():
                 faq_data = json.loads(raw_content)
                 print(f"✅ Loaded {len(faq_data)} FAQs from cache file.")
-            else:
-                print("🐞 DEBUG: Cache file is empty. Starting fresh.")
         except (json.JSONDecodeError, IOError) as e:
-            print(f"⚠️ Could not load or parse cache file. Starting fresh. Error: {e}")
+            print(f"⚠️ Could not load cache file. Starting fresh. Error: {e}")
             faq_data = []
     else:
-        print(f"🐞 DEBUG: Cache file not found at {cache_file.resolve()}.")
+        print(f"🐞 DEBUG: Cache file not found.")
             
     processed_urls = {item.get('url') for item in faq_data}
-    
     print(f"🧠 Generating FAQs for {len(extracted_data)} pages... ({len(processed_urls)} already cached)")
 
     # --- Get Prompt ---
@@ -280,7 +270,6 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
             url = webpage_data_dict.get('url')
 
             if url in processed_urls:
-                print(f"  -> ✅ Cached [{index + 1}/{len(extracted_data)}] Using existing FAQs for: {url}")
                 continue
 
             print(f"  -> 🤖 AI Call [{index + 1}/{len(extracted_data)}] Generating new FAQs for: {url}...")
@@ -291,58 +280,47 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
                 webpage_data=webpage_data_str
             )
             
-            try:
-                ai_response = model.generate_content(full_prompt)
-                response_text = ai_response.text.strip()
-                json_match = re.search(r"```json\n(.*?)\n```", response_text, re.DOTALL)
-                
-                clean_json = json_match.group(1) if json_match else response_text
-                faq_json = json.loads(clean_json)
-                
-                new_faqs_for_url = []
-                for faq in faq_json.get('faqs', []):
-                    flat_record = {
-                        'url': url,
-                        'title': webpage_data_dict.get('title'),
-                        'priority': faq.get('priority'),
-                        'question': faq.get('question'),
-                        'target_intent': faq.get('target_intent'),
-                        'justification': faq.get('justification')
-                    }
-                    new_faqs_for_url.append(flat_record)
-                
-                if new_faqs_for_url:
-                    faq_data.extend(new_faqs_for_url)
-                    processed_urls.add(url)
-                    
-                    # --- PERSISTENCE & DEBUGGING ---
-                    try:
-                        print(f"🐞 DEBUG: Attempting to write {len(faq_data)} FAQs to {cache_file.resolve()}")
-                        with open(cache_file, 'w', encoding='utf-8') as f:
-                            json.dump(faq_data, f, indent=2)
-                        print(f"  -> ✅ Success! Saved {len(new_faqs_for_url)} new FAQs for {url}. Cache updated.")
+            ai_response = model.generate_content(full_prompt)
+            response_text = ai_response.text.strip()
+            json_match = re.search(r"```json\n(.*?)\n```", response_text, re.DOTALL)
+            
+            clean_json = json_match.group(1) if json_match else response_text
+            faq_json = json.loads(clean_json)
+            
+            new_faqs_for_url = []
+            for faq in faq_json.get('faqs', []):
+                flat_record = {
+                    'url': url,
+                    'title': webpage_data_dict.get('title'),
+                    'priority': faq.get('priority'),
+                    'question': faq.get('question'),
+                    'target_intent': faq.get('target_intent'),
+                    'justification': faq.get('justification')
+                }
+                new_faqs_for_url.append(flat_record)
+            
+            if new_faqs_for_url:
+                faq_data.extend(new_faqs_for_url)
+                processed_urls.add(url)
+                print(f"  -> ✅ Success! Generated {len(new_faqs_for_url)} new FAQs for {url}.")
 
-                        # --- DEBUGGING: Verify write operation ---
-                        print("🐞 DEBUG: Verifying write operation...")
-                        verify_content = cache_file.read_text(encoding='utf-8')
-                        print(f"🐞 DEBUG: Content read back from file:\n---\n{verify_content}\n---")
-                        if not verify_content.strip():
-                             print("🐞 DEBUG: ERROR - File is empty after writing!")
-
-                    except IOError as e:
-                        print(f"  -> ❌ Error saving to cache file {cache_file.resolve()}: {e}")
-
-
-            except (json.JSONDecodeError, KeyError, AttributeError, Exception) as e:
-                print(f"❌ AI processing or parsing failed for '{url}': {e}")
-                if 'ai_response' in locals():
-                    print(f"    RAW AI RESPONSE:\n---\n{ai_response.text}\n---")
-
+    except KeyboardInterrupt:
+        print("\n🛑 Execution interrupted by user.")
     except Exception as e:
-        print(f"❌ Could not initialize AI model. Is your API key correct? Error: {e}")
+        print(f"❌ An error occurred during FAQ generation: {e}")
+    finally:
+        print("\n💾 Saving progress to cache...")
+        if faq_data:
+            try:
+                with open(cache_file, 'w', encoding='utf-8') as f:
+                    json.dump(faq_data, f, indent=2)
+                print(f"✅ Successfully saved {len(faq_data)} total FAQs to {cache_file.resolve()}")
+            except Exception as e:
+                print(f"❌ Error saving cache in `finally` block: {e}")
+        else:
+            print("No new data to save.")
 
     print("✅ FAQ generation complete.")
-    # Also save the final results to the main pipeline for other steps to use
     pip.set(job, FAQ_DATA_STEP, faq_data)
     return pd.DataFrame(faq_data)
 
