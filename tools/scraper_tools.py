@@ -35,8 +35,8 @@ def get_safe_path_component(url: str) -> tuple[str, str]:
 async def selenium_automation(params: dict) -> dict:
     """
     Performs an advanced browser automation scrape of a single URL using undetected-chromedriver.
-    Supports persistent profiles to maintain sessions across runs.
-    Captures artifacts including DOM, source, headers, screenshot, and visual DOM layouts.
+    Checks for cached data before initiating a new scrape.
+    ...
     """
     url = params.get("url")
     domain = params.get("domain")
@@ -52,7 +52,29 @@ async def selenium_automation(params: dict) -> dict:
     if not all([url, domain, url_path_slug is not None]):
         return {"success": False, "error": "URL, domain, and url_path_slug parameters are required."}
 
-    # --- Fuzzed Delay Logic ---
+    base_dir = Path("browser_cache/")
+    if not is_notebook_context:
+        base_dir = base_dir / "looking_at"
+    
+    output_dir = base_dir / domain / url_path_slug
+    artifacts = {}
+
+    # --- IDEMPOTENCY CHECK ---
+    # Check if the primary artifact (rendered_dom.html) already exists.
+    dom_path = output_dir / "rendered_dom.html"
+    if dom_path.exists():
+        if verbose:
+            logger.info(f"✅ Using cached data from: {output_dir}")
+        
+        # Gather paths of existing artifacts
+        for artifact_name in ["rendered_dom.html", "source_html.text", "screenshot.png", "dom_layout_boxes.txt", "dom_hierarchy.txt", "accessibility_tree.json", "accessibility_tree_summary.txt"]:
+            artifact_path = output_dir / artifact_name
+            if artifact_path.exists():
+                 artifacts[Path(artifact_name).stem] = str(artifact_path)
+
+        return {"success": True, "looking_at_files": artifacts, "cached": True}
+
+    # --- Fuzzed Delay Logic (only runs if not cached) ---
     if delay_range and isinstance(delay_range, (tuple, list)) and len(delay_range) == 2:
         min_delay, max_delay = delay_range
         if isinstance(min_delay, (int, float)) and isinstance(max_delay, (int, float)) and min_delay <= max_delay:
@@ -64,7 +86,6 @@ async def selenium_automation(params: dict) -> dict:
             logger.warning(f"⚠️ Invalid delay_range provided: {delay_range}. Must be a tuple of two numbers (min, max).")
 
     driver = None
-    artifacts = {}
     profile_path = None
     temp_profile = False
 
@@ -88,16 +109,8 @@ async def selenium_automation(params: dict) -> dict:
         logger.info(f"🔍 Found driver executable at: {driver_path}")
 
 
-    base_dir = Path("browser_cache/")
-    if not is_notebook_context:
-        base_dir = base_dir / "looking_at"
-    
-    output_dir = base_dir / domain / url_path_slug
-
     try:
-        if output_dir.exists():
-            if verbose: logger.info(f"🗑️ Clearing existing artifacts in: {output_dir}")
-            shutil.rmtree(output_dir)
+        # Create directory only if we are actually scraping
         output_dir.mkdir(parents=True, exist_ok=True)
         if verbose: logger.info(f"💾 Saving new artifacts to: {output_dir}")
 
@@ -187,7 +200,7 @@ async def selenium_automation(params: dict) -> dict:
             logger.warning(f"⚠️ Could not extract accessibility tree: {ax_error}")
 
         logger.success(f"✅ Scrape successful for {url}")
-        return {"success": True, "looking_at_files": artifacts}
+        return {"success": True, "looking_at_files": artifacts, "cached": False}
 
     except Exception as e:
         logger.error(f"❌ Scrape failed for {url}: {e}", exc_info=True)
