@@ -211,27 +211,51 @@ def ai_faq_em(job: str) -> pd.DataFrame:
     Enriches scraped data with AI-generated FAQs, using a JSON file for robust caching
     to avoid re-processing URLs. This is the "FAQ 'Em" step.
     """
+    import os
+
+    def find_project_root(start_path):
+        current_path = Path(start_path).resolve()
+        while current_path != current_path.parent:
+            if (current_path / 'flake.nix').exists():
+                return current_path
+            current_path = current_path.parent
+        return Path(os.getcwd()) # Fallback to CWD if root not found
+
     # --- Get Data & Define Cache Path ---
     extracted_data = pip.get(job, EXTRACTED_DATA_STEP, [])
     if not extracted_data:
         print("❌ No extracted data found. Please run `scrape_and_extract` first.")
         return pd.DataFrame()
 
-    # Use a robust, file-based cache in the Notebooks/data directory
-    cache_dir = Path(__file__).parent / "data"
-    cache_dir.mkdir(exist_ok=True)
+    # --- DEBUGGING: Construct and print absolute path ---
+    project_root = find_project_root(os.getcwd())
+    cache_dir = project_root / "Notebooks" / "data"
+    print(f"🐞 DEBUG: Project root is: {project_root}")
+    print(f"🐞 DEBUG: Cache directory is: {cache_dir}")
+    
+    cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / f"faq_cache_{job}.json"
+    print(f"🐞 DEBUG: Absolute cache file path is: {cache_file.resolve()}")
 
     # --- Load from Cache ---
     faq_data = []
+    print(f"🐞 DEBUG: Checking for cache file existence...")
     if cache_file.exists():
+        print(f"🐞 DEBUG: Cache file found!")
         try:
-            with open(cache_file, 'r', encoding='utf-8') as f:
-                faq_data = json.load(f)
-            print(f"✅ Loaded {len(faq_data)} FAQs from cache file: {cache_file}")
+            raw_content = cache_file.read_text(encoding='utf-8')
+            print(f"🐞 DEBUG: Raw cache file content:\n---\n{raw_content}\n---")
+            
+            if raw_content.strip():
+                faq_data = json.loads(raw_content)
+                print(f"✅ Loaded {len(faq_data)} FAQs from cache file.")
+            else:
+                print("🐞 DEBUG: Cache file is empty. Starting fresh.")
         except (json.JSONDecodeError, IOError) as e:
-            print(f"⚠️ Could not load cache file {cache_file}. Starting fresh. Error: {e}")
+            print(f"⚠️ Could not load or parse cache file. Starting fresh. Error: {e}")
             faq_data = []
+    else:
+        print(f"🐞 DEBUG: Cache file not found at {cache_file.resolve()}.")
             
     processed_urls = {item.get('url') for item in faq_data}
     
@@ -291,13 +315,22 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
                     faq_data.extend(new_faqs_for_url)
                     processed_urls.add(url)
                     
-                    # --- PERSISTENCE: Save to JSON file after each successful API call ---
+                    # --- PERSISTENCE & DEBUGGING ---
                     try:
+                        print(f"🐞 DEBUG: Attempting to write {len(faq_data)} FAQs to {cache_file.resolve()}")
                         with open(cache_file, 'w', encoding='utf-8') as f:
                             json.dump(faq_data, f, indent=2)
                         print(f"  -> ✅ Success! Saved {len(new_faqs_for_url)} new FAQs for {url}. Cache updated.")
+
+                        # --- DEBUGGING: Verify write operation ---
+                        print("🐞 DEBUG: Verifying write operation...")
+                        verify_content = cache_file.read_text(encoding='utf-8')
+                        print(f"🐞 DEBUG: Content read back from file:\n---\n{verify_content}\n---")
+                        if not verify_content.strip():
+                             print("🐞 DEBUG: ERROR - File is empty after writing!")
+
                     except IOError as e:
-                        print(f"  -> ❌ Error saving to cache file {cache_file}: {e}")
+                        print(f"  -> ❌ Error saving to cache file {cache_file.resolve()}: {e}")
 
 
             except (json.JSONDecodeError, KeyError, AttributeError, Exception) as e:
