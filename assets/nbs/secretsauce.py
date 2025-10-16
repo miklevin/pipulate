@@ -14,6 +14,12 @@ import nbformat
 from pathlib import Path
 import re
 
+import os
+import platform
+import subprocess
+import ipywidgets as widgets
+from IPython.display import display
+
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font, Alignment
 from openpyxl.worksheet.table import Table, TableStyleInfo
@@ -521,3 +527,31 @@ def export_and_format_excel(job: str, df: pd.DataFrame):
             worksheet.column_dimensions[column_letter].width = adjusted_width
 
     print(f"✅ Success! File saved as '{output_filename}' in the current folder.")
+    # --- ADD THESE TWO LINES AT THE END ---
+    button = widgets.Button(description="📂 Open Output Folder", button_style='success')
+    button.on_click(lambda b: _open_folder())
+    display(button)
+
+
+def _open_folder(path_str: str = "."):
+    """
+    Opens the specified folder in the system's default file explorer.
+    Handles Windows, macOS, and Linux.
+    """
+    folder_path = Path(path_str).resolve()
+    print(f"Attempting to open folder: {folder_path}")
+    
+    if not folder_path.exists() or not folder_path.is_dir():
+        print(f"❌ Error: Path is not a valid directory: {folder_path}")
+        return
+
+    system = platform.system()
+    try:
+        if system == "Windows":
+            os.startfile(folder_path)
+        elif system == "Darwin":  # macOS
+            subprocess.run(["open", folder_path])
+        else:  # Linux
+            subprocess.run(["xdg-open", folder_path])
+    except Exception as e:
+        print(f"❌ Failed to open folder. Please navigate to it manually. Error: {e}")
