@@ -67,7 +67,7 @@ async def selenium_automation(params: dict) -> dict:
             logger.info(f"✅ Using cached data from: {output_dir}")
         
         # Gather paths of existing artifacts
-        for artifact_name in ["rendered_dom.html", "source_html.text", "screenshot.png", "dom_layout_boxes.txt", "dom_hierarchy.txt", "accessibility_tree.json", "accessibility_tree_summary.txt"]:
+        for artifact_name in ["rendered_dom.html", "source_html.txt", "screenshot.png", "dom_layout_boxes.txt", "dom_hierarchy.txt", "accessibility_tree.json", "accessibility_tree_summary.txt"]:
             artifact_path = output_dir / artifact_name
             if artifact_path.exists():
                  artifacts[Path(artifact_name).stem] = str(artifact_path)
@@ -157,7 +157,7 @@ async def selenium_automation(params: dict) -> dict:
         dom_path.write_text(driver.execute_script("return document.documentElement.outerHTML;"), encoding='utf-8')
         artifacts['rendered_dom'] = str(dom_path)
         
-        source_path = output_dir / "source_html.text"
+        source_path = output_dir / "source_html.txt"
         source_path.write_text(driver.page_source, encoding='utf-8')
         artifacts['source_html'] = str(source_path)
 
