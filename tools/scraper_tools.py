@@ -53,15 +53,15 @@ async def selenium_automation(params: dict) -> dict:
         return {"success": False, "error": "URL, domain, and url_path_slug parameters are required."}
 
     # --- Fuzzed Delay Logic ---
-    if delay_range and isinstance(delay_range, (tuple, list)) and len(delay_range) == 2:
-        min_delay, max_delay = delay_range
-        if isinstance(min_delay, (int, float)) and isinstance(max_delay, (int, float)) and min_delay <= max_delay:
-            delay = random.uniform(min_delay, max_delay)
-            if verbose:
-                logger.info(f"⏳ Waiting for {delay:.3f} seconds before next request...")
-            await asyncio.sleep(delay)
-        else:
-            logger.warning(f"⚠️ Invalid delay_range provided: {delay_range}. Must be a tuple of two numbers (min, max).")
+    if delay_range and isinstance(delay_range, (tuple, list)) and len(delay_range) == 2:
+        min_delay, max_delay = delay_range
+        if isinstance(min_delay, (int, float)) and isinstance(max_delay, (int, float)) and min_delay <= max_delay:
+            delay = random.uniform(min_delay, max_delay)
+            if verbose:
+                logger.info(f"⏳ Waiting for {delay:.3f} seconds before next request...")
+            await asyncio.sleep(delay)
+        else:
+            logger.warning(f"⚠️ Invalid delay_range provided: {delay_range}. Must be a tuple of two numbers (min, max).")
 
     driver = None
     artifacts = {}

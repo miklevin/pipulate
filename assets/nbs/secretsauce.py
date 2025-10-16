@@ -99,7 +99,7 @@ async def scrape_and_extract(job: str,
         print(f"  -> 👁️  [{i+1}/{len(urls_to_process)}] Processing: {url}")
        
         # Apply delay only AFTER the first request to avoid an unnecessary initial wait
-        current_delay_range = delay_range if i > 0 else None
+        current_delay_range = delay_range if i > 0 else None
 
         try:
             scrape_result = await pip.scrape(
