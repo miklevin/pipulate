@@ -18,7 +18,6 @@ import re
 CACHE_DB_FILE = "url_cache.sqlite"
 EXTRACTED_DATA_CSV = "_step_extract_output.csv"
 AI_LOG_CSV = "_step_ai_log_output.csv" # NEW: Filename for the AI output log
-PROMPT_TEMPLATE_FILE = "prompt.txt"
 
 # Pipulate step names
 API_KEY_STEP = "api_key"
