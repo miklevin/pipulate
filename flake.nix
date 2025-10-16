@@ -154,8 +154,9 @@
           virtualenv
           gcc                          # GNU Compiler Collection for compiling C/C++ code
           stdenv.cc.cc.lib             # Standard C library for Linux systems
-          chromedriver                 # ChromeDriver for Selenium automation
+          # chromedriver                 # ChromeDriver for Selenium automation
           chromium                     # Chromium browser for Selenium automation
+          undetected-chromedriver
           eza                          # A tree directory visualizer that uses .gitignore
         ]);
         # This script sets up our Python environment and project
