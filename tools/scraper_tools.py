@@ -57,6 +57,28 @@ async def selenium_automation(params: dict) -> dict:
     profile_path = None
     temp_profile = False
 
+
+
+    # --- Find the browser executable path ---
+    browser_path = shutil.which("chromium")
+    driver_path = shutil.which("undetected-chromedriver")
+    if not browser_path:
+        # Fallback for different naming conventions
+        browser_path = shutil.which("chromium-browser")
+
+    if not browser_path:
+        logger.error("❌ Could not find chromium or chromium-browser executable in the environment's PATH.")
+        return {"success": False, "error": "Chromium executable not found. Is it correctly configured in your flake.nix?"}
+
+    if not driver_path:
+        logger.error("❌ Could not find 'undetected-chromedriver' executable in the environment's PATH.")
+        return {"success": False, "error": "The undetected-chromedriver binary was not found. Is it in your flake.nix?"}
+    
+    if verbose: 
+        logger.info(f"🔍 Found browser executable at: {browser_path}")
+        logger.info(f"🔍 Found driver executable at: {driver_path}")
+
+
     base_dir = Path("browser_cache/")
     if not is_notebook_context:
         base_dir = base_dir / "looking_at"
@@ -88,7 +110,10 @@ async def selenium_automation(params: dict) -> dict:
             logger.info(f"👻 Using temporary profile: {profile_path}")
         
         logger.info(f"🚀 Initializing undetected-chromedriver (Headless: {headless})...")
-        driver = uc.Chrome(options=options, user_data_dir=str(profile_path))
+        driver = uc.Chrome(options=options, 
+                           user_data_dir=str(profile_path), 
+                           browser_executable_path=browser_path,
+                           driver_executable_path=driver_path)
 
         logger.info(f"Navigating to: {url}")
         driver.get(url)
