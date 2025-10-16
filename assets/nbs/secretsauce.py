@@ -68,7 +68,8 @@ def _get_urls_from_notebook(notebook_filename="FAQuilizer.ipynb"):
         return []
 
 
-async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = False):
+# Add persistent and profile_name to the function signature
+async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = False, stealth: bool = True, persistent: bool = False, profile_name: str = "default"):
     """
     Scrapes each URL using pip.scrape() and immediately parses the HTML
     to extract key SEO data. Verbosity is now controllable.
@@ -97,9 +98,11 @@ async def scrape_and_extract(job: str, headless: bool = True, verbose: bool = Fa
                 url=url,
                 take_screenshot=True,
                 headless=headless,
-                verbose=verbose
+                verbose=verbose,
+                stealth=stealth,
+                persistent=persistent,        # Pass persistent flag
+                profile_name=profile_name     # Pass profile name
             )
-            # ... (the rest of the function remains exactly the same) ...
 
             if not scrape_result.get("success"):
                 if verbose:
