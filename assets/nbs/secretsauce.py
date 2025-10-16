@@ -206,28 +206,30 @@ def stack_em(job: str) -> pd.DataFrame:
     print(f"✅ Stacked {len(df)} pages into the initial DataFrame.")
     return df
 
-def ai_faq_em(job: str, df: pd.DataFrame) -> pd.DataFrame:
+def ai_faq_em(job: str) -> pd.DataFrame:
     """
-    Enriches a DataFrame with AI-generated FAQs, using the pipeline state as a cache
+    Enriches scraped data with AI-generated FAQs, using the pipeline state as a cache
     to avoid re-processing URLs. This is the "FAQ 'Em" step.
+    This function is now fully self-contained and idempotent.
     """
-    if df.empty:
-        print("⚠️ DataFrame is empty, skipping AI enrichment.")
+    # --- STATE AWARENESS: Load both scraped data and any existing FAQ data ---
+    extracted_data = pip.get(job, EXTRACTED_DATA_STEP, [])
+    if not extracted_data:
+        print("❌ No extracted data found. Please run `scrape_and_extract` first.")
         return pd.DataFrame()
 
-    # --- IDEMPOTENCY: Load existing data and create a lookup for processed URLs ---
     faq_data = pip.get(job, FAQ_DATA_STEP, [])
     processed_urls = {item.get('url') for item in faq_data}
     
-    print(f"🧠 Generating FAQs for {len(df)} pages... ({len(processed_urls)} already cached)")
+    print(f"🧠 Generating FAQs for {len(extracted_data)} pages... ({len(processed_urls)} already cached)")
 
     # Get the user's instructions from the notebook cell
     user_prompt_instructions = _get_prompt_from_notebook()
     if not user_prompt_instructions:
         print("❌ Error: Prompt not found in 'prompt-input' cell of the notebook.")
-        return df
-    
-    # This is the same robust system prompt from the previous version
+        # Return a DataFrame of the data that has been processed so far
+        return pd.DataFrame(faq_data)
+
     system_prompt_wrapper = """
 Your task is to analyze webpage data and generate a structured JSON object.
 Your output must be **only a single, valid JSON object inside a markdown code block** and nothing else. Adherence to the schema is critical.
@@ -236,17 +238,17 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
     
     try:
         model = genai.GenerativeModel('gemini-2.5-flash')
-        for index, row in df.iterrows():
-            url = row.get('url')
+        # The loop now iterates over the canonical `extracted_data` from the pipeline
+        for index, webpage_data_dict in enumerate(extracted_data):
+            url = webpage_data_dict.get('url')
 
             # --- IDEMPOTENCY CHECK ---
             if url in processed_urls:
-                print(f"  -> ✅ Cached [{index + 1}/{len(df)}] Using existing FAQs for: {url}")
+                print(f"  -> ✅ Cached [{index + 1}/{len(extracted_data)}] Using existing FAQs for: {url}")
                 continue
 
-            print(f"  -> 🤖 AI Call [{index + 1}/{len(df)}] Generating new FAQs for: {url}...")
+            print(f"  -> 🤖 AI Call [{index + 1}/{len(extracted_data)}] Generating new FAQs for: {url}...")
             
-            webpage_data_dict = row.to_dict()
             webpage_data_str = json.dumps(webpage_data_dict, indent=2)
 
             full_prompt = system_prompt_wrapper.format(
@@ -262,12 +264,11 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
                 clean_json = json_match.group(1) if json_match else response_text
                 faq_json = json.loads(clean_json)
                 
-                # Process and save new FAQs for this URL
                 new_faqs_for_url = []
                 for faq in faq_json.get('faqs', []):
                     flat_record = {
                         'url': url,
-                        'title': row.get('title'),
+                        'title': webpage_data_dict.get('title'),
                         'priority': faq.get('priority'),
                         'question': faq.get('question'),
                         'target_intent': faq.get('target_intent'),
@@ -291,7 +292,6 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
         print(f"❌ Could not initialize AI model. Is your API key correct? Error: {e}")
 
     print("✅ FAQ generation complete.")
-    # Return a dataframe from the complete, updated list
     return pd.DataFrame(faq_data)
 
 
