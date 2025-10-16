@@ -14,6 +14,11 @@ import nbformat
 from pathlib import Path
 import re
 
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, Alignment
+from openpyxl.worksheet.table import Table, TableStyleInfo
+
+
 # --- CONFIGURATION ---
 CACHE_DB_FILE = "url_cache.sqlite"
 EXTRACTED_DATA_CSV = "_step_extract_output.csv"
@@ -460,3 +465,59 @@ def export_to_excel(job: str):
         print(f"❌ Failed to export to Excel: {e}")
 
 
+def export_and_format_excel(job: str, df: pd.DataFrame):
+    """
+    Exports the DataFrame to a professionally formatted Excel file with
+    bold/centered headers, auto-fitted columns, and banded (alternating) rows.
+    """
+    if df.empty:
+        print("⚠️ DataFrame is empty, skipping Excel export.")
+        return
+
+    output_filename = f"{job}_output.xlsx"
+    print(f"🎨 Formatting and exporting data to Excel: {output_filename}")
+
+    with pd.ExcelWriter(output_filename, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='FAQ_Analysis')
+        
+        # Get the worksheet object for formatting
+        worksheet = writer.sheets['FAQ_Analysis']
+
+        # --- 1. Create an Excel Table for banded rows and filtering ---
+        # This is the modern way to get alternating row colors.
+        table_range = f"A1:{get_column_letter(worksheet.max_column)}{worksheet.max_row}"
+        table = Table(displayName="FAQTable", ref=table_range)
+        
+        # Add a default style with banded rows and filtering enabled
+        style = TableStyleInfo(name="TableStyleMedium2", showFirstColumn=False,
+                               showLastColumn=False, showRowStripes=True, showColumnStripes=False)
+        table.tableStyleInfo = style
+        worksheet.add_table(table)
+
+        # --- 2. Format Headers and Auto-fit Columns ---
+        for col_idx, column_cell in enumerate(worksheet[1], 1):
+            # Make headers bold and centered
+            column_cell.font = Font(bold=True)
+            column_cell.alignment = Alignment(horizontal='center', vertical='center')
+            
+            # Determine the best width for the column
+            max_length = 0
+            column_letter = get_column_letter(col_idx)
+            
+            # Check header length
+            if column_cell.value:
+                max_length = len(str(column_cell.value))
+
+            # Check each cell in the column for max content length
+            for cell in worksheet[column_letter]:
+                try: 
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            
+            # Add padding and set the final column width
+            adjusted_width = (max_length + 3)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+
+    print(f"✅ Success! File saved as '{output_filename}' in the current folder.")
