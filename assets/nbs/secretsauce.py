@@ -310,8 +310,16 @@ The JSON object must conform to the following schema:
 
                 ai_response = model.generate_content(full_prompt)
                 response_text = ai_response.text.strip()
-                json_match = re.search(r"```json\\n(.*?)\\n```", response_text, re.DOTALL)
-                clean_json = json_match.group(1) if json_match else response_text
+                # New robust JSON cleaning
+                clean_json = response_text
+                if clean_json.startswith("```json"):
+                    clean_json = clean_json[7:]
+                if clean_json.startswith("```"):
+                    clean_json = clean_json[3:]
+                if clean_json.endswith("```"):
+                    clean_json = clean_json[:-3]
+                clean_json = clean_json.strip()
+
                 faq_json = json.loads(clean_json)
                 
                 new_faqs_for_url = []
