@@ -1881,37 +1881,39 @@ class Pipulate:
         state = self.read_state(job)
         return state.get(step, default)
 
-    # START: scrape_method
-    async def scrape(self, url: str, take_screenshot: bool = False, mode: str = 'selenium', headless: bool = True, verbose: bool = True, **kwargs):
+    # Add persistent=False and profile_name=None to the function signature
+    async def scrape(self, url: str, take_screenshot: bool = False, mode: str = 'selenium', headless: bool = True, verbose: bool = True, persistent: bool = False, profile_name: str = "default", **kwargs):
         """
         Gives AI "eyes" by performing browser automation or HTTP requests to scrape a URL.
-    
+
         This method is the primary entrypoint for scraping and supports multiple modes.
         The default mode is 'selenium' which uses a full browser.
-    
+
         Args:
             url (str): The URL to scrape.
             take_screenshot (bool): Whether to capture a screenshot (selenium mode only). Defaults to False.
             mode (str): The scraping mode to use ('selenium', 'requests', etc.). Defaults to 'selenium'.
             headless (bool): Whether to run the browser in headless mode (selenium mode only). Defaults to True.
+            persistent (bool): Whether to use a persistent browser profile. Defaults to False.
+            profile_name (str): The name of the persistent profile to use. Defaults to "default".
             **kwargs: Additional parameters to pass to the underlying automation tool.
-    
+
         Returns:
             dict: The result from the scraper tool, including paths to captured artifacts.
         """
         from tools.scraper_tools import selenium_automation
         from urllib.parse import urlparse, quote
         from datetime import datetime
-    
-        logger.info(f"👁️‍🗨️ Initiating scrape for: {url} (Mode: {mode}, Headless: {headless})")
-    
+
+        logger.info(f"👁️‍🗨️ Initiating scrape for: {url} (Mode: {mode}, Headless: {headless}, Persistent: {persistent})")
+
         # --- New Directory Logic ---
         parsed_url = urlparse(url)
         domain = parsed_url.netloc
         path = parsed_url.path or '/'
         # Use quote with an empty safe string to encode everything, including slashes
         url_path_slug = quote(path, safe='')
-    
+
         params = {
             "url": url,
             "domain": domain,
@@ -1920,9 +1922,11 @@ class Pipulate:
             "headless": headless,
             "is_notebook_context": self.is_notebook_context, # Pass the context flag
             "verbose": verbose,
+            "persistent": persistent,
+            "profile_name": profile_name,
             **kwargs # Pass through any other params
         }
-    
+
         if mode == 'selenium':
             try:
                 result = await selenium_automation(params)
@@ -1933,8 +1937,6 @@ class Pipulate:
         else:
             logger.warning(f"Scrape mode '{mode}' is not yet implemented.")
             return {"success": False, "error": f"Mode '{mode}' not implemented."}
-    # END: scrape_method
-
 
     def _find_project_root(self, start_path):
         """Walks up from a starting path to find the project root (marked by 'flake.nix')."""

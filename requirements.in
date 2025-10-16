@@ -41,8 +41,8 @@ uvicorn
 selenium
 selenium-wire
 selenium-stealth
-undetected-chromedriver
 webdriver-manager
+undetected-chromedriver
 
 # Data Science and Plotting
 matplotlib
