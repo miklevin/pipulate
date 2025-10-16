@@ -212,97 +212,97 @@ def ai_faq_em(job: str) -> pd.DataFrame:
     to avoid re-processing URLs. This is the "FAQ 'Em" step.
     """
     import os
+    import json
+    from pathlib import Path
+    import google.generativeai as genai
+    import re
 
-    def find_project_root(start_path):
-        current_path = Path(start_path).resolve()
-        while current_path != current_path.parent:
-            if (current_path / 'flake.nix').exists():
-                return current_path
-            current_path = current_path.parent
-        return Path(os.getcwd())
+    # --- 1. Define Cache Path ---
+    # The script runs from the Notebooks directory, so the path is relative to that.
+    cache_dir = Path("data")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_file = cache_dir / f"faq_cache_{job}.json"
 
-    # --- Get Data & Define Cache Path ---
+    # --- 2. Load Data ---
     extracted_data = pip.get(job, EXTRACTED_DATA_STEP, [])
     if not extracted_data:
         print("❌ No extracted data found. Please run `scrape_and_extract` first.")
         return pd.DataFrame()
 
-    project_root = find_project_root(os.getcwd())
-    cache_dir = project_root / "Notebooks" / "data"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_file = cache_dir / f"faq_cache_{job}.json"
-    print(f"🐞 DEBUG: Absolute cache file path is: {cache_file.resolve()}")
-
-    # --- Load from Cache ---
     faq_data = []
     if cache_file.exists():
-        print(f"🐞 DEBUG: Cache file found!")
         try:
             raw_content = cache_file.read_text(encoding='utf-8')
             if raw_content.strip():
                 faq_data = json.loads(raw_content)
-                print(f"✅ Loaded {len(faq_data)} FAQs from cache file.")
+                print(f"✅ Loaded {len(faq_data)} FAQs from cache.")
         except (json.JSONDecodeError, IOError) as e:
             print(f"⚠️ Could not load cache file. Starting fresh. Error: {e}")
-            faq_data = []
-    else:
-        print(f"🐞 DEBUG: Cache file not found.")
-            
+    
     processed_urls = {item.get('url') for item in faq_data}
     print(f"🧠 Generating FAQs for {len(extracted_data)} pages... ({len(processed_urls)} already cached)")
 
-    # --- Get Prompt ---
+    # --- 3. Get Prompt & Configure AI ---
     user_prompt_instructions = _get_prompt_from_notebook()
     if not user_prompt_instructions:
         print("❌ Error: Prompt not found in 'prompt-input' cell of the notebook.")
         return pd.DataFrame(faq_data)
-
-    system_prompt_wrapper = """
+        
+    system_prompt_wrapper = '''
 Your task is to analyze webpage data and generate a structured JSON object.
 Your output must be **only a single, valid JSON object inside a markdown code block** and nothing else. Adherence to the schema is critical.
 ... (the rest of the system prompt is unchanged) ...
-"""
+'''
+    # The API key is configured via pip.api_key() in the notebook.
+    # This function assumes that has been run.
     
-    # --- Process Data ---
+    # --- 4. Process Loop ---
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('models/gemini-1.5-flash')
         for index, webpage_data_dict in enumerate(extracted_data):
             url = webpage_data_dict.get('url')
-
             if url in processed_urls:
+                print(f"  -> ✅ Skip: URL already cached: {url}")
                 continue
 
-            print(f"  -> 🤖 AI Call [{index + 1}/{len(extracted_data)}] Generating new FAQs for: {url}...")
+            print(f"  -> 🤖 AI Call: Processing URL {index+1}/{len(extracted_data)}: {url}")
             
-            webpage_data_str = json.dumps(webpage_data_dict, indent=2)
-            full_prompt = system_prompt_wrapper.format(
-                user_instructions=user_prompt_instructions,
-                webpage_data=webpage_data_str
-            )
-            
-            ai_response = model.generate_content(full_prompt)
-            response_text = ai_response.text.strip()
-            json_match = re.search(r"```json\n(.*?)\n```", response_text, re.DOTALL)
-            
-            clean_json = json_match.group(1) if json_match else response_text
-            faq_json = json.loads(clean_json)
-            
-            new_faqs_for_url = []
-            for faq in faq_json.get('faqs', []):
-                flat_record = {
-                    'url': url,
-                    'title': webpage_data_dict.get('title'),
-                    'priority': faq.get('priority'),
-                    'question': faq.get('question'),
-                    'target_intent': faq.get('target_intent'),
-                    'justification': faq.get('justification')
-                }
-                new_faqs_for_url.append(flat_record)
-            
-            if new_faqs_for_url:
-                faq_data.extend(new_faqs_for_url)
-                processed_urls.add(url)
-                print(f"  -> ✅ Success! Generated {len(new_faqs_for_url)} new FAQs for {url}.")
+            try:
+                webpage_data_str = json.dumps(webpage_data_dict, indent=2)
+                full_prompt = system_prompt_wrapper.format(
+                    user_instructions=user_prompt_instructions,
+                    webpage_data=webpage_data_str
+                )
+                
+                ai_response = model.generate_content(full_prompt)
+                response_text = ai_response.text.strip()
+                json_match = re.search(r"```json\\n(.*?)\\n```", response_text, re.DOTALL)
+                clean_json = json_match.group(1) if json_match else response_text
+                faq_json = json.loads(clean_json)
+                
+                new_faqs_for_url = []
+                for faq in faq_json.get('faqs', []):
+                    new_faqs_for_url.append({
+                        'url': url,
+                        'title': webpage_data_dict.get('title'),
+                        'priority': faq.get('priority'),
+                        'question': faq.get('question'),
+                        'target_intent': faq.get('target_intent'),
+                        'justification': faq.get('justification')
+                    })
+                
+                if new_faqs_for_url:
+                    faq_data.extend(new_faqs_for_url)
+                    processed_urls.add(url)
+                    print(f"  -> ✅ Success: Generated {len(new_faqs_for_url)} new FAQs for {url}.")
+
+            except json.JSONDecodeError as e:
+                print(f"  -> ❌ JSON Decode Error for {url}: {e}")
+                print(f"  -> Raw AI Response:\n---\n{response_text}\n---")
+                continue # Skip to the next URL
+            except Exception as e:
+                print(f"  -> ❌ AI call failed for {url}: {e}")
+                continue
 
     except KeyboardInterrupt:
         print("\n🛑 Execution interrupted by user.")
@@ -310,15 +310,12 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
         print(f"❌ An error occurred during FAQ generation: {e}")
     finally:
         print("\n💾 Saving progress to cache...")
-        if faq_data:
-            try:
-                with open(cache_file, 'w', encoding='utf-8') as f:
-                    json.dump(faq_data, f, indent=2)
-                print(f"✅ Successfully saved {len(faq_data)} total FAQs to {cache_file.resolve()}")
-            except Exception as e:
-                print(f"❌ Error saving cache in `finally` block: {e}")
-        else:
-            print("No new data to save.")
+        try:
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(faq_data, f, indent=2)
+            print(f"✅ Save complete. {len(faq_data)} total FAQs in cache.")
+        except Exception as e:
+            print(f"❌ Error saving cache in `finally` block: {e}")
 
     print("✅ FAQ generation complete.")
     pip.set(job, FAQ_DATA_STEP, faq_data)
