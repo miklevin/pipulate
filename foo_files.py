@@ -2,8 +2,8 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/pipulate/core.py
 /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
 /home/mike/repos/pipulate/Notebooks/secretsauce.py
-/home/mike/repos/pipulate/tools/scraper_tools.py
-/home/mike/repos/pipulate/tools/dom_tools.py
+# /home/mike/repos/pipulate/tools/scraper_tools.py
+# /home/mike/repos/pipulate/tools/dom_tools.py
 """
 
 # /home/mike/repos/pipulate/assets/installer/install.sh
