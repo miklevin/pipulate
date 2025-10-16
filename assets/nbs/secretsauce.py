@@ -208,26 +208,39 @@ def stack_em(job: str) -> pd.DataFrame:
 
 def ai_faq_em(job: str) -> pd.DataFrame:
     """
-    Enriches scraped data with AI-generated FAQs, using the pipeline state as a cache
+    Enriches scraped data with AI-generated FAQs, using a JSON file for robust caching
     to avoid re-processing URLs. This is the "FAQ 'Em" step.
-    This function is now fully self-contained and idempotent.
     """
-    # --- STATE AWARENESS: Load both scraped data and any existing FAQ data ---
+    # --- Get Data & Define Cache Path ---
     extracted_data = pip.get(job, EXTRACTED_DATA_STEP, [])
     if not extracted_data:
         print("❌ No extracted data found. Please run `scrape_and_extract` first.")
         return pd.DataFrame()
 
-    faq_data = pip.get(job, FAQ_DATA_STEP, [])
+    # Use a robust, file-based cache in the Notebooks/data directory
+    cache_dir = Path(__file__).parent / "data"
+    cache_dir.mkdir(exist_ok=True)
+    cache_file = cache_dir / f"faq_cache_{job}.json"
+
+    # --- Load from Cache ---
+    faq_data = []
+    if cache_file.exists():
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                faq_data = json.load(f)
+            print(f"✅ Loaded {len(faq_data)} FAQs from cache file: {cache_file}")
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"⚠️ Could not load cache file {cache_file}. Starting fresh. Error: {e}")
+            faq_data = []
+            
     processed_urls = {item.get('url') for item in faq_data}
     
     print(f"🧠 Generating FAQs for {len(extracted_data)} pages... ({len(processed_urls)} already cached)")
 
-    # Get the user's instructions from the notebook cell
+    # --- Get Prompt ---
     user_prompt_instructions = _get_prompt_from_notebook()
     if not user_prompt_instructions:
         print("❌ Error: Prompt not found in 'prompt-input' cell of the notebook.")
-        # Return a DataFrame of the data that has been processed so far
         return pd.DataFrame(faq_data)
 
     system_prompt_wrapper = """
@@ -236,13 +249,12 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
 ... (the rest of the system prompt is unchanged) ...
 """
     
+    # --- Process Data ---
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        # The loop now iterates over the canonical `extracted_data` from the pipeline
+        model = genai.GenerativeModel('gemini-1.5-flash')
         for index, webpage_data_dict in enumerate(extracted_data):
             url = webpage_data_dict.get('url')
 
-            # --- IDEMPOTENCY CHECK ---
             if url in processed_urls:
                 print(f"  -> ✅ Cached [{index + 1}/{len(extracted_data)}] Using existing FAQs for: {url}")
                 continue
@@ -250,7 +262,6 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
             print(f"  -> 🤖 AI Call [{index + 1}/{len(extracted_data)}] Generating new FAQs for: {url}...")
             
             webpage_data_str = json.dumps(webpage_data_dict, indent=2)
-
             full_prompt = system_prompt_wrapper.format(
                 user_instructions=user_prompt_instructions,
                 webpage_data=webpage_data_str
@@ -279,9 +290,15 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
                 if new_faqs_for_url:
                     faq_data.extend(new_faqs_for_url)
                     processed_urls.add(url)
-                    # --- PERSISTENCE: Save state after each successful API call ---
-                    pip.set(job, FAQ_DATA_STEP, faq_data)
-                    print(f"  -> ✅ Success! Saved {len(new_faqs_for_url)} new FAQs for {url}")
+                    
+                    # --- PERSISTENCE: Save to JSON file after each successful API call ---
+                    try:
+                        with open(cache_file, 'w', encoding='utf-8') as f:
+                            json.dump(faq_data, f, indent=2)
+                        print(f"  -> ✅ Success! Saved {len(new_faqs_for_url)} new FAQs for {url}. Cache updated.")
+                    except IOError as e:
+                        print(f"  -> ❌ Error saving to cache file {cache_file}: {e}")
+
 
             except (json.JSONDecodeError, KeyError, AttributeError, Exception) as e:
                 print(f"❌ AI processing or parsing failed for '{url}': {e}")
@@ -292,6 +309,8 @@ Your output must be **only a single, valid JSON object inside a markdown code bl
         print(f"❌ Could not initialize AI model. Is your API key correct? Error: {e}")
 
     print("✅ FAQ generation complete.")
+    # Also save the final results to the main pipeline for other steps to use
+    pip.set(job, FAQ_DATA_STEP, faq_data)
     return pd.DataFrame(faq_data)
 
 
