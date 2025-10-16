@@ -13,6 +13,12 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from seleniumwire import webdriver as wire_webdriver
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium_stealth import stealth
+from selenium import webdriver
+
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 
 from tools import auto_tool
 from . import dom_tools
@@ -42,6 +48,11 @@ async def selenium_automation(params: dict) -> dict:
     take_screenshot = params.get("take_screenshot", False)
     headless = params.get("headless", True)
     is_notebook_context = params.get("is_notebook_context", False)
+
+    options = webdriver.ChromeOptions()
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
+
 
     if not all([url, domain, url_path_slug is not None]):
         return {"success": False, "error": "URL, domain, and url_path_slug parameters are required."}
@@ -76,9 +87,47 @@ async def selenium_automation(params: dict) -> dict:
         logger.info(f"🚀 Initializing Chrome driver (Headless: {headless})...")
         driver = wire_webdriver.Chrome(service=service, options=chrome_options)
 
+        stealth(driver,
+            languages=["en-US", "en"],
+            vendor="Google Inc.",
+            platform="Win32",
+            webgl_vendor="Intel Inc.",
+            renderer="Intel Iris OpenGL Engine",
+            fix_hairline=True,
+        )
+
+        # --- ADD THIS BLOCK TO MANUALLY HIDE THE WEBDRIVER FLAG ---
+        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+        })
+
         logger.info(f"Navigating to: {url}")
         driver.get(url)
-        await asyncio.sleep(3)
+
+
+
+        # --- NEW: Two-stage wait for challenge pages that reload ---
+        try:
+            logger.info("Waiting for security challenge to trigger a reload (Stage 1)...")
+            # Grab a reference to the body of the initial challenge page
+            initial_body = driver.find_element(By.TAG_NAME, 'body')
+
+            # Wait up to 20 seconds for the challenge to solve and location.reload() to be called.
+            # This is detected by waiting for the initial body element to go stale.
+            WebDriverWait(driver, 20).until(EC.staleness_of(initial_body))
+            logger.success("✅ Page reload detected!")
+
+            logger.info("Waiting for main content to appear after reload (Stage 2)...")
+            # Now that the page has reloaded, wait up to 10 seconds for the actual content.
+            # Change 'main-content' to a selector that exists on your final target page.
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "main-content")))
+            logger.success("✅ Main content located!")
+
+        except Exception as e:
+            logger.warning(f"Did not detect the expected page lifecycle for the security challenge. Proceeding anyway. Error: {e}")
+            # If the wait fails, we can still try to capture the page as-is.
+
+
 
         # --- Capture Core Artifacts ---
         dom_path = output_dir / "rendered_dom.html"
