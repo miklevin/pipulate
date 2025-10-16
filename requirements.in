@@ -5,6 +5,7 @@
 blinker==1.6.2
 apsw==3.50.3.0
 grpcio==1.60.1
+pydantic>=2.12.2
 
 # Off the hook
 piper-tts
