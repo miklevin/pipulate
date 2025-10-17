@@ -71,8 +71,12 @@ class _DOMHierarchyVisualizer:
         root_element = soup.find('html') or soup
         if root_element and hasattr(root_element, 'name'):
             self.build_tree_structure(root_element, tree, 0)
+        self.console.print(tree) # <-- Always print to the internal recording console
         if verbose:
-            self.console.print(tree)
+            # This block is now optional, it just provides a nice-to-have print
+            # to the *main* console if the tool is run directly, but the export
+            # will work regardless.
+            pass
         return self.console.export_text()
 
 class _DOMBoxVisualizer:
@@ -169,8 +173,9 @@ class _DOMBoxVisualizer:
         if root_element and hasattr(root_element, 'name'):
             max_depth = 6 if len(soup.find_all()) > 100 else 12
             nested_layout = self.build_nested_boxes(root_element, 0, max_depth)
+            self.console.print(nested_layout) # <-- Always print to the internal recording console
             if verbose:
-                self.console.print(nested_layout)
+                pass
         return self.console.export_text()
 
 
