@@ -7,6 +7,8 @@ apsw==3.50.3.0
 grpcio==1.60.1
 pydantic>=2.12.2
 
+astunparse
+
 # Off the hook
 piper-tts
 onnxruntime
