@@ -196,7 +196,7 @@ def parse_slice_arg(arg_str: str):
         end = int(parts[1].strip()) if parts[1].strip() else None
         return slice(start, end)
     elif content: return int(content)
-    return slice(None, None) # CHANGE: Handle `[:]` to mean the whole list.
+    return slice(None, None)
 
 def run_tree_command() -> str:
     eza_exec = shutil.which("eza")
@@ -278,27 +278,25 @@ class PromptBuilder:
         self.processed_files = processed_files
         self.prompt_text = prompt_text
         self.context_only = context_only
-        self.list_arg = list_arg # NEW: Keep track of whether the list flag was used
+        self.list_arg = list_arg
         self.auto_context = {}
         self.all_sections = {}
 
     def add_auto_context(self, title: str, content: str):
-        # START: add_auto_context_method_body
         is_narrative = (title == "Recent Narrative Context")
+        is_article = (title == "Full Article Content") ### NEW/MODIFIED ###
         content_is_valid = bool(content)
-        # The filter should only apply to non-narrative content.
         filter_passed = "error" not in content.lower() and "skipping" not in content.lower()
         
-        if content_is_valid and (is_narrative or filter_passed):
+        if content_is_valid and (is_narrative or is_article or filter_passed): ### NEW/MODIFIED ###
             self.auto_context[title] = {
                 'content': content, 'tokens': count_tokens(content), 'words': count_words(content)
             }
-        # END: add_auto_context_method_body
 
     def _build_manifest_content(self) -> str:
         lines = []
-        # Ensure a consistent order for the manifest
-        section_order = ["Story", "File Tree", "UML Diagrams", "Codebase", "Prompt"]
+        ### NEW/MODIFIED ###
+        section_order = ["Story", "File Tree", "UML Diagrams", "Articles", "Codebase", "Prompt"]
         for section_name in section_order:
             if section_name in self.all_sections:
                 data = self.all_sections[section_name]
@@ -323,6 +321,11 @@ class PromptBuilder:
             if "UML Class Diagram" in title:
                 uml_parts.append(f"## {title}\n```text\n{data['content']}\n```")
         return "\n\n".join(uml_parts)
+
+    ### NEW/MODIFIED ###
+    def _build_articles_content(self) -> str:
+        title = "Full Article Content"
+        return self.auto_context.get(title, {}).get('content', '').strip()
 
     def _build_codebase_content(self) -> str:
         if self.context_only: return ""
@@ -357,14 +360,17 @@ Before addressing the user's prompt, perform the following verification steps:
         story_content = self._build_story_content()
         tree_content = self._build_tree_content()
         uml_content = self._build_uml_content()
+        articles_content = self._build_articles_content() ### NEW/MODIFIED ###
         codebase_content = self._build_codebase_content()
         prompt_content = self._build_prompt_content()
 
         # Define placeholder messages
+        ### NEW/MODIFIED ###
         placeholders = {
             "Story": f"# Narrative context not requested. Use the -l or --list flag to include recent articles.",
             "File Tree": "# File tree generation failed or was skipped.",
             "UML Diagrams": "# No Python files with classes were included, or UML generation failed.",
+            "Articles": "# No full articles requested. Use the -a or --article flag to include full article content.",
             "Codebase": ("# No files were specified for inclusion in the codebase." if not self.processed_files 
                          else "# Running in --context-only mode. File contents are omitted."),
         }
@@ -373,6 +379,7 @@ Before addressing the user's prompt, perform the following verification steps:
         self.all_sections["Story"] = {'content': story_content, 'tokens': count_tokens(story_content)}
         self.all_sections["File Tree"] = {'content': tree_content, 'tokens': count_tokens(tree_content)}
         self.all_sections["UML Diagrams"] = {'content': uml_content, 'tokens': count_tokens(uml_content)}
+        self.all_sections["Articles"] = {'content': articles_content, 'tokens': count_tokens(articles_content)} ### NEW/MODIFIED ###
         self.all_sections["Codebase"] = {'content': codebase_content, 'tokens': sum(f['tokens'] for f in self.processed_files) if not self.context_only else 0}
         self.all_sections["Prompt"] = {'content': prompt_content, 'tokens': count_tokens(prompt_content)}
         
@@ -380,18 +387,19 @@ Before addressing the user's prompt, perform the following verification steps:
         self.all_sections["Manifest"] = {'content': manifest_content, 'tokens': count_tokens(manifest_content)}
 
         # Assemble the final output string with START/END markers for all sections
-        parts = ["# KUNG FU PROMPT CONTEXT\n\nWhat you will find below is:\n\n- Manifest\n- Story\n- File Tree\n- UML Diagrams\n- Codebase\n- Prompt"]
+        ### NEW/MODIFIED ###
+        parts = ["# KUNG FU PROMPT CONTEXT\n\nWhat you will find below is:\n\n- Manifest\n- Story\n- File Tree\n- UML Diagrams\n- Articles\n- Codebase\n- Prompt"]
 
         def add_section(name, content, placeholder):
             final_content = content.strip() if content and content.strip() else placeholder
             parts.append(f"--- START: {name} ---\n{final_content}\n--- END: {name} ---")
 
         add_section("Manifest", manifest_content, "# Manifest generation failed.")
-        # Special handling for story placeholder
         story_placeholder = placeholders["Story"] if self.list_arg is None else "# No articles found for the specified slice."
         add_section("Story", story_content, story_placeholder)
         add_section("File Tree", tree_content, placeholders["File Tree"])
         add_section("UML Diagrams", uml_content, placeholders["UML Diagrams"])
+        add_section("Articles", articles_content, placeholders["Articles"]) ### NEW/MODIFIED ###
         add_section("Codebase", codebase_content, placeholders["Codebase"])
         add_section("Prompt", prompt_content, "# No prompt was provided.")
 
@@ -399,8 +407,6 @@ Before addressing the user's prompt, perform the following verification steps:
 
     def print_summary(self):
         """Calculates and prints an accurate, comprehensive summary to the console."""
-        # START: print_summary_body
-        # This method uses self.all_sections populated by build_final_prompt
         print("--- Files Included ---")
         for f in self.processed_files:
             if self.context_only:
@@ -428,8 +434,6 @@ Before addressing the user's prompt, perform the following verification steps:
         print("\n--- Size Perspective ---")
         print(perspective)
         print()
-        # END: print_summary_body
-
 
 # ============================================================================
 # --- Main Execution Logic ---
@@ -447,13 +451,17 @@ def main():
         nargs='?', const='[-5:]', default=None,
         help='Include a list of recent articles. Optionally provide a slice, e.g., "[:]". Defaults to "[-5:]".'
     )
+    ### NEW/MODIFIED ###
+    parser.add_argument(
+        '-a', '--article',
+        nargs='?', const='[-1:]', default=None,
+        help='Include FULL CONTENT of recent articles. Provide a slice, e.g., "[-5:]". Defaults to "[-1:]".'
+    )
     args = parser.parse_args()
 
-    # START: main_post_argparse
     if args.check_dependencies:
         check_dependencies()
         sys.exit(0)
-    # END: main_post_argparse
 
     # 1. Handle user prompt
     prompt_content = "Please review the provided context and assist with the codebase."
@@ -513,7 +521,6 @@ def main():
     print(f" ({builder.auto_context.get(title, {}).get('tokens', 0):,} tokens)")
 
     if args.list is not None:
-        # START: main_article_logic
         print("Adding narrative context from articles...", end='', flush=True)
         all_articles = _get_article_list_data()
         sliced_articles = []
@@ -534,7 +541,39 @@ def main():
             print(f" ({len(sliced_articles)} articles)")
         else:
             print(" (no articles found or invalid slice)")
-        # END: main_article_logic
+    
+    ### NEW/MODIFIED ###
+    if args.article is not None:
+        print("Adding full article content...", end='', flush=True)
+        all_articles = _get_article_list_data()
+        sliced_articles = []
+        try:
+            slice_or_index = parse_slice_arg(args.article)
+            if isinstance(slice_or_index, int):
+                sliced_articles = [all_articles[slice_or_index]]
+            elif isinstance(slice_or_index, slice):
+                sliced_articles = all_articles[slice_or_index]
+        except (ValueError, IndexError):
+            print(f" (invalid slice '{args.article}')")
+
+        if sliced_articles:
+            full_content_parts = []
+            for article in sliced_articles:
+                try:
+                    with open(article['path'], 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    # Add a header for each article to separate them clearly
+                    full_content_parts.append(f"--- START: Article: {os.path.basename(article['path'])} ---\n{content.strip()}\n--- END: Article ---\n")
+                except Exception as e:
+                    print(f"\nWarning: Could not read article {article['path']}: {e}")
+            
+            if full_content_parts:
+                full_article_content = "\n".join(full_content_parts)
+                builder.add_auto_context("Full Article Content", full_article_content)
+                print(f" ({len(sliced_articles)} full articles)")
+        else:
+            print(" (no articles found or invalid slice)")
+
 
     python_files_to_diagram = [f['path'] for f in processed_files_data if f['path'].endswith('.py')]
     if python_files_to_diagram:
@@ -554,10 +593,8 @@ def main():
                 print(" (skipped)")
         print("...UML generation complete.\n")
     
-    # START: main_pre_summary
     # 4. Generate final output and print summary
     final_output = builder.build_final_prompt()
-    # END: main_pre_summary
     builder.print_summary()
 
     # 5. Handle output
