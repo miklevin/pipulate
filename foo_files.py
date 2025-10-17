@@ -48,7 +48,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/pyproject.toml
 
 # /home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
-# /home/mike/repos/pipulate/Notebooks/Hello_AI.ipynb
+# /home/mike/repos/pipulate/Notebooks/A_Hi_2_AI.ipynb
 # /home/mike/repos/pipulate/Notebooks/prompt.txt
 # /home/mike/repos/pipulate/tools/__init__.py 
 
@@ -93,7 +93,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/pipulate/core.py
 # /home/mike/repos/pipulate/pipulate/pipulate.py
 # /home/mike/repos/pipulate/apps/040_hello_workflow.py
-# /home/mike/repos/pipulate/scripts/botify/Hello_AI.ipynb
+# /home/mike/repos/pipulate/scripts/botify/A_Hi_2_AI.ipynb
 
 # DRY OO APP PLUGINS
 # /home/mike/repos/pipulate/imports/crud.py
@@ -186,7 +186,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/src/faquilizer/__init__.py
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/src/faquilizer/template.py
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/AI_Scrape.ipynb
-# /home/mike/repos/pipulate/scripts/botify/Hello_AI.ipynb
+# /home/mike/repos/pipulate/scripts/botify/A_Hi_2_AI.ipynb
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/faq-session-01_output.xlsx
 
 # PREVIOUS CONTEXT DUMPS (PROBABLY DELETE BELOW THIS POINT)
@@ -235,7 +235,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/pipulate/core.py
 # /home/mike/repos/pipulate/pipulate/pipulate.py
 # /home/mike/repos/pipulate/apps/040_hello_workflow.py
-# /home/mike/repos/pipulate/scripts/botify/Hello_AI.ipynb
+# /home/mike/repos/pipulate/scripts/botify/A_Hi_2_AI.ipynb
 # /home/mike/repos/pipulate/imports/crud.py
 # /home/mike/repos/pipulate/apps/060_tasks.py
 # /home/mike/repos/pipulate/apps/030_roles.py
@@ -324,10 +324,10 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/tools/system_tools.py
 # /home/mike/repos/pipulate/cli.py
 # /home/mike/repos/pipulate/imports/stream_orchestrator.py
-# /home/mike/repos/pipulate/assets/nbs/Hello_AI.ipynb
+# /home/mike/repos/pipulate/assets/nbs/A_Hi_2_AI.ipynb
 # /home/mike/repos/pipulate/assets/nbs/secretsauce.py
 # /home/mike/repos/pipulate/assets/nbs/AI_Scrape.ipynb
-# /home/mike/repos/pipulate/Notebooks/Hello_AI.ipynb
+# /home/mike/repos/pipulate/Notebooks/A_Hi_2_AI.ipynb
 # /home/mike/repos/pipulate/Notebooks/open_eyes.ipynb
 # /home/mike/repos/pipulate/Notebooks/secretsauce.py
 # /home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
