@@ -1,5 +1,5 @@
 FILES_TO_INCLUDE_RAW = """\
-# /home/mike/repos/pipulate/Notebooks/40_GAP_Analysis.py
+/home/mike/repos/pipulate/Notebooks/40_GAP_Analysis.py
 /home/mike/repos/pipulate/assets/nbs/GAPalyzer.ipynb
 # /home/mike/repos/pipulate/Notebooks/secretsauce.py
 """
