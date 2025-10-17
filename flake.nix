@@ -105,8 +105,8 @@
         # --- CORRECTED: Declarative list for notebooks to copy ---
         notebookFilesToCopy = [
           {
-            source = "assets/nbs/Hello_AI.ipynb";
-            dest = "Notebooks/Hello_AI.ipynb";
+            source = "assets/nbs/A_Hi_2_AI.ipynb";
+            dest = "Notebooks/A_Hi_2_AI.ipynb";
             desc = "a local 'Hello, AI!' example notebook";
           }
           {
