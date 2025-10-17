@@ -40,7 +40,7 @@ __pycache__/
 .sesskey
 
 # User-facing notebooks generated on first run
-/Notebooks/Hello_AI.ipynb
+/Notebooks/A_Hi_2_AI.ipynb
 /Notebooks/AI_Scrape.ipynb
 /Notebooks/FAQuilizer.ipynb
 /Notebooks/secretsauce.py
