@@ -74,3 +74,4 @@ browser_cache/test_rotation_data/
 
 # Voice synthesis models - auto-downloaded as needed
 piper_models/
+GAPalyzer.ipynb
