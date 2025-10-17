@@ -20,7 +20,7 @@ aiosignal==1.4.0
     # via aiohttp
 annotated-types==0.7.0
     # via pydantic
-anthropic==0.70.0
+anthropic==0.71.0
     # via langchain-anthropic
 anyio==4.11.0
     # via
@@ -49,6 +49,8 @@ astroid==4.0.1
     # via pylint
 asttokens==3.0.0
     # via stack-data
+astunparse==1.6.3
+    # via -r requirements.in
 async-lru==2.0.5
     # via jupyterlab
 attrs==25.4.0
@@ -73,11 +75,11 @@ blinker==1.6.2
     # via
     #   -r requirements.in
     #   selenium-wire
-boto3==1.40.53
+boto3==1.40.54
     # via
     #   jupyter-ai-magics
     #   langchain-aws
-botocore==1.40.53
+botocore==1.40.54
     # via
     #   boto3
     #   s3transfer
@@ -170,7 +172,7 @@ faiss-cpu==1.12.0
     # via jupyter-ai
 fastavro==1.12.1
     # via cohere
-fastcore==1.8.12
+fastcore==1.8.13
     # via
     #   apswutils
     #   fastlite
@@ -411,7 +413,7 @@ jupyter-client==8.6.3
     #   ipykernel
     #   jupyter-server
     #   nbclient
-jupyter-core==5.8.1
+jupyter-core==5.9.1
     # via
     #   ipykernel
     #   jupyter-client
@@ -591,7 +593,7 @@ onnxruntime==1.23.1
     # via
     #   -r requirements.in
     #   piper-tts
-openai==2.3.0
+openai==2.4.0
     # via langchain-openai
 openpyxl==3.1.5
     # via -r requirements.in
@@ -878,6 +880,7 @@ shellingham==1.5.4
     # via typer
 six==1.17.0
     # via
+    #   astunparse
     #   bce-python-sdk
     #   python-dateutil
     #   rfc3339-validator
@@ -934,7 +937,7 @@ tokenizers==0.22.1
     #   langchain-mistralai
 tomlkit==0.13.3
     # via pylint
-toolz==1.0.0
+toolz==1.1.0
     # via
     #   dask
     #   distributed
@@ -1034,7 +1037,7 @@ uvicorn[standard]==0.37.0
     # via
     #   -r requirements.in
     #   python-fasthtml
-uvloop==0.21.0
+uvloop==0.22.1
     # via uvicorn
 validators==0.35.0
     # via langchain-google-vertexai
@@ -1063,6 +1066,8 @@ websockets==15.0.1
     #   google-genai
     #   undetected-chromedriver
     #   uvicorn
+wheel==0.45.1
+    # via astunparse
 widgetsnbextension==4.0.14
     # via ipywidgets
 wsproto==1.2.0
