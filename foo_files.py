@@ -1,11 +1,16 @@
 FILES_TO_INCLUDE_RAW = """\
-# /home/mike/repos/pipulate/pipulate/core.py
-/home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
-/home/mike/repos/pipulate/Notebooks/secretsauce.py
-# /home/mike/repos/pipulate/tools/scraper_tools.py
-# /home/mike/repos/pipulate/tools/dom_tools.py
+/home/mike/repos/pipulate/prompt_foo.py
+/home/mike/repos/MikeLev.in/_posts/2025-10-16-nixos-digital-home-safe-pruning-ai-collaboration.md
+/home/mike/repos/pipulate/flake.nix
+/home/mike/repos/pipulate/assets/installer/install.sh
+/home/mike/repos/pipulate/pyproject.toml
+/home/mike/repos/pipulate/requirements.in
+/home/mike/repos/pipulate/AI_RUNME.py
+/home/mike/repos/pipulate/cli.py
+/home/mike/repos/pipulate/foo_files.py
 """
 
+#LATEST
 # /home/mike/repos/pipulate/assets/installer/install.sh
 # /home/mike/repos/pipulate/requirements.in
 # /home/mike/repos/pipulate/requirements.txt
@@ -16,7 +21,6 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/Notebooks/prompt.txt
 # /home/mike/repos/pipulate/tools/__init__.py 
 
-#LATEST
 # /home/mike/repos/pipulate/README.md
 # /home/mike/repos/mikelev.in/_posts/2025-10-12-chisel-strike-nix-flake-jupyter-ai-collaboration.md
 # /home/mike/repos/MikeLev.in/_posts/2025-10-12-surgical-ai-context-narrative-time-machine.md
