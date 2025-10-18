@@ -1,10 +1,13 @@
 # Top-level dependencies for Pipulate
 # This file is used by pip-compile to generate requirements.txt
 
-nltk
 pip-tools
+
+# GAPalyzer
+nltk
 tldextract
 wordninja
+xlsxwriter
 
 # The pinned problems
 blinker==1.6.2
