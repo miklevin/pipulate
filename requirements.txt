@@ -8,7 +8,7 @@ ai21==4.2.0
     # via jupyter-ai-magics
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.13.0
+aiohttp==3.13.1
     # via
     #   langchain-community
     #   langchain-nvidia-ai-endpoints
@@ -75,11 +75,11 @@ blinker==1.6.2
     # via
     #   -r requirements.in
     #   selenium-wire
-boto3==1.40.54
+boto3==1.40.55
     # via
     #   jupyter-ai-magics
     #   langchain-aws
-botocore==1.40.54
+botocore==1.40.55
     # via
     #   boto3
     #   s3transfer
@@ -87,6 +87,8 @@ bottleneck==1.6.0
     # via langchain-google-vertexai
 brotli==1.1.0
     # via selenium-wire
+build==1.3.0
+    # via pip-tools
 cachetools==6.2.1
     # via
     #   google-auth
@@ -109,6 +111,8 @@ click==8.1.8
     #   dask
     #   distributed
     #   jupyter-ai-magics
+    #   nltk
+    #   pip-tools
     #   together
     #   typer
     #   uvicorn
@@ -207,7 +211,7 @@ fsspec==2025.9.0
     #   huggingface-hub
 future==1.0.0
     # via bce-python-sdk
-google-ai-generativelanguage==0.6.15
+google-ai-generativelanguage==0.4.0
     # via google-generativeai
 google-api-core[grpc]==2.26.0
     # via
@@ -219,11 +223,8 @@ google-api-core[grpc]==2.26.0
     #   google-cloud-resource-manager
     #   google-cloud-storage
     #   google-generativeai
-google-api-python-client==2.184.0
-    # via google-generativeai
 google-auth==2.41.1
     # via
-    #   google-ai-generativelanguage
     #   google-api-core
     #   google-api-python-client
     #   google-auth-httplib2
@@ -234,8 +235,6 @@ google-auth==2.41.1
     #   google-cloud-storage
     #   google-genai
     #   google-generativeai
-google-auth-httplib2==0.2.0
-    # via google-api-python-client
 google-cloud-aiplatform==1.121.0
     # via langchain-google-vertexai
 google-cloud-bigquery==3.38.0
@@ -256,7 +255,7 @@ google-crc32c==1.7.1
     #   google-resumable-media
 google-genai==1.45.0
     # via google-cloud-aiplatform
-google-generativeai==0.8.5
+google-generativeai==0.3.2
     # via
     #   -r requirements.in
     #   langchain-google-genai
@@ -297,10 +296,6 @@ hpack==4.1.0
     # via h2
 httpcore==1.0.9
     # via httpx
-httplib2==0.31.0
-    # via
-    #   google-api-python-client
-    #   google-auth-httplib2
 httptools==0.7.1
     # via uvicorn
 httpx==0.28.1
@@ -312,6 +307,7 @@ httpx==0.28.1
     #   jupyterlab
     #   langchain-google-vertexai
     #   langchain-mistralai
+    #   langgraph-sdk
     #   langsmith
     #   ollama
     #   openai
@@ -377,7 +373,7 @@ jinja2==3.1.6
     #   jupyterlab
     #   jupyterlab-server
     #   nbconvert
-jiter==0.11.0
+jiter==0.11.1
     # via
     #   anthropic
     #   openai
@@ -386,7 +382,9 @@ jmespath==1.0.1
     #   boto3
     #   botocore
 joblib==1.5.2
-    # via scikit-learn
+    # via
+    #   nltk
+    #   scikit-learn
 json5==0.12.1
     # via jupyterlab-server
 jsonpatch==1.33
@@ -479,7 +477,10 @@ langchain-core==0.3.79
     #   langchain-ollama
     #   langchain-openai
     #   langchain-text-splitters
-langchain-google-genai==2.0.10
+    #   langgraph
+    #   langgraph-checkpoint
+    #   langgraph-prebuilt
+langchain-google-genai==0.0.1
     # via
     #   -r requirements.in
     #   jupyter-ai-magics
@@ -491,7 +492,7 @@ langchain-nvidia-ai-endpoints==0.3.18
     # via jupyter-ai-magics
 langchain-ollama==0.3.10
     # via jupyter-ai-magics
-langchain-openai==0.3.35
+langchain-openai==0.3.34
     # via
     #   -r requirements.in
     #   jupyter-ai-magics
@@ -564,6 +565,8 @@ nbstripout==0.8.1
     # via -r requirements.in
 nest-asyncio==1.6.0
     # via ipykernel
+nltk==3.9.2
+    # via -r requirements.in
 notebook-shim==0.2.4
     # via jupyterlab
 numexpr==2.14.1
@@ -593,18 +596,21 @@ onnxruntime==1.23.1
     # via
     #   -r requirements.in
     #   piper-tts
-openai==2.4.0
+openai==2.5.0
     # via langchain-openai
 openpyxl==3.1.5
     # via -r requirements.in
 orjson==3.11.3
-    # via langsmith
+    # via
+    #   langgraph-sdk
+    #   langsmith
 outcome==1.3.0.post0
     # via
     #   trio
     #   trio-websocket
 packaging==25.0
     # via
+    #   build
     #   dask
     #   distributed
     #   faiss-cpu
@@ -642,6 +648,8 @@ pillow==11.3.0
     #   jupyter-ai-magics
     #   matplotlib
     #   together
+pip-tools==7.5.1
+    # via -r requirements.in
 piper-tts==1.3.0
     # via -r requirements.in
 platformdirs==4.5.0
@@ -667,7 +675,7 @@ proto-plus==1.26.1
     #   google-api-core
     #   google-cloud-aiplatform
     #   google-cloud-resource-manager
-protobuf==5.29.5
+protobuf==4.25.8
     # via
     #   google-ai-generativelanguage
     #   google-api-core
@@ -702,7 +710,7 @@ pycparser==2.23
     # via cffi
 pycryptodome==3.23.0
     # via bce-python-sdk
-pydantic==2.12.2
+pydantic==2.12.3
     # via
     #   -r requirements.in
     #   ai21
@@ -710,7 +718,6 @@ pydantic==2.12.2
     #   cohere
     #   google-cloud-aiplatform
     #   google-genai
-    #   google-generativeai
     #   jupyter-ai
     #   jupyter-ai-magics
     #   langchain
@@ -718,9 +725,9 @@ pydantic==2.12.2
     #   langchain-aws
     #   langchain-cohere
     #   langchain-core
-    #   langchain-google-genai
     #   langchain-google-vertexai
     #   langchain-mistralai
+    #   langgraph
     #   langsmith
     #   ollama
     #   openai
@@ -755,6 +762,10 @@ pyparsing==3.2.5
     #   selenium-wire
 pypdf==6.1.1
     # via jupyter-ai
+pyproject-hooks==1.2.0
+    # via
+    #   build
+    #   pip-tools
 pysocks==1.7.1
     # via
     #   selenium-wire
@@ -808,7 +819,9 @@ referencing==0.37.0
     #   jsonschema-specifications
     #   jupyter-events
 regex==2025.9.18
-    # via tiktoken
+    # via
+    #   nltk
+    #   tiktoken
 requests==2.32.5
     # via
     #   -r requirements.in
@@ -860,7 +873,7 @@ scikit-learn==1.7.2
     # via -r requirements.in
 scipy==1.16.2
     # via scikit-learn
-selenium==4.36.0
+selenium==4.37.0
     # via
     #   -r requirements.in
     #   selenium-stealth
@@ -955,6 +968,7 @@ tqdm==4.67.1
     #   google-generativeai
     #   gpt4all
     #   huggingface-hub
+    #   nltk
     #   openai
     #   together
 traitlets==5.14.3
@@ -1024,8 +1038,6 @@ undetected-chromedriver==3.5.5
     # via -r requirements.in
 uri-template==1.3.0
     # via jsonschema
-uritemplate==4.2.0
-    # via google-api-python-client
 urllib3[socks]==2.5.0
     # via
     #   botocore
@@ -1067,7 +1079,9 @@ websockets==15.0.1
     #   undetected-chromedriver
     #   uvicorn
 wheel==0.45.1
-    # via astunparse
+    # via
+    #   astunparse
+    #   pip-tools
 widgetsnbextension==4.0.14
     # via ipywidgets
 wsproto==1.2.0
@@ -1088,4 +1102,5 @@ zstandard==0.25.0
     #   selenium-wire
 
 # The following packages are considered to be unsafe in a requirements file:
+# pip
 # setuptools
