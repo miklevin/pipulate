@@ -1,6 +1,5 @@
 # ripgrep filters for good search & replaces with `rg | xargs sed` pattern
 assets/js/
-Notebooks/Client_Work/
 
 prompt.md
 article.txt
@@ -40,11 +39,13 @@ __pycache__/
 .sesskey
 
 # User-facing notebooks generated on first run
-/Notebooks/A_Hi_2_AI.ipynb
-/Notebooks/AI_Scrape.ipynb
-/Notebooks/FAQuilizer.ipynb
-/Notebooks/secretsauce.py
-/Notebooks/GAPalyzer.ipynb
+Notebooks/Client_Work/
+Notebooks/keys.py
+Notebooks/A_Hi_2_AI.ipynb
+Notebooks/AI_Scrape.ipynb
+Notebooks/FAQuilizer.ipynb
+Notebooks/secretsauce.py
+Notebooks/GAPalyzer.ipynb
 
 # Python packaging and build artifacts
 build/
