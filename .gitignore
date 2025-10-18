@@ -39,13 +39,14 @@ __pycache__/
 .sesskey
 
 # User-facing notebooks generated on first run
-Notebooks/Client_Work/
 Notebooks/keys.py
+Notebooks/Client_Work/
+Notebooks/deliverables/
 Notebooks/A_Hi_2_AI.ipynb
 Notebooks/AI_Scrape.ipynb
 Notebooks/FAQuilizer.ipynb
-Notebooks/secretsauce.py
 Notebooks/GAPalyzer.ipynb
+Notebooks/secretsauce.py
 
 # Python packaging and build artifacts
 build/
