@@ -4,6 +4,7 @@
 nltk
 pip-tools
 tldextract
+wordninja
 
 # The pinned problems
 blinker==1.6.2
