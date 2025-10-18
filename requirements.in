@@ -1,6 +1,9 @@
 # Top-level dependencies for Pipulate
 # This file is used by pip-compile to generate requirements.txt
 
+nltk
+pip-tools
+
 # The pinned problems
 blinker==1.6.2
 apsw==3.50.3.0
