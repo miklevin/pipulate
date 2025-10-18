@@ -1961,6 +1961,13 @@ class Pipulate:
         import shutil
         import ast
         import astunparse # Our new dependency
+        import re # Need to import 're' for the regex part
+
+        ### INPUT PROCESSING START ###
+        # Ensure the notebook filename has the .ipynb extension
+        if not notebook_filename.endswith(".ipynb"):
+            notebook_filename = f"{notebook_filename}.ipynb"
+        ### INPUT PROCESSING END ###
 
         ### NEW LOGIC STARTS HERE ###
         class SecretScrubber(ast.NodeTransformer):
