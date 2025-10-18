@@ -3,6 +3,7 @@
 
 nltk
 pip-tools
+tldextract
 
 # The pinned problems
 blinker==1.6.2
