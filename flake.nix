@@ -544,7 +544,7 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
           if [ ! -f .gitattributes ]; then
             echo "*.ipynb filter=nbstripout" > .gitattributes
           fi
-          git config --local filter.nbstripout.clean "nbstripout"
+          git config --local filter.nbstripout.clean ".venv/bin/nbstripout"
           git config --local filter.nbstripout.required true
           # Set EFFECTIVE_OS for browser automation scripts
           if [[ "$(uname -s)" == "Darwin" ]]; then export EFFECTIVE_OS="darwin"; else export EFFECTIVE_OS="linux"; fi
