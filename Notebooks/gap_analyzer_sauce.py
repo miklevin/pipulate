@@ -177,3 +177,79 @@ def collect_semrush_downloads(job: str, download_path_str: str, file_pattern_xls
         pip.set(job, 'semrush_download_dir', destination_dir_str)
         pip.set(job, 'collected_semrush_files', moved_files_list)
         return destination_dir_str, moved_files_list
+
+# In Notebooks/gap_analyzer_sauce.py
+import itertools
+from pathlib import Path
+from pipulate import pip # Ensure pip is imported
+
+# (Keep other functions)
+# ...
+
+def find_semrush_files_and_generate_summary(job: str, competitor_limit: int = None):
+    """
+    Finds SEMRush files, stores paths in pip state, and generates a Markdown summary.
+
+    Args:
+        job (str): The current Pipulate job ID.
+        competitor_limit (int, optional): Max number of competitors to list in summary. Defaults to None (list all).
+
+
+    Returns:
+        str: A Markdown formatted string summarizing the found files, or a warning message.
+    """
+    print(f"🔍 Locating SEMRush files for job '{job}' and generating summary...")
+    semrush_dir = Path("downloads") / job
+    markdown_output_lines = [] # Initialize list to build Markdown output
+
+    # Ensure the directory exists
+    if not semrush_dir.is_dir():
+         warning_msg = f"⚠️ **Warning:** Download directory `{semrush_dir.resolve()}` not found. Assuming no files collected yet."
+         print(warning_msg.replace("**","")) # Print clean version to console
+         pip.set(job, 'collected_semrush_files', [])
+         return warning_msg # Return Markdown warning
+
+    file_patterns = [
+        "*-organic.Positions*.xlsx",
+        "*-organic.Positions*.csv"
+    ]
+
+    try:
+        all_downloaded_files = sorted(list(itertools.chain.from_iterable(
+            semrush_dir.glob(pattern) for pattern in file_patterns
+        )))
+        all_downloaded_files_as_str = [str(p.resolve()) for p in all_downloaded_files]
+
+        # --- Pipulate Scaffolding ---
+        pip.set(job, 'collected_semrush_files', all_downloaded_files_as_str)
+        # ---------------------------
+
+        # --- Generate Markdown Output ---
+        if all_downloaded_files:
+            print(f"💾 Found {len(all_downloaded_files)} files and stored paths in pip state.")
+            markdown_output_lines.append("## 💾 Found Downloaded Files")
+            markdown_output_lines.append(f"✅ **{len(all_downloaded_files)} files** ready for processing in `{semrush_dir}/`\n")
+
+            display_limit = competitor_limit if competitor_limit is not None else len(all_downloaded_files)
+            if display_limit < len(all_downloaded_files):
+                 markdown_output_lines.append(f"*(Displaying first {display_limit} based on COMPETITOR_LIMIT)*\n")
+
+            for i, file in enumerate(all_downloaded_files[:display_limit]):
+                try:
+                    domain_name = file.name[:file.name.index("-organic.")].strip()
+                except ValueError:
+                    domain_name = file.name # Fallback
+                markdown_output_lines.append(f"{i + 1}. **`{domain_name}`** ({file.suffix.upper()})")
+
+        else:
+            print(f"🤷 No files found matching patterns in '{semrush_dir}'. Stored empty list in pip state.")
+            warning_msg = f"⚠️ **Warning:** No SEMRush files found in `{semrush_dir.resolve()}/`.\n(Looking for `*-organic.Positions*.xlsx` or `*.csv`)"
+            markdown_output_lines.append(warning_msg)
+
+        return "\n".join(markdown_output_lines)
+
+    except Exception as e:
+        error_msg = f"❌ An unexpected error occurred while listing SEMRush files: {e}"
+        print(error_msg)
+        pip.set(job, 'collected_semrush_files', []) # Store empty list on error
+        return f"❌ **Error:** An error occurred during file listing. Check logs. ({e})"
