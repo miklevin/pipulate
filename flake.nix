@@ -139,6 +139,7 @@
             pylint
             nbstripout
           ]))
+          nbstripout
           figlet                       # For creating ASCII art welcome messages
           tmux                         # Terminal multiplexer for managing sessions
           zlib                         # Compression library for data compression
