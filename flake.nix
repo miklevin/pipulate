@@ -135,10 +135,10 @@
         # regardless of the operating system
         commonPackages = with pkgs; [
           sqlite                       # Ensures correct SQLite library is linked on macOS
-          (python312.withPackages (ps: [
-            ps.pylint
+          (python312.withPackages (ps: with ps; [
+            pylint
+            nbstripout
           ]))
-          nbstripout                   # Git filter for stripping notebook outputs
           figlet                       # For creating ASCII art welcome messages
           tmux                         # Terminal multiplexer for managing sessions
           zlib                         # Compression library for data compression
@@ -545,8 +545,7 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
           if [ ! -f .gitattributes ]; then
             echo "*.ipynb filter=nbstripout" > .gitattributes
           fi
-          git config --local filter.nbstripout.clean "$VIRTUAL_ENV/bin/python -m nbstripout"
-          git config --local filter.nbstripout.required true
+          git config --local filter.nbstripout.clean "nbstripout"
           # Set EFFECTIVE_OS for browser automation scripts
           if [[ "$(uname -s)" == "Darwin" ]]; then export EFFECTIVE_OS="darwin"; else export EFFECTIVE_OS="linux"; fi
           echo "INFO: EFFECTIVE_OS set to: $EFFECTIVE_OS"
