@@ -37,6 +37,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import silhouette_score
 import numpy as np
 
+# --- EXCEL OUTPUT SUPPORT ---
+import platform
+import subprocess
+import ipywidgets as widgets
+from IPython.display import display
 
 import nltk
 
@@ -1770,3 +1775,120 @@ def cluster_and_finalize_dataframe(job: str, df: pd.DataFrame, has_botify: bool)
         print(f"❌ An error occurred during clustering and finalization: {e}")
         pip.set(job, 'final_clustered_df_json', pd.DataFrame().to_json(orient='records'))
         return pd.DataFrame() # Return empty DataFrame
+
+
+# Surgical port of _open_folder from FAQuilizer, necessary for the widget to work
+def _open_folder(path_str: str = "."):
+    """Opens the specified folder in the system's default file explorer."""
+    folder_path = Path(path_str).resolve()
+    
+    if not folder_path.exists() or not folder_path.is_dir():
+        print(f"❌ Error: Path is not a valid directory: {folder_path}")
+        return
+
+    system = platform.system()
+    try:
+        if system == "Windows":
+            os.startfile(folder_path)
+        elif system == "Darwin":  # macOS
+            subprocess.run(["open", folder_path])
+        else:  # Linux (xdg-open covers most desktop environments)
+            subprocess.run(["xdg-open", folder_path])
+    except Exception as e:
+        print(f"❌ Failed to open folder. Error: {e}")
+
+# This utility must be defined for normalize_and_score to work
+def safe_normalize(series):
+    """ Normalize the series safely to avoid divide by zero and handle NaN values. """
+    min_val = series.min()
+    max_val = series.max()
+    range_val = max_val - min_val
+    if range_val == 0:
+        # Avoid division by zero by returning zero array if no range
+        return np.zeros_like(series)
+    else:
+        # Normalize and fill NaN values that might result from empty/NaN series
+        return (series - min_val).div(range_val).fillna(0)
+
+# Surgical port of bf.reorder_columns
+def reorder_columns_surgical(df, priority_column, after_column):
+    if priority_column in df.columns:
+        columns = list(df.columns.drop(priority_column))
+        # Handle cases where the after_column may have been dropped earlier
+        if after_column not in columns:
+            print(f"⚠️ Reorder Error: Target column '{after_column}' not found. Skipping reorder of '{priority_column}'.")
+            return df
+            
+        after_column_index = columns.index(after_column)
+        columns.insert(after_column_index + 1, priority_column)
+        df = df[columns]
+    else:
+        print(f"⚠️ Reorder Error: Column '{priority_column}' not found in DataFrame.")
+    return df
+
+# Surgical port of bf.normalize_and_score - WITH CRITICAL FIX
+def normalize_and_score_surgical(df, registered_domain, has_botify_data, after_col, reorder):
+    
+    # Rename original column fields to match expected names in the dataframe
+    if 'internal_page_rank.raw' in df.columns:
+        df = df.rename(columns={'internal_page_rank.raw': 'Raw Internal Pagerank'}, inplace=False)
+    
+    # --- CRITICAL FIX FOR KEYERROR / TRAILING SLASHES ---
+    # The lookup key (e.g., 'nixos.org') must be matched against the DataFrame column (e.g., 'nixos.org/').
+    # We clean both for comparison to find the unique canonical key, but use the original column name.
+    
+    # Clean the lookup domain (assuming the input `registered_domain` might be missing the slash)
+    clean_lookup_key = registered_domain.rstrip('/')
+    target_col = None
+    
+    for col in df.columns:
+        # Find the column whose stripped name matches the stripped lookup key.
+        if col.rstrip('/') == clean_lookup_key:
+            target_col = col
+            break
+            
+    if target_col is None:
+        raise KeyError(f"Could not find client domain column for '{registered_domain}' in DataFrame. Available columns: {df.columns.tolist()}")
+    # --- END CRITICAL FIX ---
+    
+    # Normalize metrics that are always included
+    df['Normalized Search Volume'] = safe_normalize(df['Search Volume'])
+    df['Normalized Search Position'] = safe_normalize(df[target_col]) # <-- USES THE FOUND, CANONICAL COLUMN NAME
+    df['Normalized Keyword Difficulty'] = safe_normalize(df['Keyword Difficulty'])
+    df['Normalized CPC'] = safe_normalize(df['CPC'])
+
+    # Always include CPC and Keyword Difficulty in the combined score
+    combined_score = df['Normalized CPC'] - df['Normalized Keyword Difficulty']
+
+    if has_botify_data:
+        # Normalize additional Botify metrics if available
+        if 'Raw Internal Pagerank' in df.columns:
+            df['Normalized Raw Internal Pagerank'] = safe_normalize(df['Raw Internal Pagerank'])
+        else:
+            df['Normalized Raw Internal Pagerank'] = 0
+
+        if "No. of Missed Clicks excluding anonymized queries" in df.columns:
+            df['Normalized Missed Clicks'] = safe_normalize(df["No. of Missed Clicks excluding anonymized queries"])
+            combined_score += df['Normalized Missed Clicks']
+        else:
+            df['Normalized Missed Clicks'] = 0
+
+        # Add Botify metrics to the combined score
+        combined_score += (-1 * df['Normalized Raw Internal Pagerank'] +
+                           df['Normalized Search Volume'] +
+                           df['Normalized Search Position'])
+
+    # Apply the combined score to the DataFrame
+    df['Combined Score'] = combined_score
+
+    if reorder:
+        # Reorder columns if required (using the surgically ported reorder function)
+        df = reorder_columns_surgical(df, "CPC", after_col)
+        df = reorder_columns_surgical(df, "Keyword Difficulty", "CPC")
+        if has_botify_data:
+            df = reorder_columns_surgical(df, "Internal Pagerank", "Keyword Difficulty")
+            df = reorder_columns_surgical(df, "No. of Unique Inlinks", "Internal Pagerank")
+            if "No. of Missed Clicks excluding anonymized queries" in df.columns:
+                df = reorder_columns_surgical(df, "No. of Missed Clicks excluding anonymized queries", "No. of Unique Inlinks")
+
+    return df
