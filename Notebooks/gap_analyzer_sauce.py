@@ -1120,8 +1120,6 @@ def _export_data(version, org, project, export_payload, report_path, analysis=No
     return ("Unable to complete", None)
 
 
-# --- Main Orchestrator Function ---
-
 def fetch_botify_data(job: str, botify_token: str, botify_project_url: str):
     """
     Orchestrates fetching data from the Botify API, handling slug detection,
@@ -1454,3 +1452,81 @@ def merge_and_finalize_data(job: str, arranged_df: pd.DataFrame, botify_export_d
         pip.set(job, 'final_working_df_json', pd.DataFrame().to_json(orient='records'))
         # Return empty/default values
         return pd.DataFrame(), {"rows": 0, "cols": 0, "has_botify": False, "pagerank_counts": None}
+
+
+def truncate_dataframe_by_volume(job: str, final_df: pd.DataFrame, row_limit: int):
+    """
+    Truncates the DataFrame to be under a specific row limit by iterating
+    through search volume cutoffs. Stores the truncated DF in pip state.
+
+    Args:
+        job (str): The current Pipulate job ID.
+        final_df (pd.DataFrame): The DataFrame to truncate (from the previous merge step).
+        row_limit (int): The target maximum number of rows.
+
+    Returns:
+        pd.DataFrame: The truncated DataFrame, or an empty DataFrame on error.
+    """
+    if final_df.empty:
+        print("⚠️ Input DataFrame (final_df) is empty. Cannot truncate.")
+        return pd.DataFrame()
+
+    print(f"✂️ Truncating data to fit under {row_limit:,} rows for clustering...")
+
+    # --- CORE LOGIC (Moved from Notebook) ---
+    try:
+        # Define the Search Volume Cut-off Increments
+        volume_cutoffs = [49, 99, 199, 299, 499, 999, 1499, 1999, 2499, 2999, 3499, 3999, 5000, 7500, 10000, 20000, 30000]
+
+        # Ensure 'Search Volume' column exists and is numeric
+        if 'Search Volume' not in final_df.columns:
+            print("  ❌ 'Search Volume' column not found. Cannot truncate by volume.")
+            # Store and return the original df as-is
+            pip.set(job, 'truncated_df_for_clustering_json', final_df.to_json(orient='records'))
+            return final_df
+        
+        # Ensure 'Search Volume' is numeric, coercing errors to NaN and filling with 0
+        final_df['Search Volume'] = pd.to_numeric(final_df['Search Volume'], errors='coerce').fillna(0)
+
+        truncated_df = final_df.copy() # Initialize with the full DF
+        try_fit = 0
+
+        # Iterate to find the optimal Search Volume floor
+        for cutoff in volume_cutoffs:
+            df_candidate = final_df[final_df["Search Volume"] > cutoff]
+            num_rows = df_candidate.shape[0]
+            try_fit = cutoff
+            print(f"  Volume >{cutoff:,} results in {num_rows:,} rows.")
+            
+            if num_rows <= row_limit:
+                truncated_df = df_candidate # This is the best fit
+                break
+        
+        # Handle edge case where loop finishes but DF is still too large
+        # (i.e., even >30000 volume is more rows than ROW_LIMIT)
+        if truncated_df.shape[0] > row_limit:
+             print(f"  ⚠️ Could not get under {row_limit} rows. Using last valid cutoff >{try_fit:,} ({truncated_df.shape[0]} rows).")
+        
+        # Handle edge case where first filter cuts everything
+        if truncated_df.shape[0] == 0 and final_df.shape[0] > 0:
+            truncated_df = final_df[final_df["Search Volume"] > 0] # Fallback to > 0
+
+        # --- Final Output and Persistence ---
+        rows, cols = truncated_df.shape
+        print(f"✅ Final truncation floor: Search Volume >{try_fit:,} resulting in {rows:,} rows.")
+
+        df_to_store = truncated_df.copy()
+
+        # --- OUTPUT (to pip state) ---
+        pip.set(job, 'truncated_df_for_clustering_json', df_to_store.to_json(orient='records'))
+        print(f"💾 Stored truncated DataFrame ({len(df_to_store)} rows) in pip state for job '{job}'.")
+        # ---------------------------
+
+        # --- RETURN VALUE ---
+        # Return the truncated DataFrame, which will be aliased as 'df' in the notebook
+        return df_to_store
+
+    except Exception as e:
+        print(f"❌ An error occurred during truncation: {e}")
+        pip.set(job, 'truncated_df_for_clustering_json', pd.DataFrame().to_json(orient='records'))
+        return pd.DataFrame() # Return empty DataFrame
