@@ -1,17 +1,17 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/flake.nix
-/home/mike/repos/pipulate/.gitignore
-/home/mike/repos/pipulate/pipulate/__init__.py
-/home/mike/repos/pipulate/pipulate/pipulate.py
-/home/mike/repos/pipulate/Notebooks/secretsauce.py
-/home/mike/repos/pipulate/pipulate/core.py
-/home/mike/repos/pipulate/Notebooks/A_Hi_2_AI.ipynb
-/home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
+# /home/mike/repos/pipulate/flake.nix
+# /home/mike/repos/pipulate/.gitignore
+# /home/mike/repos/pipulate/pipulate/__init__.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/Notebooks/A_Hi_2_AI.ipynb
+# /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
 /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
-/home/mike/repos/pipulate/assets/nbs/A_Hi_2_AI.ipynb
-/home/mike/repos/pipulate/assets/nbs/GAPalyzer.ipynb
-/home/mike/repos/pipulate/assets/nbs/FAQuilizer.ipynb
-/home/mike/repos/MikeLev.in/_posts/2025-10-18-gapalyzer-mvp-excel-automation-ai-precision.md
+# /home/mike/repos/pipulate/assets/nbs/A_Hi_2_AI.ipynb
+# /home/mike/repos/pipulate/assets/nbs/GAPalyzer.ipynb
+# /home/mike/repos/pipulate/assets/nbs/FAQuilizer.ipynb
+# /home/mike/repos/MikeLev.in/_posts/2025-10-18-gapalyzer-mvp-excel-automation-ai-precision.md
 """
 
 # /home/mike/repos/pipulate/.gitignore
