@@ -1015,7 +1015,20 @@ def _fetch_analysis_slugs(org, project, botify_token):
 def _export_data(version, org, project, export_payload, report_path, analysis=None, retry_url=None):
     """
     Unified function to export data using BQLv1 or BQLv2.
-    version must be v1 or v2
+    Handles API calls, polling, download, and decompression via helpers.
+    Uses keys.botify directly for authentication.
+
+    Args:
+        version (str): 'v1' or 'v2'.
+        org (str): Botify organization slug.
+        project (str): Botify project slug.
+        export_payload (dict): The payload for the export API call.
+        report_path (Path): The desired final output path (e.g., .../file.csv).
+        analysis (str, optional): The analysis slug (required for v1). Defaults to None.
+        retry_url (str, optional): A direct download URL if polling fails. Defaults to None.
+
+    Returns:
+        tuple: (status_code: int or str, final_path: Path or None)
     """
     file_base = report_path.stem
     path_base = Path(report_path).parent
@@ -1031,14 +1044,14 @@ def _export_data(version, org, project, export_payload, report_path, analysis=No
 
     if zip_name.exists():
         print(f"☑️ {zip_name} found without corresponding CSV. Decompressing now...")
-        decompress_success = decompress_gz(zip_name, csv_name)
+        decompress_success = _decompress_gz(zip_name, csv_name)
         return (200, None) if decompress_success else (None, None)
 
     if retry_url:
         print(f"Using retry URL for direct download: {retry_url}")
-        if download_file(retry_url, zip_name):  # Save as .gz file
+        if _download_file(retry_url, zip_name):  # Save as .gz file
             print("File downloaded successfully via retry URL.")
-            if decompress_gz(zip_name, csv_name):  # Decompress .gz to .csv
+            if _decompress_gz(zip_name, csv_name):  # Decompress .gz to .csv
                 print("File decompressed successfully.")
                 return (200, csv_name)
             else:
@@ -1049,7 +1062,7 @@ def _export_data(version, org, project, export_payload, report_path, analysis=No
             return (None, None)
 
     # Use the token from the keys module
-    headers = {'Authorization': f'Token {keys.botify}', 'Content-Type': 'application/json'} 
+    headers = {'Authorization': f'Token {keys.botify}', 'Content-Type': 'application/json'}
 
     if version == 'v1':
         url = f'https://api.botify.com/v1/analyses/{org}/{project}/{analysis}/urls/export'
@@ -1082,9 +1095,9 @@ def _export_data(version, org, project, export_payload, report_path, analysis=No
             if job_status_details['job_status'] == 'DONE':
                 print("\nExport job done.")
                 download_url = job_status_details['results']['download_url']
-                if download_file(download_url, zip_name):
+                if _download_file(download_url, zip_name):
                     print("File downloaded successfully.")
-                    if decompress_gz(zip_name, csv_name):
+                    if _decompress_gz(zip_name, csv_name):
                         print("File decompressed successfully.")
                         return (200, csv_name)
                     else:
@@ -1277,11 +1290,11 @@ def fetch_botify_data_and_save(job: str, botify_token: str, botify_project_url: 
     if not loaded_from_existing:
         print("  Attempting download with Full GSC Payload...")
         # Pass botify_token to the helper
-        status_code, _ = _export_data('v1', org, project, payload_full, report_name, botify_token, analysis=analysis)
+        status_code, _ = _export_data('v1', org, project, payload_full, report_name, analysis=analysis)
 
         if status_code not in [200, 201]: # Check includes 201 for job creation success
             print("    -> Full Payload failed. Attempting Fallback Payload (no GSC data)...")
-            status_code, _ = _export_data('v1', org, project, payload_fallback, report_name, botify_token, analysis=analysis)
+            status_code, _ = _export_data('v1', org, project, payload_fallback, report_name, analysis=analysis)
 
         # After attempts, check if the file exists and try to read it
         if report_name.exists():
