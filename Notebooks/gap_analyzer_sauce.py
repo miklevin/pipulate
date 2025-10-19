@@ -1319,3 +1319,138 @@ def fetch_botify_data_and_save(job: str, botify_token: str, botify_project_url: 
 
     # Return necessary info for display logic in notebook
     return botify_export_df, has_botify, report_name, csv_dir
+
+
+def _insert_columns_after_surgical(df, column_names, after_column):
+    """
+    Surgical port: Inserts a list of columns immediately after a specified column.
+    (Moved verbatim from notebook cell)
+    """
+    # This logic is complex, but as requested, moved verbatim.
+    # We rely on the calling logic (in merge_and_finalize_data) to ensure
+    # 'column_names' only contains *new* columns not in 'df'.
+    
+    if after_column not in df.columns:
+        # If the reference column is missing, append columns to the end
+        print(f"  ⚠️ Insert Warning: After-column '{after_column}' not found. Appending new columns to end.")
+        new_order = df.columns.tolist() + [col for col in column_names if col not in df.columns]
+        return df.reindex(columns=new_order) # Use reindex for safety
+        
+    # Per the original, this logic is flawed if column_names contains existing columns,
+    # but our calling function ensures it only contains *new* columns.
+    missing_columns = [col for col in column_names if col not in df.columns]
+    
+    # This line is flawed but kept verbatim from the notebook helper:
+    column_names = [col for col in column_names if col not in missing_columns]
+    
+    # This check is added to handle the (now likely) empty column_names list
+    if not column_names:
+         # This is the most likely path, given the call logic.
+         # We'll re-implement the *intent* which is to add the *new* columns.
+         column_names = missing_columns # This is the correction
+         if not column_names:
+              return df # Truly nothing to insert
+            
+    insert_after_index = df.columns.get_loc(after_column)
+    
+    before = df.columns[:insert_after_index + 1].tolist()
+    after = df.columns[insert_after_index + 1:].tolist()
+    
+    # Ensure columns to be inserted are not duplicated in the 'after' list
+    after = [col for col in after if col not in column_names] 
+    
+    new_order = before + column_names + after
+    
+    # Check for consistency
+    if len(new_order) != len(df.columns) + len(missing_columns):
+        # Fallback if logic failed
+        print(f"  ⚠️ Insert Warning: Column mismatch during reorder. Appending new columns to end.")
+        return df.reindex(columns=df.columns.tolist() + missing_columns)
+        
+    return df[new_order]
+
+
+def merge_and_finalize_data(job: str, arranged_df: pd.DataFrame, botify_export_df: pd.DataFrame, has_botify: bool):
+    """
+    Merges SEMRush data with Botify data (if present), cleans columns,
+    saves an intermediate CSV, stores the final DF in pip state,
+    and returns the final DF and data for display.
+    
+    Args:
+        job (str): The current Pipulate job ID.
+        arranged_df (pd.DataFrame): The filtered/arranged SEMRush data.
+        botify_export_df (pd.DataFrame): The Botify data (or empty DF).
+        has_botify (bool): Flag indicating if Botify data is present.
+        
+    Returns:
+        tuple: (final_df: pd.DataFrame, display_data: dict)
+               The final DataFrame (aliased as 'df' in notebook) and
+               a dict with data for display (rows, cols, has_botify, pagerank_counts).
+    """
+    print("🔗 Joining Gap Analysis to Extra Botify Columns...")
+    unformatted_csv = Path("data") / f"{job}_unformatted.csv"
+
+    try:
+        # 1. Determine if Botify data is present
+        if has_botify and isinstance(botify_export_df, pd.DataFrame) and not botify_export_df.empty:
+            
+            # Perform the merge
+            botify_data_for_merge = botify_export_df.rename(columns={"url": "Full URL"}, inplace=False)
+            
+            final_df = pd.merge(arranged_df, botify_data_for_merge, left_on='Client URL', right_on='Full URL', how='left')
+
+            # Insert Botify columns after 'Competition'
+            # This logic correctly identifies only the *new* columns added by the merge
+            botify_cols_to_add = [col for col in botify_export_df.columns if col not in arranged_df.columns and col != 'url']
+            
+            # Use the moved helper function
+            final_df = _insert_columns_after_surgical(final_df, botify_cols_to_add, "Competition")
+            print("  ✅ Botify Data was found and merged.")
+            
+        else:
+            has_botify = False # Ensure flag is correct if DF was empty
+            final_df = arranged_df.copy() 
+            print("  ℹ️ No Botify Data provided or DataFrame was empty. Skipping merge.")
+
+        # 2. Final Cleanup and Persistence
+        final_df = final_df.copy() # Ensure it's a copy
+
+        # Drop redundant merge/artifact columns
+        cols_to_drop = ["URL", "Full URL", "url"]
+        existing_cols_to_drop = [col for col in cols_to_drop if col in final_df.columns]
+        if existing_cols_to_drop:
+             final_df.drop(columns=existing_cols_to_drop, inplace=True)
+             print(f"  ✂️ Dropped redundant columns: {', '.join(existing_cols_to_drop)}")
+
+        # Save unformatted intermediary file
+        final_df.to_csv(unformatted_csv, index=False)
+        print(f"  💾 Intermediate unformatted file saved to '{unformatted_csv}'")
+        
+        df = final_df.copy() # Create the 'df' alias for the next step
+
+        # 3. Prepare Display Data
+        rows, cols = df.shape
+        pagerank_counts = None
+        if has_botify and "Internal Pagerank" in df.columns:
+            pagerank_counts = df["Internal Pagerank"].value_counts()
+        
+        display_data = {
+            "rows": rows,
+            "cols": cols,
+            "has_botify": has_botify,
+            "pagerank_counts": pagerank_counts
+        }
+
+        # --- OUTPUT (to pip state) ---
+        pip.set(job, 'final_working_df_json', df.to_json(orient='records'))
+        print(f"💾 Stored final working DataFrame in pip state for job '{job}'.")
+        # ---------------------------
+
+        # --- RETURN VALUE ---
+        return df, display_data
+
+    except Exception as e:
+        print(f"❌ An error occurred during final merge/cleanup: {e}")
+        pip.set(job, 'final_working_df_json', pd.DataFrame().to_json(orient='records'))
+        # Return empty/default values
+        return pd.DataFrame(), {"rows": 0, "cols": 0, "has_botify": False, "pagerank_counts": None}
