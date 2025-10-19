@@ -1,9 +1,17 @@
 FILES_TO_INCLUDE_RAW = """\
-# /home/mike/repos/pipulate/Notebooks/secretsauce.py
-# /home/mike/repos/pipulate/pipulate/core.py
+/home/mike/repos/pipulate/flake.nix
+/home/mike/repos/pipulate/.gitignore
+/home/mike/repos/pipulate/pipulate/__init__.py
+/home/mike/repos/pipulate/pipulate/pipulate.py
+/home/mike/repos/pipulate/Notebooks/secretsauce.py
+/home/mike/repos/pipulate/pipulate/core.py
+/home/mike/repos/pipulate/Notebooks/A_Hi_2_AI.ipynb
+/home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
+/home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
+/home/mike/repos/pipulate/assets/nbs/A_Hi_2_AI.ipynb
+/home/mike/repos/pipulate/assets/nbs/GAPalyzer.ipynb
 /home/mike/repos/pipulate/assets/nbs/FAQuilizer.ipynb
-# /home/mike/repos/pipulate/assets/nbs/GAPalyzer.ipynb
-# /home/mike/repos/pipulate/assets/nbs/A_Hi_2_AI.ipynb
+/home/mike/repos/MikeLev.in/_posts/2025-10-18-gapalyzer-mvp-excel-automation-ai-precision.md
 """
 
 # /home/mike/repos/pipulate/.gitignore
@@ -173,14 +181,6 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/nixos/configuration.nix
 # /home/mike/repos/nixos/hardware-configuration.nix
 # /home/mike/repos/nixos/autognome.py
-
-# FAQUILIZER
-# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/pyproject.toml
-# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/src/faquilizer/__init__.py
-# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/src/faquilizer/template.py
-# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/AI_Scrape.ipynb
-# /home/mike/repos/pipulate/assets/nbs/A_Hi_2_AI.ipynb
-# /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer/faq-session-01_output.xlsx
 
 # PREVIOUS CONTEXT DUMPS (PROBABLY DELETE BELOW THIS POINT)
 # /home/mike/repos/pipulate/requirements.in
