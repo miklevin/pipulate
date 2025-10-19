@@ -6,6 +6,8 @@ from pathlib import Path
 import glob
 from pipulate import pip # Import pip for persistence
 import nbformat
+import itertools
+
 
 def extract_domains_and_print_urls(job: str, notebook_filename: str = "GAPalyzer.ipynb"):
     """
@@ -178,13 +180,6 @@ def collect_semrush_downloads(job: str, download_path_str: str, file_pattern_xls
         pip.set(job, 'collected_semrush_files', moved_files_list)
         return destination_dir_str, moved_files_list
 
-# In Notebooks/gap_analyzer_sauce.py
-import itertools
-from pathlib import Path
-from pipulate import pip # Ensure pip is imported
-
-# (Keep other functions)
-# ...
 
 def find_semrush_files_and_generate_summary(job: str, competitor_limit: int = None):
     """
@@ -253,3 +248,104 @@ def find_semrush_files_and_generate_summary(job: str, competitor_limit: int = No
         print(error_msg)
         pip.set(job, 'collected_semrush_files', []) # Store empty list on error
         return f"❌ **Error:** An error occurred during file listing. Check logs. ({e})"
+
+# In Notebooks/gap_analyzer_sauce.py
+import pandas as pd
+from tldextract import extract
+import itertools
+from pathlib import Path
+from pipulate import pip # Ensure pip is imported
+
+# (Keep previously added functions)
+# ...
+
+def _extract_registered_domain(url: str) -> str:
+    """Private helper to extract the registered domain (domain.suffix) from a URL/hostname."""
+    try:
+        extracted = extract(url)
+        return f"{extracted.domain}.{extracted.suffix}"
+    except Exception:
+        # Fallback for invalid inputs
+        return url
+
+def load_and_combine_semrush_data(job: str, client_domain: str, competitor_limit: int = None):
+    """
+    Loads all SEMRush files from pip state, combines them into a single master DataFrame,
+    stores the result in pip state, and returns the DataFrame along with value counts for display.
+
+    Args:
+        job (str): The current Pipulate job ID.
+        client_domain (str): The client's registered domain (e.g., 'example.com').
+        competitor_limit (int, optional): Max number of competitor files to process.
+
+    Returns:
+        tuple: (master_df: pd.DataFrame, domain_counts: pd.Series)
+               Returns the combined DataFrame and a Series of domain value counts.
+               Returns (empty DataFrame, empty Series) on failure or no files.
+    """
+    semrush_lookup = _extract_registered_domain(client_domain)
+    print(f"🛠️  Loading and combining SEMRush files for {semrush_lookup}...")
+
+    # --- INPUT (from pip state) ---
+    files_to_process_str = pip.get(job, 'collected_semrush_files', [])
+    if not files_to_process_str:
+        print("🤷 No collected SEMRush files found in pip state. Nothing to process.")
+        return pd.DataFrame(), pd.Series(dtype='int64')
+
+    # Convert string paths back to Path objects
+    all_semrush_files = [Path(p) for p in files_to_process_str]
+    
+    # --- Refactoring Note: Apply COMPETITOR_LIMIT here ---
+    # We add 1 to the limit to include the client file if it exists
+    processing_limit = competitor_limit + 1 if competitor_limit is not None else None
+    files_to_process = all_semrush_files[:processing_limit]
+    if processing_limit and len(all_semrush_files) > processing_limit:
+        print(f"🔪 Applying COMPETITOR_LIMIT: Processing first {processing_limit} of {len(all_semrush_files)} files.")
+
+
+    # --- CORE LOGIC (Moved from Notebook) ---
+    cdict = {}
+    list_of_dfs = []
+    print(f"Loading {len(files_to_process)} SEMRush files: ", end="", flush=True)
+
+    for j, data_file in enumerate(files_to_process):
+        read_func = pd.read_excel if data_file.suffix.lower() == '.xlsx' else pd.read_csv
+        try:
+            nend = data_file.stem.index("-organic")
+            xlabel = data_file.stem[:nend].replace("_", "/").replace("///", "://").strip('.')
+            just_domain = _extract_registered_domain(xlabel)
+            cdict[just_domain] = xlabel
+
+            df = read_func(data_file)
+            df["Domain"] = xlabel # Use the full label (sub.domain.com) for the column
+            df["Client URL"] = df.apply(lambda row: row["URL"] if row["Domain"] == semrush_lookup else None, axis=1)
+            df["Competitor URL"] = df.apply(lambda row: row["URL"] if row["Domain"] != semrush_lookup else None, axis=1)
+            list_of_dfs.append(df)
+            print(f"{j + 1} ", end="", flush=True)
+
+        except Exception as e:
+            print(f"\n❌ Error processing file {data_file.name}: {e}")
+            continue
+    
+    print("\n") # Newline after the loading count
+
+    if not list_of_dfs:
+        print("🛑 No DataFrames were created. Check for errors in file processing.")
+        return pd.DataFrame(), pd.Series(dtype='int64')
+
+    master_df = pd.concat(list_of_dfs, ignore_index=True)
+    rows, columns = master_df.shape
+    print(f"✅ Combined DataFrame created. Rows: {rows:,}, Columns: {columns:,}")
+    
+    domain_counts = master_df["Domain"].value_counts()
+
+    # --- OUTPUT (to pip state) ---
+    # Storing large DF as JSON is okay for now, per instructions.
+    # Future distillation: Save to CSV/Parquet and store path instead.
+    pip.set(job, 'semrush_master_df_json', master_df.to_json(orient='records'))
+    pip.set(job, 'competitors_dict_json', cdict) # Store the competitor name mapping
+    print(f"💾 Stored master DataFrame and competitor dictionary in pip state for job '{job}'.")
+    # -----------------------------
+
+    # --- RETURN VALUE ---
+    return master_df, domain_counts
