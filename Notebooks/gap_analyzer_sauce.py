@@ -42,6 +42,12 @@ import platform
 import subprocess
 import ipywidgets as widgets
 from IPython.display import display
+import xlsxwriter
+
+# (Keep all previously added functions, including _open_folder, 
+#  safe_normalize, reorder_columns_surgical, normalize_and_score_surgical)
+# ...
+
 
 import nltk
 
@@ -383,7 +389,7 @@ def load_and_combine_semrush_data(job: str, client_domain: str, competitor_limit
     # Storing large DF as JSON is okay for now, per instructions.
     # Future distillation: Save to CSV/Parquet and store path instead.
     pip.set(job, 'semrush_master_df_json', master_df.to_json(orient='records'))
-    pip.set(job, 'competitors_dict_json', cdict) # Store the competitor name mapping
+    pip.set(job, 'competitors_dict_json', json.dumps(cdict))
     print(f"💾 Stored master DataFrame and competitor dictionary in pip state for job '{job}'.")
     # -----------------------------
 
@@ -1892,3 +1898,119 @@ def normalize_and_score_surgical(df, registered_domain, has_botify_data, after_c
                 df = reorder_columns_surgical(df, "No. of Missed Clicks excluding anonymized queries", "No. of Unique Inlinks")
 
     return df
+
+
+def create_deliverables_excel_and_button(job: str, df: pd.DataFrame, client_domain_from_keys: str, has_botify: bool):
+    """
+    Creates the deliverables directory, writes the first "Gap Analysis" tab
+    to the Excel file, creates the "Open Folder" button, and stores
+    key file paths in pip state.
+
+    Args:
+        job (str): The current Pipulate job ID.
+        df (pd.DataFrame): The final clustered/arranged DataFrame.
+        client_domain_from_keys (str): The client's domain from the keys module.
+        has_botify (bool): Flag indicating if Botify data is present.
+
+    Returns:
+        tuple: (button, xl_file, loop_list)
+               The ipywidget Button, the Path object for the Excel file,
+               and the list of sheet names (loop_list).
+    """
+    print("Writing first pass of Excel file...")
+
+    # --- CORE LOGIC (Moved from Notebook) ---
+    try:
+        # --- FIX: Re-derive missing variables ---
+        # 1. Get semrush_lookup
+        semrush_lookup = _extract_registered_domain(client_domain_from_keys)
+
+        # 2. Get competitors list from pip state
+        competitors_dict_json = pip.get(job, 'competitors_dict_json', '{}')
+        competitors_dict = json.loads(competitors_dict_json)
+        # We need the *column names* from the df, which are the *values* in cdict
+        competitors = list(competitors_dict.values())
+        if not competitors:
+             # Fallback: try to infer from df columns (less reliable)
+             print("  ⚠️ Warning: competitors_dict_json was empty. Inferring competitors from DataFrame columns.")
+             # This is a bit fragile, but a necessary fallback
+             non_metric_cols = set(df.select_dtypes(exclude=[np.number]).columns)
+             competitors = [col for col in df.columns if '/' in col or col == semrush_lookup or '.com' in col]
+
+
+        # 3. Find the canonical client column name (TARGET_COMPETITOR_COL)
+        clean_lookup_key = semrush_lookup.rstrip('/')
+        TARGET_COMPETITOR_COL = None
+        for col in df.columns: # Use the passed 'df'
+            if col.rstrip('/') == clean_lookup_key:
+                TARGET_COMPETITOR_COL = col
+                break
+
+        if TARGET_COMPETITOR_COL is None:
+             # This will cause normalize_and_score_surgical to fail, but we must try.
+             print(f"❌ CRITICAL ERROR: Could not find canonical column for '{semrush_lookup}' in DataFrame.")
+             # We'll let it fail in normalize_and_score_surgical for a clearer traceback.
+             TARGET_COMPETITOR_COL = semrush_lookup # Use the base name as a last resort
+        # --- END FIX ---
+
+
+        # --- 1. DEFINE SECURE OUTPUT PATHS ---
+        deliverables_dir = Path("deliverables") / job
+        deliverables_dir.mkdir(parents=True, exist_ok=True)
+
+        xl_filename = f"{semrush_lookup.replace('.', '_').rstrip('_')}_GAPalyzer_{job}_V1.xlsx"
+        xl_file = deliverables_dir / xl_filename
+
+        # --- 2. EXECUTE CORE LOGIC ---
+        print(f"  - Writing 'Gap Analysis' tab to {xl_file.name}...")
+        loop_list = ["Gap Analysis"] # This is needed by the next cell
+        last_competitor = competitors[-1] if competitors else None # Handle empty list
+
+        # Apply the normalization/scoring logic
+        # Pass the re-derived semrush_lookup and the canonical TARGET_COMPETITOR_COL
+        # NOTE: normalize_and_score_surgical finds its *own* target_col, so we just need semrush_lookup
+        df_tab = normalize_and_score_surgical(df.copy(), semrush_lookup, has_botify, last_competitor, False)
+
+        # Save Initial Excel Sheet
+        arg_dict = {'options': {'strings_to_urls': False}}
+        try:
+            with pd.ExcelWriter(xl_file, engine="xlsxwriter", engine_kwargs=arg_dict, mode='w') as writer:
+                df_tab.to_excel(writer, sheet_name='Gap Analysis', index=False)
+            print("  ✅ 'Gap Analysis' tab written (Unformatted Pass 1).")
+        except Exception as e:
+            print(f"  ❌ Error writing Excel file: {e}")
+
+        # --- 3. CREATE SECURE EGRESS BUTTON ---
+        button = widgets.Button(
+            description=f"📂 Open Deliverables Folder ({job})",
+            tooltip=f"Open {deliverables_dir.resolve()}",
+            button_style='success'
+        )
+        
+        # Define the on_click handler that calls our private helper
+        def on_open_folder_click(b):
+            _open_folder(str(deliverables_dir))
+            
+        button.on_click(on_open_folder_click)
+
+        # --- OUTPUT (to pip state) ---
+        pip.set(job, 'final_xl_file', str(xl_file))
+        pip.set(job, 'deliverables_folder', str(deliverables_dir))
+        # --- FIX: Serialize lists to JSON strings before storing ---
+        pip.set(job, 'loop_list', json.dumps(loop_list)) # Store loop_list for the next step
+        # Store competitors and target col for the *next* cell (the formatting one)
+        pip.set(job, 'competitors_list', json.dumps(competitors)) 
+        # --- END FIX ---
+        pip.set(job, 'semrush_lookup', semrush_lookup) # The clean domain
+        pip.set(job, 'target_competitor_col', TARGET_COMPETITOR_COL) # The canonical column name
+        print(f"💾 Stored final Excel path, folder, and competitor info in pip state.")
+        # ---------------------------
+
+        # --- RETURN VALUE ---
+        # Return values needed for notebook display AND next cell
+        return button, xl_file, loop_list, competitors, semrush_lookup, TARGET_COMPETITOR_COL, has_botify
+
+    except Exception as e:
+        print(f"❌ An error occurred during Excel creation: {e}")
+        # Return dummy values to avoid breaking the notebook flow
+        return widgets.Button(description=f"Error: {e}", disabled=True), None, [], [], None, None, False
