@@ -805,3 +805,162 @@ def aggregate_semrush_metrics(job: str, df2: pd.DataFrame):
         print(f"❌ An error occurred during aggregation: {e}")
         pip.set(job, 'keyword_aggregate_df_json', pd.DataFrame().to_json(orient='records'))
         return pd.DataFrame() # Return empty DataFrame
+
+
+def _reorder_columns_surgical(df, priority_column, after_column):
+    """
+    Private helper: Moves a column immediately after a specified column. Handles missing columns.
+    """
+    # Check if columns exist *before* trying to manipulate
+    if priority_column not in df.columns:
+        print(f"  ⚠️ Reorder Warning: Priority column '{priority_column}' not found. Skipping.")
+        return df
+    if after_column not in df.columns:
+        print(f"  ⚠️ Reorder Warning: After column '{after_column}' not found. Placing '{priority_column}' at end.")
+        # Fallback: Move to end if after_column is missing
+        cols = [col for col in df.columns if col != priority_column] + [priority_column]
+        return df[cols]
+
+    # Proceed with reordering if both columns exist
+    columns = df.columns.drop(priority_column).tolist()
+    try:
+        after_column_index = columns.index(after_column)
+        columns.insert(after_column_index + 1, priority_column)
+        return df[columns]
+    except ValueError:
+         # This case should ideally not happen if after_column check passed, but good to have safeguard
+         print(f"  ⚠️ Reorder Warning: Index for '{after_column}' not found unexpectedly. Placing '{priority_column}' at end.")
+         cols = [col for col in df.columns if col != priority_column] + [priority_column]
+         return df[cols]
+
+
+# --- Main Function ---
+def merge_filter_arrange_data(job: str, pivot_df: pd.DataFrame, agg_df: pd.DataFrame):
+    """
+    Merges pivot and aggregate DataFrames, applies keyword filters, reorders/drops columns,
+    sorts the result, stores it in pip state, and returns the final DataFrame.
+
+    Args:
+        job (str): The current Pipulate job ID.
+        pivot_df (pd.DataFrame): The pivoted DataFrame from the previous step.
+        agg_df (pd.DataFrame): The aggregated DataFrame from the previous step.
+
+    Returns:
+        pd.DataFrame: The final, arranged DataFrame, or an empty DataFrame on error.
+    """
+    if pivot_df.empty or agg_df.empty:
+        print("⚠️ Input DataFrame(s) (pivot_df or agg_df) are empty. Cannot merge and filter.")
+        return pd.DataFrame()
+
+    print("🧩 Merging Pivot Data with Aggregate Data...")
+
+    # --- PATH DEFINITION ---
+    filter_file = Path("data") / f"{job}_filter_keywords.csv"
+
+    # --- CORE LOGIC (Moved from Notebook) ---
+    try:
+        # 1. Merge DataFrames
+        # Ensure 'Keyword' is a column for merging (pivot_df might have it as index)
+        pivot_df_reset = pivot_df.reset_index() if 'Keyword' not in pivot_df.columns else pivot_df
+        # agg_df should already have 'Keyword' as a column from its creation
+
+        # Check if 'Keyword' column exists in both before merge
+        if 'Keyword' not in pivot_df_reset.columns or 'Keyword' not in agg_df.columns:
+             raise ValueError("Missing 'Keyword' column in one of the DataFrames for merging.")
+
+        pivotmerge_df = pd.merge(pivot_df_reset, agg_df, on='Keyword', how='left')
+        print("  ✅ Pivot and Aggregate Data Joined.")
+        rows_pre_filter, cols_pre_filter = pivotmerge_df.shape
+        print(f"     Rows: {rows_pre_filter:,}, Columns: {cols_pre_filter:,}")
+
+        # --- Filtering ---
+        print("\n🧹 Applying Brand and Negative Filters...")
+        kw_filter = [] # Initialize filter list
+        if filter_file.exists():
+            try:
+                df_filter = pd.read_csv(filter_file, header=0)
+                # Ensure Filter column exists and handle potential NaNs robustly
+                if 'Filter' in df_filter.columns:
+                     kw_filter = df_filter["Filter"].dropna().astype(str).tolist()
+                else:
+                     print(f"  ⚠️ Filter file '{filter_file}' exists but missing 'Filter' column.")
+
+            except Exception as e:
+                print(f"  ⚠️ Error reading filter file '{filter_file}': {e}")
+
+        if kw_filter:
+            pattern = '|'.join([re.escape(keyword) for keyword in kw_filter])
+            # Ensure 'Keyword' column exists before filtering
+            if 'Keyword' in pivotmerge_df.columns:
+                 filtered_df = pivotmerge_df[~pivotmerge_df["Keyword"].astype(str).str.contains(pattern, case=False, na=False)]
+                 print(f"  ✅ Filter applied using {len(kw_filter)} terms from '{filter_file}'.")
+            else:
+                 print("  ⚠️ 'Keyword' column missing. Cannot apply filter.")
+                 filtered_df = pivotmerge_df # Skip filtering
+        else:
+            filtered_df = pivotmerge_df
+            if filter_file.exists():
+                 print("  ⚠️ Filter file exists but contains no terms. Skipping filter application.")
+            else:
+                 print(f"  ☑️ No filter file found at '{filter_file}'. Skipping negative filtering.")
+
+        rows_post_filter, _ = filtered_df.shape
+        removed_count = rows_pre_filter - rows_post_filter
+        print(f"     Rows after filter: {rows_post_filter:,} ({removed_count:,} rows removed)")
+
+
+        # --- Reordering and Final Polish ---
+        print("\n✨ Reordering columns and finalizing...")
+        temp_df = filtered_df.copy()
+
+        # Chain reorders using the robust helper
+        temp_df = _reorder_columns_surgical(temp_df, "Search Volume", after_column="Keyword")
+        temp_df = _reorder_columns_surgical(temp_df, "Number of Words", after_column="CPC")
+        temp_df = _reorder_columns_surgical(temp_df, "CPC", after_column="Number of Words")
+        temp_df = _reorder_columns_surgical(temp_df, "Number of Results", after_column="Position Type")
+        temp_df = _reorder_columns_surgical(temp_df, "Timestamp", after_column="Number of Results")
+        temp_df = _reorder_columns_surgical(temp_df, "Competitor URL", after_column="Client URL")
+
+        # Final column arrangement (Keyword, Search Volume first)
+        essential_cols = ['Keyword', 'Search Volume']
+        if all(col in temp_df.columns for col in essential_cols):
+            rest_of_columns = [col for col in temp_df.columns if col not in essential_cols]
+            new_column_order = essential_cols + rest_of_columns
+            # Defensively check if all original columns are still in the new order
+            if set(new_column_order) == set(temp_df.columns):
+                 arranged_df = temp_df[new_column_order]
+                 print("  ✅ Final column order applied.")
+            else:
+                 print("  ⚠️ Column mismatch during final arrange. Using previous order.")
+                 arranged_df = temp_df # Fallback
+        else:
+            print("  ⚠️ Essential columns ('Keyword', 'Search Volume') missing. Skipping final arrange.")
+            arranged_df = temp_df # Fallback
+
+        # Final sorting and column drops
+        sort_col = "Search Volume" if "Search Volume" in arranged_df.columns else "Keyword"
+        arranged_df = arranged_df.sort_values(by=sort_col, ascending=False)
+
+        cols_to_drop = ["Previous position", "Traffic", "Traffic (%)", "Traffic Cost"]
+        existing_cols_to_drop = [col for col in cols_to_drop if col in arranged_df.columns]
+        if existing_cols_to_drop:
+            arranged_df.drop(columns=existing_cols_to_drop, inplace=True)
+            print(f"  ✂️ Dropped columns: {', '.join(existing_cols_to_drop)}")
+
+        print("\n✅ Final Keyword Table Prepared.")
+        final_rows, final_cols = arranged_df.shape
+        print(f"   Final Rows: {final_rows:,}, Final Columns: {final_cols:,}")
+
+
+        # --- OUTPUT (to pip state) ---
+        pip.set(job, 'filtered_gap_analysis_df_json', arranged_df.to_json(orient='records'))
+        print(f"💾 Stored final arranged DataFrame in pip state for job '{job}'.")
+        # ---------------------------
+
+        # --- RETURN VALUE ---
+        return arranged_df # Return the DataFrame for display
+
+    except Exception as e:
+        print(f"❌ An error occurred during merge/filter/arrange: {e}")
+        pip.set(job, 'filtered_gap_analysis_df_json', pd.DataFrame().to_json(orient='records'))
+        return pd.DataFrame() # Return empty DataFrame
