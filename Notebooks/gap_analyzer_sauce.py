@@ -601,9 +601,11 @@ def fetch_titles_and_create_filters(job: str):
 
     # --- INPUT (from pip state) ---
     try:
+        from io import StringIO # Import StringIO here
         competitors_df_json = pip.get(job, 'competitors_df_json', '[]')
-        # Load DataFrame robustly from JSON string
-        df_competitors = pd.read_json(competitors_df_json, orient='records')
+        # --- FIX: Wrap JSON string in StringIO ---
+        df_competitors = pd.read_json(StringIO(competitors_df_json), orient='records')
+        # --- END FIX ---
         # Ensure required columns exist, even if empty
         for col in ['Domain', 'Column Label', 'Title', 'Matched Title']:
              if col not in df_competitors.columns:
