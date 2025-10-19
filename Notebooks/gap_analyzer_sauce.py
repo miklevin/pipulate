@@ -972,7 +972,7 @@ def merge_filter_arrange_data(job: str, pivot_df: pd.DataFrame, agg_df: pd.DataF
         return pd.DataFrame() # Return empty DataFrame
 
 
-def download_file(download_url, output_path):
+def _download_file(download_url, output_path):
     response = requests.get(download_url, stream=True)
     if response.status_code == 200:
         output_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
@@ -985,7 +985,7 @@ def download_file(download_url, output_path):
         return False
 
 
-def decompress_gz(gz_path, output_path):
+def _decompress_gz(gz_path, output_path):
     try:
         with gzip.open(gz_path, 'rb') as f_in, open(output_path, 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
@@ -996,7 +996,7 @@ def decompress_gz(gz_path, output_path):
         return False
 
 
-def fetch_analysis_slugs(org, project, botify_token):
+def _fetch_analysis_slugs(org, project, botify_token):
     """Fetch analysis slugs for a given project from the Botify API."""
     analysis_url = f"https://api.botify.com/v1/analyses/{org}/{project}/light"
     headers = {"Authorization": f"Token {botify_token}"}
@@ -1011,7 +1011,7 @@ def fetch_analysis_slugs(org, project, botify_token):
         return []
 
 
-def export_data(version, org, project, export_payload, report_path, analysis=None, retry_url=None):
+def _export_data(version, org, project, export_payload, report_path, analysis=None, retry_url=None):
     """
     Unified function to export data using BQLv1 or BQLv2.
     version must be v1 or v2
