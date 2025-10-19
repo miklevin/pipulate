@@ -284,18 +284,17 @@ class PromptBuilder:
 
     def add_auto_context(self, title: str, content: str):
         is_narrative = (title == "Recent Narrative Context")
-        is_article = (title == "Full Article Content") ### NEW/MODIFIED ###
+        is_article = (title == "Full Article Content")
         content_is_valid = bool(content)
         filter_passed = "error" not in content.lower() and "skipping" not in content.lower()
         
-        if content_is_valid and (is_narrative or is_article or filter_passed): ### NEW/MODIFIED ###
+        if content_is_valid and (is_narrative or is_article or filter_passed):
             self.auto_context[title] = {
                 'content': content, 'tokens': count_tokens(content), 'words': count_words(content)
             }
 
     def _build_manifest_content(self) -> str:
         lines = []
-        ### NEW/MODIFIED ###
         section_order = ["Story", "File Tree", "UML Diagrams", "Articles", "Codebase", "Prompt"]
         for section_name in section_order:
             if section_name in self.all_sections:
@@ -322,7 +321,6 @@ class PromptBuilder:
                 uml_parts.append(f"## {title}\n```text\n{data['content']}\n```")
         return "\n\n".join(uml_parts)
 
-    ### NEW/MODIFIED ###
     def _build_articles_content(self) -> str:
         title = "Full Article Content"
         return self.auto_context.get(title, {}).get('content', '').strip()
@@ -360,26 +358,25 @@ Before addressing the user's prompt, perform the following verification steps:
         story_content = self._build_story_content()
         tree_content = self._build_tree_content()
         uml_content = self._build_uml_content()
-        articles_content = self._build_articles_content() ### NEW/MODIFIED ###
+        articles_content = self._build_articles_content()
         codebase_content = self._build_codebase_content()
         prompt_content = self._build_prompt_content()
 
         # Define placeholder messages
-        ### NEW/MODIFIED ###
         placeholders = {
             "Story": f"# Narrative context not requested. Use the -l or --list flag to include recent articles.",
             "File Tree": "# File tree generation failed or was skipped.",
             "UML Diagrams": "# No Python files with classes were included, or UML generation failed.",
             "Articles": "# No full articles requested. Use the -a or --article flag to include full article content.",
             "Codebase": ("# No files were specified for inclusion in the codebase." if not self.processed_files 
-                         else "# Running in --context-only mode. File contents are omitted."),
+                        else "# Running in --context-only mode. File contents are omitted."),
         }
 
         # Store final content and tokens for the manifest calculation
         self.all_sections["Story"] = {'content': story_content, 'tokens': count_tokens(story_content)}
         self.all_sections["File Tree"] = {'content': tree_content, 'tokens': count_tokens(tree_content)}
         self.all_sections["UML Diagrams"] = {'content': uml_content, 'tokens': count_tokens(uml_content)}
-        self.all_sections["Articles"] = {'content': articles_content, 'tokens': count_tokens(articles_content)} ### NEW/MODIFIED ###
+        self.all_sections["Articles"] = {'content': articles_content, 'tokens': count_tokens(articles_content)}
         self.all_sections["Codebase"] = {'content': codebase_content, 'tokens': sum(f['tokens'] for f in self.processed_files) if not self.context_only else 0}
         self.all_sections["Prompt"] = {'content': prompt_content, 'tokens': count_tokens(prompt_content)}
         
@@ -387,7 +384,6 @@ Before addressing the user's prompt, perform the following verification steps:
         self.all_sections["Manifest"] = {'content': manifest_content, 'tokens': count_tokens(manifest_content)}
 
         # Assemble the final output string with START/END markers for all sections
-        ### NEW/MODIFIED ###
         parts = ["# KUNG FU PROMPT CONTEXT\n\nWhat you will find below is:\n\n- Manifest\n- Story\n- File Tree\n- UML Diagrams\n- Articles\n- Codebase\n- Prompt"]
 
         def add_section(name, content, placeholder):
@@ -399,13 +395,14 @@ Before addressing the user's prompt, perform the following verification steps:
         add_section("Story", story_content, story_placeholder)
         add_section("File Tree", tree_content, placeholders["File Tree"])
         add_section("UML Diagrams", uml_content, placeholders["UML Diagrams"])
-        add_section("Articles", articles_content, placeholders["Articles"]) ### NEW/MODIFIED ###
+        add_section("Articles", articles_content, placeholders["Articles"])
         add_section("Codebase", codebase_content, placeholders["Codebase"])
         add_section("Prompt", prompt_content, "# No prompt was provided.")
 
         return "\n\n".join(parts)
 
-    def print_summary(self):
+    ### MODIFIED ###
+    def print_summary(self, verified_token_count: int):
         """Calculates and prints an accurate, comprehensive summary to the console."""
         print("--- Files Included ---")
         for f in self.processed_files:
@@ -423,13 +420,25 @@ Before addressing the user's prompt, perform the following verification steps:
         if self.context_only:
             print("NOTE: Running in --context-only mode. File contents are excluded.")
         
+        # This is the original sum of all the individual parts
         total_tokens = sum(v.get('tokens', 0) for v in self.all_sections.values())
-        total_words = sum(count_words(v.get('content', '')) for v in self.all_sections.values())
         
-        print(f"Total Tokens: {total_tokens:,}")
-        print(f"Total Words:  {total_words:,}")
+        # We need a word count for the literary perspective.
+        # We'll base it on the "real" content, not including the prompt/checklist
+        total_words = 0
+        for section, data in self.all_sections.items():
+            if section != "Prompt": # Don't count the prompt/checklist in word count
+                total_words += count_words(data.get('content', ''))
+
+        print(f"Summed Tokens:   {total_tokens:,} (from section parts)")
+        print(f"Verified Tokens: {verified_token_count:,} (from final output)")
+        if total_tokens != verified_token_count:
+            diff = verified_token_count - total_tokens
+            print(f"  (Difference: {diff:+,})")
+        print(f"Total Words:     {total_words:,} (content only)")
         
-        ratio = total_tokens / total_words if total_words > 0 else 0
+        # Use the VERIFIED token count for the most accurate ratio
+        ratio = verified_token_count / total_words if total_words > 0 else 0
         perspective = get_literary_perspective(total_words, ratio)
         print("\n--- Size Perspective ---")
         print(perspective)
@@ -451,7 +460,6 @@ def main():
         nargs='?', const='[-5:]', default=None,
         help='Include a list of recent articles. Optionally provide a slice, e.g., "[:]". Defaults to "[-5:]".'
     )
-    ### NEW/MODIFIED ###
     parser.add_argument(
         '-a', '--article',
         nargs='?', const='[-1:]', default=None,
@@ -486,7 +494,7 @@ def main():
         ext = os.path.splitext(path)[1].lower()
         if ext == '.ipynb':
             if JUPYTEXT_AVAILABLE:
-                print(f"  -> Converting notebook: {path}")
+                print(f"   -> Converting notebook: {path}")
                 try:
                     notebook = jupytext.read(full_path)
                     content = jupytext.writes(notebook, fmt='py:percent')
@@ -542,7 +550,6 @@ def main():
         else:
             print(" (no articles found or invalid slice)")
     
-    ### NEW/MODIFIED ###
     if args.article is not None:
         print("Adding full article content...", end='', flush=True)
         all_articles = _get_article_list_data()
@@ -579,7 +586,7 @@ def main():
     if python_files_to_diagram:
         print("Python file(s) detected. Generating UML diagrams...")
         for py_file_path in python_files_to_diagram:
-            print(f"  -> Generating for {py_file_path}...", end='', flush=True)
+            print(f"   -> Generating for {py_file_path}...", end='', flush=True)
             uml_context = generate_uml_and_dot(py_file_path, CONFIG["PROJECT_NAME"])
             uml_content = uml_context.get("ascii_uml")
             title = f"UML Class Diagram (ASCII for {py_file_path})"
@@ -595,7 +602,14 @@ def main():
     
     # 4. Generate final output and print summary
     final_output = builder.build_final_prompt()
-    builder.print_summary()
+    
+    ### MODIFIED ###
+    # Get the "ground truth" token count from the final, fully-formed string
+    verified_token_count = count_tokens(final_output)
+    
+    # Pass this verified count to the summary printer for comparison
+    builder.print_summary(verified_token_count)
+    ### END MODIFIED ###
 
     # 5. Handle output
     if args.output:
