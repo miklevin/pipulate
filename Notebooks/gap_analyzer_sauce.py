@@ -1,15 +1,22 @@
 # Drops pebble in pond
 
+import nest_asyncio
+import asyncio
+import httpx
+import re
 import os
 import shutil
 from pathlib import Path
 import glob
+import json
 from pipulate import pip # Import pip for persistence
 import nbformat
 import itertools
 import pandas as pd
 from collections import defaultdict
 from tldextract import extract
+from bs4 import BeautifulSoup
+import wordninja
 
 import nltk
 
@@ -473,3 +480,247 @@ def pivot_semrush_data(job: str, df2: pd.DataFrame, client_domain_from_keys: str
         pip.set(job, 'keyword_pivot_df_json', pd.DataFrame().to_json(orient='records'))
         pip.set(job, 'competitors_df_json', pd.DataFrame().to_json(orient='records'))
         return pd.DataFrame() # Return empty DataFrame
+
+# --- Helper Functions for Title Fetching (Made private) ---
+
+_user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+_headers = {'User-Agent': _user_agent}
+
+def _get_title_from_html(html_content):
+    """Simple helper to extract the title from HTML content."""
+    soup = BeautifulSoup(html_content, 'html.parser')
+    title_tag = soup.find('title')
+    return title_tag.text.strip() if title_tag else '' # Added strip()
+
+def _match_domain_in_title(domain, title):
+    """Finds a stripped version of the domain in the title."""
+    # Ensure domain is not None or empty before splitting
+    if not domain:
+        return ''
+    base_domain = domain.split('.')[0]
+    # Handle potential empty base_domain after split
+    if not base_domain:
+        return ''
+    # Escape regex special characters in base_domain
+    safe_base_domain = re.escape(base_domain)
+    pattern = ''.join([c + r'\s*' for c in safe_base_domain])
+    regex = re.compile(pattern, re.IGNORECASE)
+    match = regex.search(title)
+    if match:
+        matched = match.group(0).strip()
+        return matched
+    return ''
+
+
+async def _async_check_url(url, domain, timeout):
+    """Asynchronously checks a single domain and extracts title/matched title."""
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, headers=_headers, timeout=timeout) as client:
+            response = await client.get(url)
+            effective_url = str(response.url) # Store effective URL after redirects
+            if response.status_code == 200:
+                if effective_url != url:
+                    print(f"  Redirected: {url} -> {effective_url}")
+                title = _get_title_from_html(response.text)
+                matched_title = _match_domain_in_title(domain, title)
+                return effective_url, title, matched_title, True
+            else:
+                print(f"  Status Code {response.status_code} for {url}")
+    except httpx.RequestError as e:
+        # More specific error logging
+        error_type = type(e).__name__
+        print(f"  Request failed for {url}: {error_type} - {str(e)}")
+    except httpx.TimeoutException:
+         print(f"  Timeout for {url} after {timeout} seconds.")
+    except Exception as e:
+        print(f"  An unexpected error occurred for {url}: {type(e).__name__} - {str(e)}")
+    # Ensure consistent return structure on failure
+    return url, '', '', False # Return empty strings for title/matched_title
+
+async def _async_test_domains(tasks):
+    """Internal helper for asyncio.gather."""
+    # return_exceptions=True ensures that one failed task doesn't stop others
+    return await asyncio.gather(*tasks, return_exceptions=True)
+
+def _test_domains(domains, timeout=120):
+    """Orchestrates async checks for a list of domains."""
+    print(f"  Giving up to {timeout} seconds per site...")
+    # Ensure nest_asyncio is applied in the environment where this runs
+    nest_asyncio.apply()
+    tasks = [_async_check_url(f'https://{domain}', domain, timeout) for domain in domains]
+    # Use asyncio.run() to execute the async gather function
+    results = asyncio.run(_async_test_domains(tasks))
+
+    domain_results = {}
+    for domain, result in zip(domains, results):
+        if isinstance(result, Exception):
+            print(f"  Error processing {domain}: {result}")
+            domain_results[domain] = {'url': f'https://{domain}', 'title': '', 'matched_title': ''} # Provide defaults
+        elif isinstance(result, tuple) and len(result) == 4:
+             # Check if status was success (fourth element)
+             if result[3]:
+                  domain_results[domain] = {'url': result[0], 'title': result[1], 'matched_title': result[2]}
+             else:
+                  # Handle cases where async_check_url returned False status but not an exception
+                  domain_results[domain] = {'url': result[0], 'title': result[1] or '', 'matched_title': result[2] or ''}
+        else:
+             # Fallback for unexpected result format
+             print(f"  Unexpected result format for {domain}: {result}")
+             domain_results[domain] = {'url': f'https://{domain}', 'title': '', 'matched_title': ''}
+    return domain_results
+
+
+def _split_domain_name(domain):
+    """Splits a concatenated domain name into human-readable words (requires wordninja)."""
+    # Add basic check for non-string input
+    if not isinstance(domain, str):
+        return ''
+    # Remove common TLDs before splitting for potentially cleaner results
+    domain_no_tld = domain.split('.')[0]
+    words = wordninja.split(domain_no_tld)
+    return ' '.join(words)
+
+# --- Main Function ---
+
+def fetch_titles_and_create_filters(job: str):
+    """
+    Fetches homepage titles for competitors lacking them, updates the competitors DataFrame
+    and CSV, generates a keyword filter list, saves it to CSV, and updates pip state.
+
+    Args:
+        job (str): The current Pipulate job ID.
+
+    Returns:
+        str: A status message summarizing the actions taken.
+    """
+    print("🏷️  Fetching competitor titles and generating keyword filters...")
+
+    # --- PATH DEFINITIONS ---
+    competitors_csv_file = Path("data") / f"{job}_competitors.csv"
+    filter_file = Path("data") / f"{job}_filter_keywords.csv"
+
+    # --- INPUT (from pip state) ---
+    try:
+        competitors_df_json = pip.get(job, 'competitors_df_json', '[]')
+        # Load DataFrame robustly from JSON string
+        df_competitors = pd.read_json(competitors_df_json, orient='records')
+        # Ensure required columns exist, even if empty
+        for col in ['Domain', 'Column Label', 'Title', 'Matched Title']:
+             if col not in df_competitors.columns:
+                  df_competitors[col] = '' if col in ['Title', 'Matched Title'] else None
+
+    except Exception as e:
+        print(f"❌ Error loading competitors DataFrame from pip state: {e}")
+        return "Error loading competitors data. Cannot proceed."
+
+    if df_competitors.empty:
+         print("🤷 Competitors DataFrame is empty. Skipping title fetch and filter generation.")
+         # Still create an empty filter file if none exists
+         if not filter_file.exists():
+              pd.DataFrame(columns=['Filter']).to_csv(filter_file, index=False)
+              print(f"  ✅ Created empty keyword filter file at '{filter_file}'.")
+         return "Competitors list empty. Filter step skipped."
+
+
+    # --- CORE LOGIC (Moved and Adapted) ---
+    status_messages = []
+
+    # Ensure correct data types and fill NaNs before filtering
+    df_competitors['Title'] = df_competitors['Title'].fillna('').astype(str)
+    df_competitors['Matched Title'] = df_competitors['Matched Title'].fillna('').astype(str).str.lower()
+    df_competitors['Domain'] = df_competitors['Domain'].fillna('').astype(str)
+
+
+    needs_titles = df_competitors[df_competitors['Title'] == ''].copy()
+
+    if not needs_titles.empty:
+        print(f"  Fetching Titles for {len(needs_titles)} domains...")
+        results = _test_domains(needs_titles['Domain'].tolist())
+
+        data_to_add = {'Domain': [], 'Title': [], 'Matched Title': []}
+        for domain, info in results.items():
+            data_to_add['Domain'].append(domain)
+            data_to_add['Title'].append(info.get('title', '')) # Use .get for safety
+            data_to_add['Matched Title'].append(info.get('matched_title', ''))
+
+        new_data_df = pd.DataFrame(data_to_add)
+        new_data_df['Matched Title'] = new_data_df['Matched Title'].str.lower() # Lowercase new matches
+
+
+        # Combine using merge for clarity
+        df_competitors = pd.merge(df_competitors, new_data_df, on='Domain', how='left', suffixes=('', '_new'))
+
+        # Update Title and Matched Title only where they were originally empty
+        df_competitors['Title'] = df_competitors.apply(
+             lambda row: row['Title_new'] if pd.isna(row['Title']) or row['Title'] == '' else row['Title'], axis=1
+        )
+        df_competitors['Matched Title'] = df_competitors.apply(
+             lambda row: row['Matched Title_new'] if pd.isna(row['Matched Title']) or row['Matched Title'] == '' else row['Matched Title'], axis=1
+        )
+
+        # Drop temporary merge columns
+        df_competitors.drop(columns=['Title_new', 'Matched Title_new'], inplace=True)
+
+
+        # Persist updated competitors data to CSV
+        try:
+            df_competitors.to_csv(competitors_csv_file, index=False)
+            status_messages.append(f"Updated {len(needs_titles)} competitor titles and saved to CSV.")
+            print(f"  ✅ Updated competitor titles and saved to '{competitors_csv_file}'.")
+        except Exception as e:
+            print(f"  ❌ Error saving updated competitors CSV: {e}")
+            status_messages.append("Error saving updated competitors CSV.")
+
+    else:
+        status_messages.append("No missing competitor titles to fetch.")
+        print("  ✅ All competitors already have titles.")
+
+    # --- Create Keyword Filters ---
+    try:
+        # Ensure 'Domain' and 'Matched Title' columns exist and handle potential NaN/None
+        extracted_domains = [_extract_registered_domain(str(domain)).replace('.com', '') for domain in df_competitors['Domain'].dropna()]
+        matched_titles = [str(title).replace('.com', '') for title in df_competitors['Matched Title'].dropna().tolist() if title] # Filter empty strings
+        split_domains = [_split_domain_name(domain) for domain in extracted_domains] # Use helper
+
+        combined_list = [x.strip() for x in extracted_domains + matched_titles + split_domains if x] # Filter empty strings after strip
+        combined_list = sorted(list(set(combined_list))) # Deduplicate
+
+        # Persist to external filter file
+        if not filter_file.exists():
+            df_filter = pd.DataFrame(combined_list, columns=['Filter'])
+            df_filter.to_csv(filter_file, index=False)
+            status_messages.append(f"Created initial keyword filter file with {len(combined_list)} terms.")
+            print(f"  ✅ Created initial keyword filter file at '{filter_file}'.")
+        else:
+            # Optionally, load existing, merge, dedupe, and save if you want it to be additive
+            # For now, just report it exists
+            df_existing_filter = pd.read_csv(filter_file)
+            existing_terms = df_existing_filter['Filter'].dropna().astype(str).tolist()
+            new_combined = sorted(list(set(existing_terms + combined_list)))
+            if len(new_combined) > len(existing_terms):
+                 df_new_filter = pd.DataFrame(new_combined, columns=['Filter'])
+                 df_new_filter.to_csv(filter_file, index=False)
+                 print(f"  🔄 Updated keyword filter file at '{filter_file}' ({len(new_combined)} total terms).")
+                 status_messages.append(f"Updated keyword filter file ({len(new_combined)} total terms).")
+
+            else:
+                 print(f"  ☑️ Keyword filter file already exists at '{filter_file}' and requires no update.")
+                 status_messages.append("Keyword filter file exists and is up-to-date.")
+
+
+        # --- OUTPUT (to pip state) ---
+        pip.set(job, 'competitors_df_json', df_competitors.to_json(orient='records'))
+        # Store the generated/updated filter list as well
+        pip.set(job, 'filter_keyword_list_json', json.dumps(combined_list))
+        print(f"💾 Stored updated competitors DataFrame and filter list in pip state for job '{job}'.")
+        # ---------------------------
+
+    except Exception as e:
+        print(f"❌ An error occurred during filter generation: {e}")
+        status_messages.append("Error generating keyword filters.")
+        # Attempt to save competitors DF state even if filter gen fails
+        pip.set(job, 'competitors_df_json', df_competitors.to_json(orient='records'))
+
+
+    # --- RETURN VALUE ---
+    return "\n".join(status_messages) # Return summary string
