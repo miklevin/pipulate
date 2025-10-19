@@ -25,6 +25,19 @@ from tldextract import extract
 from bs4 import BeautifulSoup
 import wordninja
 
+# --- KEYWORD CLUSTERING SUPPORT FUNCTIONS (REQUIRES: nltk, sklearn, wordninja) ---
+from collections import Counter
+from nltk import bigrams
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+from sklearn.cluster import MiniBatchKMeans
+from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import silhouette_score
+import numpy as np
+
+
 import nltk
 
 nltk.download('stopwords', quiet=True)
@@ -1530,3 +1543,90 @@ def truncate_dataframe_by_volume(job: str, final_df: pd.DataFrame, row_limit: in
         print(f"❌ An error occurred during truncation: {e}")
         pip.set(job, 'truncated_df_for_clustering_json', pd.DataFrame().to_json(orient='records'))
         return pd.DataFrame() # Return empty DataFrame
+
+
+# --- 1. CORE ML UTILITIES ---
+
+def calculate_silhouette(X, labels):
+    """Calculates the Silhouette Coefficient for cluster evaluation."""
+    # Handle the edge case where there is only one cluster or too few data points
+    if len(np.unique(labels)) <= 1 or len(X) < 2:
+        return 0.0 # Return 0 for non-evaluatable cases
+
+    return silhouette_score(X, labels)
+
+def preprocess_keywords(text):
+    """Stems, lowercases, tokenizes, and removes stopwords from a keyword string."""
+    stemmer = PorterStemmer()
+    # Assuming stopwords were downloaded earlier with `nltk.download('stopwords')`
+    stop_words = set(stopwords.words('english'))
+    words = word_tokenize(text.lower())
+    # Filter for alphanumeric words and then stem
+    return ' '.join([stemmer.stem(word) for word in words if word not in stop_words and word.isalnum()])
+
+def keyword_clustering(df, keyword_column, n_clusters=30, n_components=5, max_features=500):
+    """Performs Tfidf Vectorization, Truncated SVD, and MiniBatchKMeans clustering."""
+
+    # 1. Preprocess keywords
+    df['Stemmed Keywords'] = df[keyword_column].apply(preprocess_keywords)
+
+    # 2. Text Vectorization
+    print(f"Vectorizing... (Max Features: {max_features})")
+    vectorizer = TfidfVectorizer(max_features=max_features, stop_words='english')
+    X = vectorizer.fit_transform(df['Stemmed Keywords'])
+
+    # 3. Dimension Reduction
+    print(f"Reducing Dimensions... (Components: {n_components})")
+    svd = TruncatedSVD(n_components=n_components, random_state=42)
+    principal_components = svd.fit_transform(X)
+
+    # 4. Clustering
+    print(f"Clustering... (K: {n_clusters})")
+    # Setting compute_labels=True to ensure compatibility with MiniBatchKMeans
+    minibatch_kmeans = MiniBatchKMeans(n_clusters=n_clusters, batch_size=100, random_state=42, n_init='auto') 
+    df['Keyword Cluster'] = minibatch_kmeans.fit_predict(principal_components)
+
+    # 5. Calculate silhouette score
+    print("Calculating silhouette cluster quality score (takes a bit)...")
+    silhouette_avg = calculate_silhouette(principal_components, df['Keyword Cluster'])
+
+    # Return DataFrame, score, and the used parameters
+    return df, silhouette_avg, {'n_clusters': n_clusters, 'n_components': n_components, 'max_features': max_features}
+
+def name_keyword_clusters(df, keyword_column, cluster_column):
+    """Names each cluster by the most common non-stopword, non-repeating bigram within the cluster."""
+
+    stop_words = set(stopwords.words('english'))
+    cluster_names = {}
+
+    for cluster in df[cluster_column].unique():
+        cluster_data = df[df[cluster_column] == cluster]
+        all_keywords = ' '.join(cluster_data[keyword_column].astype(str)).split()
+        filtered_keywords = [word for word in all_keywords if word not in stop_words and word.isalnum()]
+
+        bigram_counts = Counter(bigrams(filtered_keywords))
+
+        most_common_bigram = None
+        for bigram, count in bigram_counts.most_common():
+            if bigram[0] != bigram[1]:
+                most_common_bigram = bigram
+                break
+
+        if not most_common_bigram:
+            # Fallback to single most common word or a generic name
+            unigram_counts = Counter(filtered_keywords)
+            most_common_unigram = unigram_counts.most_common(1)
+            most_common_words = most_common_unigram[0][0] if most_common_unigram else "Generic Cluster"
+        else:
+            most_common_words = ' '.join(most_common_bigram)
+
+        cluster_names[cluster] = most_common_words
+
+    df['Keyword Group (Experimental)'] = df[cluster_column].map(cluster_names)
+
+    # Drop Process Columns (as per original logic)
+    df.drop(columns=['Stemmed Keywords'], inplace=True)
+    df.drop(columns=['Keyword Cluster'], inplace=True)
+
+    return df
+
