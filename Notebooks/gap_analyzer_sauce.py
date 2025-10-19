@@ -11,6 +11,11 @@ import pandas as pd
 from collections import defaultdict
 from tldextract import extract
 
+import nltk
+
+nltk.download('stopwords', quiet=True)
+nltk.download('punkt', quiet=True)
+nltk.download('punkt_tab', quiet=True) # Added from a later cell for consolidation
 
 def extract_domains_and_print_urls(job: str, notebook_filename: str = "GAPalyzer.ipynb"):
     """
