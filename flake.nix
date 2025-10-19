@@ -135,7 +135,10 @@
         # regardless of the operating system
         commonPackages = with pkgs; [
           sqlite                       # Ensures correct SQLite library is linked on macOS
-          python312                    # Python 3.12 interpreter (consistent version)
+          (python312.withPackages (ps: [
+            ps.pylint
+          ]))
+          nbstripout                   # Git filter for stripping notebook outputs
           figlet                       # For creating ASCII art welcome messages
           tmux                         # Terminal multiplexer for managing sessions
           zlib                         # Compression library for data compression
@@ -144,8 +147,6 @@
           wget                         # Utility for non-interactive download of files from the web
           cmake                        # Cross-platform build system generator
           htop                         # Interactive process viewer for Unix systems
-          nbstripout                   # Git filter for stripping notebook outputs
-          pylint
           plantuml
           graphviz
           # python312Packages.webencodings
@@ -544,7 +545,7 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
           if [ ! -f .gitattributes ]; then
             echo "*.ipynb filter=nbstripout" > .gitattributes
           fi
-          git config --local filter.nbstripout.clean "$VIRTUAL_ENV/bin/nbstripout"
+          git config --local filter.nbstripout.clean "$VIRTUAL_ENV/bin/python -m nbstripout"
           git config --local filter.nbstripout.required true
           # Set EFFECTIVE_OS for browser automation scripts
           if [[ "$(uname -s)" == "Darwin" ]]; then export EFFECTIVE_OS="darwin"; else export EFFECTIVE_OS="linux"; fi
