@@ -618,6 +618,7 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
             shellHook = ''
               # Sets up venv, installs packages, and configures the shell prompt
               ${pythonSetupLogic}
+              ${miscSetupLogic}
             '';
           };
         };
