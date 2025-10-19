@@ -726,3 +726,82 @@ def fetch_titles_and_create_filters(job: str):
 
     # --- RETURN VALUE ---
     return "\n".join(status_messages) # Return summary string
+
+
+def aggregate_semrush_metrics(job: str, df2: pd.DataFrame):
+    """
+    Aggregates metrics in the combined SEMRush DataFrame (df2) by Keyword,
+    stores the aggregated DataFrame in pip state, and returns it.
+
+    Args:
+        job (str): The current Pipulate job ID.
+        df2 (pd.DataFrame): The combined master DataFrame.
+
+    Returns:
+        pd.DataFrame: The aggregated DataFrame (agg_df), or an empty DataFrame on error.
+    """
+    if df2.empty:
+        print("⚠️ Input DataFrame (df2) is empty. Cannot perform aggregation.")
+        return pd.DataFrame()
+
+    print("📊 Aggregating SEMRush metrics per keyword...")
+
+    # --- CORE LOGIC (Moved from Notebook) ---
+    try:
+        agg_funcs = {
+            'Position': 'min', # Best position achieved
+            'Search Volume': 'max', # Highest reported volume
+            'CPC': 'mean', # Average CPC
+            'Traffic': 'sum', # Total traffic (though often dropped later)
+            'Traffic (%)': 'mean', # Average traffic % (though often dropped later)
+            'Traffic Cost': 'sum', # Total traffic cost (though often dropped later)
+            'Keyword Difficulty': 'mean', # Average difficulty
+            'Previous position': 'first', # Arbitrary choice for non-aggregatable
+            'Competition': 'mean', # Average competition score
+            'Number of Results': 'max', # Highest number of results
+            'Timestamp': 'max', # Latest timestamp
+            'SERP Features by Keyword': 'first', # Arbitrary choice
+            'Keyword Intents': 'first', # Arbitrary choice
+            'Position Type': 'first', # Arbitrary choice
+            'URL': 'first', # Arbitrary choice (often competitor URL if client doesn't rank)
+            'Competitor URL': 'first', # First competitor URL found for the keyword
+            'Client URL': 'first' # First client URL found (might be NaN)
+        }
+
+        # Check which columns actually exist in df2 before aggregating
+        valid_agg_funcs = {k: v for k, v in agg_funcs.items() if k in df2.columns}
+        missing_agg_cols = [k for k in agg_funcs if k not in df2.columns]
+        if missing_agg_cols:
+            print(f"  ⚠️ Columns not found for aggregation, will be skipped: {', '.join(missing_agg_cols)}")
+
+        agg_df = df2.groupby('Keyword').agg(valid_agg_funcs).reset_index()
+
+        # Calculate 'Number of Words' only if 'Keyword' column exists
+        if 'Keyword' in agg_df.columns:
+             agg_df['Number of Words'] = agg_df["Keyword"].astype(str).apply(lambda x: len(x.split()))
+        else:
+             print("  ⚠️ 'Keyword' column not found after aggregation. Cannot calculate 'Number of Words'.")
+
+
+        # Drop 'Position' - It's misleading after aggregation here.
+        # The real position data is kept in the pivot_df generated earlier.
+        if 'Position' in agg_df.columns:
+            agg_df.drop(columns=['Position'], inplace=True)
+
+        print("  ✅ Table of aggregates prepared.")
+        rows, cols = agg_df.shape
+        print(f"  Rows: {rows:,}, Columns: {cols:,}")
+
+
+        # --- OUTPUT (to pip state) ---
+        pip.set(job, 'keyword_aggregate_df_json', agg_df.to_json(orient='records'))
+        print(f"💾 Stored aggregated DataFrame in pip state for job '{job}'.")
+        # ---------------------------
+
+        # --- RETURN VALUE ---
+        return agg_df # Return the DataFrame for display and next step
+
+    except Exception as e:
+        print(f"❌ An error occurred during aggregation: {e}")
+        pip.set(job, 'keyword_aggregate_df_json', pd.DataFrame().to_json(orient='records'))
+        return pd.DataFrame() # Return empty DataFrame
