@@ -7,6 +7,9 @@ import glob
 from pipulate import pip # Import pip for persistence
 import nbformat
 import itertools
+import pandas as pd
+from collections import defaultdict
+from tldextract import extract
 
 
 def extract_domains_and_print_urls(job: str, notebook_filename: str = "GAPalyzer.ipynb"):
@@ -349,3 +352,119 @@ def load_and_combine_semrush_data(job: str, client_domain: str, competitor_limit
 
     # --- RETURN VALUE ---
     return master_df, domain_counts
+
+
+def pivot_semrush_data(job: str, df2: pd.DataFrame, client_domain_from_keys: str):
+    """
+    Pivots the combined SEMRush DataFrame, calculates competitor positioning,
+    manages the competitors CSV file, stores results in pip state, and
+    returns the pivot DataFrame for display.
+
+    Args:
+        job (str): The current Pipulate job ID.
+        df2 (pd.DataFrame): The combined master DataFrame from the previous step.
+        client_domain_from_keys (str): The client's domain from the keys module.
+
+    Returns:
+        pd.DataFrame: The pivoted DataFrame, or an empty DataFrame on error.
+    """
+    if df2.empty:
+        print("⚠️ Input DataFrame (df2) is empty. Cannot perform pivot.")
+        return pd.DataFrame()
+
+    # --- PATH DEFINITION ---
+    competitors_csv_file = Path("data") / f"{job}_competitors.csv"
+
+    # --- INPUTS from pip state & args ---
+    semrush_lookup = _extract_registered_domain(client_domain_from_keys)
+    # Retrieve the competitor dictionary stored by the previous step
+    cdict = pip.get(job, 'competitors_dict_json', {})
+    if not isinstance(cdict, dict): # Handle potential JSON string load
+        try:
+             import json
+             cdict = json.loads(cdict) if isinstance(cdict, str) else {}
+        except:
+             cdict = {}
+    
+    print("🔄 Pivoting data by keyword and calculating competitor positioning...")
+
+    # --- CORE LOGIC (Moved from Notebook) ---
+    try:
+        pivot_df = df2.pivot_table(index='Keyword', columns='Domain', values='Position', aggfunc='min')
+
+        # Reorder client column to front (Handle potential trailing slash difference)
+        target_col = None
+        clean_lookup_key = semrush_lookup.rstrip('/')
+        for col in pivot_df.columns:
+            if col.rstrip('/') == clean_lookup_key:
+                target_col = col
+                break
+        
+        if target_col:
+            if target_col != semrush_lookup:
+                 print(f"  Adjusting semrush_lookup from '{semrush_lookup}' to match column '{target_col}'")
+                 semrush_lookup = target_col # Update to the actual column name found
+            cols = [semrush_lookup] + [col for col in pivot_df.columns if col != semrush_lookup]
+            pivot_df = pivot_df[cols]
+        else:
+            print(f"❌ Critical Warning: Client domain '{semrush_lookup}' (or variant) not found in pivot table columns. Cannot reorder.")
+
+        competitors = list(pivot_df.columns) # Get competitors AFTER potential reorder
+        pivot_df['Competitors Positioning'] = pivot_df.iloc[:, 1:].notna().sum(axis=1)
+
+        # Load or initialize df_competitors
+        if competitors_csv_file.exists():
+            df_competitors = pd.read_csv(competitors_csv_file)
+            df_competitors['Title'] = df_competitors['Title'].fillna('')
+            df_competitors['Matched Title'] = df_competitors['Matched Title'].fillna('')
+            print(f"  ✅ Loaded {len(df_competitors)} existing competitor records from '{competitors_csv_file}'.")
+        else:
+            if cdict:
+                df_competitors = pd.DataFrame(list(cdict.items()), columns=['Domain', 'Column Label'])
+                df_competitors['Title'] = ''
+                df_competitors['Matched Title'] = ''
+                df_competitors.to_csv(competitors_csv_file, index=False)
+                print(f"  ✅ Created new competitor file at '{competitors_csv_file}'.")
+            else:
+                print(f"  ⚠️ Warning: 'competitors_dict_json' was empty or invalid. Cannot create initial competitors file.")
+                df_competitors = pd.DataFrame(columns=['Domain', 'Column Label', 'Title', 'Matched Title'])
+
+        # Print keyword counts (internal display logic)
+        print("\nKeyword Counts per Competitor:")
+        counts = pivot_df.describe().loc['count']
+        if not counts.empty:
+            max_digits = len(str(len(counts)))
+            max_index_width = max(len(str(index)) for index in counts.index)
+            valid_counts = [count for count in counts if pd.notna(count)]
+            max_count_width = max([len(f"{int(count):,}") for count in valid_counts] or [0])
+            for i, (index, count) in enumerate(counts.items(), start=1):
+                counter_str = str(i).zfill(max_digits)
+                count_str = f"{int(count):,}" if pd.notna(count) else 'NaN'
+                print(f"  {counter_str}: {index:<{max_index_width}} - {count_str:>{max_count_width}}")
+        else:
+            print("  ❌ No data to count after pivot.")
+
+        # Print row/column summary (internal display logic)
+        rows_master, _ = df2.shape
+        rows_pivot, cols_pivot = pivot_df.shape
+        print("\n--- Pivot Summary ---")
+        print(f"  Rows (master df): {rows_master:,}")
+        print(f"  Rows (pivot df): {rows_pivot:,} ({rows_master - rows_pivot:,} dupes removed)")
+        print(f"  Cols (pivot df): {cols_pivot:,}")
+        print("---------------------\n")
+
+        # --- OUTPUT (to pip state) ---
+        pip.set(job, 'keyword_pivot_df_json', pivot_df.to_json(orient='records'))
+        pip.set(job, 'competitors_df_json', df_competitors.to_json(orient='records'))
+        print(f"💾 Stored pivot DataFrame and competitors DataFrame in pip state for job '{job}'.")
+        # ---------------------------
+
+        # --- RETURN VALUE ---
+        return pivot_df # Return the DataFrame for display
+
+    except Exception as e:
+        print(f"❌ An error occurred during pivoting: {e}")
+        # Store empty states on error
+        pip.set(job, 'keyword_pivot_df_json', pd.DataFrame().to_json(orient='records'))
+        pip.set(job, 'competitors_df_json', pd.DataFrame().to_json(orient='records'))
+        return pd.DataFrame() # Return empty DataFrame
