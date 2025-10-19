@@ -12,7 +12,13 @@ import json
 from pipulate import pip # Import pip for persistence
 import nbformat
 import itertools
+import requests
+import gzip
+import shutil
+from pprint import pprint
 import pandas as pd
+from time import sleep
+from io import StringIO
 from collections import defaultdict
 from tldextract import extract
 from bs4 import BeautifulSoup
@@ -964,3 +970,229 @@ def merge_filter_arrange_data(job: str, pivot_df: pd.DataFrame, agg_df: pd.DataF
         print(f"❌ An error occurred during merge/filter/arrange: {e}")
         pip.set(job, 'filtered_gap_analysis_df_json', pd.DataFrame().to_json(orient='records'))
         return pd.DataFrame() # Return empty DataFrame
+
+
+def download_file(download_url, output_path):
+    response = requests.get(download_url, stream=True)
+    if response.status_code == 200:
+        output_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
+        with open(output_path, "wb") as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+        return True
+    else:
+        print(f"Failed to download file. Status Code: {response.status_code}")
+        return False
+
+
+def decompress_gz(gz_path, output_path):
+    try:
+        with gzip.open(gz_path, 'rb') as f_in, open(output_path, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+        print(f"Decompressed {output_path}")
+        return True
+    except Exception as e:
+        print(f"Failed to decompress {gz_path}. Error: {e}")
+        return False
+
+
+def fetch_analysis_slugs(org, project, botify_token):
+    """Fetch analysis slugs for a given project from the Botify API."""
+    analysis_url = f"https://api.botify.com/v1/analyses/{org}/{project}/light"
+    headers = {"Authorization": f"Token {botify_token}"}
+    try:
+        response = requests.get(analysis_url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        analysis_data = data.get('results', [])
+        return [analysis['slug'] for analysis in analysis_data]
+    except Exception as e:
+        print(f"❌ Error fetching analysis slugs: {e}")
+        return []
+
+
+def export_data(version, org, project, export_payload, report_path, analysis=None, retry_url=None):
+    """
+    Unified function to export data using BQLv1 or BQLv2.
+    version must be v1 or v2
+    """
+    file_base = report_path.stem
+    path_base = Path(report_path).parent
+    zip_name = path_base / f"{file_base}.gz"
+    csv_name = Path(report_path)
+
+    path_base.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists before proceeding
+
+    if csv_name.exists():
+        print(f"The file: {csv_name}")
+        print("...already exists for analysis period. Exiting.")
+        return (None, None)
+
+    if zip_name.exists():
+        print(f"☑️ {zip_name} found without corresponding CSV. Decompressing now...")
+        decompress_success = decompress_gz(zip_name, csv_name)
+        return (200, None) if decompress_success else (None, None)
+
+    if retry_url:
+        print(f"Using retry URL for direct download: {retry_url}")
+        if download_file(retry_url, zip_name):  # Save as .gz file
+            print("File downloaded successfully via retry URL.")
+            if decompress_gz(zip_name, csv_name):  # Decompress .gz to .csv
+                print("File decompressed successfully.")
+                return (200, csv_name)
+            else:
+                print("Decompression failed.")
+                return (None, None)
+        else:
+            print("Download failed using retry URL.")
+            return (None, None)
+
+    # Use the token from the keys module
+    headers = {'Authorization': f'Token {keys.botify}', 'Content-Type': 'application/json'} 
+
+    if version == 'v1':
+        url = f'https://api.botify.com/v1/analyses/{org}/{project}/{analysis}/urls/export'
+        response = requests.post(url, headers=headers, json=export_payload)
+    else:  # version == 'v2'
+        url = "https://api.botify.com/v1/jobs"
+        response = requests.post(url, headers=headers, json=export_payload)
+
+    if response.status_code not in [200, 201]:
+        print(f"❌ Failed to start CSV export. Status Code: {response.status_code}.")
+        print(response.reason, response.text)
+        pprint(export_payload)
+        return (response.status_code, None)
+
+    export_job_details = response.json()
+    job_url = export_job_details.get('job_url')
+    if version == "v2":
+        job_url = f'https://api.botify.com{job_url}'
+
+    attempts = 300
+    delay = 10
+    print(f"{attempts} attempts will be made every {delay} seconds until download is ready...")
+
+    while attempts > 0:
+        sleep(delay)
+        print(attempts, end=" ", flush=True)  # Countdown on the same line
+        response_poll = requests.get(job_url, headers=headers)
+        if response_poll.status_code == 200:
+            job_status_details = response_poll.json()
+            if job_status_details['job_status'] == 'DONE':
+                print("\nExport job done.")
+                download_url = job_status_details['results']['download_url']
+                if download_file(download_url, zip_name):
+                    print("File downloaded successfully.")
+                    if decompress_gz(zip_name, csv_name):
+                        print("File decompressed successfully.")
+                        return (200, csv_name)
+                    else:
+                        print("Decompression failed.")
+                        return ("Decompression failed 1.", None)
+                else:
+                    print("Download failed.")
+                    return ("Download failed.", None)
+            elif job_status_details['job_status'] == 'FAILED':
+                print("\nExport job failed.")
+                print(job_status_details.get('failure_reason', 'No failure reason provided.'))
+                return ("Export job failed.", None)
+        else:
+            print(f"\nFailed to get export status. Status Code: {response_poll.status_code}")
+            print(response_poll.text)
+
+        attempts -= 1
+
+    print("Unable to complete download attempts successfully.")
+    return ("Unable to complete", None)
+
+
+# --- Main Orchestrator Function ---
+
+def fetch_botify_data(job: str, botify_token: str, botify_project_url: str):
+    """
+    Orchestrates fetching data from the Botify API, handling slug detection,
+    API calls with fallbacks, downloading, and decompression. Stores the final
+    DataFrame in pip state.
+
+    Args:
+        job (str): The current Pipulate job ID.
+        botify_token (str): The Botify API token.
+        botify_project_url (str): The Botify project URL to parse for org/project slugs.
+
+    Returns:
+        tuple: (botify_df: pd.DataFrame, has_botify: bool)
+               Returns the fetched DataFrame and a boolean indicating success.
+    """
+    print("🤖 Fetching data from Botify API...")
+    
+    # --- 1. Parse URL and get latest analysis slug ---
+    try:
+        url_parts = botify_project_url.rstrip('/').split('/')
+        org = url_parts[-2]
+        project = url_parts[-1]
+        print(f"  Parsed Org: {org}, Project: {project}")
+        
+        slugs = _fetch_analysis_slugs(org, project, botify_token)
+        if not slugs:
+            raise ValueError("Could not find any Botify analysis slugs for the provided project.")
+        analysis = slugs[0] # Use the most recent analysis
+        print(f"  ✅ Found latest Analysis Slug: {analysis}")
+
+    except (IndexError, ValueError) as e:
+        print(f"  ❌ Critical Error: Could not parse Botify URL or find analysis slug. {e}")
+        pip.set(job, 'botify_export_df_json', pd.DataFrame().to_json(orient='records'))
+        return pd.DataFrame(), False
+
+    # --- 2. Define Paths and Payloads ---
+    csv_dir = Path("data") / f"{job}_botify"
+    csv_dir.mkdir(parents=True, exist_ok=True)
+    report_name = csv_dir / "botify_export.csv"
+
+    payload_full = {
+        "fields": ["url", "depth", "gsc_by_url.count_missed_clicks", "gsc_by_url.avg_ctr", "gsc_by_url.avg_position", "inlinks_internal.nb.unique", "internal_page_rank.value", "internal_page_rank.position", "internal_page_rank.raw", "gsc_by_url.count_impressions", "gsc_by_url.count_clicks", "gsc_by_url.count_keywords", "gsc_by_url.count_keywords_on_url_to_achieve_90pc_clicks", "metadata.title.content", "metadata.description.content"],
+        "sort": []
+    }
+    payload_fallback = {
+        "fields": ["url", "depth", "inlinks_internal.nb.unique", "internal_page_rank.value", "internal_page_rank.position", "internal_page_rank.raw", "metadata.title.content", "metadata.description.content"],
+        "sort": []
+    }
+
+    # --- 3. Main Logic: Check existing, call API with fallback ---
+    botify_export_df = None
+    if report_name.exists():
+        print(f"  ☑️ Botify export file already exists at '{report_name}'. Reading from disk.")
+        try:
+            botify_export_df = pd.read_csv(report_name, skiprows=1)
+        except Exception as e:
+            print(f"  ⚠️ Could not read existing CSV file '{report_name}', will attempt to re-download. Error: {e}")
+
+    if botify_export_df is None:
+        print("  - Attempting download with Full GSC Payload...")
+        status_code, _ = _export_data('v1', org, project, payload_full, report_name, botify_token, analysis=analysis)
+        
+        if status_code not in [200, 201]:
+            print("  - Full Payload failed. Attempting Fallback Payload (no GSC data)...")
+            status_code, _ = _export_data('v1', org, project, payload_fallback, report_name, botify_token, analysis=analysis)
+        
+        if status_code in [200, 201] or report_name.exists():
+            try:
+                botify_export_df = pd.read_csv(report_name, skiprows=1)
+                print("  ✅ Successfully downloaded and loaded Botify data.")
+            except Exception as e:
+                print(f"  ❌ Download seemed successful, but failed to read the final CSV file '{report_name}'. Error: {e}")
+                botify_export_df = pd.DataFrame() # Ensure it's an empty DF on read failure
+        else:
+            print("  ❌ Botify export failed critically after both attempts.")
+            botify_export_df = pd.DataFrame()
+    
+    # --- 4. Store State and Return ---
+    has_botify = not botify_export_df.empty
+    if has_botify:
+        pip.set(job, 'botify_export_df_json', botify_export_df.to_json(orient='records'))
+        print(f"💾 Stored Botify DataFrame in pip state for job '{job}'.")
+    else:
+        # If it failed, ensure an empty DF is stored
+        pip.set(job, 'botify_export_df_json', pd.DataFrame().to_json(orient='records'))
+        print("🤷 No Botify data loaded. Stored empty DataFrame in pip state.")
+
+    return botify_export_df, has_botify
