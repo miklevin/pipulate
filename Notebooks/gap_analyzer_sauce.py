@@ -2014,3 +2014,139 @@ def create_deliverables_excel_and_button(job: str, df: pd.DataFrame, client_doma
         print(f"❌ An error occurred during Excel creation: {e}")
         # Return dummy values to avoid breaking the notebook flow
         return widgets.Button(description=f"Error: {e}", disabled=True), None, [], [], None, None, False
+
+
+def add_filtered_excel_tabs(
+    job: str, 
+    df: pd.DataFrame, 
+    semrush_lookup: str, 
+    has_botify: bool, 
+    competitors: list, 
+    xl_file: Path,
+    TARGET_COMPETITOR_COL: str,
+    button: widgets.Button
+):
+    """
+    Appends multiple filtered and formatted tabs to the existing Excel workbook.
+    This is the "second pass" of writing.
+
+    Args:
+        job (str): The current Pipulate job ID.
+        df (pd.DataFrame): The final clustered/arranged DataFrame.
+        semrush_lookup (str): The client's clean domain (e.g., 'example.com').
+        has_botify (bool): Flag indicating if Botify data is present.
+        competitors (list): The list of competitor column names.
+        xl_file (Path): The Path object for the Excel file.
+        TARGET_COMPETITOR_COL (str): The canonical client column name (e.g., 'example.com/').
+        button (widgets.Button): The "Open Folder" button object.
+
+    Returns:
+        widgets.Button: The same button object, for re-display.
+    """
+    print(f"- Adding filter tabs to {xl_file.name} (second pass)...")
+
+    # --- Helper functions local to this step ---
+    def read_keywords(file_path):
+        """Function to read keywords from a file."""
+        if not file_path.exists():
+            print(f"  ⚠️ Warning: Keywords file not found at {file_path}. Skipping file-based filter.")
+            return []
+        with open(file_path, 'r') as file:
+            important_keywords_list = [line.strip() for line in file.readlines()]
+        return important_keywords_list
+
+    def filter_df_by_keywords(df, keywords):
+        """Function to filter dataframe based on an exact list of keywords."""
+        return df[df["Keyword"].isin(keywords)]
+    # --- End Helpers ---
+
+
+    # --- CORE LOGIC (Moved from Notebook) ---
+    try:
+        # --- PATH DEFINITION ---
+        important_keywords_file = Path("data") / f"{job}_important_keywords.txt"
+
+        # (The CRITICAL FIX block is no longer needed here, as TARGET_COMPETITOR_COL is passed in)
+        print(f"  ✅ Canonical Competitor Column Identified: '{TARGET_COMPETITOR_COL}'")
+
+        # --- MAIN TAB GENERATION LOGIC ---
+        print("  Starting subsequent Excel tab generation (Appending via openpyxl)...")
+
+        # --- 1. Filter: Important Keywords ---
+        filter_name = "Important Keywords"
+        if important_keywords_file.exists():
+            important_keywords_list = read_keywords(important_keywords_file)
+            if important_keywords_list:
+                print(f"  - Writing {filter_name} tab (via file list)...")
+                df_filtered = filter_df_by_keywords(df.copy(), important_keywords_list)
+                df_filtered = normalize_and_score_surgical(df_filtered, semrush_lookup, has_botify, competitors[-1], True)
+                df_filtered.sort_values(by='Combined Score', ascending=False, inplace=True)
+                with pd.ExcelWriter(xl_file, engine="openpyxl", mode='a', if_sheet_exists='replace') as writer:
+                    df_filtered.to_excel(writer, sheet_name=filter_name, index=False)
+            else:
+                print(f"  ☑️ Skipping '{filter_name}': Keyword file is empty.")
+        else:
+            print(f"  ☑️ Skipping '{filter_name}': Keywords file does not exist.")
+
+        # --- 2. Filter: Best Opportunities / Striking Distance ---
+        filter_name = "Best Opportunities"
+        striking_lower = 100
+        df_tab = df.copy()
+
+        if has_botify:
+            try:
+                # Use TARGET_COMPETITOR_COL
+                df_tab = df_tab[(df_tab["No. of Impressions excluding anonymized queries"] > 0) & (df_tab[TARGET_COMPETITOR_COL] > 3)].copy()
+                print(f"  - Writing {filter_name} tab (Botify/GSC Striking Distance)...")
+            except KeyError:
+                # Fallback uses TARGET_COMPETITOR_COL
+                df_tab = df[(df[TARGET_COMPETITOR_COL] >= 4) & (df[TARGET_COMPETITOR_COL] <= striking_lower)].copy()
+                print(f"  - Writing {filter_name} tab (SEMRush Striking Distance fallback)...")
+        else:
+            # SEMRush-only logic uses TARGET_COMPETITOR_COL
+            df_tab = df[(df[TARGET_COMPETITOR_COL] >= 4) & (df[TARGET_COMPETITOR_COL] <= striking_lower)].copy()
+            print(f"  - Writing {filter_name} tab (SEMRush Striking Distance)...")
+        
+        df_tab = normalize_and_score_surgical(df_tab.copy(), semrush_lookup, has_botify, competitors[-1], True)
+        df_tab.sort_values(by='Combined Score', ascending=False, inplace=True)
+        with pd.ExcelWriter(xl_file, engine="openpyxl", mode='a', if_sheet_exists='replace') as writer:
+            df_tab.to_excel(writer, sheet_name=filter_name, index=False)
+
+        # --- 3. Filter: Client Ranking Sort ---
+        filter_name = "Important Keywords disable" # This name is from the original
+        df_tab = df[df[TARGET_COMPETITOR_COL].notnull()].sort_values(by=[TARGET_COMPETITOR_COL, 'Search Volume'], ascending=[True, False]).copy()
+        print(f"  - Writing {filter_name} tab (Client Rank Sort)...")
+        with pd.ExcelWriter(xl_file, engine="openpyxl", mode='a', if_sheet_exists='replace') as writer:
+            df_tab.to_excel(writer, sheet_name=filter_name, index=False)
+
+        # --- 4. Loop: Targeted Keyword Filters ---
+        print("  - Writing targeted filter tabs (Gifts, Questions, etc.)...")
+        targeted_filters = [
+            ("Gifts", ['gift', 'gifts', 'idea', 'ideas', 'present', 'presents', 'give', 'giving', 'black friday', 'cyber monday', 'cyber week', 'bfcm', 'bf', 'cm', 'holiday', 'deals', 'sales', 'offer', 'discount', 'shopping']),
+            ("Broad Questions", '''am are can could did do does for from had has have how i is may might must shall should was were what when where which who whom whose why will with would'''.split()),
+            ("Narrow Questions", '''who whom whose what which where when why how'''.split()),
+            ("Popular Modifiers", ['how to', 'best', 'review', 'reviews']),
+            ("Near Me", ['near me', 'for sale', 'nearby', 'closest', 'near you', 'local'])
+        ]
+
+        for filter_name, keywords in targeted_filters:
+            print(f"    - Writing '{filter_name}' tab...")
+            pattern = r'\b(?:' + '|'.join([re.escape(k) for k in keywords]) + r')\b'
+            df_tab = df[df["Keyword"].str.contains(pattern, case=False, na=False)].copy()
+            
+            # Apply scoring and sorting
+            df_tab = normalize_and_score_surgical(df_tab.copy(), semrush_lookup, has_botify, competitors[-1], True)
+            df_tab.sort_values(by='Combined Score', ascending=False, inplace=True)
+            
+            with pd.ExcelWriter(xl_file, engine="openpyxl", mode='a', if_sheet_exists='replace') as writer:
+                df_tab.to_excel(writer, sheet_name=filter_name, index=False)
+
+        print("✅ Done writing all supplementary Excel tabs.")
+        
+        # --- RETURN VALUE ---
+        # Return the button so it can be re-displayed
+        return button
+
+    except Exception as e:
+        print(f"❌ An error occurred during supplementary tab generation: {e}")
+        return widgets.Button(description=f"Error: {e}", disabled=True)
