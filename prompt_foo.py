@@ -521,12 +521,18 @@ def main():
     # 3. Build the prompt and add auto-generated context
     builder = PromptBuilder(processed_files_data, prompt_content, context_only=args.context_only, list_arg=args.list)
     
-    print("\n--- Generating Auto-Context ---")
-    print("Generating codebase tree diagram...", end='', flush=True)
-    tree_output = run_tree_command()
-    title = "Codebase Structure (eza --tree)"
-    builder.add_auto_context(title, tree_output)
-    print(f" ({builder.auto_context.get(title, {}).get('tokens', 0):,} tokens)")
+    # Only generate the codebase tree if .py files are explicitly included.
+    # This avoids clutter when only .md, .nix, or .ipynb files are present.
+    include_tree = any(f['path'].endswith('.py') for f in processed_files_data)
+    
+    if include_tree:
+        print("Python file(s) detected. Generating codebase tree diagram...", end='', flush=True)
+        tree_output = run_tree_command()
+        title = "Codebase Structure (eza --tree)"
+        builder.add_auto_context(title, tree_output)
+        print(f" ({builder.auto_context.get(title, {}).get('tokens', 0):,} tokens)")
+    else:
+        print("Skipping codebase tree (no .py files included).")
 
     if args.list is not None:
         print("Adding narrative context from articles...", end='', flush=True)
