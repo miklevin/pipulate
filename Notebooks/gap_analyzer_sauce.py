@@ -44,16 +44,22 @@ import ipywidgets as widgets
 from IPython.display import display
 import xlsxwriter
 
-# (Keep all previously added functions, including _open_folder, 
-#  safe_normalize, reorder_columns_surgical, normalize_and_score_surgical)
-# ...
+# --- EXCEL FORMATTING SUPPORT ---
+import openpyxl
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from openpyxl.formatting.rule import ColorScaleRule
+from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.utils import get_column_letter
+import validators # For URL validation
 
-
+# --- ML ---
 import nltk
 
 nltk.download('stopwords', quiet=True)
 nltk.download('punkt', quiet=True)
 nltk.download('punkt_tab', quiet=True) # Added from a later cell for consolidation
+
 
 def extract_domains_and_print_urls(job: str, notebook_filename: str = "GAPalyzer.ipynb"):
     """
@@ -2150,3 +2156,312 @@ def add_filtered_excel_tabs(
     except Exception as e:
         print(f"❌ An error occurred during supplementary tab generation: {e}")
         return widgets.Button(description=f"Error: {e}", disabled=True)
+
+# --- Private Helper Functions for Excel Formatting ---
+
+def _create_column_mapping(sheet):
+    """Creates a dictionary mapping header names to column letters."""
+    mapping = {}
+    for col_idx, column_cell in enumerate(sheet[1], 1): # Assumes headers are in row 1
+        column_letter = get_column_letter(col_idx)
+        mapping[str(column_cell.value)] = column_letter
+    return mapping
+
+def _apply_fill_to_column_labels(sheet, column_mapping, columns_list, fill):
+    """Applies a fill color to the header cells of specified columns."""
+    for column_name in columns_list:
+        column_letter = column_mapping.get(column_name)
+        if column_letter:
+            cell = sheet[f"{column_letter}1"]
+            cell.fill = fill
+
+def _find_last_data_row(sheet, keyword_column_letter):
+    """Finds the last row containing data in a specific column (e.g., 'Keyword')."""
+    if not keyword_column_letter: # Handle case where keyword column might be missing
+        return sheet.max_row
+    last_row = sheet.max_row
+    # Iterate backwards from the max row
+    while last_row > 1 and sheet[f"{keyword_column_letter}{last_row}"].value in [None, "", " "]:
+        last_row -= 1
+    return last_row
+
+def _apply_conditional_formatting(sheet, column_mapping, last_row, conditionals_descending, conditionals_ascending, rule_desc, rule_asc):
+    """Applies color scale conditional formatting to specified columns."""
+    for label in conditionals_descending + conditionals_ascending:
+        column_letter = column_mapping.get(label)
+        if column_letter and last_row > 1: # Ensure there is data to format
+            range_string = f'{column_letter}2:{column_letter}{last_row}'
+            rule = rule_desc if label in conditionals_descending else rule_asc
+            try:
+                sheet.conditional_formatting.add(range_string, rule)
+            except Exception as e:
+                print(f"  ⚠️ Failed to apply conditional formatting for {label}: {e}")
+
+def _is_safe_url(url):
+    """ Check if the given string is a valid URL using the validators library. """
+    if not isinstance(url, str):
+        return False
+    return validators.url(url) is True # Explicitly check for True
+
+# --- Main Formatting Function ---
+
+def apply_excel_formatting(
+    job: str,
+    xl_file: Path,
+    competitors: list,
+    semrush_lookup: str,
+    TARGET_COMPETITOR_COL: str,
+    has_botify: bool,
+    GLOBAL_WIDTH_ADJUSTMENT: float,
+    button: widgets.Button
+):
+    """
+    Applies all "painterly" openpyxl formatting to the generated Excel file.
+    This is the "third pass" that makes the deliverable client-ready.
+
+    Args:
+        job (str): The current Pipulate job ID.
+        xl_file (Path): The Path object for the Excel file.
+        competitors (list): The list of competitor column names.
+        semrush_lookup (str): The client's clean domain (e.g., 'example.com').
+        TARGET_COMPETITOR_COL (str): The canonical client column name (e.g., 'example.com/').
+        has_botify (bool): Flag indicating if Botify data is present.
+        GLOBAL_WIDTH_ADJUSTMENT (float): Multiplier for column widths.
+        button (widgets.Button): The "Open Folder" button object.
+
+    Returns:
+        widgets.Button: The same button object, for re-display.
+    """
+    if not xl_file or not Path(xl_file).exists():
+        print(f"❌ Error: Excel file not found at '{xl_file}'. Cannot apply formatting.")
+        return button # Return the original button
+
+    print(f"🎨 Applying Excel Formatting to all data tabs in {xl_file.name} (third pass)...")
+    
+    # --- Formatting Definitions (Moved from Notebook) ---
+    green = '33FF33'
+    client_color = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid') # Yellow
+    competitor_color = PatternFill(start_color='EEECE2', end_color='EEECE2', fill_type='solid') # Light Gray
+    semrush_color = PatternFill(start_color='FAEADB', end_color='FAEADB', fill_type='solid') # Light Orange
+    semrush_opportunity_color = PatternFill(start_color='F1C196', end_color='F1C196', fill_type='solid') # Darker Orange
+    botify_color = PatternFill(start_color='EADFF2', end_color='EADFF2', fill_type='solid') # Light Purple
+    botify_opportunity_color = PatternFill(start_color='AEA1C4', end_color='AEA1C4', fill_type='solid') # Darker Purple
+    color_scale_rule_desc = ColorScaleRule(start_type='min', start_color='FFFFFF', end_type='max', end_color=green)
+    color_scale_rule_asc = ColorScaleRule(start_type='min', start_color=green, end_type='max', end_color='FFFFFF')
+    thin_border = Border(left=Side(style='hair'), right=Side(style='hair'), top=Side(style='hair'), bottom=Side(style='thin'))
+    tiny_width, small_width, medium_width, description_width, url_width = 11, 15, 20, 50, 70
+
+    column_widths = {
+        'Keyword': 40, 'Search Volume': small_width, 'Number of Words': tiny_width,
+        'Keyword Group (Experimental)': small_width, 'Competitors Positioning': tiny_width,
+        'CPC': tiny_width, 'Keyword Difficulty': tiny_width, 'Competition': tiny_width,
+        'Depth': tiny_width, 'No. of Keywords': tiny_width,
+        'No. of Impressions excluding anonymized queries': small_width,
+        'No. of Clicks excluding anonymized queries': small_width,
+        'No. of Missed Clicks excluding anonymized queries': small_width,
+        'Avg. URL CTR excluding anonymized queries': tiny_width,
+        'Avg. URL Position excluding anonymized queries': tiny_width,
+        'No. of Keywords for the URL To Achieve 90% Audience': tiny_width,
+        'Raw Internal Pagerank': small_width, 'Internal Pagerank': tiny_width,
+        'Internal Pagerank Position': tiny_width, 'No. of Unique Inlinks': tiny_width,
+        'Title': description_width, 'Meta Description': description_width,
+        'Timestamp': 12, 'SERP Features by Keyword': description_width,
+        'Keyword Intents': medium_width, 'Position Type': small_width,
+        'Number of Results': medium_width, 'Competitor URL': url_width,
+        'Client URL': url_width, # Gets renamed
+        'Normalized CPC': tiny_width, 'Normalized Keyword Difficulty': tiny_width,
+        'Normalized Raw Internal Pagerank': tiny_width, 'Normalized Search Volume': tiny_width,
+        'Normalized Search Position': tiny_width, 'Normalized Missed Clicks': tiny_width,
+        'Combined Score': tiny_width
+    }
+    
+    int_fmt, comma_fmt, pct_fmt, date_fmt = '0', '#,##0', '0.00', 'yyyy-mm-dd'
+    number_formats = {
+        'Search Volume': comma_fmt, 'Number of Words': int_fmt, 'CPC': pct_fmt,
+        'Keyword Difficulty': int_fmt, 'Competition': pct_fmt, 'Depth': int_fmt,
+        'No. of Keywords': comma_fmt, 'No. of Impressions excluding anonymized queries': comma_fmt,
+        'No. of Clicks excluding anonymized queries': comma_fmt,
+        'No. of Missed Clicks excluding anonymized queries': comma_fmt,
+        'Avg. URL CTR excluding anonymized queries': pct_fmt,
+        'Avg. URL Position excluding anonymized queries': '0.0',
+        'No. of Keywords for the URL To Achieve 90% Audience': comma_fmt,
+        'Raw Internal Pagerank': '0.0000000', 'Internal Pagerank': pct_fmt,
+        'Internal Pagerank Position': int_fmt, 'No. of Unique Inlinks': comma_fmt,
+        'Number of Results': comma_fmt, 'Timestamp': date_fmt,
+        'Competitors Positioning': int_fmt, 'Normalized CPC': pct_fmt,
+        'Normalized Keyword Difficulty': pct_fmt, 'Normalized Raw Internal Pagerank': pct_fmt,
+        'Normalized Search Volume': pct_fmt, 'Normalized Search Position': pct_fmt,
+        'Normalized Missed Clicks': pct_fmt, 'Combined Score': '0.00'
+    }
+
+    conditionals_descending = ['Search Volume', 'CPC', 'Competition', 'Avg. URL CTR excluding anonymized queries', 'No. of Missed Clicks excluding anonymized queries', 'Combined Score', 'No. of Unique Inlinks']
+    conditionals_ascending = ['Keyword Difficulty', 'Raw Internal Pagerank', 'Internal Pagerank', 'Internal Pagerank Position', 'Avg. URL Position excluding anonymized queries', 'Depth', TARGET_COMPETITOR_COL] + [col for col in competitors if col != TARGET_COMPETITOR_COL]
+    semrush_columns = ['Keyword', 'Search Volume', 'CPC', 'Keyword Difficulty', 'Competition', 'SERP Features by Keyword', 'Keyword Intents', 'Position Type', 'Number of Results', 'Timestamp', 'Competitor URL', 'Client URL']
+    botify_columns = ['Depth', 'No. of Keywords', 'No. of Impressions excluding anonymized queries', 'No. of Clicks excluding anonymized queries', 'No. of Missed Clicks excluding anonymized queries', 'Avg. URL CTR excluding anonymized queries', 'Avg. URL Position excluding anonymized queries', 'No. of Keywords for the URL To Achieve 90% Audience', 'Raw Internal Pagerank', 'Internal Pagerank', 'Internal Pagerank Position', 'No. of Unique Inlinks', 'Title', 'Meta Description']
+    bigger_font_headers = ["Keyword", "Search Volume", "Title", "Meta Description", "Competitor URL", "Client URL", "SERP Features by Keyword"]
+    botify_opportunity_columns = ['Internal Pagerank', 'No. of Unique Inlinks', 'No. of Missed Clicks excluding anonymized queries', 'Normalized Raw Internal Pagerank', 'Normalized Missed Clicks']
+    semrush_opportunity_columns = ['CPC', 'Keyword Difficulty', 'Normalized CPC', 'Normalized Keyword Difficulty', 'Normalized Search Volume', 'Normalized Search Position', 'Combined Score']
+    # --- End Formatting Definitions ---
+
+
+    # --- APPLY FORMATTING TO EXCEL FILE ---
+    try:
+        wb = load_workbook(xl_file)
+        
+        # Get sheet names from the loop_list *stored in pip state*
+        loop_list_json = pip.get(job, 'loop_list', '[]')
+        sheets_to_format = json.loads(loop_list_json)
+        
+        # Also load the other lists needed
+        competitors_json = pip.get(job, 'competitors_list', '[]')
+        competitors = json.loads(competitors_json)
+        
+        if not sheets_to_format:
+             print("  ⚠️ No sheets found in 'loop_list' from pip state. Adding all sheets as fallback.")
+             sheets_to_format = [name for name in wb.sheetnames if name != "Filter Diagnostics"]
+
+        if not sheets_to_format:
+            print("⚠️ No data sheets found in the Excel file to format. Skipping formatting.")
+            return button # Return original button
+
+        for sheet_name in sheets_to_format:
+            if sheet_name not in wb.sheetnames:
+                 print(f"  ⚠️ Skipping sheet '{sheet_name}': Not found in workbook.")
+                 continue
+                 
+            print(f"  - Formatting '{sheet_name}' tab...")
+            sheet = wb[sheet_name]
+            column_mapping = _create_column_mapping(sheet)
+            keyword_col_letter = column_mapping.get("Keyword")
+
+            if not keyword_col_letter:
+                print(f"  ⚠️ Skipping sheet '{sheet_name}': Cannot find 'Keyword' column.")
+                continue
+                
+            last_row = _find_last_data_row(sheet, keyword_col_letter)
+            
+            # --- Apply All Formatting Steps ---
+            
+            # 1. Fill client column
+            client_column_letter = column_mapping.get(TARGET_COMPETITOR_COL)
+            if client_column_letter:
+                for row in range(1, last_row + 1):
+                    cell = sheet[f"{client_column_letter}{row}"]
+                    cell.fill = client_color
+                    if row == 1: cell.font = Font(bold=True)
+
+            # 2. Fill Header Backgrounds
+            _apply_fill_to_column_labels(sheet, column_mapping, semrush_columns, semrush_color)
+            _apply_fill_to_column_labels(sheet, column_mapping, botify_columns, botify_color)
+            present_competitors = [c for c in competitors if c in column_mapping and c != TARGET_COMPETITOR_COL]
+            _apply_fill_to_column_labels(sheet, column_mapping, present_competitors, competitor_color)
+            _apply_fill_to_column_labels(sheet, column_mapping, botify_opportunity_columns, botify_opportunity_color)
+            _apply_fill_to_column_labels(sheet, column_mapping, semrush_opportunity_columns, semrush_opportunity_color)
+
+            # 3. Header Styling
+            header_font = Font(bold=True)
+            header_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            for header, col_letter in column_mapping.items():
+                cell = sheet[f"{col_letter}1"]
+                cell.alignment = header_align
+                cell.font = header_font
+                cell.border = thin_border
+                if header in bigger_font_headers:
+                    cell.font = Font(size=14, bold=True)
+
+            # 4. Hyperlinks
+            for col_label in ["Competitor URL", "Client URL"]:
+                col_letter = column_mapping.get(col_label)
+                if col_letter:
+                    for row in range(2, last_row + 1):
+                        cell = sheet[f"{col_letter}{row}"]
+                        url = cell.value
+                        if url and _is_safe_url(url) and not str(url).startswith('=HYPERLINK'):
+                            display_text = url if len(url) <= 80 else url[:77] + "..."
+                            cell.value = f'=HYPERLINK("{url}", "{display_text}")'
+                            cell.font = Font(color="0000FF", underline="single")
+                            cell.alignment = Alignment(vertical='top', wrap_text=False)
+
+            # 5. Rotate Competitor Headers
+            competitor_header_align = Alignment(vertical='bottom', textRotation=90, horizontal='center')
+            header_height = 100 # Default
+            for competitor_col_name in competitors:
+                col_letter = column_mapping.get(competitor_col_name)
+                if col_letter:
+                    cell = sheet[f"{col_letter}1"]
+                    cell.alignment = competitor_header_align
+                    sheet.column_dimensions[col_letter].width = 4
+                    # Dynamically calculate required header height
+                    header_height = max(header_height, len(competitor_col_name) * 6) # Simple heuristic
+            
+            # 11. Header Row Height & Freeze Panes
+            sheet.row_dimensions[1].height = header_height # Apply calculated height
+            sheet.freeze_panes = 'C2'
+
+
+            # 6. Apply Column Widths
+            for label, width in column_widths.items():
+                column_letter = column_mapping.get(label)
+                if column_letter:
+                    sheet.column_dimensions[column_letter].width = width * GLOBAL_WIDTH_ADJUSTMENT
+
+            # 7. Apply Number Formats
+            for label, format_code in number_formats.items():
+                column_letter = column_mapping.get(label)
+                if column_letter:
+                    for row in range(2, last_row + 1):
+                        cell = sheet[f"{column_letter}{row}"]
+                        if cell.value is not None:
+                            cell.number_format = format_code
+
+            # 8. Apply Conditional Formatting
+            _apply_conditional_formatting(sheet, column_mapping, last_row, conditionals_descending, conditionals_ascending, color_scale_rule_desc, color_scale_rule_asc)
+
+            # 9. Rename 'Client URL' Header
+            client_url_column_letter = column_mapping.get("Client URL")
+            if client_url_column_letter:
+                sheet[f"{client_url_column_letter}1"].value = f"{TARGET_COMPETITOR_COL} URL"
+
+            # 10. Data Cell Alignment
+            data_align = Alignment(wrap_text=False, vertical='top')
+            url_columns = [column_mapping.get("Competitor URL"), column_mapping.get("Client URL")]
+            for row_idx in range(2, last_row + 1):
+                for col_idx in range(1, sheet.max_column + 1):
+                    cell = sheet.cell(row=row_idx, column=col_idx)
+                    if get_column_letter(col_idx) not in url_columns:
+                        cell.alignment = data_align
+
+            # 12. Apply AutoFilter
+            max_col_letter = get_column_letter(sheet.max_column)
+            if last_row > 0:
+                sheet.auto_filter.ref = f"A1:{max_col_letter}{last_row}"
+
+            # 13. Add Table for banded rows
+            if last_row > 0:
+                table_range = f"A1:{max_col_letter}{last_row}"
+                table_name = f"DataTable_{re.sub(r'[^A-Za-z0-9_]', '', sheet_name)}"
+                existing_table_names = [t.name for t in sheet._tables if hasattr(t, 'name')]
+                if table_name not in existing_table_names:
+                    tab = Table(displayName=table_name, ref=table_range)
+                    style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
+                                           showLastColumn=False, showRowStripes=True, showColumnStripes=False)
+                    tab.tableStyleInfo = style
+                    try:
+                        sheet.add_table(tab)
+                    except ValueError as ve:
+                        print(f"  Note: Could not add Excel Table '{table_name}'. Overlaps? {ve}")
+
+        wb.save(xl_file)
+        print(f"✅ Formatting applied to all data tabs and saved to {xl_file.name}")
+
+    except FileNotFoundError:
+        print(f"❌ Error: Excel file not found at {xl_file}. Cannot apply formatting.")
+    except KeyError as e:
+        print(f"❌ Error during formatting: A required column key was not found: {e}.")
+        if 'column_mapping' in locals(): print(f"   Column Mapping: {column_mapping}")
+    except Exception as e:
+        print(f"❌ An unexpected error occurred during Excel formatting: {e}")
+    
+    # --- RETURN VALUE ---
+    # Return the button so it can be re-displayed (handler is already attached)
+    return button
