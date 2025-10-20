@@ -2203,7 +2203,6 @@ def _is_safe_url(url):
         return False
     return validators.url(url) is True # Explicitly check for True
 
-# --- Main Formatting Function ---
 
 def apply_excel_formatting(
     job: str,
@@ -2218,6 +2217,7 @@ def apply_excel_formatting(
     """
     Applies all "painterly" openpyxl formatting to the generated Excel file.
     This is the "third pass" that makes the deliverable client-ready.
+    (This version formats ALL sheets found in the workbook.)
 
     Args:
         job (str): The current Pipulate job ID.
@@ -2308,18 +2308,11 @@ def apply_excel_formatting(
     try:
         wb = load_workbook(xl_file)
         
-        # Get sheet names from the loop_list *stored in pip state*
-        loop_list_json = pip.get(job, 'loop_list', '[]')
-        sheets_to_format = json.loads(loop_list_json)
+        # --- FIX: Get all sheet names directly from the workbook ---
+        # We ignore the faulty 'loop_list' from pip state
+        sheets_to_format = [name for name in wb.sheetnames if name != "Filter Diagnostics"]
+        # --- END FIX ---
         
-        # Also load the other lists needed
-        competitors_json = pip.get(job, 'competitors_list', '[]')
-        competitors = json.loads(competitors_json)
-        
-        if not sheets_to_format:
-             print("  ⚠️ No sheets found in 'loop_list' from pip state. Adding all sheets as fallback.")
-             sheets_to_format = [name for name in wb.sheetnames if name != "Filter Diagnostics"]
-
         if not sheets_to_format:
             print("⚠️ No data sheets found in the Excel file to format. Skipping formatting.")
             return button # Return original button
@@ -2329,7 +2322,7 @@ def apply_excel_formatting(
                  print(f"  ⚠️ Skipping sheet '{sheet_name}': Not found in workbook.")
                  continue
                  
-            print(f"  - Formatting '{sheet_name}' tab...")
+            print(f"  - Formatting '{sheet_name}' tab...") # This will now print for every sheet
             sheet = wb[sheet_name]
             column_mapping = _create_column_mapping(sheet)
             keyword_col_letter = column_mapping.get("Keyword")
@@ -2361,6 +2354,7 @@ def apply_excel_formatting(
             # 3. Header Styling
             header_font = Font(bold=True)
             header_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            header_height = 100 # Default header height
             for header, col_letter in column_mapping.items():
                 cell = sheet[f"{col_letter}1"]
                 cell.alignment = header_align
@@ -2368,6 +2362,9 @@ def apply_excel_formatting(
                 cell.border = thin_border
                 if header in bigger_font_headers:
                     cell.font = Font(size=14, bold=True)
+                # Calculate max header height needed for rotated labels
+                if header in competitors:
+                     header_height = max(header_height, len(header) * 6 + 15) # Simple heuristic
 
             # 4. Hyperlinks
             for col_label in ["Competitor URL", "Client URL"]:
@@ -2384,15 +2381,12 @@ def apply_excel_formatting(
 
             # 5. Rotate Competitor Headers
             competitor_header_align = Alignment(vertical='bottom', textRotation=90, horizontal='center')
-            header_height = 100 # Default
             for competitor_col_name in competitors:
                 col_letter = column_mapping.get(competitor_col_name)
                 if col_letter:
                     cell = sheet[f"{col_letter}1"]
                     cell.alignment = competitor_header_align
                     sheet.column_dimensions[col_letter].width = 4
-                    # Dynamically calculate required header height
-                    header_height = max(header_height, len(competitor_col_name) * 6) # Simple heuristic
             
             # 11. Header Row Height & Freeze Panes
             sheet.row_dimensions[1].height = header_height # Apply calculated height
@@ -2402,7 +2396,8 @@ def apply_excel_formatting(
             # 6. Apply Column Widths
             for label, width in column_widths.items():
                 column_letter = column_mapping.get(label)
-                if column_letter:
+                # Don't override competitor widths
+                if column_letter and sheet.column_dimensions[column_letter].width != 4:
                     sheet.column_dimensions[column_letter].width = width * GLOBAL_WIDTH_ADJUSTMENT
 
             # 7. Apply Number Formats
@@ -2411,7 +2406,7 @@ def apply_excel_formatting(
                 if column_letter:
                     for row in range(2, last_row + 1):
                         cell = sheet[f"{column_letter}{row}"]
-                        if cell.value is not None:
+                        if cell.value is not None and not isinstance(cell.value, str):
                             cell.number_format = format_code
 
             # 8. Apply Conditional Formatting
@@ -2424,7 +2419,7 @@ def apply_excel_formatting(
 
             # 10. Data Cell Alignment
             data_align = Alignment(wrap_text=False, vertical='top')
-            url_columns = [column_mapping.get("Competitor URL"), column_mapping.get("Client URL")]
+            url_columns = [column_mapping.get("Competitor URL"), client_url_column_letter]
             for row_idx in range(2, last_row + 1):
                 for col_idx in range(1, sheet.max_column + 1):
                     cell = sheet.cell(row=row_idx, column=col_idx)
