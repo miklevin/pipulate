@@ -1,9 +1,18 @@
 FILES_TO_INCLUDE_RAW = """\
-/home/mike/repos/pipulate/flake.nix
+/home/mike/repos/MikeLev.in/_posts/2025-10-17-gapalyzer-dom-visualizer-fix-vampire-time-victory.md
+/home/mike/repos/MikeLev.in/_posts/2025-10-13-ai-coding-tutor-developer-control.md
+/home/mike/repos/MikeLev.in/_posts/2025-10-20-nix-flakes-faquilizer-cross-platform-automation.md
 /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
 /home/mike/repos/pipulate/tools/scraper_tools.py
-# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+/home/mike/repos/pipulate/tools/dom_tools.py
 """
+
+#LATEST
+
+# /home/mike/repos/pipulate/flake.nix
+# /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
+# /home/mike/repos/pipulate/tools/scraper_tools.py
+# /home/mike/repos/pipulate/Notebooks/secretsauce.py
 
 # /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
 # /home/mike/repos/pipulate/README.md
@@ -28,7 +37,6 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
 # /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
 
-
 # /home/mike/repos/pipulate/README.md
 # /home/mike/repos/pipulate/server.py
 # /home/mike/repos/pipulate/config.py
@@ -48,8 +56,6 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/cli.py
 # /home/mike/repos/pipulate/foo_files.py
 
-
-#LATEST
 # /home/mike/repos/pipulate/assets/installer/install.sh
 # /home/mike/repos/pipulate/requirements.in
 # /home/mike/repos/pipulate/requirements.txt
