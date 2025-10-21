@@ -82,8 +82,8 @@ async def scrape(job: str,
                  headless: bool = True, 
                  verbose: bool = False, 
                  stealth: bool = True, 
-                 persistent: bool = False, 
-                 profile_name: str = "default", 
+                 persistent: bool = True, 
+                 profile_name: str = "my_session", 
                  delay_range: tuple = (5, 10)):
     """
     Scrapes each URL using pip.scrape(), leveraging cached data if available,
