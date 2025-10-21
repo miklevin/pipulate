@@ -12,8 +12,8 @@ Usage:
     pipulate
 """
 
-__version__ = "1.4.2"
-__version_description__ = "Showing correct version on banner"
+__version__ = "1.4.3"
+__version_description__ = "Stealth Crawling Enabled"
 __email__ = "pipulate@gmail.com"
 __description__ = "Local First AI SEO Software" 
 
