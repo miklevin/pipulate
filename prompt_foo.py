@@ -215,9 +215,9 @@ def run_tree_command() -> str:
 def parse_file_list_from_config() -> List[Tuple[str, str]]:
     try:
         import foo_files
-        files_raw = foo_files.FILES_TO_INCLUDE_RAW
+        files_raw = foo_files.AI_PHOOEY_CHOP
     except (ImportError, AttributeError):
-        print("ERROR: foo_files.py not found or doesn't contain FILES_TO_INCLUDE_RAW.")
+        print("ERROR: foo_files.py not found or doesn't contain AI_PHOOEY_CHOP.")
         sys.exit(1)
     lines = files_raw.strip().splitlines()
     seen_files, parsed_files = set(), []
