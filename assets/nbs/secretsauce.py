@@ -78,13 +78,13 @@ def _get_urls_from_notebook(notebook_filename="FAQuilizer.ipynb"):
         return []
 
 
-async def scrape_and_extract(job: str, 
-                             headless: bool = True, 
-                             verbose: bool = False, 
-                             stealth: bool = True, 
-                             persistent: bool = False, 
-                             profile_name: str = "default", 
-                             delay_range: tuple = (5, 10)):
+async def scrape(job: str, 
+                 headless: bool = True, 
+                 verbose: bool = False, 
+                 stealth: bool = True, 
+                 persistent: bool = False, 
+                 profile_name: str = "default", 
+                 delay_range: tuple = (5, 10)):
     """
     Scrapes each URL using pip.scrape(), leveraging cached data if available,
     and immediately parses the HTML to extract key SEO data.
@@ -209,7 +209,7 @@ def stack_em(job: str) -> pd.DataFrame:
     print("📊 Stacking pre-extracted data into a DataFrame...")
     extracted_data = pip.get(job, EXTRACTED_DATA_STEP, [])
     if not extracted_data:
-        print("❌ No extracted data found. Please run `scrape_and_extract` first.")
+        print("❌ No extracted data found. Please run `scrape` first.")
         return pd.DataFrame()
 
     df = pd.DataFrame(extracted_data)
@@ -236,7 +236,7 @@ def ai_faq_em(job: str, debug: bool = False) -> pd.DataFrame:
     # --- 2. Load Data ---
     extracted_data = pip.get(job, EXTRACTED_DATA_STEP, [])
     if not extracted_data:
-        print("❌ No extracted data found. Please run `scrape_and_extract` first.")
+        print("❌ No extracted data found. Please run `scrape` first.")
         return pd.DataFrame()
 
     faq_data = []
