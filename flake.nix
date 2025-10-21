@@ -150,17 +150,15 @@
           htop                         # Interactive process viewer for Unix systems
           plantuml
           graphviz
-          # python312Packages.webencodings
+          chromium                     # Chromium browser for Selenium automation
+          undetected-chromedriver
+          eza                          # A tree directory visualizer that uses .gitignore
         ] ++ (with pkgs; pkgs.lib.optionals isLinux [
           espeak-ng                    # Text-to-speech, Linux only
           sox                          # Sound processing, Linux only
           virtualenv
           gcc                          # GNU Compiler Collection for compiling C/C++ code
           stdenv.cc.cc.lib             # Standard C library for Linux systems
-          # chromedriver                 # ChromeDriver for Selenium automation
-          chromium                     # Chromium browser for Selenium automation
-          undetected-chromedriver
-          eza                          # A tree directory visualizer that uses .gitignore
         ]);
         # This script sets up our Python environment and project
 runScript = pkgs.writeShellScriptBin "run-script" ''
