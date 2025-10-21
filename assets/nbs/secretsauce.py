@@ -290,7 +290,7 @@ The JSON object must conform to the following schema:
       "justification": "string (Why is this a valuable question to answer? e.g., sales, seasonal, etc.)"
     }}
   ]
-}}
+}} 
 '''
     # The API key is configured via pip.api_key() in the notebook.
     # This function assumes that has been run.
@@ -449,7 +449,9 @@ def display_results_log(job: str):
         display(df)
 
 def export_to_excel(job: str):
-    """Exports the final DataFrame to a formatted Excel file."""
+    """
+    Exports the final DataFrame to a formatted Excel file.
+    """
     print("📄 Exporting data to Excel...")
     final_json = pip.get(job, FINAL_DATAFRAME_STEP)
     if not final_json:
@@ -545,10 +547,8 @@ def export_and_format_excel(job: str, df: pd.DataFrame):
         tooltip=f"Open {output_dir.resolve()}",
         button_style='success'
     )
-    button.on_click(lambda b: _open_folder("output"))
-    display(button)
-
-
+    
+    
 def _open_folder(path_str: str = "."):
     """
     Opens the specified folder in the system's default file explorer.
@@ -571,7 +571,10 @@ def _open_folder(path_str: str = "."):
             subprocess.run(["xdg-open", folder_path])
     except Exception as e:
         print(f"❌ Failed to open folder. Please navigate to it manually. Error: {e}")
-    
+
+
+# Replacement function for Notebooks/secretsauce.py
+
 async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
     """
     Generates DOM visualizations by calling the standalone visualize_dom.py script
@@ -652,78 +655,5 @@ async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
     else:
          logger.info("No visualizations needed or possible.")
 
-
-    logger.success(f"✅ Visualization generation complete. Success: {success_count}, Failed/Skipped: {fail_count}") # Use logger
-
-# Append this entire function to the end of Notebooks/secretsauce.py
-
-async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
-    """
-    Generates DOM visualizations (hierarchy and boxes) for all scraped URLs in a job.
-    This should be run AFTER scrape_and_extract.
-    """
-    # --- Make imports local to the function ---
-    from pipulate import pip # Make sure pip is accessible
-    from tools import dom_tools
-    from tools.scraper_tools import get_safe_path_component
-    from pathlib import Path
-    from loguru import logger # Use logger for output consistency
-    # --- End local imports ---
-
-    logger.info("🎨 Generating DOM visualizations for scraped pages...") # Use logger
-    extracted_data = pip.get(job, "extracted_data", []) # Use string for step name
-    urls_processed = {item['url'] for item in extracted_data if isinstance(item, dict) and 'url' in item} # Safer extraction
-
-    if not urls_processed:
-        logger.warning("🟡 No scraped URLs found in the job state to visualize.") # Use logger
-        return
-
-    success_count = 0
-    fail_count = 0
-
-    base_dir = Path("browser_cache/") # Assuming notebook context
-
-    for i, url in enumerate(urls_processed):
-        logger.info(f"  -> Visualizing [{i+1}/{len(urls_processed)}]: {url}") # Use logger
-
-        domain, url_path_slug = get_safe_path_component(url)
-        output_dir = base_dir / domain / url_path_slug
-        dom_path = output_dir / "rendered_dom.html"
-
-        if not dom_path.exists():
-            logger.warning(f"     ❌ Skipping: rendered_dom.html not found at {dom_path}") # Use logger
-            fail_count += 1
-            continue
-
-        viz_params = {"file_path": str(dom_path), "verbose": False} # Never print to stdout from tool
-
-        try:
-            # Generate Hierarchy
-            hierarchy_viz_result = await dom_tools.visualize_dom_hierarchy(viz_params)
-            if hierarchy_viz_result.get("success"):
-                hierarchy_viz_path_txt = output_dir / "dom_hierarchy.txt"
-                hierarchy_viz_path_txt.write_text(hierarchy_viz_result.get("output", ""), encoding='utf-8')
-                if hierarchy_viz_result.get("output_html"):
-                    hierarchy_viz_path_html = output_dir / "dom_hierarchy.html"
-                    hierarchy_viz_path_html.write_text(hierarchy_viz_result["output_html"], encoding='utf-8')
-            else:
-                 logger.warning(f"     ⚠️ Hierarchy viz failed for {url}: {hierarchy_viz_result.get('error')}") # Use logger
-
-            # Generate Boxes
-            box_viz_result = await dom_tools.visualize_dom_boxes(viz_params)
-            if box_viz_result.get("success"):
-                viz_path_txt = output_dir / "dom_layout_boxes.txt"
-                viz_path_txt.write_text(box_viz_result.get("output", ""), encoding='utf-8')
-                if box_viz_result.get("output_html"):
-                    viz_path_html = output_dir / "dom_layout_boxes.html"
-                    viz_path_html.write_text(box_viz_result["output_html"], encoding='utf-8')
-            else:
-                 logger.warning(f"     ⚠️ Box viz failed for {url}: {box_viz_result.get('error')}") # Use logger
-
-            success_count +=1
-
-        except Exception as e:
-            logger.error(f"     ❌ Critical error visualizing {url}: {e}", exc_info=True) # Use logger and add exc_info
-            fail_count += 1
 
     logger.success(f"✅ Visualization generation complete. Success: {success_count}, Failed/Skipped: {fail_count}") # Use logger
