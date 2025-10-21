@@ -129,7 +129,6 @@ async def selenium_automation(params: dict) -> dict:
         # Check if webdriver-manager is installed (it's a dependency of undetected-chromedriver)
         try:
             import webdriver_manager
-    Gtk: Gtk-WARNING **: 20:34:04.992: cannot open display:
         except ImportError:
             logger.error("❌ 'webdriver-manager' package not found.")
             logger.error("   Please add 'webdriver-manager' to requirements.txt and re-run 'nix develop'.")
