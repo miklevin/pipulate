@@ -89,25 +89,62 @@ async def selenium_automation(params: dict) -> dict:
     profile_path = None
     temp_profile = False
 
-    # --- Find the browser executable path ---
-    browser_path = shutil.which("chromium")
-    driver_path = shutil.which("undetected-chromedriver")
-    if not browser_path:
-        # Fallback for different naming conventions
-        browser_path = shutil.which("chromium-browser")
+    # --- Find the browser executable path (Platform-Specific) ---
+    effective_os = os.environ.get("EFFECTIVE_OS") # This is set by your flake.nix
+    browser_path = None
+    driver_path = None
 
-    if not browser_path:
-        logger.error("❌ Could not find chromium or chromium-browser executable in the environment's PATH.")
-        return {"success": False, "error": "Chromium executable not found. Is it correctly configured in your flake.nix?"}
+    if effective_os == "linux":
+        if verbose: logger.info("🐧 Linux platform detected. Looking for Nix-provided Chromium...")
+        browser_path = shutil.which("chromium")
+        driver_path = shutil.which("undetected-chromedriver")
+        if not browser_path:
+            browser_path = shutil.which("chromium-browser")
+        
+        if not browser_path:
+            logger.error("❌ Could not find Nix-provided chromium or chromium-browser.")
+            return {"success": False, "error": "Chromium executable not found in Nix environment."}
+        if not driver_path:
+            logger.error("❌ Could not find Nix-provided 'undetected-chromedriver'.")
+            return {"success": False, "error": "undetected-chromedriver not found in Nix environment."}
 
-    if not driver_path:
-        logger.error("❌ Could not find 'undetected-chromedriver' executable in the environment's PATH.")
-        return {"success": False, "error": "The undetected-chromedriver binary was not found. Is it in your flake.nix?"}
-    
-    if verbose: 
-        logger.info(f"🔍 Found browser executable at: {browser_path}")
-        logger.info(f"🔍 Found driver executable at: {driver_path}")
+    elif effective_os == "darwin":
+        if verbose: logger.info("🍏 macOS platform detected. Looking for host-installed Google Chrome...")
+        # On macOS, we rely on the user's host-installed Google Chrome.
+        # undetected-chromedriver will use webdriver-manager to find/download the driver.
+        browser_path = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        driver_path = None # This tells uc to find/download the driver automatically
 
+        if not Path(browser_path).exists():
+            # Fallback for Chrome Canary
+            browser_path_canary = "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary"
+            if Path(browser_path_canary).exists():
+                browser_path = browser_path_canary
+                if verbose: logger.info("  -> Google Chrome not found, using Google Chrome Canary.")
+            else:
+                logger.error(f"❌ Google Chrome not found at default path: {browser_path}")
+                logger.error("   Please install Google Chrome on your Mac to continue.")
+                return {"success": False, "error": "Google Chrome not found on macOS."}
+        
+        # Check if webdriver-manager is installed (it's a dependency of undetected-chromedriver)
+        try:
+            import webdriver_manager
+    Gtk: Gtk-WARNING **: 20:34:04.992: cannot open display:
+        except ImportError:
+            logger.error("❌ 'webdriver-manager' package not found.")
+            logger.error("   Please add 'webdriver-manager' to requirements.txt and re-run 'nix develop'.")
+            return {"success": False, "error": "webdriver-manager Python package missing."}
+    
+    else:
+        logger.error(f"❌ Unsupported EFFECTIVE_OS: '{effective_os}'. Check flake.nix.")
+        return {"success": False, "error": "Unsupported operating system."}
+
+    if verbose: 
+        logger.info(f"🔍 Using browser executable at: {browser_path}")
+        if driver_path:
+            logger.info(f"🔍 Using driver executable at: {driver_path}")
+        else:
+            logger.info(f"🔍 Using driver executable from webdriver-manager (uc default).")
 
     try:
         # Create directory only if we are actually scraping
