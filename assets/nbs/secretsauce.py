@@ -571,3 +571,159 @@ def _open_folder(path_str: str = "."):
             subprocess.run(["xdg-open", folder_path])
     except Exception as e:
         print(f"❌ Failed to open folder. Please navigate to it manually. Error: {e}")
+    
+async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
+    """
+    Generates DOM visualizations by calling the standalone visualize_dom.py script
+    as a subprocess for each scraped URL in a job.
+    """
+    # --- Make imports local ---
+    import asyncio
+    from pipulate import pip # Make sure pip is accessible
+    from tools.scraper_tools import get_safe_path_component
+    from pathlib import Path
+    from loguru import logger # Use logger for output consistency
+    import sys # Needed for sys.executable
+    # --- End local imports ---
+
+    logger.info("🎨 Generating DOM visualizations via subprocess for scraped pages...")
+    extracted_data = pip.get(job, "extracted_data", []) # Use string for step name
+    urls_processed = {item['url'] for item in extracted_data if isinstance(item, dict) and 'url' in item} # Safer extraction
+
+    if not urls_processed:
+        logger.warning("🟡 No scraped URLs found in the job state to visualize.") # Use logger
+        return
+
+    success_count = 0
+    fail_count = 0
+    tasks = []
+    base_dir = Path("browser_cache/") # Assuming notebook context
+    script_path = Path("visualize_dom.py").resolve() # Assumes script is in root
+
+    if not script_path.exists():
+         logger.error(f"❌ Cannot find visualization script at: {script_path}")
+         logger.error("   Please ensure visualize_dom.py is in the project root.")
+         return
+
+    python_executable = sys.executable # Use the same python that runs the notebook
+
+    for i, url in enumerate(urls_processed):
+        domain, url_path_slug = get_safe_path_component(url)
+        output_dir = base_dir / domain / url_path_slug
+        dom_path = output_dir / "rendered_dom.html"
+
+        if not dom_path.exists():
+            if verbose: # Control logging with verbose flag
+                logger.warning(f"  -> Skipping [{i+1}/{len(urls_processed)}]: rendered_dom.html not found for {url}")
+            fail_count += 1
+            continue
+
+        # Create a coroutine for each subprocess call
+        async def run_visualizer(url_to_viz, dom_file_path):
+            nonlocal success_count, fail_count # Allow modification of outer scope vars
+            proc = await asyncio.create_subprocess_exec(
+                python_executable, str(script_path), str(dom_file_path),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await proc.communicate()
+
+            log_prefix = f"  -> Viz Subprocess [{url_to_viz}]:" # Indent subprocess logs
+
+            if proc.returncode == 0:
+                if verbose: logger.success(f"{log_prefix} Success.")
+                # Log stdout from the script only if verbose or if there was an issue (for debug)
+                if verbose and stdout: logger.debug(f"{log_prefix} STDOUT:\n{stdout.decode().strip()}")
+                success_count += 1
+            else:
+                logger.error(f"{log_prefix} Failed (Code: {proc.returncode}).")
+                # Always log stdout/stderr on failure
+                if stdout: logger.error(f"{log_prefix} STDOUT:\n{stdout.decode().strip()}")
+                if stderr: logger.error(f"{log_prefix} STDERR:\n{stderr.decode().strip()}")
+                fail_count += 1
+
+        # Add the coroutine to the list of tasks
+        tasks.append(run_visualizer(url, dom_path))
+
+    # Run all visualization tasks concurrently
+    if tasks:
+         logger.info(f"🚀 Launching {len(tasks)} visualization subprocesses...")
+         await asyncio.gather(*tasks)
+    else:
+         logger.info("No visualizations needed or possible.")
+
+
+    logger.success(f"✅ Visualization generation complete. Success: {success_count}, Failed/Skipped: {fail_count}") # Use logger
+
+# Append this entire function to the end of Notebooks/secretsauce.py
+
+async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
+    """
+    Generates DOM visualizations (hierarchy and boxes) for all scraped URLs in a job.
+    This should be run AFTER scrape_and_extract.
+    """
+    # --- Make imports local to the function ---
+    from pipulate import pip # Make sure pip is accessible
+    from tools import dom_tools
+    from tools.scraper_tools import get_safe_path_component
+    from pathlib import Path
+    from loguru import logger # Use logger for output consistency
+    # --- End local imports ---
+
+    logger.info("🎨 Generating DOM visualizations for scraped pages...") # Use logger
+    extracted_data = pip.get(job, "extracted_data", []) # Use string for step name
+    urls_processed = {item['url'] for item in extracted_data if isinstance(item, dict) and 'url' in item} # Safer extraction
+
+    if not urls_processed:
+        logger.warning("🟡 No scraped URLs found in the job state to visualize.") # Use logger
+        return
+
+    success_count = 0
+    fail_count = 0
+
+    base_dir = Path("browser_cache/") # Assuming notebook context
+
+    for i, url in enumerate(urls_processed):
+        logger.info(f"  -> Visualizing [{i+1}/{len(urls_processed)}]: {url}") # Use logger
+
+        domain, url_path_slug = get_safe_path_component(url)
+        output_dir = base_dir / domain / url_path_slug
+        dom_path = output_dir / "rendered_dom.html"
+
+        if not dom_path.exists():
+            logger.warning(f"     ❌ Skipping: rendered_dom.html not found at {dom_path}") # Use logger
+            fail_count += 1
+            continue
+
+        viz_params = {"file_path": str(dom_path), "verbose": False} # Never print to stdout from tool
+
+        try:
+            # Generate Hierarchy
+            hierarchy_viz_result = await dom_tools.visualize_dom_hierarchy(viz_params)
+            if hierarchy_viz_result.get("success"):
+                hierarchy_viz_path_txt = output_dir / "dom_hierarchy.txt"
+                hierarchy_viz_path_txt.write_text(hierarchy_viz_result.get("output", ""), encoding='utf-8')
+                if hierarchy_viz_result.get("output_html"):
+                    hierarchy_viz_path_html = output_dir / "dom_hierarchy.html"
+                    hierarchy_viz_path_html.write_text(hierarchy_viz_result["output_html"], encoding='utf-8')
+            else:
+                 logger.warning(f"     ⚠️ Hierarchy viz failed for {url}: {hierarchy_viz_result.get('error')}") # Use logger
+
+            # Generate Boxes
+            box_viz_result = await dom_tools.visualize_dom_boxes(viz_params)
+            if box_viz_result.get("success"):
+                viz_path_txt = output_dir / "dom_layout_boxes.txt"
+                viz_path_txt.write_text(box_viz_result.get("output", ""), encoding='utf-8')
+                if box_viz_result.get("output_html"):
+                    viz_path_html = output_dir / "dom_layout_boxes.html"
+                    viz_path_html.write_text(box_viz_result["output_html"], encoding='utf-8')
+            else:
+                 logger.warning(f"     ⚠️ Box viz failed for {url}: {box_viz_result.get('error')}") # Use logger
+
+            success_count +=1
+
+        except Exception as e:
+            logger.error(f"     ❌ Critical error visualizing {url}: {e}", exc_info=True) # Use logger and add exc_info
+            fail_count += 1
+
+    logger.success(f"✅ Visualization generation complete. Success: {success_count}, Failed/Skipped: {fail_count}") # Use logger
