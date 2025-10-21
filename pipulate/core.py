@@ -1881,7 +1881,15 @@ class Pipulate:
         state = self.read_state(job)
         return state.get(step, default)
 
-    async def scrape(self, url: str, take_screenshot: bool = False, mode: str = 'selenium', headless: bool = True, verbose: bool = True, persistent: bool = False, profile_name: str = "default", delay_range: tuple = None, **kwargs):
+    async def scrape(self, 
+                     url: str, 
+                     take_screenshot: bool = False, 
+                     mode: str = 'selenium', 
+                     headless: bool = True, 
+                     verbose: bool = True, 
+                     persistent: bool = False, 
+                     profile_name: str = "default", 
+                     delay_range: tuple = None, **kwargs):
         """
         Gives AI "eyes" by performing browser automation or HTTP requests to scrape a URL.
 
