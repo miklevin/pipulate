@@ -1,10 +1,14 @@
-FILES_TO_INCLUDE_RAW = """\
+AI_PHOOEY_CHOP = """\
 /home/mike/repos/MikeLev.in/_posts/2025-10-17-gapalyzer-dom-visualizer-fix-vampire-time-victory.md
 /home/mike/repos/MikeLev.in/_posts/2025-10-13-ai-coding-tutor-developer-control.md
 /home/mike/repos/MikeLev.in/_posts/2025-10-20-nix-flakes-faquilizer-cross-platform-automation.md
 /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
+/home/mike/repos/pipulate/Notebooks/secretsauce.py
 /home/mike/repos/pipulate/tools/scraper_tools.py
 /home/mike/repos/pipulate/tools/dom_tools.py
+/home/mike/repos/pipulate/pipulate/__init__.py
+/home/mike/repos/pipulate/pipulate/pipulate.py
+/home/mike/repos/pipulate/pipulate/core.py
 """
 
 #LATEST
