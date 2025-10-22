@@ -1,14 +1,17 @@
 AI_PHOOEY_CHOP = """\
-/home/mike/repos/pipulate/README.md
+/home/mike/repos/pipulate/server.py
+/home/mike/repos/pipulate/assets/pipulate-init.js
 /home/mike/repos/pipulate/assets/tests/demo.json
-/home/mike/repos/pipulate/imports/voice_synthesis.py
-/home/mike/repos/pipulate/imports/ai_dictdb.py
-/home/mike/repos/pipulate/pipulate/pipulate.py
-/home/mike/repos/pipulate/tools/scraper_tools.py
-/home/mike/repos/pipulate/tools/dom_tools.py
 """
 
 #LATEST
+# /home/mike/repos/pipulate/README.md
+# /home/mike/repos/pipulate/assets/tests/demo.json
+# /home/mike/repos/pipulate/imports/voice_synthesis.py
+# /home/mike/repos/pipulate/imports/ai_dictdb.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/tools/scraper_tools.py
+# /home/mike/repos/pipulate/tools/dom_tools.py
 # /home/mike/repos/MikeLev.in/_posts/2025-10-21-stealth-automation-jupyter-rich-debugging.md
 # /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
 # /home/mike/repos/pipulate/Notebooks/secretsauce.py
