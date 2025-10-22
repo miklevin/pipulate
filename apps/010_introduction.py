@@ -37,7 +37,7 @@ class IntroductionPlugin:
         card_class = "intro-card"
 
         if page_num == 1:
-            title = f'White-labeled: {app_name} 🎯'
+            title = f'White-labeled as: {app_name} 🎯'
             features = [
                 ('👤 PROFILE', 'Set up Clients under PROFILE. Each has Tasks to do.'),
                 ('⚡ APP', 'AI-assisted workflows. Start with Hello Workflow for gist.'),
@@ -45,6 +45,7 @@ class IntroductionPlugin:
             ]
             return Card(
                 H2(title),
+                P('Learn how to run simple, linear workflows to advance your career, satisfy clients and train models.'),
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]),
                 P(f'Instance 1.0 of Project Pipulate AIE (pronounced "Ayyy") inhabited by Chip O\'Theseus and powered by Ollama ({model}) to assist you 🤖. Click ',
                   A('Next ▸',
