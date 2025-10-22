@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class IntroductionPlugin:
     NAME = "introduction"
     DISPLAY_NAME = "Introduction 💬"
-    ENDPOINT_MESSAGE = "💬 Introduction Guide: Learn about Pipulate's layout, features, and how to get started effectively. This comprehensive guide covers profiles, workflows, and the local LLM assistant."
+    ENDPOINT_MESSAGE = "Welcome to something new. If you have an open mind, you're in for a treat."
 
     def __init__(self, app, pipulate, pipeline, db):
         logger.debug(f"IntroductionPlugin initialized with NAME: {self.NAME}")
@@ -37,7 +37,7 @@ class IntroductionPlugin:
         card_class = "intro-card"
 
         if page_num == 1:
-            title = f'White-labeled as: {app_name} 🎯'
+            title = f'This instance is White-labeled as: {app_name} 🎯'
             features = [
                 ('👤 PROFILE', 'Set up Clients under PROFILE. Each has Tasks to do.'),
                 ('⚡ APP', 'AI-assisted workflows. Start with Hello Workflow to get the gist.'),
@@ -45,7 +45,7 @@ class IntroductionPlugin:
             ]
             return Card(
                 H2(title),
-                P('Learn how to run simple, linear workflows to advance your career, satisfy clients and train models.'),
+                P('Learn to run simple, linear workflows to advance your career, satisfy clients and train models. Menu options are:'),
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]),
                 P(f'This is Instance 1.0 of Project Pipulate AIE (pronounced "Ayyy"—like the Fonz) inhabited by Chip O\'Theseus and powered by Ollama ({model}) to assist you 🤖. Click ',
                   A('Next ▸',
