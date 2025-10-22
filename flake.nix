@@ -105,14 +105,14 @@
         # --- CORRECTED: Declarative list for notebooks to copy ---
         notebookFilesToCopy = [
           {
-            source = "assets/nbs/A_Hi_2_AI.ipynb";
-            dest = "Notebooks/A_Hi_2_AI.ipynb";
+            source = "assets/nbs/A_Hi2AI.ipynb";
+            dest = "Notebooks/A_Hi2AI.ipynb";
             desc = "a local 'Hello, AI!' example notebook";
           }
           {
-            source = "assets/nbs/AI_Scrape.ipynb";
-            dest = "Notebooks/AI_Scrape.ipynb";
-            desc = "a local 'AI, Scrape.' master template";
+            source = "assets/nbs/GAPalyzer.ipynb";
+            dest = "Notebooks/GAPalyzer.ipynb";
+            desc = "a local 'Competitor Gap Analyzer.' master template";
           }
           {
             source = "assets/nbs/FAQuilizer.ipynb";
