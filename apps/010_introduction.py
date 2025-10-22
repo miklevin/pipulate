@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class IntroductionPlugin:
     NAME = "introduction"
     DISPLAY_NAME = "Introduction 💬"
-    ENDPOINT_MESSAGE = "Welcome to something new. If you have an open mind, you're in for a treat."
+    ENDPOINT_MESSAGE = "Welcome to something new. If you have an open mind, you're in for a treat. Type to me here or press Ctrl+Alt+d for a demo."
 
     def __init__(self, app, pipulate, pipeline, db):
         logger.debug(f"IntroductionPlugin initialized with NAME: {self.NAME}")
