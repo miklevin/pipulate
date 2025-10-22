@@ -2007,7 +2007,7 @@ class Pipulate:
             "https://nixos.org/     # Linux\n",
             "https://jupyter.org/   # Python\n",
             "https://neovim.io/     # vim\n",
-            "https://git-scm.com/   # git",
+            "https://git-scm.com/   # git\n",
             "https://www.fastht.ml/ # FastHTML"
         ]
 
