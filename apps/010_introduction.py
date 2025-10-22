@@ -40,14 +40,14 @@ class IntroductionPlugin:
             title = f'White-labeled as: {app_name} 🎯'
             features = [
                 ('👤 PROFILE', 'Set up Clients under PROFILE. Each has Tasks to do.'),
-                ('⚡ APP', 'AI-assisted workflows. Start with Hello Workflow for gist.'),
+                ('⚡ APP', 'AI-assisted workflows. Start with Hello Workflow to get the gist.'),
                 ('DEV/Prod', 'Use DEV mode for practice and Prod in front of your clients.')
             ]
             return Card(
                 H2(title),
                 P('Learn how to run simple, linear workflows to advance your career, satisfy clients and train models.'),
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]),
-                P(f'Instance 1.0 of Project Pipulate AIE (pronounced "Ayyy") inhabited by Chip O\'Theseus and powered by Ollama ({model}) to assist you 🤖. Click ',
+                P(f'This is Instance 1.0 of Project Pipulate AIE (pronounced "Ayyy"—like the Fonz) inhabited by Chip O\'Theseus and powered by Ollama ({model}) to assist you 🤖. Click ',
                   A('Next ▸',
                     hx_post='/introduction/page/2',
                     hx_target='#grid-left-content',
@@ -61,7 +61,7 @@ class IntroductionPlugin:
 
         elif page_num == 2:
             title = 'Local AI Assistant Setup 🤖'
-            intro_text = f'{app_name} uses a separately installed local chatbot called Ollama. Having a local LLM installed is not required for {app_name} to keep working, but is encouraged because it will keep an AI "in the loop" to provide context-aware advice.'
+            intro_text = f"{app_name} uses a separately installed local chatbot called Ollama with the recommended gemma3 model. Installing it is encouraged to keep a local AI riding shotgun to provide advice. And it's free as in electricity."
             benefits = [
                 ('🔒 PRIVATE', 'No registration or API token required. Completely local and private.'),
                 ('💰 FREE', 'Free for the price of electricity - no monthly subscriptions.'),
@@ -76,10 +76,8 @@ class IntroductionPlugin:
             ]
             fallback_note = f'If you don\'t take this step, the majority of {app_name} will still work — just without an AI riding shotgun.'
             return Card(
-                H3(title),
+                H2(title),
                 P(intro_text),
-                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in benefits]),
-                H3(installation_title),
                 Ol(
                     Li(
                         Strong(
