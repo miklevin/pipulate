@@ -39,14 +39,14 @@ class IntroductionPlugin:
         if page_num == 1:
             title = f'Welcome to {app_name} 🎯'
             features = [
-                ('👤 PROFILE', 'Set up Clients under PROFILE. Their Task Lists are kept separate.'),
-                ('⚡ APP', 'AI-assisted workflows. Start with Hello Workflow to get the gist.'),
+                ('👤 PROFILE', 'Set up Clients under PROFILE. Each has Tasks to do.'),
+                ('⚡ APP', 'AI-assisted workflows. Start with Hello Workflow for gist.'),
                 ('DEV/Prod', 'Use DEV mode for practice and Prod in front of your clients.')
             ]
             return Card(
                 H2(title),
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]),
-                P(f'The chat interface on the right is optionally powered by a local LLM ({model}) to assist you 🤖. Click ',
+                P(f'The chat interface on the right is powered by Ollama ({model}) to assist you 🤖. Click ',
                   A('Next ▸',
                     hx_post='/introduction/page/2',
                     hx_target='#grid-left-content',
@@ -291,7 +291,7 @@ class IntroductionPlugin:
         page_content = self.create_page_content(current_page, APP_NAME, MODEL)
 
         return Div(
-            H2(f"📖 Introduction Guide - Page {current_page} of 7"),
+            H2(f"📖 Intro to AI Education (AIE) Platform - Page {current_page} of 7"),
             nav_arrows,
             page_content,
         )
