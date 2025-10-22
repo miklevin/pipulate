@@ -2003,10 +2003,12 @@ class Pipulate:
         ]
 
         SAMPLE_URL_LIST_SOURCE = [
-            "https://nixos.org/    # Linux\n",
-            "https://pypi.org/     # Python\n",
-            "https://neovim.io/    # vim\n",
-            "https://git-scm.com/  # git"
+            "# Enter one URL per line\n",
+            "https://nixos.org/     # Linux\n",
+            "https://jupyter.org/   # Python\n",
+            "https://neovim.io/     # vim\n",
+            "https://git-scm.com/   # git",
+            "https://www.fastht.ml/ # FastHTML"
         ]
 
         # 1. Find the project root in a portable way
