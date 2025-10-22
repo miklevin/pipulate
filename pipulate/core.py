@@ -2008,7 +2008,8 @@ class Pipulate:
             "https://jupyter.org/   # Python\n",
             "https://neovim.io/     # vim\n",
             "https://git-scm.com/   # git\n",
-            "https://www.fastht.ml/ # FastHTML"
+            "https://www.fastht.ml/ # FastHTML\n"
+            'https://pipulate.com/  # AIE (Pronounced "Ayyy")'
         ]
 
         # 1. Find the project root in a portable way
