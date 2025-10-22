@@ -517,36 +517,10 @@ class CrudUI(PluginIdentityManager):
         # Check if Ollama is available
         ollama_available = await self.check_ollama_availability()
         
-        # Build the intro paragraph content
-        intro_content = [
-            "New to here? Here's an ",
-            A("Introduction", href="/redirect/introduction", 
-              cls="link-primary-bold",
-              onmouseover="this.style.color = 'var(--pico-primary-hover)';",
-              onmouseout="this.style.color = 'var(--pico-primary-color)';"),
-            "."
-        ]
-        
-        # Only show Ollama install suggestion if not available
-        if not ollama_available:
-            intro_content.extend([
-                " Optionally install ",
-                A("Ollama", 
-                  href="https://ollama.com/", target="_blank",
-                  cls="link-primary-bold",
-                  onmouseover="this.style.color = 'var(--pico-primary-hover)';",
-                  onmouseout="this.style.color = 'var(--pico-primary-color)';"),
-                " for local AI help."
-            ])
-
         return Div(
             Style(self.generate_role_css()),
             Card(
                 H3(self.H3_HEADER),
-                P(
-                    *intro_content,
-                    style="margin-bottom: 1rem; color: var(--pico-muted-color); font-size: 0.9em;"
-                ),
                 Div(
                     Button(Img(src='/assets/feather/rewind.svg', 
                               alt='Reset', 
