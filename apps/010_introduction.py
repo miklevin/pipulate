@@ -39,9 +39,9 @@ class IntroductionPlugin:
         if page_num == 1:
             title = f'Welcome to {app_name} 🎯'
             features = [
-                ('👤 PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace. In other words, they each get their own separate Task List.'),
-                ('⚡ APP', 'For each Profile (Client/Customer), try each APP (Parameter Buster for example).'),
-                ('DEV/Prod', 'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.')
+                ('👤 PROFILE', 'Set up Clients under PROFILE. Their Task Lists are kept separate.'),
+                ('⚡ APP', 'AI-assisted workflows. Start with Hello Workflow to get the gist.'),
+                ('DEV/Prod', 'Use DEV mode for practice and Prod in front of your clients.')
             ]
             return Card(
                 H2(title),

@@ -17,7 +17,7 @@ from datetime import datetime
 from fasthtml.common import *
 from pathlib import Path
 
-ROLES = ['Core']
+ROLES = ['Workshop']
 
 logger = logging.getLogger(__name__)
 
