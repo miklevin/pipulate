@@ -294,5 +294,4 @@ class IntroductionPlugin:
             H2(f"📖 Introduction Guide - Page {current_page} of 7"),
             nav_arrows,
             page_content,
-            nav_arrows
         )
