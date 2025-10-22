@@ -37,7 +37,7 @@ class IntroductionPlugin:
         card_class = "intro-card"
 
         if page_num == 1:
-            title = f'Welcome to {app_name} 🎯'
+            title = f'White-labeled: {app_name} 🎯'
             features = [
                 ('👤 PROFILE', 'Set up Clients under PROFILE. Each has Tasks to do.'),
                 ('⚡ APP', 'AI-assisted workflows. Start with Hello Workflow for gist.'),
@@ -46,7 +46,7 @@ class IntroductionPlugin:
             return Card(
                 H2(title),
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]),
-                P(f'The chat interface on the right is powered by Ollama ({model}) to assist you 🤖. Click ',
+                P(f'Instance 1.0 of Project Pipulate AIE (pronounced "Ayyy") inhabited by Chip O\'Theseus and powered by Ollama ({model}) to assist you 🤖. Click ',
                   A('Next ▸',
                     hx_post='/introduction/page/2',
                     hx_target='#grid-left-content',
@@ -291,7 +291,7 @@ class IntroductionPlugin:
         page_content = self.create_page_content(current_page, APP_NAME, MODEL)
 
         return Div(
-            H2(f"📖 Intro to AI Education (AIE) Platform - Page {current_page} of 7"),
+            H2(f"📖 Intro to the field of AIE (AI Educator) - Page {current_page} of 7"),
             nav_arrows,
             page_content,
         )
