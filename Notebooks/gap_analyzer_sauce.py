@@ -1508,16 +1508,16 @@ def merge_and_finalize_data(job: str, arranged_df: pd.DataFrame, botify_export_d
         }
 
         # --- OUTPUT (to pip state) ---
-        pip.set(job, 'final_working_df_json', df.to_json(orient='records'))
-        print(f"💾 Stored final working DataFrame in pip state for job '{job}'.")
-        # ---------------------------
+        # --- FIX: Store the PATH to the intermediate CSV, not the giant DataFrame JSON ---
+        pip.set(job, 'final_working_df_csv_path', str(unformatted_csv.resolve()))
+        print(f"💾 Stored final working DF path in pip state for job '{job}': {unformatted_csv.resolve()}")
 
         # --- RETURN VALUE ---
         return df, display_data
 
     except Exception as e:
         print(f"❌ An error occurred during final merge/cleanup: {e}")
-        pip.set(job, 'final_working_df_json', pd.DataFrame().to_json(orient='records'))
+        pip.set(job, 'final_working_df_csv_path', None) # Store None on error
         # Return empty/default values
         return pd.DataFrame(), {"rows": 0, "cols": 0, "has_botify": False, "pagerank_counts": None}
 

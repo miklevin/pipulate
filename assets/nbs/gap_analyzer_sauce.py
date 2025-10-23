@@ -783,6 +783,39 @@ def aggregate_semrush_metrics(job: str, df2: pd.DataFrame):
 
     print("📊 Aggregating SEMRush metrics per keyword...")
 
+    # --- NEW: Data Type Coercion (The Fix) ---
+    # Define columns that MUST be numeric for aggregation.
+    # This prevents the '[how->max,dtype->object]' error.
+    numeric_cols = [
+        'Position', 'Search Volume', 'CPC', 'Traffic', 'Traffic (%)',
+        'Traffic Cost', 'Keyword Difficulty', 'Competition', 'Number of Results'
+    ]
+
+    print("  Coercing numeric columns...")
+    for col in numeric_cols:
+        if col in df2.columns:
+            # errors='coerce' will turn any non-numeric values (like 'N/A' or '1,200') into NaN
+            # We then fillna(0) to ensure mathematical operations don't fail,
+            # though agg functions often handle NaN well, this is safer.
+            df2[col] = pd.to_numeric(df2[col], errors='coerce').fillna(0)
+        else:
+            # This just matches the warning you already have, but it's good to be aware
+            print(f"  > Warning: Numeric column '{col}' not found in source, skipping coercion.")
+    # --- END FIX ---
+
+    # --- THE FIX: Coerce the Timestamp column explicitly ---
+    # The error comes from trying to find the 'max' of the 'Timestamp' column,
+    # which is currently text. We must convert it to datetime objects first.
+    if 'Timestamp' in df2.columns:
+        print("  Coercing 'Timestamp' column to datetime...")
+        df2['Timestamp'] = pd.to_datetime(df2['Timestamp'], errors='coerce')
+    # --- END FIX ---
+
+    # --- SMOKING GUN: Print dtypes *after* all coercion ---
+    print("\n--- SMOKING GUN: Final Column Data Types Before Aggregation ---")
+    print(df2.dtypes)
+    print("--------------------------------------------------------------\n")
+
     # --- CORE LOGIC (Moved from Notebook) ---
     try:
         agg_funcs = {
@@ -1226,17 +1259,22 @@ def fetch_botify_data(job: str, botify_token: str, botify_project_url: str):
         else:
             print("  ❌ Botify export failed critically after both attempts.")
             botify_export_df = pd.DataFrame()
-    
+
+    # --- START URGENT FIX: Comment out the failing pip.set() ---
+    # We will skip persistence for this step to get past the TooBigError.
+    # The df is already in memory for the next cell, which is all we need.
+    # pip.set(job, 'botify_export_csv_path', str(report_name.resolve()))
     # --- 4. Store State and Return ---
     has_botify = not botify_export_df.empty
     if has_botify:
-        pip.set(job, 'botify_export_df_json', botify_export_df.to_json(orient='records'))
-        print(f"💾 Stored Botify DataFrame in pip state for job '{job}'.")
+        print(f"💾 Bypassing pip.set() for Botify CSV path to avoid TooBigError.")
     else:
         # If it failed, ensure an empty DF is stored
-        pip.set(job, 'botify_export_df_json', pd.DataFrame().to_json(orient='records'))
+        pip.set(job, 'botify_export_csv_path', None)
         print("🤷 No Botify data loaded. Stored empty DataFrame in pip state.")
-
+        # pip.set(job, 'botify_export_csv_path', None)
+        print("🤷 No Botify data loaded. Bypassing pip.set().")
+    # --- END URGENT FIX ---
     return botify_export_df, has_botify
 
 
@@ -1470,16 +1508,16 @@ def merge_and_finalize_data(job: str, arranged_df: pd.DataFrame, botify_export_d
         }
 
         # --- OUTPUT (to pip state) ---
-        pip.set(job, 'final_working_df_json', df.to_json(orient='records'))
-        print(f"💾 Stored final working DataFrame in pip state for job '{job}'.")
-        # ---------------------------
+        # --- FIX: Store the PATH to the intermediate CSV, not the giant DataFrame JSON ---
+        pip.set(job, 'final_working_df_csv_path', str(unformatted_csv.resolve()))
+        print(f"💾 Stored final working DF path in pip state for job '{job}': {unformatted_csv.resolve()}")
 
         # --- RETURN VALUE ---
         return df, display_data
 
     except Exception as e:
         print(f"❌ An error occurred during final merge/cleanup: {e}")
-        pip.set(job, 'final_working_df_json', pd.DataFrame().to_json(orient='records'))
+        pip.set(job, 'final_working_df_csv_path', None) # Store None on error
         # Return empty/default values
         return pd.DataFrame(), {"rows": 0, "cols": 0, "has_botify": False, "pagerank_counts": None}
 
