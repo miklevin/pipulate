@@ -1259,17 +1259,22 @@ def fetch_botify_data(job: str, botify_token: str, botify_project_url: str):
         else:
             print("  ❌ Botify export failed critically after both attempts.")
             botify_export_df = pd.DataFrame()
-    
+
+    # --- START URGENT FIX: Comment out the failing pip.set() ---
+    # We will skip persistence for this step to get past the TooBigError.
+    # The df is already in memory for the next cell, which is all we need.
+    # pip.set(job, 'botify_export_csv_path', str(report_name.resolve()))
     # --- 4. Store State and Return ---
     has_botify = not botify_export_df.empty
     if has_botify:
-        pip.set(job, 'botify_export_df_json', botify_export_df.to_json(orient='records'))
-        print(f"💾 Stored Botify DataFrame in pip state for job '{job}'.")
+        print(f"💾 Bypassing pip.set() for Botify CSV path to avoid TooBigError.")
     else:
         # If it failed, ensure an empty DF is stored
-        pip.set(job, 'botify_export_df_json', pd.DataFrame().to_json(orient='records'))
+        pip.set(job, 'botify_export_csv_path', None)
         print("🤷 No Botify data loaded. Stored empty DataFrame in pip state.")
-
+        # pip.set(job, 'botify_export_csv_path', None)
+        print("🤷 No Botify data loaded. Bypassing pip.set().")
+    # --- END URGENT FIX ---
     return botify_export_df, has_botify
 
 
