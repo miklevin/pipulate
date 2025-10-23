@@ -803,6 +803,19 @@ def aggregate_semrush_metrics(job: str, df2: pd.DataFrame):
             print(f"  > Warning: Numeric column '{col}' not found in source, skipping coercion.")
     # --- END FIX ---
 
+    # --- THE FIX: Coerce the Timestamp column explicitly ---
+    # The error comes from trying to find the 'max' of the 'Timestamp' column,
+    # which is currently text. We must convert it to datetime objects first.
+    if 'Timestamp' in df2.columns:
+        print("  Coercing 'Timestamp' column to datetime...")
+        df2['Timestamp'] = pd.to_datetime(df2['Timestamp'], errors='coerce')
+    # --- END FIX ---
+
+    # --- SMOKING GUN: Print dtypes *after* all coercion ---
+    print("\n--- SMOKING GUN: Final Column Data Types Before Aggregation ---")
+    print(df2.dtypes)
+    print("--------------------------------------------------------------\n")
+
     # --- CORE LOGIC (Moved from Notebook) ---
     try:
         agg_funcs = {
