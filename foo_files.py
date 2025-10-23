@@ -1,6 +1,13 @@
 AI_PHOOEY_CHOP = """\
-/home/mike/repos/pipulate/AI_RUNME.py
+/home/mike/repos/MikeLev.in/_posts/2025-10-23-pipulates-blueprint-for-ai-collaboration.md
 """
+
+# /home/mike/repos/pipulate/assets/nbs/AI_HelloWorld.ipynb
+# /home/mike/repos/pipulate/apps/040_hello_workflow.py
+# /home/mike/repos/pipulate/assets/nbs/FAQuilizer.ipynb
+# /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
+# /home/mike/repos/pipulate/assets/nbs/gap_analyzer_sauce.py
+# /home/mike/repos/pipulate/assets/nbs/secretsauce.py
 
 # /home/mike/repos/pipulate/cli.py
 # /home/mike/repos/pipulate/tools/__init__.py 
