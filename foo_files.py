@@ -1,6 +1,23 @@
 AI_PHOOEY_CHOP = """\
-/home/mike/repos/pipulate/prompt_foo.py
+/home/mike/repos/pipulate/AI_RUNME.py
 """
+
+# /home/mike/repos/pipulate/cli.py
+# /home/mike/repos/pipulate/tools/__init__.py 
+# /home/mike/repos/pipulate/tools/system_tools.py
+# /home/mike/repos/pipulate/imports/__init__.py
+# /home/mike/repos/pipulate/imports/stream_orchestrator.py
+# /home/mike/repos/pipulate/imports/ai_tool_discovery_simple_parser.py
+# /home/mike/repos/pipulate/imports/mcp_orchestrator.py
+
+# /home/mike/repos/pipulate/config.py
+# /home/mike/repos/pipulate/server.py
+# /home/mike/repos/pipulate/pipulate/__init__.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/pipulate/core.py
+
+# /home/mike/repos/pipulate/assets/installer/install.sh
+# /home/mike/repos/pipulate/flake.nix
 
 #LATEST
 # /home/mike/repos/pipulate/flake.nix
