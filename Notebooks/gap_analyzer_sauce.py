@@ -392,11 +392,14 @@ def load_and_combine_semrush_data(job: str, client_domain: str, competitor_limit
     domain_counts = master_df["Domain"].value_counts()
 
     # --- OUTPUT (to pip state) ---
-    # Storing large DF as JSON is okay for now, per instructions.
-    # Future distillation: Save to CSV/Parquet and store path instead.
-    pip.set(job, 'semrush_master_df_json', master_df.to_json(orient='records'))
-    pip.set(job, 'competitors_dict_json', json.dumps(cdict))
-    print(f"💾 Stored master DataFrame and competitor dictionary in pip state for job '{job}'.")
+    # --- FIX: Save master DF to CSV and store the PATH in pip state ---
+    data_dir = Path("data") # Define base data directory relative to Notebooks/
+    data_dir.mkdir(exist_ok=True)
+    master_csv_path = data_dir / f"{job}_semrush_master_combined.csv"
+    master_df.to_csv(master_csv_path, index=False)
+    print(f"💾 Saved combined SEMrush data to '{master_csv_path}'")
+    pip.set(job, 'semrush_master_df_csv_path', str(master_csv_path.resolve()))
+    print(f"💾 Stored master DataFrame path and competitor dictionary in pip state for job '{job}'.")
     # -----------------------------
 
     # --- RETURN VALUE ---
