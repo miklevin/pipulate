@@ -783,6 +783,26 @@ def aggregate_semrush_metrics(job: str, df2: pd.DataFrame):
 
     print("📊 Aggregating SEMRush metrics per keyword...")
 
+    # --- NEW: Data Type Coercion (The Fix) ---
+    # Define columns that MUST be numeric for aggregation.
+    # This prevents the '[how->max,dtype->object]' error.
+    numeric_cols = [
+        'Position', 'Search Volume', 'CPC', 'Traffic', 'Traffic (%)',
+        'Traffic Cost', 'Keyword Difficulty', 'Competition', 'Number of Results'
+    ]
+
+    print("  Coercing numeric columns...")
+    for col in numeric_cols:
+        if col in df2.columns:
+            # errors='coerce' will turn any non-numeric values (like 'N/A' or '1,200') into NaN
+            # We then fillna(0) to ensure mathematical operations don't fail,
+            # though agg functions often handle NaN well, this is safer.
+            df2[col] = pd.to_numeric(df2[col], errors='coerce').fillna(0)
+        else:
+            # This just matches the warning you already have, but it's good to be aware
+            print(f"  > Warning: Numeric column '{col}' not found in source, skipping coercion.")
+    # --- END FIX ---
+
     # --- CORE LOGIC (Moved from Notebook) ---
     try:
         agg_funcs = {
