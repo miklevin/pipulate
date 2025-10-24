@@ -351,7 +351,7 @@ Before addressing the user's prompt, perform the following verification steps:
 2.  **Analyze Import Statements:** Briefly scan the `import` statements in the provided Python files. Do they suggest dependencies on local files that were *not* included in the manifest?
 3.  **Check for Incompleteness:** If you determine that critical files are missing, do not proceed. Instead, your **primary task** is to inform me of the missing files and recommend adding them to `foo_files.py` to create a more complete context.
 4.  **Confirm Understanding:** If the context appears complete, state "Context verified." and then proceed with the user's request.
-5.  **Descriptions:** When describing the passion represented here, you may refer to it as a blueprint, treatise, methodology, philosophy or way. NEVER refer to it as a manifesto which has a negative connotation.
+5.  **Descriptions:** When describing the passion represented here, you may refer to it as a blueprint, treatise, soliloquy, methodology, philosophy or way. NEVER refer to it as a manifesto which has a negative connotation.
 '''
     def build_final_prompt(self) -> str:
         """Assembles all parts into the final, structured Markdown string."""

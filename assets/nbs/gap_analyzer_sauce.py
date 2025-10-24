@@ -425,9 +425,9 @@ def load_and_combine_semrush_data(job: str, client_domain: str, competitor_limit
 
     # --- OUTPUT (to pip state) ---
     # --- FIX: Save master DF to CSV and store the PATH in pip state ---
-    data_dir = Path("data") # Define base data directory relative to Notebooks/
-    data_dir.mkdir(exist_ok=True)
-    master_csv_path = data_dir / f"{job}_semrush_master_combined.csv"
+    temp_dir = Path("temp") / job # Use the temp directory structure
+    temp_dir.mkdir(parents=True, exist_ok=True) # Ensure it exists
+    master_csv_path = temp_dir / "semrush_master_combined.csv"
     master_df.to_csv(master_csv_path, index=False)
     print(f"💾 Saved combined SEMrush data to '{master_csv_path}'")
     pip.set(job, 'semrush_master_df_csv_path', str(master_csv_path.resolve()))
@@ -457,7 +457,9 @@ def pivot_semrush_data(job: str, df2: pd.DataFrame, client_domain_from_keys: str
         return pd.DataFrame()
 
     # --- PATH DEFINITION ---
-    competitors_csv_file = Path("data") / f"{job}_competitors.csv"
+    temp_dir = Path("temp") / job
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    competitors_csv_file = temp_dir / "competitors.csv"
 
     # --- INPUTS from pip state & args ---
     semrush_lookup = _extract_registered_domain(client_domain_from_keys)
@@ -668,8 +670,10 @@ def fetch_titles_and_create_filters(job: str):
     print("🏷️  Fetching competitor titles and generating keyword filters...")
 
     # --- PATH DEFINITIONS ---
-    competitors_csv_file = Path("data") / f"{job}_competitors.csv"
-    filter_file = Path("data") / f"{job}_filter_keywords.csv"
+    temp_dir = Path("temp") / job
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    competitors_csv_file = temp_dir / "competitors.csv"
+    filter_file = temp_dir / "filter_keywords.csv"
 
     # --- INPUT (from pip state) ---
     try:
@@ -1358,7 +1362,7 @@ def fetch_botify_data_and_save(job: str, botify_token: str, botify_project_url: 
 
     # --- 2. Define Paths and Payloads ---
     try:
-        csv_dir = Path("data") / f"{job}_botify"
+        csv_dir = Path("temp") / job # Pointing to the consolidated temp/job_name dir
         csv_dir.mkdir(parents=True, exist_ok=True)
         report_name = csv_dir / "botify_export.csv"
 
@@ -1488,8 +1492,9 @@ def merge_and_finalize_data(job: str, arranged_df: pd.DataFrame, botify_export_d
                The final DataFrame (aliased as 'df' in notebook) and
                a dict with data for display (rows, cols, has_botify, pagerank_counts).
     """
-    print("🔗 Joining Gap Analysis to Extra Botify Columns...")
-    unformatted_csv = Path("data") / f"{job}_unformatted.csv"
+    temp_dir = Path("temp") / job
+    temp_dir.mkdir(parents=True, exist_ok=True) # Ensure it exists just in case
+    unformatted_csv = temp_dir / "unformatted.csv"
 
     try:
         # 1. Determine if Botify data is present
@@ -1744,8 +1749,10 @@ def cluster_and_finalize_dataframe(job: str, df: pd.DataFrame, has_botify: bool)
     # --- CORE LOGIC (Moved from Notebook) ---
     try:
         # --- PATH DEFINITIONS ---
-        keyword_cluster_params = Path("data") / f"{job}_keyword_cluster_params.json"
-        unformatted_csv = Path("data") / f"{job}_unformatted.csv"
+        temp_dir = Path("temp") / job # Define temp_dir if not already defined in scope
+        temp_dir.mkdir(parents=True, exist_ok=True) # Ensure it exists
+        keyword_cluster_params = temp_dir / "keyword_cluster_params.json"
+        unformatted_csv = temp_dir / "unformatted.csv"
 
         # Download necessary nltk components
         nltk.download('punkt_tab', quiet=True)
