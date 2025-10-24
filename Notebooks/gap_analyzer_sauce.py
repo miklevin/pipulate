@@ -60,80 +60,112 @@ nltk.download('stopwords', quiet=True)
 nltk.download('punkt', quiet=True)
 nltk.download('punkt_tab', quiet=True) # Added from a later cell for consolidation
 
+# In Notebooks/gap_analyzer_sauce.py
+
+# ... (keep existing imports like Path, nbformat, pip, keys, etc.) ...
+import urllib.parse # Need this for correctly encoding the domain/path
 
 def extract_domains_and_print_urls(job: str, notebook_filename: str = "GAPalyzer.ipynb"):
     """
-    Parses the specified notebook for competitor domains, stores them using pip.set,
-    and prints the generated SEMrush URLs.
+    Parses the specified notebook for competitor domains or subfolders,
+    stores them using pip.set, and prints the generated SEMrush URLs
+    with appropriate country code and search type.
 
     Args:
         job (str): The current Pipulate job ID.
         notebook_filename (str): The name of the notebook file to parse.
 
     Returns:
-        list: The list of extracted domains, or an empty list if none found/error.
+        list: The list of extracted domains/subfolders, or an empty list if none found/error.
     """
-    domains = [] # Initialize domains to ensure it's always defined
+    items_to_analyze = [] # Renamed from domains to be more general
 
     # --- Inner function to read notebook (kept internal to this step) ---
-    def get_competitors_from_notebook(nb_file):
-        """Parses the notebook to get the domain list from the 'url-list-input' cell."""
+    def get_items_from_notebook(nb_file):
+        """Parses the notebook to get the domain/subfolder list from the 'url-list-input' cell."""
         try:
             notebook_path = Path(nb_file) # Use the passed filename
             if not notebook_path.exists():
-                 print(f"❌ Error: Notebook file not found at '{notebook_path.resolve()}'")
-                 return []
+                print(f"❌ Error: Notebook file not found at '{notebook_path.resolve()}'")
+                return []
             with open(notebook_path, 'r', encoding='utf-8') as f:
                 nb = nbformat.read(f, as_version=4)
 
             for cell in nb.cells:
                 if "url-list-input" in cell.metadata.get("tags", []):
-                    domains_raw = cell.source
-                    # Ensure domains_raw is treated as a string before splitting lines
-                    if isinstance(domains_raw, list):
-                         domains_raw = "".join(domains_raw) # Join list elements if needed
-                    elif not isinstance(domains_raw, str):
-                         print(f"⚠️ Warning: Unexpected data type for domains_raw: {type(domains_raw)}. Trying to convert.")
-                         domains_raw = str(domains_raw)
+                    items_raw = cell.source
+                    # Ensure items_raw is treated as a string before splitting lines
+                    if isinstance(items_raw, list):
+                        items_raw = "".join(items_raw) # Join list elements if needed
+                    elif not isinstance(items_raw, str):
+                        print(f"⚠️ Warning: Unexpected data type for items_raw: {type(items_raw)}. Trying to convert.")
+                        items_raw = str(items_raw)
 
                     # Now splitlines should work reliably
-                    extracted_domains = [
+                    extracted_items = [
                         line.split('#')[0].strip()
-                        for line in domains_raw.splitlines()
+                        for line in items_raw.splitlines()
                         if line.strip() and not line.strip().startswith('#')
                     ]
-                    return extracted_domains
+                    # --- NEW: Strip trailing slashes ---
+                    extracted_items = [item.rstrip('/') for item in extracted_items]
+                    return extracted_items
             print("⚠️ Warning: Could not find a cell tagged with 'url-list-input'.")
             return []
         except Exception as e:
-            print(f"❌ Error reading domains from notebook: {e}")
+            print(f"❌ Error reading items from notebook: {e}")
             return []
 
     # --- Main Logic ---
-    print("🚀 Extracting domains and generating SEMrush URLs...")
+    print("🚀 Extracting domains/subfolders and generating SEMrush URLs...")
 
-    domains = get_competitors_from_notebook(notebook_filename)
+    items_to_analyze = get_items_from_notebook(notebook_filename)
 
     # --- Pipulate Scaffolding ---
-    # Store the extracted domains list. This supports idempotency.
-    # If the notebook restarts, subsequent steps can just pip.get('competitor_domains').
-    pip.set(job, 'competitor_domains', domains)
-    print(f"💾 Stored {len(domains)} domains in pip state for job '{job}'.")
+    # Store the extracted items list.
+    pip.set(job, 'competitor_items', items_to_analyze) # Use a more general key name
+    print(f"💾 Stored {len(items_to_analyze)} domains/subfolders in pip state for job '{job}'.")
     # ---------------------------
 
-    url_template = "https://www.semrush.com/analytics/organic/positions/?db=us&q={domain}&searchType=domain"
+    # --- Use country_code from keys ---
+    try:
+        country_db = keys.country_code
+    except AttributeError:
+        print("⚠️ Warning: 'country_code' not found in keys.py. Defaulting to 'us'.")
+        country_db = "us"
 
-    if not domains:
-        print("🛑 No domains found or extracted. Please check the 'url-list-input' cell.")
+    # --- Define the base URL template ---
+    base_url = "https://www.semrush.com/analytics/organic/positions/"
+
+    if not items_to_analyze:
+        print("🛑 No domains or subfolders found or extracted. Please check the 'url-list-input' cell.")
     else:
-        print(f"✅ Found {len(domains)} competitor domains. URLs to check:")
+        print(f"✅ Found {len(items_to_analyze)} competitor items. URLs to check:")
         print("-" * 30)
-        for i, domain in enumerate(domains):
-            full_url = url_template.format(domain=domain)
-            # Keep the print logic here as it's primarily for user feedback in the notebook
-            print(f"{i+1}. {domain}:\n   {full_url}\n")
+        for i, item in enumerate(items_to_analyze):
+            # --- Determine searchType dynamically ---
+            if '/' in item:
+                # If it contains a slash, assume it's a path/subfolder
+                search_type = "subfolder"
+                # For subfolders, SEMrush often expects the full URL in the 'q' parameter
+                query_param = item
+                if not query_param.startswith(('http://', 'https://')):
+                    # Prepend https:// if no scheme is present
+                    query_param = f"https://{query_param}"
+            else:
+                # Otherwise, treat it as a domain
+                search_type = "domain"
+                query_param = item # Just the domain name
 
-    return domains # Return the list for potential immediate use
+            # --- Construct the URL ---
+            # URL encode the query parameter to handle special characters
+            encoded_query = urllib.parse.quote(query_param, safe=':/')
+            full_url = f"{base_url}?db={country_db}&q={encoded_query}&searchType={search_type}"
+
+            # Keep the print logic here for user feedback
+            print(f"{i+1}. {item}: (Type: {search_type})\n   {full_url}\n")
+
+    return items_to_analyze # Return the list for potential immediate use
 
 
 def collect_semrush_downloads(job: str, download_path_str: str, file_pattern_xlsx: str = "*-organic.Positions*.xlsx"):

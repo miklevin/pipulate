@@ -42,11 +42,12 @@ __pycache__/
 Notebooks/keys.py
 Notebooks/Client_Work/
 Notebooks/deliverables/
-Notebooks/A_Hi_2_AI.ipynb
+Notebooks/AI_HelloWorld.ipynb
 Notebooks/AI_Scrape.ipynb
 Notebooks/FAQuilizer.ipynb
 Notebooks/GAPalyzer.ipynb
 Notebooks/secretsauce.py
+Notebooks/gap_analyzer_sauce.py
 
 # Python packaging and build artifacts
 build/
