@@ -208,13 +208,20 @@ def main():
                 break  # Exit the loop on success
             
             except Exception as e:
-                # Check for the specific 429 error.
-                if "429" in str(e) and "Quota exceeded" in str(e):
-                    print(f"Rate limit hit. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries})")
+                # Check for retriable server-side or rate-limit errors
+                error_str = str(e)
+                if ("429" in error_str and "Quota" in error_str) or \
+                   ("504" in error_str and "timed out" in error_str) or \
+                   ("503" in error_str) or \
+                   ("500" in error_str):
+                    
+                    print(f"Retriable API Error: {e}")
+                    print(f"Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries})")
+
                     time.sleep(retry_delay)
                     retry_delay *= 2  # Exponential backoff
                 else:
-                    print(f"\nAn error occurred while calling the API: {e}")
+                    print(f"\nAn unrecoverable error occurred while calling the API: {e}")
                     if 'gemini_output' in locals():
                         print("--- API Raw Output ---\n" + gemini_output)
                     return

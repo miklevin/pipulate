@@ -1,7 +1,65 @@
 AI_PHOOEY_CHOP = """\
-/home/mike/repos/pipulate/scripts/articles/articleizer.py
-/home/mike/repos/pipulate/scripts/articles/instructions.json
 """
+
+# /home/mike/repos/pipulate/README.md
+
+# /home/mike/repos/pipulate/tools/mcp_tools.py
+# /home/mike/repos/pipulate/tools/conversation_tools.py
+# /home/mike/repos/pipulate/tools/keychain_tools.py
+# /home/mike/repos/pipulate/tools/mcp_tools.py
+# /home/mike/repos/pipulate/tools/botify_tools.py
+# /home/mike/repos/pipulate/imports/ai_dictdb.py
+# /home/mike/repos/pipulate/imports/voice_synthesis.py
+# /home/mike/repos/pipulate/imports/durable_backup_system.py
+# /home/mike/repos/pipulate/apps/010_introduction.py
+# /home/mike/repos/pipulate/assets/pipulate-init.js
+# /home/mike/repos/pipulate/assets/tests/demo.json
+
+# HISTORY OF PAYLOADS, IF YOU INSIST
+
+# /home/mike/repos/pipulate/imports/__init__.py
+# /home/mike/repos/pipulate/imports/stream_orchestrator.py
+# /home/mike/repos/pipulate/imports/mcp_orchestrator.py
+# /home/mike/repos/pipulate/imports/ai_tool_discovery_simple_parser.py
+# /home/mike/repos/pipulate/tools/__init__.py 
+# /home/mike/repos/pipulate/tools/system_tools.py
+# /home/mike/repos/pipulate/tools/scraper_tools.py
+# /home/mike/repos/pipulate/tools/dom_tools.py
+# /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
+# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
+# /home/mike/repos/pipulate/Notebooks/gap_analyzer_sauce.py
+
+# /home/mike/repos/pipulate/apps/040_hello_workflow.py
+# /home/mike/repos/pipulate/apps/210_widget_examples.py
+# /home/mike/repos/pipulate/apps/300_blank_placeholder.py
+
+# /home/mike/repos/pipulate/foo_files.py
+# /home/mike/repos/pipulate/imports/__init__.py
+# /home/mike/repos/pipulate/imports/crud.py
+# /home/mike/repos/pipulate/apps/060_tasks.py
+# /home/mike/repos/pipulate/apps/030_roles.py
+# /home/mike/repos/pipulate/apps/020_profiles.py
+
+# /home/mike/repos/pipulate/AI_RUNME.py
+# /home/mike/repos/pipulate/config.py
+# /home/mike/repos/pipulate/server.py
+# /home/mike/repos/pipulate/pipulate/__init__.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/cli.py
+
+# /home/mike/repos/pipulate/assets/installer/install.sh
+# /home/mike/repos/pipulate/flake.nix
+
+# /home/mike/repos/pipulate/prompt_foo.py
+
+# /home/mike/repos/nixos/configuration.nix
+# /home/mike/repos/nixos/hardware-configuration.nix
+# /home/mike/repos/nixos/autognome.py
+
+# /home/mike/repos/pipulate/scripts/articles/articleizer.py
+# /home/mike/repos/pipulate/scripts/articles/instructions.json
 
 # /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
 # /home/mike/repos/pipulate/Notebooks/secretsauce.py
