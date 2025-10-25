@@ -1,5 +1,7 @@
 # ai_edit.py
 
+# This provides a *deterministic* alternative to today's existing flaky tools for editing Python files.
+
 '''
 # 🔧 AIRTIGHT AGENTIC PROMPT CONTRACT TEMPLATE v2.1
 
