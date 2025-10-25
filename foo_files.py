@@ -1,5 +1,12 @@
 AI_PHOOEY_CHOP = """\
 /home/mike/repos/pipulate/flake.nix
+/home/mike/repos/pipulate/pipulate/__init__.py
+/home/mike/repos/pipulate/pipulate/pipulate.py
+/home/mike/repos/pipulate/pipulate/core.py
+/home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
+/home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
+/home/mike/repos/pipulate/Notebooks/imports/secretsauce.py
+/home/mike/repos/pipulate/Notebooks/imports/gap_analyzer_sauce.py
 """
 
 # /home/mike/repos/pipulate/README.md
