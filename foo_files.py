@@ -1,4 +1,5 @@
 AI_PHOOEY_CHOP = """\
+/home/mike/repos/pipulate/flake.nix
 """
 
 # /home/mike/repos/pipulate/README.md

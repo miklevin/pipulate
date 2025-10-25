@@ -553,6 +553,7 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
           export PS1="(nix) $PS1"
           alias release='.venv/bin/python helpers/release/publish.py'
           alias mcp='.venv/bin/python cli.py call'
+          alias gdiff='git --no-pager diff --no-textconv'
           # Update remote URL to use SSH if we have a key
           if [ -d .git ] && [ -f ~/.ssh/id_rsa ]; then
             REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
