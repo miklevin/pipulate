@@ -1,6 +1,6 @@
 # Drops pebble in pond
 
-import keys
+import _config as keys
 import nest_asyncio
 import asyncio
 import httpx
