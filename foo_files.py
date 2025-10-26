@@ -1,13 +1,20 @@
 AI_PHOOEY_CHOP = """\
-/home/mike/repos/pipulate/flake.nix
-/home/mike/repos/pipulate/pipulate/__init__.py
-/home/mike/repos/pipulate/pipulate/pipulate.py
-/home/mike/repos/pipulate/pipulate/core.py
-/home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
-/home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
-/home/mike/repos/pipulate/Notebooks/imports/secretsauce.py
-/home/mike/repos/pipulate/Notebooks/imports/gap_analyzer_sauce.py
+/home/mike/repos/MikeLev.in/_posts/2025-10-25-beyond-hello-world-future-proof-python-nix-pipulate.md
 """
+
+# HISTORY OF PAYLOADS, IF YOU INSIST
+
+# /home/mike/repos/pipulate/AI_RUNME.py
+# /home/mike/repos/pipulate/README.md
+
+# /home/mike/repos/pipulate/flake.nix
+# /home/mike/repos/pipulate/pipulate/__init__.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
+# /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
+# /home/mike/repos/pipulate/Notebooks/imports/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/imports/gap_analyzer_sauce.py
 
 # /home/mike/repos/pipulate/README.md
 
@@ -22,8 +29,6 @@ AI_PHOOEY_CHOP = """\
 # /home/mike/repos/pipulate/apps/010_introduction.py
 # /home/mike/repos/pipulate/assets/pipulate-init.js
 # /home/mike/repos/pipulate/assets/tests/demo.json
-
-# HISTORY OF PAYLOADS, IF YOU INSIST
 
 # /home/mike/repos/pipulate/imports/__init__.py
 # /home/mike/repos/pipulate/imports/stream_orchestrator.py

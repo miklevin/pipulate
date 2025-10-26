@@ -600,12 +600,13 @@ async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
     success_count = 0
     fail_count = 0
     tasks = []
-    base_dir = Path("browser_cache/") # Assuming notebook context
-    script_path = Path("visualize_dom.py").resolve() # Assumes script is in root
+    base_dir = Path("..") / "browser_cache/" # Go up one level from imports/
+    # Path relative to *this* file (secretsauce.py in imports/)
+    script_path = (Path(__file__).parent.parent / "visualize_dom.py").resolve()
 
     if not script_path.exists():
          logger.error(f"❌ Cannot find visualization script at: {script_path}")
-         logger.error("   Please ensure visualize_dom.py is in the project root.")
+         logger.error("   Please ensure visualize_dom.py is in the Notebooks/ directory.")
          return
 
     python_executable = sys.executable # Use the same python that runs the notebook
