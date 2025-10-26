@@ -1,8 +1,13 @@
 AI_PHOOEY_CHOP = """\
-/home/mike/repos/pipulate/AI_RUNME.py
+/home/mike/repos/pipulate/pipulate/__init__.py
+/home/mike/repos/pipulate/pipulate/pipulate.py
+/home/mike/repos/pipulate/pipulate/core.py
+/home/mike/repos/pipulate/Notebook/AI_HelloWorld.ipynb
 """
 
 # HISTORY OF PAYLOADS, IF YOU INSIST
+
+# /home/mike/repos/pipulate/AI_RUNME.py
 
 # /home/mike/repos/pipulate/.gitignore
 # /home/mike/repos/pipulate/Notebooks/imports/visualize_dom.py

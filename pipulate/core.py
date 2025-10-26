@@ -21,6 +21,7 @@ import imports.server_logging as slog
 log = slog.LogManager(logger)
 
 import getpass
+from google.api_core import exceptions
 try:
     import google.generativeai as genai
     GOOGLE_AI_AVAILABLE = True
@@ -2105,28 +2106,27 @@ class Pipulate:
                 else:
                     print(f"    ⚠️ Warning: Module file not found, skipping sync: '{module_source_path}'")
 
+
     def api_key(self, job: str, service: str = 'google', key: str = None):
         """
-        Handles getting, storing, and configuring an API key for a given service.
-        Can accept a key directly or prompt the user if one is not provided.
+        Handles getting, storing, and configuring a Google API key for a given service,
+        and includes validation before saving.
         """
         if service.lower() != 'google':
             print(f"⚠️ Service '{service}' not yet supported. Only 'google' is currently configured.")
-            return
+            return False
 
         if not GOOGLE_AI_AVAILABLE:
             print("❌ Error: The 'google-generativeai' package is not installed.")
             print("   Please run: pip install google-generativeai")
-            return
+            return False
 
-        # Use a specific key in the job's state to store the API key
         api_key_step = "google_api_key"
 
         # Use the provided key if it exists
         if key:
             api_key = key
-            self.set(job, api_key_step, api_key)
-            print("✅ API Key received via parameter and stored for this job session.")
+            print("Checking API key received via parameter...")
         else:
             # Fallback to existing logic if no key is provided
             api_key = self.get(job, api_key_step)
@@ -2134,18 +2134,33 @@ class Pipulate:
                 try:
                     prompt_message = "Enter your Google AI API Key: "
                     api_key = getpass.getpass(prompt_message)
-                    self.set(job, api_key_step, api_key)
-                    print("✅ API Key received via prompt and stored for this job session.")
                 except Exception as e:
                     print(f"❌ Could not prompt for API key in this environment: {e}")
-                    return
+                    return False
 
         if api_key:
             try:
+                # Configure with the new key and attempt a test request
                 genai.configure(api_key=api_key)
-                print("✅ Google AI configured successfully.")
+                
+                # The .list_models() method is a good way to test the key
+                genai.list_models() 
+                
+                # If the call is successful, store the valid key
+                self.set(job, api_key_step, api_key)
+                print("✅ Google AI configured and key validated successfully.")
+                return True
+            except exceptions.GoogleAPIError as e:
+                # Catch specific exceptions related to the API key
+                print(f"❌ Failed to configure Google AI. The API key is likely invalid or missing necessary permissions.")
+                print(f"   Error: {e}")
+                return False
             except Exception as e:
-                print(f"❌ Failed to configure Google AI. Is the key correct? Error: {e}")
+                # Catch other potential errors
+                print(f"❌ An unexpected error occurred during API key validation: {e}")
+                return False
+        
+        return False
 
     def prompt(self, prompt_text: str, model_name: str = 'gemini-2.5-flash'):
         """
