@@ -2128,6 +2128,20 @@ class Pipulate:
 
         api_key_step = "google_api_key"
 
+        def validate_key(api_key_to_validate):
+            try:
+                genai.configure(api_key=api_key_to_validate)
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                model.generate_content("test", generation_config=genai.types.GenerationConfig(max_output_tokens=1))
+                return True
+            except (google_exceptions.PermissionDenied, google_exceptions.Unauthenticated) as e:
+                print(f"❌ API Key Validation Failed. Please try again or press Enter to cancel.")
+                print(f"   Error: {e}\n")
+                return False
+            except Exception as e:
+                print(f"❌ An unexpected error occurred: {e}. Please try again or press Enter to cancel.\n")
+                return False
+
         # --- Scenario 1: Key is provided directly (non-interactive "one-shot" attempt) ---
         if key is not None:
             print("Checking API key provided via parameter...")
@@ -2135,33 +2149,24 @@ class Pipulate:
                  print("❌ API Key provided is empty.")
                  return False
 
-            try:
-                genai.configure(api_key=key)
-                genai.list_models()
-                # Store the key ONLY if validation passes
+            if validate_key(key):
                 self.set(job, api_key_step, key)
                 print("✅ Google AI configured and key validated successfully.")
                 return True
-            except (google_exceptions.PermissionDenied, google_exceptions.Unauthenticated) as e:
-                print(f"❌ API Key Validation Failed. Is the key correct and enabled?")
-                print(f"   Error: {e}")
-                return False
-            except Exception as e:
-                print(f"❌ An unexpected error occurred during API key validation: {e}")
+            else:
                 return False
 
         # --- Scenario 2: No key provided (interactive mode) ---
         # First, check if a non-empty key is already stored and valid.
         stored_key = self.get(job, api_key_step)
-        if stored_key: # This implicitly checks for non-empty string
+        # Explicitly check if stored_key exists AND is not just whitespace
+        if stored_key and stored_key.strip():
             print("Validating stored API key...")
-            try:
-                genai.configure(api_key=stored_key)
-                genai.list_models()
+            if validate_key(stored_key):
                 print("✅ Stored Google AI key is valid and configured.")
                 return True
-            except Exception as e:
-                print(f"⚠️ Stored API key failed validation ({e}). Please re-enter your key.")
+            else:
+                print(f"⚠️ Stored API key failed validation. Please re-enter your key.")
                 # Clear the invalid stored key so we prompt correctly
                 self.set(job, api_key_step, None) 
 
@@ -2178,28 +2183,16 @@ class Pipulate:
                 return False # Exit if prompting fails
 
             # Check for cancel condition (empty string entered by user)
-            if not api_key_input:
+            if not api_key_input.strip():
                 print("🚫 API Key setup cancelled by user.")
                 return False # Exit function if user cancels
 
             # A non-empty key was entered, now validate it.
-            try:
-                print("Validating new key...")
-                genai.configure(api_key=api_key_input)
-                genai.list_models()
-
-                # If we get here, the key is valid. Store it.
+            print("Validating new key...")
+            if validate_key(api_key_input):
                 self.set(job, api_key_step, api_key_input)
                 print("✅ Google AI configured and key validated successfully.")
                 return True # Exit loop and function with success
-
-            except (google_exceptions.PermissionDenied, google_exceptions.Unauthenticated) as e:
-                print(f"❌ API Key Validation Failed. Please try again or press Enter to cancel.")
-                print(f"   Error: {e}\n")
-                # Loop continues
-            except Exception as e:
-                print(f"❌ An unexpected error occurred: {e}. Please try again or press Enter to cancel.\n")
-                # Loop continues
 
     def prompt(self, prompt_text: str, model_name: str = 'gemini-2.5-flash'):
         """
