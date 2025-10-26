@@ -1,17 +1,19 @@
 AI_PHOOEY_CHOP = """\
-/home/mike/repos/pipulate/.gitignore
-/home/mike/repos/pipulate/Notebooks/imports/visualize_dom.py
-/home/mike/repos/pipulate/flake.nix
-/home/mike/repos/pipulate/pipulate/__init__.py
-/home/mike/repos/pipulate/pipulate/pipulate.py
-/home/mike/repos/pipulate/pipulate/core.py
-/home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
-/home/mike/repos/pipulate/assets/nbs/FAQuilizer.ipynb
-/home/mike/repos/pipulate/Notebooks/imports/faq_writer_sauce.py
-/home/mike/repos/pipulate/assets/nbs/faq_writer_sauce.py
+/home/mike/repos/pipulate/AI_RUNME.py
 """
 
 # HISTORY OF PAYLOADS, IF YOU INSIST
+
+# /home/mike/repos/pipulate/.gitignore
+# /home/mike/repos/pipulate/Notebooks/imports/visualize_dom.py
+# /home/mike/repos/pipulate/flake.nix
+# /home/mike/repos/pipulate/pipulate/__init__.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
+# /home/mike/repos/pipulate/assets/nbs/FAQuilizer.ipynb
+# /home/mike/repos/pipulate/Notebooks/imports/faq_writer_sauce.py
+# /home/mike/repos/pipulate/assets/nbs/faq_writer_sauce.py
 
 # /home/mike/repos/MikeLev.in/_posts/2025-10-25-beyond-hello-world-future-proof-python-nix-pipulate.md
 
