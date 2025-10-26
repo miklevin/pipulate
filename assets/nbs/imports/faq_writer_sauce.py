@@ -1,4 +1,4 @@
-# secretsauce.py (version 3.0 - Refactored Workflow)
+# faq_writer_sauce.py (version 3.0 - Refactored Workflow)
 # This module contains the implementation details for a 1-to-many AI enrichment workflow.
 
 from pipulate import pip
@@ -573,8 +573,6 @@ def _open_folder(path_str: str = "."):
         print(f"❌ Failed to open folder. Please navigate to it manually. Error: {e}")
 
 
-# Replacement function for Notebooks/secretsauce.py
-
 async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
     """
     Generates DOM visualizations by calling the standalone visualize_dom.py script
@@ -601,7 +599,7 @@ async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
     fail_count = 0
     tasks = []
     base_dir = Path("..") / "browser_cache/" # Go up one level from imports/
-    # Path relative to *this* file (secretsauce.py in imports/)
+    # Path relative to *this* file (faq_writer_sauce.py in imports/)
     script_path = (Path(__file__).parent / "visualize_dom.py").resolve()
 
     if not script_path.exists():
