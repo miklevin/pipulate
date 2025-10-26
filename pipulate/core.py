@@ -2095,7 +2095,7 @@ class Pipulate:
             for module_name in modules:
                 module_filename = f"{module_name}.py"
                 module_source_path = project_root / "Notebooks" / "imports" / module_filename # Look inside imports/
-                module_dest_path = project_root / "assets" / "nbs" / module_filename
+                module_dest_path = project_root / "assets" / "nbs" / "imports" / module_filename # Sync back to imports/
                 if module_source_path.exists():
                     try:
                         shutil.copy2(module_source_path, module_dest_path)

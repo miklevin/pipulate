@@ -115,7 +115,7 @@
             desc = "a local 'FAQuilizer' simple workflow";
           }
           {
-            source = "assets/nbs/faq_writer_sauce.py";
+            source = "assets/nbs/imports/faq_writer_sauce.py";
             dest = "Notebooks/imports/faq_writer_sauce.py";
             desc = "a local 'faq_writer_sauce.py' library file";
           }
@@ -125,9 +125,14 @@
             desc = "a local 'Competitor Gap Analyzer.' advanced workflow";
           }
           {
-            source = "assets/nbs/gap_analyzer_sauce.py";
+            source = "assets/nbs/imports/gap_analyzer_sauce.py";
             dest = "Notebooks/imports/gap_analyzer_sauce.py";
             desc = "a local 'gap_analyzer_sauce.py' library file";
+          }
+          {
+            source = "assets/nbs/imports/visualize_dom.py";
+            dest = "Notebooks/imports/visualize_dom.py";
+            desc = "a local 'visualize_dom.py' library file";
           }
         ];
 
