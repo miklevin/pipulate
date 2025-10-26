@@ -42,7 +42,7 @@ EXPORT_FILE_STEP = "export_file_path"
 def _get_prompt_from_notebook(notebook_filename="FAQuilizer.ipynb"):
     """Parses a notebook file to extract the prompt from the 'prompt-input' tagged cell."""
     try:
-        notebook_path = Path(__file__).parent / notebook_filename
+        notebook_path = Path(__file__).parent.parent / notebook_filename
         with open(notebook_path, 'r', encoding='utf-8') as f:
             nb = nbformat.read(f, as_version=4)
         
@@ -59,7 +59,7 @@ def _get_urls_from_notebook(notebook_filename="FAQuilizer.ipynb"):
     """Parses a notebook file to extract URLs from the 'url-list-input' tagged cell."""
     try:
         # Assuming the notebook is in the same directory as this script
-        notebook_path = Path(__file__).parent / notebook_filename
+        notebook_path = Path(__file__).parent.parent / notebook_filename
         with open(notebook_path, 'r', encoding='utf-8') as f:
             nb = nbformat.read(f, as_version=4)
         
@@ -602,7 +602,7 @@ async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
     tasks = []
     base_dir = Path("..") / "browser_cache/" # Go up one level from imports/
     # Path relative to *this* file (secretsauce.py in imports/)
-    script_path = (Path(__file__).parent.parent / "visualize_dom.py").resolve()
+    script_path = (Path(__file__).parent / "visualize_dom.py").resolve()
 
     if not script_path.exists():
          logger.error(f"❌ Cannot find visualization script at: {script_path}")
