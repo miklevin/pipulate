@@ -2094,7 +2094,7 @@ class Pipulate:
             if isinstance(modules, str): modules = (modules,)
             for module_name in modules:
                 module_filename = f"{module_name}.py"
-                module_source_path = project_root / "Notebooks" / module_filename
+                module_source_path = project_root / "Notebooks" / "imports" / module_filename # Look inside imports/
                 module_dest_path = project_root / "assets" / "nbs" / module_filename
                 if module_source_path.exists():
                     try:

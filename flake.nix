@@ -110,19 +110,24 @@
             desc = "a local 'Hello, AI!' example notebook";
           }
           {
-            source = "assets/nbs/GAPalyzer.ipynb";
-            dest = "Notebooks/GAPalyzer.ipynb";
-            desc = "a local 'Competitor Gap Analyzer.' master template";
-          }
-          {
             source = "assets/nbs/FAQuilizer.ipynb";
             dest = "Notebooks/FAQuilizer.ipynb";
-            desc = "a local 'FAQuilizer' advanced workflow";
+            desc = "a local 'FAQuilizer' simple workflow";
           }
           {
-            source = "assets/nbs/secretsauce.py";
-            dest = "Notebooks/secretsauce.py";
-            desc = "a local 'secretsauce.py' helper file";
+            source = "assets/nbs/faq_writer_sauce.py";
+            dest = "Notebooks/imports/faq_writer_sauce.py";
+            desc = "a local 'faq_writer_sauce.py' library file";
+          }
+          {
+            source = "assets/nbs/GAPalyzer.ipynb";
+            dest = "Notebooks/GAPalyzer.ipynb";
+            desc = "a local 'Competitor Gap Analyzer.' advanced workflow";
+          }
+          {
+            source = "assets/nbs/gap_analyzer_sauce.py";
+            dest = "Notebooks/imports/gap_analyzer_sauce.py";
+            desc = "a local 'gap_analyzer_sauce.py' library file";
           }
         ];
 
