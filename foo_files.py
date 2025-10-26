@@ -1,8 +1,18 @@
 AI_PHOOEY_CHOP = """\
-/home/mike/repos/MikeLev.in/_posts/2025-10-25-beyond-hello-world-future-proof-python-nix-pipulate.md
+/home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
+/home/mike/repos/pipulate/assets/nbs/FAQuilizer.ipynb
+/home/mike/repos/pipulate/Notebooks/imports/faq_writer_sauce.py
+/home/mike/repos/pipulate/assets/nbs/faq_writer_sauce.py
+/home/mike/repos/pipulate/Notebooks/imports/visualize_dom.py
+/home/mike/repos/pipulate/flake.nix
+/home/mike/repos/pipulate/pipulate/__init__.py
+/home/mike/repos/pipulate/pipulate/pipulate.py
+/home/mike/repos/pipulate/pipulate/core.py
 """
 
 # HISTORY OF PAYLOADS, IF YOU INSIST
+
+# /home/mike/repos/MikeLev.in/_posts/2025-10-25-beyond-hello-world-future-proof-python-nix-pipulate.md
 
 # /home/mike/repos/pipulate/AI_RUNME.py
 # /home/mike/repos/pipulate/README.md
@@ -13,7 +23,7 @@ AI_PHOOEY_CHOP = """\
 # /home/mike/repos/pipulate/pipulate/core.py
 # /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
 # /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
-# /home/mike/repos/pipulate/Notebooks/imports/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/imports/faq_writer_sauce.py
 # /home/mike/repos/pipulate/Notebooks/imports/gap_analyzer_sauce.py
 
 # /home/mike/repos/pipulate/README.md
@@ -39,7 +49,7 @@ AI_PHOOEY_CHOP = """\
 # /home/mike/repos/pipulate/tools/scraper_tools.py
 # /home/mike/repos/pipulate/tools/dom_tools.py
 # /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
-# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/faq_writer_sauce.py
 # /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
 # /home/mike/repos/pipulate/Notebooks/gap_analyzer_sauce.py
 
@@ -75,7 +85,7 @@ AI_PHOOEY_CHOP = """\
 # /home/mike/repos/pipulate/scripts/articles/instructions.json
 
 # /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
-# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/faq_writer_sauce.py
 # /home/mike/repos/pipulate/Notebooks/gap_analyzer_sauce.py
 # /home/mike/repos/pipulate/pipulate/__init__.py
 # /home/mike/repos/pipulate/pipulate/pipulate.py
@@ -88,7 +98,7 @@ AI_PHOOEY_CHOP = """\
 # /home/mike/repos/pipulate/assets/nbs/FAQuilizer.ipynb
 # /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
 # /home/mike/repos/pipulate/assets/nbs/gap_analyzer_sauce.py
-# /home/mike/repos/pipulate/assets/nbs/secretsauce.py
+# /home/mike/repos/pipulate/assets/nbs/faq_writer_sauce.py
 
 # /home/mike/repos/pipulate/cli.py
 # /home/mike/repos/pipulate/tools/__init__.py 
@@ -123,7 +133,7 @@ AI_PHOOEY_CHOP = """\
 # /home/mike/repos/pipulate/tools/dom_tools.py
 # /home/mike/repos/MikeLev.in/_posts/2025-10-21-stealth-automation-jupyter-rich-debugging.md
 # /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
-# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/faq_writer_sauce.py
 # /home/mike/repos/pipulate/tools/scraper_tools.py
 # /home/mike/repos/pipulate/tools/dom_tools.py
 # /home/mike/repos/pipulate/pipulate/__init__.py
@@ -133,7 +143,7 @@ AI_PHOOEY_CHOP = """\
 # /home/mike/repos/pipulate/flake.nix
 # /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
 # /home/mike/repos/pipulate/tools/scraper_tools.py
-# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/faq_writer_sauce.py
 
 # /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
 # /home/mike/repos/pipulate/README.md
@@ -142,7 +152,7 @@ AI_PHOOEY_CHOP = """\
 # /home/mike/repos/pipulate/.gitignore
 # /home/mike/repos/pipulate/pipulate/__init__.py
 # /home/mike/repos/pipulate/pipulate/pipulate.py
-# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/faq_writer_sauce.py
 # /home/mike/repos/pipulate/pipulate/core.py
 # /home/mike/repos/pipulate/Notebooks/A_Hi_2_AI.ipynb
 # /home/mike/repos/pipulate/Notebooks/GAPalyzer.ipynb
@@ -164,7 +174,7 @@ AI_PHOOEY_CHOP = """\
 # /home/mike/repos/pipulate/assets/styles.css
 # /home/mike/repos/pipulate/imports/__init__.py
 # /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
-# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/faq_writer_sauce.py
 # /home/mike/repos/pipulate/tools/scraper_tools.py
 # /home/mike/repos/pipulate/tools/dom_tools.py
 
@@ -452,10 +462,10 @@ AI_PHOOEY_CHOP = """\
 # /home/mike/repos/pipulate/cli.py
 # /home/mike/repos/pipulate/imports/stream_orchestrator.py
 # /home/mike/repos/pipulate/assets/nbs/A_Hi_2_AI.ipynb
-# /home/mike/repos/pipulate/assets/nbs/secretsauce.py
+# /home/mike/repos/pipulate/assets/nbs/faq_writer_sauce.py
 # /home/mike/repos/pipulate/assets/nbs/AI_Scrape.ipynb
 # /home/mike/repos/pipulate/Notebooks/open_eyes.ipynb
-# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/faq_writer_sauce.py
 # /home/mike/repos/pipulate/Notebooks/AI_Scrape.ipynb
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/secretsauce.py
 # /home/mike/repos/pipulate/Notebooks/Client_Work/faquilizer2/workflow_test.ipynb
@@ -471,7 +481,7 @@ AI_PHOOEY_CHOP = """\
 # /home/mike/repos/pipulate/pipulate/core.py
 # /home/mike/repos/pipulate/Notebooks/prompt.txt
 # /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
-# /home/mike/repos/pipulate/Notebooks/secretsauce.py
+# /home/mike/repos/pipulate/Notebooks/faq_writer_sauce.py
 # /home/mike/repos/pipulate/tools/scraper_tools.py
 # /home/mike/repos/pipulate/tools/dom_tools.py
 
