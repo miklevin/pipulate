@@ -21,7 +21,7 @@ import imports.server_logging as slog
 log = slog.LogManager(logger)
 
 import getpass
-from google.api_core import exceptions
+from google.api_core import exceptions as google_exceptions
 try:
     import google.generativeai as genai
     GOOGLE_AI_AVAILABLE = True
@@ -2111,6 +2111,11 @@ class Pipulate:
         """
         Handles getting, storing, and configuring a Google API key for a given service,
         and includes validation before saving.
+
+        - If `key` is provided, it attempts a one-shot validation.
+        - If `key` is None, it checks for a stored key, validates it, and if invalid,
+          enters an interactive prompt loop until a valid key is entered or the
+          user cancels (by pressing Enter).
         """
         if service.lower() != 'google':
             print(f"⚠️ Service '{service}' not yet supported. Only 'google' is currently configured.")
@@ -2123,44 +2128,75 @@ class Pipulate:
 
         api_key_step = "google_api_key"
 
-        # Use the provided key if it exists
-        if key:
-            api_key = key
-            print("Checking API key received via parameter...")
-        else:
-            # Fallback to existing logic if no key is provided
-            api_key = self.get(job, api_key_step)
-            if not api_key:
-                try:
-                    prompt_message = "Enter your Google AI API Key: "
-                    api_key = getpass.getpass(prompt_message)
-                except Exception as e:
-                    print(f"❌ Could not prompt for API key in this environment: {e}")
-                    return False
+        # --- Scenario 1: Key is provided directly (non-interactive "one-shot" attempt) ---
+        if key is not None:
+            print("Checking API key provided via parameter...")
+            if not key: # Check for empty string ""
+                 print("❌ API Key provided is empty.")
+                 return False
 
-        if api_key:
             try:
-                # Configure with the new key and attempt a test request
-                genai.configure(api_key=api_key)
-                
-                # The .list_models() method is a good way to test the key
-                genai.list_models() 
-                
-                # If the call is successful, store the valid key
-                self.set(job, api_key_step, api_key)
+                genai.configure(api_key=key)
+                genai.list_models()
+                self.set(job, api_key_step, key)
                 print("✅ Google AI configured and key validated successfully.")
                 return True
-            except exceptions.GoogleAPIError as e:
-                # Catch specific exceptions related to the API key
-                print(f"❌ Failed to configure Google AI. The API key is likely invalid or missing necessary permissions.")
+            except (google_exceptions.PermissionDenied, google_exceptions.Unauthenticated) as e:
+                print(f"❌ API Key Validation Failed. Is the key correct and enabled?")
                 print(f"   Error: {e}")
                 return False
             except Exception as e:
-                # Catch other potential errors
                 print(f"❌ An unexpected error occurred during API key validation: {e}")
                 return False
-        
-        return False
+
+        # --- Scenario 2: No key provided (interactive mode) ---
+        # First, check if a key is already stored and valid.
+        stored_key = self.get(job, api_key_step)
+        if stored_key:
+            print("Validating stored API key...")
+            try:
+                genai.configure(api_key=stored_key)
+                genai.list_models()
+                print("✅ Stored Google AI key is valid and configured.")
+                return True
+            except Exception as e:
+                print(f"⚠️ Stored API key failed validation ({e}). Please re-enter your key.")
+
+        # No valid key. Enter the prompt loop.
+        print("💡 To exit this prompt, just press Enter without typing a key.")
+        print("   (Note: If the kernel seems 'stuck' after entry, it might be an invalid key. Press Esc, 0, 0 to interrupt.)")
+
+        while True:
+            try:
+                prompt_message = "Enter your Google AI API Key (or press Enter to cancel): "
+                api_key = getpass.getpass(prompt_message)
+            except Exception as e:
+                print(f"❌ Could not prompt for API key in this environment: {e}")
+                return False
+
+            # Check for cancel condition (empty string)
+            if not api_key:
+                print("🚫 API Key setup cancelled by user.")
+                return False
+
+            # A key was entered, now validate it.
+            try:
+                print("Validating new key...")
+                genai.configure(api_key=api_key)
+                genai.list_models()
+
+                # If we get here, the key is valid.
+                self.set(job, api_key_step, api_key)
+                print("✅ Google AI configured and key validated successfully.")
+                return True # Exit loop and function
+
+            except (google_exceptions.PermissionDenied, google_exceptions.Unauthenticated) as e:
+                print(f"❌ API Key Validation Failed. Please try again.")
+                print(f"   Error: {e}\n")
+                # Loop continues
+            except Exception as e:
+                print(f"❌ An unexpected error occurred: {e}. Please try again.\n")
+                # Loop continues
 
     def prompt(self, prompt_text: str, model_name: str = 'gemini-2.5-flash'):
         """
