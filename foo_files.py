@@ -1,7 +1,8 @@
 AI_PHOOEY_CHOP = """\
 /home/mike/repos/pipulate/Notebooks/URLinspector.ipynb
 /home/mike/repos/pipulate/Notebooks/imports/url_inspect_sauce.py
-/home/mike/repos/pipulate/Notebooks/imports/inspect_seo.py
+/home/mike/repos/pipulate/Notebooks/imports/seo_gadget.py
+/home/mike/repos/pipulate/Notebooks/imports/visualize_dom.py
 """
 
 # HISTORY OF PAYLOADS, IF YOU INSIST

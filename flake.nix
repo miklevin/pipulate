@@ -140,9 +140,9 @@
             desc = "a local 'url_inspect_sauce.py' source of secret sauce";
           }
 #           {
-#             source = "assets/nbs/imports/inspect_seo.py";
-#             dest = "Notebooks/imports/inspect_seo.py";
-#             desc = "a local 'inspect_seo.py' subprocess file";
+#             source = "assets/nbs/imports/seo_gadget.py";
+#             dest = "Notebooks/imports/seo_gadget.py";
+#             desc = "a local 'seo_gadget.py' subprocess file";
 #           }
 #           {
 #             source = "assets/nbs/imports/visualize_dom.py";
