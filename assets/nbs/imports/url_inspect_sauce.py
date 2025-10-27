@@ -55,7 +55,7 @@ def _get_prompt_from_notebook(notebook_filename="FAQuilizer.ipynb"):
         return None
 
 
-def _get_urls_from_notebook(notebook_filename="FAQuilizer.ipynb"):
+def _get_urls_from_notebook(notebook_filename="URLinspector.ipynb"):
     """Parses a notebook file to extract URLs from the 'url-list-input' tagged cell."""
     try:
         # Assuming the notebook is in the same directory as this script
