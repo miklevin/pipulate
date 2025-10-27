@@ -1,4 +1,4 @@
-# visualize_dom.py
+# seo_gadget.py
 import argparse
 import io
 import sys
@@ -6,11 +6,9 @@ from pathlib import Path
 from rich.console import Console
 from bs4 import BeautifulSoup
 
-# --- Need to add project root to sys.path to import dom_tools ---
 # Determine the script's directory and add the project root
 script_dir = Path(__file__).parent.resolve()
 sys.path.insert(0, str(script_dir))
-# --- End path modification ---
 
 try:
     # Now try importing the necessary classes from dom_tools
