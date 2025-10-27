@@ -117,7 +117,7 @@
           {
             source = "assets/nbs/imports/faq_writer_sauce.py";
             dest = "Notebooks/imports/faq_writer_sauce.py";
-            desc = "a local 'faq_writer_sauce.py' library file";
+            desc = "a local 'faq_writer_sauce.py' source of secret sauce";
           }
           {
             source = "assets/nbs/GAPalyzer.ipynb";
@@ -127,12 +127,27 @@
           {
             source = "assets/nbs/imports/gap_analyzer_sauce.py";
             dest = "Notebooks/imports/gap_analyzer_sauce.py";
-            desc = "a local 'gap_analyzer_sauce.py' library file";
+            desc = "a local 'gap_analyzer_sauce.py' source of secret sauce";
+          }
+          {
+            source = "assets/nbs/URLinspector.ipynb";
+            dest = "Notebooks/URLinspector.ipynb";
+            desc = "a local 'URL-by-URL auditor.' derived from FAQuilizer";
+          }
+          {
+            source = "assets/nbs/imports/url_inspect_sauce.py";
+            dest = "Notebooks/imports/url_inspect_sauce.py";
+            desc = "a local 'url_inspect_sauce.py' source of secret sauce";
+          }
+          {
+            source = "assets/nbs/imports/inspect_seo.py";
+            dest = "Notebooks/imports/inspect_seo.py";
+            desc = "a local 'inspect_seo.py' subprocess file";
           }
           {
             source = "assets/nbs/imports/visualize_dom.py";
             dest = "Notebooks/imports/visualize_dom.py";
-            desc = "a local 'visualize_dom.py' library file";
+            desc = "a local 'visualize_dom.py' subprocess file";
           }
         ];
 
