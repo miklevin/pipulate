@@ -1,11 +1,15 @@
 AI_PHOOEY_CHOP = """\
-/home/mike/repos/pipulate/assets/installer/install.sh
-/home/mike/repos/pipulate/flake.nix
-/home/mike/repos/pipulate/requirements.in
-/home/mike/repos/pipulate/requirements.txt
+/home/mike/repos/pipulate/Notebooks/URLinspector.ipynb
+/home/mike/repos/pipulate/assets/nbs/URLinspector.ipynb
+/home/mike/repos/pipulate/Notebooks/imports/faq_writer_sauce.py
 """
 
 # HISTORY OF PAYLOADS, IF YOU INSIST
+
+# /home/mike/repos/pipulate/assets/installer/install.sh
+# /home/mike/repos/pipulate/flake.nix
+# /home/mike/repos/pipulate/requirements.in
+# /home/mike/repos/pipulate/requirements.txt
 
 # /home/mike/repos/pipulate/.gitignore
 # /home/mike/repos/pipulate/flake.nix
