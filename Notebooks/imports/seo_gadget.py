@@ -39,6 +39,32 @@ def main(html_file_path: str):
 
     results = {}
 
+    # --- Add SEO.md Generation ---
+    try:
+        seo_md_path = output_dir / "seo.md"
+        print(f"Attempting to write SEO data to: {seo_md_path}", file=sys.stderr) # Add debug print
+
+        # --- Basic Title Extraction ---
+        soup_for_seo = BeautifulSoup(html_content, 'html.parser')
+        page_title = soup_for_seo.title.string.strip() if soup_for_seo.title and soup_for_seo.title.string else "No Title Found"
+        # --- End Basic Title Extraction ---
+
+        with open(seo_md_path, 'w', encoding='utf-8') as f:
+            f.write("---\n") # Start YAML front matter
+            f.write(f"title: {page_title}\n")
+            # Add more basic fields later (meta description, H1s, etc.)
+            f.write("---\n\n") # End YAML front matter
+            f.write("# Markdown Content Placeholder\n\n")
+            f.write("This section will contain the markdown version of the page content.")
+
+        print(f"Successfully created basic seo.md for {input_path}") # Print success to stdout
+        results['seo_md_created'] = True # Optional: track success
+
+    except Exception as e:
+        print(f"Error creating seo.md for {input_path}: {e}", file=sys.stderr)
+        results['seo_md_created'] = False # Optional: track failure
+    # --- End SEO.md Generation ---
+
     # --- Generate Hierarchy ---
     try:
         # Use the class that ONLY returns the object
