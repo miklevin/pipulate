@@ -1,10 +1,20 @@
 AI_PHOOEY_CHOP = """\
+/home/mike/repos/pipulate/pipulate/__init__.py
+/home/mike/repos/pipulate/pipulate/pipulate.py
+/home/mike/repos/pipulate/pipulate/core.py
+/home/mike/repos/pipulate/tools/__init__.py 
+/home/mike/repos/pipulate/tools/scraper_tools.py
+/home/mike/repos/pipulate/tools/dom_tools.py
 /home/mike/repos/pipulate/Notebooks/URLinspector.ipynb
-/home/mike/repos/pipulate/assets/nbs/URLinspector.ipynb
-/home/mike/repos/pipulate/Notebooks/imports/faq_writer_sauce.py
+/home/mike/repos/pipulate/Notebooks/imports/url_inspect_sauce.py
+/home/mike/repos/pipulate/Notebooks/imports/visualize_dom.py
+# /home/mike/repos/pipulate/Notebooks/imports/inspect_seo.py
 """
 
 # HISTORY OF PAYLOADS, IF YOU INSIST
+
+# /home/mike/repos/pipulate/Notebooks/imports/faq_writer_sauce.py
+# /home/mike/repos/pipulate/assets/nbs/URLinspector.ipynb
 
 # /home/mike/repos/pipulate/assets/installer/install.sh
 # /home/mike/repos/pipulate/flake.nix
