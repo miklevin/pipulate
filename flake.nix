@@ -139,16 +139,16 @@
             dest = "Notebooks/imports/url_inspect_sauce.py";
             desc = "a local 'url_inspect_sauce.py' source of secret sauce";
           }
-          {
-            source = "assets/nbs/imports/inspect_seo.py";
-            dest = "Notebooks/imports/inspect_seo.py";
-            desc = "a local 'inspect_seo.py' subprocess file";
-          }
-          {
-            source = "assets/nbs/imports/visualize_dom.py";
-            dest = "Notebooks/imports/visualize_dom.py";
-            desc = "a local 'visualize_dom.py' subprocess file";
-          }
+#           {
+#             source = "assets/nbs/imports/inspect_seo.py";
+#             dest = "Notebooks/imports/inspect_seo.py";
+#             desc = "a local 'inspect_seo.py' subprocess file";
+#           }
+#           {
+#             source = "assets/nbs/imports/visualize_dom.py";
+#             dest = "Notebooks/imports/visualize_dom.py";
+#             desc = "a local 'visualize_dom.py' subprocess file";
+#           }
         ];
 
         # Convert the Nix list to a string that Bash can loop over
