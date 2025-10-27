@@ -606,11 +606,11 @@ async def generate_extractions_post_scrape(job: str, verbose: bool = False):
     base_dir = project_root_notebooks / "browser_cache" # /home/mike/.../Notebooks/browser_cache
     logger.info(f"Using absolute base_dir: {base_dir}") # Log confirmation
 
-    script_path = (Path(__file__).parent / "inspect_seo.py").resolve()
+    script_path = (Path(__file__).parent / "seo_gadget.py").resolve()
 
     if not script_path.exists():
          logger.error(f"❌ Cannot find visualization script at: {script_path}")
-         logger.error("   Please ensure inspect_seo.py is in the Notebooks/ directory.")
+         logger.error("   Please ensure seo_gadget.py is in the Notebooks/ directory.")
          return
 
     python_executable = sys.executable # Use the same python that runs the notebook
@@ -619,8 +619,6 @@ async def generate_extractions_post_scrape(job: str, verbose: bool = False):
         domain, url_path_slug = get_safe_path_component(url)
         output_dir = base_dir / domain / url_path_slug
         dom_path = output_dir / "rendered_dom.html"
-
-        print(f"Checking existence of: {dom_path.resolve()}")
 
         if not dom_path.exists():
             if verbose: # Control logging with verbose flag
