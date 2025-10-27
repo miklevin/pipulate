@@ -600,8 +600,12 @@ async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
     success_count = 0
     fail_count = 0
     tasks = []
-    base_dir = Path("..") / "browser_cache/" # Go up one level from imports/
-    # Path relative to *this* file (secretsauce.py in imports/)
+
+    script_location = Path(__file__).resolve().parent # /home/mike/.../Notebooks/imports
+    project_root_notebooks = script_location.parent  # /home/mike/.../Notebooks
+    base_dir = project_root_notebooks / "browser_cache" # /home/mike/.../Notebooks/browser_cache
+    logger.info(f"Using absolute base_dir: {base_dir}") # Log confirmation
+
     script_path = (Path(__file__).parent / "visualize_dom.py").resolve()
 
     if not script_path.exists():
