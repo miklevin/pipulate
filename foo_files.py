@@ -1,11 +1,25 @@
 AI_PHOOEY_CHOP = """\
-/home/mike/repos/pipulate/pipulate/__init__.py
-/home/mike/repos/pipulate/pipulate/pipulate.py
-/home/mike/repos/pipulate/pipulate/core.py
-/home/mike/repos/pipulate/Notebook/AI_HelloWorld.ipynb
+/home/mike/repos/pipulate/assets/installer/install.sh
+/home/mike/repos/pipulate/flake.nix
+/home/mike/repos/pipulate/requirements.in
+/home/mike/repos/pipulate/requirements.txt
 """
 
 # HISTORY OF PAYLOADS, IF YOU INSIST
+
+# /home/mike/repos/pipulate/.gitignore
+# /home/mike/repos/pipulate/flake.nix
+# /home/mike/repos/pipulate/Notebooks/FAQuilizer.ipynb
+# /home/mike/repos/pipulate/Notebooks/imports/faq_writer_sauce.py
+
+# /home/mike/repos/pipulate/Notebook/AI_HelloWorld.ipynb
+
+# /home/mike/repos/pipulate/prompt_foo.py
+
+# /home/mike/repos/pipulate/pipulate/__init__.py
+# /home/mike/repos/pipulate/pipulate/pipulate.py
+# /home/mike/repos/pipulate/pipulate/core.py
+# /home/mike/repos/pipulate/Notebook/AI_HelloWorld.ipynb
 
 # /home/mike/repos/pipulate/AI_RUNME.py
 
