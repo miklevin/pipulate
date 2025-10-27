@@ -575,7 +575,7 @@ def _open_folder(path_str: str = "."):
 
 # Replacement function for Notebooks/secretsauce.py
 
-async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
+async def generate_extractions_post_scrape(job: str, verbose: bool = False):
     """
     Generates DOM visualizations by calling the standalone visualize_dom.py script
     as a subprocess for each scraped URL in a job.
@@ -600,13 +600,17 @@ async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
     success_count = 0
     fail_count = 0
     tasks = []
-    base_dir = Path("..") / "browser_cache/" # Go up one level from imports/
-    # Path relative to *this* file (secretsauce.py in imports/)
-    script_path = (Path(__file__).parent / "visualize_dom.py").resolve()
+
+    script_location = Path(__file__).resolve().parent # /home/mike/.../Notebooks/imports
+    project_root_notebooks = script_location.parent  # /home/mike/.../Notebooks
+    base_dir = project_root_notebooks / "browser_cache" # /home/mike/.../Notebooks/browser_cache
+    logger.info(f"Using absolute base_dir: {base_dir}") # Log confirmation
+
+    script_path = (Path(__file__).parent / "inspect_seo.py").resolve()
 
     if not script_path.exists():
          logger.error(f"❌ Cannot find visualization script at: {script_path}")
-         logger.error("   Please ensure visualize_dom.py is in the Notebooks/ directory.")
+         logger.error("   Please ensure inspect_seo.py is in the Notebooks/ directory.")
          return
 
     python_executable = sys.executable # Use the same python that runs the notebook
@@ -615,6 +619,8 @@ async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
         domain, url_path_slug = get_safe_path_component(url)
         output_dir = base_dir / domain / url_path_slug
         dom_path = output_dir / "rendered_dom.html"
+
+        print(f"Checking existence of: {dom_path.resolve()}")
 
         if not dom_path.exists():
             if verbose: # Control logging with verbose flag
@@ -655,6 +661,5 @@ async def generate_visualizations_post_scrape(job: str, verbose: bool = False):
          await asyncio.gather(*tasks)
     else:
          logger.info("No visualizations needed or possible.")
-
 
     logger.success(f"✅ Visualization generation complete. Success: {success_count}, Failed/Skipped: {fail_count}") # Use logger
