@@ -168,17 +168,19 @@ meta_robots_content: {json.dumps(meta_robots_content)}
         # --- Generate Hierarchy ---
         try:
             hierarchy_visualizer = _DOMHierarchyVisualizer(console_width=CONSOLE_WIDTH)
-            tree_object = hierarchy_visualizer.visualize_dom_content(html_content, source_name=str(input_path), verbose=False) # verbose=False to prevent class printing
+            tree_object = hierarchy_visualizer.visualize_dom_content(html_content, source_name=str(input_path), verbose=False)
 
-            # Capture Text
-            string_buffer_txt_h = io.StringIO()
-            Console(record=True, width=CONSOLE_WIDTH, file=string_buffer_txt_h).print(tree_object)
-            results['hierarchy_txt_content'] = string_buffer_txt_h.getvalue()
+            # --- FIX: Create two separate, dedicated consoles ---
 
-            # Capture HTML
-            string_buffer_html_h = io.StringIO()
-            Console(record=True, width=CONSOLE_WIDTH, file=string_buffer_html_h).print(tree_object)
-            results['hierarchy_html_content'] = Console(record=True).export_html(inline_styles=True) # Use a separate console for export_html bug workaround
+            # 1. Console for TEXT export
+            record_console_txt_h = Console(record=True, file=io.StringIO(), width=CONSOLE_WIDTH)
+            record_console_txt_h.print(tree_object)
+            results['hierarchy_txt_content'] = record_console_txt_h.export_text() # Use export_text()
+
+            # 2. Console for HTML export
+            record_console_html_h = Console(record=True, file=io.StringIO(), width=CONSOLE_WIDTH)
+            record_console_html_h.print(tree_object)
+            results['hierarchy_html_content'] = record_console_html_h.export_html(inline_styles=True) # Use export_html()
 
         except Exception as e:
             print(f"Error generating hierarchy visualization for {input_path}: {e}", file=sys.stderr)
@@ -188,19 +190,20 @@ meta_robots_content: {json.dumps(meta_robots_content)}
         # --- Generate Boxes ---
         try:
             box_visualizer = _DOMBoxVisualizer(console_width=CONSOLE_WIDTH)
-            box_object = box_visualizer.visualize_dom_content(html_content, source_name=str(input_path), verbose=False) # verbose=False
+            box_object = box_visualizer.visualize_dom_content(html_content, source_name=str(input_path), verbose=False)
 
             if box_object:
-                # Capture Text
-                string_buffer_txt_b = io.StringIO()
-                Console(record=True, width=CONSOLE_WIDTH, file=string_buffer_txt_b).print(box_object)
-                results['boxes_txt_content'] = string_buffer_txt_b.getvalue()
+                # --- FIX: Create two separate, dedicated consoles ---
 
-                # Capture HTML
-                string_buffer_html_b = io.StringIO()
-                Console(record=True, width=CONSOLE_WIDTH, file=string_buffer_html_b).print(box_object)
-                results['boxes_html_content'] = Console(record=True).export_html(inline_styles=True) # Use workaround
+                # 1. Console for TEXT export
+                record_console_txt_b = Console(record=True, file=io.StringIO(), width=CONSOLE_WIDTH)
+                record_console_txt_b.print(box_object)
+                results['boxes_txt_content'] = record_console_txt_b.export_text() # Use export_text()
 
+                # 2. Console for HTML export
+                record_console_html_b = Console(record=True, file=io.StringIO(), width=CONSOLE_WIDTH)
+                record_console_html_b.print(box_object)
+                results['boxes_html_content'] = record_console_html_b.export_html(inline_styles=True) # Use export_html()
             else:
                 results['boxes_txt_content'] = "Error: Could not generate box layout object."
                 results['boxes_html_content'] = "<h1>Error: Could not generate box layout object.</h1>"
