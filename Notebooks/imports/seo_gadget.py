@@ -21,6 +21,14 @@ except ImportError as e:
     VIZ_CLASSES_LOADED = False
     IMPORT_ERROR_MSG = f"Error: Could not import visualization classes from tools.dom_tools. {e}"
 
+try:
+    from markdownify import markdownify
+    MARKDOWNIFY_AVAILABLE = True
+except ImportError:
+    MARKDOWNIFY_AVAILABLE = False
+    MARKDOWNIFY_ERROR_MSG = "Markdownify library not found. Skipping markdown conversion."
+    print(MARKDOWNIFY_ERROR_MSG, file=sys.stderr)
+
 # --- Constants ---
 OUTPUT_FILES = {
     "seo_md": "seo.md",
@@ -102,18 +110,49 @@ def main(html_file_path: str):
         meta_desc_tag = soup.find('meta', attrs={'name': 'description'})
         meta_description = meta_desc_tag['content'].strip() if meta_desc_tag and 'content' in meta_desc_tag.attrs else "No Meta Description Found"
         h1_tags = [h1.get_text(strip=True) for h1 in soup.find_all('h1')]
+        h2_tags = [h2.get_text(strip=True) for h2 in soup.find_all('h2')]
+        # Canonical URL
+        canonical_tag = soup.find('link', rel='canonical')
+        canonical_url = canonical_tag['href'].strip() if canonical_tag and 'href' in canonical_tag.attrs else "Not Found"
+
+        # Meta Robots
+        meta_robots_tag = soup.find('meta', attrs={'name': 'robots'})
+        meta_robots_content = meta_robots_tag['content'].strip() if meta_robots_tag and 'content' in meta_robots_tag.attrs else "Not Specified"
         # Add more extractions here (canonical, etc.) as needed
+
+        # --- Markdown Conversion ---
+        markdown_content = "# Markdown Content\n\nSkipped: Markdownify library not installed."
+        if MARKDOWNIFY_AVAILABLE:
+            try:
+                # --- Select main content ---
+                # For MVP, let's just use the body tag. Refine selector later if needed.
+                body_tag = soup.body
+                if body_tag:
+                     # Convert selected HTML to Markdown
+                     # Add options like strip=['script', 'style'] if needed later
+                     markdown_text = markdownify(str(body_tag), heading_style="ATX")
+                     markdown_content = f"# Markdown Content\n\n{markdown_text}"
+                else:
+                     markdown_content = "# Markdown Content\n\nError: Could not find body tag."
+            except Exception as md_err:
+                 print(f"Error during markdown conversion: {md_err}", file=sys.stderr)
+                 markdown_content = f"# Markdown Content\n\nError converting HTML to Markdown: {md_err}"
+        # --- End Markdown Conversion ---
 
         # Prepare content
         seo_md_content = f"""---
 title: {json.dumps(page_title)}
 meta_description: {json.dumps(meta_description)}
 h1_tags: {json.dumps(h1_tags)}
+h2_tags: {json.dumps(h2_tags)}
+canonical_tag: {json.dumps(str(canonical_tag))}
+canonical_url: {json.dumps(canonical_url)}
+meta_robots_tag: {json.dumps(str(meta_robots_tag))}
+meta_robots_content: {json.dumps(meta_robots_content)}
 ---
 
-# Markdown Content Placeholder
+{markdown_content}
 
-This section will contain the markdown version of the page content.
 """
         # Write the file directly
         write_output_file(output_dir, "seo_md", seo_md_content, results)
