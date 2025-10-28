@@ -1,135 +1,207 @@
 # seo_gadget.py
+# Purpose: Extracts SEO data, generates DOM visualizations (hierarchy, boxes),
+#          and creates a markdown summary from a rendered HTML file.
+#          Go Gadget Go! ⚙️
+
 import argparse
 import io
 import sys
 from pathlib import Path
-from rich.console import Console
+import json # Added for potential future structured data output
+
+# --- Third-Party Imports ---
 from bs4 import BeautifulSoup
-
-# Determine the script's directory and add the project root
-script_dir = Path(__file__).parent.resolve()
-sys.path.insert(0, str(script_dir))
-
+from rich.console import Console
+# Attempt to import visualization classes
 try:
-    # Now try importing the necessary classes from dom_tools
-    # NOTE: Ensure these classes ONLY return the rich object and do NOT print.
+    # Assuming tools package is accessible via sys.path modification below
     from tools.dom_tools import _DOMHierarchyVisualizer, _DOMBoxVisualizer
+    VIZ_CLASSES_LOADED = True
 except ImportError as e:
-    print(f"Error: Could not import visualization classes from tools.dom_tools. {e}", file=sys.stderr)
-    print("Ensure visualize_dom.py is in the project root and tools/ exists.", file=sys.stderr)
-    sys.exit(1)
+    VIZ_CLASSES_LOADED = False
+    IMPORT_ERROR_MSG = f"Error: Could not import visualization classes from tools.dom_tools. {e}"
 
+# --- Constants ---
+OUTPUT_FILES = {
+    "seo_md": "seo.md",
+    "hierarchy_txt": "dom_hierarchy.txt",
+    "hierarchy_html": "dom_hierarchy.html",
+    "boxes_txt": "dom_layout_boxes.txt",
+    "boxes_html": "dom_layout_boxes.html",
+}
+CONSOLE_WIDTH = 180
+
+# --- Path Configuration (Robust sys.path setup) ---
+try:
+    script_dir = Path(__file__).resolve().parent # Notebooks/imports
+    project_root = script_dir.parent.parent # Assumes script is in Notebooks/imports
+    tools_dir = project_root / 'tools'
+
+    if not tools_dir.is_dir():
+        raise FileNotFoundError(f"'tools' directory not found at expected location: {tools_dir}")
+
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    # Re-check import status after path setup
+    if not VIZ_CLASSES_LOADED:
+        # Try importing again now that path is set
+        from tools.dom_tools import _DOMHierarchyVisualizer, _DOMBoxVisualizer
+        VIZ_CLASSES_LOADED = True
+
+except (FileNotFoundError, ImportError) as e:
+    print(f"Error setting up paths or importing dependencies: {e}", file=sys.stderr)
+    # Allow script to continue for basic SEO extraction, but log the issue
+    VIZ_CLASSES_LOADED = False
+    IMPORT_ERROR_MSG = str(e) # Store specific error
+
+# --- Helper Functions ---
+def read_html_file(file_path: Path) -> str | None:
+    """Reads HTML content from a file path."""
+    if not file_path.exists() or not file_path.is_file():
+        print(f"Error: Input HTML file not found: {file_path}", file=sys.stderr)
+        return None
+    try:
+        return file_path.read_text(encoding='utf-8')
+    except Exception as e:
+        print(f"Error reading HTML file {file_path}: {e}", file=sys.stderr)
+        return None
+
+def write_output_file(output_dir: Path, filename_key: str, content: str, results: dict):
+    """Writes content to a file in the output directory and updates results."""
+    try:
+        file_path = output_dir / OUTPUT_FILES[filename_key]
+        file_path.write_text(content, encoding='utf-8')
+        results[f'{filename_key}_success'] = True
+    except Exception as e:
+        print(f"Error writing {OUTPUT_FILES[filename_key]} for {output_dir.parent.name}/{output_dir.name}: {e}", file=sys.stderr)
+        results[f'{filename_key}_success'] = False
+
+# --- Main Processing Logic ---
 def main(html_file_path: str):
     """
-    Generates DOM hierarchy and box visualizations (.txt and .html)
-    for a given HTML file. Saves output in the same directory.
+    Orchestrates the extraction and generation of all output files.
     """
     input_path = Path(html_file_path).resolve()
     output_dir = input_path.parent
+    results = {} # To track success/failure of each part
 
-    if not input_path.exists() or not input_path.is_file():
-        print(f"Error: Input HTML file not found: {input_path}", file=sys.stderr)
-        sys.exit(1)
+    # 1. Read Input HTML (Crucial first step)
+    html_content = read_html_file(input_path)
+    if html_content is None:
+        sys.exit(1) # Exit if file reading failed
 
+    # 2. Initialize BeautifulSoup (Foundation for SEO Extraction)
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    # --- 3. Generate SEO.md ---
+    print(f"Attempting to write SEO data to: {output_dir / OUTPUT_FILES['seo_md']}", file=sys.stderr)
     try:
-        html_content = input_path.read_text(encoding='utf-8')
-    except Exception as e:
-        print(f"Error reading HTML file {input_path}: {e}", file=sys.stderr)
-        sys.exit(1)
+        # Extract basic SEO fields
+        page_title = soup.title.string.strip() if soup.title and soup.title.string else "No Title Found"
+        meta_desc_tag = soup.find('meta', attrs={'name': 'description'})
+        meta_description = meta_desc_tag['content'].strip() if meta_desc_tag and 'content' in meta_desc_tag.attrs else "No Meta Description Found"
+        h1_tags = [h1.get_text(strip=True) for h1 in soup.find_all('h1')]
+        # Add more extractions here (canonical, etc.) as needed
 
-    results = {}
+        # Prepare content
+        seo_md_content = f"""---
+title: {json.dumps(page_title)}
+meta_description: {json.dumps(meta_description)}
+h1_tags: {json.dumps(h1_tags)}
+---
 
-    # --- Add SEO.md Generation ---
-    try:
-        seo_md_path = output_dir / "seo.md"
-        print(f"Attempting to write SEO data to: {seo_md_path}", file=sys.stderr) # Add debug print
+# Markdown Content Placeholder
 
-        # --- Basic Title Extraction ---
-        soup_for_seo = BeautifulSoup(html_content, 'html.parser')
-        page_title = soup_for_seo.title.string.strip() if soup_for_seo.title and soup_for_seo.title.string else "No Title Found"
-        # --- End Basic Title Extraction ---
-
-        with open(seo_md_path, 'w', encoding='utf-8') as f:
-            f.write("---\n") # Start YAML front matter
-            f.write(f"title: {page_title}\n")
-            # Add more basic fields later (meta description, H1s, etc.)
-            f.write("---\n\n") # End YAML front matter
-            f.write("# Markdown Content Placeholder\n\n")
-            f.write("This section will contain the markdown version of the page content.")
-
-        print(f"Successfully created basic seo.md for {input_path}") # Print success to stdout
-        results['seo_md_created'] = True # Optional: track success
-
-    except Exception as e:
-        print(f"Error creating seo.md for {input_path}: {e}", file=sys.stderr)
-        results['seo_md_created'] = False # Optional: track failure
-    # --- End SEO.md Generation ---
-
-    # --- Generate Hierarchy ---
-    try:
-        # Use the class that ONLY returns the object
-        hierarchy_visualizer = _DOMHierarchyVisualizer()
-        tree_object = hierarchy_visualizer.visualize_dom_content(html_content, source_name=str(input_path)) # Pass source_name
-
-        # Capture Text silently
-        string_buffer_txt_h = io.StringIO()
-        record_console_txt_h = Console(record=True, width=180, file=string_buffer_txt_h)
-        record_console_txt_h.print(tree_object)
-        results['hierarchy_txt'] = record_console_txt_h.export_text()
-
-        # Capture HTML silently
-        string_buffer_html_h = io.StringIO()
-        record_console_html_h = Console(record=True, width=180, file=string_buffer_html_h)
-        record_console_html_h.print(tree_object)
-        results['hierarchy_html'] = record_console_html_h.export_html(inline_styles=True)
+This section will contain the markdown version of the page content.
+"""
+        # Write the file directly
+        write_output_file(output_dir, "seo_md", seo_md_content, results)
+        if results.get("seo_md_success"):
+             print(f"Successfully created basic {OUTPUT_FILES['seo_md']} for {input_path}")
 
     except Exception as e:
-        print(f"Error generating hierarchy visualization for {input_path}: {e}", file=sys.stderr)
-        results['hierarchy_txt'] = f"Error generating hierarchy: {e}"
-        results['hierarchy_html'] = f"<h1>Error generating hierarchy</h1><p>{e}</p>"
+        print(f"Error creating {OUTPUT_FILES['seo_md']} for {input_path}: {e}", file=sys.stderr)
+        results['seo_md_success'] = False
+
+    # --- 4. Generate Visualizations (If classes loaded) ---
+    if VIZ_CLASSES_LOADED:
+        # --- Generate Hierarchy ---
+        try:
+            hierarchy_visualizer = _DOMHierarchyVisualizer(console_width=CONSOLE_WIDTH)
+            tree_object = hierarchy_visualizer.visualize_dom_content(html_content, source_name=str(input_path), verbose=False) # verbose=False to prevent class printing
+
+            # Capture Text
+            string_buffer_txt_h = io.StringIO()
+            Console(record=True, width=CONSOLE_WIDTH, file=string_buffer_txt_h).print(tree_object)
+            results['hierarchy_txt_content'] = string_buffer_txt_h.getvalue()
+
+            # Capture HTML
+            string_buffer_html_h = io.StringIO()
+            Console(record=True, width=CONSOLE_WIDTH, file=string_buffer_html_h).print(tree_object)
+            results['hierarchy_html_content'] = Console(record=True).export_html(inline_styles=True) # Use a separate console for export_html bug workaround
+
+        except Exception as e:
+            print(f"Error generating hierarchy visualization for {input_path}: {e}", file=sys.stderr)
+            results['hierarchy_txt_content'] = f"Error generating hierarchy: {e}"
+            results['hierarchy_html_content'] = f"<h1>Error generating hierarchy</h1><p>{e}</p>"
+
+        # --- Generate Boxes ---
+        try:
+            box_visualizer = _DOMBoxVisualizer(console_width=CONSOLE_WIDTH)
+            box_object = box_visualizer.visualize_dom_content(html_content, source_name=str(input_path), verbose=False) # verbose=False
+
+            if box_object:
+                # Capture Text
+                string_buffer_txt_b = io.StringIO()
+                Console(record=True, width=CONSOLE_WIDTH, file=string_buffer_txt_b).print(box_object)
+                results['boxes_txt_content'] = string_buffer_txt_b.getvalue()
+
+                # Capture HTML
+                string_buffer_html_b = io.StringIO()
+                Console(record=True, width=CONSOLE_WIDTH, file=string_buffer_html_b).print(box_object)
+                results['boxes_html_content'] = Console(record=True).export_html(inline_styles=True) # Use workaround
+
+            else:
+                results['boxes_txt_content'] = "Error: Could not generate box layout object."
+                results['boxes_html_content'] = "<h1>Error: Could not generate box layout object.</h1>"
+
+        except Exception as e:
+            print(f"Error generating box visualization for {input_path}: {e}", file=sys.stderr)
+            results['boxes_txt_content'] = f"Error generating boxes: {e}"
+            results['boxes_html_content'] = f"<h1>Error generating boxes</h1><p>{e}</p>"
+    else:
+        # Log that visualizations were skipped
+        print(f"Skipping DOM visualizations due to import error: {IMPORT_ERROR_MSG}", file=sys.stderr)
+        results['hierarchy_txt_content'] = "Skipped: Visualization classes failed to load."
+        results['hierarchy_html_content'] = "<h1>Skipped: Visualization classes failed to load.</h1>"
+        results['boxes_txt_content'] = "Skipped: Visualization classes failed to load."
+        results['boxes_html_content'] = "<h1>Skipped: Visualization classes failed to load.</h1>"
 
 
-    # --- Generate Boxes ---
-    try:
-        # Use the class that ONLY returns the object
-        box_visualizer = _DOMBoxVisualizer()
-        box_object = box_visualizer.visualize_dom_content(html_content, source_name=str(input_path)) # Pass source_name
+    # --- 5. Save All Generated Files ---
+    # Note: seo.md was already written directly in its section
+    write_output_file(output_dir, "hierarchy_txt", results.get('hierarchy_txt_content', ''), results)
+    write_output_file(output_dir, "hierarchy_html", results.get('hierarchy_html_content', ''), results)
+    write_output_file(output_dir, "boxes_txt", results.get('boxes_txt_content', ''), results)
+    write_output_file(output_dir, "boxes_html", results.get('boxes_html_content', ''), results)
 
-        if box_object:
-            # Capture Text silently
-            string_buffer_txt_b = io.StringIO()
-            record_console_txt_b = Console(record=True, width=180, file=string_buffer_txt_b)
-            record_console_txt_b.print(box_object)
-            results['boxes_txt'] = record_console_txt_b.export_text()
+    # Final success message check
+    success_flags = [results.get(f'{key}_success', False) for key in OUTPUT_FILES]
+    if all(success_flags):
+        print(f"Successfully generated all output files for {input_path}")
+    elif any(success_flags):
+         print(f"Successfully generated some output files for {input_path} (check errors above)")
+    else:
+         print(f"Failed to generate any output files for {input_path}")
+         sys.exit(1) # Exit with error if nothing worked
 
-            # Capture HTML silently
-            string_buffer_html_b = io.StringIO()
-            record_console_html_b = Console(record=True, width=180, file=string_buffer_html_b)
-            record_console_html_b.print(box_object)
-            results['boxes_html'] = record_console_html_b.export_html(inline_styles=True)
-        else:
-            results['boxes_txt'] = "Error: Could not generate box layout object."
-            results['boxes_html'] = "<h1>Error: Could not generate box layout object.</h1>"
-
-    except Exception as e:
-        print(f"Error generating box visualization for {input_path}: {e}", file=sys.stderr)
-        results['boxes_txt'] = f"Error generating boxes: {e}"
-        results['boxes_html'] = f"<h1>Error generating boxes</h1><p>{e}</p>"
-
-
-    # --- Save Files ---
-    try:
-        (output_dir / "dom_hierarchy.txt").write_text(results.get('hierarchy_txt', ''), encoding='utf-8')
-        (output_dir / "dom_hierarchy.html").write_text(results.get('hierarchy_html', ''), encoding='utf-8')
-        (output_dir / "dom_layout_boxes.txt").write_text(results.get('boxes_txt', ''), encoding='utf-8')
-        (output_dir / "dom_layout_boxes.html").write_text(results.get('boxes_html', ''), encoding='utf-8')
-        print(f"Successfully generated visualizations for {input_path}") # Print success to stdout
-    except Exception as e:
-        print(f"Error writing visualization files for {input_path}: {e}", file=sys.stderr)
-        sys.exit(1)
-
+# --- Standard Script Execution Guard ---
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate DOM visualizations from an HTML file.")
+    parser = argparse.ArgumentParser(
+        description="Extract SEO data and generate DOM visualizations from an HTML file.",
+        epilog="Go Gadget Go!"
+        )
     parser.add_argument("html_file", help="Path to the input rendered_dom.html file.")
     args = parser.parse_args()
     main(args.html_file)
