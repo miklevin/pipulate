@@ -144,11 +144,6 @@
 #             dest = "Notebooks/imports/seo_gadget.py";
 #             desc = "a local 'seo_gadget.py' subprocess file";
 #           }
-#           {
-#             source = "assets/nbs/imports/visualize_dom.py";
-#             dest = "Notebooks/imports/visualize_dom.py";
-#             desc = "a local 'visualize_dom.py' subprocess file";
-#           }
         ];
 
         # Convert the Nix list to a string that Bash can loop over
