@@ -1,11 +1,18 @@
 AI_PHOOEY_CHOP = """\
-/home/mike/repos/pipulate/Notebooks/imports/faq_writer_sauce.py
-/home/mike/repos/pipulate/requirements.in
-/home/mike/repos/pipulate/requirements.txt
 /home/mike/repos/pipulate/Notebooks/imports/seo_gadget.py
+/home/mike/repos/pipulate/tools/__init__.py 
+/home/mike/repos/pipulate/tools/scraper_tools.py
+/home/mike/repos/pipulate/Notebooks/URLinspector.ipynb
+/home/mike/repos/pipulate/pipulate/__init__.py
+/home/mike/repos/pipulate/pipulate/pipulate.py
 """
 
-# HISTORY OF PAYLOADS, IF YOU INSIST
+# HISTORY OF PAYLOADS (BUNDLES OF CONTEXT)
+
+# /home/mike/repos/pipulate/Notebooks/imports/faq_writer_sauce.py
+# /home/mike/repos/pipulate/requirements.in
+# /home/mike/repos/pipulate/requirements.txt
+# /home/mike/repos/pipulate/Notebooks/imports/seo_gadget.py
 
 # /home/mike/repos/pipulate/Notebooks/URLinspector.ipynb
 # /home/mike/repos/pipulate/Notebooks/imports/url_inspect_sauce.py
