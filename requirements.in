@@ -1,6 +1,8 @@
 # Top-level dependencies for Pipulate
 # This file is used by pip-compile to generate requirements.txt
+# pip-compile requirements.in -o requirements.txt --upgrade
 
+markdownify
 pip-tools
 
 # GAPalyzer
