@@ -1990,7 +1990,7 @@ class Pipulate:
         ### NEW LOGIC ENDS HERE ###
 
         # --- Define Sample Data for Scrubbing ---
-        SAMPLE_PROMPT_SOURCE = [
+        SAMPLE_PROMPT_SOURCE_FAQ = [
             "**Your Role (AI Content Strategist):**\n",
             "\n",
             "You are an AI Content Strategist. \n",
@@ -2002,6 +2002,23 @@ class Pipulate:
             "3. target_intent: string (What is the user's goal in asking this?)\n",
             "4. justification: string (Why is this a valuable question to answer? e.g., sales, seasonal, etc.)"
         ]
+
+        SAMPLE_PROMPT_SOURCE_URLI = [
+            "**Your Role (SEO URL Consultant auditing individual URLs):**\n",
+            "\n",
+            'A "keyword" is the unique short combination of words that are most likely to be searched-on by a user who might be interested in this page.\n',
+            'What is the five most likely keywords (short combination of words) that this page appears to be targeting?\n',
+            '\n',
+            '1. priority: integer (1-5, 1 is highest)\n',
+            '2. question: string (The keyword)\n',
+            '3. target_intent: string (What specifically is the user likely to have in mind when performing this search?)\n',
+            '4. justification: string (Informational, Commercial, Navigational, Transactional?)'
+        ]
+
+        PROMPT_MAP = {
+            "FAQuilizer": SAMPLE_PROMPT_SOURCE_FAQ,
+            "URLinspector": SAMPLE_PROMPT_SOURCE_URLI,
+        }
 
         SAMPLE_URL_LIST_SOURCE = [
             "# Enter one URL per line\n",
@@ -2032,11 +2049,14 @@ class Pipulate:
                     nb = nbformat.read(f, as_version=4)
 
                 # --- Scrub proprietary data ---
+                notebook_base_name = Path(notebook_filename).stem
+                prompt_source_to_use = PROMPT_MAP.get(notebook_base_name, SAMPLE_PROMPT_SOURCE_FAQ)
+
                 for cell in nb.cells:
                     tags = cell.metadata.get("tags", [])
                     if "prompt-input" in tags:
-                        cell.source = SAMPLE_PROMPT_SOURCE
-                        print("    ✓ Scrubbed and replaced 'prompt-input' cell.")
+                        cell.source = prompt_source_to_use
+                        print(f"    ✓ Scrubbed and replaced 'prompt-input' cell using prompt for '{notebook_base_name}'.")
                     elif "url-list-input" in tags:
                         cell.source = SAMPLE_URL_LIST_SOURCE
                         print("    ✓ Scrubbed and replaced 'url-list-input' cell.")
