@@ -26,6 +26,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools import auto_tool
 
+_TRUNCATION_LENGTH = 60 # Default truncation length for display
+
 # Note: The classes are kept internal to this module, and the async functions
 # below are the public-facing tools.
 
@@ -42,7 +44,7 @@ class _DOMHierarchyVisualizer:
         info = {'tag': element.name, 'id': element.get('id'), 'class': element.get('class'), 'aria_label': element.get('aria-label'), 'data_testid': element.get('data-testid'), 'href': element.get('href'), 'src': element.get('src'), 'text': None}
         if element.string:
             text = element.string.strip()
-            if text: info['text'] = text[:50] + "..." if len(text) > 50 else text
+            if text: info['text'] = text[:_TRUNCATION_LENGTH] + "..." if len(text) > _TRUNCATION_LENGTH else text
         return info
 
     def format_element_display(self, info, level):
@@ -52,8 +54,8 @@ class _DOMHierarchyVisualizer:
         if info['class']: display_parts.append(f"class='{' '.join(info['class'])}'")
         if info['data_testid']: display_parts.append(f"data-testid='{info['data_testid']}'")
         if info['aria_label']: display_parts.append(f"aria-label='{info['aria_label']}'")
-        if info['href']: display_parts.append(f"href='{info['href'][:30]}...'")
-        if info['src']: display_parts.append(f"src='{info['src'][:30]}...'")
+        if info['href']: display_parts.append(f"href='{info['href'][:_TRUNCATION_LENGTH]}...'")
+        if info['src']: display_parts.append(f"src='{info['src'][:_TRUNCATION_LENGTH]}...'")
         if info['text']: display_parts.append(f'"{info["text"]}"')
         return Text(" ".join(display_parts), style=color)
 
@@ -98,7 +100,7 @@ class _DOMBoxVisualizer:
         info = {'tag': element.name, 'id': element.get('id'), 'class': element.get('class'), 'aria_label': element.get('aria-label'), 'data_testid': element.get('data-testid'), 'href': element.get('href'), 'src': element.get('src'), 'text': None}
         if element.string:
             text = element.string.strip()
-            if text: info['text'] = text[:60] + "..." if len(text) > 60 else text
+            if text: info['text'] = text[:_TRUNCATION_LENGTH] + "..." if len(text) > _TRUNCATION_LENGTH else text
         else:
             texts = []
             for child in element.children:
@@ -110,7 +112,7 @@ class _DOMBoxVisualizer:
                     if child_text: texts.append(child_text)
             if texts:
                 combined_text = ' '.join(texts)
-                info['text'] = combined_text[:60] + "..." if len(combined_text) > 60 else combined_text
+                info['text'] = combined_text[:_TRUNCATION_LENGTH] + "..." if len(combined_text) > _TRUNCATION_LENGTH else combined_text
         return info
 
     def format_element_title(self, info, level):
@@ -126,13 +128,13 @@ class _DOMBoxVisualizer:
         content_lines = []
         if info['class']:
             classes = ' '.join(info['class']) if isinstance(info['class'], list) else info['class']
-            if len(classes) > 50: classes = classes[:47] + "..."
+            if len(classes) > _TRUNCATION_LENGTH: classes = classes[:_TRUNCATION_LENGTH] + "..."
             content_lines.append(Text(f"class: {classes}", style=f"dim {color}"))
         if info['href']:
-            href = info['href'][:45] + "..." if len(info['href']) > 45 else info['href']
+            href = info['href'][:_TRUNCATION_LENGTH] + "..." if len(info['href']) > _TRUNCATION_LENGTH else info['href']
             content_lines.append(Text(f"href: {href}", style=f"dim {color}"))
         if info['src']:
-            src = info['src'][:45] + "..." if len(info['src']) > 45 else info['src']
+            src = info['src'][:_TRUNCATION_LENGTH] + "..." if len(info['src']) > _TRUNCATION_LENGTH else info['src']
             content_lines.append(Text(f"src: {src}", style=f"dim {color}"))
         if info['text']: content_lines.append(Text(f'"{info["text"]}"', style=f"italic {color}"))
         if children_count > 0:

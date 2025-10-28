@@ -39,17 +39,17 @@ __pycache__/
 .sesskey
 
 # User-facing notebooks generated on first run
-# Notebooks/Client_Work/
-# Notebooks/deliverables/
-# Notebooks/_config.py
-# Notebooks/AI_HelloWorld.ipynb
-# Notebooks/AI_Scrape.ipynb
-# Notebooks/FAQuilizer.ipynb
-# Notebooks/GAPalyzer.ipynb
-# Notebooks/URLinspector.ipynb
-# Notebooks/imports/gap_analyzer_sauce.py
-# Notebooks/imports/faq_writer_sauce.py
-# Notebooks/imports/url_inspect_sauce.py
+Notebooks/Client_Work/
+Notebooks/deliverables/
+Notebooks/_config.py
+Notebooks/AI_HelloWorld.ipynb
+Notebooks/AI_Scrape.ipynb
+Notebooks/FAQuilizer.ipynb
+Notebooks/GAPalyzer.ipynb
+Notebooks/URLinspector.ipynb
+Notebooks/imports/gap_analyzer_sauce.py
+Notebooks/imports/faq_writer_sauce.py
+Notebooks/imports/url_inspect_sauce.py
 
 # Python packaging and build artifacts
 build/
