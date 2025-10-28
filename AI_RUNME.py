@@ -3,6 +3,11 @@
 """
 This script provides a guided, progressive reveal of the Pipulate system's
 capabilities for an AI assistant. Run this first to understand your environment.
+
+# TODO
+- Add "Rich color" to the DOM box & tree output from `pipulate/tools/dom_tools.py`.
+- Add "Project URL" and "GSC Domain" fields to `pipulate/apps/020_profiles.py`.
+
 """
 
 # This file is also where we keep the "Master Prompt" for amnesiac AIs "waking up" into Project Pipulate

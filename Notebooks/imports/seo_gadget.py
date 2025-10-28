@@ -12,6 +12,8 @@ import json # Added for potential future structured data output
 # --- Third-Party Imports ---
 from bs4 import BeautifulSoup
 from rich.console import Console
+from rich.terminal_theme import MONOKAI
+
 # Attempt to import visualization classes
 try:
     # Assuming tools package is accessible via sys.path modification below
@@ -180,7 +182,7 @@ meta_robots_content: {json.dumps(meta_robots_content)}
             # 2. Console for HTML export
             record_console_html_h = Console(record=True, file=io.StringIO(), width=CONSOLE_WIDTH)
             record_console_html_h.print(tree_object)
-            results['hierarchy_html_content'] = record_console_html_h.export_html(inline_styles=True) # Use export_html()
+            results['hierarchy_html_content'] = record_console_html_h.export_html(theme=MONOKAI)
 
         except Exception as e:
             print(f"Error generating hierarchy visualization for {input_path}: {e}", file=sys.stderr)
@@ -203,7 +205,7 @@ meta_robots_content: {json.dumps(meta_robots_content)}
                 # 2. Console for HTML export
                 record_console_html_b = Console(record=True, file=io.StringIO(), width=CONSOLE_WIDTH)
                 record_console_html_b.print(box_object)
-                results['boxes_html_content'] = record_console_html_b.export_html(inline_styles=True) # Use export_html()
+                results['boxes_html_content'] = record_console_html_b.export_html(theme=MONOKAI)
             else:
                 results['boxes_txt_content'] = "Error: Could not generate box layout object."
                 results['boxes_html_content'] = "<h1>Error: Could not generate box layout object.</h1>"
