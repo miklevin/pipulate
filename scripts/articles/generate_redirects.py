@@ -89,33 +89,50 @@ def build_nginx_map(csv_input_path, map_output_path, navgraph_path):
         writer.writerows(valid_rows)
     print(f"🧹 Pruned and synchronized raw CSV ledger.")
 
-    # Pass 3: Compile the final Nginx Map
+    # Pass 3: Hardened Nginx Map Compilation with built-in Linter
+    print("🛡️  Linting and compiling pure hash ledger...")
+    
+    corrupted_lines = 0
+    external_noise = 0
+    
     with open(map_output_path, 'w', encoding='utf-8') as outfile:
         outfile.write("# PURE HASH LEDGER: /dead-path /living-path\n")
         
         seen_keys = set()
         for old_url, new_url in valid_rows:
-            # 1. Normalize the Key (The Dead URL)
-            # Nginx $uri is already normalized (no trailing slash, usually)
+            # --- 1. LINT: Check for forbidden characters (the grep test) ---
+            if any(char in old_url or char in new_url for char in [';', '~', '^']):
+                print(f"❌ Corrupted data blocked: {old_url}")
+                corrupted_lines += 1
+                continue
+
+            # --- 2. LINT: Filter out external domain noise (YouTube, etc.) ---
+            # We only want internal paths starting with /
+            if "http" in old_url or "www." in old_url:
+                print(f"🚫 External domain blocked: {old_url}")
+                external_noise += 1
+                continue
+
+            # --- 3. NORMALIZE: Ensure Nginx $uri compatibility ---
             key = old_url.strip().rstrip('/')
             if not key.startswith('/'): key = '/' + key
             
-            # 2. Normalize the Value (The Destination)
             val = new_url.strip()
             if not val.startswith('/'): val = '/' + val
             
-            # 3. VALIDATION: Collision & Duplicate Detection
+            # --- 4. VALIDATE: Final logic check ---
             if key in seen_keys:
-                print(f"⚠️ Skipping duplicate key: {key}")
-                continue
+                continue # Silent skip for duplicates
             if key == val:
-                print(f"⚠️ Circular redirect detected and skipped: {key}")
+                print(f"⚠️  Circular skip: {key}")
                 continue
 
-            # 4. THE PURE WRITE
-            # One space only, no regex, no semicolons.
+            # --- 5. THE PURE WRITE ---
             outfile.write(f"{key} {val}\n")
             seen_keys.add(key)
+
+    if corrupted_lines or external_noise:
+        print(f"🧹 Cleanup complete: {corrupted_lines} corrupted and {external_noise} external entries purged.")
 
     print(f"✅ Nginx map forged successfully at {map_output_path.name}")
 
