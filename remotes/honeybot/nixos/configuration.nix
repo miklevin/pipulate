@@ -204,14 +204,15 @@
     '';
 
     # 1. THE SENSOR: Read the Accept header and define the MIME type
+      # 1. THE SENSOR: Read the Accept header and define the MIME type
       appendHttpConfig = ''
-        # map_hash_bucket_size 256; 
-        # map_hash_max_size 4096;
+          # Expand CPU cache line alignment for long AI-generated URL keys
+          # map_hash_bucket_size 256; 
 
-        # map $uri $new_uri {
-        #     default "";
-        #     include /home/mike/www/mikelev.in/_site/redirects.map;
-        # }
+          map $http_accept $serve_markdown {
+            default 0;
+            "~*text/markdown" 1;
+          }
       '';
 
     virtualHosts."mikelev.in" = {
@@ -222,17 +223,17 @@
       root = "/home/mike/www/mikelev.in/_site"; 
 
       # 2. THE SWITCH: Route to the .md file if the sensor fired
+      # 2. THE SWITCH: Route to the .md file if the sensor fired
       locations."/" = {
-
-        # In virtualHosts."mikelev.in" locations."/" block
         extraConfig = ''
           add_header Vary "Accept" always;
 
-          # if ($new_uri) {
-          #     return 301 $new_uri;
-          # }
+          if ($serve_markdown = 1) {
+            rewrite ^(.*)/$ $1/index.md break;
+          }
         '';
       };
+
       # THE JAVASCRIPT TRAPDOOR
       locations."= /api/telemetry/js_confirm.gif" = {
         extraConfig = "empty_gif;";
