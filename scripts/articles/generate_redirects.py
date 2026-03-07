@@ -91,14 +91,31 @@ def build_nginx_map(csv_input_path, map_output_path, navgraph_path):
 
     # Pass 3: Compile the final Nginx Map
     with open(map_output_path, 'w', encoding='utf-8') as outfile:
-        outfile.write("# AI-Generated Semantic Redirects\n")
+        outfile.write("# PURE HASH LEDGER: /dead-path /living-path\n")
+        
+        seen_keys = set()
         for old_url, new_url in valid_rows:
-            safe_old_url = urllib.parse.quote(old_url, safe='/%')
-            if not safe_old_url.startswith('/'): safe_old_url = '/' + safe_old_url
-            if not new_url.startswith('/'): new_url = '/' + new_url
+            # 1. Normalize the Key (The Dead URL)
+            # Nginx $uri is already normalized (no trailing slash, usually)
+            key = old_url.strip().rstrip('/')
+            if not key.startswith('/'): key = '/' + key
             
-            # THE REGEX FORGER
-            outfile.write(f"    ~^{safe_old_url}/?$ {new_url};\n")
+            # 2. Normalize the Value (The Destination)
+            val = new_url.strip()
+            if not val.startswith('/'): val = '/' + val
+            
+            # 3. VALIDATION: Collision & Duplicate Detection
+            if key in seen_keys:
+                print(f"⚠️ Skipping duplicate key: {key}")
+                continue
+            if key == val:
+                print(f"⚠️ Circular redirect detected and skipped: {key}")
+                continue
+
+            # 4. THE PURE WRITE
+            # One space only, no regex, no semicolons.
+            outfile.write(f"{key} {val}\n")
+            seen_keys.add(key)
 
     print(f"✅ Nginx map forged successfully at {map_output_path.name}")
 

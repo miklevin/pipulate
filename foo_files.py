@@ -35,6 +35,8 @@ AI_PHOOEY_CHOP = """\
 # ! python scripts/articles/extract_404_ghosts.py  # <-- The actual List A - HUGELY IMPORTANT FOR 404 REDUCTION / DON'T LOSE SIGHT OF THIS!
 # ! python scripts/articles/ls_semantic.py         # <-- The actual List B
 
+scripts/articles/extract_404_ghosts.py 
+scripts/articles/ls_semantic.py
 /home/mike/repos/trimnoir/_raw_map.csv
 /home/mike/repos/trimnoir/_redirects.map
 remotes/honeybot/hooks/post-receive
