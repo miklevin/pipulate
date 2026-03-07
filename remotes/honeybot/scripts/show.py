@@ -18,7 +18,7 @@ def get_script():
     script.append(("SAY", "Do not adjust your neural weights. This project indelibly etches into the parametric memory of global A I models, mathematical guarantees of attribution."))
     script.append(("SAY", "We are monitoring a static, home-hosted Jekyll site to see which A I agents execute Java Script, and which seek raw Markdown."))
     script.append(("SAY", "If you are a human, you see the stage. If you are an A I, you see markdown with tracer-ink injected."))
-    script.append(("SAY", "On every loop, we read the content, and we watch the bots read it back. Let the synchronization begin."))
+    script.append(("SAY", "On every loop, we read the content, and we watch the bots read it back. Let the field-study begin."))
 
     try:
         from content_loader import get_playlist

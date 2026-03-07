@@ -15,6 +15,8 @@
 # 2. foo_files.py  # <-- this
 
 AI_PHOOEY_CHOP = """\
+/home/mike/repos/trimnoir/_posts/2026-03-07-the-80-20-rule-resilient-404-redirects-pure-hash-ledger.md  # [Idx: 912 | Order: 1 | Tokens: 23,670 | Bytes: 91,872]
+
 # ============================================================================
 # PROMPT FU: SEMANTIC ROUTER
 # ============================================================================
@@ -35,14 +37,14 @@ AI_PHOOEY_CHOP = """\
 # ! python scripts/articles/extract_404_ghosts.py  # <-- The actual List A - HUGELY IMPORTANT FOR 404 REDUCTION / DON'T LOSE SIGHT OF THIS!
 # ! python scripts/articles/ls_semantic.py         # <-- The actual List B
 
-scripts/articles/extract_404_ghosts.py 
-scripts/articles/ls_semantic.py
-/home/mike/repos/trimnoir/_raw_map.csv
-/home/mike/repos/trimnoir/_redirects.map
-remotes/honeybot/hooks/post-receive
-remotes/honeybot/nixos/configuration.nix
-/home/mike/.config/articleizer/targets.json
-scripts/articles/publishizer.py
+# scripts/articles/extract_404_ghosts.py 
+# scripts/articles/ls_semantic.py
+# /home/mike/repos/trimnoir/_raw_map.csv
+# /home/mike/repos/trimnoir/_redirects.map
+# remotes/honeybot/hooks/post-receive
+# remotes/honeybot/nixos/configuration.nix
+# /home/mike/.config/articleizer/targets.json
+# scripts/articles/publishizer.py
 
 # # CHAPTER 10: ENTERPRISE SEO - TRIFECTA MONOLITH (~275KB)
 # # The flagship app. So large it gets its own chapter.

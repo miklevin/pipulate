@@ -206,19 +206,21 @@
     # 1. THE SENSOR: Read the Accept header and define the MIME type
       # 1. THE SENSOR: Read the Accept header and define the MIME type
       appendHttpConfig = ''
-          # Expand CPU cache line alignment for long AI-generated URL keys
-          # map_hash_bucket_size 256; 
+      # 1. Expand the hash bucket size for the lookup table
+      map_hash_bucket_size 256; 
 
-          map $http_accept $serve_markdown {
-            default 0;
-            "~*text/markdown" 1;
-          }
-          map $uri $new_uri {
-            default "";
-            include /home/mike/www/mikelev.in/_site/redirects.map;
-        }
-      '';
+      # 2. Define the Sensor (Must be in http context)
+      map $uri $new_uri {
+        default "";
+        include /home/mike/www/mikelev.in/_site/redirects.map;
+      }
 
+      # 3. Existing Markdown Sensor
+      map $http_accept $serve_markdown {
+        default 0;
+        "~*text/markdown" 1;
+      }
+    '';
     virtualHosts."mikelev.in" = {
       forceSSL = true;      # Force all traffic to HTTPS 
       enableACME = true;    # Let's Encrypt magic 
