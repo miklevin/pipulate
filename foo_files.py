@@ -41,12 +41,13 @@ scripts/articles/ls_semantic.py
 /home/mike/repos/trimnoir/_redirects.map
 remotes/honeybot/hooks/post-receive
 remotes/honeybot/nixos/configuration.nix
-
+/home/mike/.config/articleizer/targets.json
+scripts/articles/publishizer.py
 
 # # CHAPTER 10: ENTERPRISE SEO - TRIFECTA MONOLITH (~275KB)
 # # The flagship app. So large it gets its own chapter.
 # apps/400_botify_trifecta.py
-
+#
 # # CHAPTER 9: ENTERPRISE SEO - BOTIFY SUITE (~340KB)
 # # The factory. Where we construct complex SEO deliverables.
 # apps/100_connect_with_botify.py
@@ -56,13 +57,13 @@ remotes/honeybot/nixos/configuration.nix
 # imports/botify/__init__.py
 # imports/botify/code_generators.py
 # imports/botify/true_schema_discoverer.py
-
+#
 # # CHAPTER 8: THE DOCUMENTATION & DEV TOOLS (~270KB)
 # # The self-documenting layer and the AI developer assistant.
 # apps/050_documentation.py
 # apps/230_dev_assistant.py
-
-
+#
+#
 # # CHAPTER 7: THE CORE APPS (CRUD, ROLES & WORKFLOWS) (~200KB)
 # # The fundamental plugin apps governing the user experience.
 # imports/crud.py
@@ -74,7 +75,7 @@ remotes/honeybot/nixos/configuration.nix
 # apps/040_hello_workflow.py
 # apps/060_tasks.py
 # apps/070_history.py
-
+#
 # # CHAPTER 6: THE SKIN (FRONTEND ASSETS & INIT) (~265KB)
 # # HTML over the wire. No Virtual DOM. The client-side muscle.
 # assets/init.js
@@ -83,7 +84,7 @@ remotes/honeybot/nixos/configuration.nix
 # assets/theme.js
 # assets/utils.js
 # assets/player-piano.js
-
+#
 # # CHAPTER 5: THE HANDS (AI TOOLS & AUTOMATION) (~350KB)
 # # What the AI actually *does* with its agency.
 # # `tools/` defines every action the AI can take via MCP dispatch.
@@ -149,9 +150,9 @@ remotes/honeybot/nixos/configuration.nix
 # scripts/articles/editing_prompt.txt
 
 # levinix.com
-/home/mike/repos/levinix/CNAME
-/home/mike/repos/levinix/index.md
-/home/mike/repos/levinix/README.md
+# /home/mike/repos/levinix/CNAME
+# /home/mike/repos/levinix/index.md
+# /home/mike/repos/levinix/README.md
 
 # scripts/articles/publishizer.py
 # /home/mike/.config/articleizer/targets.json

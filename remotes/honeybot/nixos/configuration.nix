@@ -213,6 +213,10 @@
             default 0;
             "~*text/markdown" 1;
           }
+          map $uri $new_uri {
+            default "";
+            include /home/mike/www/mikelev.in/_site/redirects.map;
+        }
       '';
 
     virtualHosts."mikelev.in" = {
@@ -228,6 +232,10 @@
         extraConfig = ''
           add_header Vary "Accept" always;
 
+          # Only trigger if the hash ledger found a match
+          if ($new_uri != "") {
+              return 301 $new_uri;
+          }
           if ($serve_markdown = 1) {
             rewrite ^(.*)/$ $1/index.md break;
           }
