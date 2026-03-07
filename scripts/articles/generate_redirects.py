@@ -100,34 +100,37 @@ def build_nginx_map(csv_input_path, map_output_path, navgraph_path):
         
         seen_keys = set()
         for old_url, new_url in valid_rows:
-            # --- 1. LINT: Check for forbidden characters (the grep test) ---
+            # 1. THE RIGOROUS GATEKEEPER (The grep -E '[;~^]' test)
+            # If these characters exist, the line is a threat to the service.
             if any(char in old_url or char in new_url for char in [';', '~', '^']):
                 print(f"❌ Corrupted data blocked: {old_url}")
                 corrupted_lines += 1
                 continue
 
-            # --- 2. LINT: Filter out external domain noise (YouTube, etc.) ---
-            # We only want internal paths starting with /
+            # 2. DOMAIN ISOLATION (The YouTube/External Filter)
+            # Purge hallucinations or external URLs that bleed into the CSV.
             if "http" in old_url or "www." in old_url:
                 print(f"🚫 External domain blocked: {old_url}")
                 external_noise += 1
                 continue
 
-            # --- 3. NORMALIZE: Ensure Nginx $uri compatibility ---
+            # 3. NORMALIZE FOR NGINX $uri
+            # Ensure keys and values are clean absolute paths.
             key = old_url.strip().rstrip('/')
             if not key.startswith('/'): key = '/' + key
             
             val = new_url.strip()
             if not val.startswith('/'): val = '/' + val
             
-            # --- 4. VALIDATE: Final logic check ---
+            # 4. DUPLICATE & CIRCULAR PROTECTION
             if key in seen_keys:
-                continue # Silent skip for duplicates
+                continue 
             if key == val:
                 print(f"⚠️  Circular skip: {key}")
                 continue
 
-            # --- 5. THE PURE WRITE ---
+            # 5. THE PURE WRITE
+            # Exactly one space, no semicolon, no regex.
             outfile.write(f"{key} {val}\n")
             seen_keys.add(key)
 
