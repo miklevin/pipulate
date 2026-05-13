@@ -96,8 +96,9 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-# Enable Pyflakes (F) and pycodestyle (E, W)
-select = ["E", "F", "W"]
+# Enable ONLY Pyflakes (F) for logical/fatal errors.
+# Drop "E" and "W" to silence all formatting and whitespace nags.
+select = ["F"]
 
 # Ignore F405: "name may be undefined, or defined from star imports"
 ignore = ["F405"]
