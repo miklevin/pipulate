@@ -358,31 +358,45 @@ def run_tree_command() -> str:
         return result.stdout
     except Exception as e: return f"Error running eza command: {e}"
 
-def run_static_analysis(python_files: List[str]) -> str:
-    """Runs Vulture and Pylint on the target files with high terminal transparency."""
+def run_static_analysis(python_files: List[str], no_lint: bool = False) -> str:
+    """Runs Ruff on the target files with high terminal transparency."""
     if not python_files:
         return ""
+        
+    if no_lint:
+        logger.print("\n⏭️  Static analysis bypassed (--no-lint).")
+        return ""
 
+    logger.print("\n🔍 Running Static Analysis Telemetry (Ruff)...")
+    diagnostics = []
 
-    if not args.no_lint:
-        print("\n🔍 Running Static Analysis Telemetry (Ruff)...")
-        try:
-            # Run Ruff check. Output streams directly to the console.
-            result = subprocess.run(
-                ["ruff", "check", "pipulate/core.py", "foo_files.py"], 
-                check=False
-            )
+    # Check if Ruff is installed
+    ruff_exec = shutil.which("ruff")
+    if not ruff_exec:
+        logger.print("⚠️ Ruff executable not found. Make sure it is installed in your Nix environment.")
+        return ""
+
+    # Build the command dynamically using the passed-in files
+    cmd = [ruff_exec, "check"] + python_files
+    
+    try:
+        # capture_output=True is crucial so we can feed the result to the LLM
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        
+        if result.stdout:
+            # Format it nicely for the final markdown prompt
+            diagnostics.append("### Ruff (Static Analysis)\n```text\n" + result.stdout.strip() + "\n
+```")
+            logger.print(result.stdout.strip())  # Transparent terminal output
+        else:
+            logger.print("✅ Static Analysis Complete. No issues found.")
             
-            if result.returncode == 0:
-                print("✅ Static Analysis Complete. No issues found.")
-                
-        except FileNotFoundError:
-            print("⚠️ Ruff executable not found. Make sure it is installed in your Nix environment.")
-    else:
-        print("\n⏭️  Static analysis bypassed (--no-lint).")
-             
-    logger.print("✅ Static Analysis Complete.\n")
+    except Exception as e:
+        logger.print(f"      [Error running Ruff: {e}]")
+
+    # Return the string payload to be injected into the clipboard/prompt
     return "\n\n".join(diagnostics)
+
 
 # ============================================================================
 # --- Helper Functions (File Parsing, Clipboard) ---
