@@ -31,6 +31,7 @@ logging.getLogger("piper").setLevel(logging.ERROR)
 # Strong references for background asyncio tasks to prevent ipykernel garbage collection warnings
 _background_tasks = set()
 
+print(this_variable_does_not_exist)
 
 def fire_and_forget(coro):
     """Safely executes an async task in the background without Jupyter garbage collecting it."""

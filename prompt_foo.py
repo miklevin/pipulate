@@ -385,8 +385,7 @@ def run_static_analysis(python_files: List[str], no_lint: bool = False) -> str:
         
         if result.stdout:
             # Format it nicely for the final markdown prompt
-            diagnostics.append("### Ruff (Static Analysis)\n```text\n" + result.stdout.strip() + "\n
-```")
+            diagnostics.append("### Ruff (Static Analysis)\n```text\n" + result.stdout.strip() + "```")
             logger.print(result.stdout.strip())  # Transparent terminal output
         else:
             logger.print("✅ Static Analysis Complete. No issues found.")
@@ -1401,7 +1400,7 @@ def main():
  
     python_files_to_analyze = [f['path'] for f in processed_files_data if f['path'].endswith('.py') and os.path.isfile(f['path'])]
     if python_files_to_analyze:
-        analysis_output = run_static_analysis(python_files_to_analyze)
+        analysis_output = run_static_analysis(python_files_to_analyze, no_lint=args.no_lint)
         if analysis_output:
             builder.add_auto_context("Static Analysis Diagnostics", analysis_output)   
     # 4. Generate final output with convergence loop
