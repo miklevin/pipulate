@@ -276,14 +276,13 @@ AI_PHOOEY_CHOP = r"""\ # vulture: ignore
 # ============================================================================
 # Your daily ebb and flow happens here. Clear this out regularly. Add chapter?
 
-flake.nix
-requirements.in  # [573 tokens | 1,924 bytes]
-requirements.txt  # [7,010 tokens | 18,582 bytes]
-
-foo_files.py  # [4,028 tokens | 15,548 bytes]                                   <-- Almost always included every single time.
+# foo_files.py  # [4,028 tokens | 15,548 bytes]                                   <-- Almost always included every single time.
 prompt_foo.by  # [13,638 tokens | 62,389 bytes]
 
 # !!!
+
+# flake.nix
+# requirements.in  # [573 tokens | 1,924 bytes]
 
 # pipulate/core.py
 

@@ -91,9 +91,12 @@ scikit-learn
 numpy
 
 # Code Quality
+ruff
+yapf
+
+# Code Quality
 pylint
 vulture
-yapf
 isort
 
 # Other utilities

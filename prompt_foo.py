@@ -362,39 +362,24 @@ def run_static_analysis(python_files: List[str]) -> str:
     """Runs Vulture and Pylint on the target files with high terminal transparency."""
     if not python_files:
         return ""
-        
-    logger.print("\n🔍 Running Static Analysis Telemetry...")
-    diagnostics = []
-    
-    # 1. Vulture (Dead Code)
-    vulture_exec = shutil.which("vulture")
-    if vulture_exec:
-        logger.print("   -> Checking for dead code (Vulture)...")
-        # Include your whitelist automatically if it exists in the repo
-        whitelist = os.path.join(REPO_ROOT, "scripts", "vulture_whitelist.py")
-        cmd = [vulture_exec] + python_files + ([whitelist] if os.path.exists(whitelist) else [])
-        
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.stdout:
-                diagnostics.append("### Vulture (Dead Code & Unused Variables)\n```text\n" + result.stdout.strip() + " ```")
-                logger.print(result.stdout.strip())  # Transparent terminal output
-        except Exception as e:
-            logger.print(f"      [Error running Vulture: {e}]")
 
-    # 2. Pylint (Syntax & Fatal Errors Only)
-    pylint_exec = shutil.which("pylint")
-    if pylint_exec:
-        logger.print("   -> Checking for fatal errors (Pylint)...")
-        # --errors-only prevents style warnings from blowing up the context window
-        cmd = [pylint_exec, "--errors-only", "--output-format=text"] + python_files
+
+    if not args.no_lint:
+        print("\n🔍 Running Static Analysis Telemetry (Ruff)...")
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.stdout and "Your code has been rated" not in result.stdout:
-                diagnostics.append("### Pylint (Fatal Errors)\n```text\n" + result.stdout.strip() + "\n```")
-                logger.print(result.stdout.strip())  # Transparent terminal output
-        except Exception as e:
-             logger.print(f"      [Error running Pylint: {e}]")
+            # Run Ruff check. Output streams directly to the console.
+            result = subprocess.run(
+                ["ruff", "check", "pipulate/core.py", "foo_files.py"], 
+                check=False
+            )
+            
+            if result.returncode == 0:
+                print("✅ Static Analysis Complete. No issues found.")
+                
+        except FileNotFoundError:
+            print("⚠️ Ruff executable not found. Make sure it is installed in your Nix environment.")
+    else:
+        print("\n⏭️  Static analysis bypassed (--no-lint).")
              
     logger.print("✅ Static Analysis Complete.\n")
     return "\n\n".join(diagnostics)
@@ -1049,6 +1034,7 @@ def main():
     parser.add_argument('--context-only', action='store_true', help='Generate a context-only prompt without file contents.')
     parser.add_argument('-n', '--no-tree', action='store_true', help='Suppress file tree and UML generation.')
     parser.add_argument('--chop', type=str, default='AI_PHOOEY_CHOP', help='Specify an alternative payload variable from foo_files.py')
+    parser.add_argument('--no-lint', action='store_true', help='Bypass static analysis telemetry')
     
     # 💥 NEW: Dynamic argument injection
     parser.add_argument('--arg', action='append', help='Pass dynamic arguments to CHOP templates (format: key=value)')

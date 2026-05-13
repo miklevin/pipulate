@@ -95,3 +95,14 @@ exclude = [
     "CHANGELOG.md"
 ]
 
+[tool.ruff.lint]
+# Enable Pyflakes (F) and pycodestyle (E, W)
+select = ["E", "F", "W"]
+
+# Ignore F405: "name may be undefined, or defined from star imports"
+ignore = ["F405"]
+
+# Optional: You can also specify per-file ignores if you want to be
+# even more surgical about where these rules apply.
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"] # Ignore unused imports in init files
