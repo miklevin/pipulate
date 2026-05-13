@@ -35,7 +35,6 @@ except ImportError:
     RICH_AVAILABLE = False
     print("💡 Install 'rich' for beautiful table output: pip install rich")
 
-print(this_function_does_not_exist)
 
 # --- Configuration ---
 try:
