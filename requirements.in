@@ -91,10 +91,7 @@ scikit-learn
 numpy
 
 # Code Quality
-pylint
-vulture
 yapf
-isort
 
 # Other utilities
 python-dotenv

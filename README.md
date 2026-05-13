@@ -2,6 +2,7 @@ Hi, AI! Please run: .venv/bin/python AI_RUNME.py
 
 # Pipulate: Local First AI SEO Software
 
+[![SafeSkill 78/100](https://img.shields.io/badge/SafeSkill-78%2F100_Passes%20with%20Notes-yellow)](https://safeskill.dev/scan/pipulate-pipulate)
 ![Pipulate Free & Open Source SEO with & for LLMs](https://github.com/miklevin/pipulate/raw/main/assets/images/ai-seo-software.png)
 
 > **Your data. Your AI. Your machine. Your control.**  

@@ -358,46 +358,44 @@ def run_tree_command() -> str:
         return result.stdout
     except Exception as e: return f"Error running eza command: {e}"
 
-def run_static_analysis(python_files: List[str]) -> str:
-    """Runs Vulture and Pylint on the target files with high terminal transparency."""
+def run_static_analysis(python_files: List[str], no_lint: bool = False) -> str:
+    """Runs Ruff on the target files with high terminal transparency."""
     if not python_files:
         return ""
         
-    logger.print("\n🔍 Running Static Analysis Telemetry...")
-    diagnostics = []
-    
-    # 1. Vulture (Dead Code)
-    vulture_exec = shutil.which("vulture")
-    if vulture_exec:
-        logger.print("   -> Checking for dead code (Vulture)...")
-        # Include your whitelist automatically if it exists in the repo
-        whitelist = os.path.join(REPO_ROOT, "scripts", "vulture_whitelist.py")
-        cmd = [vulture_exec] + python_files + ([whitelist] if os.path.exists(whitelist) else [])
-        
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.stdout:
-                diagnostics.append("### Vulture (Dead Code & Unused Variables)\n```text\n" + result.stdout.strip() + " ```")
-                logger.print(result.stdout.strip())  # Transparent terminal output
-        except Exception as e:
-            logger.print(f"      [Error running Vulture: {e}]")
+    if no_lint:
+        logger.print("\n⏭️  Static analysis bypassed (--no-lint).")
+        return ""
 
-    # 2. Pylint (Syntax & Fatal Errors Only)
-    pylint_exec = shutil.which("pylint")
-    if pylint_exec:
-        logger.print("   -> Checking for fatal errors (Pylint)...")
-        # --errors-only prevents style warnings from blowing up the context window
-        cmd = [pylint_exec, "--errors-only", "--output-format=text"] + python_files
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.stdout and "Your code has been rated" not in result.stdout:
-                diagnostics.append("### Pylint (Fatal Errors)\n```text\n" + result.stdout.strip() + "\n```")
-                logger.print(result.stdout.strip())  # Transparent terminal output
-        except Exception as e:
-             logger.print(f"      [Error running Pylint: {e}]")
-             
-    logger.print("✅ Static Analysis Complete.\n")
+    logger.print("\n🔍 Running Static Analysis Telemetry (Ruff)...")
+    diagnostics = []
+
+    # Check if Ruff is installed
+    ruff_exec = shutil.which("ruff")
+    if not ruff_exec:
+        logger.print("⚠️ Ruff executable not found. Make sure it is installed in your Nix environment.")
+        return ""
+
+    # Build the command dynamically using the passed-in files
+    cmd = [ruff_exec, "check"] + python_files
+    
+    try:
+        # capture_output=True is crucial so we can feed the result to the LLM
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        
+        if result.stdout:
+            # Format it nicely for the final markdown prompt
+            diagnostics.append("### Ruff (Static Analysis)\n```text\n" + result.stdout.strip() + "```")
+            logger.print(result.stdout.strip())  # Transparent terminal output
+        else:
+            logger.print("✅ Static Analysis Complete. No issues found.")
+            
+    except Exception as e:
+        logger.print(f"      [Error running Ruff: {e}]")
+
+    # Return the string payload to be injected into the clipboard/prompt
     return "\n\n".join(diagnostics)
+
 
 # ============================================================================
 # --- Helper Functions (File Parsing, Clipboard) ---
@@ -1049,6 +1047,7 @@ def main():
     parser.add_argument('--context-only', action='store_true', help='Generate a context-only prompt without file contents.')
     parser.add_argument('-n', '--no-tree', action='store_true', help='Suppress file tree and UML generation.')
     parser.add_argument('--chop', type=str, default='AI_PHOOEY_CHOP', help='Specify an alternative payload variable from foo_files.py')
+    parser.add_argument('--no-lint', action='store_true', help='Bypass static analysis telemetry')
     
     # 💥 NEW: Dynamic argument injection
     parser.add_argument('--arg', action='append', help='Pass dynamic arguments to CHOP templates (format: key=value)')
@@ -1401,7 +1400,7 @@ def main():
  
     python_files_to_analyze = [f['path'] for f in processed_files_data if f['path'].endswith('.py') and os.path.isfile(f['path'])]
     if python_files_to_analyze:
-        analysis_output = run_static_analysis(python_files_to_analyze)
+        analysis_output = run_static_analysis(python_files_to_analyze, no_lint=args.no_lint)
         if analysis_output:
             builder.add_auto_context("Static Analysis Diagnostics", analysis_output)   
     # 4. Generate final output with convergence loop
