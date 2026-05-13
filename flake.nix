@@ -179,10 +179,10 @@
         commonPackages = with pkgs; [
           sqlite                       # Ensures correct SQLite library is linked on macOS
           (python312.withPackages (ps: with ps; [
-            ruff
             nbstripout
           ]))
           nbstripout
+          ruff
           figlet                       # For creating ASCII art welcome messages
           tmux                         # Terminal multiplexer for managing sessions
           zlib                         # Compression library for data compression
