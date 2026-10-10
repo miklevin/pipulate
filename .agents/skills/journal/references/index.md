@@ -1,8 +1,8 @@
 # The Pipulate journal, indexed
 
-> Auto-generated on 2026-10-08 by `scripts/articles/generate_ai_context.py` and
+> Auto-generated on 2026-10-10 by `scripts/articles/generate_ai_context.py` and
 > rewritten from scratch on every release. If this date looks stale, assume
-> the rest of the repo is newer than this map. 1523 entries indexed.
+> the rest of the repo is newer than this map. 1528 entries indexed.
 
 This repository holds the *machinery*. The *reasoning*, the running journal
 that explains why every piece exists, lives on a separate website and not in
@@ -27,6 +27,11 @@ The first 20 entries include full `index.md` URLs to establish
 the link pattern. All remaining entries are bare slugs. Reconstruct any full
 URL as: `https://mikelev.in/futureproof/{slug}/index.md`
 
+- [2026-10-10] [Making a Diff: The Minimal Instrument](https://mikelev.in/futureproof/making-a-diff-the-minimal-instrument/index.md)
+- [2026-10-09] [The Heat and the Delete: Landauer's Limit and Verifiable Codebase Pruning](https://mikelev.in/futureproof/the-heat-and-the-delete-verifiable-pruning/index.md)
+- [2026-10-09] [The Inverted Cave: AI Quality Assurance and the Jevons Paradox of Code](https://mikelev.in/futureproof/inverted-cave-ai-quality-assurance-jevons-paradox/index.md)
+- [2026-10-08] [The Anti-Crichton Pipeline: Intentional Friction and Replayable Receipts](https://mikelev.in/futureproof/anti-crichton-pipeline-intentional-friction/index.md)
+- [2026-10-08] [The Randi Test: Grounding Agent-Readiness in Verifiable Receipts](https://mikelev.in/futureproof/the-randi-test-for-agent-readiness/index.md)
 - [2026-10-08] [Jekyll Satellites: Decoupling Shared Tooling from Independent Sites with Nix](https://mikelev.in/futureproof/jekyll-satellites-shared-nix-kernel/index.md)
 - [2026-10-07] [Removing the Conversion Event: When Paradigms Become Invisible Infrastructure](https://mikelev.in/futureproof/removing-the-conversion-event/index.md)
 - [2026-10-07] [Public Installers, Private Entitlements, and Watching the Infrastructure Read](https://mikelev.in/futureproof/public-installers-private-entitlements-wire-telemetry/index.md)
@@ -42,16 +47,16 @@ URL as: `https://mikelev.in/futureproof/{slug}/index.md`
 - [2026-10-02] [The Enter Fence and the Bell Cue: Building Replayable Browser Walks in the Age of AI](https://mikelev.in/futureproof/the-enter-fence-and-the-bell-cue/index.md)
 - [2026-10-02] [The Clear Cups Protocol: Auditing MCP Calls with Replayable Receipts](https://mikelev.in/futureproof/clear-cups-protocol-auditing-mcp-calls/index.md)
 - [2026-10-02] [The Door Table and the Moving Twig: Replayable Installs and the Stick Bug Secret](https://mikelev.in/futureproof/the-door-table-and-the-moving-twig/index.md)
-- [2026-10-01] [The Scrollback Rule: Engineering Full-Width Terminal Dividers for Replayable Logs](https://mikelev.in/futureproof/scrollback-rule-clear-x-receipts/index.md)
-- [2026-10-01] [The Prefix Ladder and the Unalias Guard: Replayable Shell Ergonomics in the Age of AI](https://mikelev.in/futureproof/prefix-ladders-and-the-unalias-guard/index.md)
-- [2026-09-30] [Forever-Commands and the Talk Toggle: Replayable CLI Habits in the Age of AI](https://mikelev.in/futureproof/forever-commands-and-the-talk-toggle/index.md)
-- [2026-09-29] [Layered Reality and Operator Overloading: Reading the Physics of CPython in the Age of AI](https://mikelev.in/futureproof/layered-reality-operator-overloading-cpython/index.md)
-- [2026-09-29] [The Three-Door Installer: Named Prompts, Split DNS, and Verifiable Releases](https://mikelev.in/futureproof/the-three-door-installer-and-named-prompts/index.md)
 
 ## Compact slug index -- pattern: https://mikelev.in/futureproof/{slug}/index.md
 
 Format: `[date] [size] slug` -- fetch any entry as `https://mikelev.in/futureproof/{slug}/index.md`
 
+- [2026-10-01] [22k] scrollback-rule-clear-x-receipts
+- [2026-10-01] [51k] prefix-ladders-and-the-unalias-guard
+- [2026-09-30] [103k] forever-commands-and-the-talk-toggle
+- [2026-09-29] [35k] layered-reality-operator-overloading-cpython
+- [2026-09-29] [245k] the-three-door-installer-and-named-prompts
 - [2026-09-29] [234k] the-deed-is-named-for-the-door-qa-archive-zip
 - [2026-09-29] [200k] qamy-door-cellular-witness-replayable-receipts
 - [2026-09-28] [368k] the-forward-slash-test-claude-skills-bridge
