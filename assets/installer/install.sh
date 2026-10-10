@@ -2,36 +2,43 @@
 # The installer behind pipulate.com, npvg.org and qamy.ai
 # =======================================================
 #
-# You are reading this because you piped it to less instead of bash.
-# That is the first QA step: you held the silver crucifix against the pane.
+# # You are reading this because you piped it to less instead of bash.
+# That is the first QA step: verifying the contract before execution.
 #
-# In Stephen King's 'Salem's Lot, Danny Glick hovers in the fog outside
-# Mark Petrie's second-story bedroom window, scratching his fingernails
-# against the glass: "Let me in. You have to invite me in."
-# The ancient law of the threshold holds: a vampire cannot cross uninvited.
+# Standard cloud vendor culture trains engineers to run:
+#      curl -fsSL https://vendor.com/install.sh | sudo bash
+# That pattern delegates root authority to an uninspected remote script, trusting
+# that network transit, dependency chains, and upstream repos are uncompromised.
+# Ken Thompson warned us in 1984: you cannot trust code you did not inspect.
 #
-# Modern developer culture has trained you to recline in your hoverchair
-# and type:
-#     curl -fsSL https://vendor.com/install.sh | sudo bash
-# That is pulling the sash, throwing open the shutters, and inviting the
-# creature into your living room with root execution privileges.
+# Piping to less is the airlock. You are inspecting the unexecuted source.
+# Nothing has run. No processes have forked. Zero bytes have touched disk.
+# You are inside standard Unix less:
+#      j = scroll down one line
+#      k = scroll up one line
+#      / = search for a pattern
+#      q = quit cleanly, leaving your machine untouched.
 #
-# In Vernor Vinge's 'A Fire Upon the Deep', the Straumli Realm uncompresses
-# an unknown archive in the High Beyond without reading the protocol.
-# What could possibly go wrong? They wake the Blight.
+# WHAT THIS REPOSITORY IS:
+# An open reference harness for RFC 9110 Section 12 (HTTP Content Negotiation)
+# and Bimodal CDN-Native architecture. It demonstrates how origin servers and
+# CDNs serve clean, machine-ready Markdown to AI agents (Accept: text/markdown)
+# while serving visual HTML to human browsers at the same URL (Vary: Accept)—
+# eliminating fragile headless Chromium pre-rendering clusters and cache drift.
 #
-# Piping to less is the airlock. You are looking through the glass.
-# Nothing has executed. No processes have forked. Not a single byte has
-# touched your filesystem. You are inside a classic Unix pager:
-#     j = scroll down one line
-#     k = scroll up one line
-#     / = search for a pattern
-#     q = quit cleanly, leaving your machine untouched.
+# ARCHITECTURAL SCOPE:
+# 1. Localhost: runs completely unprivileged in an isolated user directory.
+# 2. Satellites & Edge: projects declarative Nix environments to lab hardware,
+#    DMZ relays, or edge workers without polluting the host environment.
+# 3. Verification: captures raw wire truth, generates cryptographic deeds of
+#    payloads, and audits agent-readiness without third-party dependencies.
 #
-# If you feel your water drying up—if the 1,000-hour Phoebus lightbulbs of
-# ephemeral cloud subscriptions are burning out around you—here is the
-# passport of the visitor outside your window, and the exact contract
-# of what happens if you choose to let it in:
+# RETAINED ADVISORY & CONTACT:
+# Advising infrastructure and search leadership on RFC 9110 edge deployment.
+# Briefing inquiries: mike@mikelev.in
+# (Requirement: run a baseline wire audit of your edge before requesting a briefing).
+#
+# Here is the explicit contract of what happens if you choose to run it:
 #
 # What it does, in order:
 #   1. downloads a zip of the repository from github.com;
