@@ -2,7 +2,7 @@
 # The installer behind pipulate.com, npvg.org and qamy.ai
 # =======================================================
 #
-# # You are reading this because you piped it to less instead of bash.
+# You are reading this because you piped it to less instead of bash.
 # That is the first QA step: verifying the contract before execution.
 #
 # Standard cloud vendor culture trains engineers to run:
