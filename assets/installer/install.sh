@@ -35,7 +35,7 @@
 #
 # RETAINED ADVISORY & CONTACT:
 # Advising infrastructure and search leadership on RFC 9110 edge deployment.
-# Briefing inquiries: mike@mikelev.in
+# Briefing inquiries: miklevin@gmail.com
 # (Requirement: run a baseline wire audit of your edge before requesting a briefing).
 #
 # Here is the explicit contract of what happens if you choose to run it:
