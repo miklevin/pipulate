@@ -1515,7 +1515,7 @@ foo_files.py
 
 DEFAULT_CHOP = r"""
 # OPTIONAL BUT BIG FOR FULL CONTEXT-WINDOW STORYTELLING
-# ! python scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs  # <-- The "Rolling Pin" that gives the 40K foot book-spine view of book-ore.
+# ! book  # <-- The "Rolling Pin" that gives the 40K foot book-spine view of book-ore.
 GLOSSARY.md                 # <-- Like the back of a J.R.R. Tolkien book but always growing in size as `prompt_foo.py` gets scars and shrinks.
 # scripts/articles/lsa.py     # <-- 2nd Brain query-engine for `rgx`, `rgxc` & `posts` Jekyll-inspired Memory Externalization for Hackers.
 # ~/repos/nixos/autognome.py  # <-- Letting the AIs really understand my environment (The Brave Little Tailor punches above Their Weight Class proving the dunning-kruger effect the gate-keeper's (lower-case) lament.)
