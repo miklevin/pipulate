@@ -1255,8 +1255,10 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
               echo "⚠️  Server didn't start within 30 seconds, but continuing..."
             fi
           ) &
-          # Run server in foreground
-          python server.py
+          # Run server in foreground if not already running in tmux
+          if ! tmux has-session -t pipulate 2>/dev/null; then
+            python server.py
+          fi
         '';
         # Logic for installing all Python packages
         pythonInstallLogic = ''
