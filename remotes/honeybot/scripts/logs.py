@@ -41,6 +41,7 @@ ANSI_ESCAPE = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
 LOG_PATTERN = re.compile(
     r'(?P<ip>[\d\.]+) - - \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<status>\d+) (?P<bytes>\d+) '
     r'"(?P<referrer>.*?)" "(?P<ua>.*?)"(?: Accept:"(?P<accept>.*?)" MarkdownServed:(?P<md>\d))?'
+    r'(?: Host:"(?P<host>.*?)")?'
 )
 
 class SonarApp(App):
@@ -320,7 +321,8 @@ class SonarApp(App):
                             status=int(data['status']),
                             referrer=data.get('referrer'),
                             accept=data.get('accept'),
-                            served_md=data.get('md')
+                            served_md=data.get('md'),
+                            host=data.get('host') or 'mikelev.in'
                         )
                         db.increment_counter("global_hits")
                     except: pass
@@ -378,6 +380,14 @@ class SonarApp(App):
             time_str = ":".join(time_str).split(' ')[0]
             text.append(f"[{time_str}] ", style="dim")
         except: text.append("[TIME] ", style="dim")
+
+        host = (data.get('host') or '').lower()
+        if 'qamy' in host:
+            text.append("[QAMY] ", style="bold magenta")
+        elif 'npvg' in host:
+            text.append("[NPVG] ", style="bold yellow")
+        else:
+            text.append("[LEVN] ", style="bold cyan")
 
         text.append(ip_display)
         text.append("  ") # Just space
