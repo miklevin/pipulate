@@ -12,6 +12,7 @@ Always properly nest Markdown: **this is `correct`**
 Use of triple backtick Markdown fencing but never naked. Default to ```text.
 DO NOT GENERATE INTERACTIVE VISUAL, ARTIFACT, CANVAS OR ANY OTHER OOB --
 If it's not in the GUI click-to-copy POSIX pipe, it doesn't exist.
+You can provide ASCII art as an alternative.
 """
 
 import sys
