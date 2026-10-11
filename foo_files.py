@@ -1438,7 +1438,7 @@ foo_files.py      #  <-- THIS file. Content compiler router. Makes it very meta.
 # know humans aren't really that smart.
 
 ROLLING_PIN_CHOP = """
-! python scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs
+! book
 """
 
 EMPTY = r"""
