@@ -1876,6 +1876,7 @@ at the first line still leaves with the verdict.
 # If it's not in the GUI click-to-copy POSIX pipe, it doesn't exist. You can provide ASCII art
 # as an alternative. Use triple backtick Markdown fencing but never naked; default to ```text.
 # Always properly nest Markdown: **this is `correct`**, not **this is `incorrect**`.
+# If you start to produce a "Widget" I will immediately stop the response and thumbs-down it.
 
 # AI Self-Correction Checklist
 
