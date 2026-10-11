@@ -245,6 +245,13 @@
           set -euo pipefail
           exec ${postsCommand}/bin/posts --shards "$@"
         '';
+
+        # THE `book` COMMAND: Emits the entire dated-slug spine (newest first)
+        # for child shells behind `! book` in context.txt and interactive prompts alike.
+        bookCommand = pkgs.writeShellScriptBin "book" ''
+          set -euo pipefail
+          exec ${postsCommand}/bin/posts --reverse --fmt dated-slugs "$@"
+        '';
         rgxCommand = pkgs.writeShellScriptBin "rgx" ''
           set -euo pipefail
 
