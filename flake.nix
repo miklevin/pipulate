@@ -1076,19 +1076,14 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
           #     habitual shell-only user would silently drift from upstream and
           #     the magic cookie's forever-forward promise would rot.
           copy_notebook_if_needed
-          # ONE WORKSHOP AT A TIME, SAID OUT LOUD (2026-08-04). This kill has
-          # always been unconditional and silent, and it is PATTERN-based, so
-          # entering ANY whitelabeled workshop stops the server running in EVERY
-          # other one -- ports 5001 and 8888 are global. That means the
-          # one-at-a-time rule is already enforced as PHYSICS and needs no policy
-          # added to it. What was missing was the RECEIPT: a newcomer with two
-          # workshops watched one window's server die for no stated reason, which
-          # is indistinguishable from a crash. Speak only when there WAS a kill,
-          # so a single-workshop user never sees this line at all.
+          # ONE WORKSHOP AT A TIME: stop any previous server, whether in tmux or bare process
+          tmux kill-session -t pipulate 2>/dev/null || true
           if pkill -f "python server.py"; then
             echo "🛑 Stopped a Pipulate server that was already running (ports 5001/8888 are shared -- one workshop at a time)."
           fi
           git pull --quiet
+          # Start Pipulate server in background tmux session so port 5001 is immediately alive
+          tmux new-session -d -s pipulate -c "''${PIPULATE_ROOT:-$PWD}" "source .venv/bin/activate && python server.py"
           # THE VOICE ASKS ONCE, OUT LOUD (2026-10-01, the operator's ask: the
           # voice is heard before the first menu, so the menu's spoken hint is
           # the second thing it says). Only where no answer is recorded, at a
