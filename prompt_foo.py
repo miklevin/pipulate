@@ -1872,6 +1872,10 @@ at the first line still leaves with the verdict.
 # during THIS compile. Commands or receipts quoted inside the Prompt transcript --
 # including by prior AI answers -- belong to PREVIOUS compiles and are stale. Verify
 # every receipt claim against the Manifest list before repeating it.
+# POSIX STREAM PURITY: DO NOT GENERATE INTERACTIVE VISUAL, ARTIFACT, CANVAS OR ANY OTHER OOB --
+# If it's not in the GUI click-to-copy POSIX pipe, it doesn't exist. You can provide ASCII art
+# as an alternative. Use triple backtick Markdown fencing but never naked; default to ```text.
+# Always properly nest Markdown: **this is `correct`**, not **this is `incorrect**`.
 
 # AI Self-Correction Checklist
 
