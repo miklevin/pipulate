@@ -1744,10 +1744,11 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
             (cd "$PIPULATE_ROOT" && PIPULATE_BOOT_MENU=0 ${runScript}/bin/run-script)
           }
           # `pu` is the server-only word. Kill-then-start, so it doubles as a
-          # restart and never collides on :5001.
+          # restart and never collides on :5001. Terminates any background tmux session.
           pu() {
             (
               cd "$PIPULATE_ROOT" || exit 1
+              tmux kill-session -t pipulate 2>/dev/null || true
               pkill -f "python server.py" || true
               python server.py
             )
