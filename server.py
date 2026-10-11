@@ -4704,12 +4704,12 @@ async def send_startup_environment_message():
             env_message = demo_comeback_message
             logger.info("🎭 DEMO_COMEBACK: Using special demo comeback message as startup message")
         elif current_env == 'Development':
-            env_message = f"🚀 Server started in {env_display} mode on localhost colon 5001. Ready for experimentation and testing!"
+            env_message = f"🚀 Server started in {env_display} mode on local host colon 5001. Ready for experimentation and testing!"
         else:
-            env_message = f"🚀 Server started in {env_display} mode on localhost colon 5001. Ready for production use."
+            env_message = f"🚀 Server started in {env_display} mode on local host colon 5001. Ready for production use."
         # 🎤 Speak it into existence!
         pronounce = {"DEV": "Developer", "Prod": "Production"}
-        pipulate.speak(f"Server started in {pronounce[env_display]} mode on localhost colon 5001.", wait=False)
+        pipulate.speak(f"Server started in {pronounce[env_display]} mode on local host colon 5001.", wait=False)
 
         # Ensure message queue is ready with retry logic
         max_retries = 3
