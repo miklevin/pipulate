@@ -210,7 +210,8 @@
       log_format ai_tracker '$remote_addr - $remote_user [$time_local] '
                             '"$request" $status $body_bytes_sent '
                             '"$http_referer" "$http_user_agent" '
-                            'Accept:"$http_accept" MarkdownServed:$serve_markdown';
+                            'Accept:"$http_accept" MarkdownServed:$serve_markdown '
+                            'Host:"$host"';
       access_log /var/log/nginx/access.log ai_tracker;
     '';
 
@@ -274,6 +275,7 @@
       serverAliases = [ "www.npvg.org" ];
       root = "/home/mike/www/npvg.org";
       extraConfig = ''
+        access_log /var/log/nginx/access.log ai_tracker;
         access_log /var/log/nginx/npvg.access.log ai_tracker;
       '';
 
@@ -326,6 +328,7 @@
       serverAliases = [ "www.qamy.ai" ];
       root = "/home/mike/www/qamy.ai";
       extraConfig = ''
+        access_log /var/log/nginx/access.log ai_tracker;
         access_log /var/log/nginx/qamy.access.log ai_tracker;
       '';
 
