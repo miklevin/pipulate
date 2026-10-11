@@ -2,7 +2,7 @@
 
 > Auto-generated on 2026-10-10 by `scripts/articles/generate_ai_context.py` and
 > rewritten from scratch on every release. If this date looks stale, assume
-> the rest of the repo is newer than this map. 1528 entries indexed.
+> the rest of the repo is newer than this map. 1530 entries indexed.
 
 This repository holds the *machinery*. The *reasoning*, the running journal
 that explains why every piece exists, lives on a separate website and not in
@@ -27,6 +27,8 @@ The first 20 entries include full `index.md` URLs to establish
 the link pattern. All remaining entries are bare slugs. Reconstruct any full
 URL as: `https://mikelev.in/futureproof/{slug}/index.md`
 
+- [2026-10-10] [Holding the Reins: Background Daemons, Quiet Shells, and Resisting the Rabbit Hole](https://mikelev.in/futureproof/holding-the-reins-background-daemons-and-rabbit-holes/index.md)
+- [2026-10-10] [Less Messaging: RFC 9110 and the Inspection Airlock](https://mikelev.in/futureproof/less-messaging-rfc9110-inspection-airlock/index.md)
 - [2026-10-10] [Making a Diff: The Minimal Instrument](https://mikelev.in/futureproof/making-a-diff-the-minimal-instrument/index.md)
 - [2026-10-09] [The Heat and the Delete: Landauer's Limit and Verifiable Codebase Pruning](https://mikelev.in/futureproof/the-heat-and-the-delete-verifiable-pruning/index.md)
 - [2026-10-09] [The Inverted Cave: AI Quality Assurance and the Jevons Paradox of Code](https://mikelev.in/futureproof/inverted-cave-ai-quality-assurance-jevons-paradox/index.md)
@@ -45,13 +47,13 @@ URL as: `https://mikelev.in/futureproof/{slug}/index.md`
 - [2026-10-03] [The Single-Owner Rule and the Verifiable Deed: Quieting Pipeline Noise in the Age of AI](https://mikelev.in/futureproof/single-owner-rule-and-verifiable-deeds/index.md)
 - [2026-10-03] [The Render Canary and the Quiet Compiler: Distinguishing Exposure from Corruption in the Age of AI](https://mikelev.in/futureproof/render-canary-and-the-quiet-compiler/index.md)
 - [2026-10-02] [The Enter Fence and the Bell Cue: Building Replayable Browser Walks in the Age of AI](https://mikelev.in/futureproof/the-enter-fence-and-the-bell-cue/index.md)
-- [2026-10-02] [The Clear Cups Protocol: Auditing MCP Calls with Replayable Receipts](https://mikelev.in/futureproof/clear-cups-protocol-auditing-mcp-calls/index.md)
-- [2026-10-02] [The Door Table and the Moving Twig: Replayable Installs and the Stick Bug Secret](https://mikelev.in/futureproof/the-door-table-and-the-moving-twig/index.md)
 
 ## Compact slug index -- pattern: https://mikelev.in/futureproof/{slug}/index.md
 
 Format: `[date] [size] slug` -- fetch any entry as `https://mikelev.in/futureproof/{slug}/index.md`
 
+- [2026-10-02] [41k] clear-cups-protocol-auditing-mcp-calls
+- [2026-10-02] [261k] the-door-table-and-the-moving-twig
 - [2026-10-01] [22k] scrollback-rule-clear-x-receipts
 - [2026-10-01] [51k] prefix-ladders-and-the-unalias-guard
 - [2026-09-30] [103k] forever-commands-and-the-talk-toggle
