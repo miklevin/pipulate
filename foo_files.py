@@ -731,7 +731,7 @@ foo_files.py      #  <-- THIS file. Content compiler router. Makes it very meta.
 # ============================================================================
 
 # THE ROLLING PIN (Again, if you only include one thing for overarching context of Pipulate and NPvg, include this.
-# ! python scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs  # <-- THIS IS THE MAGIC ROLLING PIN
+# ! book  # <-- THIS IS THE MAGIC ROLLING PIN
 # ! python scripts/articles/lsa.py -t 4 --reverse --fmt dated-slugs  # <-- BotifyML work journal
 # scripts/articles/lsa.py   # <-- You can show the AI how the magic rolling pin works
 
