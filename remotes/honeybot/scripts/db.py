@@ -55,6 +55,13 @@ class HoneyDB:
                 first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS domains (
+                id INTEGER PRIMARY KEY,
+                value TEXT UNIQUE,
+                first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
 
         # 2. The Fact Table (Daily Aggregation)
         # Composite Key: Date + IP + UA + Path + Status
@@ -105,6 +112,23 @@ class HoneyDB:
             )
         """)
 
+        # --- MULTI-TENANT DOMAIN FACT TABLE (SIDECAR) ---
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS domain_daily_logs (
+                date TEXT,
+                domain_id INTEGER,
+                path_id INTEGER,
+                ua_id INTEGER,
+                status INTEGER,
+                count INTEGER DEFAULT 1,
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (date, domain_id, path_id, ua_id, status),
+                FOREIGN KEY(domain_id) REFERENCES domains(id),
+                FOREIGN KEY(path_id) REFERENCES paths(id),
+                FOREIGN KEY(ua_id) REFERENCES user_agents(id)
+            )
+        """)
+
         # 3. The Simple KV Store (Persistent Counters)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS kv_store (
@@ -137,7 +161,7 @@ class HoneyDB:
         except:
             return None
 
-    def log_request(self, ip, ua, path, status, date_str=None, referrer=None, accept=None, served_md=None):
+    def log_request(self, ip, ua, path, status, date_str=None, referrer=None, accept=None, served_md=None, host=None):
         """
         The Main Ingestor. 
         Takes raw log data, normalizes it, and updates the daily counter.
@@ -174,6 +198,17 @@ class HoneyDB:
                 DO UPDATE SET count = count + 1, last_updated = CURRENT_TIMESTAMP
             """
             conn.execute(sql_telemetry, (date_str, ip_id, path_id, ua_id, ref_id, acc_id, is_md))
+
+        # 4. Handle Domain Multi-Tenancy Sidecar
+        if host:
+            dom_id = self._get_or_create_id('domains', host.lower().strip())
+            sql_domain = """
+                INSERT INTO domain_daily_logs (date, domain_id, path_id, ua_id, status, count)
+                VALUES (?, ?, ?, ?, ?, 1)
+                ON CONFLICT(date, domain_id, path_id, ua_id, status)
+                DO UPDATE SET count = count + 1, last_updated = CURRENT_TIMESTAMP
+            """
+            conn.execute(sql_domain, (date_str, dom_id, path_id, ua_id, status))
 
         conn.commit()
 
