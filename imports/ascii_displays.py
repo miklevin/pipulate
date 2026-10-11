@@ -747,7 +747,7 @@ def _figurate_honeybot_pipeline():
            │     Nginx Engine      │ ───► [ High-Fidelity access.log ]
            └───────────────────────┘                    │
                        │                                │ (Unix Pipe)
-        (Content Negotiation / RFC 7231)                ▼
+        (Content Negotiation / RFC 9110)                ▼
                        │                    ┌───────────────────────┐
          ┌─────────────┴─────────────┐      │    Textual HUD UI     │
          ▼                           ▼      │       (logs.py)       │
