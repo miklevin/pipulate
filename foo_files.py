@@ -1711,7 +1711,7 @@ CHOP_PROGRESSIVE_REVEAL = """
 # Structural, stateless context designed for rapid article exploration using xp.py.
 
 # 1. THE NARRATIVE MAP
-! python scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs
+! book
 
 # 2. SYSTEM ARCHITECTURE REFERENCE
 foo_files.py  # [12,463 tokens | 42,282 bytes]
