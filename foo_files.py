@@ -675,7 +675,7 @@ foo_files.py      #  <-- THIS file. Content compiler router. Makes it very meta.
 # Web pages, APIs and the connector words: chapter XVIII of foo_files.py.
 
 # --- THE 40K-FOOT VIEW (uncomment on a first turn; comment out on the second) ---
-# ! python scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs  # <-- the book's spine, one line per article, newest first
+# ! book  # <-- the book's spine, one line per article, newest first
 # ~/repos/nixos/autognome.py  # <-- the machine's morning routine (this author's NixOS box only)
 # init.lua                    # <-- the editor keys that drive the day
 # assets/installer/install.sh # <-- how a stranger's machine gets this workshop
