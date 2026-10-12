@@ -353,11 +353,10 @@ end
 function bold_dialogue_speaker()
     -- Move to the beginning of the current line and up one line
     vim.cmd('normal! 0k')
-    
-    -- Search for the next line containing a valid speaker name followed by ': '
+
+    -- Search for the next line containing a valid speaker name followed by ':'
     -- but not starting with "Step" followed by a number and colon
-    -- Updated pattern to include periods in speaker names
-    local colon_line = vim.fn.search('^\\(Step\\s*\\d\\+:\\)\\@!\\([A-Za-z0-9][A-Za-z0-9 .-]*: \\)', 'nW')
+    local colon_line = vim.fn.search('^\\(Step\\s*\\d\\+:\\)\\@!\\([A-Za-z0-9][A-Za-z0-9 .-]*:\\)', 'nW')
     if colon_line == 0 then
         vim.notify("No valid dialogue found", vim.log.levels.WARN)
         return
@@ -365,11 +364,11 @@ function bold_dialogue_speaker()
 
     -- Get the line content
     local line = vim.fn.getline(colon_line)
-    
-    -- Find the position of the colon followed by a space
-    local colon_pos = string.find(line, ": ")
+
+    -- Find the position of the colon
+    local colon_pos = string.find(line, ":")
     if not colon_pos then
-        vim.notify("Unexpected error: colon with space not found", vim.log.levels.ERROR)
+        vim.notify("Unexpected error: colon not found", vim.log.levels.ERROR)
         return
     end
 
