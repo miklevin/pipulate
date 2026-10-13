@@ -1091,7 +1091,7 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
           fi
           git pull --quiet
           # Start Pipulate server in background tmux session so port 5001 is immediately alive
-          tmux new-session -d -s pipulate -c "''${PIPULATE_ROOT:-$PWD}" "source .venv/bin/activate && python server.py"
+          tmux new-session -d -s pipulate -c "''${PIPULATE_ROOT:-$PWD}" "unset PIPULATE_VOICE && source .venv/bin/activate && python server.py"
           # THE VOICE ASKS ONCE, OUT LOUD (2026-10-01, the operator's ask: the
           # voice is heard before the first menu, so the menu's spoken hint is
           # the second thing it says). Only where no answer is recorded, at a
