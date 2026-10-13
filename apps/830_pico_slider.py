@@ -587,8 +587,58 @@ class GitSliderFlow:
                 }
             """)
 
+            scroll_listener_script = Script("""
+                (function() {
+                    const g = document.getElementById('grid-left-content');
+                    if (g && !g._sliderScrollBound) {
+                        g.addEventListener('scroll', function() {
+                            if (!window._slider_restoring) {
+                                window._slider_grid_scrollTop = g.scrollTop;
+                            }
+                        });
+                        g._sliderScrollBound = true;
+                    }
+                    if (!window._htmxSliderSwapBound) {
+                        document.body.addEventListener('htmx:beforeSwap', function(evt) {
+                            if (evt.detail.target && (evt.detail.target.id === 'diff-viewport' || evt.detail.target.querySelector('#diff-viewport'))) {
+                                const p = document.getElementById('diff-code-pre') || document.querySelector('#diff-viewport pre');
+                                if (p) {
+                                    window._slider_pre_scrollTop = p.scrollTop;
+                                    window._slider_pre_scrollLeft = p.scrollLeft;
+                                }
+                                if (g) {
+                                    window._slider_grid_scrollTop = g.scrollTop;
+                                }
+                                window._slider_win_scrollY = window.scrollY;
+                            }
+                        });
+                        document.body.addEventListener('htmx:afterSettle', function(evt) {
+                            if (evt.detail.target && (evt.detail.target.id === 'diff-viewport' || evt.detail.target.querySelector('#diff-viewport'))) {
+                                window._slider_restoring = true;
+                                const p = document.getElementById('diff-code-pre') || document.querySelector('#diff-viewport pre');
+                                if (p && typeof window._slider_pre_scrollTop === 'number') {
+                                    p.scrollTop = window._slider_pre_scrollTop;
+                                    if (typeof window._slider_pre_scrollLeft === 'number') {
+                                        p.scrollLeft = window._slider_pre_scrollLeft;
+                                    }
+                                }
+                                if (g && typeof window._slider_grid_scrollTop === 'number') {
+                                    g.scrollTop = window._slider_grid_scrollTop;
+                                }
+                                if (typeof window._slider_win_scrollY === 'number') {
+                                    window.scrollTo(window.scrollX, window._slider_win_scrollY);
+                                }
+                                setTimeout(function() { window._slider_restoring = false; }, 60);
+                            }
+                        });
+                        window._htmxSliderSwapBound = true;
+                    }
+                })();
+            """)
+
             return Div(
                 diff_styles,
+                scroll_listener_script,
                 Article(
                     H3(f'{self.ui["EMOJIS"]["WORKFLOW"]} {step.show}: {clean_path}'),
                     P("Drag the slider or use ◀ / ▶ buttons to scrub through commit diffs.", cls='text-muted'),
