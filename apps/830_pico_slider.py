@@ -226,19 +226,48 @@ class GitSliderFlow:
                 Span(f"{meta['date']} · {meta['author']}", cls="text-secondary"),
                 style="margin-bottom: 0.25rem;"
             ),
-            P(meta['subject'] or "(no commit message)", style="margin-bottom: 0; font-weight: 500; font-size: 0.95rem;"),
-            style="padding: 0.75rem 1rem; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); margin-bottom: 0.75rem;"
+            P(meta['subject'] or "(no commit message)", title=meta['subject'] or "", style="margin-bottom: 0; font-weight: 500; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"),
+            style="padding: 0.75rem 1rem; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); margin-bottom: 0.75rem; min-height: 4.2rem;"
         )
 
         diff_content = meta['diff'] or "(Empty diff: file mode or metadata change only)"
 
         diff_box = Pre(
             Code(diff_content, cls="language-diff"),
+            id="diff-code-pre",
             cls="language-diff",
+            onscroll="if (!window._slider_restoring) { window._slider_pre_scrollTop = this.scrollTop; window._slider_pre_scrollLeft = this.scrollLeft; }",
             style="max-height: 55vh; overflow-y: auto; overflow-x: auto; margin-bottom: 0; background: #111;"
         )
 
-        prism_script = Script("if (typeof Prism !== 'undefined') { Prism.highlightAllUnder(document.getElementById('diff-viewport')); }")
+        prism_script = Script("""
+            (function() {
+                const vp = document.getElementById('diff-viewport');
+                if (typeof Prism !== 'undefined' && vp) {
+                    Prism.highlightAllUnder(vp);
+                }
+                const restore = function() {
+                    window._slider_restoring = true;
+                    const p = document.getElementById('diff-code-pre') || (vp ? vp.querySelector('pre') : null);
+                    if (p && typeof window._slider_pre_scrollTop === 'number') {
+                        p.scrollTop = window._slider_pre_scrollTop;
+                        if (typeof window._slider_pre_scrollLeft === 'number') {
+                            p.scrollLeft = window._slider_pre_scrollLeft;
+                        }
+                    }
+                    const g = document.getElementById('grid-left-content');
+                    if (g && typeof window._slider_grid_scrollTop === 'number') {
+                        g.scrollTop = window._slider_grid_scrollTop;
+                    }
+                    if (typeof window._slider_win_scrollY === 'number') {
+                        window.scrollTo(window.scrollX, window._slider_win_scrollY);
+                    }
+                    setTimeout(function() { window._slider_restoring = false; }, 60);
+                };
+                restore();
+                requestAnimationFrame(restore);
+            })();
+        """)
 
         return Div(
             metadata_card,
