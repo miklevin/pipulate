@@ -4912,52 +4912,63 @@ Use these tools to assist users within your guided capabilities. Remember that a
 @rt('/diff')
 @rt('/preview')
 async def diff_preview(request):
-    """Live-preview prompt.md and working tree git diffs with Prism syntax highlighting."""
-    pipulate_root = Path(os.environ.get('PIPULATE_ROOT', os.getcwd()))
-    prompt_path = pipulate_root / 'prompt.md'
+    """Generic Markdown and Diff previewer defaulted to prompt.md with Prism syntax highlighting."""
+    pipulate_root = Path(os.environ.get('PIPULATE_ROOT', os.getcwd())).resolve()
+    req_file = request.query_params.get('file', 'prompt.md').strip() or 'prompt.md'
+    candidate = Path(req_file).expanduser()
+    if not candidate.is_absolute():
+        candidate = (pipulate_root / candidate).resolve()
+    else:
+        candidate = candidate.resolve()
 
+    prompt_path = candidate
     prompt_content = ""
-    if prompt_path.exists():
+    if prompt_path.exists() and prompt_path.is_file():
         try:
             prompt_content = prompt_path.read_text(encoding='utf-8')
             prompt_content = prompt_content.replace('\r\n', '\n').replace('\r', '\n')
         except Exception as e:
-            prompt_content = f"Error reading prompt.md: {e}"
+            prompt_content = f"Error reading {req_file}: {e}"
     else:
-        prompt_content = f"No prompt.md found at {prompt_path}"
+        prompt_content = f"No file found at {prompt_path}"
 
-    git_diff = ""
-    try:
-        diff_proc = subprocess.run(
-            ['git', 'diff', 'HEAD'],
-            cwd=str(pipulate_root),
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-        if diff_proc.returncode == 0:
-            git_diff = diff_proc.stdout.strip()
-    except Exception as e:
-        git_diff = f"Error running git diff: {e}"
-
-    diff_section = Article(
-        Header(
-            H3("Working Tree Diff (git diff HEAD)", style="margin-bottom: 0.25rem;"),
-            P("Cherenkov flash: red deletions (erased state), green additions (mutated state)",
-              cls="text-muted", style="margin-bottom: 0; font-size: 0.85rem;")
-        ),
-        Pre(Code(git_diff, cls="language-diff"), cls="language-diff", style="max-height: 450px; overflow-y: auto; overflow-x: auto; max-width: 100%; box-sizing: border-box;")
-        if git_diff else
-        P("✓ Working tree clean (zero uncommitted diffs relative to HEAD).",
-          style="color: var(--pico-color-green-500); margin: 1rem 0; font-weight: bold;")
+    quick_docs = ['prompt.md', 'article.txt', 'README.md', 'AGENTS.md', 'AUDIT.md', 'GLOSSARY.md']
+    quick_links = Div(
+        Span("Quick docs: ", cls="text-secondary", style="font-size: 0.8rem; margin-right: 0.35rem;"),
+        *[
+            A(
+                qd,
+                href=f"{request.url.path}?file={qd}",
+                role="button",
+                cls="secondary outline" if qd != req_file else "primary",
+                style="font-size: 0.72rem; padding: 0.15rem 0.45rem; margin: 0.1rem; text-decoration: none;"
+            )
+            for qd in quick_docs if (pipulate_root / qd).exists() or qd == 'prompt.md'
+        ],
+        style="display: flex; flex-wrap: wrap; align-items: center; margin-top: 0.4rem;"
     )
 
     prompt_json = json.dumps(prompt_content).replace('</', '<\\/')
     prompt_section = Article(
         Header(
-            H3("prompt.md Preview", style="margin-bottom: 0.25rem;"),
-            P(f"Source: {prompt_path}",
-              cls="text-muted", style="margin-bottom: 0; font-family: monospace; font-size: 0.8rem;")
+            Div(
+                H3(f"📄 {req_file}", style="margin-bottom: 0; font-family: monospace;"),
+                Form(
+                    Input(
+                        type="text",
+                        name="file",
+                        value=req_file,
+                        placeholder="prompt.md",
+                        style="margin-bottom: 0; padding: 0.25rem 0.5rem; font-size: 0.8rem; font-family: monospace; width: 220px; height: auto;"
+                    ),
+                    Button("Open", type="submit", cls="secondary outline", style="margin-bottom: 0; padding: 0.25rem 0.6rem; font-size: 0.8rem; width: auto;"),
+                    method="get",
+                    action=request.url.path,
+                    style="display: flex; gap: 0.35rem; align-items: center; margin-bottom: 0;"
+                ),
+                style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;"
+            ),
+            quick_links
         ),
         Div(id="prompt-rendered-view", style="min-height: 100px;"),
         Script(f"""
@@ -4990,6 +5001,20 @@ async def diff_preview(request):
                         }}
                         if (window.Prism) {{
                             Prism.highlightAll();
+                        }}
+                        const savedY = sessionStorage.getItem('pipulate_preview_scroll_y');
+                        if (savedY !== null) {{
+                            const y = parseInt(savedY, 10);
+                            if (!isNaN(y)) {{
+                                window.scrollTo(0, y);
+                                requestAnimationFrame(function() {{ window.scrollTo(0, y); }});
+                            }}
+                        }}
+                        if (!window._previewScrollBound) {{
+                            window.addEventListener('scroll', function() {{
+                                sessionStorage.setItem('pipulate_preview_scroll_y', String(window.scrollY));
+                            }}, {{ passive: true }});
+                            window._previewScrollBound = true;
                         }}
                     }}
 
@@ -5143,6 +5168,8 @@ async def diff_preview(request):
             white-space: pre !important;
             word-break: normal !important;
             word-wrap: normal !important;
+            font-size: 0.78rem !important;
+            line-height: 1.38 !important;
         }
         .token.inserted, pre[class*="language-"] .token.inserted, code[class*="language-"] .token.inserted {
             color: #2ea043 !important;
@@ -5167,19 +5194,20 @@ async def diff_preview(request):
         Ul(
             Li(Strong(A(APP_NAME, href='/', cls='contrast'))),
             Li(Span(" / ")),
-            Li(Span("Diff & Prompt Preview"))
+            Li(Span(f"Markdown & Diff Preview ({req_file})"))
         ),
         Ul(
-            Li(A("🏠 Back to Workshop", href='/', role='button', cls='secondary outline', style='padding: 0.35rem 0.75rem; font-size: 0.85rem;')),
-            Li(A("🔄 Refresh", href=request.url.path, role='button', cls='outline', style='padding: 0.35rem 0.75rem; font-size: 0.85rem;'))
+            Li(A("🎚 Git Slider", href='/git_slider', role='button', cls='secondary outline', style='padding: 0.35rem 0.75rem; font-size: 0.85rem;')),
+            Li(A("🏠 Workshop", href='/', role='button', cls='secondary outline', style='padding: 0.35rem 0.75rem; font-size: 0.85rem;')),
+            Li(A("🔄 Refresh", href=str(request.url), role='button', cls='outline', style='padding: 0.35rem 0.75rem; font-size: 0.85rem;'))
         ),
         style="margin-bottom: 1.5rem;"
     )
 
     return (
-        Title(f"{APP_NAME} - Diff & Prompt Preview"),
+        Title(f"{APP_NAME} - {req_file} Preview"),
         diff_styling,
-        Main(nav, diff_section, prompt_section, cls="container", style="max-width: 960px; padding-top: 1rem;")
+        Main(nav, prompt_section, cls="container", style="max-width: 960px; padding-top: 1rem;")
     )
 
 
