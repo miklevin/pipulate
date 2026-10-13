@@ -256,6 +256,46 @@ class OpticsWorkflow:
             style='max-height: 280px; overflow-y: auto; overflow-x: auto; background: #111; padding: 0.75rem; border-radius: 4px; font-size: 0.78rem; line-height: 1.35;'
         )
 
+    def _render_markdown_lens(self, md_text: str, widget_id: str):
+        return Div(
+            Pre(
+                md_text,
+                id=f'{widget_id}_source',
+                style='display: none; white-space: pre-wrap;'
+            ),
+            Div(
+                id=f'{widget_id}_rendered',
+                cls='markdown-body',
+                style='max-height: 320px; overflow-y: auto; background: #111; color: #f8f8f2; padding: 1rem; border-radius: 4px; font-size: 0.84rem; border: 1px solid #2a3140;'
+            ),
+            Details(
+                Summary('View Raw Link Lens Markdown', style='font-size: 0.78rem; margin-top: 0.4rem; cursor: pointer; color: #8be9fd;'),
+                Pre(
+                    Code(md_text, cls='language-markdown'),
+                    style='max-height: 200px; overflow-y: auto; font-size: 0.75rem; margin-top: 0.4rem;'
+                )
+            ),
+            Script(f"""
+                (function() {{
+                    const src = document.getElementById('{widget_id}_source');
+                    const out = document.getElementById('{widget_id}_rendered');
+                    if (src && out) {{
+                        const raw = src.textContent || '';
+                        if (typeof marked !== 'undefined') {{
+                            out.innerHTML = marked.parse(raw);
+                        }} else {{
+                            out.textContent = raw;
+                        }}
+                    }}
+                    const stepEl = document.getElementById('step_03');
+                    if (stepEl && typeof Prism !== 'undefined') {{
+                        Prism.highlightAllUnder(stepEl);
+                    }}
+                }})();
+            """),
+            id=widget_id
+        )
+
     # --- STEP 01: TARGET URL ---
     async def step_01(self, request):
         wand, steps, app_name = (self.wand, self.steps, self.app_name)
@@ -310,18 +350,6 @@ class OpticsWorkflow:
                             ),
                             button_label=self.ui['BUTTON_LABELS']['NEXT_STEP']
                         ),
-                        Label(
-                            Input(
-                                type='checkbox',
-                                name='show_browser',
-                                role='switch',
-                                checked=bool(state.get('show_browser', False)),
-                                id='optics-step01-show-browser'
-                            ),
-                            ' Pop visible browser window (headful mode; default is headless)',
-                            _for='optics-step01-show-browser',
-                            style='margin-top: 0.5rem; font-size: 0.88rem;'
-                        ),
                         hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}',
                         id='optics-step01-form'
@@ -349,16 +377,11 @@ class OpticsWorkflow:
         if not user_val.startswith(('http://', 'https://')):
             user_val = f'https://{user_val}'
 
-        show_browser = bool(form.get('show_browser'))
         await wand.set_step_data(pipeline_id, step_id, user_val, steps)
-        state = wand.read_state(pipeline_id)
-        state['show_browser'] = show_browser
-        wand.write_state(pipeline_id, state)
-        mode_label = "visible browser" if show_browser else "headless"
-        await self.message_queue.add(wand, f'{self.ui["EMOJIS"]["SUCCESS"]} Target set: {user_val} ({mode_label})', verbatim=True)
+        await self.message_queue.add(wand, f'{self.ui["EMOJIS"]["SUCCESS"]} Target set: {user_val}', verbatim=True)
         self.wand.speak("Target URL set. Ready for optical capture.", wait=False)
-        self.wand.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val} ({mode_label})")
-        return wand.chain_reverter(step_id, step_index, steps, app_name, f"{user_val} ({mode_label})")
+        self.wand.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")
+        return wand.chain_reverter(step_id, step_index, steps, app_name, user_val)
 
     # --- STEP 02: CAPTURE & SIFT ---
     async def step_02(self, request):
@@ -402,6 +425,18 @@ class OpticsWorkflow:
                     P(f"Target: {target_url}", cls='text-muted'),
                     P("Engage undetected browser to drain CDP performance log, capture wire response vs. hydrated DOM, and run the SIFT comparator.", cls='text-muted'),
                     Form(
+                        Label(
+                            Input(
+                                type='checkbox',
+                                name='show_browser',
+                                role='switch',
+                                checked=bool(state.get('show_browser', False)),
+                                id='optics-step02-show-browser'
+                            ),
+                            ' Pop visible browser window (headful mode; default is headless)',
+                            _for='optics-step02-show-browser',
+                            style='margin-bottom: 0.75rem; font-size: 0.88rem; display: block;'
+                        ),
                         Button("Engage Optics SIFT 👁️", type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY'], id='optics-step02-btn'),
                         hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}',
@@ -428,7 +463,11 @@ class OpticsWorkflow:
         output_dir = Path("browser_cache/looking_at") / domain / slug
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        show_browser = bool(wand.read_state(pipeline_id).get('show_browser', False))
+        form = await request.form()
+        show_browser = bool(form.get('show_browser'))
+        state = wand.read_state(pipeline_id)
+        state['show_browser'] = show_browser
+        wand.write_state(pipeline_id, state)
         params = {
             "url": target_url,
             "domain": domain,
@@ -556,20 +595,19 @@ class OpticsWorkflow:
                     P(f"Wire Truth Provenance: {provenance.upper()}", cls='text-muted'),
                     H4("1. RFC 9110 / 9111 Wire Headers (Semantics & Caching)"),
                     Pre(
-                        Code(rfc_headers_text),
-                        style='max-height: 160px; overflow-y: auto; background: #111; color: #f1fa8c; padding: 0.75rem; border-radius: 4px; font-size: 0.78rem;'
+                        Code(rfc_headers_text, cls='language-yaml'),
+                        cls='language-yaml',
+                        style='max-height: 180px; overflow-y: auto; border-radius: 4px; font-size: 0.78rem;'
                     ),
                     H4("2. DOM Structural Diff (Source vs. Hydrated)"),
                     self._render_colored_diff(diff_text),
                     H4("3. Link Lens (Anchor Accounting)"),
-                    Pre(
-                        Code(links_text),
-                        style='max-height: 250px; overflow-y: auto; background: #111; color: #8be9fd; padding: 0.75rem; border-radius: 4px; font-size: 0.78rem;'
-                    ),
+                    self._render_markdown_lens(links_text, f"optics-links-{pipeline_id.replace('-', '_')}"),
                     Form(
                         Button("Accept Optical Findings & Seal ▸", type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY']),
                         hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}',
+                        style='margin-top: 1rem;',
                         id='optics-step03-form'
                     ),
                     role='region'
