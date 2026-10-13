@@ -1,4 +1,4 @@
-# File: apps/830_pico_slider.py
+# File: apps/840_git_slider.py
 import asyncio
 import os
 import re
@@ -177,15 +177,24 @@ class GitSliderFlow:
             paths_to_try.append(rename_target)
 
         diff_text = ""
-        for p in paths_to_try:
-            cmd = ['git', 'show', '--color=never', '--patch', full_hash, '--', p]
+        if rename_target and rename_target != file_at_commit:
+            cmd_rename = ['git', 'show', '-M', '--color=never', '--patch', full_hash, '--', file_at_commit, rename_target]
             try:
-                res = subprocess.run(cmd, cwd=str(repo_root), capture_output=True, text=True)
+                res = subprocess.run(cmd_rename, cwd=str(repo_root), capture_output=True, text=True)
                 if res.returncode == 0 and res.stdout.strip():
                     diff_text = res.stdout.strip()
-                    break
             except Exception:
                 pass
+        if not diff_text:
+            for p in paths_to_try:
+                cmd = ['git', 'show', '-M', '--color=never', '--patch', full_hash, '--', p]
+                try:
+                    res = subprocess.run(cmd, cwd=str(repo_root), capture_output=True, text=True)
+                    if res.returncode == 0 and res.stdout.strip():
+                        diff_text = res.stdout.strip()
+                        break
+                except Exception:
+                    pass
 
         if not diff_text:
             try:
@@ -391,7 +400,7 @@ class GitSliderFlow:
                 tracked_files = ['foo_files.py', 'server.py', 'apply.py', 'apps/040_hello_workflow.py']
 
             current_val = user_val if (step.refill and user_val) else 'foo_files.py'
-            quick_files = ['foo_files.py', 'server.py', 'apply.py', 'apps/040_hello_workflow.py', 'apps/830_pico_slider.py', 'apps/911_optics_workflow.py', 'assets/styles.css']
+            quick_files = ['foo_files.py', 'server.py', 'apply.py', 'apps/040_hello_workflow.py', 'apps/830_pico_slider.py', 'apps/840_git_slider.py', 'apps/911_optics_workflow.py', 'assets/styles.css']
 
             quick_buttons = Div(
                 Span("Quick picks: ", cls="text-secondary", style="font-size: 0.85rem; margin-right: 0.5rem;"),
