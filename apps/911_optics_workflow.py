@@ -576,16 +576,25 @@ class OpticsWorkflow:
                 if headers_path.exists():
                     try:
                         h_data = json.loads(headers_path.read_text(encoding='utf-8'))
-                        provenance = h_data.get("source_provenance", "wire")
-                        raw_hdrs = {str(k).lower(): v for k, v in (h_data.get("headers") or {}).items()}
+                        provenance = h_data.get("source_provenance") or h_data.get("header_selection") or "wire"
+                        hdr_source = h_data.get("headers") or h_data.get("response_headers") or {}
+                        raw_hdrs = {str(k).lower(): v for k, v in hdr_source.items()}
+                        meta_lines = []
+                        if "status" in h_data:
+                            meta_lines.append(f"status: {h_data['status']}")
+                        if "header_selection" in h_data:
+                            meta_lines.append(f"header-selection: {h_data['header_selection']}")
                         rfc_keys = [
                             "content-type", "vary", "cache-control", "etag",
                             "age", "cache-status", "cf-cache-status", "link",
                             "content-signal", "server"
                         ]
                         found_hdrs = [f"{k}: {raw_hdrs[k]}" for k in rfc_keys if k in raw_hdrs]
-                        if found_hdrs:
-                            rfc_headers_text = "\n".join(found_hdrs)
+                        if not found_hdrs and raw_hdrs:
+                            found_hdrs = [f"{k}: {v}" for k, v in list(raw_hdrs.items())[:12]]
+                        combined_hdrs = meta_lines + found_hdrs
+                        if combined_hdrs:
+                            rfc_headers_text = "\n".join(combined_hdrs)
                     except Exception:
                         pass
 
