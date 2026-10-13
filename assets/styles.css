@@ -1301,6 +1301,20 @@ article > div:first-child {
 [data-theme="dark"] .token.number { color: #f78c6c !important; }
 [data-theme="dark"] .token.comment { color: #545454 !important; }
 
+/* Diff Syntax Highlighting (Prism) */
+.token.inserted, pre[class*="language-"] .token.inserted, code[class*="language-"] .token.inserted {
+    color: #2ea043 !important;
+    background-color: rgba(46, 160, 67, 0.15) !important;
+}
+.token.deleted, pre[class*="language-"] .token.deleted, code[class*="language-"] .token.deleted {
+    color: #f85149 !important;
+    background-color: rgba(248, 81, 73, 0.15) !important;
+}
+.token.coord, pre[class*="language-"] .token.coord {
+    color: #58a6ff !important;
+    font-weight: bold;
+}
+
 
 
 .menu-item-header {
