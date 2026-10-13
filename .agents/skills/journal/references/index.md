@@ -1,8 +1,8 @@
 # The Pipulate journal, indexed
 
-> Auto-generated on 2026-10-10 by `scripts/articles/generate_ai_context.py` and
+> Auto-generated on 2026-10-13 by `scripts/articles/generate_ai_context.py` and
 > rewritten from scratch on every release. If this date looks stale, assume
-> the rest of the repo is newer than this map. 1530 entries indexed.
+> the rest of the repo is newer than this map. 1541 entries indexed.
 
 This repository holds the *machinery*. The *reasoning*, the running journal
 that explains why every piece exists, lives on a separate website and not in
@@ -27,6 +27,17 @@ The first 20 entries include full `index.md` URLs to establish
 the link pattern. All remaining entries are bare slugs. Reconstruct any full
 URL as: `https://mikelev.in/futureproof/{slug}/index.md`
 
+- [2026-10-13] [The Two-Commit Rename Bridge and Keyless Instruments](https://mikelev.in/futureproof/two-commit-rename-bridge-keyless-instruments/index.md)
+- [2026-10-13] [The Moviola Git Slider and Impedance Matching](https://mikelev.in/futureproof/moviola-git-slider-impedance-matching/index.md)
+- [2026-10-13] [Sensory Coherence and the Synchronized Workspace Airlock](https://mikelev.in/futureproof/sensory-coherence-synchronized-workspace-airlock/index.md)
+- [2026-10-12] [The Pre-Authorization Gap: Agentic Commerce and the Analog Hole](https://mikelev.in/futureproof/pre-authorization-gap-agentic-commerce/index.md)
+- [2026-10-12] [Retiring the Chromium Fleet: RFC 9111 Edge Caching and Agent Harvest Runways](https://mikelev.in/futureproof/retiring-chromium-fleet-rfc9111-edge-caching/index.md)
+- [2026-10-12] [The Desktop Spectrometer: Zero-Credential Wire Receipts in FastHTML](https://mikelev.in/futureproof/desktop-spectrometer-zero-credential-wire-receipts/index.md)
+- [2026-10-11] [The Multi-Tenant Wire: Replacing Pre-Render Debt with RFC 9110 Receipts](https://mikelev.in/futureproof/multi-tenant-wire-replacing-prerender-debt-rfc9110/index.md)
+- [2026-10-11] [Upstream Law: Moving Prompt Invariants Ahead of the Codebase](https://mikelev.in/futureproof/upstream-law-moving-prompt-invariants/index.md)
+- [2026-10-11] [The Inverted Tool-Call: Human Actuators and the Book Command](https://mikelev.in/futureproof/the-inverted-tool-call-and-the-book-command/index.md)
+- [2026-10-11] [The Dual-Representation Web: RFC 9110, RFC 9111, and the Return of Content Negotiation](https://mikelev.in/futureproof/dual-representation-web-content-negotiation/index.md)
+- [2026-10-10] [The Edge Cache Partition: RFC 9110, Markdown Negotiation, and Preventing Agent Poisoning](https://mikelev.in/futureproof/edge-cache-partition-rfc9110-markdown-negotiation/index.md)
 - [2026-10-10] [Holding the Reins: Background Daemons, Quiet Shells, and Resisting the Rabbit Hole](https://mikelev.in/futureproof/holding-the-reins-background-daemons-and-rabbit-holes/index.md)
 - [2026-10-10] [Less Messaging: RFC 9110 and the Inspection Airlock](https://mikelev.in/futureproof/less-messaging-rfc9110-inspection-airlock/index.md)
 - [2026-10-10] [Making a Diff: The Minimal Instrument](https://mikelev.in/futureproof/making-a-diff-the-minimal-instrument/index.md)
@@ -36,22 +47,22 @@ URL as: `https://mikelev.in/futureproof/{slug}/index.md`
 - [2026-10-08] [The Randi Test: Grounding Agent-Readiness in Verifiable Receipts](https://mikelev.in/futureproof/the-randi-test-for-agent-readiness/index.md)
 - [2026-10-08] [Jekyll Satellites: Decoupling Shared Tooling from Independent Sites with Nix](https://mikelev.in/futureproof/jekyll-satellites-shared-nix-kernel/index.md)
 - [2026-10-07] [Removing the Conversion Event: When Paradigms Become Invisible Infrastructure](https://mikelev.in/futureproof/removing-the-conversion-event/index.md)
-- [2026-10-07] [Public Installers, Private Entitlements, and Watching the Infrastructure Read](https://mikelev.in/futureproof/public-installers-private-entitlements-wire-telemetry/index.md)
-- [2026-10-06] [Making Verification Cheaper Than Trust: The Flight Data Recorder for AI Workflows](https://mikelev.in/futureproof/making-verification-cheaper-than-trust/index.md)
-- [2026-10-06] [The Router That Learned to Forget: Compaction, Pure Patches, and Earned Simplicity](https://mikelev.in/futureproof/the-router-that-learned-to-forget/index.md)
-- [2026-10-06] [Declarative Editorial Context: Decoupling Publishing Targets in the AI Era](https://mikelev.in/futureproof/declarative-editorial-framing-pipeline/index.md)
-- [2026-10-04] [The Digital Thunk and Shannon's Codebook: Engineering Replayable Workflows in the Age of AI](https://mikelev.in/futureproof/digital-thunk-shannons-codebook-replayable-workflows/index.md)
-- [2026-10-04] [Learning to Walk: YAML Trails and the Quiet Skip](https://mikelev.in/futureproof/learning-to-walk-yaml-trails-and-the-quiet-skip/index.md)
-- [2026-10-04] [The Terminal House Style: Quieting the Console Without Silencing the Evidence](https://mikelev.in/futureproof/terminal-house-style-quiet-console-evidence/index.md)
-- [2026-10-03] [Mechanical Advantage and the Active Root: Authoritative Prefixes for Replayable AI Pipelines](https://mikelev.in/futureproof/mechanical-advantage-and-the-active-root/index.md)
-- [2026-10-03] [The Single-Owner Rule and the Verifiable Deed: Quieting Pipeline Noise in the Age of AI](https://mikelev.in/futureproof/single-owner-rule-and-verifiable-deeds/index.md)
-- [2026-10-03] [The Render Canary and the Quiet Compiler: Distinguishing Exposure from Corruption in the Age of AI](https://mikelev.in/futureproof/render-canary-and-the-quiet-compiler/index.md)
-- [2026-10-02] [The Enter Fence and the Bell Cue: Building Replayable Browser Walks in the Age of AI](https://mikelev.in/futureproof/the-enter-fence-and-the-bell-cue/index.md)
 
 ## Compact slug index -- pattern: https://mikelev.in/futureproof/{slug}/index.md
 
 Format: `[date] [size] slug` -- fetch any entry as `https://mikelev.in/futureproof/{slug}/index.md`
 
+- [2026-10-07] [71k] public-installers-private-entitlements-wire-telemetry
+- [2026-10-06] [29k] making-verification-cheaper-than-trust
+- [2026-10-06] [538k] the-router-that-learned-to-forget
+- [2026-10-06] [41k] declarative-editorial-framing-pipeline
+- [2026-10-04] [85k] digital-thunk-shannons-codebook-replayable-workflows
+- [2026-10-04] [353k] learning-to-walk-yaml-trails-and-the-quiet-skip
+- [2026-10-04] [71k] terminal-house-style-quiet-console-evidence
+- [2026-10-03] [86k] mechanical-advantage-and-the-active-root
+- [2026-10-03] [74k] single-owner-rule-and-verifiable-deeds
+- [2026-10-03] [53k] render-canary-and-the-quiet-compiler
+- [2026-10-02] [597k] the-enter-fence-and-the-bell-cue
 - [2026-10-02] [41k] clear-cups-protocol-auditing-mcp-calls
 - [2026-10-02] [261k] the-door-table-and-the-moving-twig
 - [2026-10-01] [22k] scrollback-rule-clear-x-receipts
