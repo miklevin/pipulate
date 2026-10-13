@@ -3671,7 +3671,7 @@ def main():
         logger.print("Pairing holographic context shards...", end='', flush=True)
         add_holographic_shards(builder, sliced_articles)
 
-    python_files_to_diagram = [f['path'] for f in processed_files_data if f['path'].endswith('.py')]
+    python_files_to_diagram = [f['path'] for f in processed_files_data if f['path'].endswith('.py') and os.path.isfile(f['path'])]
     if python_files_to_diagram and not args.no_tree:
         logger.note("Python file(s) detected. Generating UML diagrams...")
         uml_omissions = {}
