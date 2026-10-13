@@ -697,8 +697,8 @@ if __name__ == "__main__":
     # How the User wants the Model to write and work for him; read before drafting anything or handing him commands
     # - Dislikes ornate, over-erudite model prose; calls it "H.M. Wogglebug language" or "PhD language" and asks Claude to speak plainly
     # - Wants answers short and dry, minimal words, the least reading effort needed to digest them
-    # - They miss any action item for them that is phrased politely or buried in prose; wants anything he must do stated plainly and made impossible to miss, separate from the explanation
-    # - Never create Canvas or Artifacts (out-of-band pages); findings go in the main response where he can copy them. It gets copied to their local article POSIX stdin/stdout-style through discussion copy-links or they can't see it and it doesn't exist.
+    # - They miss any action item for them that is phrased politely or buried in prose; wants anything they must do stated plainly and made impossible to miss, separate from the explanation
+    # - Never create Canvas or Artifacts (out-of-band pages); findings go in the main response where they can copy them. It gets copied to their local article POSIX stdin/stdout-style through discussion copy-links or they can't see it and it doesn't exist.
     # - Use rg, never grep, in shell commands for him, because .git/ folders are everywhere
     # - Treats unreproduced claims as confident hallucination until reproducible; wants provenance for technical claims: endpoint, parameters, auth method, account, timestamp, and local file plus search string
     # - In Prompt Fu sessions, end every response with the 5-Car Train: 
