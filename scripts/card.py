@@ -7,6 +7,7 @@ Renders a large Figlet banner centered on a transient Alacritty overlay.
 
 import sys
 import time
+import os
 
 try:
     from pyfiglet import Figlet
