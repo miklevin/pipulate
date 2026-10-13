@@ -863,6 +863,7 @@ foo_files.py      #  <-- THIS file. Content compiler router. Makes it very meta.
 # tools/llm_optics.py     # <-- Some of the work we do would bring down the JupyterLab event-loop. Here's how it doesn't.
 # tools/dom_tools.py      # <-- Lenses with which to clarify messy DOM soup. Trees. Nested ASCII art boxes. Normalization.
 # tools/scraper_tools.py  # <-- Pop-up desktop browser automation that works consistently across macOS, Windows/WSL and GNOME/KDE/XFCE? You've got to be kidding!
+# apps/911_optics_workflow.py  # <-- 911 LLM Optics: Zero-credential FastHTML spectrometer for RFC 9110/9111 wire truth vs. hydrated DOM with sealed ZIP deed.
 
 # ?https://app.botify.com/michaellevin-org/mikelev.in/
 
@@ -1800,7 +1801,7 @@ MATCHBOOK_CHOP = r"""
 ! .venv/bin/python -c 'import re;t=open("GLOSSARY.md",encoding="utf-8").read();[print(h,"--",re.sub(r"\s+"," ",p)) for h,p in re.findall(r"^- \*\*([^*]+)\*\* -- \*(.+?)\*",t,flags=re.M|re.S)]'
 """
 # #todo #to-do #earmarks
-# - TODO (2026-10-12, 911 OPTICS PROBE POLISH): In apps/911_optics_workflow.py, add red-and-green syntax highlighting to the inline diff display matching /preview, add an interactive headless/headful browser toggle on step_01, and inject a PicoCSS aria-busy="true" loading spinner overlay during step_02 browser automation capture.
+# - LANDED (2026-10-13, 911 OPTICS PROBE POLISH): In apps/911_optics_workflow.py, added red-and-green line-level diff syntax highlighting (_render_colored_diff), an interactive headless/visible browser switch on step_01 (show_browser), a PicoCSS aria-busy="true" loading spinner on step_02, and an RFC 9110/9111 Wire Headers lens in step_03; claimed apps/911_optics_workflow.py into Chapter VIII.
 # - TODO (2026-10-12, RFC 9111 CDN-SIMULATOR): Draft the RFC 9111 edge-cache simulation test harness and narrative demonstrating bandwidth and rendering compute savings over legacy pre-render clusters.
 # - TODO (2026-10-12, UNIFIED JEKYLL TEMPLATE): Consolidate blog layouts across targets (trimnoir, grimoire, guerelliatech, rf9110) into a master minimal Jekyll template: make article width adjustable, elevate the dark/light mode toggle for prominent visibility, and unify common CSS variables.
 # - TODO (2026-10-10, FASTHTML PORT): Un-hardwire port 5001 and make it configurable.
@@ -2640,7 +2641,6 @@ MATCHBOOK_CHOP = r"""
 # apps/730_matplotlib.py  # [3,729 tokens | 16,436 bytes]
 # apps/810_webbrowser.py  # [2,813 tokens | 12,035 bytes]
 # apps/820_selenium.py  # [3,430 tokens | 15,032 bytes]
-# apps/911_optics_workflow.py  # [5,678 tokens | 25,623 bytes]
 # assets/jekyll/common-packages.nix  # [100 tokens | 294 bytes]
 # assets/jekyll/consumer-fixture/flake.nix  # [290 tokens | 1,060 bytes]
 # assets/oz-effect-demo.html  # [3,847 tokens | 16,459 bytes]
