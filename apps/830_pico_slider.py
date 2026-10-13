@@ -523,6 +523,14 @@ class GitSliderFlow:
 
             hidden_target = Input(type="hidden", id="target-file-hidden", name="target_file", value=clean_path)
 
+            save_scroll_snippet = (
+                "const p = document.getElementById('diff-code-pre'); "
+                "if(p){ window._slider_pre_scrollTop = p.scrollTop; window._slider_pre_scrollLeft = p.scrollLeft; } "
+                "const g = document.getElementById('grid-left-content'); "
+                "if(g){ window._slider_grid_scrollTop = g.scrollTop; } "
+                "window._slider_win_scrollY = window.scrollY;"
+            )
+
             range_slider = Input(
                 type="range",
                 name="timeline_index",
@@ -532,9 +540,10 @@ class GitSliderFlow:
                 value=str(current_idx),
                 hx_post=f"/{app_name}/scrub_timeline",
                 hx_target="#diff-viewport",
-                hx_swap="outerHTML",
+                hx_swap="outerHTML show:none",
                 hx_include="#target-file-hidden",
                 hx_trigger="input delay:40ms",
+                oninput=save_scroll_snippet,
                 style="flex-grow: 1; cursor: pointer; margin-bottom: 0;"
             )
 
@@ -542,7 +551,7 @@ class GitSliderFlow:
                 "◀ Older",
                 type="button",
                 cls="secondary outline",
-                onclick="const s = document.getElementById('timeline-range-slider'); if(s && parseInt(s.value) > 0){ s.value = parseInt(s.value) - 1; s.dispatchEvent(new Event('input', {bubbles: true})); }",
+                onclick=save_scroll_snippet + " const s = document.getElementById('timeline-range-slider'); if(s && parseInt(s.value) > 0){ s.value = parseInt(s.value) - 1; s.dispatchEvent(new Event('input', {bubbles: true})); }",
                 style="margin-bottom: 0; padding: 0.4rem 0.8rem; font-size: 0.85rem;"
             )
 
@@ -550,7 +559,7 @@ class GitSliderFlow:
                 "Newer ▶",
                 type="button",
                 cls="secondary outline",
-                onclick="const s = document.getElementById('timeline-range-slider'); if(s && parseInt(s.value) < parseInt(s.max)){ s.value = parseInt(s.value) + 1; s.dispatchEvent(new Event('input', {bubbles: true})); }",
+                onclick=save_scroll_snippet + " const s = document.getElementById('timeline-range-slider'); if(s && parseInt(s.value) < parseInt(s.max)){ s.value = parseInt(s.value) + 1; s.dispatchEvent(new Event('input', {bubbles: true})); }",
                 style="margin-bottom: 0; padding: 0.4rem 0.8rem; font-size: 0.85rem;"
             )
 
@@ -558,7 +567,7 @@ class GitSliderFlow:
                 prev_btn,
                 range_slider,
                 next_btn,
-                style="display: flex; align-items: center; gap: 0.75rem; margin: 0.75rem 0;"
+                style="display: flex; align-items: center; gap: 0.75rem; margin: 0.75rem 0; position: sticky; top: 0; z-index: 20; background: var(--pico-background-color); padding: 0.5rem 0;"
             )
 
             initial_diff_viewport = self._render_diff_view(clean_path, commits, current_idx)
