@@ -1,6 +1,7 @@
 # File: apps/830_pico_slider.py
 import asyncio
 import os
+import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +32,7 @@ class GitSliderFlow:
         wand = self.wand
         self.message_queue = wand.get_message_queue()
         self.ui = wand.get_ui_constants()
+        self._commits_cache = {}
 
         self.steps = [
             Step(
@@ -71,8 +73,8 @@ class GitSliderFlow:
             }
         }
 
-    def _get_file_commits(self, target_file: str):
-        """Retrieve all commits that touched target_file, oldest first."""
+    def _resolve_repo_path(self, target_file: str) -> str:
+        """Resolve a user-provided file path to a valid repo-relative tracked path."""
         clean_path = target_file.strip().lstrip('./')
         repo_root = Path(os.environ.get('PIPULATE_ROOT', os.getcwd()))
         if Path(clean_path).is_absolute():
@@ -81,21 +83,84 @@ class GitSliderFlow:
             except ValueError:
                 pass
 
+        if not (repo_root / clean_path).exists():
+            if (repo_root / 'apps' / clean_path).exists():
+                return f'apps/{clean_path}'
+            try:
+                res = subprocess.run(['git', 'ls-files'], cwd=str(repo_root), capture_output=True, text=True, check=True)
+                for tf in res.stdout.splitlines():
+                    tf = tf.strip()
+                    if Path(tf).name == clean_path or tf.endswith(f"/{clean_path}"):
+                        return tf
+            except Exception:
+                pass
+        return clean_path
+
+    def _get_file_commits(self, target_file: str, force_refresh: bool = False):
+        """Retrieve all commits that touched target_file, oldest first (following renames)."""
+        clean_path = self._resolve_repo_path(target_file)
+        repo_root = Path(os.environ.get('PIPULATE_ROOT', os.getcwd()))
+
+        if not force_refresh and clean_path in self._commits_cache:
+            return self._commits_cache[clean_path], clean_path
+
+        # CRITICAL FIX: DO NOT pass --reverse to git log with --follow!
+        # git log --follow --reverse breaks rename traversal in Git and truncates history to 1 commit.
+        # We query newest-to-oldest with --name-status, then reverse in Python.
         cmd = [
-            'git', 'log', '--follow', '--reverse',
-            '--format=%H|%h|%ad|%an|%s', '--date=short',
+            'git', 'log', '--follow', '--name-status',
+            '--format=COMMIT:%H|%h|%ad|%an|%s', '--date=short',
             '--', clean_path
         ]
         try:
             res = subprocess.run(cmd, cwd=str(repo_root), capture_output=True, text=True, check=True)
-            lines = [line.strip() for line in res.stdout.split('\n') if line.strip()]
-            return lines, clean_path
+            raw_output = res.stdout
         except Exception as e:
             logger.warning(f"Error reading git log for {clean_path}: {e}")
             return [], clean_path
 
-    def _get_commit_diff(self, clean_path: str, commit_line: str):
-        """Extract metadata and diff for a specific commit and file."""
+        commits = []
+        current_commit = None
+        for line in raw_output.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith('COMMIT:'):
+                if current_commit:
+                    commits.append(current_commit)
+                meta_str = line[len('COMMIT:'):]
+                current_commit = {
+                    'meta': meta_str,
+                    'file_at_commit': clean_path
+                }
+            elif current_commit and '\t' in line:
+                parts = line.split('\t')
+                status = parts[0]
+                if status.startswith('R') and len(parts) >= 3:
+                    current_commit['file_at_commit'] = parts[1]  # old path prior to rename
+                    current_commit['rename_target'] = parts[2]
+                elif len(parts) >= 2:
+                    current_commit['file_at_commit'] = parts[1]
+
+        if current_commit:
+            commits.append(current_commit)
+
+        # Reverse so index 0 = oldest, index -1 = newest
+        commits.reverse()
+        self._commits_cache[clean_path] = commits
+        return commits, clean_path
+
+    def _get_commit_diff(self, clean_path: str, commit_item):
+        """Extract metadata and diff for a specific commit and file, handling renames."""
+        if isinstance(commit_item, dict):
+            commit_line = commit_item['meta']
+            file_at_commit = commit_item.get('file_at_commit', clean_path)
+            rename_target = commit_item.get('rename_target')
+        else:
+            commit_line = str(commit_item)
+            file_at_commit = clean_path
+            rename_target = None
+
         parts = commit_line.split('|', 4)
         if len(parts) == 5:
             full_hash, short_hash, commit_date, author, subject = parts
@@ -104,12 +169,35 @@ class GitSliderFlow:
             short_hash, commit_date, author, subject = full_hash[:8], "unknown", "unknown", ""
 
         repo_root = Path(os.environ.get('PIPULATE_ROOT', os.getcwd()))
-        cmd = ['git', 'show', '--color=never', '--patch', full_hash, '--', clean_path]
-        try:
-            res = subprocess.run(cmd, cwd=str(repo_root), capture_output=True, text=True)
-            diff_text = res.stdout.strip()
-        except Exception as e:
-            diff_text = f"Error running git show: {e}"
+
+        paths_to_try = [file_at_commit]
+        if clean_path not in paths_to_try:
+            paths_to_try.append(clean_path)
+        if rename_target and rename_target not in paths_to_try:
+            paths_to_try.append(rename_target)
+
+        diff_text = ""
+        for p in paths_to_try:
+            cmd = ['git', 'show', '--color=never', '--patch', full_hash, '--', p]
+            try:
+                res = subprocess.run(cmd, cwd=str(repo_root), capture_output=True, text=True)
+                if res.returncode == 0 and res.stdout.strip():
+                    diff_text = res.stdout.strip()
+                    break
+            except Exception:
+                pass
+
+        if not diff_text:
+            try:
+                res_all = subprocess.run(['git', 'show', '--color=never', '--patch', full_hash],
+                                         cwd=str(repo_root), capture_output=True, text=True)
+                if res_all.returncode == 0 and res_all.stdout.strip():
+                    full_output = res_all.stdout.strip()
+                    sections = re.split(r'(?m)(?=^diff --git )', full_output)
+                    matching = [sec for sec in sections if any(f"/{p}" in sec or f" {p}" in sec or f"b/{p}" in sec or f"a/{p}" in sec for p in paths_to_try)]
+                    diff_text = "\n".join(matching).strip() if matching else full_output
+            except Exception as e:
+                diff_text = f"Error running git show: {e}"
 
         return {
             'full_hash': full_hash,
@@ -274,7 +362,7 @@ class GitSliderFlow:
                 tracked_files = ['foo_files.py', 'server.py', 'apply.py', 'apps/040_hello_workflow.py']
 
             current_val = user_val if (step.refill and user_val) else 'foo_files.py'
-            quick_files = ['foo_files.py', 'server.py', 'apply.py', 'apps/040_hello_workflow.py', 'apps/830_pico_slider.py']
+            quick_files = ['foo_files.py', 'server.py', 'apply.py', 'apps/040_hello_workflow.py', 'apps/830_pico_slider.py', 'apps/911_optics_workflow.py', 'assets/styles.css']
 
             quick_buttons = Div(
                 Span("Quick picks: ", cls="text-secondary", style="font-size: 0.85rem; margin-right: 0.5rem;"),
@@ -283,7 +371,7 @@ class GitSliderFlow:
                         qf,
                         type="button",
                         cls="secondary outline",
-                        onclick=f"document.getElementById('target-file-input').value = '{qf}';",
+                        onclick=f"document.getElementById('target-file-input').value = '{qf}'; document.getElementById('target-file-input').focus();",
                         style="font-size: 0.75rem; padding: 0.2rem 0.5rem; margin: 0.2rem;"
                     )
                     for qf in quick_files if qf in tracked_files or (repo_root / qf).exists()
@@ -307,7 +395,7 @@ class GitSliderFlow:
                                 name=step.done,
                                 list='tracked-files-datalist',
                                 value=current_val,
-                                placeholder='e.g. foo_files.py or server.py',
+                                placeholder='e.g. foo_files.py, apply.py, or apps/040_hello_workflow.py',
                                 required=True,
                                 autofocus=True,
                                 style='flex-grow: 1; margin-bottom: 0;'
@@ -347,7 +435,7 @@ class GitSliderFlow:
         if not user_val:
             user_val = "foo_files.py"
 
-        commits, clean_path = self._get_file_commits(user_val)
+        commits, clean_path = self._get_file_commits(user_val, force_refresh=True)
         if not commits:
             error_msg = f"No git commits found for '{user_val}'. Please verify the path."
             await self.message_queue.add(wand, f"{self.ui['EMOJIS']['ERROR']} {error_msg}", verbatim=True)
