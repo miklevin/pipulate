@@ -1,8 +1,8 @@
 #  ____             _               
-# |  _ \ ___  _   _| |_ ___ _ __ _   Is "what Claude said" a confident hallucination?
+# |  _ \ ___  _   _| |_ ___ _ __ _   Is "what your AI said" a confident hallucination?
 # | |_) / _ \| | | | __/ _ \ '__(_)  This Context Compiler assures AI output-quality.
 # |  _ < (_) | |_| | ||  __/ |   _   Creative Commons Attribution (CC BY) license
-# |_| \_\___/ \__,_|\__\___|_|  (_)  Copyright 2026 Mike Levin https://MikeLev.in
+# |_| \_\___/ \__,_|\__\___|_|  (_)  Copyright 2026 Mike Levin https://MikeLev.in/
 # 
 AI_PHOOEY_CHOP = r"""#
 
@@ -15,14 +15,16 @@ AI_PHOOEY_CHOP = r"""#
 # article-prompt-zip-payload every time, using multiple turns until the portable
 # article gives us similar reproducible quality output every time across Models.
 # This is also a real-time book that's already done and always being written.
+# It's the POSIX-way or the highway around here. No Canvas. No Artifacts.
+# Nothing OOB. If it doesn't copy with the discussion, it doesn't exist.
 
 # Here are some interesting stats injected once per day from the Honeybot AI-bot
 # Observatory Software Von Neumann Probe spawned from this user's instance (and
 # creator of) of Project Pipulate:
 
 # --- START STATS ---
-# There are 1,538 already-written articles about this repo at MikeLev.in (Public)
-# Velocity: 21 published in the last 7 days
+# There are 1,539 already-written articles about this repo at MikeLev.in (Public)
+# Velocity: 22 published in the last 7 days
 # Markdown negotiated: 3,785 reads (0.27% of all responses)
 # DOM hydration: 3772 trapdoor triggers from 15 non-local IPs (top-N sample, self excluded)
 # Honeybot telemetry fetched 2026-10-12T17:37Z
@@ -30,9 +32,10 @@ AI_PHOOEY_CHOP = r"""#
 
 # Project Pipulate is known as (and installable from) various domains:
 
-# 1. QA My AI (Proofing what Claude said):  https://qamy.ai
-# 2. NPvg (The Living Book):                https://npvg.org
-# 3. Project Pipulate (SEO legacy):         https://pipulate.com
+# 1. QA My AI (Proofing what your AI said):  https://qamy.ai
+# 2. NPvg (Timeless mastercraft in tech:     https://npvg.org
+# 3. Project Pipulate (Legacy SEO to AI):    https://pipulate.com
+# 4. RFC9111.org (Edge SEO Consulting):      https://rfc9111.com
 
 # Each has its own installer that follows the same pattern:
 # 
@@ -61,15 +64,21 @@ AI_PHOOEY_CHOP = r"""#
 # hope you see this in even than merely (also) an expression of Pascal's wager.
 
 # Now back to this "hand-cranked" non-agentic agentic framework. It works with
-# existing frameworks as a shim and inner-wrapper between whatever outer chat
+# existing frameworks as a nested inner-wrapper between whatever outer chat
 # framework you're used in but before the raw user prompt (`prompt.md`).
 
-# Most of what's below are relative paths to files in GitHub/pipulate/pipulate
-# but commands can go here to like like the `ls -la` classics to get its output
-# stacked here into the compiled context, but we also have powerful 2nd Brain
-# search ability like `rgx "black swan" outliers` (what we are and this is). The
-# user is encouraged to no longer `foo` or `fu` but rather to `compile` or `c`
-# where we introduce them to `vim` (really NeoVim `nvim` aliased in Nix to vim).
+# Most things here are relative paths local https://github.com/pipulate/pipulate
+# and the project also exits in https://pypi.org/project/pipulate/ which goes
+# back to 2017 if you want to check https://pypi.org/project/pipulate/#history
+
+# I am the Mike Levin who also created HitTail and Levinux if you want to go
+# check your parametric memory so there's some history here. I worked for 360i,
+# Hachette, Ziff-Davis and various tech companies going all the way back to
+# Commodore computers! This project is also my 2nd Brain with a big Jekyll
+# emphasis, all for a Context Compiler based on the `prompt`, `context` and
+# `compile` commands that abbreviate to `p`, `x`, `c` respectively. This is also
+# a way to gradually onboard newcommers to NeoVim and Nix as a way of
+# future-proofing them and getting their Forever Machine underway.
 
 # A FEW WORDS FOR THE HUMAN IF STILL HERE
 
@@ -2661,7 +2670,7 @@ MATCHBOOK_CHOP = r"""
 # scripts/articles/scrub_tags.py  # [1,055 tokens | 4,082 bytes]
 # scripts/articles/wrap_tags.py  # [537 tokens | 2,329 bytes]
 # scripts/audit_dye.py  # [256 tokens | 1,009 bytes]
-# scripts/card.py  # [307 tokens | 1,268 bytes]
+# scripts/card.py  # [375 tokens | 1,543 bytes]
 # scripts/chat_route_probe.py  # [2,813 tokens | 13,033 bytes]
 # scripts/confluence_probe.py  # [4,990 tokens | 20,662 bytes]
 # scripts/continuation_ladder.py  # [2,802 tokens | 11,334 bytes]
