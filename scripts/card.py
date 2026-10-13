@@ -54,8 +54,17 @@ def main():
         except ValueError:
             hold = 900.0
 
+    stop_file = sys.argv[3] if len(sys.argv) > 3 else None
+
     render(label)
-    time.sleep(hold)
+    if stop_file:
+        start_time = time.time()
+        while time.time() - start_time < hold:
+            if os.path.exists(stop_file):
+                break
+            time.sleep(0.05)
+    else:
+        time.sleep(hold)
 
 
 if __name__ == "__main__":
