@@ -24,6 +24,7 @@ except Exception:
 
 def render(label: str):
     """Render the label as a Figlet banner, centered if Rich is available."""
+    label = label.replace("\\n", "\n")
     banner = label
     if Figlet is not None:
         try:
