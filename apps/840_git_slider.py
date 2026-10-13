@@ -242,11 +242,11 @@ class GitSliderFlow:
         diff_content = meta['diff'] or "(Empty diff: file mode or metadata change only)"
 
         diff_box = Pre(
-            Code(diff_content, cls="language-diff"),
+            Code(diff_content, cls="language-diff", style="font-size: 0.72rem; line-height: 1.35;"),
             id="diff-code-pre",
             cls="language-diff",
             onscroll="if (!window._slider_restoring) { window._slider_pre_scrollTop = this.scrollTop; window._slider_pre_scrollLeft = this.scrollLeft; }",
-            style="max-height: 55vh; overflow-y: auto; overflow-x: auto; margin-bottom: 0; background: #111;"
+            style="max-height: 62vh; overflow-y: auto; overflow-x: auto; margin-bottom: 0; background: #111; font-size: 0.72rem; line-height: 1.35; padding: 0.75rem;"
         )
 
         prism_script = Script("""
@@ -582,6 +582,10 @@ class GitSliderFlow:
             initial_diff_viewport = self._render_diff_view(clean_path, commits, current_idx)
 
             diff_styles = Style("""
+                #diff-code-pre, #diff-code-pre code {
+                    font-size: 0.72rem !important;
+                    line-height: 1.35 !important;
+                }
                 .token.inserted, pre[class*="language-"] .token.inserted, code[class*="language-"] .token.inserted {
                     color: #2ea043 !important;
                     background-color: rgba(46, 160, 67, 0.15) !important;
