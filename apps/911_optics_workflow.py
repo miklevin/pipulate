@@ -301,8 +301,8 @@ class OpticsWorkflow:
                             Input(
                                 type='url',
                                 name=step.done,
-                                value=user_val or '[https://mikelev.in/](https://mikelev.in/)',
-                                placeholder='[https://example.com/](https://example.com/)',
+                                value=user_val or 'https://mikelev.in/',
+                                placeholder='https://example.com/',
                                 required=True,
                                 autofocus=True,
                                 id='optics-step01-url-input',
