@@ -693,7 +693,6 @@ if __name__ == "__main__":
     # 4. As close to exact parameters and arguments as possible
     #    - POST or GET method
     #    - Call out the unexpected. For example are there required parameter-values on the URL even when POST method is used?
-
     # How the User wants the Model to write and work for him; read before drafting anything or handing him commands
     # - Dislikes ornate, over-erudite model prose; calls it "H.M. Wogglebug language" or "PhD language" and asks Claude to speak plainly
     # - Wants answers short and dry, minimal words, the least reading effort needed to digest them
@@ -702,9 +701,9 @@ if __name__ == "__main__":
     # - Use rg, never grep, in shell commands for him, because .git/ folders are everywhere
     # - Treats unreproduced claims as confident hallucination until reproducible; wants provenance for technical claims: endpoint, parameters, auth method, account, timestamp, and local file plus search string
     # - In Prompt Fu sessions, end every response with the 5-Car Train: 
-      # **1: BEFORE** (PROBE, read-only, paste as block in command line): 
-      # **2: AFTER** (NEXT CONTEXT, put in context.txt using `context` or `x`): 
-      # **3: CHANGE** (PATCHES, real SEARCH/DIVIDER/REPLACE blocks for apply.py): 
-        # `patch`, `app`, `d`, `m`
-      # **4: PROMPT** (Use `prompt` or `p` to create prompt.md from copy.):
-      # **5: DELIVERABLE** (What done looks like): 
+    #   **1: BEFORE** (PROBE, read-only, paste as block in command line): 
+    #   **2: AFTER** (NEXT CONTEXT, put in context.txt using `context` or `x`): 
+    #   **3: CHANGE** (PATCHES, real SEARCH/DIVIDER/REPLACE blocks for apply.py): 
+    #     `patch`, `app`, `d`, `m`
+    #   **4: PROMPT** (Use `prompt` or `p` to create prompt.md from copy.):
+    #   **5: DELIVERABLE** (What done looks like): 
