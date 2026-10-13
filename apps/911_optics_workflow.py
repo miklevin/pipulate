@@ -238,6 +238,24 @@ class OpticsWorkflow:
     async def get_suggestion(self, step_id, state):
         return ''
 
+    def _render_colored_diff(self, diff_text: str):
+        lines = []
+        for raw_line in diff_text.splitlines():
+            if raw_line.startswith('+++') or raw_line.startswith('---'):
+                lines.append(Div(raw_line, style='color: #bd93f9; font-weight: bold; white-space: pre;'))
+            elif raw_line.startswith('@@'):
+                lines.append(Div(raw_line, style='color: #8be9fd; background: rgba(139, 233, 253, 0.08); white-space: pre;'))
+            elif raw_line.startswith('+'):
+                lines.append(Div(raw_line, style='color: #50fa7b; background: rgba(80, 250, 123, 0.12); white-space: pre;'))
+            elif raw_line.startswith('-'):
+                lines.append(Div(raw_line, style='color: #ff5555; background: rgba(255, 85, 85, 0.12); white-space: pre;'))
+            else:
+                lines.append(Div(raw_line or ' ', style='color: #f8f8f2; white-space: pre;'))
+        return Pre(
+            *lines,
+            style='max-height: 280px; overflow-y: auto; overflow-x: auto; background: #111; padding: 0.75rem; border-radius: 4px; font-size: 0.78rem; line-height: 1.35;'
+        )
+
     # --- STEP 01: TARGET URL ---
     async def step_01(self, request):
         wand, steps, app_name = (self.wand, self.steps, self.app_name)
@@ -283,14 +301,26 @@ class OpticsWorkflow:
                             Input(
                                 type='url',
                                 name=step.done,
-                                value=user_val or 'https://mikelev.in/',
-                                placeholder='https://example.com/',
+                                value=user_val or '[https://mikelev.in/](https://mikelev.in/)',
+                                placeholder='[https://example.com/](https://example.com/)',
                                 required=True,
                                 autofocus=True,
                                 id='optics-step01-url-input',
                                 aria_label='Target URL to inspect'
                             ),
                             button_label=self.ui['BUTTON_LABELS']['NEXT_STEP']
+                        ),
+                        Label(
+                            Input(
+                                type='checkbox',
+                                name='show_browser',
+                                role='switch',
+                                checked=bool(state.get('show_browser', False)),
+                                id='optics-step01-show-browser'
+                            ),
+                            ' Pop visible browser window (headful mode; default is headless)',
+                            _for='optics-step01-show-browser',
+                            style='margin-top: 0.5rem; font-size: 0.88rem;'
                         ),
                         hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}',
@@ -319,11 +349,16 @@ class OpticsWorkflow:
         if not user_val.startswith(('http://', 'https://')):
             user_val = f'https://{user_val}'
 
+        show_browser = bool(form.get('show_browser'))
         await wand.set_step_data(pipeline_id, step_id, user_val, steps)
-        await self.message_queue.add(wand, f'{self.ui["EMOJIS"]["SUCCESS"]} Target set: {user_val}', verbatim=True)
+        state = wand.read_state(pipeline_id)
+        state['show_browser'] = show_browser
+        wand.write_state(pipeline_id, state)
+        mode_label = "visible browser" if show_browser else "headless"
+        await self.message_queue.add(wand, f'{self.ui["EMOJIS"]["SUCCESS"]} Target set: {user_val} ({mode_label})', verbatim=True)
         self.wand.speak("Target URL set. Ready for optical capture.", wait=False)
-        self.wand.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")
-        return wand.chain_reverter(step_id, step_index, steps, app_name, user_val)
+        self.wand.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val} ({mode_label})")
+        return wand.chain_reverter(step_id, step_index, steps, app_name, f"{user_val} ({mode_label})")
 
     # --- STEP 02: CAPTURE & SIFT ---
     async def step_02(self, request):
@@ -367,9 +402,10 @@ class OpticsWorkflow:
                     P(f"Target: {target_url}", cls='text-muted'),
                     P("Engage undetected browser to drain CDP performance log, capture wire response vs. hydrated DOM, and run the SIFT comparator.", cls='text-muted'),
                     Form(
-                        Button("Engage Optics SIFT 👁️", type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY']),
+                        Button("Engage Optics SIFT 👁️", type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY'], id='optics-step02-btn'),
                         hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}',
+                        onsubmit="const b=this.querySelector('button');if(b){b.setAttribute('aria-busy','true');b.textContent='Capturing Wire & DOM (SIFTing)...';}",
                         id='optics-step02-form'
                     ),
                     role='region'
@@ -392,12 +428,13 @@ class OpticsWorkflow:
         output_dir = Path("browser_cache/looking_at") / domain / slug
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        show_browser = bool(wand.read_state(pipeline_id).get('show_browser', False))
         params = {
             "url": target_url,
             "domain": domain,
             "url_path_slug": slug,
             "take_screenshot": False,
-            "headless": True,
+            "headless": not show_browser,
             "is_notebook_context": False,
             "verbose": False,
             "persistent": False,
@@ -483,6 +520,7 @@ class OpticsWorkflow:
             diff_text = "No diff artifact found."
             links_text = "No link lens found."
             provenance = "unknown"
+            rfc_headers_text = "No RFC 9110/9111 headers captured."
 
             if out_dir and out_dir.exists():
                 diff_path = out_dir / "diff_simple_dom.txt"
@@ -500,6 +538,15 @@ class OpticsWorkflow:
                     try:
                         h_data = json.loads(headers_path.read_text(encoding='utf-8'))
                         provenance = h_data.get("source_provenance", "wire")
+                        raw_hdrs = {str(k).lower(): v for k, v in (h_data.get("headers") or {}).items()}
+                        rfc_keys = [
+                            "content-type", "vary", "cache-control", "etag",
+                            "age", "cache-status", "cf-cache-status", "link",
+                            "content-signal", "server"
+                        ]
+                        found_hdrs = [f"{k}: {raw_hdrs[k]}" for k in rfc_keys if k in raw_hdrs]
+                        if found_hdrs:
+                            rfc_headers_text = "\n".join(found_hdrs)
                     except Exception:
                         pass
 
@@ -507,15 +554,17 @@ class OpticsWorkflow:
                 Article(
                     H3(f'{self.ui["EMOJIS"]["GREETING"]} {self.wand.fmt(step.id)}: {step.show}'),
                     P(f"Wire Truth Provenance: {provenance.upper()}", cls='text-muted'),
-                    H4("1. DOM Structural Diff (Source vs. Hydrated)"),
+                    H4("1. RFC 9110 / 9111 Wire Headers (Semantics & Caching)"),
                     Pre(
-                        Code(diff_text),
-                        style='max-height: 250px; overflow-y: auto; background: #111; color: #50fa7b; padding: 0.75rem; border-radius: 4px;'
+                        Code(rfc_headers_text),
+                        style='max-height: 160px; overflow-y: auto; background: #111; color: #f1fa8c; padding: 0.75rem; border-radius: 4px; font-size: 0.78rem;'
                     ),
-                    H4("2. Link Lens (Anchor Accounting)"),
+                    H4("2. DOM Structural Diff (Source vs. Hydrated)"),
+                    self._render_colored_diff(diff_text),
+                    H4("3. Link Lens (Anchor Accounting)"),
                     Pre(
                         Code(links_text),
-                        style='max-height: 250px; overflow-y: auto; background: #111; color: #8be9fd; padding: 0.75rem; border-radius: 4px;'
+                        style='max-height: 250px; overflow-y: auto; background: #111; color: #8be9fd; padding: 0.75rem; border-radius: 4px; font-size: 0.78rem;'
                     ),
                     Form(
                         Button("Accept Optical Findings & Seal ▸", type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY']),
