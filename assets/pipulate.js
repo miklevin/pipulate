@@ -623,7 +623,7 @@ function setupMenuFlashFeedback() {
                         console.log('🛡️ Server disconnected. Dropping the curtain.');
                         
                         triggerFullScreenRestart(
-                            "Connection lost. 🔌<br><br><small style='font-size: 0.8em; opacity: 0.9;'>To wake the server, run:<br><code style='background: #222; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; margin: 10px 0; display: inline-block; color: #a7f3d0;'>python server.py</code><br>or <code style='background: #222; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; display: inline-block; color: #a7f3d0;'>nix develop</code></small>", 
+                            "Looking for connection. 🔌<br><br><small style='font-size: 0.8em; opacity: 0.9;'>The server will likely come right back. If not, run:<br><code style='background: #222; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; margin: 10px 0; display: inline-block; color: #a7f3d0;'>python server.py</code><br>or <code style='background: #222; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; display: inline-block; color: #a7f3d0;'>nix develop</code></small>", 
                             "SERVER_OFFLINE"
                         );
 
