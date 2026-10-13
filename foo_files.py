@@ -2632,7 +2632,7 @@ MATCHBOOK_CHOP = r"""
 # apps/440_browser_automation.py  # [10,795 tokens | 47,151 bytes]
 # apps/450_stream_simulator.py  # [1,829 tokens | 9,491 bytes]
 # apps/580_upload.py  # [5,622 tokens | 26,462 bytes]
-# apps/610_markdown.py  # [4,756 tokens | 24,972 bytes]
+# apps/610_markdown.py  # [4,755 tokens | 24,919 bytes]
 # apps/620_mermaid.py  # [3,778 tokens | 16,790 bytes]
 # apps/630_prism.py  # [3,559 tokens | 15,672 bytes]
 # apps/640_javascript.py  # [3,621 tokens | 15,585 bytes]
