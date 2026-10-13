@@ -149,6 +149,7 @@ And what's more:
 And then we demonstrate a level of competence like so:
 
 # --- START RECEIPTS (newest first; cap 20 lines; a line pushed past the cap is deleted, never moved -- git and the rolling pin are the archive) ---
+# 2026-10-13 dismount MARK NOTTINGHAM, INKTOMI, AND 911 OPTICS LENS POLISH (deeds qamy.ai_59-e8193390.zip through qamy.ai_63-45f5280c.zip; commits 95261b02, 3f97c466, b05804fd, b7662015, 6211a6ea; Gemini 4 Argon High on every turn): Mark Nottingham (mnot), RFC 9110/9111 modularization, AIPREF, Paul Gauthier (Inktomi Traffic Server -> Yahoo! -> Aider SEARCH/REPLACE benchmarks), and SearchEngineForums (SEF) mapped to Honeybot and Pipulate's local-first architecture; apps/911_optics_workflow.py upgraded with Step 2 headful/headless switch (show_browser), PicoCSS aria-busy capture spinner, PrismJS language-yaml RFC 9110/9111 Wire Headers panel, red/green structural diff renderer (_render_colored_diff), and MarkedJS Link Lens renderer (_render_markdown_lens); Marked v15 token object code.lang extraction fixed in apps/610_markdown.py (6211a6ea); apps/911_optics_workflow.py, apps/610_markdown.py, and apps/630_prism.py claimed into Chapters VIII and XIV. WITNESSED: rg -c probes 0 -> 11 and 0 -> 6 in apps/911_optics_workflow.py, code.lang 0 -> 2 in apps/610_markdown.py, py_compile exit 0, Ruff clean, deed qamy.ai_63-45f5280c.zip.
 # 2026-10-13 dismount THE TWO-COMMIT RENAME BRIDGE AND KEYLESS INSTRUMENTS (deed qamy.ai_58-100abb4b.zip; commits d4839e4f, deccee3d, 934c248a, 0ed5f8af, 950c56a2, ade5fa6b, ac25d4f3; Gemini 4 Argon High on every turn): GitSliderFlow separated from apps/830_pico_slider.py into apps/840_git_slider.py via a two-commit git mv split (d4839e4f R100) to preserve git log --follow history while restoring apps/830_pico_slider.py as a pure PicoCSS range-slider placeholder template (950c56a2, 18,242 bytes); apps/840_git_slider.py refactored into a keyless single-screen timeline explorer (ade5fa6b, 24,174 bytes) with 0.72rem diff typography (0ed5f8af) and git show -M two-path rename diffing (deccee3d); /preview and /diff in server.py streamlined into a scroll-locked Markdown + Diff viewer defaulted to prompt.md (ac25d4f3). WITNESSED: py_compile server.py apps/830_pico_slider.py apps/840_git_slider.py exit 0, Ruff clean, deed qamy.ai_58-100abb4b.zip.
 # 2026-10-13 dismount THE MOVIOLA GIT SLIDER AND IMPEDANCE MATCHING (deed qamy.ai_43-f53846f6.zip; commits 218ea391, 60c0e5e6, 6e9366fc, 8656b098; Gemini on every turn): FastHTML Moviola Git history scrubber packaged (apps/830_pico_slider.py) with dynamic HTMX timeline scrubbing, quick-pick path resolution, and Prism diff tokenization; Git core --follow --reverse rename bug resolved by Python-side chronological reversal and --name-status path tracking; vertical scroll offset and sticky controls locked across DOM replacements to eliminate shuttle-jog bounce; mitochondrial endosymbiosis and prompt impedance matching framed against stochastic LLM drift. WITNESSED: apps/830_pico_slider.py clean compile (37,115 bytes), git status clean on main at 8656b098, apply.py and apps/040_hello_workflow.py commit counts verified (97 and 157 commits), deed qamy.ai_43-f53846f6.zip.
 # 2026-10-12 dismount THE PRE-AUTHORIZATION GAP AND AGENTIC COMMERCE (deeds qamy.ai_36-26ce3ba1.zip through qamy.ai_39-e0071816.zip; Gemini on every turn): Universal Commerce Protocol (UCP), Model Context Protocol (MCP), and Agent Payments Protocol (AP2) architectural stack evaluated against RFC 9110 content negotiation and RFC 9111 edge cache partitioning; pre-authorization context gap identified as the primary vulnerability of autonomous shopping agents; headless Chromium pre-render debt contrasted against edge-native Markdown delivery; 911 Optics Desktop Spectrometer framed as zero-credential audit instrument. WITNESSED: ! git status clean, ! rg TODO.*911 OPTICS exit 0 (2 lines), ! py_compile apps/911_optics_workflow.py exit 0, deed qamy.ai_39-e0071816.zip.
@@ -1208,8 +1209,10 @@ foo_files.py      #  <-- THIS file. Content compiler router. Makes it very meta.
 # apps/550_radios.py  # [3,637 tokens | 16,066 bytes]
 # apps/560_range.py  # [3,311 tokens | 14,102 bytes]
 # apps/570_switch.py  # [2,699 tokens | 11,688 bytes]
+# apps/610_markdown.py     # [4,755 tokens | 24,919 bytes]  # <-- MarkedJS v15 Markdown rendering widget with PrismJS code block delegation
+# apps/630_prism.py        # [3,559 tokens | 15,672 bytes]  # <-- PrismJS syntax highlighting widget (YAML, Python, Nix, Bash, Diff, Markdown)
 # apps/830_pico_slider.py  # [3,888 tokens | 18,242 bytes]  # <-- Pure PicoCSS range-slider placeholder template aligned with 300_blank_placeholder.py
-# apps/840_git_slider.py  # [5,314 tokens | 24,174 bytes]   # <-- Keyless Moviola Git history scrubber over any tracked file
+# apps/840_git_slider.py   # [5,314 tokens | 24,174 bytes]   # <-- Keyless Moviola Git history scrubber over any tracked file
 
 # ============================================================================
 # XV. CUSTOM JAVASCRIPT
@@ -1801,7 +1804,7 @@ MATCHBOOK_CHOP = r"""
 ! .venv/bin/python -c 'import re;t=open("GLOSSARY.md",encoding="utf-8").read();[print(h,"--",re.sub(r"\s+"," ",p)) for h,p in re.findall(r"^- \*\*([^*]+)\*\* -- \*(.+?)\*",t,flags=re.M|re.S)]'
 """
 # #todo #to-do #earmarks
-# - LANDED (2026-10-13, 911 OPTICS PROBE POLISH): In apps/911_optics_workflow.py, added red-and-green line-level diff syntax highlighting (_render_colored_diff), an interactive headless/visible browser switch on step_01 (show_browser), a PicoCSS aria-busy="true" loading spinner on step_02, and an RFC 9110/9111 Wire Headers lens in step_03; claimed apps/911_optics_workflow.py into Chapter VIII.
+# - LANDED (2026-10-13, 911 OPTICS PROBE POLISH): In apps/911_optics_workflow.py, added red-and-green line-level diff syntax highlighting (_render_colored_diff), an interactive headless/visible browser switch on step_02 (show_browser) with PicoCSS aria-busy="true" capture spinner, a PrismJS language-yaml RFC 9110/9111 Wire Headers lens, and a MarkedJS Link Lens renderer (_render_markdown_lens) in step_03; fixed Marked v15 code.lang extraction in apps/610_markdown.py; claimed apps/911_optics_workflow.py, apps/610_markdown.py, and apps/630_prism.py into Chapters VIII and XIV.
 # - TODO (2026-10-12, RFC 9111 CDN-SIMULATOR): Draft the RFC 9111 edge-cache simulation test harness and narrative demonstrating bandwidth and rendering compute savings over legacy pre-render clusters.
 # - TODO (2026-10-12, UNIFIED JEKYLL TEMPLATE): Consolidate blog layouts across targets (trimnoir, grimoire, guerelliatech, rf9110) into a master minimal Jekyll template: make article width adjustable, elevate the dark/light mode toggle for prominent visibility, and unify common CSS variables.
 # - TODO (2026-10-10, FASTHTML PORT): Un-hardwire port 5001 and make it configurable.
@@ -2632,9 +2635,7 @@ MATCHBOOK_CHOP = r"""
 # apps/440_browser_automation.py  # [10,795 tokens | 47,151 bytes]
 # apps/450_stream_simulator.py  # [1,829 tokens | 9,491 bytes]
 # apps/580_upload.py  # [5,622 tokens | 26,462 bytes]
-# apps/610_markdown.py  # [4,755 tokens | 24,919 bytes]
 # apps/620_mermaid.py  # [3,778 tokens | 16,790 bytes]
-# apps/630_prism.py  # [3,559 tokens | 15,672 bytes]
 # apps/640_javascript.py  # [3,621 tokens | 15,585 bytes]
 # apps/710_pandas.py  # [3,398 tokens | 14,478 bytes]
 # apps/720_rich.py  # [3,210 tokens | 13,833 bytes]
