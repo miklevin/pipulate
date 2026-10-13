@@ -92,12 +92,9 @@ class IntroductionPlugin:
                 # what is producing it. This is Piper reading a fixed string,
                 # so it says so, and it does not borrow a persona to do it.
                 msg = (
-                    "One disclosure before anything else. This voice is Piper, a speech "
-                    "synthesizer running entirely on your machine, reading a fixed script. "
-                    "There is no language model behind it yet. You have found port 5001 early, "
-                    "which is fine, but this room fills in as you finish onboarding. "
-                    "Head back to your JupyterLab tab, run the Onboarding notebook top to bottom, "
-                    "and this page will have something worth saying."
+                    "This voice is Piper, a speech synthesizer running entirely on your machine, "
+                    "reading a fixed script to provided a guided tour. There is no language model "
+                    "behind it yet."
                 )
                 return "Onboarding Not Finished 🔒", msg, None
 
