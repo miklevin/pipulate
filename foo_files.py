@@ -2661,7 +2661,7 @@ MATCHBOOK_CHOP = r"""
 # scripts/articles/scrub_tags.py  # [1,055 tokens | 4,082 bytes]
 # scripts/articles/wrap_tags.py  # [537 tokens | 2,329 bytes]
 # scripts/audit_dye.py  # [256 tokens | 1,009 bytes]
-# scripts/card.py  # [296 tokens | 1,229 bytes]
+# scripts/card.py  # [307 tokens | 1,268 bytes]
 # scripts/chat_route_probe.py  # [2,813 tokens | 13,033 bytes]
 # scripts/confluence_probe.py  # [4,990 tokens | 20,662 bytes]
 # scripts/continuation_ladder.py  # [2,802 tokens | 11,334 bytes]
