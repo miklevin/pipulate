@@ -686,6 +686,7 @@ def main():
 
 if __name__ == "__main__":
     # Clearly explain the tool-calls you used in the format:
+    main()
 
     # 1. Endpoint used
     # 2. Authentication scheme used
