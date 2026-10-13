@@ -2635,7 +2635,7 @@ MATCHBOOK_CHOP = r"""
 # apps/730_matplotlib.py  # [3,729 tokens | 16,436 bytes]
 # apps/810_webbrowser.py  # [2,813 tokens | 12,035 bytes]
 # apps/820_selenium.py  # [3,430 tokens | 15,032 bytes]
-# apps/830_pico_slider.py  # [4,362 tokens | 19,320 bytes]
+# apps/830_pico_slider.py  # [6,130 tokens | 27,494 bytes]
 # apps/911_optics_workflow.py  # [5,678 tokens | 25,623 bytes]
 # assets/jekyll/common-packages.nix  # [100 tokens | 294 bytes]
 # assets/jekyll/consumer-fixture/flake.nix  # [290 tokens | 1,060 bytes]
