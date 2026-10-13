@@ -196,17 +196,16 @@ class MarkdownWidget:
                                 const renderer = new marked.Renderer();
                                 const originalCode = renderer.code;
                                 renderer.code = function(code, lang) {{
-                                    // Robust code content handling - extract text from objects if needed
+                                    // Robust code content handling - extract text and lang from Marked v15 token objects
                                     let codeText;
                                     if (typeof code === 'string') {{
                                         codeText = code;
                                     }} else if (code && typeof code === 'object') {{
-                                        // If it's an object, try to extract text content
                                         codeText = code.text || code.content || code.value || JSON.stringify(code);
+                                        lang = lang || code.lang;
                                     }} else {{
                                         codeText = String(code || '');
                                     }}
-                                    
                                     // Escape HTML to prevent XSS and display issues
                                     codeText = codeText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                                     
@@ -268,13 +267,13 @@ class MarkdownWidget:
                                 // Configure marked renderer
                                 const renderer = new marked.Renderer();
                                 renderer.code = function(code, lang) {{
-                                    // Robust code content handling - extract text from objects if needed
+                                    // Robust code content handling - extract text and lang from Marked v15 token objects
                                     let codeText;
                                     if (typeof code === 'string') {{
                                         codeText = code;
                                     }} else if (code && typeof code === 'object') {{
-                                        // If it's an object, try to extract text content
                                         codeText = code.text || code.content || code.value || JSON.stringify(code);
+                                        lang = lang || code.lang;
                                     }} else {{
                                         codeText = String(code || '');
                                     }}
