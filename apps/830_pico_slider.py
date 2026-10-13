@@ -443,7 +443,8 @@ class GitSliderFlow:
                         ),
                         hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}',
-                        id=f'{app_name}-step01-form'
+                        id=f'{app_name}-step01-form',
+                        onsubmit="window._slider_pre_scrollTop = 0; window._slider_pre_scrollLeft = 0; window._slider_grid_scrollTop = 0;"
                     ),
                     role='region'
                 ),
