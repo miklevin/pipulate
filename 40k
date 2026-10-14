@@ -3,7 +3,7 @@
 ~/repos/nixos/configuration.nix
 ~/repos/nixos/autognome.py
 
-scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs
+! scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs
 ! python scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs
 
 remotes/honeybot/queries/trapdoor_ips.sql
