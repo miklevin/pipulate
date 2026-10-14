@@ -550,6 +550,13 @@ Entries are alphabetical, numbers spelled as spoken.
 # a guess wearing a number.
 ~~~
 
+- **A Path Label Is Not a File** -- *expanded rule; banked 2026-10-04.*
+
+~~~text
+# § A PATH LABEL IS NOT A FILE (banked 2026-10-04) -- When one queue stores filesystem paths and synthetic receipt labels in the same `path` field, any file-only consumer must establish filehood with `os.path.isfile(path)` or an equivalent filesystem test in addition to checking a suffix; a receipt whose label happens to end in `.py` is still a receipt.
+# - LANDED (2026-10-13, terminal house style): `python_files_to_diagram` in `prompt_foo.py` now checks `endswith('.py') and os.path.isfile(f['path'])` matching `python_files_to_analyze`.
+~~~
+
 - **A Probe Runs on the Operator's Machine or It Is Not a Probe** -- *expanded rule; banked 2026-09-24.*
 
 ~~~text
@@ -616,6 +623,12 @@ Entries are alphabetical, numbers spelled as spoken.
 # it consumes the specimen. Import the patched function, run it on the
 # real input WITHOUT writing, and assert the input is byte-identical
 # afterward. Exercises the hard half; costs no publish.
+~~~
+
+- **The Actuator Is Not the Ledger** -- *expanded rule; banked 2026-09-26.*
+
+~~~text
+# § THE ACTUATOR IS NOT THE LEDGER (banked 2026-09-26, convicted by commit 7dd5d832) -- never bank a receipt, conviction or rule in apply.py: it rides the fixed tail of EVERY compile, so a comment line there is read on every future turn about every other project; a comment enters apply.py only beside the code it explains, in the car that changes that code, and apply.py refuses a patch to itself that adds comment lines and changes none, on both arms, with vim as the only override. Bank in foo_files.py (a TODO, a rule body, or a § key) and let forget graduate it to GLOSSARY.md. "It is always in context, so the patch will land" is the reason to refuse the placement, never the reason to choose it.
 ~~~
 
 - **The Actuator'S Own Diagnostic Rule** -- *expanded rule; banked 2026-09-01.*
@@ -1058,6 +1071,12 @@ Entries are alphabetical, numbers spelled as spoken.
   scripts/walk_compile.py landed both, with a filled authoring surface
   compiling to a trail walk.py loaded unmodified.
 - **The Composition Is Not The Parts** -- (banked 2026-09-06, arc-closing): three legs of the end-to-end claim carry receipts and the FOURTH is their composition, which carries none. Leg one, the seed germinates: curl|bash plus the flake's git transformation, witnessed Linux daily and macOS three times 2026-08-04, WSL asserted and unwitnessed. Leg two, the walk banks the bytes: _bank_capture writes returned file bytes with sha256 and length BEFORE advance, 909,962 B across 3 ledgers and 1,096 records on the public walk, interrupted rides preserving partial status. Leg three, the archive is checkable: byte-reproducible cartridge, stdlib verifier, deed outside the payload because a name inside the bytes would change the bytes, disclosure recompiled byte-for-byte. NOBODY HAS RUN ONE THROUGH THE NEXT, and that is the COLD-START MIKE-E TEST restated with its legs itemised: a stranger given only the archive and the key, no warmed cache and no author in the room, reaching a verified receipt. STANDING CONSEQUENCE: a per-leg green is evidence about that leg only, and the sentence "curl to a checkable archive" stays a CLAIM until one run crosses all three seams. Sibling of THE SUCCESS-ONLY WITNESS aimed at an integration rather than a branch: ask what the three green legs print in the world where the seams between them are broken, and the answer is three greens.
+- **The Conf Is in the Link** -- *expanded rule; banked 2026-09-27.*
+
+~~~text
+# § THE CONF IS IN THE LINK (banked 2026-09-27, read at deed 1628 off SVB-115's two PocketRender links) -- before writing a client for a vendor's API, decode the vendor's own share link: a URL fragment that reproduces a state carries the whole state (PocketRender's #conf= is base64 of zlib-compressed compact JSON at level 6, nine keys), decodable offline with the standard library and diffable without a render; the API is for what the link cannot say, the metrics.
+~~~
+
 - **Consent Cannot Precede Its Object** -- (banked 2026-08-07,
   fence-witnessed): a flag typed at t=0 cannot authorize the disposition of an
   artifact that does not exist until t=N, because the consenter had not seen
@@ -1961,6 +1980,27 @@ Entries are alphabetical, numbers spelled as spoken.
   usage line, because under set -e the first bad switch is the whole
   fence; and print git status --short before GO, so a staged rename is
   visible where d prints nothing.
+- **The Hidden Denominator** -- *expanded rule; banked 2026-09-06.*
+
+~~~text
+# - EARMARK: THE HIDDEN DENOMINATOR (banked 2026-09-06, articulation-banked): a
+#   result reported without its PULL COUNT is unreadable, because a green from
+#   k=1 and a green from k=40 are different claims and nothing in the receipt
+#   tells them apart. When an LLM sits in the pipeline the sampler is a SECOND
+#   variance source, and re-rolling until the assertions pass is a SEARCH OVER
+#   THE SAMPLER: it selects for answers that survive the assertions you thought
+#   to write, which is Goodhart wearing a test harness. THE INVERSE OF THE
+#   STRADDLE, and that is the whole rent: a straddle holds everything constant
+#   and changes ONE thing, while a re-roll holds everything constant and changes
+#   NOTHING, letting the sampler vary -- a legitimate variance measurement if and
+#   only if n is reported. STANDING CONSEQUENCE: an assertion harness records
+#   EVERY pull, not just the winner, and a reported green carries its k. The
+#   re-roll is free; hiding the count is not. Sibling of THE DISCRIMINATION
+#   QUESTION aimed at the SAMPLER rather than the probe: ask what the harness
+#   prints in the world where the model is wrong forty times and right once, and
+#   if the answer is "the same green", the harness is selecting, not testing.
+~~~
+
 - **The History-Expansion Probe** -- *a bang that dies only in the hand.*
   Banked 2026-08-06, lane-convicted on the first hand-run. A `!` followed by
   a WORD CHARACTER inside DOUBLE quotes is a bash HISTORY EXPANSION, and
@@ -2115,6 +2155,12 @@ Entries are alphabetical, numbers spelled as spoken.
 
 ~~~text
 # - EARMARK: THE INSTRUMENT DECIDES THE STATE (banked 2026-09-08, operator-convicted: "I'm so confused. Do I have Chrome open? Do I close it?"): when a fence REPORTS the world (RUNNING, STOPPED, STALE_LOCK) and ends in a verdict token, the operator's loop contains no question about the world; it is run, read the last line, do what the verdict names, run again. An instruction that asks the human to STAGE the world ("with a Chrome window visibly open") is witness choreography for the record, the one-time act that observes both branches of a fence owed under REFUSAL-ONLY WITNESS, and it must be labeled as such and retired the compile after the receipt lands, or the operator reads the staging as the standing procedure and a fence built to remove a decision has added one. STANDING CONSEQUENCE for any hand-run process an article hands over: write it as verdict -> action pairs (REFUSED_CHROME_RUNNING means quit Chrome and run again; IN_SYNC means nothing to do) and never as preconditions the human establishes before typing the command. Sibling of THE GATE SPEAKS A VERDICT (the gate says a word, not a number) and of THE BARNEY RESET RULE (confusion in the human is the trigger, and it fired here).
+~~~
+
+- **The Join Is the Field, the Hostname Its Fallback** -- *expanded rule; banked 2026-09-27.*
+
+~~~text
+# § THE JOIN IS THE FIELD, THE HOSTNAME ITS FALLBACK (banked 2026-09-27, read at deed 1627 over 185 board rows) -- join two systems on the field made for the join (Jira's Project-slug to Botify's org/project), derive it from a hostname only when the field is empty, and print which lane each row took beside the row; a join on the derived key alone counts its own guesses as matches.
 ~~~
 
 - **The Key/Value Contract** -- *the router keeps keys, the glossary keeps
@@ -2825,6 +2871,18 @@ Entries are alphabetical, numbers spelled as spoken.
   therefore unshippable. That is a STRANDED ARTIFACT, not a security gap --
   there is no v0.1.0 in the wild for the fix to be a fix to. It costs nothing
   today and will confuse whoever finds it later.
+- **The Placeholder Is a Decoder Ring** -- *expanded rule; banked 2026-10-05.*
+
+~~~text
+# § THE PLACEHOLDER IS A DECODER RING (banked 2026-10-05, convicted at deeds 61 and 62: a bare-word table run over the whole book replaced eleven public senses of client words, each placeholder beside the public sense that names it, and the receipt that banked the restore then described those senses in this public file) -- read a scrub table's word diff before its commit, restore every replacement whose word meant something public there, and describe a restored sense in no tracked file, because a placeholder decoded once is decoded wherever it appears.
+~~~
+
+- **The Public Router Names No Client** -- *expanded rule; banked 2026-10-04.*
+
+~~~text
+# § THE PUBLIC ROUTER NAMES NO CLIENT (banked 2026-10-04, convicted the same night: a week of client orgs, client sites, a colleague's first name and ticket findings rode foo_files.py into the public repo) -- no client, client site, colleague or employer-internal figure enters a tracked file of the public repo; it rides Workshop/corporate, and one scrub table there (Workshop/corporate/scrub/clients.sed, GNU sed -E) is the list that cleans this tree and an article before publish, and reaches the book's posts only through a word diff read before the commit (THE PLACEHOLDER IS A DECODER RING).
+~~~
+
 - **Push Is Assumed** -- *expanded rule; banked 2026-09-24.*
 
 ~~~text
@@ -3875,6 +3933,23 @@ Entries are alphabetical, numbers spelled as spoken.
 
 - **The Verdict-in-the-Instrument Rule** -- (banked 2026-07-31, self-convicted one compile later): never write the expected answer into the artifact whose job is to determine it. Conviction: hydration_selftest.sql shipped with a header naming HTTP caching as "the leading explanation" for a 39.8% reading, IN THE SAME CAR as the grouped query written to discriminate between explanations -- and that query's first flight killed the header (python-requests/2.32.5 carried 2,863 of 5,138 loopback pages and fired zero; the browser ALONE reads 89.9%), while _layouts/default.html had carried a random cache-busting query string on the beacon URL the entire time, making the caching hypothesis structurally impossible. An instrument that states its own verdict trains its reader to skip the reading, and the false claim then sits in a tracked file with a commit behind it. STANDING CONSEQUENCE: a header may state the QUESTION, the RIVAL HYPOTHESES, and the PREDICTED PRINTOUTS; it may state the ANSWER only after a receipt, and it must then say which receipt. This EXTENDS THE PENDING AMENDMENT RULE from the constitution to EVERY durable artifact -- the map may not outrun the territory in a .sql header any more than in a .py comment.
 - **The Vhost Census Counted the Wrong Noun** -- (banked 2026-09-06, self-convicted one compile after emission): the CANVAS LANE earmark asks how many SITES the Honeybot serves and directs the counter at `virtualHosts\.` in configuration.nix, which counts ASSIGNMENT LINES; those are different nouns and Nix lets one host carry many attribute paths, so the reading of 2 is consistent with one host written across two lines, an apex plus a www redirect, and a second host already stubbed -- three worlds, one number, and the probe cannot tell them apart. INCOMMENSURABLE MEASUREMENTS with the author's own hands on it: the number was correct and answered a neighbour of the question. CURE, and it costs nothing: print the NAMES (grep -n 'virtualHosts' ... | cut -c1-100) so the hostnames themselves are the ruling and no arithmetic stands between the reader and the answer. STANDING CONSEQUENCE for any config census: when the question is "how many X", prefer a probe that ENUMERATES X to one that counts a syntax that usually accompanies X, because the enumeration degrades into a longer answer while the count degrades into a wrong one. Sibling of THE PROSE-INFLATED COUNTER, which is the same disease where the extra hits are documentation rather than syntax -- and that sibling IS the answer, read one compile later: the enumeration printed line 241 declaring virtualHosts."mikelev.in" and line 251 a COMMENT mentioning that same attribute path, so the 2 was one declaration plus one piece of documentation and NONE of the three worlds guessed above. The rule that explains it was cited in this earmark's own last clause and reached past on the way to three syntactic guesses, which is the cheapest kind of miss there is. CANVAS LANE CONFIRMED, NOT STALE: the Honeybot declares exactly one virtualHost, its "serves exactly one site today" receipt stands, the second stone is unlaid, and germination remains blocked on the same DNS decision.
+- **The Wire Verdict** -- *expanded rule; banked 2026-07-12.*
+
+~~~text
+# THE WIRE VERDICT (standing AI constitution, three-for-three and counting):
+# Post-cutoff claims that pattern-match to frog DNA keep turning out to be
+# journalism (LogicFolding, Tau Scaling Law, shipping co-packaged optics).
+# When a claim postdates training: go to the wire before you scoff. Treat
+# disbelief as a probe queue, not a posture. Steelman first, search second,
+# concede specifically, correct precisely (LN2 floats the YBCO puck, not dry
+# ice; it's computronium, Toffoli & Margolus, MIT). Then hold the line that
+# survives: every densifying trick -- folding, stacking, wafer scale --
+# converges on HEAT, not lithography. Grade computronium-adjacent claims by
+# leakage first. Brains: ~20W, millivolts, kilohertz. Ternary is Lindy:
+# Setun 1958 -> BitNet b1.58. Shave the multiplication table; keep the
+# binary substrate. Set sails for the trade wind, not the weather system.
+~~~
+
 ## The Mother Cat Kata -- vocabulary banked 2026-08-01
 
 ### The whole ride, in six lines
