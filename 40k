@@ -1,225 +1,116 @@
-# context.txt: the list of files an AI will read. context opens it, compile builds it.
-# Keys: j down, k up; Esc then :q quits, :q! discards, :wq saves and quits.
-# One line per thing the AI reads: a file path, or a command after `! `.
-# A line that starts with # is a comment: that file is not read.
-# To add a line: i starts typing, Esc stops. Absolute paths work from anywhere.
-# Web pages, APIs and the connector words: chapter XVIII of foo_files.py.
-
 # --- THE 40K-FOOT VIEW (uncomment on a first turn; comment out on the second) ---
-! python scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs  # <-- the book's spine, one line per article, newest first
-~/repos/nixos/autognome.py  # <-- the machine's morning routine (this author's NixOS box only)
-init.lua                    # <-- the editor keys that drive the day
-assets/installer/install.sh # <-- how a stranger's machine gets this workshop
-GLOSSARY.md                 # <-- the terms, defined
-flake.nix                   # <-- the environment, pinned: here is my hardware, here is my state
-prompt_foo.py               # <-- the compiler that builds the payload
-foo_files.py                # <-- the router: which files ride, and this book's outline
-scripts/articles/lsa.py     # <-- the second brain: the article corpus behind `rgx`, `rgxc` and `posts`
-requirements.in             # <-- the Python packages, pinned
-pyproject.toml              # <-- the PyPI package
-__init__.py                 # <-- the version
 
-# --- ACTUATORS (cheap; include when the AI should be able to act, not only read) ---
-# cli.py                      # <-- tool calls from the command line
-# scripts/xp.py               # <-- turns a pasted reply into the next context
-# scripts/ai.py               # <-- a local AI writes the commit messages
-# scripts/crawl.py            # <-- crawl a site into the next turn
-# scripts/weblogin.py         # <-- warm a login on the persistent browser profile
-# scripts/webclip_2_markdown.py  # <-- a web page, clipped, as markdown
+~/repos/nixos/configuration.nix
+~/repos/nixos/autognome.py
 
-# --- RARE ---
-# scripts/foo_cartridge.py    # <-- the sealed archive: writer and verifier
-# scripts/foo_replay.py       # <-- replay a sealed archive on another machine
-# release.py                  # <-- how a release reaches GitHub and PyPI
-# imports/voice_synthesis.py  # <-- the voice
-# imports/ascii_displays.py   # <-- the ASCII art
-# scripts/release/version_sync.py  # <-- version stamping (to be folded into release.py)
+scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs
+! python scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs
 
-# WORKING TICKETS
-# tools/scraper_tools.py
-# scripts/walk_cartridge.py
-# scripts/walk.py
-# scripts/mother_cat.py
-# Workshop/personal/trails/pocketrender.yaml
+remotes/honeybot/queries/trapdoor_ips.sql
+! echo "--- WHO HYDRATES THE DOM ---" && cat remotes/honeybot/queries/trapdoor_ips.sql | ssh honeybot 'sqlite3 -header -column ~/www/mikelev.in/honeybot.db'
 
-# connectors/README.md     # <-- the contract, the wallet, and the six auth kinds every new connector copies one of
-# connectors/wallet.py     # <-- Connect your accounts, or any site by URL; see what's live.
-# connectors/confluence.py # <-- Bring a Confluence space, page, or search hit into context.
-# connectors/gmail.py      # <-- Bring an email thread or a sender's threads into context.
-# connectors/jira.py       # <-- List your open Jira tickets, or fetch one by key.
-# connectors/sheets.py     # <-- Bring a Google Sheet's tabs and cell data into context.
-# connectors/slack.py      # <-- Bring a Slack channel or message thread into context.
-# connectors/mcp.py        # <-- Replay client for remote MCP servers (Streamable HTTP transport).
-# connectors/mcp_warm.py  # <-- Mint the OAuth bearer token a remote MCP server asks for.
-# connectors/noop.py      # <-- The honest non-operative connector: one positional, prints what it received, exits 0; what public_walk.yaml names at every stop, because a plan must name something that RUNS
+remotes/honeybot/queries/content_neg_agents.sql
+! echo "--- WHO NEGOTIATES MARKDOWN ---" && cat remotes/honeybot/queries/content_neg_agents.sql | ssh honeybot 'sqlite3 -header -column ~/www/mikelev.in/honeybot.db'
 
-# JEKYLL
 ~/repos/nixos/blogs.nix
-~/.config/pipulate/blogs.json                # <-- CAUTION! Derived from ~/repos/nixos/blogs.nix
-scripts/articles/publishizer.py              # <-- Orchestrates different publishing workflows per target blog.
-scripts/articles/common.py                   # <-- Self-explanatory
-scripts/articles/articleizer.py              # <-- Transforms raw article.txt to formal Jekyll markdown format
-scripts/articles/editing_prompt.txt          # <-- Forcing response into strict JSON data structure
-scripts/articles/sanitizer.py                # <-- Scrubs PII
-scripts/articles/contextualizer.py           # <-- Builds JSON summaries of articles in `_posts/context/` called "Holographic Shards".
-scripts/articles/confluenceizer.py           # <-- Idempotent Jekyll-to-Confluence corporate wiki
-scripts/articles/googledocizer.py            # <-- Just added
-
-# CORE AGENT OBSERVATORY FILES (HONEYBOT)
-nixops.sh                                   # <-- You've heard of GitOPs? Well, this is NixOPs. 
-remotes/honeybot/hooks/post-receive         # <-- Ever hear of GitHub Pages? Or github.io? This is that.
-remotes/honeybot/nixos/configuration.nix    # <-- It's as if Pipulate had kids. Spy kids.
-remotes/honeybot/scripts/stream.py          # <-- Starts the TV Channel streaming to YouTube-live via OBS from Nginx Honeybot XFCE Desktop. Clear?
-remotes/honeybot/scripts/score.py           # <-- Where "Greetings Entity" slideshow reads on post-receive interrupts
-remotes/honeybot/scripts/card.py            # <-- Just added for station identification breaks
-remotes/honeybot/scripts/forest.py          # <-- Likewise, just added for the new storytelling system on Honeybot
-remotes/honeybot/scripts/test_forest.py     # <-- Test Honeybot station identification sequence on Pipulate Prime
-remotes/honeybot/scripts/logs.py            # <-- The TV Show is mostly Nginx `access.log` files tailed and piped through Python to colorize (this).
-remotes/honeybot/scripts/content_loader.py  # <-- Tricky TV programming & scheduling stuff. Absolute versus relative timing. Loops. Interrupts.
-remotes/honeybot/scripts/db.py              # <-- But you can't keep your weblogs forever! And we want trending. And data-mining. Here's how.
-imports/voice_synthesis.py                  # <-- The wand can talk to you (not sure if I'm keeping it in Honeybot chapter)
-
-# THE SECOND DOOR (qamy.ai; landed 2026-09-29): npvg.org's tree copied, its own vhost, certificate and log in configuration.nix, four lines in nixops.sh; they diverged 2026-10-02: public_walk opens these three pages, which say Enter and never CAPTURE or DECANT
-remotes/honeybot/www/qamy.ai/index.html           # <-- the door: the same negotiation as npvg.org's, the stamp qamy, which picks install.sh's qamy row, so the one-liner lands in ~/qamyai
-remotes/honeybot/www/qamy.ai/walk/1/index.html    # <-- public_walk stop one: go back to the command line and press Enter; no script
-remotes/honeybot/www/qamy.ai/walk/2/index.html    # <-- stop two: press Enter, one page left; the page names no host
-remotes/honeybot/www/qamy.ai/walk/3/index.html    # <-- stop three: press Enter; the walk's only script, and the optional checkword test
-
-# # Context 1
-# foo_files.py
-# context.txt
-# /home/mike/repos/nixos/configuration.nix
-# 
-# # ============================================================================
-# # XIII. JEKYLL PUBLISHING - Reaching out to the world
-# # ============================================================================
-# # 📖 CHAPTER BLURB -- JEKYLL PUBLISHING: One local plain-text master -- markdown
-# # in _posts/, written in vim, versioned in git -- fans out through a data-driven
-# # pipeline (blogs.json, materialized from blogs.nix, the single source of
-# # truth) into every terminal that wants a projection: the public HTML site, raw
-# # index.md for content-negotiating agents, llms.txt manifests, K-Means hub
-# # pages, sitemaps, Nginx redirect maps, an idempotent Confluence mirror, and
-# # anyone-with-link Google Docs whose share URLs are stamped surgically back
-# # into each post's frontmatter (one line touched, mtime preserved, ADDED /
-# # UPDATED / UNCHANGED as the ledger verbs). The chapter's law: platforms are
-# # retargetable projection lanes, never the record; the ledger travels with the
-# # file; dry-run contracts precede every mutation. This is the pipeline that
-# # gives the Honeybot something to say -- and the provenance that makes the
-# # saying worth training on.
-# 
-# ~/repos/nixos/blogs.nix
-# ~/.config/pipulate/blogs.json                # <-- CAUTION! Derived from ~/repos/nixos/blogs.nix
-# scripts/articles/publishizer.py              # <-- Orchestrates different publishing workflows per target blog.
-# scripts/articles/common.py                   # <-- Self-explanatory
-# scripts/articles/articleizer.py              # <-- Transforms raw article.txt to formal Jekyll markdown format
-# scripts/articles/editing_prompt.txt          # <-- Forcing response into strict JSON data structure
-# scripts/articles/sanitizer.py                # <-- Scrubs PII
-# scripts/articles/gsc_historical_fetch.py
-# scripts/articles/contextualizer.py           # <-- Builds JSON summaries of articles in `_posts/context/` called "Holographic Shards".
-# # scripts/articles/confluenceizer.py           # <-- Idempotent Jekyll-to-Confluence corporate wiki
-# # scripts/articles/googledocizer.py            # <-- Just added
-# scripts/articles/build_knowledge_graph.py    # <-- Topically load-balances site using hierarchical K-Means keyword clustering groups
-# scripts/articles/generate_ai_context.py      # <-- AIs WILL interrogate your repo. This gives epic context of article URLs for drill-down.
-# scripts/articles/generate_hubs.py            # <-- Uses just-produced link-graph data to generate each of the new hubs it suggests
-# scripts/articles/generate_llms_txt.py        # <-- Builds an llms.txt based on the auto-organized structure suggested here
-# scripts/articles/generate_redirects.py       # <-- Generates redirect map above hub-churn suggests is needed
-# scripts/articles/sanitize_redirects.py       # <-- Deals with follow-up meticulous pedantic detail required for a good Nginx redirect map
-# scripts/articles/link_injector.py
-# scripts/articles/generate_post_nav.py  # [1,174 tokens | 4,616 bytes]
-# 
-# # ============================================================================
-# # IX. SURVEYING LANDSCAPE - You're dead in the water without intelligence (HONEYBOT TV STUDIO)
-# # ============================================================================
-# # 📖 CHAPTER BLURB -- HONEYBOT: A retired laptop runs NixOS and Nginx from a home
-# # closet, deliberately naked on the internet (no CDN), baiting AI crawlers so
-# # they can be watched like a fishtank. Nginx does RFC 9110 content negotiation
-# # at the origin: humans get hydrated HTML; any agent sending Accept:
-# # text/markdown gets the raw source the article was born as; and every request
-# # lands as one line in a high-fidelity access log that a Unix pipe tails into a
-# # Textual HUD streamed live to YouTube, while Piper TTS reads the very corpus
-# # the bots are crawling -- content about the instrument, performed by the
-# # instrument, measured by the instrument. The finding that justifies the whole
-# # studio: nearly everyone burns compute hydrating SPAs and converting HTML BACK
-# # into markdown that started as markdown, while the rare polite negotiator
-# # (~0.2% of traffic) simply asks and gets the master for free. Small streams
-# # carve the sinkholes; this chapter is the seismograph.
-# 
-# # CORE AGENT OBSERVATORY FILES (HONEYBOT)
-# nixops.sh                                   # <-- You've heard of GitOPs? Well, this is NixOPs. 
-# remotes/honeybot/hooks/post-receive         # <-- Ever hear of GitHub Pages? Or github.io? This is that.
-# remotes/honeybot/nixos/configuration.nix    # <-- It's as if Pipulate had kids. Spy kids.
-# remotes/honeybot/scripts/stream.py          # <-- Starts the TV Channel streaming to YouTube-live via OBS from Nginx Honeybot XFCE Desktop. Clear?
-# remotes/honeybot/scripts/score.py           # <-- Where "Greetings Entity" slideshow reads on post-receive interrupts
-# remotes/honeybot/scripts/card.py            # <-- Just added for station identification breaks
-# remotes/honeybot/scripts/forest.py          # <-- Likewise, just added for the new storytelling system on Honeybot
-# remotes/honeybot/scripts/test_forest.py     # <-- Test Honeybot station identification sequence on Pipulate Prime
-# remotes/honeybot/scripts/logs.py            # <-- The TV Show is mostly Nginx `access.log` files tailed and piped through Python to colorize (this).
-# remotes/honeybot/scripts/content_loader.py  # <-- Tricky TV programming & scheduling stuff. Absolute versus relative timing. Loops. Interrupts.
-# remotes/honeybot/scripts/db.py              # <-- But you can't keep your weblogs forever! And we want trending. And data-mining. Here's how.
-# # imports/voice_synthesis.py                  # <-- The wand can talk to you (not sure if I'm keeping it in Honeybot chapter)
-# remotes/honeybot/queries/trapdoor_ips.sql   # <-- The SQL to see who is hydrating the DOM. An ultimate report example among much ad hoc .SQL
-# ! echo "--- WHO HYDRATES THE DOM ---" && cat remotes/honeybot/queries/trapdoor_ips.sql | ssh honeybot 'sqlite3 -header -column ~/www/mikelev.in/honeybot.db'
-
-# Context 2
-foo_files.py
-context.txt
-assets/installer/install.sh
-flake.nix
-/home/mike/repos/pipulate/apps/911_optics_workflow.py
-/home/mike/repos/nixos/configuration.nix
-/home/mike/repos/nixos/blogs.nix
-/home/mike/.config/pipulate/blogs.json
+~/.config/pipulate/blogs.json
 scripts/articles/publishizer.py
 scripts/articles/common.py
 scripts/articles/articleizer.py
+scripts/articles/editing_prompt.txt
+scripts/articles/sanitizer.py
+scripts/articles/gsc_historical_fetch.py
+scripts/articles/contextualizer.py
+# scripts/articles/confluenceizer.py
+# scripts/articles/googledocizer.py
+scripts/articles/build_knowledge_graph.py
+scripts/articles/generate_ai_context.py
+scripts/articles/generate_hubs.py
+scripts/articles/generate_llms_txt.py
+scripts/articles/generate_redirects.py
+scripts/articles/sanitize_redirects.py
+scripts/articles/link_injector.py
+scripts/articles/generate_post_nav.py
+
+~/repos/nixos/blogs.nix
+~/.config/pipulate/blogs.json
+scripts/articles/publishizer.py
+scripts/articles/common.py
+scripts/articles/articleizer.py
+scripts/articles/build_knowledge_graph.py
+scripts/articles/editing_prompt.txt
+scripts/articles/sanitizer.py
+scripts/articles/contextualizer.py
+scripts/articles/generate_llms_txt.py
+scripts/articles/generate_post_nav.py
+
+nixops.sh
+remotes/honeybot/hooks/post-receive
 remotes/honeybot/nixos/configuration.nix
+remotes/honeybot/scripts/stream.py
+remotes/honeybot/scripts/score.py
+remotes/honeybot/scripts/card.py
+remotes/honeybot/scripts/forest.py
+remotes/honeybot/scripts/test_forest.py
 remotes/honeybot/scripts/logs.py
+remotes/honeybot/scripts/content_loader.py
 remotes/honeybot/scripts/db.py
-remotes/honeybot/queries/trapdoor_ips.sql
-! git status --short
-! python3 -c 'import json, pathlib; d=json.loads(pathlib.Path("~/.config/pipulate/blogs.json").expanduser().read_text()); print(" | ".join(f"{k}:{v[\"alias\"]}({v[\"lane\"]})" for k,v in sorted(d.items())))'
-! echo "--- CONTENT NEGOTIATION VANGUARD ---" && cat remotes/honeybot/queries/content_neg_agents.sql | ssh honeybot 'sqlite3 -header -column ~/www/mikelev.in/honeybot.db' | head -n 20
+# imports/voice_synthesis.py
 
+init.lua
+assets/installer/install.sh
+flake.nix
+prompt_foo.py
+foo_files.py
+__init__.py
+release.py
 
+scripts/boot_menu.py
+walk
+scripts/mother_cat.py
+scripts/walk_compile.py
+scripts/walk.py
 
+~/repos/grimoire/_config.yml
+~/repos/grimoire/flake.nix
+~/repos/grimoire/Gemfile
+~/repos/grimoire/index.md
 
+~/repos/trimnoir/_config.yml
+~/repos/trimnoir/flake.nix
+~/repos/trimnoir/Gemfile
+~/repos/trimnoir/index.md
 
+~/repos/trimnoir/_layouts/default.html
+~/repos/trimnoir/_layouts/forward.html
+~/repos/trimnoir/_layouts/home.html
+~/repos/trimnoir/_layouts/page.html
+~/repos/trimnoir/_layouts/plain.html
+~/repos/trimnoir/_layouts/post.html
 
-
-
-
-
-    !URL  --------------------------------------------------------------------
-      when    Public page; what a stranger or crawler sees; the BEFORE of a
-              login-wall diagnosis
-      switch  It shows a login page -> `warm URL` once, then `?URL`
-
-    ?URL  --------------------------------------------------------------------
-      when    Anything behind a login, on the site's persistent profile;
-              `check URL` first
-      switch  The lenses show a shell (nav, an `[Iframe]` leaf, no content) ->
-              read the wire truth for the XHR the frame makes, then call that
-              API with a connector
-
-    @URL  --------------------------------------------------------------------
-      when    Every re-read of a page already scraped; no browser, no network
-      switch  The cached page is stale or was a login wall -> fresh `!` or `?`
-
-    $URL  --------------------------------------------------------------------
-      when    Exact markup: meta tags, a JSON blob in a `<script>`
-      note    Token-heavy; needs a prior scrape
-
-    %URL  --------------------------------------------------------------------
-      when    The network log distilled; SPA endpoint discovery
-      switch  It re-serves the wire truth you already have -> the API
-
-    ! cmd  -------------------------------------------------------------------
-      when    Any bounded, non-interactive command as a live receipt
-      note    Cap it with `-n`; no aliases, no prompts
-
-    Connector  ---------------------------------------------------------------
-      when    The number you want is one GET away
-      switch  LIST until the thing isn't in the list -> FETCH by id -> DRILL
-              the path the app's own frame called -> `--grep` to narrow a list
-              or find a leaf
-
+# /home/mike/repos/pipulate/remotes/honeybot/queries/all_time_popular_paths.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/content_neg_agents.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/format_ratio.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/health_db_vitals.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/hot_404_remaps_top.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/hub_candidates.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/hydration_family.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/hydration_rate.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/hydration_selftest.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/intel_404_decay_curve.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/intel_emerging_manifests.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/intel_hostile_dictionary.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/intel_llms_txt.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/intel_markdown_affinity.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/intel_noise_404s.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/intel_phantom_ui.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/intel_sovereign_bots.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/intel_true_404s.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/intel_unknown_agents.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/markdown_routing_metrics.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/md_diet.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/md_routing_agents.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/telemetry_totals.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/telemetry_trapdoor_events.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/trapdoor_ips.sql
+# /home/mike/repos/pipulate/remotes/honeybot/queries/ua_variants.sql

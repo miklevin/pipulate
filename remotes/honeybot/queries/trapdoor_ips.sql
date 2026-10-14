@@ -16,4 +16,4 @@ WHERE p.value LIKE '%js_confirm.gif%'
   AND i.value NOT LIKE '192.168.%'
 GROUP BY i.id, ua.id
 ORDER BY triggers DESC
-LIMIT 15;
+LIMIT 40;
