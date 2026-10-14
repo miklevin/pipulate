@@ -681,7 +681,7 @@ function sync_to_prompt()
 end
 
 function mount_sandworm()
-    -- THE MOUNT: \m saddles the worm at the cursor. On a blank line, the
+    -- THE MOUNT: \x saddles the worm at the cursor. On a blank line, the
     -- full ride template replaces it; on a non-blank line it inserts below,
     -- protecting existing prose. Either way the cursor lands in insert mode
     -- right after the speaker label -- the old i**Me**: feel, full saddle.
@@ -855,7 +855,14 @@ print("init.lua loaded successfully!")
 -- <leader>b - Bold dialogue speaker in text
 -- <leader>q - Escape HTML tags in text
 -- <leader>r - Add Liquid {% raw %}/{% endraw %} tags around {{ content
--- <leader>f  - Insert human speaker label (follow-up)
+-- <leader>t - Toggle textwidth 0 <-> 80 (the Margin Release; also F5)
+
+-- Dialogue & Sandworm Ride Controls
+-- <leader>x - Mount sandworm (stage full AI-Edit Method saddle at cursor)
+-- <leader>z - Hop off sandworm (stage Notary Beat dismount above !!!)
+-- <leader>m - Insert "**Me**: " speaker label
+-- <leader>n - Insert "**Note**: " speaker label
+-- <leader>x (visual) - Scrub OAuth/ephemeral secrets in selection
 
 -- Git Operations
 -- <leader>g - Git commit and push changes
@@ -872,3 +879,5 @@ print("init.lua loaded successfully!")
 
 -- Article / Workflow Selection
 -- <leader>h - Highlight (select) current article block
+-- <leader>c (visual) - Sync selection to /tmp/clipboard_bridge.txt
+-- <leader>p (visual) - Sync selection to ~/repos/pipulate/prompt.md
