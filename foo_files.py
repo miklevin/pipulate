@@ -23,11 +23,11 @@ AI_PHOOEY_CHOP = r"""#
 # creator of) of Project Pipulate:
 
 # --- START STATS ---
-# There are 1,543 already-written articles about this repo at MikeLev.in (Public)
-# Velocity: 23 published in the last 7 days
-# Markdown negotiated: 3,886 reads (0.28% of all responses)
-# DOM hydration: 3826 trapdoor triggers from 15 non-local IPs (top-N sample, self excluded)
-# Honeybot telemetry fetched 2026-10-14T07:03Z
+# There are 1,544 already-written articles about this repo at MikeLev.in (Public)
+# Velocity: 24 published in the last 7 days
+# Markdown negotiated: 3,927 reads (0.28% of all responses)
+# DOM hydration: 3829 trapdoor triggers from 15 non-local IPs (top-N sample, self excluded)
+# Honeybot telemetry fetched 2026-10-14T15:25Z
 # --- END STATS ---
 
 # Project Pipulate is known as (and installable from) various domains:
@@ -1025,6 +1025,8 @@ foo_files.py      #  <-- THIS file. Content compiler router. Makes it very meta.
 # remotes/honeybot/scripts/content_loader.py  # <-- Tricky TV programming & scheduling stuff. Absolute versus relative timing. Loops. Interrupts.
 # remotes/honeybot/scripts/db.py              # <-- But you can't keep your weblogs forever! And we want trending. And data-mining. Here's how.
 # imports/voice_synthesis.py                  # <-- The wand can talk to you (not sure if I'm keeping it in Honeybot chapter)
+# remotes/honeybot/queries/trapdoor_ips.sql   # <-- The SQL to see who is hydrating the DOM. An ultimate report example among much ad hoc .SQL
+# ! echo "--- WHO HYDRATES THE DOM ---" && cat remotes/honeybot/queries/trapdoor_ips.sql | ssh honeybot 'sqlite3 -header -column ~/www/mikelev.in/honeybot.db'
 
 # THE SECOND DOOR (qamy.ai; landed 2026-09-29): npvg.org's tree copied, its own vhost, certificate and log in configuration.nix, four lines in nixops.sh; they diverged 2026-10-02: public_walk opens these three pages, which say Enter and never CAPTURE or DECANT
 # remotes/honeybot/www/qamy.ai/index.html           # <-- the door: the same negotiation as npvg.org's, the stamp qamy, which picks install.sh's qamy row, so the one-liner lands in ~/qamyai
