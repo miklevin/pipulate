@@ -252,7 +252,7 @@ function git_commit_push()
         -- Pass the same dynamic context size down to scripts/ai.py so Ollama
         -- does not silently fall back to a smaller default context window.
         local command = string.format('ai-commit --format plain --ctx %d --prompt %s',
-                                       max_ctx, vim.fn.shellescape(git_commit_prompt))
+                                      max_ctx, vim.fn.shellescape(git_commit_prompt))
 
         local raw_ai_output = vim.fn.system(command, hybrid_payload)
         
@@ -634,11 +634,11 @@ function scrub_oauth()
         -- segments left before <redacted:N> can still satisfy a downstream
         -- minimum-length tripwire, which defeats the marker-inside-value rule.
         local vendor_prefixes = {
-            "GOCSPX%-",                -- Google OAuth client secret
-            "xox[baprs]%-",            -- Slack token family
-            "gh[pousr]_",              -- GitHub PAT family
-            "sk%-ant%-",               -- Anthropic
-            "AKIA",                    -- AWS access key id
+            "GOCSPX%-",                 -- Google OAuth client secret
+            "xox[baprs]%-",             -- Slack token family
+            "gh[pousr]_",               -- GitHub PAT family
+            "sk%-ant%-",                -- Anthropic
+            "AKIA",                     -- AWS access key id
         }
         for _, prefix in ipairs(vendor_prefixes) do
             line = line:gsub("(" .. prefix .. ")([%w%-_%./+=]+)", function(head, val)
@@ -662,24 +662,25 @@ function scrub_oauth()
 end
 
 -- THE MATHJAX SINGLE-TO-DOUBLE DOLLAR CONVERTER (\d in normal & visual mode):
--- Kramdown/Jekyll requires $$...$$ even for inline MathJax, whereas LLMs
--- frequently emit single $...$. A blind regex corrupts currency ($20/month,
--- $30-$60), shell variables ($HOME), or already-doubled$$...$$ on the same -- line. transform_mathjax_line() masks inline backticks and existing $$...$$-- into an equal-length shadow string, walks remaining single-$ positions, and
--- promotes only verified MathJax spans to $$...$$.
+-- Kramdown/Jekyll requires double-dollar delimiters even for inline MathJax,
+-- whereas LLMs frequently emit single-dollar spans. A blind regex corrupts
+-- currency, shell variables, or already-doubled spans on the same line.
+-- NOTE: ASCII 36 (\36) and ASCII 96 (\96) are used in string literals below so
+-- web chat LaTeX/Markdown renderers never mangle this file in transit.
 local function is_mathjax_span(masked_line, s_pos, e_pos)
     local expr = masked_line:sub(s_pos + 1, e_pos - 1)
     if #expr == 0 or #expr > 120 then
         return false
     end
-    if expr:match("^%s") or expr:match("%s$") then
+    if expr:match("^%s") or expr:match("%s\36") then
         return false
     end
     local prev_ch = s_pos > 1 and masked_line:sub(s_pos - 1, s_pos - 1) or ""
     local next_ch = e_pos < #masked_line and masked_line:sub(e_pos + 1, e_pos + 1) or ""
-    if prev_ch:match("[%w\\$]") then
+    if prev_ch:match("[%w\\\36]") then
         return false
     end
-    if next_ch:match("[%w$]") then
+    if next_ch:match("[%w\36]") then
         return false
     end
     if expr:match("^%d[%d,%.]*/%a%a+") or expr:match("^%d[%d,%.]*[kKmMbB]?%s+%a%a+") then
@@ -691,13 +692,13 @@ local function is_mathjax_span(masked_line, s_pos, e_pos)
     if expr:find("[%^_=<>&+]") then
         return true
     end
-    if expr:match("^%a'?$") or expr:match("^%d+/%d+$") or expr:match("^%a/%a$") then
+    if expr:match("^%a'?\36") or expr:match("^%d+/%d+\36") or expr:match("^%a/%a\36") then
         return true
     end
-    if expr:match("^%a+%b()$") then
+    if expr:match("^%a+%b()\36") then
         return true
     end
-    if expr:match("^[%w_]+%s*[%-%+%*/]%s*[%w_]+$") then
+    if expr:match("^[%w_]+%s*[%-%+%*/]%s*[%w_]+\36") then
         return true
     end
     return false
@@ -705,19 +706,19 @@ end
 
 function transform_mathjax_line(line)
     local shadow = line
-    shadow = shadow:gsub("`+[^`]*`+", function(m)
+    shadow = shadow:gsub("\96+[^\96]*\96+", function(m)
         return string.rep("#", #m)
     end)
-    shadow = shadow:gsub("%$%$.-%$%$", function(m)
+    shadow = shadow:gsub("%\36%\36.-%\36%\36", function(m)
         return string.rep("#", #m)
     end)
-    shadow = shadow:gsub("%$%$+", function(m)
+    shadow = shadow:gsub("%\36%\36+", function(m)
         return string.rep("#", #m)
     end)
     local positions = {}
     local init = 1
     while true do
-        local p = shadow:find("%$", init)
+        local p = shadow:find("%\36", init)
         if not p then break end
         table.insert(positions, p)
         init = p + 1
@@ -745,9 +746,9 @@ function transform_mathjax_line(line)
     local cursor = 1
     for _, m in ipairs(matches) do
         table.insert(out, line:sub(cursor, m.s_pos - 1))
-        table.insert(out, "$$")
+        table.insert(out, "\36\36")
         table.insert(out, line:sub(m.s_pos + 1, m.e_pos - 1))
-        table.insert(out, "$$")
+        table.insert(out, "\36\36")
         cursor = m.e_pos + 1
     end
     table.insert(out, line:sub(cursor))
@@ -759,7 +760,7 @@ local function build_fenced_line_map(lines)
     local in_fence = false
     local fence_char = nil
     for i, line in ipairs(lines) do
-        local opener = line:match("^%s*(` ` `+)".gsub(" ", "")) or line:match("^%s*(~~~+)")
+        local opener = line:match("^%s*(\96\96\96+)") or line:match("^%s*(~~~+)")
         if opener then
             local ch = opener:sub(1, 1)
             if not in_fence then
@@ -817,7 +818,7 @@ function find_next_mathjax_candidate()
             end
         end
     end
-    vim.notify("mathjax: 0 single-$ candidates found in buffer", vim.log.levels.WARN)
+    vim.notify("mathjax: 0 single-\36 candidates found in buffer", vim.log.levels.WARN)
 end
 
 function double_mathjax_dollars()
@@ -835,7 +836,7 @@ function double_mathjax_dollars()
     local changed_lines = 0
 
     -- Single-line character-wise visual selection ('v'): respect exact range
-    -- and allow manual override when the operator directly highlights `$expr$`.
+    -- and allow manual override when the operator directly highlights a span.
     if vmode == "v" and first == last and #lines == 1 then
         local line = lines[1]
         local s_col = vim.fn.col("'<")
@@ -850,10 +851,28 @@ function double_mathjax_dollars()
         else
             local prev_ch = s_col > 1 and line:sub(s_col - 1, s_col - 1) or ""
             local next_ch = e_col < #line and line:sub(e_col + 1, e_col + 1) or ""
-            if sub:match("^%$[^%$]+\%$$") and prev_ch ~= "$" and next_ch ~= "$" then
+            if sub:match("^%\36[^%\36]+%\36\36") and prev_ch ~= "\36" and next_ch ~= "\36" then
                 hits = 1
                 changed_lines = 1
-                lines[1] = line:sub(1, s_col - 1) .. "$" .. sub .. "$" .. line:sub(e_col + 1) end end else for i, line in ipairs(lines) do local buf_lnum = first + i - 1 if not fenced[buf_lnum] then local new_line, matches = transform_mathjax_line(line) if #matches > 0 then lines[i] = new_line hits = hits + #matches changed_lines = changed_lines + 1 end end end end      if hits == 0 then vim.notify("mathjax: 0 expressions doubled -- already $$...$$or no single-$ math in selection", vim.log.levels.WARN)
+                lines[1] = line:sub(1, s_col - 1) .. "\36" .. sub .. "\36" .. line:sub(e_col + 1)
+            end
+        end
+    else
+        for i, line in ipairs(lines) do
+            local buf_lnum = first + i - 1
+            if not fenced[buf_lnum] then
+                local new_line, matches = transform_mathjax_line(line)
+                if #matches > 0 then
+                    lines[i] = new_line
+                    hits = hits + #matches
+                    changed_lines = changed_lines + 1
+                end
+            end
+        end
+    end
+
+    if hits == 0 then
+        vim.notify("mathjax: 0 expressions doubled -- already \36\36...\36\36 or no single-\36 math in selection", vim.log.levels.WARN)
         return
     end
     vim.api.nvim_buf_set_lines(0, first - 1, last, false, lines)
@@ -977,7 +996,7 @@ end
 -- Map it to <leader>c (for "Clip to Bridge")
 vim.api.nvim_set_keymap('v', '<leader>c', '<cmd>lua sync_to_bridge()<CR>', { noremap = true, silent = true })
 
---  __  __                   _                 
+--   __  __                   _                 
 -- |  \/  | __ _ _ __  _ __ (_)_ __   __ _ ___ 
 -- | |\/| |/ _` | '_ \| '_ \| | '_ \ / _` / __|
 -- | |  | | (_| | |_) | |_) | | | | | (_| \__ \
@@ -1006,7 +1025,7 @@ map('n', '<leader>t', '<cmd>lua toggle_text_width()<CR>', opts)
 map('n', '<leader>s', '<cmd>lua correct_misspelling()<CR>', opts)  -- Spell correction
 map('n', '<leader>q', '<cmd>lua escape_html_tags()<CR>', opts)  -- HTML tag escaping
 map('n', '<leader>r', '<cmd>lua add_liquid_raw_tags()<CR>', opts)  -- Add Liquid raw tags
-map('n', '<leader>d', '<cmd>lua find_next_mathjax_candidate()<CR>', opts)  -- Find next single-$ MathJax candidate
+map('n', '<leader>d', '<cmd>lua find_next_mathjax_candidate()<CR>', opts)  -- Find next single-dollar MathJax candidate
 
 -- Dialogue Labelers
 map('n', '<leader>b', '<cmd>lua bold_dialogue_speaker()<CR>', opts)  -- Bold dialogue speaker
@@ -1056,8 +1075,8 @@ print("init.lua loaded successfully!")
 -- <leader>b - Bold dialogue speaker in text
 -- <leader>q - Escape HTML tags in text
 -- <leader>r - Add Liquid {% raw %}/{% endraw %} tags around {{ content
--- <leader>d - Jump to next single-$MathJax candidate (skips code fences,$$, and currency)
--- <leader>d (visual) - Convert single-$ MathJax to $$...$$ in selection (no double-doubling)
+-- <leader>d - Jump to next single-dollar MathJax candidate (skips code fences, double-dollar, and currency)
+-- <leader>d (visual) - Convert single-dollar MathJax to double-dollar in selection (no double-doubling)
 -- <leader>t - Toggle textwidth 0 <-> 80 (the Margin Release; also F5)
 
 -- Dialogue & Sandworm Ride Controls
