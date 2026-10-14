@@ -660,6 +660,205 @@ function scrub_oauth()
     vim.api.nvim_buf_set_lines(0, first - 1, last, false, lines)
     vim.notify(string.format("scrub: %d value(s) redacted across %d line(s)", hits, last - first + 1), vim.log.levels.INFO)
 end
+
+-- THE MATHJAX SINGLE-TO-DOUBLE DOLLAR CONVERTER (\d in normal & visual mode):
+-- Kramdown/Jekyll requires $$...$$ even for inline MathJax, whereas LLMs
+-- frequently emit single $...$. A blind regex corrupts currency ($20/month,
+-- $30-$60), shell variables ($HOME), or already-doubled$$...$$ on the same -- line. transform_mathjax_line() masks inline backticks and existing $$...$$-- into an equal-length shadow string, walks remaining single-$ positions, and
+-- promotes only verified MathJax spans to $$...$$.
+local function is_mathjax_span(masked_line, s_pos, e_pos)
+    local expr = masked_line:sub(s_pos + 1, e_pos - 1)
+    if #expr == 0 or #expr > 120 then
+        return false
+    end
+    if expr:match("^%s") or expr:match("%s$") then
+        return false
+    end
+    local prev_ch = s_pos > 1 and masked_line:sub(s_pos - 1, s_pos - 1) or ""
+    local next_ch = e_pos < #masked_line and masked_line:sub(e_pos + 1, e_pos + 1) or ""
+    if prev_ch:match("[%w\\$]") then
+        return false
+    end
+    if next_ch:match("[%w$]") then
+        return false
+    end
+    if expr:match("^%d[%d,%.]*/%a%a+") or expr:match("^%d[%d,%.]*[kKmMbB]?%s+%a%a+") then
+        return false
+    end
+    if expr:find("\\", 1, true) then
+        return true
+    end
+    if expr:find("[%^_=<>&+]") then
+        return true
+    end
+    if expr:match("^%a'?$") or expr:match("^%d+/%d+$") or expr:match("^%a/%a$") then
+        return true
+    end
+    if expr:match("^%a+%b()$") then
+        return true
+    end
+    if expr:match("^[%w_]+%s*[%-%+%*/]%s*[%w_]+$") then
+        return true
+    end
+    return false
+end
+
+function transform_mathjax_line(line)
+    local shadow = line
+    shadow = shadow:gsub("`+[^`]*`+", function(m)
+        return string.rep("#", #m)
+    end)
+    shadow = shadow:gsub("%$%$.-%$%$", function(m)
+        return string.rep("#", #m)
+    end)
+    shadow = shadow:gsub("%$%$+", function(m)
+        return string.rep("#", #m)
+    end)
+    local positions = {}
+    local init = 1
+    while true do
+        local p = shadow:find("%$", init)
+        if not p then break end
+        table.insert(positions, p)
+        init = p + 1
+    end
+    local matches = {}
+    local idx = 1
+    while idx < #positions do
+        local s_pos = positions[idx]
+        local e_pos = positions[idx + 1]
+        if is_mathjax_span(shadow, s_pos, e_pos) then
+            table.insert(matches, {
+                s_pos = s_pos,
+                e_pos = e_pos,
+                expr = line:sub(s_pos, e_pos),
+            })
+            idx = idx + 2
+        else
+            idx = idx + 1
+        end
+    end
+    if #matches == 0 then
+        return line, matches
+    end
+    local out = {}
+    local cursor = 1
+    for _, m in ipairs(matches) do
+        table.insert(out, line:sub(cursor, m.s_pos - 1))
+        table.insert(out, "$$")
+        table.insert(out, line:sub(m.s_pos + 1, m.e_pos - 1))
+        table.insert(out, "$$")
+        cursor = m.e_pos + 1
+    end
+    table.insert(out, line:sub(cursor))
+    return table.concat(out), matches
+end
+
+local function build_fenced_line_map(lines)
+    local fenced = {}
+    local in_fence = false
+    local fence_char = nil
+    for i, line in ipairs(lines) do
+        local opener = line:match("^%s*(` ` `+)".gsub(" ", "")) or line:match("^%s*(~~~+)")
+        if opener then
+            local ch = opener:sub(1, 1)
+            if not in_fence then
+                in_fence = true
+                fence_char = ch
+                fenced[i] = true
+            elseif ch == fence_char then
+                fenced[i] = true
+                in_fence = false
+                fence_char = nil
+            else
+                fenced[i] = true
+            end
+        elseif in_fence then
+            fenced[i] = true
+        end
+    end
+    return fenced
+end
+
+function find_next_mathjax_candidate()
+    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    local total = #lines
+    if total == 0 then return end
+    local fenced = build_fenced_line_map(lines)
+    local cur_pos = vim.api.nvim_win_get_cursor(0)
+    local cur_line = cur_pos[1]
+    local cur_col = cur_pos[2] + 1  -- 1-based byte index
+
+    -- Check remaining candidates after cursor on current line first
+    if not fenced[cur_line] then
+        local _, matches = transform_mathjax_line(lines[cur_line])
+        for idx, m in ipairs(matches) do
+            if m.s_pos > cur_col then
+                vim.api.nvim_win_set_cursor(0, {cur_line, m.s_pos - 1})
+                vim.cmd('normal! zz')
+                vim.notify(string.format("mathjax: %s (%d/%d on line %d) -- V then \\d to double", m.expr, idx, #matches, cur_line), vim.log.levels.INFO)
+                return
+            end
+        end
+    end
+
+    -- Scan forward through the buffer, wrapping around once if needed
+    for offset = 1, total do
+        local lnum = ((cur_line - 1 + offset) % total) + 1
+        if not fenced[lnum] then
+            local _, matches = transform_mathjax_line(lines[lnum])
+            if #matches > 0 then
+                local m = matches[1]
+                local wrapped = lnum <= cur_line and " [wrapped]" or ""
+                vim.api.nvim_win_set_cursor(0, {lnum, m.s_pos - 1})
+                vim.cmd('normal! zz')
+                vim.notify(string.format("mathjax: %s (1/%d on line %d)%s -- V then \\d to double", m.expr, #matches, lnum, wrapped), vim.log.levels.INFO)
+                return
+            end
+        end
+    end
+    vim.notify("mathjax: 0 single-$ candidates found in buffer", vim.log.levels.WARN)
+end
+
+function double_mathjax_dollars()
+    local first = vim.fn.line("'<")
+    local last = vim.fn.line("'>")
+    if first == 0 or last == 0 or last < first then
+        vim.notify("mathjax: no visual selection found", vim.log.levels.WARN)
+        return
+    end
+    local vmode = vim.fn.visualmode()
+    local all_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    local fenced = build_fenced_line_map(all_lines)
+    local lines = vim.api.nvim_buf_get_lines(0, first - 1, last, false)
+    local hits = 0
+    local changed_lines = 0
+
+    -- Single-line character-wise visual selection ('v'): respect exact range
+    -- and allow manual override when the operator directly highlights `$expr$`.
+    if vmode == "v" and first == last and #lines == 1 then
+        local line = lines[1]
+        local s_col = vim.fn.col("'<")
+        local e_col = vim.fn.col("'>")
+        if e_col > #line then e_col = #line end
+        local sub = line:sub(s_col, e_col)
+        local new_sub, matches = transform_mathjax_line(sub)
+        if #matches > 0 then
+            hits = #matches
+            changed_lines = 1
+            lines[1] = line:sub(1, s_col - 1) .. new_sub .. line:sub(e_col + 1)
+        else
+            local prev_ch = s_col > 1 and line:sub(s_col - 1, s_col - 1) or ""
+            local next_ch = e_col < #line and line:sub(e_col + 1, e_col + 1) or ""
+            if sub:match("^%$[^%$]+\%$$") and prev_ch ~= "$" and next_ch ~= "$" then
+                hits = 1
+                changed_lines = 1
+                lines[1] = line:sub(1, s_col - 1) .. "$" .. sub .. "$" .. line:sub(e_col + 1) end end else for i, line in ipairs(lines) do local buf_lnum = first + i - 1 if not fenced[buf_lnum] then local new_line, matches = transform_mathjax_line(line) if #matches > 0 then lines[i] = new_line hits = hits + #matches changed_lines = changed_lines + 1 end end end end      if hits == 0 then vim.notify("mathjax: 0 expressions doubled -- already $$...$$or no single-$ math in selection", vim.log.levels.WARN)
+        return
+    end
+    vim.api.nvim_buf_set_lines(0, first - 1, last, false, lines)
+    vim.notify(string.format("mathjax: %d expression(s) doubled across %d line(s)", hits, changed_lines), vim.log.levels.INFO)
+end
 function sync_to_prompt()
     -- Yank the visual selection
     vim.cmd('normal! gvy')
@@ -807,6 +1006,7 @@ map('n', '<leader>t', '<cmd>lua toggle_text_width()<CR>', opts)
 map('n', '<leader>s', '<cmd>lua correct_misspelling()<CR>', opts)  -- Spell correction
 map('n', '<leader>q', '<cmd>lua escape_html_tags()<CR>', opts)  -- HTML tag escaping
 map('n', '<leader>r', '<cmd>lua add_liquid_raw_tags()<CR>', opts)  -- Add Liquid raw tags
+map('n', '<leader>d', '<cmd>lua find_next_mathjax_candidate()<CR>', opts)  -- Find next single-$ MathJax candidate
 
 -- Dialogue Labelers
 map('n', '<leader>b', '<cmd>lua bold_dialogue_speaker()<CR>', opts)  -- Bold dialogue speaker
@@ -840,6 +1040,7 @@ vim.api.nvim_set_keymap('v', '<leader>p', '<cmd>lua sync_to_prompt()<CR>', { nor
 -- operator just made. \c and \p get away with '<cmd>' only because they call
 -- 'normal! gvy' to reselect; a line-range edit has no such escape.
 vim.api.nvim_set_keymap('v', '<leader>x', ':<C-u>lua scrub_oauth()<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('v', '<leader>d', ':<C-u>lua double_mathjax_dollars()<CR>', { noremap = true, silent = true })
 
 -- Print a message to confirm init.lua is loaded
 print("init.lua loaded successfully!")
@@ -855,6 +1056,8 @@ print("init.lua loaded successfully!")
 -- <leader>b - Bold dialogue speaker in text
 -- <leader>q - Escape HTML tags in text
 -- <leader>r - Add Liquid {% raw %}/{% endraw %} tags around {{ content
+-- <leader>d - Jump to next single-$MathJax candidate (skips code fences,$$, and currency)
+-- <leader>d (visual) - Convert single-$ MathJax to $$...$$ in selection (no double-doubling)
 -- <leader>t - Toggle textwidth 0 <-> 80 (the Margin Release; also F5)
 
 -- Dialogue & Sandworm Ride Controls
