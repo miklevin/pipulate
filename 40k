@@ -85,6 +85,110 @@ remotes/honeybot/www/qamy.ai/walk/1/index.html    # <-- public_walk stop one: go
 remotes/honeybot/www/qamy.ai/walk/2/index.html    # <-- stop two: press Enter, one page left; the page names no host
 remotes/honeybot/www/qamy.ai/walk/3/index.html    # <-- stop three: press Enter; the walk's only script, and the optional checkword test
 
+# # Context 1
+# foo_files.py
+# context.txt
+# /home/mike/repos/nixos/configuration.nix
+# 
+# # ============================================================================
+# # XIII. JEKYLL PUBLISHING - Reaching out to the world
+# # ============================================================================
+# # 📖 CHAPTER BLURB -- JEKYLL PUBLISHING: One local plain-text master -- markdown
+# # in _posts/, written in vim, versioned in git -- fans out through a data-driven
+# # pipeline (blogs.json, materialized from blogs.nix, the single source of
+# # truth) into every terminal that wants a projection: the public HTML site, raw
+# # index.md for content-negotiating agents, llms.txt manifests, K-Means hub
+# # pages, sitemaps, Nginx redirect maps, an idempotent Confluence mirror, and
+# # anyone-with-link Google Docs whose share URLs are stamped surgically back
+# # into each post's frontmatter (one line touched, mtime preserved, ADDED /
+# # UPDATED / UNCHANGED as the ledger verbs). The chapter's law: platforms are
+# # retargetable projection lanes, never the record; the ledger travels with the
+# # file; dry-run contracts precede every mutation. This is the pipeline that
+# # gives the Honeybot something to say -- and the provenance that makes the
+# # saying worth training on.
+# 
+# ~/repos/nixos/blogs.nix
+# ~/.config/pipulate/blogs.json                # <-- CAUTION! Derived from ~/repos/nixos/blogs.nix
+# scripts/articles/publishizer.py              # <-- Orchestrates different publishing workflows per target blog.
+# scripts/articles/common.py                   # <-- Self-explanatory
+# scripts/articles/articleizer.py              # <-- Transforms raw article.txt to formal Jekyll markdown format
+# scripts/articles/editing_prompt.txt          # <-- Forcing response into strict JSON data structure
+# scripts/articles/sanitizer.py                # <-- Scrubs PII
+# scripts/articles/gsc_historical_fetch.py
+# scripts/articles/contextualizer.py           # <-- Builds JSON summaries of articles in `_posts/context/` called "Holographic Shards".
+# # scripts/articles/confluenceizer.py           # <-- Idempotent Jekyll-to-Confluence corporate wiki
+# # scripts/articles/googledocizer.py            # <-- Just added
+# scripts/articles/build_knowledge_graph.py    # <-- Topically load-balances site using hierarchical K-Means keyword clustering groups
+# scripts/articles/generate_ai_context.py      # <-- AIs WILL interrogate your repo. This gives epic context of article URLs for drill-down.
+# scripts/articles/generate_hubs.py            # <-- Uses just-produced link-graph data to generate each of the new hubs it suggests
+# scripts/articles/generate_llms_txt.py        # <-- Builds an llms.txt based on the auto-organized structure suggested here
+# scripts/articles/generate_redirects.py       # <-- Generates redirect map above hub-churn suggests is needed
+# scripts/articles/sanitize_redirects.py       # <-- Deals with follow-up meticulous pedantic detail required for a good Nginx redirect map
+# scripts/articles/link_injector.py
+# scripts/articles/generate_post_nav.py  # [1,174 tokens | 4,616 bytes]
+# 
+# # ============================================================================
+# # IX. SURVEYING LANDSCAPE - You're dead in the water without intelligence (HONEYBOT TV STUDIO)
+# # ============================================================================
+# # 📖 CHAPTER BLURB -- HONEYBOT: A retired laptop runs NixOS and Nginx from a home
+# # closet, deliberately naked on the internet (no CDN), baiting AI crawlers so
+# # they can be watched like a fishtank. Nginx does RFC 9110 content negotiation
+# # at the origin: humans get hydrated HTML; any agent sending Accept:
+# # text/markdown gets the raw source the article was born as; and every request
+# # lands as one line in a high-fidelity access log that a Unix pipe tails into a
+# # Textual HUD streamed live to YouTube, while Piper TTS reads the very corpus
+# # the bots are crawling -- content about the instrument, performed by the
+# # instrument, measured by the instrument. The finding that justifies the whole
+# # studio: nearly everyone burns compute hydrating SPAs and converting HTML BACK
+# # into markdown that started as markdown, while the rare polite negotiator
+# # (~0.2% of traffic) simply asks and gets the master for free. Small streams
+# # carve the sinkholes; this chapter is the seismograph.
+# 
+# # CORE AGENT OBSERVATORY FILES (HONEYBOT)
+# nixops.sh                                   # <-- You've heard of GitOPs? Well, this is NixOPs. 
+# remotes/honeybot/hooks/post-receive         # <-- Ever hear of GitHub Pages? Or github.io? This is that.
+# remotes/honeybot/nixos/configuration.nix    # <-- It's as if Pipulate had kids. Spy kids.
+# remotes/honeybot/scripts/stream.py          # <-- Starts the TV Channel streaming to YouTube-live via OBS from Nginx Honeybot XFCE Desktop. Clear?
+# remotes/honeybot/scripts/score.py           # <-- Where "Greetings Entity" slideshow reads on post-receive interrupts
+# remotes/honeybot/scripts/card.py            # <-- Just added for station identification breaks
+# remotes/honeybot/scripts/forest.py          # <-- Likewise, just added for the new storytelling system on Honeybot
+# remotes/honeybot/scripts/test_forest.py     # <-- Test Honeybot station identification sequence on Pipulate Prime
+# remotes/honeybot/scripts/logs.py            # <-- The TV Show is mostly Nginx `access.log` files tailed and piped through Python to colorize (this).
+# remotes/honeybot/scripts/content_loader.py  # <-- Tricky TV programming & scheduling stuff. Absolute versus relative timing. Loops. Interrupts.
+# remotes/honeybot/scripts/db.py              # <-- But you can't keep your weblogs forever! And we want trending. And data-mining. Here's how.
+# # imports/voice_synthesis.py                  # <-- The wand can talk to you (not sure if I'm keeping it in Honeybot chapter)
+# remotes/honeybot/queries/trapdoor_ips.sql   # <-- The SQL to see who is hydrating the DOM. An ultimate report example among much ad hoc .SQL
+# ! echo "--- WHO HYDRATES THE DOM ---" && cat remotes/honeybot/queries/trapdoor_ips.sql | ssh honeybot 'sqlite3 -header -column ~/www/mikelev.in/honeybot.db'
+
+# Context 2
+foo_files.py
+context.txt
+assets/installer/install.sh
+flake.nix
+/home/mike/repos/pipulate/apps/911_optics_workflow.py
+/home/mike/repos/nixos/configuration.nix
+/home/mike/repos/nixos/blogs.nix
+/home/mike/.config/pipulate/blogs.json
+scripts/articles/publishizer.py
+scripts/articles/common.py
+scripts/articles/articleizer.py
+remotes/honeybot/nixos/configuration.nix
+remotes/honeybot/scripts/logs.py
+remotes/honeybot/scripts/db.py
+remotes/honeybot/queries/trapdoor_ips.sql
+! git status --short
+! python3 -c 'import json, pathlib; d=json.loads(pathlib.Path("~/.config/pipulate/blogs.json").expanduser().read_text()); print(" | ".join(f"{k}:{v[\"alias\"]}({v[\"lane\"]})" for k,v in sorted(d.items())))'
+! echo "--- CONTENT NEGOTIATION VANGUARD ---" && cat remotes/honeybot/queries/content_neg_agents.sql | ssh honeybot 'sqlite3 -header -column ~/www/mikelev.in/honeybot.db' | head -n 20
+
+
+
+
+
+
+
+
+
+
     !URL  --------------------------------------------------------------------
       when    Public page; what a stranger or crawler sees; the BEFORE of a
               login-wall diagnosis
