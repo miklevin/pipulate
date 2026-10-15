@@ -1,37 +1,28 @@
-# --- THE 40K-FOOT VIEW (uncomment on a first turn; comment out on the second) ---
-
+# # WHO I AM AND WHERE WE BEGIN
 ~/repos/nixos/configuration.nix
 ~/repos/nixos/autognome.py
+init.lua
+scripts/articles/lsa.py
+! book
 
-! scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs
-! python scripts/articles/lsa.py -t 1 --reverse --fmt dated-slugs
+# # THE SOFTWARE VON NEUMANN PROBE
+assets/installer/install.sh
+flake.nix
+release.py
+~/repos/nixos/blogs.nix
+remotes/honeybot/www/qamy.ai/index.html
+remotes/honeybot/www/qamy.ai/walk/1/index.html
+remotes/honeybot/www/qamy.ai/walk/2/index.html
+remotes/honeybot/www/qamy.ai/walk/3/index.html
 
+
+# # THE DATA EVERYONE NEEDS
 remotes/honeybot/queries/trapdoor_ips.sql
 ! echo "--- WHO HYDRATES THE DOM ---" && cat remotes/honeybot/queries/trapdoor_ips.sql | ssh honeybot 'sqlite3 -header -column ~/www/mikelev.in/honeybot.db'
-
 remotes/honeybot/queries/content_neg_agents.sql
 ! echo "--- WHO NEGOTIATES MARKDOWN ---" && cat remotes/honeybot/queries/content_neg_agents.sql | ssh honeybot 'sqlite3 -header -column ~/www/mikelev.in/honeybot.db'
 
-~/repos/nixos/blogs.nix
-~/.config/pipulate/blogs.json
-scripts/articles/publishizer.py
-scripts/articles/common.py
-scripts/articles/articleizer.py
-scripts/articles/editing_prompt.txt
-scripts/articles/sanitizer.py
-scripts/articles/gsc_historical_fetch.py
-scripts/articles/contextualizer.py
-# scripts/articles/confluenceizer.py
-# scripts/articles/googledocizer.py
-scripts/articles/build_knowledge_graph.py
-scripts/articles/generate_ai_context.py
-scripts/articles/generate_hubs.py
-scripts/articles/generate_llms_txt.py
-scripts/articles/generate_redirects.py
-scripts/articles/sanitize_redirects.py
-scripts/articles/link_injector.py
-scripts/articles/generate_post_nav.py
-
+# # THE JEKYLL PUBLISHING PIPELINE
 ~/repos/nixos/blogs.nix
 ~/.config/pipulate/blogs.json
 scripts/articles/publishizer.py
@@ -44,6 +35,7 @@ scripts/articles/contextualizer.py
 scripts/articles/generate_llms_txt.py
 scripts/articles/generate_post_nav.py
 
+# # OUR HONEYBOT AI OBSERVATORY
 nixops.sh
 remotes/honeybot/hooks/post-receive
 remotes/honeybot/nixos/configuration.nix
@@ -55,32 +47,32 @@ remotes/honeybot/scripts/test_forest.py
 remotes/honeybot/scripts/logs.py
 remotes/honeybot/scripts/content_loader.py
 remotes/honeybot/scripts/db.py
-# imports/voice_synthesis.py
 
-init.lua
-assets/installer/install.sh
-flake.nix
+# # HAND-CRANKED AGENTIC FRAMEWORK & CONTEXT COMPILER
 prompt_foo.py
 foo_files.py
 __init__.py
-release.py
 
+# # THE MOTHER CAT KATA
 scripts/boot_menu.py
 walk
 scripts/mother_cat.py
 scripts/walk_compile.py
 scripts/walk.py
 
+# # THE LIVE-SERVE ONLY JEKYLL EXAMPLE
 ~/repos/grimoire/_config.yml
 ~/repos/grimoire/flake.nix
 ~/repos/grimoire/Gemfile
 ~/repos/grimoire/index.md
 
+# # THE NGINX JEKYLL EXAMPLE
 ~/repos/trimnoir/_config.yml
 ~/repos/trimnoir/flake.nix
 ~/repos/trimnoir/Gemfile
 ~/repos/trimnoir/index.md
 
+# # JEKYLL TEMPLATES
 ~/repos/trimnoir/_layouts/default.html
 ~/repos/trimnoir/_layouts/forward.html
 ~/repos/trimnoir/_layouts/home.html
