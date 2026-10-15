@@ -337,14 +337,17 @@ def project_xml_sitemaps(tree_node, base_url="https://mikelev.in", output_dir=Pa
     from datetime import datetime
     today = datetime.now().strftime('%Y-%m-%d')
 
-    # 1. Core Sitemap (The VIP Lounge)
+    # 1. Core Sitemap (The VIP Lounge + Root Flagship Articles)
     core_urls = [
         f"  <url><loc>{base_url}/llms.txt</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>",
         f"  <url><loc>{base_url}/graph.json</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>",
         f"  <url><loc>{base_url}/feed.xml</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>",
         f"  <url><loc>{base_url}/</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>"
     ]
-    
+    for article in tree_node.get('children_articles', []):
+        mod_date = article.get('date', today) or today
+        core_urls.append(f"  <url><loc>{base_url}{article['permalink']}</loc><lastmod>{mod_date}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>")
+
     hub_urls = []
     sitemap_index_urls = [f"  <sitemap><loc>{base_url}/sitemap-core.xml</loc></sitemap>"]
     sitemap_index_urls.append(f"  <sitemap><loc>{base_url}/sitemap-hubs.xml</loc></sitemap>")
@@ -363,7 +366,9 @@ def project_xml_sitemaps(tree_node, base_url="https://mikelev.in", output_dir=Pa
     def wrap_xml(urls):
         return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(urls) + '\n</urlset>'
 
-    # 2. Generate Top-Level Hub Sitemaps
+    # 2. Generate Top-Level Hub Sitemaps (purge stale branch files first)
+    for old_branch in output_dir.glob("sitemap-branch-*.xml"):
+        old_branch.unlink()
     for i, top_hub in enumerate(tree_node.get('children_hubs', [])):
         post_urls = []
         # Traverse this specific branch
@@ -403,16 +408,23 @@ def main():
         
     velocity_data = load_velocity_data()
 
-    # 2. BUILD CANONICAL TREE
-    print(f"🧠 Clustering {len(df)} articles into Canonical Tree...")
+    # 2. BUILD CANONICAL TREE (target-aware from blogs.json)
+    targets = common.load_targets()
+    target_config = targets.get(str(args.target), {})
+    base_url = (target_config.get('base_url') or target_config.get('url') or 'https://mikelev.in').rstrip('/')
+    raw_name = target_config.get('name', 'MikeLev.in')
+    site_title = re.sub(r'\s*\((?:Public\vert{}Private)\)\s*$', '', raw_name).strip() or raw_name
+    site_blurb = target_config.get('editorial_context') or "Python, NixOS, SEO, and AI Engineering."
+
+    print(f"🧠 Clustering {len(df)} articles into Canonical Tree for {site_title} ({base_url})...")
     
     # Initialize Root Node
     canonical_tree = {
         "type": "root", 
         "id": "root",
-        "title": "MikeLev.in", # Branding
+        "title": site_title,
         "permalink": "/",
-        "blurb": "Python, NixOS, SEO, and AI Engineering.",
+        "blurb": site_blurb,
         "gravity": 60,
         "children_hubs": [],
         "children_articles": []
@@ -435,14 +447,8 @@ def main():
         json.dump(d3_data, f, indent=None) # Minified
     print(f"✅ Generated D3 Graph: {GRAPH_FILE} ({len(nodes)} nodes)")
 
-    # 5. EXPORT LLMS.TXT (Markdown Manifest)
-    # llms_lines = project_llms_txt(canonical_tree, base_url="https://mikelev.in")
-    # with open(LLMS_TXT_FILE, 'w', encoding='utf-8') as f:
-    #     f.write("\n".join(llms_lines))
-    # print(f"✅ Generated LLMs.txt: {LLMS_TXT_FILE}")
-
     # 6. EXPORT XML SITEMAPS (The Sitrep)
-    xml_core, xml_hubs, xml_index = project_xml_sitemaps(canonical_tree)
+    xml_core, xml_hubs, xml_index = project_xml_sitemaps(canonical_tree, base_url=base_url)
     with open(SITEMAP_CORE_FILE, 'w', encoding='utf-8') as f: f.write(xml_core)
     with open(SITEMAP_HUBS_FILE, 'w', encoding='utf-8') as f: f.write(xml_hubs)
     with open('sitemap.xml', 'w', encoding='utf-8') as f: f.write(xml_index)

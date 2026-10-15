@@ -103,6 +103,7 @@ def sync_data_to_jekyll(target_path, since=0.0, verbose=False):
     artifacts = {
         "graph.json": "graph.json",
         "llms.txt": "llms.txt",
+        "robots.txt": "robots.txt",
     }
     
     # target_path is usually .../trimnoir/_posts

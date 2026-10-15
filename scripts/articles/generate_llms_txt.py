@@ -11,61 +11,130 @@ from pathlib import Path
 import lsa
 import common
 
+import re
+from datetime import datetime
+
 # --- CONFIGURATION ---
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SCRIPT_DIR = REPO_ROOT / "scripts" / "articles"
 HEADER_FILE = REPO_ROOT / "assets" / "prompts" / "llms_header.md"
-OUTPUT_FILE = REPO_ROOT / "scripts" / "articles" / "llms.txt"
+OUTPUT_FILE = SCRIPT_DIR / "llms.txt"
+ROBOTS_FILE = SCRIPT_DIR / "robots.txt"
+SITEMAP_FILE = SCRIPT_DIR / "sitemap.xml"
 
 
-def build_payload(target_config: dict) -> str:
+def resolve_base_url(target_config: dict) -> str:
+    return (target_config.get('base_url') or target_config.get('url')
+            or 'https://mikelev.in').rstrip('/')
+
+
+def resolve_post_permalink(item: dict, prefix: str) -> str:
+    slug = str(item.get('permalink') or '').strip('/')
+    if not slug:
+        raw_slug = item['filename'].replace('.md', '').replace('.markdown', '')
+        if len(raw_slug) > 10 and raw_slug[10] == '-':
+            raw_slug = raw_slug[11:]
+        slug = lsa.default_permalink(raw_slug, prefix).strip('/')
+    return f"/{slug}/" if slug else "/"
+
+
+def build_header(target_key: str, target_config: dict) -> str:
+    """Use the curated static header for Target 1; synthesize a target-aware header for all others."""
+    if str(target_key) == "1" and HEADER_FILE.exists():
+        return HEADER_FILE.read_text(encoding='utf-8').strip()
+
+    base_url = resolve_base_url(target_config)
+    raw_name = target_config.get('name', 'Site')
+    site_title = re.sub(r'\s*\((?:Public\vert{}Private)\)\s*$', '', raw_name).strip() or raw_name
+    pitch = (target_config.get('editorial_context') or '').strip()
+
+    lines = [
+        f"# {site_title} — AI Context & Content Negotiation Manifest",
+        "",
+    ]
+    if pitch:
+        lines.extend([f"> {pitch}", ""])
+    lines.extend([
+        "## Wire-Truth & RFC 9110 Content Negotiation",
+        "This origin supports proactive HTTP content negotiation (RFC 9110 Section 12).",
+        "Automated agents and crawlers may request clean Markdown directly at any canonical URL by sending:",
+        "`Accept: text/markdown`",
+        "",
+        f"- **Canonical Base URL**: {base_url}",
+        f"- **XML Sitemap**: {base_url}/sitemap.xml",
+        f"- **Robots Policy**: {base_url}/robots.txt",
+        "",
+        "## Chronological Article Ledger",
+    ])
+    return "\n".join(lines)
+
+
+def build_payload(target_config: dict) -> tuple[str, list[dict]]:
     """Generates the dense, reverse-chronological ledger using lsa.py logic."""
     target_path = Path(target_config['path']).expanduser().resolve()
-    # KEY DRIFT, convicted by reading (2026-09-04): blogs.json declares
-    # base_url and has never declared url, so this .get always fell through to
-    # the mikelev.in default and every target's llms.txt was built with target
-    # 1's hostname. generate_ai_context.get_base_url already tolerates both
-    # spellings, which is the tell that the older name existed once.
-    # WITNESSED STRUCTURALLY ONLY (the grep goes 1 -> 0). No behavioral receipt
-    # exists today because target 1 is the sole target running this script and
-    # its base_url equals the fallback, so the fix is a no-op until a second
-    # target adopts the pipeline -- which is exactly when it would have bitten.
-    base_url = (target_config.get('base_url') or target_config.get('url')
-                or 'https://mikelev.in').rstrip('/')
-    
+    base_url = resolve_base_url(target_config)
+    prefix = lsa.permalink_prefix(target_config)
+
     print(f"📚 Extracting metadata from: {target_path}")
-    # Leverage the Universal Semantic Extractor from lsa.py
-    # Note: get_holographic_article_data already sorts Date (DESC) then sort_order (DESC)
+    if not target_path.exists():
+        print(f"ℹ️  {target_path} does not exist yet; generating seed manifest with 0 posts.")
+        return "", []
+
     metadata = lsa.get_holographic_article_data(str(target_path))
-    
+
     lines = []
     for item in metadata:
-        # Resolve the URL
-        slug = item.get('permalink', '').strip('/')
-        if not slug:
-            raw_slug = item['filename'].replace('.md', '').replace('.markdown', '')
-            # Strip YYYY-MM-DD- prefix if present
-            if len(raw_slug) > 10 and raw_slug[10] == '-':
-                raw_slug = raw_slug[11:]
-            slug = raw_slug
-            
-        full_url = f"{base_url}/{slug}/index.md?src=llms.txt"
-        
-        # Fallback to YAML summary if JSON shard summary is missing
+        perma = resolve_post_permalink(item, prefix)
+        full_url = f"{base_url}{perma}index.md?src=llms.txt"
+
         summary = item.get('shard_sum') or item.get('summary', '')
         kw_str = f" | KW: {item['shard_kw']}" if item.get('shard_kw') else ""
         sub_str = f" | SUB: {item['shard_sub']}" if item.get('shard_sub') else ""
-        
-        # Construct the ultra-dense line
+
         dense_line = (f"[{item['date']}] {full_url} "
                       f"(Ord:{item['sort_order']}) | "
                       f"{item['title']}{kw_str}{sub_str} | SUM: {summary}")
         lines.append(dense_line)
-        
-    return "\n".join(lines)
+
+    return "\n".join(lines), metadata
+
+
+def build_robots_txt(target_config: dict) -> str:
+    base_url = resolve_base_url(target_config)
+    return (
+        "User-agent: *\n"
+        "Allow: /\n\n"
+        "# AI Discovery & RFC 9110 Content Negotiation\n"
+        "# Agents: send 'Accept: text/markdown' on any canonical URL for raw Markdown.\n"
+        f"# LLMs-Txt: {base_url}/llms.txt\n"
+        f"Sitemap: {base_url}/sitemap.xml\n"
+    )
+
+
+def build_flat_sitemap_xml(target_config: dict, metadata: list[dict]) -> str:
+    base_url = resolve_base_url(target_config)
+    prefix = lsa.permalink_prefix(target_config)
+    today = datetime.now().strftime('%Y-%m-%d')
+    urls = [
+        f"  <url><loc>{base_url}/</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>",
+        f"  <url><loc>{base_url}/llms.txt</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>",
+    ]
+    for item in metadata:
+        perma = resolve_post_permalink(item, prefix)
+        mod_date = str(item.get('date') or today)
+        urls.append(
+            f"  <url><loc>{base_url}{perma}</loc><lastmod>{mod_date}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>"
+        )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls)
+        + "\n</urlset>\n"
+    )
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate llms.txt")
+    parser = argparse.ArgumentParser(description="Generate llms.txt, robots.txt, and flat sitemap.xml")
     common.add_standard_arguments(parser)
     args = parser.parse_args()
 
@@ -84,25 +153,26 @@ def main():
         sys.exit(1)
 
     target_config = targets[target_key]
-    
-    # 1. Load the Static Header
-    if not HEADER_FILE.exists():
-        print(f"❌ Error: Header file not found at {HEADER_FILE}", file=sys.stderr)
-        sys.exit(1)
-        
-    with open(HEADER_FILE, 'r', encoding='utf-8') as f:
-        header_content = f.read()
 
-    # 2. Build the Dynamic Payload
-    payload_content = build_payload(target_config)
-    
-    # 3. Fuse and Write
-    final_content = f"{header_content.strip()}\n\n{payload_content}\n"
-    
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        f.write(final_content)
-        
+    # 1. Build Header + Payload for llms.txt
+    header_content = build_header(target_key, target_config)
+    payload_content, metadata = build_payload(target_config)
+    final_content = f"{header_content}\n\n{payload_content}\n" if payload_content else f"{header_content}\n"
+
+    OUTPUT_FILE.write_text(final_content, encoding='utf-8')
     print(f"✅ Successfully generated: {OUTPUT_FILE}")
+
+    # 2. Build robots.txt
+    ROBOTS_FILE.write_text(build_robots_txt(target_config), encoding='utf-8')
+    print(f"✅ Successfully generated: {ROBOTS_FILE}")
+
+    # 3. Build flat sitemap.xml when build_knowledge_graph.py is not in this target's pipeline
+    pipeline = target_config.get('pipeline', [])
+    if "build_knowledge_graph.py" not in pipeline:
+        for old_sub in SCRIPT_DIR.glob("sitemap-*.xml"):
+            old_sub.unlink()
+        SITEMAP_FILE.write_text(build_flat_sitemap_xml(target_config, metadata), encoding='utf-8')
+        print(f"✅ Successfully generated flat sitemap: {SITEMAP_FILE} ({len(metadata)} post(s))")
 
 
 if __name__ == "__main__":
