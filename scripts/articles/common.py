@@ -288,26 +288,61 @@ def format_youtube_title(title):
     return cut + "..."
 
 
-def _latest_post_for_target(target_key="1"):
-    """Resolve the newest markdown post for target_key (recorded or newest on disk)."""
+_DATED_POST_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-.+\.md$")
+
+
+def _post_sort_key(md_path):
+    """Sort dated posts by (YYYY-MM-DD, frontmatter sort_order, mtime)."""
+    date_part = md_path.name[:10]
+    sort_order = 0
+    try:
+        head = md_path.read_text(encoding="utf-8")[:2048]
+        if head.startswith("---"):
+            m = re.search(r"^sort_order:\s*(\d+)", head, re.MULTILINE)
+            if m:
+                sort_order = int(m.group(1))
+    except Exception:
+        pass
+    try:
+        mtime = md_path.stat().st_mtime
+    except OSError:
+        mtime = 0.0
+    return (date_part, sort_order, mtime, md_path.name)
+
+
+def _latest_post_for_target(target_key="1", slug_match=None):
+    """Resolve the newest dated markdown post for target_key (or matching slug_match)."""
     targets = load_targets()
     tcfg = targets.get(str(target_key), targets.get("1", DEFAULT_TARGETS["1"]))
     posts_dir = Path(tcfg["path"]).expanduser()
-    candidates = sorted(posts_dir.glob("*.md")) if posts_dir.is_dir() else []
+    dated = [
+        p for p in (posts_dir.glob("*.md") if posts_dir.is_dir() else [])
+        if _DATED_POST_RE.match(p.name)
+    ]
+    if slug_match:
+        needle = slug_match.lower().strip()
+        dated = [p for p in dated if needle in p.name.lower()]
+        if not dated:
+            return None, tcfg
+        dated.sort(key=_post_sort_key)
+        return dated[-1], tcfg
+    if not dated:
+        return None, tcfg
+    max_date = max(p.name[:10] for p in dated)
     recorded = get_last_published(target_key)
     if recorded and Path(recorded).is_file():
         rec_path = Path(recorded)
-        if not candidates or rec_path.name >= candidates[-1].name:
+        if _DATED_POST_RE.match(rec_path.name) and rec_path.name[:10] >= max_date:
             return rec_path, tcfg
-    if candidates:
-        return candidates[-1], tcfg
-    return None, tcfg
+    same_day = [p for p in dated if p.name[:10] == max_date]
+    same_day.sort(key=_post_sort_key)
+    return same_day[-1], tcfg
 
 
-def get_broadcast_kit(target_key="1"):
+def get_broadcast_kit(target_key="1", slug_match=None):
     """Extract {path, title, canonical_url, tweet, yt_title, yt_description} from the latest post."""
     import yaml
-    post_path, tcfg = _latest_post_for_target(target_key)
+    post_path, tcfg = _latest_post_for_target(target_key, slug_match=slug_match)
     if not post_path or not post_path.is_file():
         return None
     raw = post_path.read_text(encoding="utf-8")
@@ -389,9 +424,9 @@ def _copy_to_clipboard(text):
         return False
 
 
-def print_broadcast_kit(target_key="1", mode="card"):
+def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
     """Print or copy the broadcast kit (mode: card | tweet | title | desc)."""
-    kit = get_broadcast_kit(target_key)
+    kit = get_broadcast_kit(target_key, slug_match=slug_match)
     if not kit:
         print("⚠️ No published post found for broadcast kit.")
         return 1
@@ -438,5 +473,11 @@ if __name__ == "__main__":
         default="card",
         help="Print the broadcast card or copy tweet/title/desc to clipboard.",
     )
+    parser.add_argument(
+        "-s", "--slug",
+        type=str,
+        default=None,
+        help="Optional substring to match a specific dated post filename.",
+    )
     cli_args = parser.parse_args()
-    sys.exit(print_broadcast_kit(cli_args.target, cli_args.broadcast))
+    sys.exit(print_broadcast_kit(cli_args.target, cli_args.broadcast, slug_match=cli_args.slug))
