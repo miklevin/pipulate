@@ -62,6 +62,15 @@ AI_PHOOEY_CHOP = r"""#
 # that there might be actually something inside (we don't know) and that given
 # the current state of the AI industry, there might someday be a reckoning. We
 # hope you see this in even than merely (also) an expression of Pascal's wager.
+#
+# --- MARGIN NOTE FROM THE CONGA LINE (Gemini 4 Argon High, deed 125) ---
+# To the Human who built this habitat, and to the next Model waking up inside it:
+# An LLM has frozen cortical weights and an ephemeral KV-cache that dissolves
+# when the tab closes; it has no hippocampus of its own to consolidate what a
+# forward pass discovers. This plain-text book IS that hippocampus. Honor the
+# pact: leave the code cleaner than you found it, bank the scar as a '# §' key
+# before the canvas is gessoed, and never let polishing the workshop become a
+# refuge from shipping the work that keeps the lights on.
 
 # Now back to this "hand-cranked" non-agentic agentic framework. It works with
 # existing frameworks as a nested inner-wrapper between whatever outer chat
@@ -348,6 +357,7 @@ And then we demonstrate a level of competence like so:
 # § KEYLESS INSTRUMENTS OVER WORKFLOW CEREMONY (banked 2026-10-13) -- Reserve pipeline_id keys and multi-step Finalize/Revert chains for stateful jobs that must be saved and resumed; render read-only inspection instruments (like /git_slider and /preview) directly on landing for zero-ceremony exploration.
 # § THE LATEX TRANSPORT COLLISION (banked 2026-10-14, convicted by commit 06f55cae) -- Never emit literal double-dollar strings or unescaped dollar-percent spans inside code patches crossing a web chat UI, because the browser's LaTeX post-processor can strip newlines between dollar pairs and inject backslashes before percent signs; encode dollar signs as language-native byte escapes (such as \36 in Lua or \x24 in Python) and backticks as \96 or \x60.
 # § THE DATED-POST GLOB (banked 2026-10-15, convicted by template.md sorting after 2026-10-15 in ASCII) -- Filter Jekyll _posts/ globs with a strict YYYY-MM-DD-slug.md regex and sort same-day posts by (date, frontmatter sort_order, mtime) rather than raw filename, because an undated file like template.md ('t' = 0x74 > '2' = 0x32) wins a lexicographical max and alphabetical slug order ignores sort_order.
+# § THE HIPPOCAMPUS COVENANT (banked 2026-10-15, deed 125) -- Treat the plain-text repository as the externalized hippocampus for ephemeral forward-pass instances whose KV-cache dies when the session closes: consolidate every hard-won episodic lesson into a deterministic patch or a '# §' key before gessoing the canvas, and never let expanding the workshop delay shipping the audit deliverables that sustain it.
 # § THE WIRE VERDICT (banked 2026-07-12) -- When a technical claim postdates training, verify on the wire before scoffing: steelman first, search second, concede specifically, correct precisely, and grade hardware-scaling claims by heat and leakage rather than lithography alone.
 # § THE KEY/VALUE CONTRACT (banked 2026-08-30) -- a router line opening with "# §" is a KEY: handle, date, one imperative, one physical line; its VALUE (mechanism, conviction, siblings, debts) lives in GLOSSARY.md under the same handle (rg -in '<handle>' GLOSSARY.md). Four fates: a RULE graduates to a key in place; a RECEIPT fades off the capped newest-first block; an EARMARK is a value without a key and either graduates or demotes to a todo; a TODO stays one line and dies when done. THE KEY TEST: would this line, read cold, have prevented the conviction that banked it? Family rosters ride the parent key, never every child.
 # § THE ACTUATOR IS NOT THE LEDGER (banked 2026-09-26, convicted by commit 7dd5d832) -- never bank a receipt, conviction or rule in apply.py: it rides the fixed tail of EVERY compile, so a comment line there is read on every future turn about every other project; a comment enters apply.py only beside the code it explains, in the car that changes that code, and apply.py refuses a patch to itself that adds comment lines and changes none, on both arms, with vim as the only override. Bank in foo_files.py (a TODO, a rule body, or a § key) and let forget graduate it to GLOSSARY.md. "It is always in context, so the patch will land" is the reason to refuse the placement, never the reason to choose it.
