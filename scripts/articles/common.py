@@ -362,6 +362,12 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     canonical_url = str(fm.get("canonical_url") or (f"{base_url}{permalink}" if permalink else base_url))
     meta_desc = str(fm.get("meta_description") or fm.get("excerpt") or "").strip()
     imprint = str(fm.get("description") or "").strip()
+    editorial_match = re.search(
+        r"###\s*Ai Editorial Take\s*\n(.*?)(?=\n#{2,3}\s|\Z)",
+        body,
+        re.DOTALL | re.IGNORECASE,
+    )
+    ai_take = editorial_match.group(1).strip() if editorial_match else ""
     tweet_match = re.search(
         r"###\s*🐦\s*X\.com Promo Tweet\s*\n```[a-zA-Z0-9]*\n(.*?)\n```",
         body,
@@ -380,7 +386,9 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     ]
     if meta_desc:
         desc_parts.extend(["", meta_desc])
-    if imprint and imprint != meta_desc:
+    if ai_take:
+        desc_parts.extend(["", "🤖 AI Editorial Take:", ai_take])
+    elif imprint and imprint != meta_desc:
         desc_parts.extend(["", imprint])
     desc_parts.extend([
         "",
