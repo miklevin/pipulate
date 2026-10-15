@@ -861,6 +861,7 @@ def main():
             target_config=target_config)
         if saved_path:
             common.record_last_published(args.target, saved_path, target_config.get("name"))
+            common.print_broadcast_kit(args.target, mode="card")
         else:
             sys.exit(1)
 

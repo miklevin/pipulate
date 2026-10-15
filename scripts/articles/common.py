@@ -259,3 +259,184 @@ def _write_text_preserving_mtime(path, text, preserve_mtime):
     path.write_text(text, encoding="utf-8")
     if st is not None:
         os.utime(path, (st.st_atime, st.st_mtime))
+
+
+# ----------------------------------------------------------------------------
+# Go-Go-Gadget Broadcast Kit (X.com Promo Tweet + YouTube Live Cut-and-Roll)
+# ----------------------------------------------------------------------------
+YT_TITLE_LIMIT = 100
+
+
+def _yt_sanitize(text):
+    """YouTube rejects '<' and '>' in both titles and descriptions."""
+    return (text or "").replace("<", "[").replace(">", "]")
+
+
+def format_youtube_title(title):
+    """Build a <=100-char YouTube Live title from the article title."""
+    clean = " ".join(_yt_sanitize(title).split())
+    if not clean:
+        return "LIVE: Honeybot AI Observatory"
+    prefixed = f"LIVE: {clean}"
+    if len(prefixed) <= YT_TITLE_LIMIT:
+        return prefixed
+    if len(clean) <= YT_TITLE_LIMIT:
+        return clean
+    cut = clean[: YT_TITLE_LIMIT - 3]
+    if " " in cut:
+        cut = cut.rsplit(" ", 1)[0]
+    return cut + "..."
+
+
+def _latest_post_for_target(target_key="1"):
+    """Resolve the newest markdown post for target_key (recorded or newest on disk)."""
+    targets = load_targets()
+    tcfg = targets.get(str(target_key), targets.get("1", DEFAULT_TARGETS["1"]))
+    posts_dir = Path(tcfg["path"]).expanduser()
+    candidates = sorted(posts_dir.glob("*.md")) if posts_dir.is_dir() else []
+    recorded = get_last_published(target_key)
+    if recorded and Path(recorded).is_file():
+        rec_path = Path(recorded)
+        if not candidates or rec_path.name >= candidates[-1].name:
+            return rec_path, tcfg
+    if candidates:
+        return candidates[-1], tcfg
+    return None, tcfg
+
+
+def get_broadcast_kit(target_key="1"):
+    """Extract {path, title, canonical_url, tweet, yt_title, yt_description} from the latest post."""
+    import yaml
+    post_path, tcfg = _latest_post_for_target(target_key)
+    if not post_path or not post_path.is_file():
+        return None
+    raw = post_path.read_text(encoding="utf-8")
+    fm = {}
+    body = raw
+    if raw.startswith("---"):
+        parts = raw.split("---", 2)
+        if len(parts) >= 3:
+            try:
+                fm = yaml.safe_load(parts[1]) or {}
+            except Exception:
+                fm = {}
+            body = parts[2]
+    title = str(fm.get("title") or post_path.stem)
+    base_url = (tcfg.get("base_url") or "https://mikelev.in").rstrip("/")
+    permalink = str(fm.get("permalink") or "")
+    canonical_url = str(fm.get("canonical_url") or (f"{base_url}{permalink}" if permalink else base_url))
+    meta_desc = str(fm.get("meta_description") or fm.get("excerpt") or "").strip()
+    imprint = str(fm.get("description") or "").strip()
+    tweet_match = re.search(
+        r"###\s*🐦\s*X\.com Promo Tweet\s*\n```[a-zA-Z0-9]*\n(.*?)\n```",
+        body,
+        re.DOTALL,
+    )
+    if tweet_match:
+        tweet = tweet_match.group(1).strip()
+    else:
+        tweet = f"{title}\n\n{canonical_url}"
+    tags = " ".join(re.findall(r"#[A-Za-z0-9_]+", tweet))
+    yt_title = format_youtube_title(title)
+    desc_parts = [
+        f"📖 Read the full article: {canonical_url}",
+        "",
+        f"🎙️ Now reading live on the Honeybot AI Observatory: \"{title}\"",
+    ]
+    if meta_desc:
+        desc_parts.extend(["", meta_desc])
+    if imprint and imprint != meta_desc:
+        desc_parts.extend(["", imprint])
+    desc_parts.extend([
+        "",
+        "---",
+        "🔭 About this 24/7 Home-Hosted NixOS Broadcast:",
+        "You are watching real-time Nginx access logs and AI crawler telemetry from mikelev.in.",
+        "• Agents sending 'Accept: text/markdown' (RFC 9110) receive clean raw Markdown.",
+        "• Agents executing JavaScript trigger the DOM trapdoor sensor.",
+        f"• AI Context Manifest: {base_url}/llms.txt",
+        "• Stack: NPvg (Nix, Python, Neovim, Git) — https://pipulate.com | https://qamy.ai",
+    ])
+    if tags:
+        desc_parts.extend(["", tags])
+    yt_description = _yt_sanitize("\n".join(desc_parts).strip())
+    return {
+        "path": str(post_path),
+        "title": title,
+        "canonical_url": canonical_url,
+        "tweet": tweet,
+        "yt_title": yt_title,
+        "yt_description": yt_description,
+    }
+
+
+def _copy_to_clipboard(text):
+    """Copy text to OS clipboard when interactive; detach xclip so pipes never hang."""
+    if not sys.stdout.isatty():
+        return False
+    import subprocess
+    cmd = ["pbcopy"] if sys.platform == "darwin" else ["xclip", "-selection", "clipboard"]
+    try:
+        subprocess.run(
+            cmd,
+            input=text.encode("utf-8"),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        )
+        return True
+    except Exception:
+        return False
+
+
+def print_broadcast_kit(target_key="1", mode="card"):
+    """Print or copy the broadcast kit (mode: card | tweet | title | desc)."""
+    kit = get_broadcast_kit(target_key)
+    if not kit:
+        print("⚠️ No published post found for broadcast kit.")
+        return 1
+    if mode == "tweet":
+        copied = _copy_to_clipboard(kit["tweet"])
+        print(kit["tweet"])
+        print(f"\n{'📋 Copied X.com Promo Tweet to clipboard!' if copied else 'ℹ️  (Non-TTY: printed only)'}")
+        return 0
+    if mode == "title":
+        copied = _copy_to_clipboard(kit["yt_title"])
+        print(kit["yt_title"])
+        print(f"\n{'📋 Copied YouTube Live Title' if copied else 'ℹ️  YouTube Live Title'} ({len(kit['yt_title'])}/{YT_TITLE_LIMIT} chars)")
+        return 0
+    if mode == "desc":
+        copied = _copy_to_clipboard(kit["yt_description"])
+        print(kit["yt_description"])
+        print(f"\n{'📋 Copied YouTube Live Description to clipboard!' if copied else 'ℹ️  (Non-TTY: printed only)'}")
+        return 0
+    bar = "=" * 72
+    thin = "-" * 72
+    print(f"\n{bar}")
+    print(f"📡 GO-GO-GADGET BROADCAST KIT ({Path(kit['path']).name})")
+    print(thin)
+    print("🐦 X.COM PROMO TWEET (type `tweet` to copy):")
+    print(kit["tweet"])
+    print(thin)
+    print(f"📺 YOUTUBE LIVE TITLE [{len(kit['yt_title'])}/{YT_TITLE_LIMIT} chars] (type `yttitle` to copy):")
+    print(kit["yt_title"])
+    print(thin)
+    print("📝 YOUTUBE LIVE DESCRIPTION (type `ytdesc` to copy):")
+    print(kit["yt_description"])
+    print(thin)
+    print("🎛️  Quick Copy Words:  tweet  |  yttitle  |  ytdesc  |  ytcard")
+    print(bar)
+    return 0
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Pipulate article common utilities & broadcast kit.")
+    add_standard_arguments(parser)
+    parser.add_argument(
+        "--broadcast",
+        choices=("card", "tweet", "title", "desc"),
+        default="card",
+        help="Print the broadcast card or copy tweet/title/desc to clipboard.",
+    )
+    cli_args = parser.parse_args()
+    sys.exit(print_broadcast_kit(cli_args.target, cli_args.broadcast))
