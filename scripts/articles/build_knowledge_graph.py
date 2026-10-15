@@ -413,7 +413,7 @@ def main():
     target_config = targets.get(str(args.target), {})
     base_url = (target_config.get('base_url') or target_config.get('url') or 'https://mikelev.in').rstrip('/')
     raw_name = target_config.get('name', 'MikeLev.in')
-    site_title = re.sub(r'\s*\((?:Public\vert{}Private)\)\s*$', '', raw_name).strip() or raw_name
+    site_title = raw_name.removesuffix(' (Public)').removesuffix(' (Private)').strip() or raw_name
     site_blurb = target_config.get('editorial_context') or "Python, NixOS, SEO, and AI Engineering."
 
     print(f"🧠 Clustering {len(df)} articles into Canonical Tree for {site_title} ({base_url})...")

@@ -34,6 +34,7 @@ secrets.nix
 Notebooks/Untitled.ipynb
 test.log
 llms.txt
+robots.txt
 graph-good.json
 *sitemap*.xml
 

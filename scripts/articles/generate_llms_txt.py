@@ -10,8 +10,6 @@ import argparse
 from pathlib import Path
 import lsa
 import common
-
-import re
 from datetime import datetime
 
 # --- CONFIGURATION ---
@@ -45,7 +43,7 @@ def build_header(target_key: str, target_config: dict) -> str:
 
     base_url = resolve_base_url(target_config)
     raw_name = target_config.get('name', 'Site')
-    site_title = re.sub(r'\s*\((?:Public\vert{}Private)\)\s*$', '', raw_name).strip() or raw_name
+    site_title = raw_name.removesuffix(' (Public)').removesuffix(' (Private)').strip() or raw_name
     pitch = (target_config.get('editorial_context') or '').strip()
 
     lines = [
