@@ -2437,6 +2437,14 @@ print('AI:\n', r.ai)
           postsc2() { postsc --reverse "$@"; }
           preview() { (cd "$PIPULATE_ROOT/scripts/articles" && python publishizer.py "$@"); }
 
+          # GO-GO-GADGET BROADCAST WORDS (2026-10-15): one-word clipboard
+          # helpers for the X.com promo tweet and Mode B ("Cut-and-Roll")
+          # YouTube Live Title & Description derived from the newest post.
+          ytcard()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast card  "$@"; }
+          tweet()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast tweet "$@"; }
+          yttitle() { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast title "$@"; }
+          ytdesc()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast desc  "$@"; }
+
           # The true 'publish' command (Atomic Cross-Domain Deployment)
           # It requires a commit message as an argument.
           publish() {
@@ -2536,6 +2544,7 @@ print('AI:\n', r.ai)
                     if [ "$REBOOT" -ne 1 ]; then
                         echo "⏭️  [5/5] Skipped -- stream.py left running. Pass --reboot to force the restart now."
                         echo "✅ Atomic Deployment Complete (stream untouched)."
+                        "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast card || true
                         return 0
                     fi
                     echo "🚀 [5/5] Stream Refresh: Restarting Honeybot slideshow child..."
@@ -2595,6 +2604,7 @@ print('AI:\n', r.ai)
                         fi
                     '
                     echo "✅ Atomic Deployment Complete."
+                    "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast card || true
                 else
                     echo "⚠️ Warning: nixops.sh not found. Server config sync skipped."
                 fi
