@@ -9,7 +9,7 @@ scripts/articles/lsa.py
 
 ! book
 
-# # THE SOFTWARE VON NEUMANN PROBE
+# THE SOFTWARE VON NEUMANN PROBE
 assets/installer/install.sh
 flake.nix
 release.py
@@ -20,13 +20,13 @@ remotes/honeybot/www/qamy.ai/walk/2/index.html
 remotes/honeybot/www/qamy.ai/walk/3/index.html
 
 
-# # THE DATA EVERYONE NEEDS
+# THE DATA EVERYONE NEEDS
 remotes/honeybot/queries/trapdoor_ips.sql
 ! echo "--- WHO HYDRATES THE DOM ---" && cat remotes/honeybot/queries/trapdoor_ips.sql | ssh honeybot 'sqlite3 -header -column ~/www/mikelev.in/honeybot.db'
 remotes/honeybot/queries/content_neg_agents.sql
 ! echo "--- WHO NEGOTIATES MARKDOWN ---" && cat remotes/honeybot/queries/content_neg_agents.sql | ssh honeybot 'sqlite3 -header -column ~/www/mikelev.in/honeybot.db'
 
-# # THE JEKYLL PUBLISHING PIPELINE
+# THE JEKYLL PUBLISHING PIPELINE
 ~/repos/nixos/blogs.nix
 ~/.config/pipulate/blogs.json
 scripts/articles/publishizer.py
@@ -39,7 +39,7 @@ scripts/articles/contextualizer.py
 scripts/articles/generate_llms_txt.py
 scripts/articles/generate_post_nav.py
 
-# # OUR HONEYBOT AI OBSERVATORY
+# OUR HONEYBOT AI OBSERVATORY
 nixops.sh
 remotes/honeybot/hooks/post-receive
 remotes/honeybot/nixos/configuration.nix
@@ -52,31 +52,31 @@ remotes/honeybot/scripts/logs.py
 remotes/honeybot/scripts/content_loader.py
 remotes/honeybot/scripts/db.py
 
-# # HAND-CRANKED AGENTIC FRAMEWORK & CONTEXT COMPILER
+# HAND-CRANKED AGENTIC FRAMEWORK & CONTEXT COMPILER
 prompt_foo.py
 foo_files.py
 __init__.py
 
-# # THE MOTHER CAT KATA
+# THE MOTHER CAT KATA
 scripts/boot_menu.py
 walk
 scripts/mother_cat.py
 scripts/walk_compile.py
 scripts/walk.py
 
-# # THE LIVE-SERVE ONLY JEKYLL EXAMPLE
+# THE LIVE-SERVE ONLY JEKYLL EXAMPLE
 ~/repos/grimoire/_config.yml
 ~/repos/grimoire/flake.nix
 ~/repos/grimoire/Gemfile
 ~/repos/grimoire/index.md
 
-# # THE NGINX JEKYLL EXAMPLE
+# THE NGINX JEKYLL EXAMPLE
 ~/repos/trimnoir/_config.yml
 ~/repos/trimnoir/flake.nix
 ~/repos/trimnoir/Gemfile
 ~/repos/trimnoir/index.md
 
-# # JEKYLL TEMPLATES
+# JEKYLL TEMPLATES
 ~/repos/trimnoir/_layouts/default.html
 ~/repos/trimnoir/_layouts/forward.html
 ~/repos/trimnoir/_layouts/home.html
