@@ -467,9 +467,232 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
     print("📝 YOUTUBE LIVE DESCRIPTION (type `ytdesc` to copy):")
     print(kit["yt_description"])
     print(thin)
-    print("🎛️  Quick Copy Words:  tweet  |  yttitle  |  ytdesc  |  ytcard")
+    print("🎛️  Quick Words:  tweet | yttitle | ytdesc | ytcard | ytroll | ytbell | ytstatus")
     print(bar)
     return 0
+
+
+HONEYBOT_SSH_HOST = os.environ.get("PIPULATE_HONEYBOT_HOST", "honeybot")
+
+_HONEYBOT_OBS_HELPER = r'''
+import base64, hashlib, json, os, pathlib, socket, struct, subprocess, sys, time
+
+mode = sys.argv[1] if len(sys.argv) > 1 else "status"
+cfg_path = pathlib.Path.home() / ".config/obs-studio/plugin_config/obs-websocket/config.json"
+trig_path = pathlib.Path.home() / "www/mikelev.in/.reading_trigger"
+
+def load_ws_cfg():
+    if cfg_path.is_file():
+        try:
+            return json.loads(cfg_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+def ws_recv_json(sock):
+    hdr = sock.recv(2)
+    if len(hdr) < 2:
+        raise RuntimeError("EOF reading WS header")
+    length = hdr[1] & 0x7F
+    if length == 126:
+        length = struct.unpack(">H", sock.recv(2))[0]
+    elif length == 127:
+        length = struct.unpack(">Q", sock.recv(8))[0]
+     masked = bool(hdr[1] & 0x80)
+    mask_key = sock.recv(4) if masked else b""
+    payload = bytearray()
+    while len(payload) < length:
+        chunk = sock.recv(length - len(payload))
+        if not chunk:
+            break
+        payload.extend(chunk)
+    if masked:
+        payload = bytearray(b ^ mask_key[i % 4] for i, b in enumerate(payload))
+    return json.loads(payload.decode("utf-8", errors="replace"))
+
+def ws_send_json(sock, obj):
+    raw = json.dumps(obj).encode("utf-8")
+    mask_key = os.urandom(4)
+    header = bytearray([0x81])
+    n = len(raw)
+    if n < 126:
+        header.append(0x80 | n)
+    elif n < 65536:
+        header.append(0x80 | 126)
+        header.extend(struct.pack(">H", n))
+    else:
+        header.append(0x80 | 127)
+        header.extend(struct.pack(">Q", n))
+    header.extend(mask_key)
+    masked = bytearray(b ^ mask_key[i % 4] for i, b in enumerate(raw))
+    sock.sendall(header + masked)
+
+def obs_ws_request(req_type):
+    cfg = load_ws_cfg()
+    port = int(cfg.get("server_port") or 4455)
+    password = str(cfg.get("server_password") or "")
+    sock = socket.create_connection(("127.0.0.1", port), timeout=5.0)
+    try:
+        key = base64.b64encode(os.urandom(16)).decode("ascii")
+        req = (
+            f"GET / HTTP/1.1\r\n"
+            f"Host: 127.0.0.1:{port}\r\n"
+            f"Upgrade: websocket\r\n"
+            f"Connection: Upgrade\r\n"
+            f"Sec-WebSocket-Key: {key}\r\n"
+            f"Sec-WebSocket-Version: 13\r\n\r\n"
+        )
+        sock.sendall(req.encode("ascii"))
+        resp = b""
+        while b"\r\n\r\n" not in resp:
+            chunk = sock.recv(1024)
+            if not chunk:
+                raise RuntimeError("WS handshake failed")
+            resp += chunk
+        hello = ws_recv_json(sock)
+        auth_info = (hello.get("d") or {}).get("authentication")
+        ident = {"rpcVersion": 1}
+        if auth_info:
+            salt = auth_info.get("salt", "")
+            challenge = auth_info.get("challenge", "")
+            sec_hash = hashlib.sha256((password + salt).encode("utf-8")).digest()
+            sec_b64 = base64.b64encode(sec_hash).decode("ascii")
+            auth_hash = hashlib.sha256((sec_b64 + challenge).encode("utf-8")).digest()
+            ident["authentication"] = base64.b64encode(auth_hash).decode("ascii")
+        ws_send_json(sock, {"op": 1, "d": ident})
+        identified = ws_recv_json(sock)
+        if identified.get("op") != 2:
+            raise RuntimeError(f"WS auth/identify rejected: {identified}")
+        ws_send_json(sock, {"op": 6, "d": {"requestType": req_type, "requestId": "pip-1"}})
+        while True:
+            msg = ws_recv_json(sock)
+            if msg.get("op") == 7 and (msg.get("d") or {}).get("requestId") == "pip-1":
+                return msg.get("d") or {}
+    finally:
+        sock.close()
+
+def ring_bell():
+    ts = str(int(time.time()))
+    trig_path.parent.mkdir(parents=True, exist_ok=True)
+    trig_path.write_text(ts + "\n", encoding="utf-8")
+    print(f"🔔 Rang Honeybot .reading_trigger={ts} ({trig_path})")
+
+def get_obs_pid():
+    res = subprocess.run(["pgrep", "-xo", "obs"], capture_output=True, text=True)
+    return res.stdout.strip() if res.returncode == 0 else ""
+
+if mode == "bell":
+    ring_bell()
+    sys.exit(0)
+
+if mode == "enable-ws":
+    pid = get_obs_pid()
+    saved_env = {}
+    if pid and pathlib.Path(f"/proc/{pid}/environ").is_file():
+        raw_env = pathlib.Path(f"/proc/{pid}/environ").read_bytes().split(b"\x00")
+        for item in raw_env:
+            if b"=" in item:
+                k, v = item.split(b"=", 1)
+                ks = k.decode("utf-8", errors="ignore")
+                if ks in ("DISPLAY", "XDG_RUNTIME_DIR", "DBUS_SESSION_BUS_ADDRESS", "PULSE_SERVER", "PIPEWIRE_RUNTIME_DIR", "HOME", "USER", "PATH", "XAUTHORITY"):
+                    saved_env[ks] = v.decode("utf-8", errors="ignore")
+    if pid:
+        print(f"🛑 Closing OBS (pid={pid}) cleanly to persist server_enabled=True...")
+        subprocess.run(["kill", "-TERM", pid], check=False)
+        for _ in range(30):
+            if not get_obs_pid():
+                break
+            time.sleep(0.5)
+        if get_obs_pid():
+            print("⚠️ OBS did not exit after SIGTERM; aborting config edit.")
+            sys.exit(1)
+    cfg = load_ws_cfg()
+    cfg["server_enabled"] = True
+    cfg.setdefault("server_port", 4455)
+    cfg_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+    print(f"✅ Enabled obs-websocket in {cfg_path} (port={cfg['server_port']})")
+    launch_env = os.environ.copy()
+    launch_env.update(saved_env)
+    launch_env.setdefault("DISPLAY", ":10.0")
+    launch_env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
+    subprocess.Popen(
+        ["obs", "--startstreaming"],
+        env=launch_env,
+        cwd=str(pathlib.Path.home()),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    for _ in range(20):
+        time.sleep(1.0)
+        try:
+            st = obs_ws_request("GetStreamStatus")
+            resp = st.get("responseData") or {}
+            print(f"✅ OBS relaunched & WebSocket 4455 LIVE: outputActive={resp.get('outputActive')}")
+            sys.exit(0)
+        except Exception:
+            pass
+    print("⚠️ OBS launched, but port 4455 did not answer within 20s.")
+    sys.exit(1)
+
+if mode == "status":
+    pid = get_obs_pid()
+    cfg = load_ws_cfg()
+    trig = trig_path.read_text(encoding="utf-8").strip() if trig_path.is_file() else "absent"
+    print(f"📡 Honeybot OBS: pid={pid or 'NONE'} | ws_enabled={cfg.get('server_enabled')} | port={cfg.get('server_port', 4455)} | trigger={trig}")
+    if cfg.get("server_enabled"):
+        try:
+            st = obs_ws_request("GetStreamStatus")
+            resp = st.get("responseData") or {}
+            print(f"🎥 Stream Status: outputActive={resp.get('outputActive')} | timecode={resp.get('outputTimecode')}")
+        except Exception as e:
+            print(f"⚠️ WebSocket 4455 unreachable: {e}")
+    else:
+        print("ℹ️  obs-websocket is currently disabled. Run `ytroll enable-ws` once to activate remote control.")
+    sys.exit(0)
+
+cfg = load_ws_cfg()
+if not cfg.get("server_enabled"):
+    print("⚠️ obs-websocket is disabled on Honeybot. Run `ytroll enable-ws` once to enable port 4455.")
+    sys.exit(1)
+
+if mode in ("stop", "roll"):
+    res = obs_ws_request("StopStream")
+    print(f"⏹️  OBS StopStream sent (status={res.get('requestStatus', {}).get('code')})")
+    for _ in range(15):
+        time.sleep(0.5)
+        st = (obs_ws_request("GetStreamStatus").get("responseData") or {})
+        if not st.get("outputActive"):
+            print("✅ OBS stream stopped cleanly.")
+            break
+
+if mode == "roll":
+    print("⏳ Waiting 4s for YouTube RTMP session boundary...")
+    time.sleep(4.0)
+
+if mode in ("start", "roll"):
+    res = obs_ws_request("StartStream")
+    print(f"▶️  OBS StartStream sent (status={res.get('requestStatus', {}).get('code')})")
+    for _ in range(15):
+        time.sleep(0.5)
+        st = (obs_ws_request("GetStreamStatus").get("responseData") or {})
+        if st.get("outputActive"):
+            print(f"✅ OBS stream LIVE (timecode={st.get('outputTimecode')}).")
+            break
+    ring_bell()
+'''
+
+
+def run_honeybot_obs(mode="status"):
+    """Execute remote OBS WebSocket / bell control on Honeybot over SSH."""
+    import subprocess
+    res = subprocess.run(
+        ["ssh", HONEYBOT_SSH_HOST, "python3", "-", mode],
+        input=_HONEYBOT_OBS_HELPER,
+        text=True,
+    )
+    return res.returncode
 
 
 if __name__ == "__main__":
@@ -477,9 +700,9 @@ if __name__ == "__main__":
     add_standard_arguments(parser)
     parser.add_argument(
         "--broadcast",
-        choices=("card", "tweet", "title", "desc"),
+        choices=("card", "tweet", "title", "desc", "status", "bell", "stop", "start", "roll", "enable-ws"),
         default="card",
-        help="Print the broadcast card or copy tweet/title/desc to clipboard.",
+        help="Print/copy broadcast kit or control Honeybot OBS (status|bell|stop|start|roll|enable-ws).",
     )
     parser.add_argument(
         "-s", "--slug",
@@ -488,4 +711,6 @@ if __name__ == "__main__":
         help="Optional substring to match a specific dated post filename.",
     )
     cli_args = parser.parse_args()
+    if cli_args.broadcast in ("status", "bell", "stop", "start", "roll", "enable-ws"):
+        sys.exit(run_honeybot_obs(cli_args.broadcast))
     sys.exit(print_broadcast_kit(cli_args.target, cli_args.broadcast, slug_match=cli_args.slug))
