@@ -686,6 +686,9 @@ local function is_mathjax_span(masked_line, s_pos, e_pos)
     if expr:match("^%d[%d,%.]*/%a%a+") or expr:match("^%d[%d,%.]*[kKmMbB]?%s+%a%a+") then
         return false
     end
+    if expr == "\\rightarrow" then
+        return false
+    end
     if expr:find("\\", 1, true) then
         return true
     end
@@ -851,7 +854,7 @@ function double_mathjax_dollars()
         else
             local prev_ch = s_col > 1 and line:sub(s_col - 1, s_col - 1) or ""
             local next_ch = e_col < #line and line:sub(e_col + 1, e_col + 1) or ""
-            if sub:match("^%\36[^%\36]+%\36\36") and prev_ch ~= "\36" and next_ch ~= "\36" then
+            if sub:match("^%\36[^%\36]+%\36\36") and sub ~= "\36\\rightarrow\36" and prev_ch ~= "\36" and next_ch ~= "\36" then
                 hits = 1
                 changed_lines = 1
                 lines[1] = line:sub(1, s_col - 1) .. "\36" .. sub .. "\36" .. line:sub(e_col + 1)
