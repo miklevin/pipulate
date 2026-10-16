@@ -424,7 +424,7 @@ def main():
     parser.add_argument('--tokens-under', type=int, default=None, metavar='N', dest='tokens_under', help="Exclude articles with token count >= N (requires reading each file)")
     parser.add_argument('--fmt', type=str, default='full', choices=['full', 'paths', 'slugs', 'dated-slugs'], help="Output format: 'full' (default, with comments), 'paths' (bare absolute paths), or 'slugs' (concept slug only, no date prefix)")
     parser.add_argument('--slugs', nargs='+', default=None, metavar='SLUG', help="Select articles by exact slug match (space-separated, no date prefix needed)")
-    parser.add_argument('-v', '--vim', action='store_true', help="Open the selected articles in Neovim/Vim (buffer order == display order; -v honors sort/--reverse, so posts -v is oldest-first, posts2 -v is newest-first)")
+    parser.add_argument('-v', '--vim', action='store_true', help="Open the selected articles in Neovim/Vim (newest-first in buffer 1 by default so :bn walks back in time like rgx -v; pass -r for oldest-first)")
     parser.add_argument('bare_last', nargs='?', type=int, default=None, metavar='N', help="Optional bare number for recent article count (sugar for --last N)")
     parser.add_argument('--clear-cache', action='store_true', help="Purge the token cache file before processing")
     parser.add_argument('--stdin', action='store_true', help="Read file paths or filenames from standard input instead of scanning the directory")
@@ -470,6 +470,13 @@ def main():
         sys.exit(1)
     first_key = next(iter(dir_to_key.values()))
 
+    # CURSOR-FIRST CHRONOLOGY: terminal output defaults to Oldest First so the
+    # newest article prints at the bottom right above the shell prompt; Vim (-v)
+    # opens in buffer 1, so -v defaults to Newest First (matching rgx -v and
+    # rgxc -v) so :bn walks backward in time from today's post. Passing -r with
+    # -v flips it back to Oldest First.
+    if args.vim:
+        args.reverse = not args.reverse
     # Determine the sort description based on the reverse flag
     sort_desc = "Newest First" if args.reverse else "Oldest First"
     
@@ -608,12 +615,12 @@ def main():
         return
 
     # THE ART WALK (-v/--vim): open the SELECTED articles in the editor
-    # instead of printing them. Buffer order == display order, so -v honors
-    # every selection flag AND the sort direction: `posts -v` (oldest-first)
-    # puts the oldest article in buffer 1; `posts2 -v` (newest-first) puts
-    # today's article in buffer 1, so :bn walks back in time exactly like
-    # `rgx -v`. Paths are absolute, so CWD is irrelevant; VIMINIT is inherited
-    # from the shell, so init.lua still loads.
+    # instead of printing them. Because args.vim flips the default sort above to
+    # Newest First, `posts 10 -v` puts today's newest article in buffer 1 so
+    # :bn walks backward in time (and :bp walks forward), matching `rgx -v` and
+    # `rgxc -v`; pass -r (`posts -r 10 -v`) for oldest-first. Paths are
+    # absolute, so CWD is irrelevant; VIMINIT is inherited from the shell, so
+    # init.lua still loads.
     if args.vim:
         if not metadata:
             print("No matching articles found to open in Vim.", file=sys.stderr)
