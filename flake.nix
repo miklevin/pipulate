@@ -835,6 +835,8 @@
           eza                          # A tree directory visualizer that uses .gitignore
           ripgrep		               # Like find and grep but honors .gitignore
           xclip
+          gnused
+          findutils
           jq
           dig
           whois
@@ -1608,6 +1610,28 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
             LD_LIBRARY_PATH="" command nix "$@"
           }
           # Add aliases
+          # gsr(): case-insensitive, multi-word, line-spanning search and replace
+          gsr() {
+            if [ $# -lt 2 ]; then
+              echo "Usage: gsr 'old term' 'new term' [path...]"
+              return 1
+            fi
+            local old="$1"
+            local new="$2"
+            shift 2
+            local pat
+            pat=$(printf '%s' "$old" | sed -E 's/[][(){}.^*+$?|\\]/\\&/g; s/[[:space:]]+/[[:space:]]+/g')
+            local rep
+            rep=$(printf '%s' "$new" | sed -E 's/[\\&|]/\\&/g')
+            local files
+            files=$(rg -iUl -- "$pat" "$@" || true)
+            if [ -z "$files" ]; then
+              echo "gsr: no matches for: $old"
+              return 0
+            fi
+            rg -iUl0 -- "$pat" "$@" | xargs -0 -r sed -z -E -i "s|$pat|$rep|gI"
+            printf '%s\n' "$files"
+          }
           # d(): READ-ONLY, always -- a probe that mutates the index is not
           # a probe. The diff shows tracked changes; untracked files are
           # STRUCTURALLY INVISIBLE to git diff, so a WRITE_FILE car would
