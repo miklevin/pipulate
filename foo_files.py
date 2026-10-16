@@ -645,6 +645,7 @@ foo_files.py      #  <-- THIS file. Content compiler router. Makes it very meta.
 
 # ~/repos/nixos/scripts/nixos-switch.py
 # ~/repos/nixos/autognome.py                 #  <-- More rare to have to include, but the true "top" of the muscle memory stack for day-to-day purposes
+# scripts/card.py                            #  <-- Pop-up Card
 # ~/repos/nixos/configuration.nix            #  <-- "Global" IaC context (most of you won't have)
 # ~/repos/nixos/blogs.nix
 # ~/repos/nixos/packages.nix                 #  <-- Full disclosure on pre-flake IaC available apps.
@@ -2591,7 +2592,7 @@ MATCHBOOK_CHOP = r"""
 # ============================================================================
 # Files tracked by git but not yet mixed into the palette above.
 # Move these into the active chapters to paint them onto the context canvas.
-# Coverage: 190/267 tracked files claimed. The compiler reads this line back on the next compile and prints the delta beside the live count, so an unclaimed file rings once.
+# Coverage: 191/267 tracked files claimed. The compiler reads this line back on the next compile and prints the delta beside the live count, so an unclaimed file rings once.
 
 # AGENTS.md  # [1,039 tokens | 4,223 bytes]
 # AUDIT.md  # [2,993 tokens | 13,897 bytes]
@@ -2646,7 +2647,6 @@ MATCHBOOK_CHOP = r"""
 # scripts/articles/scrub_tags.py  # [1,055 tokens | 4,082 bytes]
 # scripts/articles/wrap_tags.py  # [537 tokens | 2,329 bytes]
 # scripts/audit_dye.py  # [256 tokens | 1,009 bytes]
-# scripts/card.py  # [375 tokens | 1,543 bytes]
 # scripts/chat_route_probe.py  # [2,813 tokens | 13,033 bytes]
 # scripts/confluence_probe.py  # [4,990 tokens | 20,662 bytes]
 # scripts/continuation_ladder.py  # [2,802 tokens | 11,334 bytes]
