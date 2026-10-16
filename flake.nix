@@ -226,7 +226,7 @@
         # A COMMAND, NOT A FUNCTION, for the same reason `posts` is one: a `!`
         # chisel-strike in context.txt spawns a non-interactive child that
         # inherits PATH and never inherits functions, so `! postsc 5` resolves
-        # and `! posts2 5` cannot. Forwarding is total, so `-t`, `--reverse`,
+        # in child shells too. Forwarding is total, so `-t`, `--reverse`,
         # `--match`, `--slugs` and the bare-N positional all still work, and
         # `posts` still owns the -t default so lsa.py never sees two of them.
         #
@@ -2453,12 +2453,8 @@ print('AI:\n', r.ai)
           # ---------------------------------------------------------
           # THE SUBSHELL ALIASES (Execute safely from anywhere)
           # ---------------------------------------------------------
-          # `posts` is a Nix-packaged command so child shells can resolve it.
-          posts2() { posts --reverse "$@"; }
-          # `postsc` is likewise Nix-packaged; only the reversed twin needs a
-          # function, exactly as with posts2. The reversed twins stay
-          # interactive-only on purpose -- a `!` line spells the flag out.
-          postsc2() { postsc --reverse "$@"; }
+          # `posts` and `postsc` are Nix-packaged commands in commonPackages so
+          # interactive prompts and `!` child shells resolve the exact same words.
           preview() { (cd "$PIPULATE_ROOT/scripts/articles" && python publishizer.py "$@"); }
 
           # GO-GO-GADGET BROADCAST WORDS (2026-10-15): one-word clipboard
