@@ -127,6 +127,43 @@ def _refuse_prose_growth(filename: str, verb: str) -> None:
 # sides repr'd. Witnessed by straddle: a four-line SEARCH differing only on
 # line 3, run against a throwaway file before and after, named nothing before
 # and named line 3 after, with the file unchanged in both worlds.
+def _normalize_line_ws(line: str) -> str:
+    """Strip trailing spaces/tabs and collapse 2+ spaces before inline '#' comments,
+    while preserving exact leading indentation."""
+    stripped = line.rstrip(' \t')
+    if not stripped:
+        return ''
+    indent_len = len(stripped) - len(stripped.lstrip(' \t'))
+    indent = stripped[:indent_len]
+    body = re.sub(r' {2,}#', ' #', stripped[indent_len:])
+    return indent + body
+
+
+def _rstrip_line_spans(content: str, search_block: str):
+    """Return (char_start, char_end) spans in content where search_block matches
+    line-for-line under _normalize_line_ws (exact leading indent + line count)."""
+    s_lines = [_normalize_line_ws(ln) for ln in search_block.split('\n')]
+    if not s_lines:
+        return []
+    c_lines = content.split('\n')
+    n_s, n_c = len(s_lines), len(c_lines)
+    if n_s > n_c:
+        return []
+    c_norm = [_normalize_line_ws(ln) for ln in c_lines]
+    offsets = []
+    pos = 0
+    for ln in c_lines:
+        offsets.append(pos)
+        pos += len(ln) + 1
+    spans = []
+    for i in range(n_c - n_s + 1):
+        if c_norm[i:i + n_s] == s_lines:
+            start_char = offsets[i]
+            end_char = offsets[i + n_s - 1] + len(c_lines[i + n_s - 1])
+            spans.append((start_char, end_char))
+    return spans
+
+
 def _blank_gap_spans(content: str, search_block: str):
     """0-based inclusive (start, end) spans of content matching search_block
     once every empty or whitespace-only line is dropped from both sides."""
@@ -384,6 +421,11 @@ def apply_search_replace_patch(payload: str) -> bool:
         content = content.replace('\xa0', ' ').replace('\r\n', '\n')
         search_block = search_block.replace('\xa0', ' ').replace('\r\n', '\n')
         replace_block = replace_block.replace('\xa0', ' ').replace('\r\n', '\n')
+        if content.count(search_block) == 0:
+            rspans = _rstrip_line_spans(content, search_block)
+            if len(rspans) == 1:
+                search_block = content[rspans[0][0]:rspans[0][1]]
+                print(f"ℹ Trailing-whitespace-normalized match succeeded uniquely in '{filename}'.")
 
         # The Exact Match Invariant
         # A SUBSTRING COUNT, NOT A LINE MATCH, and that is worth naming here
@@ -510,6 +552,12 @@ def apply_search_replace_patch(payload: str) -> bool:
                     if content_lines[file_idx].lstrip() != search_lines[j].lstrip():
                         divergence = (j, file_idx)
                         break
+                if divergence is None:
+                    for j in range(search_len):
+                        file_idx = best_idx + j
+                        if file_idx < len(content_lines) and content_lines[file_idx] != search_lines[j]:
+                            divergence = (j, file_idx)
+                            break
                 print("\n--- FIRST DIVERGENCE (no blank-insensitive match; this is not a blank-line gap) ---")
                 if divergence is None:
                     print("  Every aligned line matches; the SEARCH block is a prefix of the")
