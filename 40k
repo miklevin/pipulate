@@ -1,8 +1,12 @@
 # # WHO I AM AND WHERE WE BEGIN
 ~/repos/nixos/configuration.nix
+~/repos/nixos/services.nix
+~/repos/nixos/packages.nix
 ~/repos/nixos/autognome.py
 init.lua
+
 scripts/articles/lsa.py
+
 ! book
 
 # # THE SOFTWARE VON NEUMANN PROBE
