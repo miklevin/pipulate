@@ -588,6 +588,141 @@ class ChipVoiceSystem:
 
 
 
+    def _resolve_play_cmd(self, output_path: str, system: str) -> list:
+        """Return the fastest available local audio player argv for output_path."""
+        if system == "Darwin":
+            return ["afplay", output_path]
+        for candidate in (
+            ["play", "-q", output_path],
+            ["pw-play", output_path],
+            ["paplay", output_path],
+            ["aplay", "-q", output_path],
+        ):
+            if shutil.which(candidate[0]):
+                return candidate
+        return ["play", output_path]
+
+    def sanitize_text(self, text: str) -> str:
+        """Apply domain substitution and acoustic markdown/HTML stripping."""
+        spoken_text = re.sub(r'\*?\*?MikeLev\.in\*?\*?:?', 'Mike:', text, flags=re.IGNORECASE)
+        spoken_text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', spoken_text)
+        spoken_text = re.sub(r'\[[^\]]+\]', '', spoken_text)
+        spoken_text = re.sub(r'<[^>]+>', ' ', spoken_text)
+        return re.sub(r'\s+', ' ', spoken_text).strip()
+
+    def synthesize_to_wav(self, text: str, output_path: Optional[str] = None, ceremony: bool = False) -> Optional[str]:
+        """Pre-render speech into a WAV file (back-buffer) without playing it yet."""
+        if voice_consent() != "yes" and not ceremony:
+            self.last_error = "voice not allowed"
+            logger.info("🎤 Voice not allowed; nothing synthesized")
+            return None
+        if not self.ensure_voice():
+            logger.warning("🎤 Voice synthesis not ready")
+            return None
+        spoken_text = self.sanitize_text(text)
+        if not spoken_text:
+            return None
+        try:
+            if output_path is None:
+                with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
+                    output_path = tmp_file.name
+            with wave.open(output_path, "wb") as wav_file:
+                self.voice.synthesize_wav(spoken_text, wav_file)
+            return output_path
+        except Exception as e:
+            logger.error(f"🎤 WAV pre-synthesis failed: {e}")
+            self.last_error = f"{type(e).__name__}: {e}"
+            if output_path and os.path.exists(output_path):
+                try:
+                    os.unlink(output_path)
+                except OSError:
+                    pass
+            return None
+
+    def play_wav(self, output_path: str, text: str = "", ceremony: bool = False, cleanup: bool = True) -> bool:
+        """Play an already-synthesized WAV file immediately (page flip)."""
+        if not output_path or not os.path.exists(output_path):
+            self.last_error = "wav file missing"
+            return False
+        if voice_consent() != "yes" and not ceremony:
+            self.last_error = "voice not allowed"
+            if cleanup:
+                try:
+                    os.unlink(output_path)
+                except OSError:
+                    pass
+            return False
+        self.stop_speaking()
+        try:
+            import fcntl
+            import time
+            import platform
+            lock_path = f"/tmp/pipulate_voice.lock.{os.getuid()}"
+            lock_file = open(lock_path, "w")
+            _deadline = time.monotonic() + 30
+            while True:
+                try:
+                    fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    if time.monotonic() > _deadline:
+                        logger.warning("🎤 Voice lock wait exceeded 30s; proceeding (possible overlap).")
+                        break
+                    time.sleep(0.1)
+            self.stop_speaking()
+            system = platform.system()
+            play_cmd = self._resolve_play_cmd(output_path, system)
+            try:
+                self.current_process = subprocess.Popen(
+                    play_cmd,
+                    stderr=subprocess.PIPE,
+                    stdout=subprocess.DEVNULL,
+                )
+                logger.info(f"🎤 Speaking (PID {self.current_process.pid}): {(text or output_path)[:50]}...")
+                _stderr = self.current_process.communicate()[1]
+                rc = self.current_process.returncode
+                if rc != 0:
+                    detail = (_stderr or b"").decode("utf-8", "replace").strip()
+                    detail = detail.splitlines()[-1] if detail else f"exit {rc}"
+                    logger.error(f"🎤 Audio playback failed (exit {rc}): {detail}")
+                    self.last_error = f"playback exit {rc}: {detail}"
+                    return False
+                return True
+            except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                if system == "Linux":
+                    try:
+                        self.current_process = subprocess.Popen(
+                            ["nix-shell", "-p", "sox", "--run", f"play {output_path}"],
+                            stderr=subprocess.DEVNULL,
+                            stdout=subprocess.DEVNULL,
+                        )
+                        rc = self.current_process.wait()
+                        if rc != 0:
+                            self.last_error = f"nix-shell playback exit {rc}"
+                            return False
+                        return True
+                    except Exception as nix_e:
+                        logger.error(f"🎤 Audio playback failed on {system} (nix fallback): {nix_e}")
+                        return False
+                logger.error(f"🎤 Audio playback failed on {system}: {e}")
+                return False
+        except Exception as e:
+            logger.error(f"🎤 Audio playback failed: {e}")
+            self.last_error = f"{type(e).__name__}: {e}"
+            return False
+        finally:
+            if cleanup and output_path and os.path.exists(output_path):
+                try:
+                    os.unlink(output_path)
+                except OSError:
+                    pass
+            self.current_process = None
+            try:
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
+                lock_file.close()
+            except Exception:
+                pass
+
     def synthesize_and_play(self, text: str, ceremony: bool = False) -> bool:
         """
         Synthesize text and play audio (Mike's tested approach)
@@ -690,10 +825,7 @@ class ChipVoiceSystem:
             import platform
             system = platform.system()
 
-            if system == "Darwin":
-                play_cmd = ["afplay", output_path]
-            else:
-                play_cmd = ["play", output_path]
+            play_cmd = self._resolve_play_cmd(output_path, system)
 
             try:
                 # Use Popen instead of run to allow interruption
