@@ -2463,11 +2463,15 @@ print('AI:\n', r.ai)
 
           # GO-GO-GADGET BROADCAST WORDS (2026-10-15): one-word clipboard
           # helpers for the X.com promo tweet and Mode B ("Cut-and-Roll")
-          # YouTube Live Title & Description derived from the newest post.
-          ytcard()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast card  "$@"; }
-          tweet()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast tweet "$@"; }
-          yttitle() { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast title "$@"; }
-          ytdesc()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast desc  "$@"; }
+          # YouTube Live Title & Description derived from the newest post,
+          # plus remote Honeybot OBS WebSocket + .reading_trigger control.
+          ytcard()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast card   "$@"; }
+          tweet()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast tweet  "$@"; }
+          yttitle()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast title  "$@"; }
+          ytdesc()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast desc   "$@"; }
+          ytstatus() { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast status "$@"; }
+          ytbell()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast bell   "$@"; }
+          ytroll()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast "''${1:-roll}" "''${@:2}"; }
 
           # The true 'publish' command (Atomic Cross-Domain Deployment)
           # It requires a commit message as an argument.
