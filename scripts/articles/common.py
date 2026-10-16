@@ -571,6 +571,17 @@ def obs_ws_request(req_type):
     finally:
         sock.close()
 
+def lower_obs_window():
+    env = os.environ.copy()
+    env.setdefault("DISPLAY", ":10.0")
+    subprocess.run(
+        ["wmctrl", "-x", "-r", "obs.obs", "-b", "add,below"],
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+
 def ring_bell():
     ts = str(int(time.time()))
     trig_path.parent.mkdir(parents=True, exist_ok=True)
@@ -652,8 +663,11 @@ if mode == "enable-ws":
         time.sleep(1.0)
         try:
             st = obs_ws_request("GetStreamStatus")
+            if not (st.get("requestStatus") or {}).get("result"):
+                continue
             resp = st.get("responseData") or {}
-            print(f"✅ OBS relaunched & WebSocket 4455 LIVE: outputActive={resp.get('outputActive')}")
+            lower_obs_window()
+            print(f"✅ OBS relaunched, lowered behind stream & WebSocket 4455 LIVE: outputActive={resp.get('outputActive')}")
             sys.exit(0)
         except Exception:
             pass
@@ -696,6 +710,7 @@ if mode == "roll":
     time.sleep(4.0)
 
 if mode in ("start", "roll"):
+    lower_obs_window()
     res = obs_ws_request("StartStream")
     print(f"▶️  OBS StartStream sent (status={res.get('requestStatus', {}).get('code')})")
     for _ in range(15):
