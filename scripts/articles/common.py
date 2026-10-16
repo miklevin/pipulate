@@ -498,7 +498,7 @@ def ws_recv_json(sock):
         length = struct.unpack(">H", sock.recv(2))[0]
     elif length == 127:
         length = struct.unpack(">Q", sock.recv(8))[0]
-     masked = bool(hdr[1] & 0x80)
+    masked = bool(hdr[1] & 0x80)
     mask_key = sock.recv(4) if masked else b""
     payload = bytearray()
     while len(payload) < length:
@@ -578,8 +578,17 @@ def ring_bell():
     print(f"🔔 Rang Honeybot .reading_trigger={ts} ({trig_path})")
 
 def get_obs_pid():
-    res = subprocess.run(["pgrep", "-xo", "obs"], capture_output=True, text=True)
-    return res.stdout.strip() if res.returncode == 0 else ""
+    for p in sorted(pathlib.Path("/proc").glob("[0-9]*/cmdline")):
+        try:
+            raw = p.read_bytes()
+            if not raw:
+                continue
+            arg0 = raw.split(b"\x00", 1)[0].decode("utf-8", errors="ignore")
+            if os.path.basename(arg0) in ("obs", ".obs-wrapped"):
+                return p.parent.name
+        except Exception:
+            continue
+    return ""
 
 if mode == "bell":
     ring_bell()
@@ -604,8 +613,23 @@ if mode == "enable-ws":
                 break
             time.sleep(0.5)
         if get_obs_pid():
-            print("⚠️ OBS did not exit after SIGTERM; aborting config edit.")
-            sys.exit(1)
+            subprocess.run(["kill", "-KILL", pid], check=False)
+            for _ in range(10):
+                if not get_obs_pid():
+                    break
+                time.sleep(0.5)
+    sentinel_dir = pathlib.Path.home() / ".config/obs-studio/.sentinel"
+    if sentinel_dir.is_dir():
+        for sf in sentinel_dir.glob("*"):
+            try:
+                sf.unlink()
+            except Exception:
+                pass
+    elif sentinel_dir.is_file():
+        try:
+            sentinel_dir.unlink()
+        except Exception:
+            pass
     cfg = load_ws_cfg()
     cfg["server_enabled"] = True
     cfg.setdefault("server_port", 4455)
@@ -617,7 +641,7 @@ if mode == "enable-ws":
     launch_env.setdefault("DISPLAY", ":10.0")
     launch_env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
     subprocess.Popen(
-        ["obs", "--startstreaming"],
+        ["obs", "--startstreaming", "--disable-shutdown-check"],
         env=launch_env,
         cwd=str(pathlib.Path.home()),
         stdout=subprocess.DEVNULL,
