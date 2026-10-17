@@ -739,7 +739,7 @@ Entries are alphabetical, numbers spelled as spoken.
   audit were TEXT. "Identity confirmed" (three writes, zero checks).
   "Connection secured" (the API key was written to disk and never once used).
   "Congratulations, everything is configured" (spoken on the path where the
-  user skipped both cloud and Botify). "All features requiring AI or an
+  user skipped both cloud). "All features requiring AI or an
   API-key are active" (unconditional, at the moment of lock-in). None of
   those is a capability LIST, so GENERATED-NOT-AUTHORED has no hook for any
   of them -- which is what makes this rule load-bearing rather than that rule
@@ -2160,7 +2160,7 @@ Entries are alphabetical, numbers spelled as spoken.
 - **The Join Is the Field, the Hostname Its Fallback** -- *expanded rule; banked 2026-09-27.*
 
 ~~~text
-# § THE JOIN IS THE FIELD, THE HOSTNAME ITS FALLBACK (banked 2026-09-27, read at deed 1627 over 185 board rows) -- join two systems on the field made for the join (Jira's Project-slug to Botify's org/project), derive it from a hostname only when the field is empty, and print which lane each row took beside the row; a join on the derived key alone counts its own guesses as matches.
+# § THE JOIN IS THE FIELD, THE HOSTNAME ITS FALLBACK (banked 2026-09-27, read at deed 1627 over 185 board rows) -- join two systems on the field made for the join, derive it from a hostname only when the field is empty, and print which lane each row took beside the row; a join on the derived key alone counts its own guesses as matches.
 ~~~
 
 - **The Key/Value Contract** -- *the router keeps keys, the glossary keeps
@@ -3127,7 +3127,7 @@ Entries are alphabetical, numbers spelled as spoken.
 ~~~
 
 - **The Screenshot Is Not a Locator** -- (banked 2026-09-11, two exchanges lost).
-  Botify's Confluence pages for custom link attributes say "go to the project
+  Confluence pages for custom link attributes say "go to the project
   page on django admin" and show the field ONLY as a screenshot. Two admin
   models sit one click apart and both answer to that phrase:
     /admin/projects/projectsettings/<id>/change/  -- the crawl config. WRONG.
