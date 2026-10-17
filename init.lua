@@ -296,6 +296,18 @@ function git_commit_push()
     vim.api.nvim_buf_set_keymap(0, 'n', 'q', ':q<CR>', { noremap = true, silent = true })
 end
 
+function get_pipulate_root()
+    local env_root = os.getenv("PIPULATE_ROOT")
+    if env_root and env_root ~= "" and vim.fn.isdirectory(env_root) == 1 then
+        return env_root
+    end
+    local pipulate_home = vim.fn.expand("~/pipulate")
+    if vim.fn.filereadable(pipulate_home .. "/init.lua") == 1 then
+        return pipulate_home
+    end
+    return vim.fn.expand("~/repos/pipulate")
+end
+
 function reload_config()
     -- Clear existing mappings
     vim.cmd('mapclear')
@@ -309,10 +321,7 @@ function reload_config()
     end
 
     -- Re-source the init.lua file from PIPULATE_ROOT (falling back to ~/pipulate or ~/repos/pipulate)
-    local init_path = (os.getenv("PIPULATE_ROOT") or vim.fn.expand("~/pipulate")) .. "/init.lua"
-    if vim.fn.filereadable(init_path) == 0 then
-        init_path = vim.fn.expand("~/repos/pipulate/init.lua")
-    end
+    local init_path = get_pipulate_root() .. "/init.lua"
     vim.cmd('source ' .. vim.fn.fnameescape(init_path))
 
     -- Force re-evaluation of all autocmds
@@ -893,8 +902,8 @@ function sync_to_prompt()
     vim.cmd('normal! gvy')
     local text = vim.fn.getreg('"')
     
-    -- Explicit path to your Pipulate prompt file
-    local prompt_file = vim.fn.expand("~/repos/pipulate/prompt.md")
+    -- Resolve prompt.md from the active Pipulate root
+    local prompt_file = get_pipulate_root() .. "/prompt.md"
     
     -- Open the file in "w" (overwrite) mode. 
     -- Note: Change "w" to "a" if you'd rather append multiple chunks!
@@ -1115,4 +1124,4 @@ print("init.lua loaded successfully!")
 -- Article / Workflow Selection
 -- <leader>h - Highlight (select) current article block
 -- <leader>c (visual) - Sync selection to /tmp/clipboard_bridge.txt
--- <leader>p (visual) - Sync selection to ~/repos/pipulate/prompt.md
+-- <leader>p (visual) - Sync selection to $PIPULATE_ROOT/prompt.md
