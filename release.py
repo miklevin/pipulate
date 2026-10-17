@@ -6,14 +6,12 @@ A comprehensive release pipeline that handles:
 1. Version synchronization across all files
 2. ASCII art documentation synchronization  
 3. AI-generated commit messages via local LLM
-4. Trifecta derivative plugin rebuilding (when template changes detected)
-5. Git operations and PyPI publishing
+4. Git operations and PyPI publishing
 
 Usage:
   python scripts/release/publish.py --release -m "Custom message"
   python scripts/release/publish.py --release --force -m "Force republish"
   python scripts/release/publish.py --release --ai-commit  # Use AI for commit message
-  python scripts/release/publish.py --release --skip-trifecta-rebuild  # Skip plugin rebuilding
 """
 import argparse
 import subprocess
@@ -852,175 +850,6 @@ alwaysApply: true
         print("✅ Breadcrumb trail is already up-to-date at workspace root.")
         return False
 
-def detect_trifecta_changes():
-    """Check if the Botify Trifecta template has been modified in git."""
-    trifecta_file = "apps/400_botify_trifecta.py"
-    
-    try:
-        # Check if file is in staged changes
-        staged_result = run_command(['git', 'diff', '--staged', '--name-only'], capture=True)
-        if trifecta_file in staged_result.stdout:
-            return True, "staged"
-        
-        # Check if file is in unstaged changes
-        unstaged_result = run_command(['git', 'diff', '--name-only'], capture=True)
-        if trifecta_file in unstaged_result.stdout:
-            return True, "unstaged"
-        
-        # Check if file was modified in the last commit (in case we're doing a force republish)
-        last_commit_result = run_command(['git', 'diff', 'HEAD~1', 'HEAD', '--name-only'], capture=True)
-        if trifecta_file in last_commit_result.stdout:
-            return True, "last_commit"
-        
-        return False, None
-    except Exception as e:
-        print(f"⚠️  Warning: Could not check Trifecta changes: {e}")
-        return False, None
-
-def rebuild_trifecta_derivatives():
-    """Rebuild Parameter Buster and Link Graph from the updated Trifecta template."""
-    print("\n🏗️ Step 4.5: Rebuilding Trifecta derivative plugins...")
-    
-    rebuild_script = PIPULATE_ROOT / "rebuild_trifecta_derivatives.sh"
-    if not rebuild_script.exists():
-        print(f"⚠️  Warning: Trifecta rebuild script not found at {rebuild_script}. Skipping rebuild.")
-        return False, {}
-    
-    try:
-        print("🔨 Executing deterministic Trifecta derivative reconstruction...")
-        print("   📍 This ensures Parameter Buster and Link Graph inherit template improvements")
-        
-        # Run the rebuild script
-        result = run_command([str(rebuild_script), "--verbose"], capture=True)
-        output = result.stdout
-        
-        # Parse rebuild statistics from output
-        stats = parse_trifecta_rebuild_stats(output)
-        
-        print("✅ Trifecta derivative reconstruction complete")
-        return True, stats
-    except Exception as e:
-        print(f"⚠️  Trifecta rebuild failed: {e}")
-        return False, {}
-
-def parse_trifecta_rebuild_stats(output):
-    """Parse Trifecta rebuild statistics from output."""
-    stats = {
-        'apps_rebuilt': 0,
-        'parameter_buster_methods': 0,
-        'link_graph_methods': 0,
-        'success_rate': 0,
-        'validation_passed': False
-    }
-    
-    try:
-        import re
-        
-        # Extract statistics
-        if "Successfully processed: 2/2 plugins" in output:
-            stats['apps_rebuilt'] = 2
-            stats['success_rate'] = 100
-            stats['validation_passed'] = True
-        elif "Successfully processed: 1/2 plugins" in output:
-            stats['apps_rebuilt'] = 1
-            stats['success_rate'] = 50
-        
-        # Extract method counts
-        param_match = re.search(r'Found (\d+) workflow-specific methods.*parameter', output, re.IGNORECASE)
-        if param_match:
-            stats['parameter_buster_methods'] = int(param_match.group(1))
-        
-        link_match = re.search(r'Found (\d+) workflow-specific methods.*link', output, re.IGNORECASE)
-        if link_match:
-            stats['link_graph_methods'] = int(link_match.group(1))
-        
-        # Look for validation results
-        if "Validation passed" in output:
-            stats['validation_passed'] = True
-    
-    except Exception as e:
-        print(f"⚠️  Failed to parse Trifecta rebuild statistics: {e}")
-    
-    return stats
-
-def display_trifecta_rebuild_stats(stats):
-    """Display Trifecta rebuild statistics in a beautiful rich table."""
-    if not RICH_AVAILABLE or not stats:
-        # Fallback to simple text display
-        if stats:
-            print("\n🏗️ TRIFECTA REBUILD STATISTICS:")
-            print(f"   🔨 Plugins rebuilt: {stats['apps_rebuilt']}/2")
-            print(f"   📦 Parameter Buster methods: {stats['parameter_buster_methods']}")
-            print(f"   🌐 Link Graph methods: {stats['link_graph_methods']}")
-            print(f"   ✅ Success rate: {stats['success_rate']}%")
-            print(f"   🎯 Validation: {'Passed' if stats['validation_passed'] else 'Failed'}")
-        return
-    
-    console = Console()
-    
-    # Create Trifecta rebuild statistics table
-    table = Table(
-        title="🏗️ Trifecta Derivative Rebuild Statistics",
-        box=box.ROUNDED,
-        title_style="bold blue",
-        header_style="bold cyan",
-        show_header=True,
-        show_lines=True,
-        expand=True
-    )
-    
-    table.add_column("Component", style="bold yellow", width=25)
-    table.add_column("Value", style="white", width=15)
-    table.add_column("Status", justify="center", width=15)
-    
-    # Add rebuild status
-    success_color = "green" if stats['success_rate'] == 100 else "yellow" if stats['success_rate'] > 0 else "red"
-    success_status = "🎯 Perfect" if stats['success_rate'] == 100 else "⚠️ Partial" if stats['success_rate'] > 0 else "❌ Failed"
-    
-    table.add_row(
-        "🔨 Plugins Rebuilt",
-        f"{stats['apps_rebuilt']}/2",
-        Text(f"{stats['success_rate']}%", style=f"bold {success_color}")
-    )
-    
-    if stats['parameter_buster_methods'] > 0:
-        table.add_row(
-            "📦 Parameter Buster Methods",
-            str(stats['parameter_buster_methods']),
-            "🔨 Transplanted"
-        )
-    
-    if stats['link_graph_methods'] > 0:
-        table.add_row(
-            "🌐 Link Graph Methods", 
-            str(stats['link_graph_methods']),
-            "🔨 Transplanted"
-        )
-    
-    table.add_row(
-        "🎯 Template Inheritance",
-        "AST-based",
-        "✅ Deterministic" if stats['validation_passed'] else "⚠️ Check Required"
-    )
-    
-    table.add_row(
-        "🔍 Validation Status",
-        "Complete" if stats['validation_passed'] else "Failed",
-        "✅ Passed" if stats['validation_passed'] else "❌ Failed"
-    )
-    
-    # Create a panel around the table
-    panel = Panel(
-        table,
-        title="🏗️ Template Inheritance Results",
-        title_align="center",
-        border_style="bright_blue",
-        padding=(1, 2)
-    )
-    
-    console.print("\n")
-    console.print(panel)
-
 def analyze_git_changes():
     """Intelligently analyze git changes to categorize additions, deletions, modifications, etc."""
     note("🔍 Analyzing git changes for intelligent commit generation...")
@@ -1198,7 +1027,7 @@ def get_ai_commit_message():
         print("💡 Make sure Ollama is running: ollama serve")
         return None, None
 
-def display_beautiful_summary(commit_message, ai_generated=False, version=None, published=False, ai_model_name=None, trifecta_rebuilt=False, trifecta_stats=None):
+def display_beautiful_summary(commit_message, ai_generated=False, version=None, published=False, ai_model_name=None):
     """Display a beautiful rich table summary of the release."""
     if not RICH_AVAILABLE:
         # Fallback to simple text display
@@ -1215,8 +1044,6 @@ def display_beautiful_summary(commit_message, ai_generated=False, version=None, 
             print(f"📦 Version: {version}")
         if published:
             print(f"🚀 Published to PyPI: ✅")
-        if trifecta_rebuilt and trifecta_stats:
-            print(f"🏗️ Trifecta Derivatives Rebuilt: {trifecta_stats.get('apps_rebuilt', 0)}/2 plugins")
         print("="*60)
         return
     
@@ -1270,15 +1097,6 @@ def display_beautiful_summary(commit_message, ai_generated=False, version=None, 
             "✅ Live"
         )
     
-    # Add Trifecta rebuild status if performed
-    if trifecta_rebuilt and trifecta_stats:
-        rebuild_status = "✅ Perfect" if trifecta_stats.get('success_rate', 0) == 100 else "⚠️ Partial"
-        table.add_row(
-            "🏗️ Trifecta Derivatives",
-            f"{trifecta_stats.get('apps_rebuilt', 0)}/2 plugins",
-            rebuild_status
-        )
-    
     # Add timestamp
     from datetime import datetime
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1317,7 +1135,6 @@ def main():
     parser.add_argument("--skip-audit-sync", action="store_true", help="Skip AUDIT.md synchronization")
     parser.add_argument("--skip-ai-context-sync", action="store_true", help="Skip AI_CONTEXT.md synchronization")
     parser.add_argument("--skip-breadcrumb-sync", action="store_true", help="Skip breadcrumb trail synchronization")
-    parser.add_argument("--skip-trifecta-rebuild", action="store_true", help="Skip Trifecta derivative plugin rebuilding")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Show every command and its full output (the Rule of Silence is the default)")
     
@@ -1410,21 +1227,6 @@ def main():
     else:
         print("\n⏭️  Skipping breadcrumb trail synchronization (--skip-breadcrumb-sync)")
         breadcrumb_sync_success = False
-    
-    # Step 4.5: Trifecta Derivative Rebuilding (if template was modified)
-    trifecta_rebuild_success = False
-    trifecta_rebuild_stats = {}
-    if not args.skip_trifecta_rebuild:
-        trifecta_changed, change_type = detect_trifecta_changes()
-        if trifecta_changed:
-            print(f"\n🔍 Detected Trifecta template changes ({change_type})")
-            trifecta_rebuild_success, trifecta_rebuild_stats = rebuild_trifecta_derivatives()
-            if trifecta_rebuild_stats:
-                display_trifecta_rebuild_stats(trifecta_rebuild_stats)
-        else:
-            note("\n✅ No Trifecta template changes detected - skipping derivative rebuild")
-    else:
-        print("\n⏭️  Skipping Trifecta derivative rebuilding (--skip-trifecta-rebuild)")
     
     # === RELEASE PIPELINE PHASE 2: GIT OPERATIONS ===
     note("\n📝 === RELEASE PIPELINE: GIT OPERATIONS PHASE ===")
@@ -1542,9 +1344,7 @@ def main():
         ai_generated=ai_generated_commit,
         version=current_version,
         published=published_to_pypi,
-        ai_model_name=ai_model_name,
-        trifecta_rebuilt=trifecta_rebuild_success,
-        trifecta_stats=trifecta_rebuild_stats
+        ai_model_name=ai_model_name
     )
     
     # 🔄 Trigger server restart so user can immediately talk to Chip about the update
