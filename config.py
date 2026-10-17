@@ -75,7 +75,7 @@ HOME_APP = 'introduction'
 
 # Role System Configuration
 ROLES_CONFIG = {
-    '911 Consultant': {
+    '9111 Consultants': {
         'priority': 0, 
         'description': 'Perform AI-Readiness checks for Agentic Commerce.',
         'emoji': '👔'
@@ -114,7 +114,7 @@ ROLE_COLORS = {
         'background': 'rgba(34, 197, 94, 0.1)',
         'background_light': 'rgba(34, 197, 94, 0.05)'
     },
-    'menu-role-botify-employee': {
+    'menu-role-9111-consultants': {
         'border': '#a855f7',            # PURPLE
         'background': 'rgba(168, 85, 247, 0.1)',
         'background_light': 'rgba(168, 85, 247, 0.05)'
