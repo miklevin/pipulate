@@ -3,8 +3,8 @@
 facet_allowlist.py -- strategic uncanonicalization pipeline.
 
 build-facets   : crawl {domain}/products.json (paginated) into facet_dim
-import-demand  : load a GSC / Botify RealKeywords CSV into demand_fact,
-                 parsing handle and variant_id out of the page URL
+import-demand  : load a GSC CSV into demand_fact, parsing handle and 
+                 variant_id out of the page URL
 allowlist      : variant_ids whose demand clears thresholds (the paste-ready
                  selective-canonical list)
 latent         : size/color-token queries landing on BASE urls -- demand the
@@ -161,7 +161,7 @@ def import_demand(args):
     conn.commit()
     inserted = 0
     with open(args.csv, newline='', encoding='utf-8-sig') as f:
-        # Excel-dialect exports (Botify) lead with a 'sep=,' hint line that
+        # Excel-dialect exports lead with a 'sep=,' hint line that
         # would otherwise be consumed as the header row -- the exact failure
         # behind '0 rows imported'. Honor it for the delimiter, then skip it.
         first = f.readline()

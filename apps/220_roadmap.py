@@ -26,11 +26,6 @@ class RoadmapPlugin:
         Magic Cookie System     :done, nix2, after nix1, 30d
         Dev/Test/Prod DB        :active, db1, 2024-03-15, 30d
 
-        section Web Data
-        Botify Integration     :done, web1, 2024-02-01, 45d
-        Parameter Buster       :done, web2, after web1, 30d
-        Save HTML & DOM        :web3, 2024-05-01, 28d
-
         section AI Capabilities
         LLM Integration        :done, ai1, 2024-01-15, 45d
         Chat Interface        :done, ai2, after ai1, 30d
