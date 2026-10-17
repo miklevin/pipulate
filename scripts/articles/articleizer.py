@@ -469,18 +469,8 @@ def create_jekyll_post(article_content, instructions, output_dir, preview_port, 
     print(f"✨ Success! Article saved to: {output_path}")
     print("Collect new 404s: python prompt_foo.py assets/prompts/find404s.md --chop CHOP_404_AFFAIR -l [:] --no-tree")
 
-    # --- NEW: Construct Preview URL and Copy to Clipboard ---
     local_url = f"http://localhost:{preview_port}{permalink}"
-    try:
-        import subprocess
-        subprocess.run(
-            ['xclip', '-selection', 'clipboard'], 
-            input=local_url.encode('utf-8'), 
-            check=True
-        )
-        print(f"🔗 Paste-ready preview URL copied to clipboard:\n   {local_url}")
-    except Exception as e:
-        print(f"⚠️ Could not copy URL to clipboard: {e}")
+    print(f"🔗 Local preview URL:\n   {local_url}")
 
     return output_path
 
@@ -862,6 +852,11 @@ def main():
         if saved_path:
             common.record_last_published(args.target, saved_path, target_config.get("name"))
             common.print_broadcast_kit(args.target, mode="card")
+            vim_cmd = f"vim {saved_path}"
+            if common._copy_to_clipboard(vim_cmd):
+                print(f"📋 Copied edit command to clipboard (paste to run):\n   {vim_cmd}")
+            else:
+                print(f"✏️  Edit command:\n   {vim_cmd}")
         else:
             sys.exit(1)
 

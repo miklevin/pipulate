@@ -403,10 +403,13 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     if tags:
         desc_parts.extend(["", tags])
     yt_description = _yt_sanitize("\n".join(desc_parts).strip())
+    preview_port = tcfg.get("preview_port", 4001)
+    preview_url = f"http://localhost:{preview_port}{permalink}"
     return {
         "path": str(post_path),
         "title": title,
         "canonical_url": canonical_url,
+        "preview_url": preview_url,
         "tweet": tweet,
         "yt_title": yt_title,
         "yt_description": yt_description,
@@ -468,6 +471,9 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
     print(kit["yt_description"])
     print(thin)
     print("🎛️  Quick Words:  tweet | yttitle | ytdesc | ytcard | ytroll | ytbell | ytstatus")
+    print(thin)
+    print(f"🔗 Preview URL:   {kit['preview_url']}")
+    print(f"✏️  Edit Command:  vim {kit['path']}")
     print(bar)
     return 0
 
