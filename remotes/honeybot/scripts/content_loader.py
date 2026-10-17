@@ -50,6 +50,43 @@ def check_standby():
         return True
     return False
 
+
+# The Live Operator Break-In ("Max Headroom" channel).
+# Dropped over SSH from Pipulate Prime as JSON or plain text; unlinked immediately
+# on read so a one-shot live audience greeting never replays on future restarts.
+LIVE_MESSAGE_FILE = Path("/home/mike/www/mikelev.in/.live_message")
+
+
+def check_live_message():
+    """Read and consume a one-shot live operator message if present."""
+    if not LIVE_MESSAGE_FILE.exists():
+        return None
+    try:
+        raw = LIVE_MESSAGE_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    finally:
+        try:
+            LIVE_MESSAGE_FILE.unlink(missing_ok=True)
+        except OSError:
+            pass
+    if not raw:
+        return None
+    if raw.startswith("{"):
+        try:
+            import json
+            data = json.loads(raw)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+    lines = raw.splitlines()
+    if lines and lines[0].upper().startswith("CARD:"):
+        card_label = lines[0][5:].strip() or "LIVE\\nMESSAGE"
+        say_text = " ".join(line.strip() for line in lines[1:] if line.strip())
+        return {"card": card_label, "say": say_text}
+    return {"card": "LIVE\\nMESSAGE", "say": " ".join(line.strip() for line in lines if line.strip())}
+
 def trigger_is_fresh(max_age_seconds=900):
     """True if the breaking-news bell (.reading_trigger) was rung within the last
     max_age_seconds. Reads the file's mtime, so it is process-boundary safe: it

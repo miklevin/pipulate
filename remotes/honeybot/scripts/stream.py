@@ -133,9 +133,11 @@ sys.path.append(str(Path(__file__).parent))
 
 try:
     import score
-    from content_loader import check_for_updates, check_standby, trigger_is_fresh
+    from content_loader import check_for_updates, check_standby, trigger_is_fresh, check_live_message
 except ImportError:
     score = None
+    def check_live_message():
+        return None
 
 # --- Configuration ---
 MODEL_DIR = Path.home() / ".local/share/piper_voices"
@@ -203,6 +205,7 @@ class Narrator(threading.Thread):
         self._proc_lock = threading.Lock()
         self._active_procs = []
         self._tts_seq = 0
+        self.exclusive_mode = threading.Event()
 
     def _cleanup_item(self, item):
         """Remove any unplayed pre-synthesized .raw file when flushing the queue."""
@@ -400,8 +403,9 @@ class Heartbeat(threading.Thread):
             if self.stop_event.wait(self.interval):
                 break
 
-            now = datetime.datetime.now().strftime("%H:%M:%S")
-            narrator.say(f"Signal check. The time is {now}.")
+            if not narrator.exclusive_mode.is_set():
+                now = datetime.datetime.now().strftime("%H:%M:%S")
+                narrator.say(f"Signal check. The time is {now}.")
 
     def stop(self):
         self.stop_event.set()
@@ -665,7 +669,7 @@ def dispatch_cue(command, content, env, profile_dir, pace_say=True):
             # the real voice clock so the director never outruns the voice.
             raw_path = narrator.prep_raw(content)
             if raw_path is not None:
-                narrator.queue.join()
+                wait_for_voice_or_live_interrupt(env, profile_dir)
                 narrator.play_raw(raw_path, fallback_text=content)
             else:
                 narrator.say(content)
@@ -747,6 +751,57 @@ def dispatch_cue(command, content, env, profile_dir, pace_say=True):
             pass
 
 
+def run_live_message(msg, env, profile_dir):
+    """Preempt article narration for a live operator break-in, blocking audio
+    and Z-axis stomping until the operator's card and speech complete."""
+    if not msg:
+        return
+    narrator.exclusive_mode.set()
+    try:
+        narrator.interrupt()
+        for pat in ("conjure_window_overlay", "patronus_visual_shield"):
+            try:
+                subprocess.run(["pkill", "-f", pat], check=False)
+            except Exception:
+                pass
+        cues = msg.get("cues") if isinstance(msg, dict) else None
+        if isinstance(cues, list) and cues:
+            for cue_cmd, cue_val in cues:
+                dispatch_cue(cue_cmd, cue_val, env, profile_dir, pace_say=True)
+            narrator.queue.join()
+            return
+        card_label = msg.get("card", "LIVE\\nMESSAGE") if isinstance(msg, dict) else "LIVE\\nMESSAGE"
+        say_text = msg.get("say", "") if isinstance(msg, dict) else str(msg)
+        patronus_key = msg.get("patronus") if isinstance(msg, dict) else None
+        hold = float(msg.get("duration", 120.0)) if isinstance(msg, dict) else 120.0
+        if patronus_key and not card_label:
+            raw_path = narrator.prep_raw(say_text) if say_text else None
+            conjure_patronus(patronus_key, duration=hold)
+            if say_text:
+                narrator.play_raw(raw_path, fallback_text=say_text)
+                narrator.queue.join()
+            try:
+                subprocess.run(["pkill", "-f", "patronus_visual_shield"], check=False)
+            except Exception:
+                pass
+        else:
+            dispatch_cue("CARD", {"label": card_label or "LIVE\\nMESSAGE", "say": say_text, "duration": hold}, env, profile_dir, pace_say=True)
+    finally:
+        narrator.exclusive_mode.clear()
+
+
+def wait_for_voice_or_live_interrupt(env, profile_dir):
+    """Wait for the active voice queue to drain while polling for a live operator break-in."""
+    while True:
+        live_msg = check_live_message()
+        if live_msg:
+            run_live_message(live_msg, env, profile_dir)
+        with narrator.queue.all_tasks_done:
+            if narrator.queue.unfinished_tasks == 0:
+                return
+            narrator.queue.all_tasks_done.wait(timeout=0.15)
+
+
 def run_station_break(env, profile_dir):
     """Play the next forest bead as an out-of-band station break.
 
@@ -766,18 +821,30 @@ def run_station_break(env, profile_dir):
     # finishes instead of being clipped mid-word -- only the queued backlog is
     # dropped. The queue.join() below then rides the real voice clock, so the
     # lead-in lands after the current line ends, not on top of it.
-    dropped = narrator.flush_queue()
-    if dropped:
-        # MEANINGFUL SILENCE OVER UNCONDITIONAL CHATTER: gated on the
-        # interesting case, so a healthy pipeline says nothing and an unhealthy
-        # one says exactly how unhealthy. Deliberately NOT added to interrupt()
-        # -- there, dropping the backlog is the INTENT (you are cutting to
-        # breaking news); here it is collateral.
-        print(f"📉 STATION BREAK DROPPED {dropped} unspoken item(s) -- "
-              f"director ran ahead of the voice; that text was never heard.")
-    narrator.say("We interrupt this program for a station identification break.")
-    narrator.queue.join()
-    time.sleep(1.2)
+    narrator.exclusive_mode.set()
+    try:
+        dropped = narrator.flush_queue()
+        if dropped:
+            # MEANINGFUL SILENCE OVER UNCONDITIONAL CHATTER: gated on the
+            # interesting case, so a healthy pipeline says nothing and an unhealthy
+            # one says exactly how unhealthy. Deliberately NOT added to interrupt()
+            # -- there, dropping the backlog is the INTENT (you are cutting to
+            # breaking news); here it is collateral.
+            print(f"📉 STATION BREAK DROPPED {dropped} unspoken item(s) -- "
+                  f"director ran ahead of the voice; that text was never heard.")
+        narrator.say("We interrupt this program for a station identification break.")
+        narrator.queue.join()
+        time.sleep(1.2)
+        for cue_command, cue_content in bead:
+            dispatch_cue(cue_command, cue_content, env, profile_dir, pace_say=False)
+        narrator.queue.join()
+        time.sleep(1.2)
+        narrator.say("We now return to our regularly scheduled program.")
+        narrator.queue.join()
+        time.sleep(1.2)
+    finally:
+        narrator.exclusive_mode.clear()
+    return
 
     # --- Stage 2: Core Performance ---
     for cue_command, cue_content in bead:
@@ -925,6 +992,9 @@ def perform_show(script):
             # news) stays above; the station-break trigger stays here; the brush
             # primitives live in dispatch_cue, shared by the article roll (trees)
             # and the forest roll (STATION_SEGMENTS beads in forest.py).
+            live_msg = check_live_message()
+            if live_msg:
+                run_live_message(live_msg, env, profile_dir)
             if command == "SAY" and time.time() >= next_pitch_time:
                 # The Pervasive Pitch: play a forest bead as a station break
                 # BEFORE the triggering sentence, preserving the article's flow.
