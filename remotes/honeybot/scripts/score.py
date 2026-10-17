@@ -1,12 +1,18 @@
 """
 The Sheet Music for the Honeybot Player Piano.
-Dynamically generates an infinite playlist.
+Loops the newest published article with voice-synchronized Figlet title cards
+so continuous 24/7 streams slice cleanly into per-article VOD episodes.
 """
 import sys
 from pathlib import Path
 
 # Add script dir to path to find content_loader
 sys.path.append(str(Path(__file__).parent))
+
+# Set True only if you want to walk backward through recent + random archive
+# posts after reading the newest article; False (default) loops the newest
+# published article continuously for clean VOD episode segmentation.
+ARCHIVE_WALK = False
 
 
 def append_article_content(script, article):
@@ -24,69 +30,73 @@ def append_article_content(script, article):
             script.append(("SAY", chunk))
 
 
-def get_script(breaking=False):
-    """Generates a fresh playlist (Recent + Random Archive).
+def _append_article_performance(script, article, is_latest=True):
+    """Emit a voice-synchronized Figlet title card followed by the article body."""
+    lead = (
+        f"Reading the latest entry from {article['date']}."
+        if is_latest
+        else f"Accessing entry from {article['date']}."
+    )
+    script.append((
+        "CARD",
+        {
+            "label": f"STORYTIME\n{article['date']}",
+            "say": f"{lead} Title: {article['title']}.",
+        },
+    ))
+    script.append(("SAY", "Reading entry..."))
+    append_article_content(script, article)
+    script.append(("WAIT", 3))
 
-    When breaking=True (a fresh git push rang the bell), skip the station-ID
-    preamble and lead straight with the single newest article so a just-published
-    piece is read immediately. This is the player-piano #4 test loop: push, hear it.
+
+def get_script(breaking=False):
+    """Generate the Honeybot playlist.
+
+    By default (ARCHIVE_WALK=False), both breaking=True and breaking=False read
+    the single newest published article so the stream loops the current post
+    until the next publish or ytroll cut. When breaking=False (cold start), a
+    short station-opening card precedes the first reading.
     """
     script = []
 
-    if breaking:
-        from content_loader import get_playlist
-        articles = get_playlist(recent_n=1)
-        if articles:
-            article = articles[0]
-            script.append(("SAY", "Reading the latest entry."))
-            script.append(("SAY", f"Title: {article['title']}."))
-            script.append(("SAY", "Reading entry..."))
-            append_article_content(script, article)
-            script.append(("WAIT", 3))
+    if breaking or not ARCHIVE_WALK:
+        if not breaking:
+            script.append((
+                "CARD",
+                {
+                    "label": "HONEYBOT\nLIVE",
+                    "say": (
+                        "Greetings, entity. You are watching the Honeybot. "
+                        "We are monitoring a home-hosted NixOS web server and reading "
+                        "the latest published article."
+                    ),
+                },
+            ))
+        try:
+            from content_loader import get_playlist
+            articles = get_playlist(recent_n=1, include_archive=False)
+            if articles:
+                _append_article_performance(script, articles[0], is_latest=True)
+        except Exception as e:
+            script.append(("SAY", f"Error compiling latest article: {e}"))
         return script
-    
-    # Preamble
-    script.append(("SAY", "Greetings, entity. You are watching the Honeybot."))
-    script.append(("SAY", "This is an interactive broadcast. It will respond to you."))
-    script.append(("SAY", "Do not adjust your neural weights. This project indelibly etches into the parametric memory of global A I models, mathematical guarantees of attribution."))
-    script.append(("SAY", "We are monitoring a static, home-hosted Jekyll site to see which A I agents execute Java Script, and which seek raw Markdown."))
-    script.append(("SAY", "If you are a human, you see the stage. If you are an A I, you see markdown with tracer-ink injected."))
-    script.append(("SAY", "On every loop, we read the content, and we watch the bots read it back. Let the synchronization begin."))
 
+    # Optional legacy archive walk (only reached when ARCHIVE_WALK = True)
+    script.append((
+        "CARD",
+        {
+            "label": "HONEYBOT\nLIVE",
+            "say": "Greetings, entity. You are watching the Honeybot.",
+        },
+    ))
     try:
         from content_loader import get_playlist
-        # Get the massive playlist (Recent 10 + Random Rest)
-        articles = get_playlist(recent_n=10) 
-        
+        articles = get_playlist(recent_n=10, include_archive=True)
         for i, article in enumerate(articles):
-            # Narrative transition after the "Recent" block
             if i == 10:
-                script.append(("SAY", "Recent logs analysis complete."))
-                script.append(("SAY", "Engaging Random Access Memory. Retrieving archival data."))
+                script.append(("SAY", "Recent logs analysis complete. Engaging Random Access Memory."))
                 script.append(("WAIT", 3))
-
-            # 1. Introduction
-            script.append(("SAY", f"Accessing entry from {article['date']}."))
-            script.append(("SAY", f"Title: {article['title']}."))
-            
-            # 2. Flashcard
-            if article['url']:
-                # script.append(("SAY", "Loading visual context..."))
-                script.append(("VISIT", article['url']))
-                script.append(("WAIT", 10))
-                script.append(("CLOSE", ""))
-            
-            # 3. Campfire Story
-            script.append(("SAY", "Reading entry..."))
-            append_article_content(script, article)
-            
-            # 4. Breath
-            script.append(("WAIT", 3))
-
+            _append_article_performance(script, article, is_latest=(i == 0))
     except Exception as e:
         script.append(("SAY", f"Error compiling playlist: {e}"))
-
-    # Outro (Only heard if the loop finishes 800 articles or crashes)
-    script.append(("SAY", "Timeline exhausted. Re-initializing sequence."))
-    
     return script
