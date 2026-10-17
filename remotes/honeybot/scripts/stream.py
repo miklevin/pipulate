@@ -202,6 +202,54 @@ class Narrator(threading.Thread):
         # Track the live audio pipeline so interrupt() can kill it mid-sentence.
         self._proc_lock = threading.Lock()
         self._active_procs = []
+        self._tts_seq = 0
+
+    def _cleanup_item(self, item):
+        """Remove any unplayed pre-synthesized .raw file when flushing the queue."""
+        if isinstance(item, tuple) and len(item) >= 2 and item[0] == "RAW":
+            raw_path = item[1]
+            if raw_path and os.path.exists(raw_path):
+                try:
+                    os.remove(raw_path)
+                except OSError:
+                    pass
+
+    def prep_raw(self, text):
+        """Pre-synthesize narration into a back-buffer .raw PCM file before showing a card or advancing."""
+        if not text:
+            return None
+        model_path = MODEL_DIR / MODEL_NAME
+        if not model_path.exists() or not shutil.which("piper"):
+            return None
+        self._tts_seq += 1
+        raw_path = f"/tmp/honeybot_tts_{os.getpid()}_{self._tts_seq}.raw"
+        try:
+            with open(raw_path, "wb") as out_f:
+                res = subprocess.run(
+                    ["piper", "--model", str(model_path), "--output_raw"],
+                    input=text.strip().encode("utf-8"),
+                    stdout=out_f,
+                    stderr=subprocess.DEVNULL,
+                    timeout=30,
+                    check=False,
+                )
+            if res.returncode == 0 and os.path.exists(raw_path) and os.path.getsize(raw_path) > 0:
+                return raw_path
+        except Exception:
+            pass
+        if os.path.exists(raw_path):
+            try:
+                os.remove(raw_path)
+            except OSError:
+                pass
+        return None
+
+    def play_raw(self, raw_path, fallback_text=""):
+        """Enqueue a pre-synthesized .raw file for zero-latency playback, falling back to text."""
+        if raw_path and os.path.exists(raw_path):
+            self.queue.put(("RAW", str(raw_path)))
+        elif fallback_text:
+            self.queue.put(fallback_text)
 
     def say(self, text):
         """Add text to the speech queue."""
@@ -217,7 +265,8 @@ class Narrator(threading.Thread):
         waiting behind the backlog (which is what caused the talk-over)."""
         try:
             while True:
-                self.queue.get_nowait()
+                dropped_item = self.queue.get_nowait()
+                self._cleanup_item(dropped_item)
                 self.queue.task_done()
         except queue.Empty:
             pass
@@ -248,7 +297,8 @@ class Narrator(threading.Thread):
         dropped = 0
         try:
             while True:
-                self.queue.get_nowait()
+                dropped_item = self.queue.get_nowait()
+                self._cleanup_item(dropped_item)
                 self.queue.task_done()
                 dropped += 1
         except queue.Empty:
@@ -265,10 +315,12 @@ class Narrator(threading.Thread):
                         conjure_patronus(payload.get("key", "white_rabbit"), duration=payload.get("duration", 3.5))
                     else:
                         conjure_patronus(str(payload))
+                elif isinstance(item, tuple) and item and item[0] == "RAW":
+                    self._play_raw_now(item[1])
                 else:
                     self._speak_now(item)
                 self.queue.task_done()
-                time.sleep(0.5)
+                time.sleep(0.1)
             except queue.Empty:
                 continue
 
@@ -303,6 +355,30 @@ class Narrator(threading.Thread):
         finally:
             with self._proc_lock:
                 self._active_procs = []
+
+    def _play_raw_now(self, raw_path):
+        """Play a pre-synthesized .raw file immediately via aplay and unlink when done."""
+        if not raw_path or not os.path.exists(raw_path):
+            return
+        try:
+            p_play = subprocess.Popen(
+                ["aplay", "-r", "22050", "-f", "S16_LE", "-t", "raw", str(raw_path)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            with self._proc_lock:
+                self._active_procs = [p_play]
+            p_play.wait()
+        except Exception:
+            pass
+        finally:
+            with self._proc_lock:
+                self._active_procs = []
+            if os.path.exists(raw_path):
+                try:
+                    os.remove(raw_path)
+                except OSError:
+                    pass
 
     def stop(self):
         self.stop_event.set()
@@ -501,8 +577,8 @@ def conjure_window(script_name, duration=30.0, columns=100, lines=30, args=None)
     # ones.
     if safe_script == "card.py" and args:
         fig_w, fig_h = measure_figlet(str(args[0]))
-        columns = fig_w + 8
-        lines = fig_h + 4
+        columns = max(60, fig_w + 8)
+        lines = max(14, fig_h + 4)
 
     cmd = [sys.executable, "-u", str(script_path)]
     if args:
@@ -520,6 +596,55 @@ def conjure_window(script_name, duration=30.0, columns=100, lines=30, args=None)
     )
 
 
+_card_seq = 0
+
+
+def show_card(label, max_hold=60.0):
+    """Display a transient Figlet title card window on Honeybot until dismiss_card(handle)."""
+    if not label:
+        return None
+    global _card_seq
+    _card_seq += 1
+    stop_file = f"/tmp/honeybot_card_{os.getpid()}_{_card_seq}.stop"
+    if os.path.exists(stop_file):
+        try:
+            os.remove(stop_file)
+        except OSError:
+            pass
+    label_str = str(label).replace("\\n", "\n")
+
+    def _run():
+        try:
+            conjure_window("card.py", duration=max_hold, args=[label_str, str(max_hold), stop_file])
+        except Exception:
+            pass
+
+    th = threading.Thread(target=_run, daemon=True)
+    th.start()
+    return {"stop_file": stop_file, "thread": th}
+
+
+def dismiss_card(handle):
+    """Dismiss a running card window cleanly via its stop_file."""
+    if not handle:
+        return
+    stop_file = handle.get("stop_file")
+    th = handle.get("thread")
+    if stop_file:
+        try:
+            with open(stop_file, "w", encoding="utf-8") as f:
+                f.write("done\n")
+        except OSError:
+            pass
+    if th:
+        th.join(timeout=1.0)
+    if stop_file and os.path.exists(stop_file):
+        try:
+            os.remove(stop_file)
+        except OSError:
+            pass
+
+
 def dispatch_cue(command, content, env, profile_dir, pace_say=True):
     """Play one sheet-music cue through the brush set.
 
@@ -534,9 +659,41 @@ def dispatch_cue(command, content, env, profile_dir, pace_say=True):
         queue.join() so a report WINDOW can overlap the spiel in real voice-time.
     """
     if command == "SAY":
-        narrator.say(content)
         if pace_say:
-            time.sleep(len(content) / 20)
+            # Double-buffered synthesis: pre-render the next paragraph while the
+            # previous paragraph is still playing on aplay, then synchronize on
+            # the real voice clock so the director never outruns the voice.
+            raw_path = narrator.prep_raw(content)
+            if raw_path is not None:
+                narrator.queue.join()
+                narrator.play_raw(raw_path, fallback_text=content)
+            else:
+                narrator.say(content)
+                time.sleep(len(content) / 20)
+        else:
+            narrator.say(content)
+
+    elif command == "CARD":
+        if isinstance(content, dict):
+            label = content.get("label", "HONEYBOT")
+            say_text = content.get("say", "")
+            hold = float(content.get("duration", 60.0))
+        else:
+            label = str(content)
+            say_text = ""
+            hold = 60.0
+        narrator.queue.join()
+        raw_path = narrator.prep_raw(say_text) if say_text else None
+        card_handle = show_card(label, max_hold=hold)
+        try:
+            time.sleep(0.2)
+            if say_text:
+                narrator.play_raw(raw_path, fallback_text=say_text)
+                narrator.queue.join()
+            else:
+                time.sleep(min(hold, 2.5))
+        finally:
+            dismiss_card(card_handle)
 
     elif command == "VISIT":
         # Ensure the page actually exists before showing it
@@ -709,10 +866,7 @@ def perform_show(script):
                 # --reboot" bug. Threaded, the poll keeps running and the pkill
                 # tears the card down the instant the completion bell rings: pkill
                 # ends card.py, alacritty exits, proc.wait returns, the thread dies.
-                threading.Thread(
-                    target=lambda: conjure_window("card.py", duration=270.0, args=["UPDATING"]),
-                    daemon=True,
-                ).start()
+                updating_card = show_card("UPDATING", max_hold=270.0)
                 # Card up -> music up. Born at the same instant as the
                 # UPDATING figlet; dies at the same deterministic teardown
                 # below. PipeWire mixes it under the one-time "Receiving
@@ -747,6 +901,7 @@ def perform_show(script):
                 # (see the top of this function) as a harmless, idempotent backstop in
                 # case this particular teardown attempt ever fails to land.
                 stop_updating_music(music_proc)
+                dismiss_card(updating_card)
                 try:
                     subprocess.run(["pkill", "-f", "card.py.*UPDATING"], check=False)
                 except Exception:
