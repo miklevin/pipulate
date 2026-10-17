@@ -90,20 +90,7 @@ def load_enriched_shards(context_dir, posts_dir):
             
     return pd.DataFrame(shards)
 
-def load_velocity_data(directory=Path(".")):
-    if not directory.exists(): directory = Path(__file__).parent
-    velocity_file = directory / "gsc_velocity.json"
-    if not velocity_file.exists(): return {}
-    try:
-        with open(velocity_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        slug_map = {}
-        for key, metrics in data.items():
-            if key.startswith("_"): continue
-            slug = key.strip('/').split('/')[-1]
-            slug_map[slug] = metrics
-        return slug_map
-    except: return {}
+
 
 # --- 2. CANONICAL CLUSTERING LOGIC ---
 
@@ -121,26 +108,23 @@ def calculate_node_gravity(label, keywords):
     # of semantic keywords attached to the node, granting weight to dense content.
     return 5 + len(keywords)
 
-def build_canonical_tree(df_slice, current_node, current_depth, velocity_data, vectorizer=None):
+def build_canonical_tree(df_slice, current_node, current_depth, vectorizer=None):
     """
     The Single Logic Stream.
     Builds a recursive dictionary (Tree) that represents the Truth.
     """
     df = df_slice.copy()
 
-    # Sort primarily by Date (newest first) to keep home/hubs fresh, using real-time momentum velocity as a tie-breaker
-    df['velocity'] = df['id'].apply(lambda x: velocity_data.get(re.sub(r'^\d{4}-\d{2}-\d{2}-', '', x), {}).get('velocity', 0))
 
-    # Float fresh and trending work to the surface layer, bypassing the historical click-accumulation trap
-    df = df.sort_values(by=['date', 'velocity'], ascending=[False, False])
+
+    # Sort by Date (newest first) to keep home/hubs fresh
+    df = df.sort_values(by=['date'], ascending=[False])
 
     def attach_article(row):
         # Calculate organic gravity
         grav = calculate_node_gravity(row['title'], row['keywords'])
         
-        # Get status from GSC
-        slug = re.sub(r'^\d{4}-\d{2}-\d{2}-', '', row['id'])
-        gsc_meta = velocity_data.get(slug, {})
+
         
         article_node = {
             "type": "article",
@@ -148,10 +132,7 @@ def build_canonical_tree(df_slice, current_node, current_depth, velocity_data, v
             "title": str(row['title']),
             "permalink": row['permalink'],
             "date": row['date'],
-            "gravity": grav,
-            "status": gsc_meta.get("status", "unknown"),
-            "velocity": gsc_meta.get("velocity", 0),
-            "clicks": gsc_meta.get("total_clicks", 0)
+            "gravity": grav
         }
         current_node.setdefault('children_articles', []).append(article_node)
 
@@ -237,8 +218,7 @@ def build_canonical_tree(df_slice, current_node, current_depth, velocity_data, v
 
             # Recurse (CRITICAL FIX: Pass ONLY the remainder)
             build_canonical_tree(
-                cluster_remainder, new_hub_node, current_depth + 1,
-                velocity_data
+                cluster_remainder, new_hub_node, current_depth + 1
             )
 
     except Exception as e:
@@ -272,9 +252,6 @@ def project_d3_graph(tree_node, nodes, links, parent_id=None, depth=0):
             "label": article['title'],
             "group": "article",
             "val": article.get('gravity', 5),
-            "status": article.get('status', 'unknown'),
-            "velocity": article.get('velocity', 0),
-            "clicks": article.get('clicks', 0),
             "parentId": tree_node['id'],
             "depth": depth + 1
         }
@@ -312,7 +289,7 @@ def project_llms_txt(tree_node, lines=None, level=0, base_url="https://mikelev.i
         lines.append("Content is load-balanced to prevent deep nesting.")
         lines.append("")
         lines.append("## Direct Data Access")
-        lines.append(f"- **Full Graph Topology (JSON)**: [{base_url}/graph.json]({base_url}/graph.json) - Contains all nodes, links, and velocity data.")
+        lines.append(f"- **Full Graph Topology (JSON)**: [{base_url}/graph.json]({base_url}/graph.json) - Contains all nodes and links.")
         lines.append("- **Source Code**: Most articles offer `<link rel='alternate'>` to raw Markdown.")
         lines.append("")
         lines.append("## Site Map (High-Level)")
@@ -406,7 +383,7 @@ def main():
         print("❌ No data found.")
         return
         
-    velocity_data = load_velocity_data()
+
 
     # 2. BUILD CANONICAL TREE (target-aware from blogs.json)
     targets = common.load_targets()
@@ -430,7 +407,7 @@ def main():
         "children_articles": []
     }
     
-    build_canonical_tree(df, canonical_tree, 0, velocity_data)
+    build_canonical_tree(df, canonical_tree, 0)
 
     # 3. EXPORT NAVGRAPH (JSON Tree for Jekyll)
     with open(NAVGRAPH_FILE, 'w', encoding='utf-8') as f:
