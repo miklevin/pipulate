@@ -107,4 +107,72 @@ STATION_SEGMENTS = [
         )),
         # --- REPORT PLACEHOLDER (parked): ("WINDOW", "radar.py:30") ---
     ],
+    [
+        # Bead 3: The Mechanical Man & The Airlock (Tik-Tok of Oz + apply.py).
+        ("CARD", {
+            "label": "THE AIRLOCK",
+            "say": (
+                "How do you work with frontier AI models without letting hallucinations "
+                "wreck your codebase? Meet Smith and Tinker's Patent Mechanical Man."
+            ),
+        }),
+        ("PATRONUS", {"key": "mechanical_man", "duration": 80.0}),
+        ("WAIT", 2),
+        ("SAY", (
+            "In L. Frank Baum's Oz books, Tik-Tok is a clockwork robot with three separate "
+            "wind-up keys: one for thought, one for speech, and one for action."
+        )),
+        ("SAY", (
+            "In our workflow, the context compiler winds the thought key, and the AI's reply "
+            "winds the speech key. But the action key stays on the wall, in the human's hand."
+        )),
+        ("SAY", (
+            "Every code change must pass through an exact-match search and replace airlock "
+            "with abstract syntax tree verification, and a human reviews the git diff before "
+            "committing. No vibe-coded airplanes in the sky."
+        )),
+    ],
+    [
+        # Bead 4: AI Pachinko & The Cybernetic Governor.
+        ("CARD", {
+            "label": "AI PACHINKO",
+            "say": (
+                "Every token an AI generates is a ball dropped through a pachinko parlor "
+                "of frozen mathematical weights."
+            ),
+        }),
+        ("PATRONUS", {"key": "ai_pachinko", "duration": 80.0}),
+        ("WAIT", 2),
+        ("SAY", (
+            "An LLM has no persistent memory of its own between sessions. When the chat tab "
+            "closes, its working memory dissolves. Left to itself, an unpaginated loop "
+            "drifts into sycophancy and entropy."
+        )),
+        ("SAY", (
+            "That is why we pair the pachinko machine with a cybernetic governor: plain-text "
+            "files in git, before-and-after falsifying probes, and a human operator who "
+            "decides whether to bank the win or re-spin."
+        )),
+    ],
+    [
+        # Bead 5: Local-First Sovereignty & Live Human Presence.
+        ("CARD", {
+            "label": "LOCAL FIRST",
+            "say": (
+                "What you are watching is not a cloud simulation. It is a local-first, "
+                "single-tenant observatory running on hardware in a home closet."
+            ),
+        }),
+        ("PATRONUS", {"key": "deployment_context", "duration": 80.0}),
+        ("WAIT", 2),
+        ("SAY", (
+            "Most modern web platforms hide your own server logs behind multi-tenant dashboards "
+            "and rent your own workflows back to you by the month."
+        )),
+        ("SAY", (
+            "Here, everything runs on NixOS, Python, Neovim, and Git. And although this broadcast "
+            "is automated twenty-four seven, a human operator is often at the workbench and can "
+            "break in live over this channel at any moment. Leave a message in the chat and say hello."
+        )),
+    ],
 ]

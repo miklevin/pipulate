@@ -751,11 +751,16 @@ def dispatch_cue(command, content, env, profile_dir, pace_say=True):
             pass
 
 
+_in_live_message = False
+
+
 def run_live_message(msg, env, profile_dir):
     """Preempt article narration for a live operator break-in, blocking audio
     and Z-axis stomping until the operator's card and speech complete."""
-    if not msg:
+    global _in_live_message
+    if not msg or _in_live_message:
         return
+    _in_live_message = True
     narrator.exclusive_mode.set()
     try:
         narrator.interrupt()
@@ -770,32 +775,38 @@ def run_live_message(msg, env, profile_dir):
                 dispatch_cue(cue_cmd, cue_val, env, profile_dir, pace_say=True)
             narrator.queue.join()
             return
-        card_label = msg.get("card", "LIVE\\nMESSAGE") if isinstance(msg, dict) else "LIVE\\nMESSAGE"
+        card_label = msg.get("card", "") if isinstance(msg, dict) else "LIVE\\nFROM MIKE"
         say_text = msg.get("say", "") if isinstance(msg, dict) else str(msg)
         patronus_key = msg.get("patronus") if isinstance(msg, dict) else None
         hold = float(msg.get("duration", 120.0)) if isinstance(msg, dict) else 120.0
-        if patronus_key and not card_label:
+        if patronus_key:
+            if card_label:
+                dispatch_cue("CARD", {"label": card_label, "say": "", "duration": 2.5}, env, profile_dir, pace_say=True)
             raw_path = narrator.prep_raw(say_text) if say_text else None
             conjure_patronus(patronus_key, duration=hold)
             if say_text:
                 narrator.play_raw(raw_path, fallback_text=say_text)
                 narrator.queue.join()
+            else:
+                time.sleep(min(hold, 4.0))
             try:
                 subprocess.run(["pkill", "-f", "patronus_visual_shield"], check=False)
             except Exception:
                 pass
         else:
-            dispatch_cue("CARD", {"label": card_label or "LIVE\\nMESSAGE", "say": say_text, "duration": hold}, env, profile_dir, pace_say=True)
+            dispatch_cue("CARD", {"label": card_label or "LIVE\\nFROM MIKE", "say": say_text, "duration": hold}, env, profile_dir, pace_say=True)
     finally:
+        _in_live_message = False
         narrator.exclusive_mode.clear()
 
 
 def wait_for_voice_or_live_interrupt(env, profile_dir):
     """Wait for the active voice queue to drain while polling for a live operator break-in."""
     while True:
-        live_msg = check_live_message()
-        if live_msg:
-            run_live_message(live_msg, env, profile_dir)
+        if not _in_live_message:
+            live_msg = check_live_message()
+            if live_msg:
+                run_live_message(live_msg, env, profile_dir)
         with narrator.queue.all_tasks_done:
             if narrator.queue.unfinished_tasks == 0:
                 return
@@ -837,25 +848,17 @@ def run_station_break(env, profile_dir):
         time.sleep(1.2)
         for cue_command, cue_content in bead:
             dispatch_cue(cue_command, cue_content, env, profile_dir, pace_say=False)
-        narrator.queue.join()
+        wait_for_voice_or_live_interrupt(env, profile_dir)
+        try:
+            subprocess.run(["pkill", "-f", "patronus_visual_shield"], check=False)
+        except Exception:
+            pass
         time.sleep(1.2)
         narrator.say("We now return to our regularly scheduled program.")
-        narrator.queue.join()
+        wait_for_voice_or_live_interrupt(env, profile_dir)
         time.sleep(1.2)
     finally:
         narrator.exclusive_mode.clear()
-    return
-
-    # --- Stage 2: Core Performance ---
-    for cue_command, cue_content in bead:
-        dispatch_cue(cue_command, cue_content, env, profile_dir, pace_say=False)
-    narrator.queue.join()
-
-    # --- Stage 3: The Return Sentinel ---
-    time.sleep(1.2)
-    narrator.say("We now return to our regularly scheduled program.")
-    narrator.queue.join()
-    time.sleep(1.2)
 
 
 def perform_show(script):

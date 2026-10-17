@@ -470,7 +470,7 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
     print("📝 YOUTUBE LIVE DESCRIPTION (type `ytdesc` to copy):")
     print(kit["yt_description"])
     print(thin)
-    print("🎛️  Quick Words:  tweet | yttitle | ytdesc | ytcard | ytroll | ytbell | ytstatus")
+    print("🎛️  Quick Words:  tweet | yttitle | ytdesc | ytcard | ytsay | ytroll | ytbell | ytstatus")
     print(thin)
     print(f"🔗 Preview URL:   {kit['preview_url']}")
     print(f"✏️  Edit Command:  vim {kit['path']}")
@@ -740,14 +740,69 @@ def run_honeybot_obs(mode="status"):
     return res.returncode
 
 
+def _read_from_clipboard():
+    """Read text from the OS clipboard for `ytsay --clip`."""
+    import subprocess
+    cmd = ["pbpaste"] if sys.platform == "darwin" else ["xclip", "-selection", "clipboard", "-o"]
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return res.stdout.strip()
+    except Exception:
+        return ""
+
+
+def send_honeybot_live_message(say_text, card_label=None, patronus_key=None, dry_run=False):
+    """Send a one-shot live operator break-in (.live_message) to Honeybot over SSH."""
+    import subprocess
+    import time
+    clean_say = " ".join((say_text or "").strip().split())
+    if not clean_say and not card_label and not patronus_key:
+        print("Usage: ytsay [-c 'CARD\\nTEXT'] [-p patronus_key] [--clip] [--dry-run] 'Message to speak live'")
+        return 1
+    if card_label is None:
+        resolved_card = "" if patronus_key else "LIVE\nFROM MIKE"
+    else:
+        resolved_card = str(card_label).replace("\\n", "\n")
+    payload = {
+        "card": resolved_card,
+        "say": clean_say,
+        "sent_at": int(time.time()),
+    }
+    if patronus_key:
+        payload["patronus"] = str(patronus_key).strip()
+    payload_json = json.dumps(payload, indent=2)
+    if dry_run:
+        print("📡 [DRY RUN] Live break-in payload for Honeybot:")
+        print(payload_json)
+        return 0
+    remote_py = (
+        "import pathlib, sys; "
+        "p = pathlib.Path.home() / 'www/mikelev.in/.live_message'; "
+        "p.parent.mkdir(parents=True, exist_ok=True); "
+        "tmp = p.with_suffix('.tmp'); "
+        "tmp.write_text(sys.stdin.read(), encoding='utf-8'); "
+        "tmp.replace(p); "
+        "print(f'📡 Live break-in queued on Honeybot: {p}')"
+    )
+    res = subprocess.run(
+        ["ssh", HONEYBOT_SSH_HOST, "python3", "-c", remote_py],
+        input=payload_json,
+        text=True,
+    )
+    if res.returncode == 0:
+        preview_card = resolved_card.replace("\n", " | ") if resolved_card else f"PATRONUS:{patronus_key}"
+        print(f"🎙️  Card: [{preview_card}] | Say: {clean_say!r}")
+    return res.returncode
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pipulate article common utilities & broadcast kit.")
     add_standard_arguments(parser)
     parser.add_argument(
         "--broadcast",
-        choices=("card", "tweet", "title", "desc", "status", "bell", "stop", "start", "roll", "enable-ws"),
+        choices=("card", "tweet", "title", "desc", "status", "bell", "stop", "start", "roll", "enable-ws", "say"),
         default="card",
-        help="Print/copy broadcast kit or control Honeybot OBS (status|bell|stop|start|roll|enable-ws).",
+        help="Print/copy broadcast kit or control Honeybot (status|bell|stop|start|roll|enable-ws|say).",
     )
     parser.add_argument(
         "-s", "--slug",
@@ -755,7 +810,44 @@ if __name__ == "__main__":
         default=None,
         help="Optional substring to match a specific dated post filename.",
     )
+    parser.add_argument(
+        "-c", "--card",
+        type=str,
+        default=None,
+        help="Figlet card label for --broadcast say (use \\n for multiple lines; default: LIVE\\nFROM MIKE).",
+    )
+    parser.add_argument(
+        "-p", "--patronus",
+        type=str,
+        default=None,
+        help="Optional figurate ASCII art key (e.g. white_rabbit) for --broadcast say.",
+    )
+    parser.add_argument(
+        "--clip",
+        action="store_true",
+        help="Read the spoken message from the OS clipboard for --broadcast say.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the .live_message JSON payload without sending over SSH.",
+    )
+    parser.add_argument(
+        "message",
+        nargs="*",
+        help="Spoken message words for --broadcast say.",
+    )
     cli_args = parser.parse_args()
+    if cli_args.broadcast == "say":
+        msg_text = _read_from_clipboard() if cli_args.clip else " ".join(cli_args.message)
+        sys.exit(
+            send_honeybot_live_message(
+                msg_text,
+                card_label=cli_args.card,
+                patronus_key=cli_args.patronus,
+                dry_run=cli_args.dry_run,
+            )
+        )
     if cli_args.broadcast in ("status", "bell", "stop", "start", "roll", "enable-ws"):
         sys.exit(run_honeybot_obs(cli_args.broadcast))
     sys.exit(print_broadcast_kit(cli_args.target, cli_args.broadcast, slug_match=cli_args.slug))

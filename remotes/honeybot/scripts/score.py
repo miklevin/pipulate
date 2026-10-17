@@ -46,6 +46,18 @@ def _append_article_performance(script, article, is_latest=True):
     ))
     script.append(("SAY", "Reading entry..."))
     append_article_content(script, article)
+    script.append((
+        "CARD",
+        {
+            "label": "READ MORE\nMIKELEV.IN",
+            "say": (
+                f"That concludes {article['title']}. "
+                "You can read the full text and source code at Mike L E V dot eye N. "
+                "Drop a message in the live chat if you are tuning in. "
+                "A human operator monitors this observatory and can break in live."
+            ),
+        },
+    ))
     script.append(("WAIT", 3))
 
 
