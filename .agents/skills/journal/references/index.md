@@ -1,8 +1,8 @@
 # The Pipulate journal, indexed
 
-> Auto-generated on 2026-10-13 by `scripts/articles/generate_ai_context.py` and
+> Auto-generated on 2026-10-17 by `scripts/articles/generate_ai_context.py` and
 > rewritten from scratch on every release. If this date looks stale, assume
-> the rest of the repo is newer than this map. 1541 entries indexed.
+> the rest of the repo is newer than this map. 1554 entries indexed.
 
 This repository holds the *machinery*. The *reasoning*, the running journal
 that explains why every piece exists, lives on a separate website and not in
@@ -27,6 +27,19 @@ The first 20 entries include full `index.md` URLs to establish
 the link pattern. All remaining entries are bare slugs. Reconstruct any full
 URL as: `https://mikelev.in/futureproof/{slug}/index.md`
 
+- [2026-10-17] [Retiring Service Accounts, the Effort Dial, and the 4.92 MB Context Explosion](https://mikelev.in/futureproof/retiring-service-accounts-effort-dial-context-explosion/index.md)
+- [2026-10-17] [Decoupled Host Discovery: Un-Hardwiring NixOS from Portable Nix Flakes](https://mikelev.in/futureproof/decoupled-host-discovery-nix-flake-portability/index.md)
+- [2026-10-16] [The Coachman's Veto, Cursor-First Chronology, and the Honeybot VOD Loop](https://mikelev.in/futureproof/coachmans-veto-cursor-chronology-honeybot-vod-loop/index.md)
+- [2026-10-16] [The Article-Casting Kata: Remote OBS WebSocket Control, Polder Commons, and Checkable Broadcasts](https://mikelev.in/futureproof/article-casting-kata-obs-websocket-polder-commons/index.md)
+- [2026-10-16] [Endosynthesis, Inspector Gadget, and the Cut-and-Roll Broadcast Kit](https://mikelev.in/futureproof/endosynthesis-inspector-gadget-broadcast-kit/index.md)
+- [2026-10-16] [Double-Buffered Voice Cards, Primary-Monitor EWMH Placement, and Clamp Over Toggle](https://mikelev.in/futureproof/double-buffered-voice-cards-ewmh-clamp-over-toggle/index.md)
+- [2026-10-15] [The Phantom Limb of Computing: From Jack Tramiel and the Amiga to Neovim and NixOS](https://mikelev.in/futureproof/phantom-limb-amiga-jack-tramiel-vim-nixos/index.md)
+- [2026-10-15] [Watch the Seams: LangSec, Browser Telemetry, and Cybernetic Bookmarks](https://mikelev.in/futureproof/watch-the-seams-langsec-browser-telemetry-cybernetics/index.md)
+- [2026-10-15] [The Golden Age of AI Complementarity: Seven Blogs at One Stroke](https://mikelev.in/futureproof/golden-age-ai-complementarity-seven-blogs/index.md)
+- [2026-10-14] [AI-Readiness at the Edge: RFC 9110, Declarative Blog Fleets, and the Double-Tap Receipt](https://mikelev.in/futureproof/ai-readiness-edge-blogs-nix-fleet/index.md)
+- [2026-10-14] [The MathJax Finder and Doubler: Engineering Reproducible Workflows in Neovim](https://mikelev.in/futureproof/mathjax-finder-doubler-reproducible-workflows-neovim/index.md)
+- [2026-10-14] [Fermions, Bosons, and the Dax Symbiont: Landauer's Tax and the Forget Kata](https://mikelev.in/futureproof/fermions-bosons-dax-symbiont-forget-kata/index.md)
+- [2026-10-13] [From Inktomi to RFC 9110: Mark Nottingham, Paul Gauthier, and 911 Optics](https://mikelev.in/futureproof/mark-nottingham-paul-gauthier-rfc9110-optics/index.md)
 - [2026-10-13] [The Two-Commit Rename Bridge and Keyless Instruments](https://mikelev.in/futureproof/two-commit-rename-bridge-keyless-instruments/index.md)
 - [2026-10-13] [The Moviola Git Slider and Impedance Matching](https://mikelev.in/futureproof/moviola-git-slider-impedance-matching/index.md)
 - [2026-10-13] [Sensory Coherence and the Synchronized Workspace Airlock](https://mikelev.in/futureproof/sensory-coherence-synchronized-workspace-airlock/index.md)
@@ -34,24 +47,24 @@ URL as: `https://mikelev.in/futureproof/{slug}/index.md`
 - [2026-10-12] [Retiring the Chromium Fleet: RFC 9111 Edge Caching and Agent Harvest Runways](https://mikelev.in/futureproof/retiring-chromium-fleet-rfc9111-edge-caching/index.md)
 - [2026-10-12] [The Desktop Spectrometer: Zero-Credential Wire Receipts in FastHTML](https://mikelev.in/futureproof/desktop-spectrometer-zero-credential-wire-receipts/index.md)
 - [2026-10-11] [The Multi-Tenant Wire: Replacing Pre-Render Debt with RFC 9110 Receipts](https://mikelev.in/futureproof/multi-tenant-wire-replacing-prerender-debt-rfc9110/index.md)
-- [2026-10-11] [Upstream Law: Moving Prompt Invariants Ahead of the Codebase](https://mikelev.in/futureproof/upstream-law-moving-prompt-invariants/index.md)
-- [2026-10-11] [The Inverted Tool-Call: Human Actuators and the Book Command](https://mikelev.in/futureproof/the-inverted-tool-call-and-the-book-command/index.md)
-- [2026-10-11] [The Dual-Representation Web: RFC 9110, RFC 9111, and the Return of Content Negotiation](https://mikelev.in/futureproof/dual-representation-web-content-negotiation/index.md)
-- [2026-10-10] [The Edge Cache Partition: RFC 9110, Markdown Negotiation, and Preventing Agent Poisoning](https://mikelev.in/futureproof/edge-cache-partition-rfc9110-markdown-negotiation/index.md)
-- [2026-10-10] [Holding the Reins: Background Daemons, Quiet Shells, and Resisting the Rabbit Hole](https://mikelev.in/futureproof/holding-the-reins-background-daemons-and-rabbit-holes/index.md)
-- [2026-10-10] [Less Messaging: RFC 9110 and the Inspection Airlock](https://mikelev.in/futureproof/less-messaging-rfc9110-inspection-airlock/index.md)
-- [2026-10-10] [Making a Diff: The Minimal Instrument](https://mikelev.in/futureproof/making-a-diff-the-minimal-instrument/index.md)
-- [2026-10-09] [The Heat and the Delete: Landauer's Limit and Verifiable Codebase Pruning](https://mikelev.in/futureproof/the-heat-and-the-delete-verifiable-pruning/index.md)
-- [2026-10-09] [The Inverted Cave: AI Quality Assurance and the Jevons Paradox of Code](https://mikelev.in/futureproof/inverted-cave-ai-quality-assurance-jevons-paradox/index.md)
-- [2026-10-08] [The Anti-Crichton Pipeline: Intentional Friction and Replayable Receipts](https://mikelev.in/futureproof/anti-crichton-pipeline-intentional-friction/index.md)
-- [2026-10-08] [The Randi Test: Grounding Agent-Readiness in Verifiable Receipts](https://mikelev.in/futureproof/the-randi-test-for-agent-readiness/index.md)
-- [2026-10-08] [Jekyll Satellites: Decoupling Shared Tooling from Independent Sites with Nix](https://mikelev.in/futureproof/jekyll-satellites-shared-nix-kernel/index.md)
-- [2026-10-07] [Removing the Conversion Event: When Paradigms Become Invisible Infrastructure](https://mikelev.in/futureproof/removing-the-conversion-event/index.md)
 
 ## Compact slug index -- pattern: https://mikelev.in/futureproof/{slug}/index.md
 
 Format: `[date] [size] slug` -- fetch any entry as `https://mikelev.in/futureproof/{slug}/index.md`
 
+- [2026-10-11] [45k] upstream-law-moving-prompt-invariants
+- [2026-10-11] [103k] the-inverted-tool-call-and-the-book-command
+- [2026-10-11] [69k] dual-representation-web-content-negotiation
+- [2026-10-10] [82k] edge-cache-partition-rfc9110-markdown-negotiation
+- [2026-10-10] [74k] holding-the-reins-background-daemons-and-rabbit-holes
+- [2026-10-10] [246k] less-messaging-rfc9110-inspection-airlock
+- [2026-10-10] [320k] making-a-diff-the-minimal-instrument
+- [2026-10-09] [276k] the-heat-and-the-delete-verifiable-pruning
+- [2026-10-09] [102k] inverted-cave-ai-quality-assurance-jevons-paradox
+- [2026-10-08] [97k] anti-crichton-pipeline-intentional-friction
+- [2026-10-08] [65k] the-randi-test-for-agent-readiness
+- [2026-10-08] [151k] jekyll-satellites-shared-nix-kernel
+- [2026-10-07] [25k] removing-the-conversion-event
 - [2026-10-07] [71k] public-installers-private-entitlements-wire-telemetry
 - [2026-10-06] [29k] making-verification-cheaper-than-trust
 - [2026-10-06] [538k] the-router-that-learned-to-forget
