@@ -2263,6 +2263,7 @@ def create_nav_menu():
     voice_is_on = pipulate.db.get('voice_enabled', '0') == '1'
     voice_icon = "🔊" if voice_is_on else "🔇"
 
+    voice_title = "Voice on (click to mute)" if voice_is_on else "Voice off (click to unmute)"
     voice_quick_toggle = Button(
         voice_icon,
         id="global-voice-toggle",
@@ -2270,8 +2271,9 @@ def create_nav_menu():
         hx_target="#global-voice-toggle",
         hx_swap="outerHTML",
         cls="outline secondary",
-        style="border: none; background: transparent; font-size: 1.2rem; padding: 0.2rem 0.5rem; margin-bottom: 0; display: flex; align-items: center;",
-        title="Toggle Voice"
+        style="border: none; background: transparent; font-size: 1.2rem; padding: 0.2rem 0.5rem; margin-bottom: 0; display: flex; align-items: center; position: relative;",
+        title=voice_title,
+        aria_label=voice_title
     )
 
     nav_search_container = Div(
@@ -3340,7 +3342,7 @@ async def toggle_voice_system(request):
     new_state = '1' if current_state == '0' else '0'
     pipulate.db['voice_enabled'] = new_state
     
-    # If turning OFF, immediately silence any ongoing speech
+    # If turning OFF, immediately silence any ongoing speech; if ON, announce "Voice on"
     if new_state == '0':
         try:
             from imports.voice_synthesis import chip_voice_system
@@ -3349,19 +3351,29 @@ async def toggle_voice_system(request):
                 logger.info("🔇 Global mute activated. Killed active audio process.")
         except Exception as e:
             logger.warning(f"Error silencing voice system: {e}")
+    else:
+        try:
+            pipulate.speak("Voice on", wait=False)
+        except Exception as e:
+            logger.warning(f"Error speaking voice on confirmation: {e}")
 
     # Re-render the NEW TOP NAV BUTTON to reflect the new state
     voice_is_on = new_state == '1'
     icon = "🔊" if voice_is_on else "🔇"
+    status_label = "Voice on" if voice_is_on else "Voice off"
+    voice_title = "Voice on (click to mute)" if voice_is_on else "Voice off (click to unmute)"
+    indicator_cls = "voice-toggle-indicator voice-on" if voice_is_on else "voice-toggle-indicator voice-off"
     voice_quick_toggle = Button(
-        icon,
+        Span(icon, aria_hidden="true"),
+        Span(status_label, cls=indicator_cls, onanimationend="this.remove()"),
         id="global-voice-toggle",
         hx_post="/toggle_voice_system",
         hx_target="#global-voice-toggle",
         hx_swap="outerHTML",
         cls="outline secondary",
-        style="border: none; background: transparent; font-size: 1.2rem; padding: 0.2rem 0.5rem; margin-bottom: 0; display: flex; align-items: center;",
-        title="Toggle Voice"
+        style="border: none; background: transparent; font-size: 1.2rem; padding: 0.2rem 0.5rem; margin-bottom: 0; display: flex; align-items: center; position: relative;",
+        title=voice_title,
+        aria_label=voice_title
     )
     
     return voice_quick_toggle    
