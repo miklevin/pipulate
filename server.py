@@ -4707,9 +4707,13 @@ async def send_startup_environment_message():
             env_message = f"🚀 Server started in {env_display} mode on local host colon 5001. Ready for experimentation and testing!"
         else:
             env_message = f"🚀 Server started in {env_display} mode on local host colon 5001. Ready for production use."
-        # 🎤 Speak it into existence!
-        pronounce = {"DEV": "Developer", "Prod": "Production"}
-        pipulate.speak(f"Server started in {pronounce[env_display]} mode on local host colon 5001.", wait=False)
+        # 🎤 Speak it into existence! (unless one-shot quiet-start was requested, e.g. via autognome.py)
+        quiet_start = os.environ.pop('PIPULATE_QUIET_START', '').strip().lower() in ('1', 'true', 'yes', 'on')
+        if quiet_start:
+            logger.info("🔇 Startup voice announcement silenced once (PIPULATE_QUIET_START / --quiet-start)")
+        else:
+            pronounce = {"DEV": "Developer", "Prod": "Production"}
+            pipulate.speak(f"Server started in {pronounce[env_display]} mode on local host colon 5001.", wait=False)
 
         # Ensure message queue is ready with retry logic
         max_retries = 3
@@ -5564,7 +5568,12 @@ if __name__ == '__main__':
                         help='Enable comprehensive testing mode')
     parser.add_argument('--test-browser', action='store_true',
                         help='Enable browser automation testing')
+    parser.add_argument('-q', '--quiet-start', action='store_true',
+                        help='Silence the initial server startup voice announcement once')
     args = parser.parse_args()
+    if args.quiet_start:
+        os.environ['PIPULATE_QUIET_START'] = '1'
+        sys.argv = [arg for arg in sys.argv if arg not in ('-q', '--quiet-start')]
 
     # 🚨 CRITICAL: Check if server is already running via watchdog
     if check_server_already_running():

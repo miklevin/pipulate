@@ -1092,8 +1092,16 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
             echo "🛑 Stopped a Pipulate server that was already running (ports 5001/8888 are shared -- one workshop at a time)."
           fi
           git pull --quiet
+          # Propagate one-shot startup voice silence into server.py without leaving PIPULATE_VOICE=0 set for the lifetime of the tmux server
+          SERVER_ARGS=""
+          case "''${PIPULATE_VOICE:-}" in
+            0|no|off|false) SERVER_ARGS="--quiet-start" ;;
+          esac
+          case "''${PIPULATE_QUIET_START:-}" in
+            1|yes|on|true) SERVER_ARGS="--quiet-start" ;;
+          esac
           # Start Pipulate server in background tmux session so port 5001 is immediately alive
-          tmux new-session -d -s pipulate -c "''${PIPULATE_ROOT:-$PWD}" "unset PIPULATE_VOICE && source .venv/bin/activate && python server.py"
+          tmux new-session -d -s pipulate -c "''${PIPULATE_ROOT:-$PWD}" "unset PIPULATE_VOICE PIPULATE_QUIET_START && source .venv/bin/activate && python server.py $SERVER_ARGS"
           # THE VOICE ASKS ONCE, OUT LOUD (2026-10-01, the operator's ask: the
           # voice is heard before the first menu, so the menu's spoken hint is
           # the second thing it says). Only where no answer is recorded, at a
@@ -1267,7 +1275,7 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
           ) &
           # Run server in foreground if not already running in tmux
           if ! tmux has-session -t pipulate 2>/dev/null; then
-            python server.py
+            python server.py $SERVER_ARGS
           fi
         '';
         # Logic for installing all Python packages
