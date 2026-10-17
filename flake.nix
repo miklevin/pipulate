@@ -1825,7 +1825,7 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
           # Bare rides walk.DEFAULT_TRAIL -- since 2026-08-01 the zero-auth
           # public_walk softball, so the SHORTEST invocation is now the SAFEST.
           # Expert trail, named rather than implied:
-          #   mothercat assets/trails/first_context.yaml   (Jira/Botify/Gmail)
+          #   mothercat assets/trails/first_context.yaml   (Jira/Gmail/Sheets)
           # A path rides that trail; --dry-narrate
           # speaks each stop and opens no browser. A human types it, so an alias
           # is correct (ALIAS-DISPATCH RULE); it does NOT inherit into `!` child

@@ -1525,7 +1525,7 @@ The system provides comprehensive debugging and state inspection capabilities th
 └─── ✨ Ready for next interaction!
 
 🤖 MCP TOOL CALLS
-├─── 📡 Connecting to Botify API...
+├─── 📡 Connecting to API...
 ├─── 🔐 Authentication successful
 ├─── 📊 Fetching schema (4,449 fields discovered!)
 └─── 💾 Caching results for lightning-fast access
@@ -1617,7 +1617,6 @@ git commit -m "Feat: Promote workflow xx_my_flow.py to ##_my_flow.py"
 
   * Dev, Test, and Prod database switching
   * Saving source HTML and rendered DOM of any URL
-  * Botify data export CSV save (incorporating robust polling)
   * Full web form field support (textarea, dropdown, checkboxes, radio buttons)
   * Generic support for Anywidgets
   * Utility for deleting garbage tables from plugin experimentation

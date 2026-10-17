@@ -24,7 +24,7 @@ try:
     VALID_ROLES = list(ROLES_CONFIG.keys())
 except ImportError:
     # Fallback for development/testing
-    VALID_ROLES = ['Core', 'Developer', 'Components', 'Botify Employee', 'Tutorial', 'Workshop']
+    VALID_ROLES = ['Core', 'Developer', 'Components', '9111 Consultants', 'Tutorial', 'Workshop']
 
 import aiohttp
 from fasthtml.common import A, HTMLResponse, Input, Li, to_xml

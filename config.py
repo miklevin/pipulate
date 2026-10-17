@@ -23,7 +23,7 @@ MODEL_CASCADE = [
 ]
 
 HOME_MENU_ITEM = 'Home'
-DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
+DEFAULT_ACTIVE_ROLES = {'9111 Consultants', 'Core'}
 DEMO_STATE_FILE = 'data/demo_state.json'
 DISCUSSION_DB_PATH = 'data/discussion.db'
 
@@ -75,9 +75,9 @@ HOME_APP = 'introduction'
 
 # Role System Configuration
 ROLES_CONFIG = {
-    'Botify Employee': {
+    '911 Consultant': {
         'priority': 0, 
-        'description': 'Connect with Botify to use Parameter Buster and Link Graph Visualizer.',
+        'description': 'Perform AI-Readiness checks for Agentic Commerce.',
         'emoji': '👔'
     },
     'Core': {
