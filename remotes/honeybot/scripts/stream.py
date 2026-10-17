@@ -761,6 +761,7 @@ def run_live_message(msg, env, profile_dir):
     if not msg or _in_live_message:
         return
     _in_live_message = True
+    was_exclusive = narrator.exclusive_mode.is_set()
     narrator.exclusive_mode.set()
     try:
         narrator.interrupt()
@@ -795,9 +796,11 @@ def run_live_message(msg, env, profile_dir):
                 pass
         else:
             dispatch_cue("CARD", {"label": card_label or "LIVE\\nFROM MIKE", "say": say_text, "duration": hold}, env, profile_dir, pace_say=True)
+        time.sleep(0.8)
     finally:
         _in_live_message = False
-        narrator.exclusive_mode.clear()
+        if not was_exclusive:
+            narrator.exclusive_mode.clear()
 
 
 def wait_for_voice_or_live_interrupt(env, profile_dir):

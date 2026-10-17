@@ -751,8 +751,22 @@ def _read_from_clipboard():
         return ""
 
 
+_HONEYBOT_LIVE_MSG_HELPER = r'''
+import base64, pathlib, sys
+
+raw = base64.b64decode(sys.argv[1].encode("ascii")).decode("utf-8")
+p = pathlib.Path.home() / "www/mikelev.in/.live_message"
+p.parent.mkdir(parents=True, exist_ok=True)
+tmp = p.with_suffix(".tmp")
+tmp.write_text(raw, encoding="utf-8")
+tmp.replace(p)
+print(f"📡 Live break-in queued on Honeybot: {p}")
+'''
+
+
 def send_honeybot_live_message(say_text, card_label=None, patronus_key=None, dry_run=False):
     """Send a one-shot live operator break-in (.live_message) to Honeybot over SSH."""
+    import base64
     import subprocess
     import time
     clean_say = " ".join((say_text or "").strip().split())
@@ -775,18 +789,10 @@ def send_honeybot_live_message(say_text, card_label=None, patronus_key=None, dry
         print("📡 [DRY RUN] Live break-in payload for Honeybot:")
         print(payload_json)
         return 0
-    remote_py = (
-        "import pathlib, sys; "
-        "p = pathlib.Path.home() / 'www/mikelev.in/.live_message'; "
-        "p.parent.mkdir(parents=True, exist_ok=True); "
-        "tmp = p.with_suffix('.tmp'); "
-        "tmp.write_text(sys.stdin.read(), encoding='utf-8'); "
-        "tmp.replace(p); "
-        "print(f'📡 Live break-in queued on Honeybot: {p}')"
-    )
+    payload_b64 = base64.b64encode(payload_json.encode("utf-8")).decode("ascii")
     res = subprocess.run(
-        ["ssh", HONEYBOT_SSH_HOST, "python3", "-c", remote_py],
-        input=payload_json,
+        ["ssh", HONEYBOT_SSH_HOST, "python3", "-", payload_b64],
+        input=_HONEYBOT_LIVE_MSG_HELPER,
         text=True,
     )
     if res.returncode == 0:
