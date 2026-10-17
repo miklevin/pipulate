@@ -128,15 +128,22 @@ def check_for_updates():
         return False
 
 
-def get_playlist(recent_n=10):
+def get_playlist(recent_n=10, include_archive=True):
     """
-    Returns a playlist: Recent N (sorted date desc + sort_order desc) + Rest (shuffled).
+    Returns a playlist: Recent N (sorted date desc + sort_order desc) + optional Rest (shuffled).
+    When include_archive=False, stops scanning older dates once recent_n articles are loaded.
     """
     all_articles = []
     
     try:
-        # Find all markdown files
-        files = list(POSTS_DIR.glob("*.md")) + list(POSTS_DIR.glob("*.markdown"))
+        # Find all markdown files, newest date prefixes first so include_archive=False
+        # can stop scanning once the newest N articles (and same-day siblings) are read.
+        files = sorted(
+            list(POSTS_DIR.glob("*.md")) + list(POSTS_DIR.glob("*.markdown")),
+            key=lambda p: p.name,
+            reverse=True,
+        )
+        cutoff_date = None
         
         for filepath in files:
             filename = filepath.name
@@ -148,6 +155,8 @@ def get_playlist(recent_n=10):
             except ValueError:
                 continue 
 
+            if not include_archive and cutoff_date is not None and post_date < cutoff_date:
+                break
             # 2. Read File & Frontmatter
             with open(filepath, 'r', encoding='utf-8') as f:
                 raw_text = f.read()
@@ -194,6 +203,8 @@ def get_playlist(recent_n=10):
                 'url': url,
                 'content': clean_text
             })
+            if not include_archive and len(all_articles) >= recent_n and cutoff_date is None:
+                cutoff_date = post_date
 
         # Sort ALL by date first, then by sort_order (both Descending/Reverse)
         # Tuple comparison works element by element: (2026-01-01, 2) > (2026-01-01, 1)
@@ -214,6 +225,8 @@ def get_playlist(recent_n=10):
             _last_file_count = len(files)
         except: pass
         
+        if not include_archive:
+            return recent_articles
         return recent_articles + archive_articles
 
     except Exception as e:
