@@ -1690,57 +1690,6 @@ button.htmx-request {
     filter: grayscale(50%);
 }
 
-/* Momentary visual feedback for global voice toggle (#global-voice-toggle) */
-#global-voice-toggle {
-    overflow: visible;
-}
-
-.voice-toggle-indicator {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.72rem;
-    font-weight: 600;
-    line-height: 1.2;
-    padding: 0.2rem 0.5rem;
-    border-radius: 999px;
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 1050;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    animation: voiceToggleIndicatorFade 1.6s ease-out forwards;
-}
-
-.voice-toggle-indicator.voice-on {
-    background-color: #22c55e;
-    color: #ffffff;
-}
-
-.voice-toggle-indicator.voice-off {
-    background-color: var(--pico-muted-border-color, #4b5563);
-    color: var(--pico-color, #ffffff);
-}
-
-@keyframes voiceToggleIndicatorFade {
-    0% {
-        opacity: 0;
-        transform: translate(-50%, -3px);
-    }
-    12% {
-        opacity: 1;
-        transform: translate(-50%, 0);
-    }
-    75% {
-        opacity: 1;
-        transform: translate(-50%, 0);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(-50%, -2px);
-    }
-}
-
 /* ============================================================================
    UTILITY CLASSES - Common property patterns from inline styles
    ============================================================================ */

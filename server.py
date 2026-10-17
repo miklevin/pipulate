@@ -2271,7 +2271,7 @@ def create_nav_menu():
         hx_target="#global-voice-toggle",
         hx_swap="outerHTML",
         cls="outline secondary",
-        style="border: none; background: transparent; font-size: 1.2rem; padding: 0.2rem 0.5rem; margin-bottom: 0; display: flex; align-items: center; position: relative;",
+        style="border: none; background: transparent; font-size: 1.2rem; padding: 0.2rem 0.5rem; margin-bottom: 0; display: flex; align-items: center; position: relative; overflow: visible;",
         title=voice_title,
         aria_label=voice_title
     )
@@ -3362,16 +3362,30 @@ async def toggle_voice_system(request):
     icon = "🔊" if voice_is_on else "🔇"
     status_label = "Voice on" if voice_is_on else "Voice off"
     voice_title = "Voice on (click to mute)" if voice_is_on else "Voice off (click to unmute)"
-    indicator_cls = "voice-toggle-indicator voice-on" if voice_is_on else "voice-toggle-indicator voice-off"
+    toast_border = "#22c55e" if voice_is_on else "var(--pico-muted-border-color, #4b5563)"
+    toast_style = (
+        "position: absolute; top: calc(100% + 2px); left: 50%; transform: translateX(-50%); "
+        "font-size: 0.65rem; font-weight: 500; line-height: 1.1; padding: 0.15rem 0.45rem; "
+        f"border-radius: 4px; border: 1px solid {toast_border}; "
+        "background: var(--pico-card-background-color, #1e293b); color: var(--pico-color, #e2e8f0); "
+        "white-space: nowrap; pointer-events: none; z-index: 2000; "
+        "box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); opacity: 1; transition: opacity 0.25s ease;"
+    )
     voice_quick_toggle = Button(
-        Span(icon, aria_hidden="true"),
-        Span(status_label, cls=indicator_cls, onanimationend="this.remove()"),
+        icon,
+        Span(status_label, id="voice-toggle-toast", style=toast_style),
+        Script(
+            "setTimeout(function(){"
+            "var el=document.getElementById('voice-toggle-toast');"
+            "if(el){el.style.opacity='0';setTimeout(function(){el.remove();},250);}"
+            "},900);"
+        ),
         id="global-voice-toggle",
         hx_post="/toggle_voice_system",
         hx_target="#global-voice-toggle",
         hx_swap="outerHTML",
         cls="outline secondary",
-        style="border: none; background: transparent; font-size: 1.2rem; padding: 0.2rem 0.5rem; margin-bottom: 0; display: flex; align-items: center; position: relative;",
+        style="border: none; background: transparent; font-size: 1.2rem; padding: 0.2rem 0.5rem; margin-bottom: 0; display: flex; align-items: center; position: relative; overflow: visible;",
         title=voice_title,
         aria_label=voice_title
     )
