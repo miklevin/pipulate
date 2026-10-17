@@ -764,14 +764,21 @@ print(f"📡 Live break-in queued on Honeybot: {p}")
 '''
 
 
-def send_honeybot_live_message(say_text, card_label=None, patronus_key=None, dry_run=False):
+def send_honeybot_live_message(
+    say_text,
+    card_label=None,
+    patronus_key=None,
+    pre_pause=3.0,
+    linger=2.5,
+    dry_run=False,
+):
     """Send a one-shot live operator break-in (.live_message) to Honeybot over SSH."""
     import base64
     import subprocess
     import time
     clean_say = " ".join((say_text or "").strip().split())
     if not clean_say and not card_label and not patronus_key:
-        print("Usage: ytsay [-c 'CARD\\nTEXT'] [-p patronus_key] [--clip] [--dry-run] 'Message to speak live'")
+        print("Usage: ytsay [-c 'CARD\\nTEXT'] [-p patronus_key] [--pre 3.0] [--linger 2.5] [--clip] [--dry-run] 'Message to speak live'")
         return 1
     if card_label is None:
         resolved_card = "" if patronus_key else "LIVE\nFROM MIKE"
@@ -780,6 +787,8 @@ def send_honeybot_live_message(say_text, card_label=None, patronus_key=None, dry
     payload = {
         "card": resolved_card,
         "say": clean_say,
+        "pre_pause": float(pre_pause),
+        "linger": float(linger),
         "sent_at": int(time.time()),
     }
     if patronus_key:
@@ -834,6 +843,18 @@ if __name__ == "__main__":
         help="Read the spoken message from the OS clipboard for --broadcast say.",
     )
     parser.add_argument(
+        "--pre",
+        type=float,
+        default=3.0,
+        help="Seconds of pre-banner silence after cutting article audio (default: 3.0).",
+    )
+    parser.add_argument(
+        "--linger",
+        type=float,
+        default=2.5,
+        help="Seconds the banner hovers silently after speech before POOF (default: 2.5).",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print the .live_message JSON payload without sending over SSH.",
@@ -851,6 +872,8 @@ if __name__ == "__main__":
                 msg_text,
                 card_label=cli_args.card,
                 patronus_key=cli_args.patronus,
+                pre_pause=cli_args.pre,
+                linger=cli_args.linger,
                 dry_run=cli_args.dry_run,
             )
         )

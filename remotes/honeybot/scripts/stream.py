@@ -682,20 +682,26 @@ def dispatch_cue(command, content, env, profile_dir, pace_say=True):
             label = content.get("label", "HONEYBOT")
             say_text = content.get("say", "")
             hold = float(content.get("duration", 60.0))
+            linger = float(content.get("linger", 0.0))
+            pre_raw = content.get("raw_path")
         else:
             label = str(content)
             say_text = ""
             hold = 60.0
+            linger = 0.0
+            pre_raw = None
         narrator.queue.join()
-        raw_path = narrator.prep_raw(say_text) if say_text else None
+        raw_path = pre_raw if pre_raw is not None else (narrator.prep_raw(say_text) if say_text else None)
         card_handle = show_card(label, max_hold=hold)
         try:
             time.sleep(0.2)
             if say_text:
                 narrator.play_raw(raw_path, fallback_text=say_text)
                 narrator.queue.join()
+                if linger > 0:
+                    time.sleep(linger)
             else:
-                time.sleep(min(hold, 2.5))
+                time.sleep(min(hold, max(2.5, linger)))
         finally:
             dismiss_card(card_handle)
 
@@ -764,14 +770,20 @@ def run_live_message(msg, env, profile_dir):
     was_exclusive = narrator.exclusive_mode.is_set()
     narrator.exclusive_mode.set()
     try:
+        t_cut = time.time()
         narrator.interrupt()
         for pat in ("conjure_window_overlay", "patronus_visual_shield"):
             try:
                 subprocess.run(["pkill", "-f", pat], check=False)
             except Exception:
                 pass
+        pre_pause = float(msg.get("pre_pause", 3.0)) if isinstance(msg, dict) else 3.0
+        linger = float(msg.get("linger", 2.5)) if isinstance(msg, dict) else 2.5
         cues = msg.get("cues") if isinstance(msg, dict) else None
         if isinstance(cues, list) and cues:
+            rem = pre_pause - (time.time() - t_cut)
+            if rem > 0:
+                time.sleep(rem)
             for cue_cmd, cue_val in cues:
                 dispatch_cue(cue_cmd, cue_val, env, profile_dir, pace_say=True)
             narrator.queue.join()
@@ -780,23 +792,41 @@ def run_live_message(msg, env, profile_dir):
         say_text = msg.get("say", "") if isinstance(msg, dict) else str(msg)
         patronus_key = msg.get("patronus") if isinstance(msg, dict) else None
         hold = float(msg.get("duration", 120.0)) if isinstance(msg, dict) else 120.0
+        # Pre-synthesize during the pre-banner silence so the 3.0s palate cleanser
+        # absorbs Piper synthesis time and the banner speaks the instant it pops.
+        raw_path = narrator.prep_raw(say_text) if say_text else None
+        rem = pre_pause - (time.time() - t_cut)
+        if rem > 0:
+            time.sleep(rem)
         if patronus_key:
             if card_label:
-                dispatch_cue("CARD", {"label": card_label, "say": "", "duration": 2.5}, env, profile_dir, pace_say=True)
-            raw_path = narrator.prep_raw(say_text) if say_text else None
+                dispatch_cue("CARD", {"label": card_label, "say": "", "duration": 2.5, "linger": 2.5}, env, profile_dir, pace_say=True)
             conjure_patronus(patronus_key, duration=hold)
             if say_text:
                 narrator.play_raw(raw_path, fallback_text=say_text)
                 narrator.queue.join()
+                if linger > 0:
+                    time.sleep(linger)
             else:
-                time.sleep(min(hold, 4.0))
+                time.sleep(min(hold, max(4.0, linger)))
             try:
                 subprocess.run(["pkill", "-f", "patronus_visual_shield"], check=False)
             except Exception:
                 pass
         else:
-            dispatch_cue("CARD", {"label": card_label or "LIVE\\nFROM MIKE", "say": say_text, "duration": hold}, env, profile_dir, pace_say=True)
-        time.sleep(0.8)
+            dispatch_cue(
+                "CARD",
+                {
+                    "label": card_label or "LIVE\\nFROM MIKE",
+                    "say": say_text,
+                    "duration": hold,
+                    "linger": linger,
+                    "raw_path": raw_path,
+                },
+                env,
+                profile_dir,
+                pace_say=True,
+            )
     finally:
         _in_live_message = False
         if not was_exclusive:
