@@ -488,9 +488,25 @@ class ChipVoiceSystem:
             model_path_in_repo = "en/en_US/amy/low/en_US-amy-low.onnx"
             config_path_in_repo = "en/en_US/amy/low/en_US-amy-low.onnx.json"
             
-            # ⚓ TOPOLOGICAL ANCHOR: Always resolve relative to the project root
+            # ⚓ TOPOLOGICAL ANCHOR: Store voice models in ~/.config/pipulate/piper_models
+            # so moving or renaming the repo never loses the voice, while reusing any
+            # model already present in a candidate install folder.
             project_root = Path(__file__).resolve().parent.parent
-            local_model_dir = project_root / "assets" / "piper_models"
+            durable_dir = Path.home() / ".config" / "pipulate" / "piper_models"
+            candidate_dirs = [
+                durable_dir,
+                project_root / "assets" / "piper_models",
+                project_root / "piper_models",
+            ]
+            for parent in (Path.home() / "repos", Path.home()):
+                for name in ("pipulate", "npvg", "qamyai", "qamy"):
+                    candidate_dirs.append(parent / name / "assets" / "piper_models")
+                    candidate_dirs.append(parent / name / "piper_models")
+            local_model_dir = durable_dir
+            for cand in candidate_dirs:
+                if (cand / model_path_in_repo).is_file() and (cand / config_path_in_repo).is_file():
+                    local_model_dir = cand
+                    break
             local_model_dir.mkdir(parents=True, exist_ok=True)
             
             self.model_path = str(local_model_dir / model_path_in_repo)
