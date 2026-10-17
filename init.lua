@@ -6,6 +6,9 @@
 -- |_|_| |_|_|\__(_)_|\__,_|\__,_|
 --                                
 
+-- Session AI Dialogue Label (`il` in terminal to edit, <F2> in Neovim to reload)
+local AI_LABEL = "Gemini 4 Argon High"
+
 -- Basic Settings
 local set = vim.opt
 
@@ -305,8 +308,12 @@ function reload_config()
         end
     end
 
-    -- Re-source the init.lua file from its new Pipulate location
-    vim.cmd('source ~/repos/pipulate/init.lua')
+    -- Re-source the init.lua file from PIPULATE_ROOT (falling back to ~/pipulate or ~/repos/pipulate)
+    local init_path = (os.getenv("PIPULATE_ROOT") or vim.fn.expand("~/pipulate")) .. "/init.lua"
+    if vim.fn.filereadable(init_path) == 0 then
+        init_path = vim.fn.expand("~/repos/pipulate/init.lua")
+    end
+    vim.cmd('source ' .. vim.fn.fnameescape(init_path))
 
     -- Force re-evaluation of all autocmds
     vim.cmd('doautocmd VimEnter')
@@ -1035,6 +1042,8 @@ map('n', '<leader>b', '<cmd>lua bold_dialogue_speaker()<CR>', opts)  -- Bold dia
 map('n', '<leader>x', '<cmd>lua mount_sandworm()<CR>', opts) -- the human: mount the worm (full saddle at cursor) x for eXperiment
 map('n', '<leader>m', 'i**Me**: ', opts) -- You
 map('n', '<leader>n', 'i**Note**: ', opts) -- You
+map('n', '<leader>i', 'i**' .. AI_LABEL .. '**: ', opts) -- AI dialogue label
+map('n', '<leader>l', 'i**' .. AI_LABEL .. '**: ', opts) -- AI dialogue label (alias)
 
 -- Git Operations
 map('n', '<leader>g', '<cmd>lua git_commit_push()<CR>', opts)  -- Git commit and push
@@ -1087,6 +1096,7 @@ print("init.lua loaded successfully!")
 -- <leader>z - Hop off sandworm (stage Notary Beat dismount above !!!)
 -- <leader>m - Insert "**Me**: " speaker label
 -- <leader>n - Insert "**Note**: " speaker label
+-- <leader>i / <leader>l - Insert "**" .. AI_LABEL .. "**: " speaker label
 -- <leader>x (visual) - Scrub OAuth/ephemeral secrets in selection
 
 -- Git Operations
