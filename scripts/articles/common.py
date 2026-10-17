@@ -777,11 +777,15 @@ def send_honeybot_live_message(
     import subprocess
     import time
     raw_lines = [ln.strip() for ln in (say_text or "").splitlines() if ln.strip()]
+    cli_card = card_label is not None
+    cli_patronus = patronus_key is not None
     while raw_lines:
         head_upper = raw_lines[0].upper()
-        if head_upper.startswith("CARD:") and card_label is None:
-            card_label = raw_lines.pop(0)[5:].strip()
-        elif head_upper.startswith("PATRONUS:") and patronus_key is None:
+        if head_upper.startswith("CARD:") and not cli_card:
+            val = raw_lines.pop(0)[5:].strip()
+            if val:
+                card_label = f"{card_label}\n{val}" if card_label else val
+        elif head_upper.startswith("PATRONUS:") and not cli_patronus:
             patronus_key = raw_lines.pop(0)[9:].strip()
         else:
             break
