@@ -34,14 +34,16 @@ STATION_SEGMENTS = [
         # placeholder at the foot of the bead. Tune the PATRONUS duration by ear:
         # it should outlast the spoken walkthrough so the art never blinks out
         # mid-sentence.
-        ("WINDOW", "card.py:5:HONEYBOT"),
+        ("CARD", {
+            "label": "HONEYBOT",
+            "say": (
+                "Hello, and welcome to Future-proofing with the Honeybot. "
+                "What you're looking at is the live heartbeat of a web server I host from home. "
+                "I do this to invite AI bots to my doorstep, to observe and interact with them."
+            ),
+        }),
         ("PATRONUS", {"key": "honeybot_pipeline", "duration": 80.0}),
-        ("WAIT", 3),
-        ("SAY", (
-            "Hello, and welcome to Future-proofing with the Honeybot. "
-            "What you're looking at is the live heartbeat of a web server I host from home. "
-            "I do this to invite AI bots to my doorstep, to observe and interact with them. "
-        )),
+        ("WAIT", 2),
         ("SAY", (
             "This diagram is the whole pipeline. Traffic arrives from the public internet "
             "and hits a single Nginx engine. That engine is the only front door."
@@ -76,15 +78,17 @@ STATION_SEGMENTS = [
         # webserver log; the natural next question is "what IS this project?".
         # white_rabbit is the Pipulate mascot and wax seal -- a concrete, friendly
         # second beat that NAMES the thing before bead 3 explains its philosophy.
-        ("WINDOW", "card.py:5:PIPULATE"),
+        ("CARD", {
+            "label": "PIPULATE",
+            "say": (
+                "The project behind all of this is called Pipulate. "
+                "It's running an Nginx webserver from home on a retired Windows 10 laptop converted to Nix. "
+                "This is a rabbit hole worth exploring if you're trying to future-proof your technical skills for the Age of AI. "
+                "It runs on a stack we call NPvg."
+            ),
+        }),
         ("PATRONUS", {"key": "white_rabbit", "duration": 80.0}),
         ("WAIT", 2),
-        ("SAY", (
-            "The project behind all of this is called Pipulate. "
-            "It's running an Nginx webserver from home on a retired Windows 10 laptop converted to Nix. "
-            "This is a rabbit hole worth exploring if you're trying to future-proof your technical skills for the Age of AI. "
-            "It runs on a stack we call NPvg."
-        )),
         ("SAY", (
             "N is for Nix, a package manager that makes a software environment "
             "fully reproducible on any machine. P is for Python. The little v is for Vim. "

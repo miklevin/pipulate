@@ -138,6 +138,18 @@ def mock_dispatch_cue(command, content, fast_mode=False) -> None:
         _render_patronus_inline(key)
         time.sleep(0.15)  # settle, so the panel does not blur into the next print
 
+    elif command == "CARD":
+        if isinstance(content, dict):
+            label = content.get("label", "HONEYBOT")
+            say_text = content.get("say", "")
+        else:
+            label = str(content)
+            say_text = ""
+        print(f"🪧 CARD (voice-synced): '{label.replace(chr(10), ' | ')}'")
+        _render_card_inline(label)
+        if say_text:
+            mock_dispatch_cue("SAY", say_text, fast_mode=fast_mode)
+
     elif command == "WINDOW":
         # Grammar: "script.py:seconds[:arg]". The arg has no colon.
         parts = str(content).split(":", 2)
