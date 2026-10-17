@@ -1727,7 +1727,7 @@ if __name__ == "__main__":
 #   [flake.nix] ──► alias bot='cd scripts/articles && xclip... && python articleizer.py -t 4'
 #      
 #   Proposed (Declarative Data-Driven Pipeline):
-#   [blogs.json] ──► { "4": { "name": "BotifyML", "pipeline_lane": "public", "preview_port": 4004 } }
+#   [blogs.json] ──► { "4": { "name": "Confluence Blog", "pipeline_lane": "public", "preview_port": 4004 } }
 #       │
 #       ▼
 #   [cli.py / core.py] ──► Resolves execution paths dynamically based on data config.
@@ -1793,7 +1793,7 @@ if __name__ == "__main__":
 #    Finding: nothing to hide                   the diff IS the whole story
 # ```
 # 
-# Same kata, same five lines in `adhoc.txt`, same three boards. What changes is the hinge angle -- and that angle is the finding. On the control group it proves the page is honest; on the treatment group it measures exactly how much of "the page" never existed until a browser burned compute to conjure it. The Botify-side article is just this drawing with the client's numbers filled in.
+# Same kata, same five lines in `adhoc.txt`, same three boards. What changes is the hinge angle -- and that angle is the finding. On the control group it proves the page is honest; on the treatment group it measures exactly how much of "the page" never existed until a browser burned compute to conjure it. The office-side article is just this drawing with the client's numbers filled in.
 # 
 # Three panels. Two hinges. One painter in the mirror. 🪙
 # 
