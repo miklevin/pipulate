@@ -824,6 +824,7 @@ def send_honeybot_live_message(
 
 
 VAULT_ENV_FILE = CONFIG_DIR / ".env"
+YTWATCH_STATE_FILE = CONFIG_DIR / "ytwatch_state.json"
 DEFAULT_YT_LIVE_URL = "https://www.youtube.com/@MikeLevin/live"
 
 
@@ -1111,16 +1112,114 @@ def fetch_youtube_live_state(channel_or_url=None):
     }
 
 
+def _load_ytwatch_state():
+    """Load persisted ytwatch state from ~/.config/pipulate/ytwatch_state.json."""
+    if YTWATCH_STATE_FILE.is_file():
+        try:
+            data = json.loads(YTWATCH_STATE_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+    return {}
+
+
+def _save_ytwatch_state(state_obj):
+    """Persist ytwatch state to ~/.config/pipulate/ytwatch_state.json."""
+    try:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        YTWATCH_STATE_FILE.write_text(json.dumps(state_obj, indent=2) + "\n", encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _play_local_ding(enabled=True):
+    """Play assets/sounds/ding.wav locally on Prime if available (non-blocking)."""
+    if not enabled:
+        return
+    import shutil
+    import subprocess
+    repo_root = Path(__file__).resolve().parents[2]
+    ding_candidates = [
+        Path.home() / ".local/share/pipulate/ding.wav",
+        repo_root / "assets/sounds/ding.wav",
+    ]
+    sound_path = next((p for p in ding_candidates if p.is_file()), None)
+    if not sound_path:
+        return
+    for player_cmd in (["pw-play"], ["paplay"], ["aplay", "-q"], ["afplay"]):
+        if shutil.which(player_cmd[0]):
+            try:
+                subprocess.Popen(
+                    [*player_cmd, str(sound_path)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except Exception:
+                pass
+            break
+
+
+def _manage_ytwatch_daemon(action, interval=30, channel=None):
+    """Start, stop, or inspect the background tmux 'ytwatch' session on Prime."""
+    import subprocess
+    repo_root = Path(__file__).resolve().parents[2]
+    log_path = Path("/tmp/ytwatch.log")
+    has_res = subprocess.run(
+        ["tmux", "has-session", "-t", "ytwatch"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    is_running = (has_res.returncode == 0)
+    if action == "stop":
+        if is_running:
+            subprocess.run(["tmux", "kill-session", "-t", "ytwatch"], check=False)
+            print("🛑 Stopped background tmux session 'ytwatch'.")
+        else:
+            print("ℹ️  No background 'ytwatch' tmux session was running.")
+        return 0
+    if action == "daemon":
+        if channel:
+            _save_vault_var("PIPULATE_YT_CHANNEL", channel.strip())
+        if is_running:
+            subprocess.run(["tmux", "kill-session", "-t", "ytwatch"], check=False)
+        py_bin = repo_root / ".venv/bin/python"
+        script_path = Path(__file__).resolve()
+        cmd_str = (
+            f"PYTHONUNBUFFERED=1 {py_bin} {script_path} --broadcast watch "
+            f"--loop --interval {max(5, int(interval))} > {log_path} 2>&1"
+        )
+        res = subprocess.run(
+            ["tmux", "new-session", "-d", "-s", "ytwatch", "-c", str(repo_root), cmd_str],
+            check=False,
+        )
+        if res.returncode == 0:
+            print(f"🔭 Started background 'ytwatch' daemon in tmux (polling every {max(5, int(interval))}s).")
+            print(f"   • View live log:  tail -f {log_path}")
+            print("   • Attach tmux:    tmux attach -t ytwatch")
+            print("   • Stop daemon:    ytwatch --stop")
+            return 0
+        print("❌ Failed to start tmux session 'ytwatch'.")
+        return 1
+    return 0
+
+
 def run_youtube_watch(
     channel=None,
     loop=False,
     interval=30,
     topic=None,
     init_topic=False,
+    notify_once=False,
+    ding=True,
+    daemon_action=None,
     dry_run=False,
 ):
     """Check or continuously monitor YouTube Live viewers + chat/comments on Prime."""
+    import subprocess
     import time
+    if daemon_action in ("daemon", "stop"):
+        return _manage_ytwatch_daemon(daemon_action, interval=interval, channel=channel)
     if channel:
         _save_vault_var("PIPULATE_YT_CHANNEL", channel.strip())
     resolved_channel = _normalize_yt_url(channel or _get_vault_var("PIPULATE_YT_CHANNEL"))
@@ -1140,21 +1239,67 @@ def run_youtube_watch(
     except Exception as exc:
         print(f"❌ YouTube Watch fetch failed for {resolved_channel}: {exc}")
         return 1
+    persisted = _load_ytwatch_state()
+    same_video = (persisted.get("video_id") == state["video_id"] and bool(state["video_id"]))
+    seen_ids = set(persisted.get("seen_ids") or []) if same_video else set()
+    had_prior_snapshot = bool(same_video and persisted.get("seen_ids") is not None)
+    prev_viewers = int(persisted.get("concurrent_viewers") or 0) if same_video else state["concurrent_viewers"]
+    peak_viewers = int(persisted.get("peak_viewers") or 0) if same_video else state["concurrent_viewers"]
+    prev_comments = persisted.get("comment_count") if same_video else state["comment_count"]
+    last_viewer_alert = float(persisted.get("last_viewer_alert") or 0.0) if same_video else 0.0
+    daemon_running = (
+        subprocess.run(
+            ["tmux", "has-session", "-t", "ytwatch"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        ).returncode == 0
+    )
     c_str = f" | comments={state['comment_count']}" if state["comment_count"] is not None else ""
+    d_str = " | daemon=RUNNING" if daemon_running else ""
     print(
         f"📡 YouTube Watch: LIVE={'yes' if state['is_live'] else 'no'} | "
         f"video={state['video_id'] or 'NONE'} | viewers={state['concurrent_viewers']} | "
-        f"chat_items={len(state['chat_messages'])}{c_str} | title={state['title']!r}"
+        f"chat_items={len(state['chat_messages'])}{c_str}{d_str} | title={state['title']!r}"
     )
     if not loop:
-        for msg in state["chat_messages"][-5:]:
-            print(f"   💬 {msg['author']}: {msg['text']}")
+        recent = state["chat_messages"][-5:]
+        for msg in recent:
+            is_new = had_prior_snapshot and (msg["id"] not in seen_ids)
+            badge = "🆕 [NEW] " if is_new else ""
+            print(f"   💬 {badge}{msg['author']}: {msg['text']}")
+            if is_new and (not state["author"] or msg["author"].lstrip("@").lower() != state["author"].lstrip("@").lower()):
+                print(f"      ↳ Reply on-air: ytsay \"Hey {msg['author']}, thanks for tuning in!\"")
+                if notify_once and resolved_topic:
+                    _play_local_ding(ding)
+                    send_ntfy_notification(
+                        f"{msg['author']}: {msg['text']}",
+                        title="💬 Honeybot Live Chat",
+                        priority="high",
+                        tags="speech_balloon",
+                        topic=resolved_topic,
+                    )
+        all_ids = list(dict.fromkeys([*(persisted.get("seen_ids") or []), *(m["id"] for m in state["chat_messages"])]))[-500:]
+        _save_ytwatch_state({
+            "video_id": state["video_id"],
+            "concurrent_viewers": state["concurrent_viewers"],
+            "peak_viewers": max(peak_viewers, state["concurrent_viewers"]),
+            "comment_count": state["comment_count"],
+            "last_viewer_alert": last_viewer_alert,
+            "seen_ids": all_ids,
+            "updated_at": int(time.time()),
+        })
         return 0
-    seen_ids = {m["id"] for m in state["chat_messages"]}
-    prev_viewers = state["concurrent_viewers"]
-    peak_viewers = state["concurrent_viewers"]
-    prev_comments = state["comment_count"]
-    last_viewer_alert = 0.0
+    for m in state["chat_messages"]:
+        seen_ids.add(m["id"])
+    _save_ytwatch_state({
+        "video_id": state["video_id"],
+        "concurrent_viewers": state["concurrent_viewers"],
+        "peak_viewers": max(peak_viewers, state["concurrent_viewers"]),
+        "comment_count": state["comment_count"],
+        "last_viewer_alert": last_viewer_alert,
+        "seen_ids": list(seen_ids)[-500:],
+        "updated_at": int(time.time()),
+    })
     print(f"🔭 Watching {resolved_channel} every {interval}s (Ctrl+C to stop)...")
     try:
         while True:
@@ -1170,14 +1315,16 @@ def run_youtube_watch(
                 peak_viewers = max(peak_viewers, viewers)
                 last_viewer_alert = now
                 alert_msg = f"{viewers} watching now — {state['title']}"
-                print(f"👀 [VIEWER] {alert_msg}")
-                send_ntfy_notification(
-                    alert_msg,
-                    title="👀 Honeybot Live Viewer",
-                    priority="default",
-                    tags="eyes",
-                    topic=resolved_topic,
-                )
+                print(f"👀 [VIEWER] {alert_msg}", flush=True)
+                _play_local_ding(ding)
+                if resolved_topic:
+                    send_ntfy_notification(
+                        alert_msg,
+                        title="👀 Honeybot Live Viewer",
+                        priority="default",
+                        tags="eyes",
+                        topic=resolved_topic,
+                    )
             prev_viewers = viewers
             for msg in state["chat_messages"]:
                 if msg["id"] in seen_ids:
@@ -1186,28 +1333,41 @@ def run_youtube_watch(
                 if state["author"] and msg["author"].lstrip("@").lower() == state["author"].lstrip("@").lower():
                     continue
                 chat_line = f"{msg['author']}: {msg['text']}"
-                print(f"💬 [CHAT] {chat_line}")
-                print(f"   ↳ Reply on-air: ytsay \"Hey {msg['author']}, thanks for tuning in!\"")
-                send_ntfy_notification(
-                    chat_line,
-                    title="💬 Honeybot Live Chat",
-                    priority="high",
-                    tags="speech_balloon",
-                    topic=resolved_topic,
-                )
+                print(f"💬 [CHAT] {chat_line}", flush=True)
+                print(f"   ↳ Reply on-air: ytsay \"Hey {msg['author']}, thanks for tuning in!\"", flush=True)
+                _play_local_ding(ding)
+                if resolved_topic:
+                    send_ntfy_notification(
+                        chat_line,
+                        title="💬 Honeybot Live Chat",
+                        priority="high",
+                        tags="speech_balloon",
+                        topic=resolved_topic,
+                    )
             cur_comments = state["comment_count"]
             if prev_comments is not None and cur_comments is not None and cur_comments > prev_comments:
                 diff = cur_comments - prev_comments
                 c_msg = f"+{diff} new comment(s) on {state['title']} (total: {cur_comments})"
-                print(f"📝 [COMMENT] {c_msg}")
-                send_ntfy_notification(
-                    c_msg,
-                    title="📝 Honeybot Video Comment",
-                    priority="high",
-                    tags="memo",
-                    topic=resolved_topic,
-                )
+                print(f"📝 [COMMENT] {c_msg}", flush=True)
+                _play_local_ding(ding)
+                if resolved_topic:
+                    send_ntfy_notification(
+                        c_msg,
+                        title="📝 Honeybot Video Comment",
+                        priority="high",
+                        tags="memo",
+                        topic=resolved_topic,
+                    )
             prev_comments = cur_comments
+            _save_ytwatch_state({
+                "video_id": state["video_id"],
+                "concurrent_viewers": viewers,
+                "peak_viewers": peak_viewers,
+                "comment_count": cur_comments,
+                "last_viewer_alert": last_viewer_alert,
+                "seen_ids": list(seen_ids)[-500:],
+                "updated_at": int(now),
+            })
     except KeyboardInterrupt:
         print("\n🛑 Stopped YouTube Watch.")
         return 0
@@ -1303,6 +1463,26 @@ if __name__ == "__main__":
         help="Poll interval in seconds when --loop is active (default: 30).",
     )
     parser.add_argument(
+        "--notify",
+        action="store_true",
+        help="Send ntfy push on one-shot ytwatch if new chat messages arrived since last check.",
+    )
+    parser.add_argument(
+        "--no-ding",
+        action="store_true",
+        help="Disable local ding.wav audio chime on new viewer/chat events.",
+    )
+    parser.add_argument(
+        "--daemon",
+        action="store_true",
+        help="Start ytwatch --loop in a detached background tmux session ('ytwatch').",
+    )
+    parser.add_argument(
+        "--stop",
+        action="store_true",
+        help="Stop the background 'ytwatch' tmux session.",
+    )
+    parser.add_argument(
         "message",
         nargs="*",
         help="Spoken message words for say, push body for ping, or optional interval/channel for watch.",
@@ -1336,9 +1516,12 @@ if __name__ == "__main__":
         watch_channel = cli_args.channel
         watch_loop = cli_args.loop
         watch_interval = cli_args.interval
+        daemon_act = "stop" if cli_args.stop else ("daemon" if cli_args.daemon else None)
         if cli_args.message:
             first_arg = cli_args.message[0].strip()
-            if first_arg.isdigit():
+            if first_arg in ("daemon", "stop"):
+                daemon_act = first_arg
+            elif first_arg.isdigit():
                 watch_interval = int(first_arg)
                 watch_loop = True
             elif not watch_channel:
@@ -1350,6 +1533,9 @@ if __name__ == "__main__":
                 interval=watch_interval,
                 topic=cli_args.topic,
                 init_topic=cli_args.init,
+                notify_once=cli_args.notify,
+                ding=not cli_args.no_ding,
+                daemon_action=daemon_act,
                 dry_run=cli_args.dry_run,
             )
         )
