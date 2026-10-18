@@ -470,7 +470,7 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
     print("📝 YOUTUBE LIVE DESCRIPTION (type `ytdesc` to copy):")
     print(kit["yt_description"])
     print(thin)
-    print("🎛️  Quick Words:  tweet | yttitle | ytdesc | ytcard | ytsay | ytroll | ytbell | ytstatus")
+    print("🎛️  Quick Words:  tweet | yttitle | ytdesc | ytcard | ytsay | ytwatch | ytping | ytroll | ytbell | ytstatus")
     print(thin)
     print(f"🔗 Preview URL:   {kit['preview_url']}")
     print(f"✏️  Edit Command:  vim {kit['path']}")
@@ -823,14 +823,404 @@ def send_honeybot_live_message(
     return res.returncode
 
 
+VAULT_ENV_FILE = CONFIG_DIR / ".env"
+DEFAULT_YT_LIVE_URL = "https://www.youtube.com/@MikeLevin/live"
+
+
+def _load_vault_env():
+    """Read key=value pairs from ~/.config/pipulate/.env without exposing values."""
+    pairs = {}
+    if not VAULT_ENV_FILE.is_file():
+        return pairs
+    try:
+        for line in VAULT_ENV_FILE.read_text(encoding="utf-8").splitlines():
+            s = line.strip()
+            if not s or s.startswith("#") or "=" not in s:
+                continue
+            k, v = s.split("=", 1)
+            k = k.strip()
+            if k.lower().startswith("export "):
+                k = k[7:].strip()
+            v = v.strip()
+            if len(v) >= 2 and v[0] == v[-1] and v[0] in ("'", '"'):
+                v = v[1:-1]
+            if k:
+                pairs[k] = v
+    except OSError:
+        pass
+    return pairs
+
+
+def _get_vault_var(name, default=""):
+    """Return env var from os.environ first, then ~/.config/pipulate/.env."""
+    return os.environ.get(name) or _load_vault_env().get(name) or default
+
+
+def _save_vault_var(name, value):
+    """Upsert name=value into ~/.config/pipulate/.env (mode 0600)."""
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    if not VAULT_ENV_FILE.exists():
+        VAULT_ENV_FILE.touch(mode=0o600)
+    os.chmod(VAULT_ENV_FILE, 0o600)
+    lines = []
+    if VAULT_ENV_FILE.is_file():
+        lines = VAULT_ENV_FILE.read_text(encoding="utf-8").splitlines()
+    escaped = str(value).replace("'", "'\\''")
+    rendered = f"{name}='{escaped}'"
+    replaced = False
+    for idx, line in enumerate(lines):
+        lhs = line.split("=", 1)[0].strip().replace("export ", "")
+        if lhs == name:
+            lines[idx] = rendered
+            replaced = True
+            break
+    if not replaced:
+        lines.append(rendered)
+    VAULT_ENV_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def send_ntfy_notification(
+    message,
+    title="Honeybot Live",
+    priority="default",
+    tags="tv",
+    topic=None,
+    init_topic=False,
+    dry_run=False,
+):
+    """Send a push notification via ntfy.sh (LAN outbound HTTPS POST, zero deps)."""
+    import secrets
+    import urllib.error
+    import urllib.request
+    resolved_topic = (topic or _get_vault_var("PIPULATE_NTFY_TOPIC")).strip()
+    if init_topic and not resolved_topic:
+        resolved_topic = f"pipulate-hb-{secrets.token_hex(8)}"
+        _save_vault_var("PIPULATE_NTFY_TOPIC", resolved_topic)
+        print(f"🔑 Minted PIPULATE_NTFY_TOPIC in {VAULT_ENV_FILE} (0600)")
+        print(f"📲 Subscribe in the ntfy phone app to topic: {resolved_topic}")
+        print(f"   (or open https://ntfy.sh/{resolved_topic})")
+    body = (message or "").strip() or "Ping from Pipulate Prime"
+    if dry_run:
+        topic_state = "configured" if resolved_topic else "unconfigured (pass --init to mint)"
+        print(f"📡 [DRY RUN] ntfy push: topic={topic_state} | title={title!r} | priority={priority} | body={body!r}")
+        return 0
+    if not resolved_topic:
+        print("⚠️ No PIPULATE_NTFY_TOPIC configured in ~/.config/pipulate/.env.")
+        print("   Mint one and send a test push with:  ytping --init 'Hello from Pipulate Prime'")
+        return 1
+    url = f"https://ntfy.sh/{resolved_topic}"
+    safe_title = title.encode("ascii", errors="ignore").decode("ascii").strip() or "Honeybot Live"
+    req = urllib.request.Request(
+        url,
+        data=body.encode("utf-8"),
+        headers={
+            "Title": safe_title,
+            "Priority": str(priority or "default"),
+            "Tags": str(tags or "tv"),
+            "User-Agent": "pipulate-ytping/1.0",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            status = getattr(resp, "status", 200)
+        masked = resolved_topic[:15] + "..." if len(resolved_topic) > 18 else resolved_topic
+        print(f"🔔 Sent ntfy push (HTTP {status} -> {masked}): [{title}] {body}")
+        return 0
+    except urllib.error.URLError as exc:
+        print(f"❌ ntfy push failed: {exc}")
+        return 1
+
+
+def _extract_yt_json(html_text, marker):
+    """Extract balanced JSON object following marker using JSONDecoder.raw_decode."""
+    idx = html_text.find(marker)
+    if idx < 0:
+        return {}
+    brace = html_text.find("{", idx + len(marker))
+    if brace < 0:
+        return {}
+    try:
+        obj, _ = json.JSONDecoder().raw_decode(html_text, brace)
+        return obj if isinstance(obj, dict) else {}
+    except Exception:
+        return {}
+
+
+def _walk_dicts(node):
+    """Iterative depth-first walk yielding every dict inside a parsed JSON tree."""
+    stack = [node]
+    while stack:
+        cur = stack.pop()
+        if isinstance(cur, dict):
+            yield cur
+            for val in cur.values():
+                if isinstance(val, (dict, list)):
+                    stack.append(val)
+        elif isinstance(cur, list):
+            for item in cur:
+                if isinstance(item, (dict, list)):
+                    stack.append(item)
+
+
+def _normalize_yt_url(channel_or_url):
+    """Normalize @handle, video ID, or URL into a fetchable YouTube watch/live URL."""
+    raw = (channel_or_url or "").strip()
+    if not raw:
+        return DEFAULT_YT_LIVE_URL
+    if raw.startswith(("http://", "https://")):
+        return raw
+    if raw.startswith("@"):
+        return f"https://www.youtube.com/{raw}/live"
+    if re.match(r"^[A-Za-z0-9_-]{11}$", raw):
+        return f"https://www.youtube.com/watch?v={raw}"
+    return f"https://www.youtube.com/@{raw}/live"
+
+
+def _fetch_yt_chat_messages(continuation):
+    """Fetch current live chat messages from youtubei/v1/live_chat/get_live_chat."""
+    import urllib.request
+    if not continuation:
+        return []
+    url = "https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?prettyPrint=false"
+    payload = {
+        "context": {
+            "client": {
+                "clientName": "WEB",
+                "clientVersion": "2.20250101.00.00",
+                "hl": "en",
+                "gl": "US",
+            }
+        },
+        "continuation": continuation,
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except Exception:
+        return []
+    messages = []
+    for d in _walk_dicts(data):
+        renderer = d.get("liveChatTextMessageRenderer")
+        if not isinstance(renderer, dict):
+            continue
+        msg_id = str(renderer.get("id") or "")
+        author = str((renderer.get("authorName") or {}).get("simpleText") or "viewer")
+        runs = (renderer.get("message") or {}).get("runs") or []
+        parts = []
+        for r in runs:
+            if not isinstance(r, dict):
+                continue
+            if "text" in r:
+                parts.append(str(r["text"]))
+            elif "emoji" in r and isinstance(r["emoji"], dict):
+                shortcuts = r["emoji"].get("shortcuts") or []
+                parts.append(str(shortcuts[0]) if shortcuts else str(r["emoji"].get("emojiId") or ""))
+        text = "".join(parts).strip()
+        if msg_id and text:
+            messages.append({
+                "id": msg_id,
+                "author": author,
+                "text": text,
+                "timestamp_usec": str(renderer.get("timestampUsec") or ""),
+            })
+    messages.sort(key=lambda m: m["timestamp_usec"])
+    return messages
+
+
+def fetch_youtube_live_state(channel_or_url=None):
+    """Fetch keyless YouTube Live state (is_live, video_id, viewers, chat_messages)."""
+    import urllib.request
+    url = _normalize_yt_url(channel_or_url or _get_vault_var("PIPULATE_YT_CHANNEL"))
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        html_text = resp.read().decode("utf-8", errors="replace")
+    player = _extract_yt_json(html_text, "ytInitialPlayerResponse =")
+    initial = _extract_yt_json(html_text, "ytInitialData =")
+    vd = player.get("videoDetails") if isinstance(player.get("videoDetails"), dict) else {}
+    video_id = str(vd.get("videoId") or "")
+    title = str(vd.get("title") or "")
+    author = str(vd.get("author") or "")
+    is_live = bool(vd.get("isLive"))
+    concurrent_viewers = 0
+    chat_continuation = ""
+    for d in _walk_dicts(initial):
+        vvc = d.get("videoViewCountRenderer")
+        if isinstance(vvc, dict) and vvc.get("isLive"):
+            is_live = True
+            vc = vvc.get("viewCount") or {}
+            raw_vc = str(vc.get("simpleText") or "")
+            if not raw_vc and isinstance(vc.get("runs"), list):
+                raw_vc = "".join(str(r.get("text") or "") for r in vc["runs"] if isinstance(r, dict))
+            if not raw_vc:
+                raw_vc = str(vvc.get("originalViewCount") or "")
+            digits = re.sub(r"[^\d]", "", raw_vc)
+            if digits:
+                concurrent_viewers = int(digits)
+        lcr = d.get("liveChatRenderer")
+        if isinstance(lcr, dict) and not chat_continuation:
+            for cont in lcr.get("continuations") or []:
+                if not isinstance(cont, dict):
+                    continue
+                for k in ("timedContinuationData", "invalidationContinuationData", "reloadContinuationData"):
+                    if isinstance(cont.get(k), dict) and cont[k].get("continuation"):
+                        chat_continuation = str(cont[k]["continuation"])
+                        break
+    chat_messages = _fetch_yt_chat_messages(chat_continuation) if (is_live and chat_continuation) else []
+    comment_count = None
+    yt_api_key = _get_vault_var("YOUTUBE_API_KEY") or load_keys_dict().get("youtube")
+    if yt_api_key and video_id:
+        try:
+            api_url = (
+                f"https://www.googleapis.com/youtube/v3/videos"
+                f"?part=statistics&id={video_id}&key={yt_api_key}"
+            )
+            with urllib.request.urlopen(api_url, timeout=10) as aresp:
+                adata = json.loads(aresp.read().decode("utf-8", errors="replace"))
+            items = adata.get("items") or []
+            if items:
+                c_str = ((items[0].get("statistics") or {}).get("commentCount"))
+                if c_str is not None:
+                    comment_count = int(c_str)
+        except Exception:
+            comment_count = None
+    return {
+        "url": url,
+        "is_live": is_live,
+        "video_id": video_id,
+        "title": title,
+        "author": author,
+        "concurrent_viewers": concurrent_viewers,
+        "chat_messages": chat_messages,
+        "comment_count": comment_count,
+    }
+
+
+def run_youtube_watch(
+    channel=None,
+    loop=False,
+    interval=30,
+    topic=None,
+    init_topic=False,
+    dry_run=False,
+):
+    """Check or continuously monitor YouTube Live viewers + chat/comments on Prime."""
+    import time
+    if channel:
+        _save_vault_var("PIPULATE_YT_CHANNEL", channel.strip())
+    resolved_channel = _normalize_yt_url(channel or _get_vault_var("PIPULATE_YT_CHANNEL"))
+    resolved_topic = (topic or _get_vault_var("PIPULATE_NTFY_TOPIC")).strip()
+    if init_topic and not resolved_topic:
+        send_ntfy_notification("YouTube Live monitor initialized", init_topic=True, dry_run=dry_run)
+        resolved_topic = _get_vault_var("PIPULATE_NTFY_TOPIC")
+    if dry_run:
+        sample = 'var ytInitialPlayerResponse = {"videoDetails":{"videoId":"test1234567","isLive":true}};'
+        parsed = _extract_yt_json(sample, "ytInitialPlayerResponse =")
+        ok = (parsed.get("videoDetails") or {}).get("videoId") == "test1234567"
+        t_label = "configured" if resolved_topic else "unconfigured"
+        print(f"📡 [DRY RUN] YouTube Watch: channel={resolved_channel} | ntfy={t_label} | parser_ok={ok}")
+        return 0 if ok else 1
+    try:
+        state = fetch_youtube_live_state(resolved_channel)
+    except Exception as exc:
+        print(f"❌ YouTube Watch fetch failed for {resolved_channel}: {exc}")
+        return 1
+    c_str = f" | comments={state['comment_count']}" if state["comment_count"] is not None else ""
+    print(
+        f"📡 YouTube Watch: LIVE={'yes' if state['is_live'] else 'no'} | "
+        f"video={state['video_id'] or 'NONE'} | viewers={state['concurrent_viewers']} | "
+        f"chat_items={len(state['chat_messages'])}{c_str} | title={state['title']!r}"
+    )
+    if not loop:
+        for msg in state["chat_messages"][-5:]:
+            print(f"   💬 {msg['author']}: {msg['text']}")
+        return 0
+    seen_ids = {m["id"] for m in state["chat_messages"]}
+    prev_viewers = state["concurrent_viewers"]
+    peak_viewers = state["concurrent_viewers"]
+    prev_comments = state["comment_count"]
+    last_viewer_alert = 0.0
+    print(f"🔭 Watching {resolved_channel} every {interval}s (Ctrl+C to stop)...")
+    try:
+        while True:
+            time.sleep(max(5, int(interval)))
+            try:
+                state = fetch_youtube_live_state(resolved_channel)
+            except Exception as exc:
+                print(f"⚠️ Poll error: {exc}")
+                continue
+            viewers = state["concurrent_viewers"]
+            now = time.time()
+            if (prev_viewers == 0 and viewers >= 1 and (now - last_viewer_alert) > 300) or (viewers > peak_viewers):
+                peak_viewers = max(peak_viewers, viewers)
+                last_viewer_alert = now
+                alert_msg = f"{viewers} watching now — {state['title']}"
+                print(f"👀 [VIEWER] {alert_msg}")
+                send_ntfy_notification(
+                    alert_msg,
+                    title="👀 Honeybot Live Viewer",
+                    priority="default",
+                    tags="eyes",
+                    topic=resolved_topic,
+                )
+            prev_viewers = viewers
+            for msg in state["chat_messages"]:
+                if msg["id"] in seen_ids:
+                    continue
+                seen_ids.add(msg["id"])
+                if state["author"] and msg["author"].lstrip("@").lower() == state["author"].lstrip("@").lower():
+                    continue
+                chat_line = f"{msg['author']}: {msg['text']}"
+                print(f"💬 [CHAT] {chat_line}")
+                print(f"   ↳ Reply on-air: ytsay \"Hey {msg['author']}, thanks for tuning in!\"")
+                send_ntfy_notification(
+                    chat_line,
+                    title="💬 Honeybot Live Chat",
+                    priority="high",
+                    tags="speech_balloon",
+                    topic=resolved_topic,
+                )
+            cur_comments = state["comment_count"]
+            if prev_comments is not None and cur_comments is not None and cur_comments > prev_comments:
+                diff = cur_comments - prev_comments
+                c_msg = f"+{diff} new comment(s) on {state['title']} (total: {cur_comments})"
+                print(f"📝 [COMMENT] {c_msg}")
+                send_ntfy_notification(
+                    c_msg,
+                    title="📝 Honeybot Video Comment",
+                    priority="high",
+                    tags="memo",
+                    topic=resolved_topic,
+                )
+            prev_comments = cur_comments
+    except KeyboardInterrupt:
+        print("\n🛑 Stopped YouTube Watch.")
+        return 0
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pipulate article common utilities & broadcast kit.")
     add_standard_arguments(parser)
     parser.add_argument(
         "--broadcast",
-        choices=("card", "tweet", "title", "desc", "status", "bell", "stop", "start", "roll", "enable-ws", "say"),
+        choices=("card", "tweet", "title", "desc", "status", "bell", "stop", "start", "roll", "enable-ws", "say", "ping", "watch"),
         default="card",
-        help="Print/copy broadcast kit or control Honeybot (status|bell|stop|start|roll|enable-ws|say).",
+        help="Print/copy broadcast kit or control Honeybot (status|bell|stop|start|roll|enable-ws|say|ping|watch).",
     )
     parser.add_argument(
         "-s", "--slug",
@@ -870,12 +1260,52 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Print the .live_message JSON payload without sending over SSH.",
+        help="Print payload / verify parser without network side effects.",
+    )
+    parser.add_argument(
+        "--init",
+        action="store_true",
+        help="Mint and save a random PIPULATE_NTFY_TOPIC in ~/.config/pipulate/.env if unset.",
+    )
+    parser.add_argument(
+        "--topic",
+        type=str,
+        default=None,
+        help="Override PIPULATE_NTFY_TOPIC for --broadcast ping/watch.",
+    )
+    parser.add_argument(
+        "--title",
+        type=str,
+        default="Honeybot Live",
+        help="Notification title for --broadcast ping (default: 'Honeybot Live').",
+    )
+    parser.add_argument(
+        "--priority",
+        type=str,
+        default="default",
+        help="ntfy priority (min|low|default|high|urgent) for --broadcast ping.",
+    )
+    parser.add_argument(
+        "--channel",
+        type=str,
+        default=None,
+        help="YouTube channel URL/handle or video ID for --broadcast watch (saves PIPULATE_YT_CHANNEL).",
+    )
+    parser.add_argument(
+        "--loop",
+        action="store_true",
+        help="Continuously poll YouTube Live in --broadcast watch and push ntfy alerts.",
+    )
+    parser.add_argument(
+        "--interval",
+        type=int,
+        default=30,
+        help="Poll interval in seconds when --loop is active (default: 30).",
     )
     parser.add_argument(
         "message",
         nargs="*",
-        help="Spoken message words for --broadcast say.",
+        help="Spoken message words for say, push body for ping, or optional interval/channel for watch.",
     )
     cli_args = parser.parse_args()
     if cli_args.broadcast == "say":
@@ -887,6 +1317,39 @@ if __name__ == "__main__":
                 patronus_key=cli_args.patronus,
                 pre_pause=cli_args.pre,
                 linger=cli_args.linger,
+                dry_run=cli_args.dry_run,
+            )
+        )
+    if cli_args.broadcast == "ping":
+        msg_text = _read_from_clipboard() if cli_args.clip else " ".join(cli_args.message)
+        sys.exit(
+            send_ntfy_notification(
+                msg_text,
+                title=cli_args.title,
+                priority=cli_args.priority,
+                topic=cli_args.topic,
+                init_topic=cli_args.init,
+                dry_run=cli_args.dry_run,
+            )
+        )
+    if cli_args.broadcast == "watch":
+        watch_channel = cli_args.channel
+        watch_loop = cli_args.loop
+        watch_interval = cli_args.interval
+        if cli_args.message:
+            first_arg = cli_args.message[0].strip()
+            if first_arg.isdigit():
+                watch_interval = int(first_arg)
+                watch_loop = True
+            elif not watch_channel:
+                watch_channel = first_arg
+        sys.exit(
+            run_youtube_watch(
+                channel=watch_channel,
+                loop=watch_loop,
+                interval=watch_interval,
+                topic=cli_args.topic,
+                init_topic=cli_args.init,
                 dry_run=cli_args.dry_run,
             )
         )
