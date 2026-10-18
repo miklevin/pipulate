@@ -288,6 +288,10 @@
             shift
           fi
           if [ "$#" -eq 0 ]; then
+            if [ -n "$lastn" ] || [ "$vim_mode" -eq 1 ]; then
+              if [ "$vim_mode" -eq 1 ]; then last_args+=(-v); fi
+              exec ${postsCommand}/bin/posts -t "$target" "''${last_args[@]}"
+            fi
             echo "Usage: rgx [-t SPEC] [-v] [N] TERM [TERM...]   (SPEC = 4, grim, 1,3, grim,vault, 2-4 or all; leading N = only the N most recent matches; -v opens them in vim, newest first)" >&2
             exit 1
           fi
@@ -395,6 +399,10 @@
             shift
           fi
           if [ "$#" -eq 0 ]; then
+            if [ -n "$lastn" ] || [ "$vim_mode" -eq 1 ]; then
+              if [ "$vim_mode" -eq 1 ]; then last_args+=(-v); fi
+              exec ${postsCommand}/bin/posts -t "$target" --shards "''${last_args[@]}"
+            fi
             echo "Usage: rgxc [-t SPEC] [-v] [N] TERM [TERM...]   (SPEC = 4, grim, 1,3, grim,vault, 2-4 or all; leading N = only the N most recent matches; -v opens them in vim, newest first)" >&2
             exit 1
           fi
