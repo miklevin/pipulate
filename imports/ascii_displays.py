@@ -856,10 +856,10 @@ def _figurate_mechanical_man():
         ┌──────────────────────────────┐
         │   ⚙  THOUGHT    [ wound ✓ ]  │ ← key #1: the context compiler
         │   ⚙  SPEECH     [ wound ✓ ]  │ ← key #2: this very response
-        │   ⚙  ACTION     [    --    ]  │ ← key #3 not installed. See hook:
+        │   ⚙  ACTION     [    --   ]  │ ← key #3 not installed. See hook:
         └──────────────────────────────┘
                                             ┌────────────────┐
-             runs down mid-sentence;        │ 🔑  apply.py    │
+             runs down mid-sentence;        │ 🔑  apply.py   │
              rewound each morning by        │  AST airlock   │
              a human with a `foo` alias     │  human  [y/n]  │
                                             └────────────────┘
