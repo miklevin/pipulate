@@ -411,8 +411,14 @@ def create_jekyll_post(article_content, instructions, output_dir, preview_port, 
         analysis_markdown += f"\n### Ai Editorial Take\n{analysis_content['ai_editorial_take']}\n"
     if 'promotional_tweet' in analysis_content:
         analysis_markdown += f"\n### 🐦 X.com Promo Tweet\n```text\n{promo_text}\n```\n"
+    hero_prompt = str(analysis_content.get("hero_image_prompt") or "").strip()
+    hero_alt = str(analysis_content.get("hero_image_alt") or yaml_updates.get("title") or "").strip()
+    if hero_prompt:
+        safe_alt = hero_alt.replace('"', '\\"')
+        analysis_markdown += f"\n### 🎨 Hero Banner Image Prompt\n```text\n{hero_prompt}\n```\n"
+        analysis_markdown += f"\n### 🖼️ YAML Frontmatter Image Override\n```yaml\nimage:\n  path: /assets/images/{slug}.jpeg\n  alt: \"{safe_alt}\"\n```\n"
     for key, value in analysis_content.items():
-        if key in ['authors_imprint', 'ai_editorial_take', 'promotional_tweet']:
+        if key in ['authors_imprint', 'ai_editorial_take', 'promotional_tweet', 'hero_image_prompt', 'hero_image_alt']:
             continue
         title = key.replace('_', ' ').title()
         analysis_markdown += f"\n### {title}\n"

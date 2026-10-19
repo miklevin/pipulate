@@ -54,6 +54,8 @@ The JSON object must conform to the following schema:
   "book_analysis_content": {  
     "authors_imprint": "string",  
     "promotional_tweet": "string",
+    "hero_image_prompt": "string",
+    "hero_image_alt": "string",
     "title_brainstorm": [  
       {  
         "title": "string",  
@@ -90,6 +92,8 @@ The JSON object must conform to the following schema:
 * **book_analysis_content**: This top-level key contains all the valuable analysis that doesn't get edited into the file directly but is used for the book-writing process.  
   * authors_imprint: Populate with the first-person summary.  
   * promotional_tweet: Write promotional prose for X.com and put the literal [ARTICLE_URL] on its own line. Do not supply any other URL or Markdown link. articleizer.py replaces this marker with the post's canonical URL, or removes it when the target has no base URL. Include the 2 or 3 best hashtags, space allowing. Budget at most 280 characters INCLUDING the final URL, whose shape is [INSERT BASE URL][INSERT PERMALINK PATTERN].
+  * hero_image_prompt: Ride directly on the synthesis of your preferred title, slug, and description to write ONE vivid image-generation prompt for a wide 16:9 / 1.91:1 (1200x630 Open Graph) hero banner that captures the article's central technical metaphor. Keep the focal subject centered inside the 1200x630 safe zone against a dark obsidian-slate (#111111) aesthetic with high-contrast lighting, graphic-novel ink-and-wash precision, and explicitly NO text overlays or lettering.
+  * hero_image_alt: Write a concise, descriptive one-sentence alt-text string (under 125 characters, no double quotes) describing the visual scene in hero_image_prompt for Open Graph and screen-reader accessibility.
   * title_brainstorm: Populate with 3-5 title ideas, rationales and filenames. The first entry is the preferred choice and the sole source of the published slug. Each filename must be a lowercase alphanumeric/hyphen slug ending in .md, with no folder or date prefix; the writer adds the date.
   * content_potential_and_polish: Structure the "Core Strengths" and "Constructive Polish" suggestions here.  
   * ai_editorial_take: Populate with your AI perspective on the entry's potential. What surprised you most? Don't use the exact same thing as the previous AI participating in the dialogue. Find some absolutely new angle or perspective that isn't mentioned yet in the article.
