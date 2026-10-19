@@ -377,6 +377,32 @@ def get_broadcast_kit(target_key="1", slug_match=None):
         tweet = tweet_match.group(1).strip()
     else:
         tweet = f"{title}\n\n{canonical_url}"
+    slug = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", post_path.stem)
+    hero_match = re.search(
+        r"###\s*🎨\s*Hero Banner Image Prompt\s*\n```[a-zA-Z0-9]*\n(.*?)\n```",
+        body,
+        re.DOTALL,
+    )
+    if hero_match:
+        hero_prompt = hero_match.group(1).strip()
+    else:
+        hero_prompt = (
+            f"Wide 16:9 / 1.91:1 (1200x630 Open Graph) cinematic illustration for '{title}', "
+            "centered focal metaphor in the 1200x630 safe zone, dark obsidian-slate (#111111) "
+            "background, high-contrast cyan and warm brass lighting, graphic-novel ink-and-wash "
+            "precision, no text overlays."
+        )
+    yaml_match = re.search(
+        r"###\s*🖼️\s*YAML Frontmatter Image Override\s*\n```[a-zA-Z0-9]*\n(.*?)\n```",
+        body,
+        re.DOTALL,
+    )
+    if yaml_match:
+        hero_yaml = yaml_match.group(1).strip()
+    else:
+        safe_alt = title.replace('"', '\\"')
+        hero_yaml = f'image:\n  path: /assets/images/{slug}.jpeg\n  alt: "{safe_alt}"'
+    hero_img_dest = str(post_path.parent.parent / "assets" / "images" / f"{slug}.jpeg")
     tags = " ".join(re.findall(r"#[A-Za-z0-9_]+", tweet))
     yt_title = format_youtube_title(title)
     desc_parts = [
@@ -407,10 +433,14 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     preview_url = f"http://localhost:{preview_port}{permalink}"
     return {
         "path": str(post_path),
+        "slug": slug,
         "title": title,
         "canonical_url": canonical_url,
         "preview_url": preview_url,
         "tweet": tweet,
+        "hero_prompt": hero_prompt,
+        "hero_yaml": hero_yaml,
+        "hero_img_dest": hero_img_dest,
         "yt_title": yt_title,
         "yt_description": yt_description,
     }
@@ -436,11 +466,60 @@ def _copy_to_clipboard(text):
 
 
 def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
-    """Print or copy the broadcast kit (mode: card | tweet | title | desc)."""
+    """Print or copy the broadcast kit (mode: help | card | hero | yaml | tweet | title | desc)."""
+    bar = "=" * 72
+    thin = "-" * 72
     kit = get_broadcast_kit(target_key, slug_match=slug_match)
+    if mode == "help":
+        print(f"\n{bar}")
+        print("🚲 GO-GO-GADGET BROADCAST BICYCLE (Step-by-Step Muscle Memory)")
+        print(thin)
+        print("PHASE 1: ARTICLEIZE & HERO BANNER TLC (Before `publish`)")
+        print("  1. article          Sanitize clipboard + generate Jekyll post & prompts")
+        print("  2. ythero           📋 Copy AI Hero Banner Prompt -> generate 16:9 image")
+        print("  3. ytyaml           📋 Copy YAML `image:` override -> paste into post")
+        print("                      frontmatter while moving **TL;DR**: to top in vim")
+        print(thin)
+        print("PHASE 2: PUBLISH & SOCIAL PROMO (Ship to Honeybot)")
+        print("  4. preview          Run knowledge graph, hubs, llms.txt & post_nav")
+        print("  5. publish \"msg\"    Commit + push trimnoir, sync GDocs & Nginx routes")
+        print("  6. tweet            📋 Copy X.com Promo Tweet (canonical URL + tags)")
+        print(thin)
+        print("PHASE 3: YOUTUBE LIVE CUT-AND-ROLL (Slice VOD Episode on Honeybot)")
+        print("  7. yttitle          📋 Copy YouTube Live Title (<=100 chars) -> YT Studio")
+        print("  8. ytdesc           📋 Copy YouTube Live Description -> YT Studio")
+        print("  9. ytroll           🎬 Stop OBS -> 4s RTMP boundary -> Start OBS + bell")
+        print("                      (Also: ytroll stop | ytroll start | ytbell)")
+        print(thin)
+        print("PHASE 4: LIVE OBSERVATORY & AUDIENCE INTERACTION (While Streaming)")
+        print(" 10. ytstatus         📡 Check Honeybot OBS PID, port 4455 & timecode")
+        print(" 11. ytwatch          👀 Check live viewers & chat (`ytwatch daemon` / `--stop`)")
+        print(" 12. ytsay \"text\"     🎙️ Break in LIVE on-air (`-c \"CARD\"` `-p white_rabbit`)")
+        print(" 13. ytping \"text\"    📲 Send ntfy.sh push notification to your phone")
+        print(" 14. ytcard           📇 Reprint the full Broadcast Kit for the latest post")
+        if kit:
+            print(thin)
+            print(f"📄 Latest Post:   {Path(kit['path']).name}")
+            print(f"🖼️  Target Image:  {kit['hero_img_dest']}")
+            print(f"✏️  Edit Command:  vim {kit['path']}")
+        print(bar)
+        return 0
     if not kit:
         print("⚠️ No published post found for broadcast kit.")
         return 1
+    if mode == "hero":
+        copied = _copy_to_clipboard(kit["hero_prompt"])
+        print(kit["hero_prompt"])
+        print(f"\n{'📋 Copied Hero Banner Image Prompt to clipboard!' if copied else 'ℹ️  (Non-TTY: printed only)'}")
+        print(f"🖼️  Save/resize 1200x630 (<500 KB) to: {kit['hero_img_dest']}")
+        print("👉 Next step: type `ytyaml` to copy the YAML frontmatter block.")
+        return 0
+    if mode == "yaml":
+        copied = _copy_to_clipboard(kit["hero_yaml"])
+        print(kit["hero_yaml"])
+        print(f"\n{'📋 Copied YAML Frontmatter Image Override to clipboard!' if copied else 'ℹ️  (Non-TTY: printed only)'}")
+        print(f"✏️  Paste into frontmatter: vim {kit['path']}")
+        return 0
     if mode == "tweet":
         copied = _copy_to_clipboard(kit["tweet"])
         print(kit["tweet"])
@@ -456,10 +535,14 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
         print(kit["yt_description"])
         print(f"\n{'📋 Copied YouTube Live Description to clipboard!' if copied else 'ℹ️  (Non-TTY: printed only)'}")
         return 0
-    bar = "=" * 72
-    thin = "-" * 72
     print(f"\n{bar}")
     print(f"📡 GO-GO-GADGET BROADCAST KIT ({Path(kit['path']).name})")
+    print(thin)
+    print("🎨 HERO BANNER PROMPT (type `ythero` to copy):")
+    print(kit["hero_prompt"])
+    print(thin)
+    print("🖼️  YAML FRONTMATTER OVERRIDE (type `ytyaml` to copy):")
+    print(kit["hero_yaml"])
     print(thin)
     print("🐦 X.COM PROMO TWEET (type `tweet` to copy):")
     print(kit["tweet"])
@@ -470,7 +553,7 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
     print("📝 YOUTUBE LIVE DESCRIPTION (type `ytdesc` to copy):")
     print(kit["yt_description"])
     print(thin)
-    print("🎛️  Quick Words:  tweet | yttitle | ytdesc | ytcard | ytsay | ytwatch | ytping | ytroll | ytbell | ytstatus")
+    print("🎛️  Quick Words:  yt (help) | ythero | ytyaml | tweet | yttitle | ytdesc | ytcard | ytsay | ytwatch | ytping | ytroll | ytbell | ytstatus")
     print(thin)
     print(f"🔗 Preview URL:   {kit['preview_url']}")
     print(f"✏️  Edit Command:  vim {kit['path']}")
@@ -1378,9 +1461,9 @@ if __name__ == "__main__":
     add_standard_arguments(parser)
     parser.add_argument(
         "--broadcast",
-        choices=("card", "tweet", "title", "desc", "status", "bell", "stop", "start", "roll", "enable-ws", "say", "ping", "watch"),
+        choices=("help", "card", "hero", "yaml", "tweet", "title", "desc", "status", "bell", "stop", "start", "roll", "enable-ws", "say", "ping", "watch"),
         default="card",
-        help="Print/copy broadcast kit or control Honeybot (status|bell|stop|start|roll|enable-ws|say|ping|watch).",
+        help="Print/copy broadcast kit or control Honeybot (help|card|hero|yaml|tweet|title|desc|status|bell|stop|start|roll|enable-ws|say|ping|watch).",
     )
     parser.add_argument(
         "-s", "--slug",

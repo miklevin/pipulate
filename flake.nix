@@ -2483,6 +2483,9 @@ print('AI:\n', r.ai)
           # helpers for the X.com promo tweet and Mode B ("Cut-and-Roll")
           # YouTube Live Title & Description derived from the newest post,
           # plus remote Honeybot OBS WebSocket + .reading_trigger control.
+          yt()       { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast help   "$@"; }
+          ythero()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast hero   "$@"; }
+          ytyaml()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast yaml   "$@"; }
           ytcard()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast card   "$@"; }
           tweet()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast tweet  "$@"; }
           yttitle()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast title  "$@"; }
