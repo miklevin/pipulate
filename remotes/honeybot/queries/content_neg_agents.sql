@@ -1,5 +1,9 @@
 SELECT 
-    ua.value as agent, 
+    CASE
+        WHEN ua.value LIKE 'Claude-User (claude-code/%'
+        THEN 'Claude-User (claude-code/*; +https://support.anthropic.com/)'
+        ELSE ua.value
+    END as agent, 
     SUM(t.count) as total_reads
 FROM telemetry t
 JOIN ips i ON t.ip_id = i.id
@@ -30,5 +34,5 @@ WHERE t.served_md = 1
           ua.value LIKE '%Android%'
       )
   )
-GROUP BY ua.id
+GROUP BY agent
 ORDER BY total_reads DESC;

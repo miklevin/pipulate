@@ -23,6 +23,8 @@ from db import db, KNOWN_BOTS  # Import the list
 
 # --- Configuration ---
 STRIP_MOZILLA_PREFIX = False  # Set to True to save space in bottom panels
+HUD_TABLE_ROWS = 17           # Visible data rows in both bottom HUD tables (was 12; +5 rows)
+HUD_PANEL_HEIGHT = HUD_TABLE_ROWS + 4  # +4 rows for top border, panel title, header rule, and column headers
 
 # A hidden console to render styles into ANSI codes for the Log widget
 # We set a massive width to prevent the console from hard-wrapping the text before the Log widget gets it
@@ -49,26 +51,24 @@ class SonarApp(App):
 
     CSS = """
     Screen {
-        layout: grid;
-        grid-size: 1 6; 
+        layout: vertical;
         background: #0f1f27;
     }
 
-    /* TOP SECTION: Full Width Log Stream (Rows 1-4) */
+    /* TOP SECTION: Full Width Log Stream (auto-fills height above HUD) */
     #log_stream {
-        row-span: 4;
+        height: 1fr;
         background: #000000;
         color: #00ff00;
-        height: 100%;
         overflow-y: auto;   /* <-- RESTORES VERTICAL SCROLL & AUTO-SCROLLING */
         overflow-x: hidden; /* <-- KEEPS THE BOTTOM FLUSH */
         width: 100%;
         min-width: 100%;
     }
 
-    /* BOTTOM SECTION: The Intelligence Panel (Rows 5-6) */
+    /* BOTTOM SECTION: The Intelligence Panel (sized in unison by HUD_TABLE_ROWS) */
     #intelligence_panel {
-        row-span: 2;
+        height: __HUD_PANEL_HEIGHT__;
         border-top: solid cyan;
         background: #051515;
         padding: 0;
@@ -99,7 +99,7 @@ class SonarApp(App):
     
     /* Countdown moves to the footer area style override if needed, 
        but standard Footer widget handles it well. */
-    """
+    """.replace("__HUD_PANEL_HEIGHT__", str(HUD_PANEL_HEIGHT))
 
     TITLE = "Honeybot Live Observatory — https://mikelev.in (RFC 9110 Markdown vs. JS Trapdoor)"
 
@@ -201,7 +201,7 @@ class SonarApp(App):
         try:
             table = self.query_one("#js_table", DataTable)
             table.clear()
-            data = db.get_js_executors(limit=50) 
+            data = db.get_js_executors(limit=max(50, HUD_TABLE_ROWS))
             if not data:
                 table.add_row("-", "None", "Waiting for data...")
             else:
@@ -217,7 +217,7 @@ class SonarApp(App):
         try:
             table = self.query_one("#md_table", DataTable)
             table.clear()
-            data = db.get_content_neg_agents(limit=50)
+            data = db.get_content_neg_agents(limit=max(50, HUD_TABLE_ROWS))
             if not data:
                 table.add_row("-", "None", "Waiting for data...")
             else:

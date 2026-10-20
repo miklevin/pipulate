@@ -378,7 +378,13 @@ class HoneyDB:
         cur = conn.cursor()
         # Note: Strictly requires served_md=1, Accept: text/markdown, and non-local IPs
         sql = f"""
-            SELECT ua.value as agent, SUM(t.count) as total_reads
+            SELECT
+                CASE
+                    WHEN ua.value LIKE 'Claude-User (claude-code/%'
+                    THEN 'Claude-User (claude-code/*; +https://support.anthropic.com/)'
+                    ELSE ua.value
+                END as agent,
+                SUM(t.count) as total_reads
             FROM telemetry t
             JOIN ips i ON t.ip_id = i.id
             JOIN paths p ON t.path_id = p.id
@@ -391,7 +397,7 @@ class HoneyDB:
               AND i.value NOT LIKE '10.%'
               AND i.value NOT LIKE '192.168.%'
               {self._BROWSER_FILTER}
-            GROUP BY ua.id
+            GROUP BY agent
             ORDER BY total_reads DESC
             LIMIT ?
         """
