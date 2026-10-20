@@ -31,6 +31,13 @@ HUD_PANEL_HEIGHT = HUD_TABLE_ROWS + 4  # +4 rows for top border, panel title, he
 OFFSCREEN_CONSOLE = Console(force_terminal=True, color_system="truecolor", file=open(os.devnull, "w"), width=100000)
 
 BOT_STYLE = "bold orange1"  # Amazon Orange
+SPOOF_STYLE = "bold red"    # Cloaked / IP-spoofed bot identity
+SPOOF_PREFIX = "[SPOOFED-IP] "
+GOOGLE_IP_PREFIXES = (
+    "66.249.", "64.233.", "72.14.", "74.125.", "108.177.",
+    "142.250.", "142.251.", "172.217.", "173.194.", "192.178.",
+    "207.126.", "209.85.", "216.58.", "216.239.",
+)
 
 try:
     from db import db  # Import our new database singleton
@@ -134,6 +141,7 @@ class SonarApp(App):
     def on_mount(self) -> None:
         self.ua_counter = Counter()
         self.countdown_str = "--:--"
+        self.spoof_flip = False
         self.stream_logs()
         
         # Setup Tables (Now with 3 columns!)
@@ -156,7 +164,11 @@ class SonarApp(App):
         self.set_interval(1, self.update_countdown)
         self.set_interval(5, self.refresh_tables)
 
-    def stylize_agent(self, agent_str):
+    def is_spoofed_bot(self, ip_str, ua_str):
+        """True when a request claims Googlebot from outside Google's crawler IP blocks."""
+        return "Googlebot" in (ua_str or "") and not str(ip_str or "").startswith(GOOGLE_IP_PREFIXES)
+
+    def stylize_agent(self, agent_str, is_spoof=False):
         """Converts a raw UA string into a Rich Text object with highlights."""
         agent_str = agent_str.strip()
         text = Text(agent_str)
@@ -166,36 +178,44 @@ class SonarApp(App):
         if ("Mozilla" in agent_str or "AppleWebKit" in agent_str) and "compatible" not in agent_str:
             text.stylize("dim white")
             
-        # Highlight ANY known bot
+        # Highlight ANY known bot (Red if IP-spoofed, Orange if genuine)
+        hl_style = SPOOF_STYLE if is_spoof else BOT_STYLE
         for bot_name in KNOWN_BOTS:
             if bot_name in agent_str:
-                text.highlight_regex(re.escape(bot_name), BOT_STYLE)
+                text.highlight_regex(re.escape(bot_name), hl_style)
                 
         return text
 
     def extract_and_stylize(self, agent_str):
         """Returns a tuple: (Styled Identity, Dimmed Full String)"""
-        agent_str = agent_str.strip().replace("Mozilla/5.0 ", "")
+        raw = agent_str.strip()
+        is_spoof = raw.startswith(SPOOF_PREFIX)
+        if is_spoof:
+            raw = raw[len(SPOOF_PREFIX):].strip()
+        clean_ua = raw.replace("Mozilla/5.0 ", "")
         
         identity = "Unknown"
         identity_style = "dim white"
         
         # Find the specific Bot Identity
         for bot_name in KNOWN_BOTS:
-            if bot_name in agent_str:
+            if bot_name in clean_ua:
                 identity = bot_name
-                identity_style = "bold orange1"
+                identity_style = SPOOF_STYLE if is_spoof else BOT_STYLE
                 break
+        if is_spoof and getattr(self, "spoof_flip", False):
+            identity = "Cloaking"
                 
-        # Format the outputs
+        # Format the outputs: Raw Signature stays honest to the wire, colored red when spoofed
         id_text = Text(identity, style=identity_style)
-        full_text = Text(agent_str, style="dim green")
+        full_text = Text(clean_ua, style="red" if is_spoof else "dim green")
         
         return id_text, full_text
 
     def refresh_tables(self):
         """Updates both Intelligence tables from DB."""
         if not db: return
+        self.spoof_flip = not getattr(self, "spoof_flip", False)
         
         # 1. Update JS Executors (Left)
         try:
@@ -350,10 +370,11 @@ class SonarApp(App):
         method, path = self.parse_request(data['request'])
         
         ua = data['ua']
+        is_spoof = self.is_spoofed_bot(data.get('ip'), ua)
         
         # 1. Get the base styled text from our helper
         # This handles the dimming of Mozilla AND the regex highlighting of Bots
-        ua_text = self.stylize_agent(ua)
+        ua_text = self.stylize_agent(ua, is_spoof=is_spoof)
         
         # 2. Add the prefix icon manually (since stylize_agent just does text)
         prefix = ""
@@ -362,10 +383,10 @@ class SonarApp(App):
         elif "python" in ua.lower():
             prefix = "🔧 "
         
-        # Check if any known bot is in there to add the Robot Icon
+        # Check if any known bot is in there to add the Robot (or Cloaking) Icon
         for bot_name in KNOWN_BOTS:
             if bot_name in ua:
-                prefix = "🤖 "
+                prefix = "🎭 " if is_spoof else "🤖 "
                 break
 
         # Dynamic styling for the requested path

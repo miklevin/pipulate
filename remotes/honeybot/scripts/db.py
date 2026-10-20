@@ -307,19 +307,44 @@ class HoneyDB:
         cur.execute(sql)
         return cur.fetchall()
 
+    _GOOGLEBOT_SPOOF_COND = """
+        ua.value LIKE '%Googlebot%'
+        AND i.value NOT LIKE '66.249.%'
+        AND i.value NOT LIKE '64.233.%'
+        AND i.value NOT LIKE '72.14.%'
+        AND i.value NOT LIKE '74.125.%'
+        AND i.value NOT LIKE '108.177.%'
+        AND i.value NOT LIKE '142.250.%'
+        AND i.value NOT LIKE '142.251.%'
+        AND i.value NOT LIKE '172.217.%'
+        AND i.value NOT LIKE '173.194.%'
+        AND i.value NOT LIKE '192.178.%'
+        AND i.value NOT LIKE '207.126.%'
+        AND i.value NOT LIKE '209.85.%'
+        AND i.value NOT LIKE '216.58.%'
+        AND i.value NOT LIKE '216.239.%'
+    """
+
     def get_js_executors(self, limit=20): 
         conn = self.get_conn()
         cur = conn.cursor()
         # We explicitly look for the js_confirm.gif trapdoor.
         # We dropped mathjax and d3.js because they don't prove CAPTCHA execution.
         sql = f"""
-            SELECT ua.value, SUM(logs.count) as total
+            SELECT
+                CASE
+                    WHEN {self._GOOGLEBOT_SPOOF_COND}
+                    THEN '[SPOOFED-IP] ' || ua.value
+                    ELSE ua.value
+                END as agent,
+                SUM(logs.count) as total
             FROM daily_logs logs
+            JOIN ips i ON logs.ip_id = i.id
             JOIN user_agents ua ON logs.ua_id = ua.id
             JOIN paths p ON logs.path_id = p.id
             WHERE p.value LIKE '%js_confirm.gif%'
               {self._BROWSER_FILTER}  /* Apply Noise Filter */
-            GROUP BY ua.id
+            GROUP BY agent
             ORDER BY total DESC
             LIMIT ?
         """
@@ -382,6 +407,8 @@ class HoneyDB:
                 CASE
                     WHEN ua.value LIKE 'Claude-User (claude-code/%'
                     THEN 'Claude-User (claude-code/*; +https://support.anthropic.com/)'
+                    WHEN {self._GOOGLEBOT_SPOOF_COND}
+                    THEN '[SPOOFED-IP] ' || ua.value
                     ELSE ua.value
                 END as agent,
                 SUM(t.count) as total_reads

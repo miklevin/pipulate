@@ -2,6 +2,22 @@ SELECT
     CASE
         WHEN ua.value LIKE 'Claude-User (claude-code/%'
         THEN 'Claude-User (claude-code/*; +https://support.anthropic.com/)'
+        WHEN ua.value LIKE '%Googlebot%'
+         AND i.value NOT LIKE '66.249.%'
+         AND i.value NOT LIKE '64.233.%'
+         AND i.value NOT LIKE '72.14.%'
+         AND i.value NOT LIKE '74.125.%'
+         AND i.value NOT LIKE '108.177.%'
+         AND i.value NOT LIKE '142.250.%'
+         AND i.value NOT LIKE '142.251.%'
+         AND i.value NOT LIKE '172.217.%'
+         AND i.value NOT LIKE '173.194.%'
+         AND i.value NOT LIKE '192.178.%'
+         AND i.value NOT LIKE '207.126.%'
+         AND i.value NOT LIKE '209.85.%'
+         AND i.value NOT LIKE '216.58.%'
+         AND i.value NOT LIKE '216.239.%'
+        THEN '[SPOOFED-IP] ' || ua.value
         ELSE ua.value
     END as agent, 
     SUM(t.count) as total_reads
