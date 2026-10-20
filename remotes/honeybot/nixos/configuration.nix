@@ -211,7 +211,8 @@
                             '"$request" $status $body_bytes_sent '
                             '"$http_referer" "$http_user_agent" '
                             'Accept:"$http_accept" MarkdownServed:$serve_markdown '
-                            'Host:"$host"';
+                            'Host:"$host" '
+                            'Sig:"$http_signature_agent"';
       access_log /var/log/nginx/access.log ai_tracker;
     '';
 
