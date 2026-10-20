@@ -70,6 +70,7 @@ def update_homepage_recent_posts(posts_dir, target_repo_root, count=10):
     dated.sort(key=common._post_sort_key)
     recent = dated[-count:][::-1]
     cards = ['<div class="recent-posts-grid">']
+    stage_rel_paths = ["index.md"]
     for post_path in recent:
         raw = post_path.read_text(encoding="utf-8", errors="ignore")
         fm = {}
@@ -98,6 +99,10 @@ def update_homepage_recent_posts(posts_dir, target_repo_root, count=10):
             raw_img = "/assets/images/AI_Readiness_Consultant_RFC_9111.png"
             raw_alt = title
         thumb_url = _ensure_post_thumbnail(target_repo_root, raw_img)
+        for rel_candidate in (raw_img, thumb_url):
+            clean_rel = (rel_candidate or "").strip().lstrip("/")
+            if clean_rel and (target_repo_root / clean_rel).is_file():
+                stage_rel_paths.append(clean_rel)
         esc_title = html.escape(title, quote=True)
         esc_alt = html.escape(raw_alt, quote=True)
         esc_summary = html.escape(summary, quote=True)
@@ -123,6 +128,17 @@ def update_homepage_recent_posts(posts_dir, target_repo_root, count=10):
         if new_idx != idx_text:
             index_path.write_text(new_idx, encoding="utf-8")
         print(f"🖼️  Updated {len(recent)} recent post thumbnails in {index_path}")
+        if (target_repo_root / ".git").exists():
+            import subprocess
+            unique_stage = list(dict.fromkeys(stage_rel_paths))
+            res = subprocess.run(
+                ["git", "-C", str(target_repo_root), "add", "--", *unique_stage],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if res.returncode == 0:
+                print(f"📌 Surgically staged {len(unique_stage)} homepage/image asset(s) in {target_repo_root.name} git index.")
 
 
 def clean_and_prep_dirs(hubs_dir):

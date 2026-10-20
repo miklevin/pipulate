@@ -423,6 +423,7 @@ def get_broadcast_kit(target_key="1", slug_match=None):
         "You are watching real-time Nginx access logs and AI crawler telemetry from mikelev.in.",
         "• Agents sending 'Accept: text/markdown' (RFC 9110) receive clean raw Markdown.",
         "• Agents executing JavaScript trigger the DOM trapdoor sensor.",
+        "• Zero-Agent Airlock: Deterministic NixOS + Piper TTS player piano (chat reaches a human, never an LLM shell).",
         f"• AI Context Manifest: {base_url}/llms.txt",
         "• Stack: NPvg (Nix, Python, Neovim, Git) — https://pipulate.com | https://qamy.ai",
     ])
