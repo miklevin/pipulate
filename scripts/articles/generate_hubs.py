@@ -257,11 +257,18 @@ def main():
 
     print(f"🚀 Generating Hubs for: {target_repo_root.name}")
     
-    if not NAVGRAPH_FILE.exists():
-        print(f"❌ Error: {NAVGRAPH_FILE} not found.")
+    update_homepage_recent_posts(posts_dir, target_repo_root, count=10)
+    navgraph_candidates = [
+        NAVGRAPH_FILE,
+        Path(__file__).resolve().parent / "navgraph.json",
+        target_repo_root / "navgraph.json",
+    ]
+    navgraph_path = next((p for p in navgraph_candidates if p.is_file()), None)
+    if not navgraph_path:
+        print(f"ℹ️  {NAVGRAPH_FILE} not in working dir; recent posts updated (run `preview` for full hub rebuild).")
         return
 
-    with open(NAVGRAPH_FILE, 'r', encoding='utf-8') as f:
+    with open(navgraph_path, 'r', encoding='utf-8') as f:
         nav_tree = json.load(f)
 
     clean_and_prep_dirs(hubs_dir)
@@ -283,7 +290,6 @@ def main():
             recurse(child, next_parents)
 
     recurse(nav_tree)
-    update_homepage_recent_posts(posts_dir, target_repo_root, count=10)
 
 
 if __name__ == "__main__":
