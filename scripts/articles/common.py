@@ -1653,6 +1653,17 @@ def run_youtube_watch(
         return 0
 
 
+def _parse_yt_view_count(raw_str):
+    """Parse view count strings like '1,420 views', '678', or '1.2K views' into an integer."""
+    s = (raw_str or "").strip().upper().replace(",", "")
+    m = re.search(r"(\d+(?:\.\d+)?)\s*([KMB])?", s)
+    if not m:
+        return 0
+    val = float(m.group(1))
+    mult = {"K": 1_000, "M": 1_000_000, "B": 1_000_000_000}.get(m.group(2) or "", 1)
+    return int(round(val * mult))
+
+
 def fetch_youtube_top_videos(channel_or_url=None, limit=12, dry_run=False):
     """Keyless HitTail-style leaderboard of top-performing YouTube videos & live streams."""
     import urllib.request
@@ -1737,10 +1748,17 @@ def fetch_youtube_top_videos(channel_or_url=None, limit=12, dry_run=False):
                                 txt = str((part.get("text") or {}).get("content") or "").strip()
                                 if txt:
                                     parts_text.append(txt)
-                vc_raw = next((p for p in parts_text if "view" in p.lower() or "watching" in p.lower()), "")
-                pub_raw = next((p for p in parts_text if p != vc_raw), "LIVE/Recent")
-                digits = re.sub(r"[^\d]", "", vc_raw)
-                views = int(digits) if digits else 0
+                vc_raw = next(
+                    (
+                        p for p in parts_text
+                        if "view" in p.lower()
+                        or "watching" in p.lower()
+                        or re.match(r"^\d[\d,\.]*\s*[KMBkmb]?$", p)
+                    ),
+                    "",
+                )
+                pub_raw = next((p for p in parts_text if p != vc_raw), "VOD")
+                views = _parse_yt_view_count(vc_raw)
                 len_raw = "LIVE"
                 for sub in _walk_dicts(lvm.get("contentImage") or {}):
                     tb = sub.get("thumbnailBadgeViewModel")
