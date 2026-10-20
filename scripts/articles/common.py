@@ -497,7 +497,7 @@ def ensure_indexnow_key_file(target_key="1"):
         existing = key_file.read_text(encoding="utf-8").strip() if key_file.is_file() else ""
         if existing != key:
             key_file.write_text(key + "\n", encoding="utf-8")
-            print(f"🔑 Materialized IndexNow verification file: {key_file}")
+            print(f"🔑 Materialized IndexNow verification file: {repo_root}/{key[:8]}....txt")
     return key, key_file
 
 
@@ -525,10 +525,11 @@ def drop_pebble_pings(target_key="1", slug_match=None, dry_run=False):
     wb_save_url = f"https://web.archive.org/save/{canonical_url}"
     if dry_run:
         masked_key = f"{key[:8]}..." if key else "NONE"
+        masked_file = f"{key_file.parent}/{key[:8]}....txt" if key_file and key else str(key_file)
         print(f"🪨 [DRY RUN] Pebble-Drop Wire Pings ({Path(kit['path']).name}):")
         print(f"   • Wayback Save : GET {wb_save_url}")
         print(f"   • IndexNow POST: https://api.indexnow.org/indexnow (host={parsed_host}, key={masked_key}, urls={len(url_list)})")
-        print(f"   • Key File     : {key_file} (exists={bool(key_file and key_file.is_file())})")
+        print(f"   • Key File     : {masked_file} (exists={bool(key_file and key_file.is_file())})")
         return 0
     results = {}
 
