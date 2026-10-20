@@ -221,6 +221,13 @@ def sync_observatory_metrics(target_key, target_path, verbose=False):
         )
         if n and new_idx != idx_text:
             index_file.write_text(new_idx, encoding="utf-8")
+    if (repo_root / ".git").exists():
+        subprocess.run(
+            ["git", "-C", str(repo_root), "add", "--", "_data/observatory.json", "index.md"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
     print(f"🔭 AI Observatory metrics synced: {md_count_fmt} RFC 9110 Markdown reads ({md_pct_s}%), {hyd_trig_fmt} JS trapdoor triggers ({fetched_at}).")
 
 def main():
