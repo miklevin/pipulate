@@ -429,15 +429,28 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     if tags:
         desc_parts.extend(["", tags])
     yt_description = _yt_sanitize("\n".join(desc_parts).strip())
+    li_parts = [f"🚀 {title}"]
+    if imprint:
+        li_parts.extend(["", imprint])
+    elif meta_desc:
+        li_parts.extend(["", meta_desc])
+    if meta_desc and imprint and meta_desc != imprint:
+        li_parts.extend(["", f"TL;DR: {meta_desc}"])
+    li_parts.extend(["", f"📖 Full article & code receipts: {canonical_url}"])
+    if tags:
+        li_parts.extend(["", tags])
+    linkedin_post = "\n".join(li_parts).strip()
     preview_port = tcfg.get("preview_port", 4001)
     preview_url = f"http://localhost:{preview_port}{permalink}"
     return {
         "path": str(post_path),
         "slug": slug,
         "title": title,
+        "base_url": base_url,
         "canonical_url": canonical_url,
         "preview_url": preview_url,
         "tweet": tweet,
+        "linkedin": linkedin_post,
         "hero_prompt": hero_prompt,
         "hero_yaml": hero_yaml,
         "hero_img_dest": hero_img_dest,
@@ -465,8 +478,124 @@ def _copy_to_clipboard(text):
         return False
 
 
+def ensure_indexnow_key_file(target_key="1"):
+    """Ensure a 32-hex IndexNow key is in ~/.config/pipulate/.env and materialized in the target site root."""
+    import secrets
+    targets = load_targets()
+    tcfg = targets.get(str(target_key), targets.get("1", DEFAULT_TARGETS["1"]))
+    base_url = str(tcfg.get("base_url") or "").strip().rstrip("/")
+    if not base_url.startswith("https://"):
+        return "", None
+    key = _get_vault_var("PIPULATE_INDEXNOW_KEY").strip()
+    if not re.match(r"^[a-fA-F0-9]{16,64}$", key):
+        key = secrets.token_hex(16)
+        _save_vault_var("PIPULATE_INDEXNOW_KEY", key)
+    posts_dir = Path(tcfg["path"]).expanduser()
+    repo_root = posts_dir.parent
+    key_file = repo_root / f"{key}.txt"
+    if repo_root.is_dir():
+        existing = key_file.read_text(encoding="utf-8").strip() if key_file.is_file() else ""
+        if existing != key:
+            key_file.write_text(key + "\n", encoding="utf-8")
+            print(f"🔑 Materialized IndexNow verification file: {key_file}")
+    return key, key_file
+
+
+def drop_pebble_pings(target_key="1", slug_match=None, dry_run=False):
+    """Fire non-blocking Wayback Machine + IndexNow pebble-drop pings for the latest post."""
+    import threading
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    kit = get_broadcast_kit(target_key, slug_match=slug_match)
+    if not kit:
+        print("⚠️ No published post found for pebble-drop pings.")
+        return 1
+    canonical_url = kit["canonical_url"]
+    base_url = kit.get("base_url") or "https://mikelev.in"
+    parsed_host = urllib.parse.urlparse(canonical_url).netloc or "mikelev.in"
+    key, key_file = ensure_indexnow_key_file(target_key)
+    key_loc = f"{base_url}/{key}.txt" if key else ""
+    url_list = [
+        canonical_url,
+        f"{canonical_url.rstrip('/')}/index.md",
+        f"{base_url}/llms.txt",
+        f"{base_url}/sitemap.xml",
+    ]
+    wb_save_url = f"https://web.archive.org/save/{canonical_url}"
+    if dry_run:
+        masked_key = f"{key[:8]}..." if key else "NONE"
+        print(f"🪨 [DRY RUN] Pebble-Drop Wire Pings ({Path(kit['path']).name}):")
+        print(f"   • Wayback Save : GET {wb_save_url}")
+        print(f"   • IndexNow POST: https://api.indexnow.org/indexnow (host={parsed_host}, key={masked_key}, urls={len(url_list)})")
+        print(f"   • Key File     : {key_file} (exists={bool(key_file and key_file.is_file())})")
+        return 0
+    results = {}
+
+    def _ping_wayback():
+        req = urllib.request.Request(
+            wb_save_url,
+            headers={"User-Agent": f"pipulate-pebble/1.0 (+{base_url})"},
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                status = getattr(resp, "status", 200)
+                results["wayback"] = f"✅ HTTP {status} (snapshot recorded -> https://web.archive.org/web/*/{canonical_url})"
+        except urllib.error.HTTPError as exc:
+            if exc.code in (200, 201, 202, 301, 302):
+                results["wayback"] = f"✅ HTTP {exc.code} (snapshot recorded -> https://web.archive.org/web/*/{canonical_url})"
+            else:
+                results["wayback"] = f"ℹ️  HTTP {exc.code} ({exc.reason})"
+        except Exception:
+            results["wayback"] = f"⏳ Dispatched (archiving in background -> https://web.archive.org/web/*/{canonical_url})"
+
+    def _ping_indexnow():
+        if not key:
+            results["indexnow"] = "⏭️  Skipped (non-HTTPS target)"
+            return
+        payload = {
+            "host": parsed_host,
+            "key": key,
+            "keyLocation": key_loc,
+            "urlList": url_list,
+        }
+        req = urllib.request.Request(
+            "https://api.indexnow.org/indexnow",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json; charset=utf-8",
+                "User-Agent": f"pipulate-pebble/1.0 (+{base_url})",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                status = getattr(resp, "status", 200)
+                results["indexnow"] = f"✅ HTTP {status} ({len(url_list)} URLs -> Bing / IndexNow)"
+        except urllib.error.HTTPError as exc:
+            if exc.code in (200, 202):
+                results["indexnow"] = f"✅ HTTP {exc.code} ({len(url_list)} URLs -> Bing / IndexNow)"
+            else:
+                results["indexnow"] = f"ℹ️  HTTP {exc.code} ({exc.reason})"
+        except Exception as exc:
+            results["indexnow"] = f"⚠️ {exc}"
+
+    t_wb = threading.Thread(target=_ping_wayback, daemon=True)
+    t_in = threading.Thread(target=_ping_indexnow, daemon=True)
+    t_wb.start()
+    t_in.start()
+    t_in.join(timeout=6.5)
+    t_wb.join(timeout=6.5)
+    print(f"🪨 Pebble-Drop Wire Pings ({canonical_url}):")
+    print(f"   • IndexNow (Bing/Yandex/Yep): {results.get('indexnow', '⏳ Dispatched')}")
+    print(f"   • Wayback Machine (Archive) : {results.get('wayback', f'⏳ Dispatched -> https://web.archive.org/web/*/{canonical_url}')}")
+    print(f"   • GSC URL Inspection        : https://search.google.com/search-console/inspect?resource_id=sc-domain:{parsed_host}")
+    return 0
+
+
 def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
-    """Print or copy the broadcast kit (mode: help | card | hero | yaml | tweet | title | desc)."""
+    """Print or copy the broadcast kit (mode: help | card | hero | yaml | tweet | linkedin | title | desc)."""
     bar = "=" * 72
     thin = "-" * 72
     kit = get_broadcast_kit(target_key, slug_match=slug_match)
@@ -480,23 +609,25 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
         print("  3. ytyaml           📋 Copy YAML `image:` override -> paste into post")
         print("                      frontmatter while moving **TL;DR**: to top in vim")
         print(thin)
-        print("PHASE 2: PUBLISH & SOCIAL PROMO (Ship to Honeybot)")
+        print("PHASE 2: PUBLISH, WIRE PINGS & SOCIAL PROMO (Ship to Honeybot)")
         print("  4. preview          Run knowledge graph, hubs, llms.txt & post_nav")
-        print("  5. publish \"msg\"    Commit + push trimnoir, sync GDocs & Nginx routes")
+        print("  5. publish \"msg\"    Commit + push trimnoir, sync GDocs & auto-ping wire")
         print("  6. tweet            📋 Copy X.com Promo Tweet (canonical URL + tags)")
+        print("  7. linkedin         📋 Copy LinkedIn Promo Post (imprint + TL;DR + URL)")
+        print("  8. ytpebble         🪨 Re-run Wayback + IndexNow wire pings (--dry-run)")
         print(thin)
         print("PHASE 3: YOUTUBE LIVE CUT-AND-ROLL (Slice VOD Episode on Honeybot)")
-        print("  7. yttitle          📋 Copy YouTube Live Title (<=100 chars) -> YT Studio")
-        print("  8. ytdesc           📋 Copy YouTube Live Description -> YT Studio")
-        print("  9. ytroll           🎬 Stop OBS -> 4s RTMP boundary -> Start OBS + bell")
+        print("  9. yttitle          📋 Copy YouTube Live Title (<=100 chars) -> YT Studio")
+        print(" 10. ytdesc           📋 Copy YouTube Live Description -> YT Studio")
+        print(" 11. ytroll           🎬 Stop OBS -> 4s RTMP boundary -> Start OBS + bell")
         print("                      (Also: ytroll stop | ytroll start | ytbell)")
         print(thin)
         print("PHASE 4: LIVE OBSERVATORY & AUDIENCE INTERACTION (While Streaming)")
-        print(" 10. ytstatus         📡 Check Honeybot OBS PID, port 4455 & timecode")
-        print(" 11. ytwatch          👀 Check live viewers & chat (`ytwatch daemon` / `--stop`)")
-        print(" 12. ytsay \"text\"     🎙️ Break in LIVE on-air (`-c \"CARD\"` `-p white_rabbit`)")
-        print(" 13. ytping \"text\"    📲 Send ntfy.sh push notification to your phone")
-        print(" 14. ytcard           📇 Reprint the full Broadcast Kit for the latest post")
+        print(" 12. ytstatus         📡 Check Honeybot OBS PID, port 4455 & timecode")
+        print(" 13. ytwatch          👀 Check live viewers & chat (`ytwatch daemon` / `--stop`)")
+        print(" 14. ytsay \"text\"     🎙️ Break in LIVE on-air (`-c \"CARD\"` `-p white_rabbit`)")
+        print(" 15. ytping \"text\"    📲 Send ntfy.sh push notification to your phone")
+        print(" 16. ytcard           📇 Reprint the full Broadcast Kit for the latest post")
         if kit:
             print(thin)
             print(f"📄 Latest Post:   {Path(kit['path']).name}")
@@ -525,6 +656,11 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
         print(kit["tweet"])
         print(f"\n{'📋 Copied X.com Promo Tweet to clipboard!' if copied else 'ℹ️  (Non-TTY: printed only)'}")
         return 0
+    if mode == "linkedin":
+        copied = _copy_to_clipboard(kit["linkedin"])
+        print(kit["linkedin"])
+        print(f"\n{'📋 Copied LinkedIn Promo Post to clipboard!' if copied else 'ℹ️  (Non-TTY: printed only)'}")
+        return 0
     if mode == "title":
         copied = _copy_to_clipboard(kit["yt_title"])
         print(kit["yt_title"])
@@ -547,13 +683,16 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
     print("🐦 X.COM PROMO TWEET (type `tweet` to copy):")
     print(kit["tweet"])
     print(thin)
+    print("💼 LINKEDIN PROMO POST (type `linkedin` to copy):")
+    print(kit["linkedin"])
+    print(thin)
     print(f"📺 YOUTUBE LIVE TITLE [{len(kit['yt_title'])}/{YT_TITLE_LIMIT} chars] (type `yttitle` to copy):")
     print(kit["yt_title"])
     print(thin)
     print("📝 YOUTUBE LIVE DESCRIPTION (type `ytdesc` to copy):")
     print(kit["yt_description"])
     print(thin)
-    print("🎛️  Quick Words:  yt (help) | ythero | ytyaml | tweet | yttitle | ytdesc | ytcard | ytsay | ytwatch | ytping | ytroll | ytbell | ytstatus")
+    print("🎛️  Quick Words:  yt (help) | ythero | ytyaml | tweet | linkedin | ytpebble | yttitle | ytdesc | ytcard | ytsay | ytwatch | ytping | ytroll | ytbell | ytstatus")
     print(thin)
     print(f"🔗 Preview URL:   {kit['preview_url']}")
     print(f"✏️  Edit Command:  vim {kit['path']}")
@@ -1461,9 +1600,9 @@ if __name__ == "__main__":
     add_standard_arguments(parser)
     parser.add_argument(
         "--broadcast",
-        choices=("help", "card", "hero", "yaml", "tweet", "title", "desc", "status", "bell", "stop", "start", "roll", "enable-ws", "say", "ping", "watch"),
+        choices=("help", "card", "hero", "yaml", "tweet", "linkedin", "pebble", "title", "desc", "status", "bell", "stop", "start", "roll", "enable-ws", "say", "ping", "watch"),
         default="card",
-        help="Print/copy broadcast kit or control Honeybot (help|card|hero|yaml|tweet|title|desc|status|bell|stop|start|roll|enable-ws|say|ping|watch).",
+        help="Print/copy broadcast kit or control Honeybot (help|card|hero|yaml|tweet|linkedin|pebble|title|desc|status|bell|stop|start|roll|enable-ws|say|ping|watch).",
     )
     parser.add_argument(
         "-s", "--slug",
@@ -1622,6 +1761,8 @@ if __name__ == "__main__":
                 dry_run=cli_args.dry_run,
             )
         )
+    if cli_args.broadcast == "pebble":
+        sys.exit(drop_pebble_pings(cli_args.target, slug_match=cli_args.slug, dry_run=cli_args.dry_run))
     if cli_args.broadcast in ("status", "bell", "stop", "start", "roll", "enable-ws"):
         sys.exit(run_honeybot_obs(cli_args.broadcast))
     sys.exit(print_broadcast_kit(cli_args.target, cli_args.broadcast, slug_match=cli_args.slug))

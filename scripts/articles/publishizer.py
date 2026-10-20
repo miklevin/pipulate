@@ -188,6 +188,7 @@ def main():
     # 1.5 THE BRANDING SWEEP (Run this right before the JIU-JITSU Sweep!)
     brand_markdown_files(target_path, verbose=args.verbose)
     prune_orphan_shards(target_path, verbose=args.verbose)
+    common.ensure_indexnow_key_file(target_key)
 
     # 2. Run the sequence
     total_start = time.time()

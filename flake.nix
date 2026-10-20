@@ -2486,8 +2486,10 @@ print('AI:\n', r.ai)
           yt()       { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast help   "$@"; }
           ythero()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast hero   "$@"; }
           ytyaml()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast yaml   "$@"; }
-          ytcard()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast card   "$@"; }
-          tweet()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast tweet  "$@"; }
+          ytcard()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast card     "$@"; }
+          tweet()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast tweet    "$@"; }
+          linkedin() { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast linkedin "$@"; }
+          ytpebble() { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast pebble   "$@"; }
           yttitle()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast title  "$@"; }
           ytdesc()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast desc   "$@"; }
           ytstatus() { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast status "$@"; }
@@ -2550,6 +2552,7 @@ print('AI:\n', r.ai)
             TARGET_REPO="$HOME/repos/trimnoir"
             
             echo "🚀 [1/5] Payload Delivery: Committing and Pushing $TARGET_REPO..."
+            "$PIPULATE_ROOT/.venv/bin/python" -c "import sys; sys.path.insert(0, '$PIPULATE_ROOT/scripts/articles'); import common; common.ensure_indexnow_key_file('1')" || true
             # Execute in a subshell to avoid stranding the user's terminal
             (
                 cd "$TARGET_REPO" || exit 1
@@ -2596,6 +2599,7 @@ print('AI:\n', r.ai)
                     if [ "$REBOOT" -ne 1 ]; then
                         echo "⏭️  [5/5] Skipped -- stream.py left running. Pass --reboot to force the restart now."
                         echo "✅ Atomic Deployment Complete (stream untouched)."
+                        "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast pebble || true
                         "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast card || true
                         return 0
                     fi
@@ -2656,6 +2660,7 @@ print('AI:\n', r.ai)
                         fi
                     '
                     echo "✅ Atomic Deployment Complete."
+                    "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast pebble || true
                     "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast card || true
                 else
                     echo "⚠️ Warning: nixops.sh not found. Server config sync skipped."
